@@ -18,7 +18,7 @@ _FDTFW 프로젝트_ 는 2022년 4월 시작하였습니다.
 [AUTHORS.md](AUTHORS.md)를 참조하세요.
 
 ### License
-[LGPV v2.1](LICENSE.md)를 참조하세요.
+[LGPV v2.1](LICENSE_KR.md)를 참조하세요.
 
 ### Acknowledgement
 The authors thank the following contributors and projects.
