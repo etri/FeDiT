@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/layout}">
+
+<head>
+    <title th:text="${breadcrumb.menu_nm}">게시판관리</title>
+    <!--임시css-->
+    <!-- <link rel="stylesheet" href="../../../assets/css/temp.css"> -->
+    
+    
+</head>
+<div layout:fragment="content">
+    <div id="loading" style="margin-left: 0px;display: none;">
+        <img th:src="@{/assets/images/ajax-loading.gif}">
+    </div>
+    <nav th:replace="fragments/page_breadcrumb"></nav>
+    <form name="editForm" id="editForm" th:action="@{|/augment/model/form|}" th:object="${augmentModel}" method="post">
+        <input type="hidden" name="formType" id="formType" th:value="${formType}">
+        <input type="hidden" name="menuCd" th:value="${menuCd}">
+        <input type="hidden" name="pageParams" th:value="${pageParams}">
+        <input type="hidden" name="infosNode" id="infosNode">
+        <input type="hidden" name="originData" id="originData">
+        <input type="hidden" name="statisticsNode" id="statisticsNode">
+        <input type="hidden" name="missingValueNode" id="missingValueNode">
+        <input type="hidden" name="rangeValueNode" id="rangeValueNode">
+        <input type="hidden" name="modelSeq" id="modelSeq" th:value="${augmentModel.modelSeq}">
+        <input type="hidden" name="modelAlgrmSeq" id="modelAlgrmSeq" th:value="${augmentModel.modelAlgrmSeq}">
+        <input type="hidden" name="rangeValueNode" id="rangeValueNode">
+        <input type="hidden" name="nanValueNode" id="nanValueNode">
+        
+        <input type="hidden" name="originFilePath" id="originFilePath" th:value="${originFilePath}">
+        <input type="hidden" name="interpolateFilePath" id="interpolateFilePath" th:value="${interpolateFilePath}">
+        <input type="hidden" name="interpolateOption" id="interpolateOption" th:value="${interpolateOption}">
+        
+        <input type="hidden" name="resampleFilePath" id="resampleFilePath" th:value="${resampleFilePath}">
+        <input type="hidden" name="resampleOption" id="resampleOption" th:value="${resampleOption}">
+        <input type="hidden" name="algorithm_meta_set" id="algorithm_meta_set">
+        
+        <input type="hidden" name="fileList" id="fileList">
+        <input type="hidden" name="make_resample_status" id="make_resample_status" th:value="${make_resample_status}">
+        <input type="hidden" name="predictionFileListCount" id="predictionFileListCount" th:value="${predictionFileListCount}">
+        <input type="hidden" name="pathLength" id="pathLength" th:value="${pathLength}">
+		
+        <!-- 디자인 샘플  -->
+        <!-- 데이터 선택  -->
+        <div class="row">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs">
+                    <li class="nav-item"><a class="nav-link active" id="tab_getdata" th:href="@{|#|}">데이터 선택</a></li>
+                    <li class="nav-item"><a class="nav-link" id="tab_preproc" th:href="@{|#|}">데이터 전처리</a></li>
+                    <li class="nav-item"><a class="nav-link" id="tab_getalgo" th:href="@{|#|}">알고리즘 선택</a></li>
+                    <!-- <li class="nav-item"><a class="nav-link" id="tab_excmodel" th:href="@{|#|}">모델 실행</a></li> -->
+                    <li class="nav-item"><a class="nav-link" id="tab_savemodel" th:href="@{|#|}">모델 저장</a></li>
+                </ul>
+            </div>
+			<div class="col-lg-12 grid-margin stretch-card">
+				<div class="card"  id="tab_getdata_range">
+					<div class="card-body">
+						<h4 class="card-title">Bootstrap MaxLength</h4>
+						<p class="card-description">파일 선택 후 다음을 클릭 시 데이터가 저장 되며 이후 전처리를 진행 할 수 있습니다.</p>
+						<div class="form-group row">
+							<div class="col-lg-3">
+								<label class="col-form-label">모델명</label>
+							</div>
+							<div class="col-lg-8">
+								<input class="form-control" th:field="*{modelNm}" type="text">
+							</div>
+						</div>
+						<div class="form-group row">
+							<div class="col-lg-3">
+								<label class="col-form-label">Few options</label>
+							</div>
+							<div class="col-lg-8">
+								<input class="form-control" maxlength="20" name="defaultconfig-2" id="defaultconfig-2" type="text" placeholder="Type Something..">
+							</div>
+						</div>
+						<div class="form-group row">
+							<div class="col-lg-3">
+								<label class="col-form-label">All the options</label>
+							</div>
+							<div class="col-lg-8">
+								<input class="form-control" maxlength="10" name="defaultconfig-3" id="defaultconfig-3" type="text" placeholder="Type Something..">
+							</div>
+						</div>
+						<div class="form-group mb-0 row">
+							<div class="col-lg-3">
+								<label class="col-form-label">Text Area</label>
+							</div>
+							<div class="col-lg-8">
+								<textarea id="maxlength-textarea" class="form-control" maxlength="100" rows="8" placeholder="This textarea has a limit of 100 chars."></textarea>
+							</div>
+						</div>
+						<div class="form-group mb-0 row">
+							<div class="col-lg-3">
+								<label class="col-form-label">File upload</label>
+							</div>
+							<div class="col-lg-8">
+								<input type="file" name="img[]" class="file-upload-default">
+								<div class="input-group col-xs-12">
+									<input type="text" class="form-control file-upload-info" disabled="" placeholder="Upload Image">
+									<span class="input-group-append">
+										<button class="file-upload-browse btn btn-primary" type="button">Upload</button>
+									</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>		
+		</div>
+		
+		<!-- 데이터 전처리  상단-->
+		<div class="row">
+			<div class="col-md-12 grid-margin  stretch-card">
+				<div class="card">
+					<div class="card-body">
+						<h6 class="card-title">Basic Table</h6>
+						
+						<div class="form-group">
+							<label class="label-a">날짜컬럼선택</label>
+								<select class="w-40 select-a">
+									<option value="TX">Texas</option>
+									<option value="NY">New York</option>
+									<option value="FL">Florida</option>
+									<option value="KN">Kansas</option>
+									<option value="HW">Hawaii</option>
+								</select>
+						</div>
+						
+						
+						<div class="table-responsive">
+							<table class="table">
+								<thead>
+									<tr>
+										<th>#</th>
+										<th>First Name</th>
+										<th>LAST NAME</th>
+										<th>USERNAME</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<th>1</th>
+										<td>Mark</td>
+										<td>Otto</td>
+										<td>@mdo</td>
+									</tr>
+									<tr>
+										<th>2</th>
+										<td>Jacob</td>
+										<td>Thornton</td>
+										<td>@fat</td>
+									</tr>
+									<tr>
+										<th>3</th>
+										<td>Larry</td>
+										<td>the Bird</td>
+										<td>@twitter</td>
+									</tr>
+									<tr>
+										<th>4</th>
+										<td>Larry</td>
+										<td>Jellybean</td>
+										<td>@lajelly</td>
+									</tr>
+									<tr>
+										<th>5</th>
+										<td>Larry</td>
+										<td>Kikat</td>
+										<td>@lakitkat</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+						
+						<br/>
+						<div style="display: flex;justify-content: center;">
+							<input class="btn btn-primary" type="button" value="Ssssssbmit">
+						</div>
+	      			</div>
+            	</div>
+			</div>
+		</div>
+
+
+		<!-- 데이터 전처리  중간-->
+		<div class="row">
+			<div class="col-md-12 grid-margin  stretch-card">
+				<div class="card">
+					<div class="card-body">
+						<div class="form-group row">
+							<div class="col-md-4">
+								<h6 class="card-title">Basic Table</h6>
+								
+								<div class="form-group">
+									<label class="label-a">날짜컬럼선택</label>
+									<select class="w-40 select-a" style="display: inline-block;margin: auto;">
+										<option value="TX">Texas</option>
+										<option value="NY">New York</option>
+										<option value="FL">Florida</option>
+										<option value="KN">Kansas</option>
+										<option value="HW">Hawaii</option>
+									</select>
+								</div>
+								
+								<div class="table-responsive">
+									<table class="table">
+										<thead>
+											<tr>
+												<th>#</th>
+												<th>First Name</th>
+												<th>LAST NAME</th>
+												<th>USERNAME</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<th>1</th>
+												<td>Mark</td>
+												<td>Otto</td>
+												<td>@mdo</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+							
+
+							<div class="col-md-4">
+								<h6 class="card-title">Basic Table</h6>
+								
+								<div class="form-group">
+									<label class="label-a">날짜컬럼선택</label>
+										<select class="w-40 select-a">
+											<option value="TX">Texas</option>
+											<option value="NY">New York</option>
+											<option value="FL">Florida</option>
+											<option value="KN">Kansas</option>
+											<option value="HW">Hawaii</option>
+										</select>
+								</div>
+								
+								<div class="table-responsive">
+									<table class="table">
+										<thead>
+											<tr>
+												<th>#</th>
+												<th>First Name</th>
+												<th>LAST NAME</th>
+												<th>USERNAME</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<th>1</th>
+												<td>Mark</td>
+												<td>Otto</td>
+												<td>@mdo</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+							
+							<div class="col-md-4">
+								<h6 class="card-title">Basic Table</h6>
+								
+								<div class="form-group">
+									<label class="label-a">날짜컬럼선택</label>
+										<select class="w-40 select-a">
+											<option value="TX">Texas</option>
+											<option value="NY">New York</option>
+											<option value="FL">Florida</option>
+											<option value="KN">Kansas</option>
+											<option value="HW">Hawaii</option>
+										</select>
+								</div>								
+								
+								<div id="view3" style="width:100%; height:400px; border-style:solid;border-width:1px;border-color:#eee;"></div>
+							</div>
+							
+						</div>
+	      			</div>
+            	</div>
+			</div>
+			
+		</div>		
+		
+		
+		<!-- 데이터 전처리  하단-->
+		
+		<div class="row">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs">
+                    <li class="nav-item"><a class="nav-link active" id="tab_missing" th:href="@{|#|}">Missing Value</a></li>
+                    <li class="nav-item"><a class="nav-link" id="tab_outlier" th:href="@{|#|}">Outlier</a></li>
+                    <li class="nav-item"><a class="nav-link" id="tab_validate" th:href="@{|#|}">Validate</a></li>
+                    <li class="nav-item"><a class="nav-link" id="tab_interval" th:href="@{|#|}">Interval Conversion</a></li>
+                    <li class="nav-item"><a class="nav-link" id="tab_conversion" th:href="@{|#|}">Unit Conversion</a></li>
+                </ul>
+            </div>
+            
+            <!-- 데이터 전처리  하단 Missing Value-->
+			<div class="col-md-12 grid-margin  stretch-card">
+				<div class="card">
+					<div class="card-body">
+						<div class="form-group row">
+							<div class="col-md-6">
+								<h6 class="card-title">Basic Table</h6>
+								
+								<div class="table-responsive">
+									<table class="table">
+										<thead>
+											<tr>
+												<th>#</th>
+												<th>First Name</th>
+												<th>LAST NAME</th>
+												<th>USERNAME</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<th>1</th>
+												<td>Mark</td>
+												<td>Otto</td>
+												<td>@mdo</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+							
+
+							<div class="col-md-6">
+								<h6 class="card-title">Basic Table</h6>
+								
+								<div class="form-group d-flex">
+									<select class="w-40">
+										<option value="TX">Texas</option>
+										<option value="NY">New York</option>
+										<option value="FL">Florida</option>
+										<option value="KN">Kansas</option>
+										<option value="HW">Hawaii</option>
+									</select>
+									<input class="btn btn-primary" type="button" value="Submit">
+								</div>
+								
+								<div class="table-responsive">
+									<table class="table">
+										<thead>
+											<tr>
+												<th>#</th>
+												<th>First Name</th>
+												<th>LAST NAME</th>
+												<th>USERNAME</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<th>1</th>
+												<td>Mark</td>
+												<td>Otto</td>
+												<td>@mdo</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+							
+						</div>
+	      			</div>
+            	</div>
+			</div>
+
+            <!-- 데이터 전처리  하단 Outlier-->
+			<div class="col-md-12 grid-margin  stretch-card">
+				<div class="card">
+					<div class="card-body">
+						<div class="form-group row">
+							<div class="col-md-12" style="text-align: center;">
+								<h6 class="card-title">준비중입니다.</h6>
+							</div>
+						</div>
+	      			</div>
+            	</div>
+			</div>			
+			
+            <!-- 데이터 전처리  하단 Validate-->
+			<div class="col-md-12 grid-margin  stretch-card">
+				<div class="card">
+					<div class="card-body">
+						<div class="form-group row">
+							<div class="col-md-12" style="text-align: center;">
+								<h6 class="card-title">준비중입니다.</h6>
+							</div>
+						</div>
+	      			</div>
+            	</div>
+			</div>					
+			
+            <!-- 데이터 전처리  하단 Missing Value-->
+			<div class="col-md-12 grid-margin  stretch-card">
+				<div class="card">
+					<div class="card-body">
+						<div class="form-group row">
+							<div class="col-md-6">
+								<h6 class="card-title">Basic Table</h6>
+								
+								<div class="form-group d-flex">
+										<label>데이터 간격 :</label>
+			                            <span class="span-outline" id="select_origin_term"><code style="font-size: 11px">불분명</code></span>
+								</div>
+								<div style="display: flex;justify-content: right;">
+									<input class="btn btn-primary" type="button" value="변환" style="margin-right: 50px;">
+								</div>
+								<div class="form-group d-flex">
+									<label class="label-a">데이터 간격 변환 :</label>
+									<select class="w-40">
+										<option value="TX">Texas</option>
+										<option value="NY">New York</option>
+										<option value="FL">Florida</option>
+										<option value="KN">Kansas</option>
+										<option value="HW">Hawaii</option>
+									</select>
+								</div>
+							</div>
+							
+
+							<div class="col-md-6">
+								<h6 class="card-title">Basic Table</h6>
+								<div class="table-responsive">
+									<table class="table">
+										<thead>
+											<tr>
+												<th>#</th>
+												<th>First Name</th>
+												<th>LAST NAME</th>
+												<th>USERNAME</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<th>1</th>
+												<td>Mark</td>
+												<td>Otto</td>
+												<td>@mdo</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+							
+						</div>
+	      			</div>
+            	</div>
+			</div>		
+			
+            <!-- 데이터 전처리  하단 Unit Conversion-->
+			<div class="col-md-12 grid-margin  stretch-card">
+				<div class="card">
+					<div class="card-body">
+						<div class="form-group row">
+							<div class="col-md-6">
+								<h6 class="card-title">Basic Table</h6>
+								
+								<div class="form-group">
+									<div style="display: inline-block;margin-right: 70px;">
+									<label>컬럼선택</label>
+									<select class="w-100">
+										<option value="TX">Texas</option>
+										<option value="NY">New York</option>
+										<option value="FL">Florida</option>
+										<option value="KN">Kansas</option>
+										<option value="HW">Hawaii</option>
+									</select>
+									</div>
+									
+									<div style="display: inline-block;margin-right: 70px;">
+									<label>변환유형</label>
+									<select class="w-100">
+										<option value="TX">Texas</option>
+										<option value="NY">New York</option>
+										<option value="FL">Florida</option>
+										<option value="KN">Kansas</option>
+										<option value="HW">Hawaii</option>
+									</select>
+									</div>
+								</div>
+								
+								<div style="display: flex;justify-content: right;">
+									<input class="btn btn-primary" type="button" value="변환" style="margin-right: 50px;">
+								</div>
+								
+								<div class="form-group">
+									<div style="display: inline-block;margin-right: 70px;">
+									<label>현재단위</label>
+									<select class="w-100">
+										<option value="TX">Texas</option>
+										<option value="NY">New York</option>
+										<option value="FL">Florida</option>
+										<option value="KN">Kansas</option>
+										<option value="HW">Hawaii</option>
+									</select>
+									</div>
+									
+									<div style="display: inline-block;margin-right: 70px;">
+									<label>변환단위</label>
+									<select class="w-100">
+										<option value="TX">Texas</option>
+										<option value="NY">New York</option>
+										<option value="FL">Florida</option>
+										<option value="KN">Kansas</option>
+										<option value="HW">Hawaii</option>
+									</select>
+									</div>
+									
+								</div>
+
+								
+							</div>
+							
+
+							<div class="col-md-6">
+								<h6 class="card-title">Basic Table</h6>
+								<div class="table-responsive">
+									<table class="table">
+										<thead>
+											<tr>
+												<th>#</th>
+												<th>First Name</th>
+												<th>LAST NAME</th>
+												<th>USERNAME</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<th>1</th>
+												<td>Mark</td>
+												<td>Otto</td>
+												<td>@mdo</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+							
+						</div>
+	      			</div>
+            	</div>
+			</div>					
+			
+		</div>			
+		
+		
+		
+		<!-- 알고리즘 선택  상단 -->
+		<div class="row">
+			<div class="col-md-12 grid-margin  stretch-card">
+				<div class="card">
+					<div class="card-body">
+						<div class="form-group row">
+							<div class="col-md-4">
+								<h6 class="card-title">Basic Table</h6>
+								
+								<div class="table-responsive">
+									<table class="table">
+										<thead>
+											<tr>
+												<th>#</th>
+												<th>First Name</th>
+												<th>LAST NAME</th>
+												<th>USERNAME</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<th>1</th>
+												<td>Mark</td>
+												<td>Otto</td>
+												<td>@mdo</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+							
+
+							<div class="col-md-4">
+								<h6 class="card-title">Basic Table</h6>
+								
+								<div class="table-responsive">
+									<table class="table">
+										<thead>
+											<tr>
+												<th>#</th>
+												<th>First Name</th>
+												<th>LAST NAME</th>
+												<th>USERNAME</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<th>1</th>
+												<td>Mark</td>
+												<td>Otto</td>
+												<td>@mdo</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+							
+							<div class="col-md-4">
+								<h6 class="card-title">Basic Table</h6>
+								
+								<div id="view3" style="width:100%; height:400px; border-style:solid;border-width:1px;border-color:#eee;"></div>
+							</div>
+							
+						</div>
+	      			</div>
+            	</div>
+			</div>
+			
+			
+            <!-- 알고리즘 선택  하단 -->
+			<div class="col-md-12 grid-margin  stretch-card">
+				<div class="card">
+					<div class="card-body">
+						<div class="form-group row">
+							<div class="col-md-6">
+								<h6 class="card-title">Basic Table</h6>
+								
+								<div class="form-group">
+									<label>컬럼선택</label>
+									<select class="w-60" id="select_algolithm_img">
+										<option value="0">선택</option>
+										<option value="LSTM">LSTM</option>
+										<option value="GRU">GRU</option>
+									</select>
+								</div>
+								
+								
+								<div class="form-group">
+									<div style="width:60%; height:200px; border-style:solid;border-width:1px;border-color:#eee;">
+										<img id="algolithm_img_box" style="height:190px;"></img>
+									</div>
+								</div>
+
+								
+							</div>
+							
+
+							<div class="col-md-6">
+										<h4 class="card-title">Bootstrap MaxLength</h4>
+										<p class="card-description">Read the <a href="https://github.com/mimo84/bootstrap-maxlength" target="_blank"> Official Bootstrap MaxLength Documentation </a>for a full list of instructions and other options.</p>
+										<div class="form-group row">
+											<div class="col-lg-3">
+												<label class="col-form-label">Default usage</label>
+											</div>
+											<div class="col-lg-8">
+												<input class="form-control" maxlength="25" name="defaultconfig" id="defaultconfig" type="text" placeholder="Type Something..">
+											</div>
+										</div>
+										<div class="form-group row">
+											<div class="col-lg-3">
+												<label class="col-form-label">Few options</label>
+											</div>
+											<div class="col-lg-8">
+												<input class="form-control" maxlength="20" name="defaultconfig-2" id="defaultconfig-2" type="text" placeholder="Type Something..">
+											</div>
+										</div>
+										<div class="form-group row">
+											<div class="col-lg-3">
+												<label class="col-form-label">All the options</label>
+											</div>
+											<div class="col-lg-8">
+												<input class="form-control" maxlength="10" name="defaultconfig-3" id="defaultconfig-3" type="text" placeholder="Type Something..">
+											</div>
+										</div>
+										<div class="form-group mb-0 row">
+											<div class="col-lg-3">
+												<label class="col-form-label">Text Area</label>
+											</div>
+											<div class="col-lg-8">
+												<textarea id="maxlength-textarea" class="form-control" maxlength="100" rows="8" placeholder="This textarea has a limit of 100 chars."></textarea>
+											</div>
+										</div>
+										<div class="form-group mb-0 row">
+											<div class="col-lg-3">
+												<label class="col-form-label">File upload</label>
+											</div>
+											<div class="col-lg-8">
+												<input type="file" name="img[]" class="file-upload-default">
+												<div class="input-group col-xs-12">
+													<input type="range" class="form-control" min="0.1" max="0.9"  step="0.1" id="customRange">
+													<input type="number" id="customNumber" class="form-control" min="0.1" max="0.9" value="0.2" readonly="readonly" style="margin-left: 10px;">
+												</div>
+											</div>
+										</div>
+							</div>
+							
+						</div>
+	      			</div>
+            	</div>
+			</div>
+			
+		</div>		
+		
+		
+		<!-- 모델 저장  -->
+
+
+
+
+
+
+
+
+		
+    </form>
+</div>
+<th:block layout:fragment="custom_css">
+    <link rel="stylesheet" th:href="@{/assets/css/codemirror.css}" />    
+    <link rel="stylesheet" th:href="@{/assets/vendors/datatables.net-bs4/dataTables.bootstrap4.css}">
+        <link rel="stylesheet" th:href="@{/assets/css/custom.css}">
+</th:block>
+<th:block layout:fragment="custom_js">
+    <script th:src="@{/echarts532/dist/echarts.min.js}"></script>    
+    <script th:src="@{/assets/js/echart/echarts.js}"></script>
+	<script th:src="@{/assets/js/echart/echarts_view.js}"></script>
+	<script th:src="@{/assets/js/libs/codemirror.js}"></script>
+	<script th:src="@{/assets/js/pages/ai_model/form.js}"></script>
+	<script th:src="@{/assets/js/pages/ai_model/form_functions.js}"></script>
+	<script th:src="@{/assets/js/pages/ai_model/form_view_functions.js}"></script>
+    <script th:src="@{/assets/js/pages/ai_model/tab.js}"></script>
+    <script th:src="@{/assets/js/file-upload.js}"></script>
+	
+	<script th:src="@{/assets/js/pages/ai_model/result.js}"></script>	
+	
+	<script th:src="@{/assets/vendors/datatables.net/jquery.dataTables.js}"></script>
+	<script th:src="@{/assets/vendors/datatables.net-bs4/dataTables.bootstrap4.js}"></script> 
+</th:block>
+
+</html>

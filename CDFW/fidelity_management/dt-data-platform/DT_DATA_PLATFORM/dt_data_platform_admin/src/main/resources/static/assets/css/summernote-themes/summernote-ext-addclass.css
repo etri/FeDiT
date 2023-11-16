@@ -1,0 +1,53 @@
+@charset "utf-8";
+/*스타일*/
+.edt-blockquote-1{border-left: 2px solid rgba(0,0,0,0.5); padding: 15px; margin: 0 20px;} /*인용구1*/
+.edt-blockquote-2{border: 2px solid rgba(0,0,0,0.5); padding: 15px;} /*인용구2*/
+.edt-code{background-color: rgba(0,0,0,0.5);} /*코드 */
+
+/*줄간격*/
+.edt-line-height-b19{line-height: 1.9;} /*넓게*/
+.edt-line-height-n16{line-height: 1.6;} /*보통*/
+.edt-line-height-s13{line-height: 1.3;} /*좁게*/
+
+/*폰트컬러*/
+.edt-font-color-red{color: red !important;}
+.edt-font-color-red *{color: red;} /*컬러1*/
+.edt-font-color-blue{color: blue !important;}
+.edt-font-color-blue *{color: blue;} /*컬러2*/
+.edt-font-color-green{color: green !important;}
+.edt-font-color-green *{color: green;} /*컬러3*/
+.edt-font-color-yellow{color: yellow !important;}
+.edt-font-color-yellow *{color: yellow;} /*컬러4*/
+.edt-font-color-grey{color: grey !important;}
+.edt-font-color-grey *{color: grey ;} /*컬러5*/
+
+/*폰트크기*/
+.edt-font-size-mb32{font-size: 2rem !important;} /*매우크게 32px*/
+.edt-font-size-b24{font-size: 1.5rem !important;} /*크게 24px*/
+.edt-font-size-d20{font-size: 1.25rem !important;} /*조금크게 20px*/
+.edt-font-size-n16{font-size: 1rem !important;} /*보통 16px*/
+.edt-font-size-s12{font-size: 0.75rem !important;} /*작게 12px*/
+.edt-font-size-ms8{font-size: 0.5rem !important;} /*매주작게 8px*/
+
+/*텍스트정렬*/
+.edt-text-align-justify{text-align: justify;} /*기본*/
+.edt-text-align-left{text-align: left;} /*왼쪽 */
+.edt-text-align-center{text-align: center;} /*가운데*/
+.edt-text-align-right{text-align: right;} /*오른쪽*/
+
+/*구분선*/
+hr{border: none; height: 1px; background: rgba(0,0,0,0.6) !important;}
+.edt-board-height-b3{height: 3px;} /*두껍게*/
+.edt-board-height-n2{height: 2px;;} /*보통*/
+.edt-board-height-s1{height: 1px;} /*얇게*/
+
+
+/*테이블*/
+.table.table-bordered{border-top: 1px solid rgba(0,0,0,0.6) !important;}
+.table.table-bordered td{border: 1px solid rgba(0,0,0,0.6) !important;}
+.table.edt-table-size-l100{width: 100% !important;}
+.table.edt-table-size-n50{width: 50% !important;}
+.table.edt-table-size-s25{width: 25% !important;}
+.table.edt-table-align-left{margin: 0 auto; margin-left: 0;}
+.table.edt-table-align-center{margin: 0 auto;}
+.table.edt-table-align-right{margin: 0 auto; margin-right: 0;}

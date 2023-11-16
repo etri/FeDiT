@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<th:block th:fragment="paging">
+    <nav th:if="${paging.total > 0}" aria-label="pagination" class="d-flex justify-content-center mt-4">
+        <ul class="pagination">
+            <li class="page-item" th:classappend="${paging.page == 1} ? 'disabled' : ''">
+                <a class="page-link" href="#" aria-label="Go to first page" th:data-page="${paging.first}">
+                    <!-- <i data-feather="chevrons-left"></i> --><<
+                </a>
+            </li>
+            <li class="page-item" th:classappend="${paging.page == 1} ? 'disabled' : ''">
+                <a class="page-link" href="#" aria-label="Go to previous page" th:data-page="${paging.prev}">
+                    <!-- <i data-feather="chevron-left"></i> --><
+                </a>
+            </li>
+            <th:block th:each="page : ${#numbers.sequence(paging.begin, paging.end)}">
+                <li class="page-item" th:classappend="${page == paging.page} ? 'active' : ''">
+                    <a href="#" class="page-link" th:classappend="${page == paging.page} ? 'active' : ''" th:title="${page}" th:text="${page}" th:data-page="${page}">1</a>
+                </li>
+            </th:block>
+            <li class="page-item" th:classappend="${paging.page == paging.last} ? 'disabled' : ''">
+                <a class="page-link" href="#" aria-label="Go to next page" th:data-page="${paging.next}">
+                    <!-- <i data-feather="chevron-right"></i> -->>
+                </a>
+            </li>
+            <li class="page-item" th:classappend="${paging.page == paging.last} ? 'disabled' : ''">
+                <a class="page-link" href="#" aria-label="Go to last page" th:data-page="${paging.last}">
+                    <!-- <i data-feather="chevrons-right"></i> -->>>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</th:block>
+
+</html>

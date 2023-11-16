@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<nav th:fragment="page_breadcrumb" class="page-breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item" th:if="${not #strings.isEmpty(breadcrumb.parent_menu_nm)}"><a href="#" th:text="${breadcrumb.parent_menu_nm}">시스템관리</a></li>
+        <li class="breadcrumb-item active" aria-current="page" th:text="${breadcrumb.menu_nm}">사용자관리</li>
+    </ol>
+</nav>
+
+</html>
