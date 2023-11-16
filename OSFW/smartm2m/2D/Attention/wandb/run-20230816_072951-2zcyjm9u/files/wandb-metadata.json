@@ -1,0 +1,236 @@
+{
+    "os": "Linux-5.3.0-62-generic-x86_64-with-glibc2.31",
+    "python": "3.9.16",
+    "heartbeatAt": "2023-08-16T07:29:58.300702",
+    "startedAt": "2023-08-16T07:29:51.616703",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "<python with no main file>",
+    "git": {
+        "remote": "https://github.com/ccw7463/E8IGHT.git",
+        "commit": "95c5cd69c9f497188b4e6bd15c85598ce8962ff2"
+    },
+    "email": "changwoo7463@gmail.com",
+    "root": "/root/workspace/E8IGHT",
+    "host": "e3bc97c277b6",
+    "username": "root",
+    "executable": "/usr/local/bin/python",
+    "cpu_count": 18,
+    "cpu_count_logical": 36,
+    "cpu_freq": {
+        "current": 1200.4469166666665,
+        "min": 1200.0,
+        "max": 4222.222222222223
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 1200.05,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.001,
+            "min": 1200.0,
+            "max": 4400.0
+        },
+        {
+            "current": 1200.672,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.478,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.766,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.572,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.81,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.192,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.483,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.404,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.824,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.539,
+            "min": 1200.0,
+            "max": 4400.0
+        },
+        {
+            "current": 1200.543,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.137,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.909,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.6,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.733,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.702,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.434,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1198.478,
+            "min": 1200.0,
+            "max": 4400.0
+        },
+        {
+            "current": 1255.573,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.779,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.628,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.118,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.503,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.481,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.681,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.578,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.621,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.917,
+            "min": 1200.0,
+            "max": 4400.0
+        },
+        {
+            "current": 1200.537,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.686,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.521,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.622,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.557,
+            "min": 1200.0,
+            "max": 4200.0
+        },
+        {
+            "current": 1200.36,
+            "min": 1200.0,
+            "max": 4200.0
+        }
+    ],
+    "disk": {
+        "total": 907.6226768493652,
+        "used": 759.283634185791
+    },
+    "gpu": "NVIDIA TITAN Xp",
+    "gpu_count": 4,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA TITAN Xp",
+            "memory_total": 12884901888
+        },
+        {
+            "name": "NVIDIA TITAN Xp",
+            "memory_total": 12884901888
+        },
+        {
+            "name": "NVIDIA TITAN Xp",
+            "memory_total": 12884901888
+        },
+        {
+            "name": "NVIDIA TITAN Xp",
+            "memory_total": 12884901888
+        }
+    ],
+    "memory": {
+        "total": 109.74234390258789
+    }
+}
