@@ -10,6 +10,7 @@ _FDTFW 프로젝트_ 는 2022년 4월 시작하였습니다.
 ### Dependency
 
 ### How to Run Codes
+각 모듈 내 문서를 참조하세요.
 
 ### How to Contribute Your Codes
 [CONTRIBUTING.md](CONTRIBUTING.md)를 참조하세요.
