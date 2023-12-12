@@ -37,16 +37,16 @@ weather_df = pd.DataFrame(temperature_data)
 weather_df.set_index('date', inplace=True)
 
 # 데이터 시각화
-import matplotlib
-matplotlib.use('TkAgg')
+# import matplotlib
+# matplotlib.use('TkAgg')
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
-plt.plot(weather_df.index, weather_df['temperature'])
-plt.title('Seogwipo Average Temperature (Daily )')
-plt.xlabel('Date')
-plt.ylabel('Temperature (°C)')
-plt.show()
+# plt.plot(weather_df.index, weather_df['temperature'])
+# plt.title('Seogwipo Average Temperature (Daily )')
+# plt.xlabel('Date')
+# plt.ylabel('Temperature (°C)')
+# plt.show()
 
 # 데이터 분할 (학습 데이터와 테스트 데이터)
 train_size = int(len(weather_df) * 0.8)
@@ -142,21 +142,21 @@ print("미래 7일간의 기상 데이터 예측:")
 for i, prediction in enumerate(pred_flat, 1):
     print(f"Day {i}: {prediction:.2f}")
 
-# 2023-11-17 부터 예측
-from datetime import datetime, timedelta
-start_date = datetime(2023, 11, 17)
-dates = [start_date + timedelta(days=i) for i in range(len(pred_flat))]
+# # 2023-11-17 부터 예측
+# from datetime import datetime, timedelta
+# start_date = datetime(2023, 11, 17)
+# dates = [start_date + timedelta(days=i) for i in range(len(pred_flat))]
 
-plt.plot(dates, pred_flat , marker='o', linestyle='-')
+# plt.plot(dates, pred_flat , marker='o', linestyle='-')
 
-plt.title('Weather Forecast for the Next 7 Days')
-plt.xlabel('Date')
-plt.ylabel('Temperature (°C)')
+# plt.title('Weather Forecast for the Next 7 Days')
+# plt.xlabel('Date')
+# plt.ylabel('Temperature (°C)')
 
-# #실제값 표시
-# plt.scatter(dates, future_predictions, color='red', label='실제값')
-# for i, txt in enumerate(future_predictions):
-#     plt.annotate(txt, (dates[i], future_predictions[i]), textcoords="offset points", xytext=(0, 5), ha='center')
+# # #실제값 표시
+# # plt.scatter(dates, future_predictions, color='red', label='실제값')
+# # for i, txt in enumerate(future_predictions):
+# #     plt.annotate(txt, (dates[i], future_predictions[i]), textcoords="offset points", xytext=(0, 5), ha='center')
 
-plt.xticks(rotation=45)  # x축 날짜 눈금이 길어질 경우 각도를 조절하여 가독성 향상
-plt.show()
+# plt.xticks(rotation=45)  # x축 날짜 눈금이 길어질 경우 각도를 조절하여 가독성 향상
+# plt.show()
