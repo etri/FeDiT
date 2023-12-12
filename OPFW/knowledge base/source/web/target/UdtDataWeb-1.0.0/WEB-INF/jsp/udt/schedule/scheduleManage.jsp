@@ -1,0 +1,1301 @@
+<%@ page contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
+<%@include file ="/WEB-INF/jsp/layout/header.jsp" %>
+
+<!-- JS 기능 시작 -->
+<script>
+	var currMetaDiv="cmnJobDetailDiv";
+	var startFlag=false;
+	var currJobId;
+	
+	$(document).ready(function() {
+		
+		bindEvent();//이벤트 바인딩
+		
+		fn_getListJobMstConfig();
+		
+		fn_getJobDetailResrouce(); // 데이터셋 상세정보 조회
+		
+		//fn_getCmmnMetaResrouce(); //메타정보 사용안함
+		
+		//fn_loadingDataSetMetaDiv(); //메타정보 사용안함
+		
+	});
+
+	/* 이벤트 등록 */
+	function bindEvent(){
+		
+		schModalEvent();
+		
+		/* $('.footable').footable(); */
+		$(document).on('click','.onoffswitch-label',function(e){
+			
+			var checkBoxId = $(this).attr('for');
+			var isChecked = $("#"+checkBoxId).is(":checked");
+			var confirmMsg = (isChecked)?"스케줄을 중지 하시겠습니까?":"스케줄을 재구동 하시겠습니까?";
+			if(confirm(confirmMsg)){
+					e.preventDefault();
+					$("#schJobListTabDiv").loading('start');
+					var action = (isChecked)?"pause":"restart";
+					var jobEnNm = $("#"+checkBoxId).val();
+					if(!action||!jobEnNm){
+						alert('예기치 못한 오류가 발생하였습니다. 관리자에게 문의해주세요.');
+						return;
+					}
+					var apiParamObj ={
+						jobNmEn:jobEnNm
+					};
+					var params = {apiNm:action,apiParams:apiParamObj};
+					
+					var _this = this;
+					
+					$.ajax({
+					    url:"<c:url value='/udt/schedule/reqControllJobApi.do'/>",
+					    data: JSON.stringify(params),
+						dataType:'json',
+						processData:false,
+						contentType:"application/json",
+					    type:'POST',
+					    success: function(data){
+					    	setTimeout(function(){
+					    		if(data.result=="S"){
+						    		var msg = (isChecked)?"스케줄이 중지되었습니다.":"스케줄이 재구동되었습니다.";
+						    		alert(msg);
+						    		$(_this).closest('tr').find('.switch-label').removeClass('label-success');
+									$(_this).closest('tr').find('.switch-label').removeClass('label-warning');
+									var addClassNm = (isChecked)?"label-warning":"label-success";
+									var addLabelText = (isChecked)?"Stop":"Running";
+									$(_this).closest('tr').find('.switch-label').addClass(addClassNm);
+									$(_this).closest('tr').find('.switch-label').text(addLabelText);
+									$("#schJobListTabDiv").loading('stop');
+									$("#"+checkBoxId).trigger('click');
+						    	}else{
+						    		alert('요청하신 작업을 실패하였습니다. 관리자에게 문의해주세요.');
+						    		$("#schJobListTabDiv").loading('stop');
+						    		return;
+						    	}
+					    	},100);
+					    	
+					    }
+					});
+			}else{
+				return false;
+			}
+		});
+		
+		$(document).on('click','.cronExplaineMark',function(e){
+			popupCenter("/udt/schedule/pop/cronExplain.do",1000,600);
+		});
+		
+		
+		$("#searchJobBtn").on('click',function(e){
+			var paramObj = $("#srcJobFrm").serializeObject();
+			fn_getListJobMstConfig(1,paramObj);
+		});
+		
+		$(".job-srch-input").keydown(function(key) {
+	         if (key.keyCode == 13) {
+	            var paramObj = $("#srcJobFrm").serializeObject();
+	 			fn_getListJobMstConfig(1,paramObj);
+	         }
+	    });
+		
+		$('.meta-div-toggle-tab-grp label').on('click',function(e){
+			currMetaDiv=$(this).attr('for');
+			$('.meta-div-grp').hide();
+			$("#"+currMetaDiv).show();
+			if(currMetaDiv=="indivMetaDiv"){
+				$("#isIndiBtnDiv").show();
+				$("#isCmnBtnDiv").hide();
+			}else{
+				$("#isCmnBtnDiv").show();
+				$("#isIndiBtnDiv").hide();
+			}
+			//개별리소스는 최초 탭클릭시 젤 위에있는 데이터셋 강제클릭
+			if(currMetaDiv=="indivMetaDiv"&&!startFlag){
+				$('.meta-dataset-title-list li').first().trigger('click');	
+				startFlag=true;
+			}
+			
+		})
+		
+		//동시에 같이못씀 망함
+		$("#metaEditModeBtn").on('click',function(e){
+			toggleEditMode(true);
+		})
+		
+		$("#metaSaveBtn").on('click',function(e){
+			if(confirm("변경내용을 저장하시겠습니까?\n(기존내용은 백업됩니다.)")){
+				fn_insertMetaRdf();	
+			}
+		});
+		
+		$("#metaCancleBtn").on('click',function(e){
+			if(confirm("편집모드를 종료하시겠습니까?\n(저장하지 않은 내용은 적용되지 않습니다.)")){
+				toggleEditMode(false);
+			}
+		});
+		
+		$(document).on('change','#dctAccessrights',function(e){
+			if($(this).val()=='commercial'){
+				$("#priceinfo").attr("disabled",false);
+			}else{
+				$("#priceinfo").val("");
+				$("#priceinfo").attr("disabled",true);
+			}
+		});
+		
+		// 데이터셋 생성 버튼 클릭
+		$("#createJobBtn").on("click", function(e) {
+			
+			//Form 초기화
+			initJobDetailViewForm();
+			
+			toggleEditMode(true);
+			
+		});		
+		
+	}
+	
+	// 데이터셋 종류별 예제 파라미터 세팅 수헹
+	function exClassNmChange() {
+		
+		var selectJobNmKr = $("#jobDetail_classNm option:selected").val();
+		
+		initJobDetailViewForm();
+		toggleEditMode(true);
+		$("#jobDetail_classNm").val(selectJobNmKr).prop("selected", true); //toggleEditMode(true)에 따른 데이터셋종류 선택 초기화 복구
+		
+		if(selectJobNmKr == "openApiJob001") {
+			
+			$("#jobDetail_jobNmKr").val("제주데이터허브_일별기상정보_01");
+			$("#jobDetail_saveTbNm").val("tbl_jejudatahub_01");
+			$("#jobDetail_udtApiRsltType option:eq(0)").prop("selected", true);
+			$("#jobDetail_cronExeCycle").val("0 0 12 * * ?");
+			$("#jobDetail_apiUrl").val("https://open.jejudatahub.net/api/proxy/1aD5taat1attaa51Db1511b51ab9Da19/j90ptt2b916t10oo1p65t9395j6_ep53");
+			
+			// API 요청 파라미터 예제 세팅 수행
+			$("#jobDetail_apiOptionName_default").val("searchDate");
+			$("#jobDetail_apiOptionValue_default").val("20200101");
+			var apiOptionElement = '<div class="row">'
+				+ '<label class="col-sm-1 col-form-label" style="text-align: center;">항목명</label>'
+			    + '<div class="col-sm-3"><input type="text" name="apiOptionName" class="form-control" value="observatoryName" /></div>'
+			    + '<label class="col-sm-1 col-form-label" style="text-align: center;">요청변수값</label>'
+			    + '<div class="col-sm-7"><input type="text" name="apiOptionValue" class="form-control" value="중문" /></div>'
+				+ '</div>';
+			$("#apiOptionGroup").append(apiOptionElement);
+			
+		} else if(selectJobNmKr == "openApiJob002") {
+			
+			$("#jobDetail_jobNmKr").val("제주특별자치도_실시간교통정보_01");
+			$("#jobDetail_saveTbNm").val("tbl_jejuits_01");
+			$("#jobDetail_udtApiRsltType option:eq(0)").prop("selected", true);
+			$("#jobDetail_cronExeCycle").val("0 0 12 * * ?");
+			$("#jobDetail_apiUrl").val("http://api.jejuits.go.kr/api/getFrafficInfo");
+			
+			// API 요청 파라미터 예제 세팅 수행
+			$("#jobDetail_apiOptionName_default").val("code");
+			$("#jobDetail_apiOptionValue_default").val("860506");
+			var apiOptionElement ='<div class="row">'
+				+ '<label class="col-sm-1 col-form-label" style="text-align: center;">항목명</label>'
+			    + '<div class="col-sm-3"><input type="text" name="apiOptionName" class="form-control" value="type" /></div>'
+			    + '<label class="col-sm-1 col-form-label" style="text-align: center;">요청변수값</label>'
+			    + '<div class="col-sm-7"><input type="text" name="apiOptionValue" class="form-control" value="R" /></div>'
+				+ '</div>';
+			$("#apiOptionGroup").append(apiOptionElement);
+			
+		} else {
+			
+		}
+		
+	}
+	
+	// 데이터셋 상세 화면 초기화
+	function initJobDetailViewForm() {
+
+		fn_jobEdit(0);
+		
+		// 데이터셋 상세정보 Form의 모든 정보 리셋
+		//$('jobDetailViewForm').each(function() {
+		//	this.reset();
+		//});
+		
+		// 요청 파라미터 초기화
+		var apiOptionGroup = $("#apiOptionGroup");
+		var children_row = apiOptionGroup.children(".row");
+		for(var i = 1; i < children_row.length; i++) {
+			children_row[i].remove();
+		}
+		
+		$("#jobDetail_saveTbNm").attr("readonly", false);
+		$("#tblNmDuplication").val("");
+		$("#selectFieldList").empty();
+		var apiRspTree = document.getElementById("jobDetail_apiRspTree");
+		apiRspTree.innerHTML = "";
+		toggleEditMode(false);
+	}
+	
+	function toggleEditMode(mode){
+
+		$("#"+currMetaDiv).find('input').each(function(i,el){
+			if($(this).hasClass('never-show')) return;
+			$(this).attr("disabled",!mode);
+		})
+		$("#"+currMetaDiv).find('textarea').each(function(i,el){
+			$(this).attr("disabled",!mode);
+		})
+		$("#"+currMetaDiv).find('select').each(function(i,el){
+			$(this).attr("disabled",!mode);
+		})
+		$("#"+currMetaDiv).find('button').each(function(i,el){
+			$(this).attr("disabled",!mode);
+		})
+
+	}
+	
+	function fn_getDatasetMetaData(_jobId){
+		$("#dataSetMetaListDataDiv").loading('start');
+		$.ajax({
+		    url:"<c:url value='/udt/schedule/selectOneRdfMetaDataset.do'/>",
+		    data: JSON.stringify({jobId:_jobId}),
+			dataType:'text',
+			processData:false,
+			contentType:"application/json",
+		    type:'POST',
+		    success: function(data){
+		    	$("#dataSetMetaListDataDiv").html(data);
+		    	setTimeout(function(e){
+		    		$("#dataSetMetaListDataDiv").loading('stop');
+		    	},200);
+		    }
+		});
+	}
+	
+	function fn_insertMetaRdf(){
+		
+		var frm = $("#"+currMetaDiv).find("form");
+		var paramObj = frm.serializeObject();
+		
+		if(currMetaDiv=="cmnJobDetailDiv"){
+			paramObj.vcardHasemail =paramObj.vcardHasemail1+"@"+paramObj.vcardHasemail2;
+			paramObj.foafMbox =paramObj.foafMbox1+"@"+paramObj.foafMbox2;
+		}else{
+			paramObj.jobId=currJobId;
+			paramObj.dctIdentifier=$("#dctIdentifier").val();
+		}
+			
+		var _url = frm.attr("action");
+		$.ajax({
+		    url:"<c:url value='"+_url+"'/>",
+		    data: JSON.stringify(paramObj),
+			dataType:'json',
+			processData:false,
+			contentType:"application/json",
+		    type:'POST',
+		    success: function(data){
+				
+				if(data.result=="S"){
+					alert('변경내용이 저장되었습니다.');
+				}else{
+					alert('변경내용이 저장에 실패하였습니다. 관리자에게 문의해주세요.');
+				}
+				
+				if(currMetaDiv=="cmnJobDetailDiv"){
+					toggleEditMode(false);	
+				}else{
+					toggleEditMode2('off');
+				}
+				
+		    },error:function(e){
+		    	alert('변경내용이 저장에 실패하였습니다. 관리자에게 문의해주세요.');
+		    	return;
+		    }
+		});
+		
+		
+	}
+	
+	function fn_jobImmediateExexcute(jobNmEn){
+		
+		if(confirm("스케줄을 즉시 실행시키겠습니까?(1회만 수동으로 실행됩니다.)")){
+			$("#schJobListTabDiv").loading('start');
+			var action = "immediateExexcute";
+			var apiParamObj ={jobNmEn:jobNmEn};
+			var params = {apiNm:action,apiParams:apiParamObj};
+			
+			$.ajax({
+			    url:"<c:url value='/udt/schedule/reqControllJobApi.do'/>",
+			    data: JSON.stringify(params),
+				dataType:'json',
+				processData:false,
+				contentType:"application/json",
+			    type:'POST',
+			    success: function(data){
+			    	setTimeout(function(){
+			    		if(data.result=="S"){
+				    		alert("스케줄이 수동으로 실행(1회)되었습니다.\n실행결과는 [데이터셋  현황ㆍ이력]메뉴에서 확인해주세요.");
+							$("#schJobListTabDiv").loading('stop');
+							
+				    	}else{
+				    		alert('요청하신 작업을 실패하였습니다. 관리자에게 문의해주세요.');
+				    		$("#schJobListTabDiv").loading('stop');
+				    		return;
+				    	}
+			    	},100);
+			    	
+			    }
+			});
+		}
+	}
+	
+	function fn_jobUpdate(jobNmEn){
+		
+		var action = "update";
+		var apiParamObj ={jobNmEn:jobNmEn};
+		var params = {apiNm:action,apiParams:apiParamObj};
+		
+		$.ajax({
+		    url:"<c:url value='/udt/schedule/reqControllJobApi.do'/>",
+		    data: JSON.stringify(params),
+			dataType:'json',
+			processData:false,
+			contentType:"application/json",
+		    type:'POST',
+		    success: function(data){
+		    	setTimeout(function(){
+		    		if(data.result=="S"){
+			    		//alert("스케줄이 수동으로 실행(1회)되었습니다.\n실행결과는 [데이터셋  현황ㆍ이력]메뉴에서 확인해주세요.");
+						//$("#schJobListTabDiv").loading('stop');
+						
+			    	}else{
+			    		alert('JOB 삭제 요청이 실패하였습니다. 관리자에게 문의해주세요.');
+			    		//$("#schJobListTabDiv").loading('stop');
+			    		return;
+			    	}
+		    	},100);
+		    	
+		    }
+		});
+		
+	}
+	
+	function fn_jobDelete(jobNmEn){
+		
+		var action = "delete";
+		var apiParamObj ={jobNmEn:jobNmEn};
+		var params = {apiNm:action,apiParams:apiParamObj};
+		
+		$.ajax({
+		    url:"<c:url value='/udt/schedule/reqControllJobApi.do'/>",
+		    data: JSON.stringify(params),
+			dataType:'json',
+			processData:false,
+			contentType:"application/json",
+		    type:'POST',
+		    success: function(data){
+		    	setTimeout(function(){
+		    		if(data.result=="S"){
+						console.log("잡 삭제 성공: " + jobNmEn);		
+			    	}else{
+			    		alert('JOB 삭제 요청이 실패하였습니다. 관리자에게 문의해주세요.');
+			    		return;
+			    	}
+		    	},100);
+		    	
+		    }
+		});
+		
+	}
+	
+	function fn_getListJobMstConfig(pageNo,_param){
+		
+			// 스크롤 맨위로
+			window.scrollTo(0,0);
+			
+			pageNo = parseInt(pageNo);
+		 	
+			if(!pageNo)pageNo=1;
+			
+			if(!_param){
+				var params = {pageIndex:pageNo};
+			}else{
+				_param.pageIndex=pageNo;
+				var params = _param;
+			}
+			
+			$('#iboxJobConfig').loading('start');
+
+			$.ajax({
+			    url:"<c:url value='/udt/schedule/selectAllJobMstWithJobConfig.do'/>",
+			    data: JSON.stringify(params),
+				dataType:'text',
+				processData:false,
+				contentType:"application/json",
+			    type:'POST',
+			    success: function(data){
+			    	$("#schJobListTabDiv").html(data);
+			    	$(".isToolTip").tooltip();
+					$('.isToolTip').click(function() {
+					    $(this).tooltip("hide");
+					});
+					$('#iboxJobConfig').loading('stop');
+			    },error:function(e){
+			    	$('#iboxJobConfig').loading('stop');
+			    }
+			});
+	}
+	
+	
+	function fn_loadingDataSetMetaDiv(){
+		$.ajax({
+		    url:"<c:url value='/udt/schedule/loadingDataSetMetaDiv.do'/>",
+		    data: JSON.stringify({}),
+			dataType:'text',
+			processData:false,
+			contentType:"application/json",
+		    type:'POST',
+		    success: function(data){
+		    	$("#indivMetaDiv").html(data);
+		    }
+		});
+	}
+	function fn_getCmmnMetaResrouce(){
+		$.ajax({
+		    url:"<c:url value='/udt/schedule/selectOneRdfMetaCommon.do'/>",
+		    data: JSON.stringify({}),
+			dataType:'text',
+			processData:false,
+			contentType:"application/json",
+		    type:'POST',
+		    success: function(data){
+		    	$("#cmnJobDetailDiv").html(data);
+		    }
+		});
+	}
+	function fn_getJobDetailResrouce(_jobId) {
+		$.ajax({
+		    url:"<c:url value='/udt/schedule/selectOneJobDetailView.do'/>",
+		    data: JSON.stringify({jobId:_jobId}),
+			dataType:'text',
+			processData:false,
+			contentType:"application/json",
+		    type:'POST',
+		    success: function(data){
+		    	$("#cmnJobDetailDiv").html(data);
+		    }
+		});
+	}
+	function fn_jobEditPopUp(_jobId){
+		
+		$.ajax({
+		    url:"<c:url value='/udt/schedule/selectOneJobLinkConfig.do'/>",
+		    data: JSON.stringify({jobId:_jobId}),
+			dataType:'json',
+			processData:false,
+			contentType:"application/json",
+		    type:'POST',
+		    success: function(data){
+		    	var row = data.resultMap;
+		    	settingSchForm(row);
+		    	schModalOpen();
+		    }
+		});
+	}
+	
+	// 데이터셋 상세보기/편집 기능 수행
+	function fn_jobEdit(_jobId) {
+		
+		$.ajax({
+		    url:"<c:url value='/udt/schedule/selectOneJobDetailView.do'/>",
+		    data: JSON.stringify({jobId:_jobId}),
+			dataType:'text',
+			processData:false,
+			async: false,
+			contentType:"application/json",
+		    type:'POST',
+		    success: function(data){
+				
+				$("#cmnJobDetailDiv").html(data);
+				
+				//toggleEditMode(true);
+				
+				// 데이터 타입에 따라 데이터셋 상세보기 UI 수정
+				if(_jobId == 0) { // 데이터셋 생성 
+					datasetEditModeForm(false);	
+					// 데이터셋 생성 버튼 show
+					$("#svaeJobBtn").show();
+					
+					$('#modal h4.modal-title').html('데이터셋 생성');
+				} else { // 데이터셋 상세조회
+					datasetEditModeForm(true);
+					// 데이터셋 생성버튼 hide
+					$("#svaeJobBtn").hide();
+					
+					$('#modal h4.modal-title').html('데이터셋 상세정보');
+				}
+				
+				$('#modal').modal('show');
+				
+		    }
+		});
+		
+	}
+	
+	// 데이터셋 상세/수정 Form 설정 (수정불가 항목 활성화/비활성화)
+	function datasetEditModeForm(mode) {
+		
+		$("#jobDetail_classNm").attr("disabled", mode);
+		$("#jobDetail_udtApiRsltType").attr("disabled", mode);
+		$("#btn_exClassNmChange").attr("disabled", mode);
+		$("#jobDetail_saveTbNm").attr("readonly", mode);
+		$(".btn_tblNmChk").attr("disabled", mode);
+		if(mode) {
+			$("#tblNmDuplication").val("chk");
+		} else {
+			$("#tblNmDuplication").val("");
+		}
+	}
+	
+	function settingSchForm(row){
+		$('#jobEditForm').clearForm();
+		$("#frmJobId").val(row.jobId);
+		$("#frmJobNmEn").val(row.jobNmEn);
+    	$("#frmJobNmKr").val(row.jobNmKr);
+    	$("#frmCronExeCycle").val(row.cronExeCycle);
+    	$("#frmSendSaveDir").val(row.sendFileSaveDir);
+    	
+    	if(row.jobId=="3"||row.jobId=="4"||row.jobId=="5"){
+    		 $("select[name=frmJobType]").attr("disabled",false);
+    		 $("#frmJobType").on('change',function(e){
+    			 if($(this).val()=="OPENAPI"){
+    				 $("#isApiUseDivZone").show();
+    			 }else{
+    				 $("#isApiUseDivZone").hide();
+    			 }
+    		 })
+    	}else{
+    		$("select[name=frmJobType]").attr("disabled",true);
+    	}
+    	
+    	$("#frmJobType").val(row.jobType).prop("selected", true);
+    	$("#frmUseAt").val(row.useAt).prop("selected", true);
+    	
+    	$("#frmUdtApiKey").val(row.udtApiKey);
+    	$("#frmUdtApiEndPoint").val(row.udtApiEndPoint);
+    	
+    	if(row.jobType=='OPENAPI'){
+    		$("#isApiUseDivZone").show();
+    	}else{
+    		$("#isApiUseDivZone").hide();
+    	}
+	}
+	
+	function schModalEvent(){
+		$('#schModalCancle').on('click',function(e){
+			schModalClose();
+		});
+		
+		$('#schModalSubBtn').on('click',function(e){
+			doEditSchJob();
+		});
+		
+		
+		$("body").on("click", function(event) { 
+	        if(event.target.className == 'modal-close-btn' || event.target.className == 'popup-wrap2'){
+	        	schModalClose();
+	        }
+	    });
+		
+		$(document).keydown(function(event) {
+		    if ( event.keyCode == 27 || event.which == 27 ) {
+		    	schModalClose();
+		    }
+		});
+	}
+	
+	function schModalClose(){
+		schModalClear();
+        $("#jobEditModal").fadeOut(); 
+        var paramObj = $("#srcJobFrm").serializeObject();
+        var currPageNo = 1;
+        $('.page_nation').find('a').each(function(e){
+        	if($(this).hasClass('active')){
+        		currPageNo=$(this).text();
+        	}
+        });
+        
+		fn_getListJobMstConfig(currPageNo,paramObj);
+	};
+
+	function schModalOpen(mode){
+		
+		$("#jobEditModal").css('display','flex').hide().fadeIn();
+	}
+	
+	function schModalClear(){
+		//$('#jobEditForm')[0].reset();
+		$('#jobEditForm').clearForm();
+	}
+	
+	function doEditSchJob(){
+		var flag = doValidation();
+		$('#jobEditModal').loading('start');
+		if(flag){
+			_jobId=$("#frmJobId").val();
+			_jobNmEn=$("#frmJobNmEn").val();
+			
+			var paramObj = $("#jobEditForm").serializeObject();
+			paramObj.jobId=_jobId;
+			paramObj.jobNmEn=_jobNmEn;
+			//console.log(paramObj);
+			$.ajax({
+			    url:"<c:url value='/udt/schedule/updateJobLinkConfigByJobId.do'/>",
+			    data: JSON.stringify(paramObj),
+				dataType:'json',
+				processData:false,
+				contentType:"application/json",
+			    type:'POST',
+			    success: function(data){
+			    	if(data.result='success'){
+			    		alert('수정되었습니다.');
+			    		fn_jobEditPopUp(_jobId);
+			    	}else{
+			    		alert('수정내용 저장중 발생하였습니다. 관리자에게 문의해주세요.')
+			    	}
+			    	$('#jobEditModal').loading('stop');
+			    },error:function(e){
+			    	alert('수정내용 저장중 발생하였습니다. 관리자에게 문의해주세요.')
+			    	$('#jobEditModal').loading('stop');
+			    }
+			});
+		}else{
+			$('#jobEditModal').loading('stop');
+		}
+	}
+	
+	function doValidation(){
+		
+		if($("#frmJobNmKr").val()==''){
+			alert('연계ㆍ데이터셋명을 입력해주세요.');
+			$("#frmJobNmKr").focus();
+    		return false;
+		}
+		
+		if($("#frmCronExeCycle").val()==''){
+			alert('배치주기를 입력해주세요.');
+			$("#frmCronExeCycle").focus();
+			return false;
+		}
+		
+		if($("#frmSendSaveDir").val()==''){
+			alert('데이터셋 저장경로를 입력해주세요.');
+			$("#frmSendSaveDir").focus();
+			return false;
+		}
+		
+		if($("#frmJobType").val()=='OPENAPI'){
+			if($("#frmUdtApiEndPoint").val()==''){
+				alert('API 호출주소를 입력해주세요.');
+				$("#frmUdtApiEndPoint").focus();
+				return false;
+			}
+			if($("#frmUdtApiKey").val()==''){
+				alert('API KEY를 입력해주세요.');
+				$("#frmUdtApiKey").focus();
+				return false;
+			}
+		}
+		return true;
+		
+	}
+	
+	// jobDetailViewForm 데이터 리스트에서 API 요청 주소, 선택 필드 리스트 등 객체 형태로 추출 (중복 키값 배열로 묶음)
+	function getDataSetParamObject(valueArray) {
+		
+		var param = new Object(); // DataSet 파라미터 추출
+		
+		var apiOptionParamObj = {};
+		
+		for(var i = 0; i < valueArray.length; i++) {
+			
+			var key = valueArray[i].name;
+			var value = valueArray[i].value;
+			
+			if(key == "apiRsp") { //api 결과는 넘겨줄 필요 없음
+				continue;
+			}
+			
+			// apiOptionName, apiOptionValue 파라미터 객체 형태로 조합
+			if(key == "apiOptionName") {
+				if(value != "") {
+					apiOptionParamObj[value] = valueArray[i+1].value;
+				}
+			}
+			
+			if(key in param) {
+				// 기존 키의 값에 배열 추가
+				var ary = new Array();
+				ary.push(value);
+				param[key] = ary.concat(param[key]);
+			} else {
+				// 새로운 파라미터 추가
+				param[key] = value;
+			}
+			
+		}
+		
+		param["apiOptionParam"] = apiOptionParamObj;
+		
+		return param;
+	}
+	
+	// API 요청 수행
+	function getApiResult() {
+		
+		var valueArray = $("#jobDetailViewForm").serializeArray();
+		var dataSetParamObject = getDataSetParamObject(valueArray);
+		
+		// 컨트롤러를 통해 API 요청
+		$.ajax({
+		    url: "<c:url value='/udt/api/callApi.do'/>", 
+		    data: JSON.stringify(dataSetParamObject),
+			dataType:'text',
+			processData:false,
+			contentType:"application/json",
+		    type:'POST',
+		    beforeSend: function(){ 
+  	        	$("#apiLoadingImg").css("display", "block");
+    	    },
+		    success: function(data){
+		    	
+		    	var callApiResult = jQuery.parseJSON(data);
+		    	
+		    	$("#jobDetail_apiRsp").val(callApiResult.result);
+		    	
+		    	// 결과 데이터가 json 형태인지 파악, xml 형태이면 json 변환
+		    	var response = false;
+				try {
+				    response = jQuery.parseJSON(callApiResult.result);
+				} catch (error) {
+				    console.log("is not JSON type String or else");
+				} 
+				
+				if(response != 'object') {
+					if(response === false || response == null) {
+				  		// XML 형태를 JSON 형태로 변환
+				  		var xml2json = new XMLtoJSON();
+				  		try {
+				  			response = xml2json.fromStr(callApiResult.result);
+				  		} catch(e) {
+				  			console.log("xml->json 변환에 실패하였습니다.");
+				  		}
+				  		
+				  	} else {
+				    	//the response was something else
+				  	}
+				}
+				
+				// Tree형태로 표출
+				var apiRspTree = document.getElementById("jobDetail_apiRspTree");
+				apiRspTree.innerHTML = "";
+				// Create json-tree
+				try {
+					var tree = jsonTree.create(response, apiRspTree);
+					
+					// 정상적인 Api 결과일때 필스 선택 리스트 생성
+					var resultKeys = Object.keys(response); // 결과에서 키 값을 추출
+					if(resultKeys.length > 0) {
+						
+						if(!resultKeys[0].includes("Exception")) {
+
+							/*
+							// 키값을 페이지에 세팅
+							$("#dataKeyNm").empty();
+							$("#dataCntNm").empty();
+							for(var i = 0; i < resultKeys.length; i++) {
+								var option1 = $("<option value='" + resultKeys[i] + "'>" + resultKeys[i] + "</option>");
+								var option2 = $("<option value='" + resultKeys[i] + "'>" + resultKeys[i] + "</option>");
+								$("#dataKeyNm").append(option1);
+								$("#dataCntNm").append(option2);			
+							}
+							*/
+							
+							// 선택한 데이터셋 별 정해진 필드 리스트를 넘겨줌
+							var fieldListArray;
+							var selectJobNmKr = $("#jobDetail_classNm option:selected").val();
+							if(selectJobNmKr == "openApiJob001") {
+								fieldListArray = ["observatoryName", "baseDate", "averageTemperature", "lowestTemperature", "lowestTemperatureTime",
+									"highestTemperature", "highestTemperatureTime", "dailyRainfall", "maximumWindSpeed", "maximumWindSpeedTime",
+									"averageWindSpeed", "maximumWindSpeedDirection"];
+							} else if(selectJobNmKr == "openApiJob002") {
+								fieldListArray = ["link_id", "prcn_dt", "tfvl", "sped", "ocpy_rate", "trvl_hh"];
+							} else {
+								fieldListArray = ["1", "2", "3", "4"];
+							}
+							// 필드 선택 리스트 생성
+							addSelectFieldList(fieldListArray);
+						}
+					}
+					
+				} catch(e) {
+					alert("API 응답 결과를 확인해주세요.");
+				}
+
+		    },
+		    complete:function() { 
+ 	       		$("#apiLoadingImg").css("display", "none");
+	 	    }
+		});
+		
+	}
+	
+	// API 파라미터 옵션 화면요소 추가
+	function addApiOptionElement() {
+		
+		var apiOptionElement = '<div class="row">'
+		+ '<label class="col-sm-1 col-form-label" style="text-align: center;">항목명</label>'
+	    + '<div class="col-sm-3"><input type="text" name="apiOptionName" class="form-control" value="" /></div>'
+	    + '<label class="col-sm-1 col-form-label" style="text-align: center;">요청변수값</label>'
+	    + '<div class="col-sm-7"><input type="text" name="apiOptionValue" class="form-control" value="" /></div>'
+		+ '</div>';
+		
+		$("#apiOptionGroup").append(apiOptionElement);
+		
+	}
+	
+	// API옵션 화면요소 삭제
+	function removeApiOptionElement() {
+		var apiOptionGroup = $("#apiOptionGroup");
+		var children_row = apiOptionGroup.children(".row");
+		if(children_row.length > 1) {
+			children_row[children_row.length-1].remove();
+			//children_colsm10[children_colsm10.length-1].remove();
+		}
+	}
+	
+	// 데이터셋 상세 화면에 필드 선택 리스트 생성
+	function addSelectFieldList(fieldListArray) {
+	
+		$("#selectFieldList").empty();
+		
+		for(var i = 0; i < fieldListArray.length; i++) {
+			var fieldNm = fieldListArray[i];
+			var fieldListElement = '<div class="form-check form-check-inline">' 
+			+ '<input class="form-check-input" type="checkbox" id="' + fieldNm
+			+ '" name="selectField" value="' + fieldNm + '" checked="checked">'
+			+ '<label class="form-check-label" for="' + fieldNm + '">' + fieldNm + '</label>'
+			+ '</div>';
+			$("#selectFieldList").append(fieldListElement);
+		}
+		
+	}
+	
+	// 신규 데이터셋 생성 수행
+	function createNewDataset(jobType) {
+		
+		var valueArray = $("#jobDetailViewForm").serializeArray();
+		var dataSetParamObject = getDataSetParamObject(valueArray);
+		dataSetParamObject.jobReqTyp = jobType;
+		
+		// 데이터셋 필수 입력값 체크
+		if(!datasetValidChk(dataSetParamObject)) {
+			return;
+		}
+		
+		$.ajax({
+		    url:"<c:url value='/udt/schedule/insertNewDataset.do'/>",
+		    data: JSON.stringify(dataSetParamObject),
+			dataType:'json',
+			processData:false,
+			contentType:"application/json",
+			async: false,
+		    type:'POST',
+		    success: function(data){
+		    	if(data.result='success'){
+		    		
+		    		// 배치 프로세스 잡 업데이트 요청 (신규 생성 데이터셋 반영)
+		    		fn_jobUpdate(dataSetParamObject.saveTbNm);
+		    		
+		    		alert('신규 데이터셋을 생성하였습니다.');
+		    		initJobDetailViewForm();
+		    		
+		    		// 데이터셋 검색 수행
+		    		var paramObj = $("#srcJobFrm").serializeObject();
+		    		
+					fn_getListJobMstConfig(1,paramObj);
+					
+		    	}else{
+		    		alert('신규 데이터셋 생성중 오류가 발생하였습니다. 관리자에게 문의해주세요.')
+		    	}
+		    	$('#jobEditModal').loading('stop');
+		    	$('#modal').modal("hide"); // 상세 모달창 닫기
+		    },error:function(e){
+		    	alert('신규 데이터셋 생성중 오류가 발생하였습니다. 관리자에게 문의해주세요.')
+		    	$('#jobEditModal').loading('stop');
+		    	$('#modal').modal("hide"); // 상세 모달창 닫기
+		    }
+		});
+		
+	}
+	
+	// 데이터셋 테이블명칭 중복검색 수행
+	function tblNmChk() {
+		
+		var saveTbNm = $("#jobDetail_saveTbNm").val();
+		
+		// 테이블명칭 규칙 체크
+		if(saveTbNm == "") {
+			alert("테이블 명을 입력해주세요.");
+			return;
+		}
+		// 첫번째 글자가 숫자인지 체크
+		var firstNm = saveTbNm.charAt(0);
+		if(!isNaN(firstNm)) {
+			alert("테이블명의 첫 문자는 숫자가 될 수 없습니다.");
+			return;
+		}
+		// 테이블명 특수문자 검사
+		var regExp = /[ \{\}\[\]\/?.,;:|\)*~`!^\-+┼<>@\#$%&\'\"\\\(\=]/gi;
+		// 띄어쓰기도 특수문자 처리
+		if( regExp.test(saveTbNm) ){
+			alert("테이블명에 특수문자는 입력하실수 없습니다.");
+			return;
+		}
+		
+		$.ajax({
+		    url:"<c:url value='/udt/schedule/selectJobTblNmList.do'/>",
+		    data: JSON.stringify({saveTbNm: saveTbNm}),
+			dataType:'json',
+			processData:false,
+			contentType:"application/json",
+		    type:'POST',
+		    success: function(data){
+		    	if(data.result.length == 0){
+		    		alert('사용 가능한 보관 테이블명입니다.');
+		    		$("#jobDetail_saveTbNm").attr("readonly", true);
+		    		$("#tblNmDuplication").val("chk");
+		    	}else{
+		    		alert('이미 사용중인 보관 테이블명입니다.');
+		    		$("#jobDetail_saveTbNm").attr("readonly", false);
+		    		$("#tblNmDuplication").val("");
+		    	}
+
+		    },error:function(e){
+		    	alert('테이블명 중복체크 오류가 발생하였습니다. 관리자에게 문의해주세요.');
+		    }
+		});
+		
+	}
+	
+	// 데이터셋 생성/수정 수행시 필수 입력값을 체크
+	function datasetValidChk(dataSetParamObject) {
+		// 데이터셋명 확인
+		if($("#jobDetail_jobNmKr").val() == "") {
+			isChk = false;
+			alert("데이터셋명 입력값을 확인해주세요.");
+			return false;
+		}
+		// 테이블명 중복체크 여부 판단
+		if($("#tblNmDuplication").val() == "") {
+			isChk = false;
+			alert("보관 테이블명 중복체크가 필요합니다.");
+			return false;
+		}
+
+		// 배치주기 입력값 정상 여부 체크
+		if($("#jobDetail_cronExeCycle").val() == "") {
+			isChk = false;
+			alert("배치주기 입력값을 확인해주세요.");
+			return false;
+		}
+
+		// 요청 URL 입력 체크
+		if($("#jobDetail_apiUrl").val() == "") {
+			isChk = false;
+			alert("요청 URL 입력값을 확인해주세요.")
+			return false;
+		}
+		// 저장 필드 선택 검사
+		if(dataSetParamObject.selectField == undefined) {		
+			isChk = false;
+			alert("선택한 저장 필드가 없습니다. API 요청을 통해 저장 필드를 선택해주세요.");
+			return false;
+		}
+		return true;
+	}
+	
+	// 데이터셋 수정
+	function updateDataset() {
+		
+		var isUpdate = confirm("저장 필드 수정 시 기존 데이터는 삭제됩니다. 수정하시겠습니까?");
+		
+		if(isUpdate) {
+			
+			var valueArray = $("#jobDetailViewForm").serializeArray();
+			var dataSetParamObject = getDataSetParamObject(valueArray);
+			
+			// 데이터셋 필수 입력값 체크
+			if(!datasetValidChk(dataSetParamObject)) {
+				return;
+			}
+			
+			$.ajax({
+			    url:"<c:url value='/udt/schedule/updateDataset.do'/>",
+			    data: JSON.stringify(dataSetParamObject),
+				dataType:'json',
+				processData:false,
+				contentType:"application/json",
+			    type:'POST',
+			    success: function(data){
+			    	if(data.result='success'){
+			    		
+			    		// 배치 프로세스 잡 업데이트 요청
+			    		fn_jobUpdate(dataSetParamObject.saveTbNm);
+			    		
+			    		alert('데이터셋을 수정하였습니다.');
+			    		
+			    		// 데이터셋 검색 수행
+			    		var paramObj = $("#srcJobFrm").serializeObject();
+						fn_getListJobMstConfig(1,paramObj);
+			    		
+			    	}else{
+			    		alert('데이터셋 수정중 오류가 발생하였습니다. 관리자에게 문의해주세요.')
+			    	}
+			    	$('#jobEditModal').loading('stop');
+			    },error:function(e){
+			    	alert('데이터셋 수정중 오류가 발생하였습니다. 관리자에게 문의해주세요.')
+			    	$('#jobEditModal').loading('stop');
+			    }
+			});
+			
+		}
+		
+	}
+	
+	// 데이터셋 삭제
+	function deleteDataset(jobId, saveTbNm) {
+		
+		var isDelete = confirm("해당 데이터셋을 삭제하시겠습니까?");
+		
+		if(isDelete) {
+			$.ajax({
+			    url:"<c:url value='/udt/schedule/deleteDataset.do'/>",
+			    data: JSON.stringify({
+			    	jobId: jobId,
+			    	saveTbNm: saveTbNm
+			    }),
+				dataType:'json',
+				processData:false,
+				contentType:"application/json",
+			    type:'POST',
+			    success: function(data){
+			    	if(data.result='success'){
+			    		
+			    		// 배치 프로세스 Job 삭제 요청
+			    		fn_jobDelete(saveTbNm);
+			    		
+			    		alert('데이터셋을 삭제하였습니다.');
+			    		
+			    		// 데이터셋 검색 수행
+			    		var paramObj = $("#srcJobFrm").serializeObject();
+						fn_getListJobMstConfig(1,paramObj);
+			    		
+			    	}else{
+			    		alert('데이터셋 삭제중 오류가 발생하였습니다. 관리자에게 문의해주세요.')
+			    	}
+			    },error:function(e){
+			    	alert('데이터셋 삭제에 실패하였습니다. 관리자에게 문의해주세요.');
+			    }
+			});
+		}
+		
+	}
+
+	
+	function fn_storageRoot(obj) {
+		
+	}
+	
+</script>
+<!-- JS 기능 끝 -->
+
+<!-- 본문 시작 -->
+<div class="wrapper wrapper-content animated fadeInRight ecommerce">
+    <div class="row" style="justify-content: center;">
+        <div class="col-lg-11">
+            <div class="ibox">
+            	<div class="ibox-title">
+                    <h3>데이터셋 관리</h3>
+                    <div class="ibox-tools">
+                    	<button class="btn btn-sm btn-info" id="createJobBtn" type="button" style="margin-right: 15px;"><i class="fa fa-plus"></i> 데이터셋 생성</button>
+                        <a class="collapse-link">
+                            <i class="fa fa-chevron-up"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="ibox-content" id="iboxJobConfig">
+                	<form id="srcJobFrm">
+                	
+                	<div class="row search-box-row">
+		                    <div class="col-sm-3">
+		                        <div class="form-group">
+		                            <label class="col-form-label" for="jobNmKr">
+		                            <i class="fa fa-search"></i>데이터셋명</label>
+		                            <input type="text" id="jobNmKr" name="jobNmKr" value="" placeholder="데이터셋명을 입력해주세요." class="job-srch-input form-control">
+		                        </div>
+		                    </div>
+		                    <div class="col-sm-3">
+		                        <div class="form-group">
+		                            <label class="col-form-label" for="saveTbNm">
+		                            <i class="fa fa-search"></i>보관 테이블명</label>
+		                            <input type="text" id="saveTbNm" name="saveTbNm" value="" placeholder="테이블명을 입력해주세요." class="job-srch-input form-control">
+		                        </div>
+		                    </div>
+		                     <div class="col-sm-2">
+		                        <div class="form-group">
+		                            <label class="col-form-label" for="jobUseAt">
+		                            <i class="fa fa-search"></i>구동상태</label>
+		                            <select name="jobUseAt" id="jobUseAt" class="form-control">
+		                            	<option value="" disabled selected>구동상태를 선택해주세요.</option>
+		                            	<option value="">전체</option>
+		                                <option value="Y">Running</option>
+		                                <option value="N">Stop</option>
+		                            </select>
+		                        </div>
+		                    </div>
+		                    <div class="col-sm-2">
+		                        <div class="form-group">
+		                            <label class="col-form-label" for="jobType">
+		                            <i class="fa fa-search"></i>데이터 수집방식</label>
+		                            <select name="jobType" id="jobType" class="form-control">
+		                                <option value="" disabled selected>수집방식을 선택해주세요.</option>
+		                                <option value="">전체</option>
+		                                <option value="OPENAPI">OPEN API</option>
+		                                <option value="UPLOAD_WEB">파일 수동업로드</option>
+		                                <!-- 
+		                                <option value="LINK_DATA">연계데이터 가공</option>
+		                                <option value="FTP">FTP</option>
+		                                <option value="SFTP">SFTP</option>
+		                                 -->
+		                            </select>
+		                        </div>
+		                    </div>
+		                    <div class="col-sm-1">
+		                        <button class="btn btn-sm btn-primary search-btn" id="searchJobBtn" type="button"><i class="fa fa-search"></i>Search</button>
+		                    </div>
+		                    <div class="search-fa-tool-grp">
+		                    		<i class="fa fa-eraser isToolTip refesh-srhfrm-btn" for="srcJobFrm" title="입력칸을 모두 리셋합니다."></i>
+		                    </div>
+	                </div>
+	                </form>
+                	<div id="schJobListTabDiv" style="height:585px;padding-top: 10px;">
+                    
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 하단 데이터셋 상세정보 창 -->
+<div class="modal inmodal" id="modal">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content animated bounceInRight">
+			<div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">×</span><span class="sr-only">Close</span></button>
+                <h4 class="modal-title">데이터셋 상세정보</h4>
+            </div>
+		    <div class="modal-body">
+               	<div id="cmnJobDetailDiv" class="meta-div-grp">
+               	</div>
+		    </div>
+		</div>
+	</div>
+</div>
+
+<!-- 본문 끝-->
+
+<div class="popup-wrap2" id="jobEditModal"> 
+    <div class="popup2">	
+      <div class="popup-head2">
+      	 <h3><span class="head-title2" >스케줄러 상세정보</span></h3>
+      </div>
+      <div class="popup-body2">	
+        <div class="body-content2">
+          <div class="body-contentbox2">
+          	<input type="hidden" id="idCheckInput" value="none"/>
+          	<form id="jobEditForm">
+                     <div class="form-group  row">
+                     	<label class="col-sm-3 col-form-label">잡 ID</label> 
+                         <div class="col-sm-8">
+                       	 <input type="text" required id="frmJobId" name="frmJobId" disabled value="" placeholder="" class="form-control">
+                       	 <input style="display:none" type="text" required id="frmJobNmEn" name="frmJobNmEn" disabled value="" placeholder="" class="form-control">
+                         </div>
+                         
+                     </div>
+                     <div class="hr-line-dashed"></div> 
+                     <div class="form-group  row">
+                     	<label class="col-sm-3 col-form-label">연계ㆍ데이터셋명</label> 
+                         <div class="col-sm-8"><input type="text" required id="frmJobNmKr" name="frmJobNmKr"  value="" placeholder="" class="form-control"></div>
+                     </div>
+                     <div class="hr-line-dashed"></div> 
+                     <div class="form-group row" style="margin-bottom: -15px;">
+			   		<label class="col-sm-3 col-form-label">사용여부</label>
+                        <div class="col-sm-8" > 
+		          		<select class="form-control m-b"  id="frmUseAt" name="frmUseAt" style="height:auto">
+		                     <option value="Y">사용</option>
+		                     <option value="N">사용중지</option>
+		                </select> 
+			   		</div>
+                     </div>
+                     <div class="hr-line-dashed"></div>
+                     <div class="form-group row" style="margin-bottom: -15px;">
+  						  <label class="col-sm-3 col-form-label">원천데이터 <br/>수집 유형</label>
+                         <div class="col-sm-8" >
+		          		<select class="form-control m-b"  disabled id="frmJobType" name="frmJobType" style="height:auto">
+		                     <option value="UPLOAD_WEB">파일 수동업로드</option>
+                                <option value="LINK_DATA">연계데이터 가공</option>
+                                <option value="OPENAPI">OPEN API 호출</option>
+                                <option value="FTP">FTP 파일수신</option>
+                                <option value="SFTP">SFTP 파일수신</option>
+		                </select> 
+  						  </div>
+                     </div>
+                     <div class="hr-line-dashed"></div>
+                     <div class="form-group  row">
+                     	<label class="col-sm-3 col-form-label">배치주기
+                     	<i style="cursor:pointer" class="fa fa-question-circle isToolTip cronExplaineMark" id="" title="아이콘을 클릭해주세요."></i><br/>
+					<small>(크론표현식)</small></label>
+                        <div class="col-sm-8"><input style="margin-top: 10px;" type="text" required id="frmCronExeCycle" name="frmCronExeCycle"  value="" placeholder="" class="form-control"></div>
+                     </div>
+                     <div class="hr-line-dashed"></div>
+                     <div class="form-group  row">
+                     	<label class="col-sm-3 col-form-label">데이터셋 저장경로<br/><small>(가공파일)</small></label>
+                         <div class="col-sm-8"><input style="margin-top: 10px;" type="text" required id="frmSendSaveDir" name="frmSendSaveDir"  value="" placeholder="" class="form-control"></div>
+                     </div>
+                     <div class="hr-line-dashed"></div>
+                     <div id="isApiUseDivZone">
+                      <div class="form-group  row">
+                      	<label class="col-sm-3 col-form-label">API 호출주소</label>
+                          <div class="col-sm-8"><input type="text" required id="frmUdtApiEndPoint" name="frmUdtApiEndPoint"  value="" placeholder="" class="form-control"></div>
+                      </div>
+                      <div class="hr-line-dashed"></div>
+                      <div class="form-group  row">
+                      	<label class="col-sm-3 col-form-label">API KEY</label>
+                          <div class="col-sm-8"><input type="text" required id="frmUdtApiKey" name="frmUdtApiKey"  value="" placeholder="" class="form-control"></div>
+                      </div>
+                      <div class="hr-line-dashed"></div>
+                     </div>
+                 </form>
+          </div>
+        </div>
+      </div>
+      <div class="popup-foot2"> 
+          <div class="col-sm-4 col-sm-offset-2 usr-modal-btn-grp">
+          	<button class="btn btn-primary btn-sm" id="schModalSubBtn" type="submit">수정</button>
+                 <button class="btn btn-white btn-sm modal-close-btn" id="schModalCancle">취소</button>
+             </div>
+      </div>
+    </div>
+</div>
+
+<%@include file ="/WEB-INF/jsp/layout/footer.jsp" %>

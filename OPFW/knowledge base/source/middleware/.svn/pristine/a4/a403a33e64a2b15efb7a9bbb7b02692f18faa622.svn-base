@@ -1,0 +1,34 @@
+package kr.udt.data.dto.dataset;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+
+/**
+ * @설명 : 데이터셋-테스트 지역별 3040 주택, 아파트 거래비율 DTO
+ * @작성자 : ICTWAY - 이민열 대리
+ * @생성일 : 2022.01.14
+ * @비고 : 
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class TestHusAptTradeRteInfoDTO {
+	
+	private String SIGUNGU_CD ;
+	private String SIGUNGU_NM ;
+	private String RSH_YEAR_MNTH ;
+	private BigDecimal ALL_DEAL_CNT ;
+	private BigDecimal THIR_DEAL_CNT ;
+	private double THIR_DEAL_RTE ;
+	private BigDecimal FORT_DEAL_CNT ;
+	private double FORT_DEAL_RTE ;
+	private Timestamp updtTimeStmp;
+}
+	

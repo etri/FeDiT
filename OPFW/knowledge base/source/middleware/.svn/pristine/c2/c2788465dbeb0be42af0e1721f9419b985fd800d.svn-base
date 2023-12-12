@@ -1,0 +1,100 @@
+/**
+ * 
+ */
+package kr.udt.data.job;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import kr.udt.data.dto.JobLinkConfigDTO;
+import kr.udt.data.dto.JobMstDTO;
+import kr.udt.data.dto.JobRunHstDTO;
+import kr.udt.data.dto.ProcessMstDTO;
+import kr.udt.data.job.abst.UdtJobAbstractClass;
+import kr.udt.data.mapper.UdtDataFlowMapper;
+import kr.udt.data.svo.FtpServiceVO;
+import kr.udt.data.util.UdtFtpUtil;
+
+/**
+ * @설명 : job001 - 공동주택 상세 분양정보
+ * @프로세스 : FTP CSV다운  > CSV 리드 > 전송파일생성(csv,dcat) > DB 적재 > 교빅 중계서버 전송 > 전송파일 폴더이동(완료) > 교빅 업로드 api호출(중계서버)
+ * @작성자 : ICTWAY - 이민열 대리
+ * @생성일 : 2021. 11. 12.
+ * @비고 : 
+ */
+@Component
+public class SAMPLE_SFTP extends UdtJobAbstractClass {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(SAMPLE_SFTP.class);
+	
+	@Autowired
+	private UdtDataFlowMapper mapper;
+	
+	@Autowired
+	private UdtFtpUtil ftpUtil;
+	
+	private String logTitle="";
+	
+	
+	@Override
+	public void execute(JobMstDTO jobInfo) {
+		logTitle="";
+		long jobStartTime=0;
+		long jobEndTime=0;
+		long processStartTime=0;
+		long processEndTime=0;
+		int processStep=0;
+		JobRunHstDTO jobRunHstDTO=null;
+		List<ProcessMstDTO> processList = new ArrayList<ProcessMstDTO>();
+		
+		try {
+			
+			jobStartTime=System.currentTimeMillis();
+			
+			logTitle = "["+jobInfo.getJobNmKr()+"]";
+			
+			LOGGER.info(logTitle+"스케줄 프로세스가 시작됩니다.");
+			LOGGER.info(logTitle+"실행 프로세스 정보 및 연계설정정보를 읽어옵니다."); 
+			
+			processList = mapper.getProcessMstWithSnByJobId(jobInfo);
+			JobLinkConfigDTO jobConfig = mapper.getOneJobLinkConfig(jobInfo);
+			
+			LOGGER.info(logTitle+"실행 프로세스 총 ["+processList.size()+"단계]");
+			
+			for(ProcessMstDTO processInfo : processList) {
+				int logSn=processList.indexOf(processInfo)+1;
+				LOGGER.info(logTitle+"실행 프로세스 정보("+logSn+"단계) : "+processInfo.toString());
+			}
+			
+			LOGGER.info(logTitle+"연계설정정보 : "+jobConfig.toString());
+			
+			//프로세스 호출전 job 실행이력 생성
+			jobRunHstDTO  = super.processStart(jobInfo,jobStartTime);
+			
+			//프로세스  시작
+			processStep=1;
+			super.loggingProcessStart(logTitle, processStep, processList, LOGGER);
+			
+			//프로세스 1 SFTP 파일다운로드
+			FtpServiceVO ftpSVO = super.settingFtpServiceVO(jobConfig);
+			ftpUtil.fileDownload(ftpSVO,logTitle);
+			processEndTime=System.currentTimeMillis();
+			processStep = super.nextStep(processStep,jobRunHstDTO,processList,LOGGER,processStartTime,processEndTime);
+			
+			//프로세스2 수신 파일 리드
+			processStartTime=System.currentTimeMillis();
+			//실행 적을것 ㅋ
+			processEndTime=System.currentTimeMillis();
+			processStep = super.nextStep(processStep,jobRunHstDTO,processList,LOGGER,processStartTime,processEndTime);
+			
+		}catch(Exception e) {
+			super.rebJobExceptionHandle(logTitle, processStep, processList, LOGGER, e, jobRunHstDTO,jobStartTime,processStartTime);
+		}
+	}
+
+}

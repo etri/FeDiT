@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.udt.user.service.impl.UdtUserManageMapper">
+	
+	<select id="selectUdtWebUserList" parameterType="map" resultType="egovMap">
+		/***selectUdtWebUserList***/
+		SELECT
+			CAST(COUNT(A.USER_ID) OVER() AS INTEGER) AS totcnt
+			,ROW_NUMBER() OVER (ORDER BY A.REG_DT ASC) AS rownum 
+			,A.USER_ID
+			,A.USER_NAME
+			,A.USER_ROLE
+			,A.USER_ENABLED
+			,A.USER_EMAIL
+			,A.USER_PHONE_NUMBER
+			,TO_CHAR(TO_TIMESTAMP(A.REG_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS REG_DT
+			,TO_CHAR(TO_TIMESTAMP(A.UPDT_DT,'YYYYMMDDHH24MISS'),'YYYY.MM.DD') AS UPDT_DT
+		FROM UDT_WEB_USER A
+		WHERE
+			1=1
+			<if test="userId!=null">
+				AND	UPPER(A.USER_ID) LIKE '%' || UPPER(#{userId}) || '%'
+			</if>
+			<if test="userName!=null">
+				AND	A.USER_NAME LIKE '%' || #{userName} || '%'
+			</if>
+			<if test="userRole!=null and !userRole.equals('')">
+				AND	A.USER_ROLE LIKE '%' || #{userRole} || '%'
+			</if>
+		ORDER BY A.REG_DT ASC
+		LIMIT #{recordCountPerPage} OFFSET #{firstIndex}
+		
+	</select>
+	
+	<select id="doUserIdCheck" parameterType="String" resultType="int">
+		/***doUserIdCheck***/
+		SELECT 
+		COUNT(1) 
+		FROM UDT_WEB_USER 
+		WHERE USER_ID=#{userId};
+	</select>
+	
+	<select id="selectOneUdtWebUser" parameterType="map" resultType="egovMap">
+		SELECT 
+			USER_ID
+			, USER_PASSWORD
+			, USER_NAME
+			
+			, USER_ROLE
+			, USER_ENABLED
+			, USER_EMAIL
+			, USER_PHONE_NUMBER
+		FROM UDT_WEB_USER
+		WHERE USER_ID=#{userId}
+	</select>
+	
+	<insert id="insertUdtWebUser" parameterType="map">
+		INSERT INTO UDT_WEB_USER(
+			USER_ID, USER_PASSWORD, USER_NAME, USER_AUTHORITY, USER_ROLE, USER_ENABLED, 
+			USER_EMAIL, USER_PHONE_NUMBER,  REG_ID,  UPDT_ID)
+		VALUES (
+				#{userId}
+				,#{userPassword}
+				,#{userName} 
+				,#{userAuthority} 
+				,#{userRole}
+				,#{userEnabled} 
+				,#{userEmail}
+				,#{userPhoneNumber}
+				,'ADMIN'
+				,'ADMIN'
+				);
+	</insert>
+	
+	<update id="updateUdtWebUser" parameterType="map">
+		UPDATE UDT_WEB_USER
+			SET 
+				USER_PASSWORD=#{userPassword}, 
+				USER_NAME=#{userName}, 
+				USER_AUTHORITY=#{userAuthority}, 
+				USER_ROLE=#{userRole}, 
+				USER_ENABLED=#{userEnabled}, 
+				USER_EMAIL=#{userEmail}, 
+				USER_PHONE_NUMBER=#{userPhoneNumber}, 
+				UPDT_DT=to_char(now(),'YYYYMMDDHH24MISS') 
+		WHERE USER_ID=#{userId};
+	
+	</update>
+	
+</mapper>

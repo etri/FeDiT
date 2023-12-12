@@ -1,0 +1,54 @@
+package kr.udt.data.dto;
+
+import java.math.BigDecimal;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+
+/**
+ * @설명 : 잡 실행 이력 DTO
+ * @작성자 : ICTWAY - 이민열 대리
+ * @생성일 : 2021. 11. 15.
+ * @비고 : 
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class JobRunHstDTO {
+	
+	private BigDecimal execId;
+	
+	private BigDecimal jobId;
+	
+	private String jobNmKr;
+	
+	private String jobEndAt;
+	
+	private BigDecimal processSn;
+	
+	private String jobStartDt;
+	
+	private String jobEndDt;
+	
+	private BigDecimal jobElapTime;
+	
+	private BigDecimal recvFileId;
+	
+	private BigDecimal sendFileId;
+	
+	private String doroCsvfileFullPath;
+	
+	private String doroRdffileFullPath;
+	
+	private String saveTbNm;
+	
+	private BigDecimal recvReadLine;
+	
+	private BigDecimal sendWriteLine;
+	
+	private String jobEndRslt;
+}

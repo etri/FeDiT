@@ -1,0 +1,36 @@
+/**
+ * 
+ */
+package kr.udt.data.dto.dataset;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+
+import kr.udt.data.dto.dataset.AphusTradeLtrInfoDTO.AphusTradeLtrInfoDTOBuilder;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ * @설명 : 데이터셋-아파트 일반공급 당첨가점정보
+ * @작성자 : ICTWAY - 이민열 대리
+ * @생성일 : 2021. 12. 9.
+ * @비고 : 
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class AptLottAddptInfo {
+	private String husMngno;
+	private String husNm;
+	private String modelNo;
+	private String husType;
+	private String gnrlSplyRnk;
+	private String rsdnc;
+	private BigDecimal lwstAddpt;
+	private BigDecimal topAddpt;
+	private double avgAddpt;
+	private Timestamp updtTimeStmp;
+}
