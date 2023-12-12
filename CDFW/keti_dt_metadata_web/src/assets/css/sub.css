@@ -32,7 +32,7 @@
 
 /**/
 .boxLayout{ border:1px solid rgba(0,0,0,0.15); border-radius:5px; }
-.boxTit{ position:relative; height:42px; padding:10px 20px; background-color:#F0F0F0; border-radius:5px 5px 0 0; box-sizing:border-box; }
+.boxTit{ position:relative; height:42px; padding:10px 20px; background-color:#F0F0F0; border-radius:5px 5px 0 0; box-sizing:border-box; display: flex; justify-content: space-between; align-items: center; }
 .boxTit h3{ font-size: 16px; font-weight: normal; color: #777;}
 .boxTit .btnSec{ position:absolute; right:20px;}
 .boxCnt{padding:20px;border-radius:0 0 5px 5px;background-color:#fff;}
