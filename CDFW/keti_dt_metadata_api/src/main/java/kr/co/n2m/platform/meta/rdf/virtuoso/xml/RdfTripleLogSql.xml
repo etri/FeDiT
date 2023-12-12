@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.n2m.platform.meta.rdf.virtuoso.mapper.RdfTripleLogMapper">
+
+    <sql id="limitPage">
+        <if test="isPaging">    
+        OFFSET #{startIndex} LIMIT #{pageListSize}
+        </if>
+        <if test="!isPaging">    
+        OFFSET 0 LIMIT #{limitListSize}
+        </if>        
+    </sql>
+        
+    <sql id="whereByRdfTripleLog">
+      
+    </sql>
+    
+    <sql id="orderByRdfTripleLog">
+
+    </sql>    
+    
+    <select id="selectRdfTripleLogCount" resultType="int">
+        SELECT /* SQL_ID: RdfTripleLogMapper.selectRdfTripleLogCount */
+               COUNT(*) 
+          FROM dtmeta.tb_rdf_triplelog          t1
+         WHERE 1=1
+        <include refid="whereByRdfTripleLog"/>
+    </select>
+    
+    <select id="selectRdfTripleLogList" resultType="rdfTripleLogVo">
+        SELECT /* SQL_ID: RdfTripleLogMapper.selectRdfTripleLogList */
+               t1.rdf_triple_log_id
+             , TO_CHAR(t1.log_dt, #{sqlDateFormat})  AS log_dt               
+	         , t1.sbjt_ri
+	         , t1.predct_ri 
+	         , t1.objt_ri 
+	         , t1.log_div_mtcd 
+	         , t1.log_store_lo_nm
+	         , t1.log_regr_id
+	      FROM dtmeta.tb_rdf_triplelog          t1
+         WHERE 1=1     
+        <include refid="whereByRdfTripleLog"/>
+        <include refid="orderByRdfTripleLog"/>
+        <include refid="limitPage"/>
+    </select>    
+
+	<insert id="insertRdfTripleLog" parameterType="rdfTripleLogVo">
+		INSERT /* SQL_ID: RdfTripleLogMapper.insertRdfTripleLog */
+		       INTO dtmeta.tb_rdf_triplelog
+			 ( rdf_triple_log_id
+             , log_dt
+             , sbjt_ri
+             , predct_ri
+             , objt_ri
+             , log_div_mtcd
+             , log_store_lo_nm
+             , log_regr_id
+			 ) VALUES 
+			 ( 
+			   #{rdfTripleLogId}			 			 
+			 , current_timestamp
+			 , #{sbjtRi}
+			 , #{predctRi}
+			 , #{objtRi}
+			 , #{logDivMtcd}
+			 , #{logStoreLoNm}
+			 , #{logRegrId}
+			 )
+	</insert>
+	
+    <insert id="insertRdfTripleLogList" parameterType="map">
+        INSERT /* SQL_ID: RdfTripleLogMapper.insertRdfTripleLogList */
+               INTO dtmeta.tb_rdf_triplelog
+             ( rdf_triple_log_id
+             , log_dt
+             , sbjt_ri
+             , predct_ri
+             , objt_ri
+             , log_div_mtcd
+             , log_store_lo_nm
+             , log_regr_id
+             ) VALUES 
+             <foreach collection="list" item="item" separator=",">
+             ( 
+               #{item.rdfTripleLogId}                         
+             , current_timestamp
+             , #{item.sbjtRi}
+             , #{item.predctRi}
+             , #{item.objtRi}
+             , #{item.logDivMtcd}
+             , #{item.logStoreLoNm} 
+             , #{item.logRegrId}
+             )
+             </foreach>
+    </insert>	
+    
+</mapper>
+

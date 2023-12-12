@@ -1,5 +1,5 @@
 ## FDTFW
-_FDTFW 프로젝트_ 는 2022년 4월 시작하였습니다.
+_FDTFW 프로젝트_ 는 이종 도메인의 디지털 트윈간 연합과 상호운용을 위한 지능형 디지털 연합트윈 프레임워크
 
 ### FDTFW Modules
 * `CMFW`: 지능형 디지털 연합트윈 공통 기능 프레임워크
@@ -10,15 +10,19 @@ _FDTFW 프로젝트_ 는 2022년 4월 시작하였습니다.
 ### Dependency
 
 ### How to Run Codes
+각 모듈 내 문서를 참조
 
 ### How to Contribute Your Codes
-[CONTRIBUTING.md](CONTRIBUTING.md)를 참조하세요.
+[CONTRIBUTING.md](CONTRIBUTING.md)를 참조
+
+### History
+_FDTFW 프로젝트_ 는 2022년 4월 시작
 
 ### Authors
-[AUTHORS.md](AUTHORS.md)를 참조하세요.
+[AUTHORS.md](AUTHORS.md)를 참조
 
 ### License
-[LGPV v2.1](LICENSE_KR.md)를 참조하세요.
+[LGPV v2.1](LICENSE_KR.md)를 참조
 
 ### Acknowledgement
 The authors thank the following contributors and projects.
