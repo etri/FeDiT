@@ -1,0 +1,120 @@
+/*
+ * Copyright 2008-2009 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package kr.udt.file.web;
+
+
+
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+
+import egovframework.rte.psl.dataaccess.util.EgovMap;
+import egovframework.rte.ptl.mvc.tags.ui.pagination.PaginationInfo;
+import kr.udt.file.service.UdtFileService;
+
+@Controller
+public class UdtFileController {
+	
+	@Autowired
+	private UdtFileService udtFileService;
+	
+	
+	@RequestMapping(value="/udt/file/main.do")
+	public String fileMainPage(ModelMap model) throws IOException{
+		model.addAttribute("menuNo", "menu-li-3");
+		model.addAttribute("srcDataTbList", udtFileService.selectSrcTableInfo());
+		return "udt/file/fileManage";
+	}
+
+	@RequestMapping(value="/udt/file/uploadIndividualFile.do")
+	public String uploadIndividualFile(@RequestParam("file") MultipartFile multiFile, HttpServletRequest request,HttpServletResponse response,ModelMap model) throws IOException{
+		
+		String srcDataTbNm = (String)request.getParameter("srcDataTbNm");
+		Map<String,Object> result = udtFileService.saveNewlySrcDataFileToDb(multiFile, srcDataTbNm, false);
+		model.addAttribute("result", result);
+		return "jsonView";
+	}
+	
+	@RequestMapping(value="/udt/file/fileDownload.do")
+	public void fileDownload(@RequestParam("fileId") String fileId, @RequestParam("fileSn") String fileSn
+			,@RequestParam("encodingAt") boolean encodingAt, HttpServletRequest request,HttpServletResponse response,
+			ModelMap model) throws IOException{
+		
+		udtFileService.fileDownload(fileId, fileSn, request, response,encodingAt);
+		
+	}
+	
+	@RequestMapping(value = "/udt/file/selectOneUdtFile.do", method = RequestMethod.POST)
+	public String selectOneUdtFile(@RequestBody HashMap<String, Object> param, Model model) throws IOException {
+		
+		model.addAttribute("resultFileList", udtFileService.selectOneUdtFile(param));
+		return "udt/file/ajax/jobRunFileList";
+	}
+	
+	@RequestMapping(value = "/udt/file/selectSrcDataFileHstByTbNm.do", method = RequestMethod.POST)
+	public String selectSrcDataFileHstByTbNm(@RequestBody HashMap<String, Object> param, Model model) throws IOException {
+		
+		/** pageing setting */
+		param.put("pageUnit", 10);
+		param.put("pageSize", 10);
+		PaginationInfo paginationInfo = new PaginationInfo();
+		paginationInfo.setCurrentPageNo((Integer)param.get("pageIndex"));
+		paginationInfo.setRecordCountPerPage((Integer)param.get("pageUnit"));
+		paginationInfo.setPageSize((Integer)param.get("pageSize"));
+
+		param.put("firstIndex", paginationInfo.getFirstRecordIndex());
+		param.put("lastIndex", paginationInfo.getLastRecordIndex());
+		param.put("recordCountPerPage", paginationInfo.getRecordCountPerPage());
+		
+		List<EgovMap> resultMapList = udtFileService.selectSrcDataFileHstByTbNm(param);		
+		
+		
+		int totCount= 0;
+		if(resultMapList.size()>0) {
+			totCount=(Integer)resultMapList.get(0).get("totcnt");
+		}
+		
+	
+		
+		paginationInfo.setTotalRecordCount(totCount);
+		
+		model.addAttribute("resultList",resultMapList);
+		model.addAttribute("paginationInfo", paginationInfo);
+		
+		return "udt/file/ajax/srcDataFileHstList";
+	}
+	
+	
+	
+	
+	
+	
+}

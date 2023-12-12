@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.udt.schedule.service.impl.UdtScheduleMapper">
+
+	
+	<select id="selectAllJobMstWithJobConfig" parameterType="map" resultType="egovMap">
+		/***selectAllJobMstWithJobConfig***/
+		SELECT 
+			CAST(COUNT(A.JOB_ID) OVER() AS INTEGER) AS TOTCNT
+			,ROW_NUMBER() OVER (ORDER BY A.JOB_ID DESC) AS rownum 
+			,A.*
+			,CASE 
+				WHEN B.JOB_TYPE = 'FTP' THEN 'FTP 수신' 
+				WHEN B.JOB_TYPE = 'SFTP' THEN 'SFTP 수신' 	
+				WHEN B.JOB_TYPE = 'OPENAPI' THEN 'OPENAPI 수신' 
+				WHEN B.JOB_TYPE = 'UPLOAD_WEB' THEN '파일 수동업로드'
+				WHEN B.JOB_TYPE = 'LINK_DATA' THEN '연계데이터 가공'  
+				WHEN B.JOB_TYPE IS NULL THEN '-'
+				ELSE B.JOB_TYPE
+			END AS JOB_TYPE
+			,B.UDT_API_PARAM
+		FROM JOB_MST A LEFT OUTER JOIN JOB_LINK_CONFIG B
+		ON A.JOB_ID = B.JOB_ID 
+		WHERE
+			1=1
+			AND A.SYS_BATCH_AT !='Y'
+			<if test="jobNmKr!=null">
+				AND	A.JOB_NM_KR LIKE '%' || #{jobNmKr} || '%'
+			</if>
+			<if test="reciveSysInst!=null">
+				AND	(A.RECIVE_INST LIKE '%' || #{reciveSysInst} || '%' OR	A.RECIVE_SYS LIKE '%' || #{reciveSysInst} || '%')
+			</if>
+			<if test="saveTbNm!=null">
+				AND	A.SAVE_TB_NM LIKE '%' || UPPER(#{saveTbNm}) || '%'
+			</if>
+			<if test="jobUseAt!=null and !jobUseAt.equals('')">
+				AND	A.USE_AT LIKE '%' || #{jobUseAt} || '%'
+			</if>
+			<if test="jobType!=null and !jobType.equals('')">
+				AND	B.JOB_TYPE LIKE '%' || #{jobType} || '%'
+			</if>
+		ORDER BY A.JOB_ID DESC
+		LIMIT #{recordCountPerPage} OFFSET #{firstIndex}
+		
+	</select>
+	
+	<select id="selectOneRdfMetaCommon" parameterType="map" resultType="egovMap">
+		SELECT * FROM RDF_META_COMMON ORDER BY REG_DT DESC LIMIT 1
+	</select>
+	
+	<select id="selectOneRdfMetaDataset" parameterType="map" resultType="egovMap">
+		SELECT * FROM RDF_META_DATASET WHERE JOB_ID = #{jobId}::Integer ORDER BY REG_DT DESC LIMIT 1
+	</select>
+	
+	<select id="selectRdfMetaDatasetTitleList" resultType="egovMap">
+		/***selectRdfMetaDatasetTitleList****/
+		SELECT 
+			B.JOB_ID,
+			B.DCT_TITLE
+			FROM
+			(
+				SELECT 
+					JOB_ID,MAX(REG_DT) AS MAX_REG_DT FROM RDF_META_DATASET 
+				GROUP BY JOB_ID
+			) A, RDF_META_DATASET B
+		WHERE 
+		A.JOB_ID=B.JOB_ID
+		AND A.MAX_REG_DT=B.REG_DT
+		ORDER BY JOB_ID ASC
+	</select>
+
+	<insert id="insertNewRdfMetaCommon"  parameterType="map">
+	INSERT INTO RDF_META_COMMON(
+		VCARD_FN, VCARD_HASEMAIL, VCARD_HASTELEPHONE, FOAF_NAME, FOAF_HOMEPAGE, FOAF_MBOX, FOAF_PHONE, DCT_LICENSE, DCT_RIGHTS, REG_ID, UPDT_ID)
+		VALUES (
+				#{vcardFn}
+				,#{vcardHasemail}
+				,#{vcardHastelephone}
+				,#{foafName}
+				,#{foafHomepage}
+				,#{foafMbox}
+				,#{foafPhone}
+				,#{dctLicense}
+				,#{dctRights}
+				,'ADMIN'
+				, 'ADMIN');
+	</insert>
+	
+	<insert id="insertNewRdfMetaDataset"  parameterType="map">
+		INSERT INTO RDF_META_DATASET(
+			JOB_ID, DCT_TITLE, DCT_ACCESSRIGHTS, DCT_DESCRIPTION, DCT_IDENTIFIER, DCAT_THEME, DCAT_KEYWORD, PRICEINFO, DCAT_LANDINGPAGE, REG_ID, UPDT_ID)
+		VALUES (
+				cast (#{jobId}as integer) 
+				,#{dctTitle}
+				,#{dctAccessrights}
+				,#{dctDescription}
+				,#{dctIdentifier}
+				,#{dcatTheme}
+				,#{dcatKeyword}
+				,#{priceinfo}
+				,'-'
+				,'ADMIN'
+				,'ADMIN');
+	</insert>
+	
+	<select id="selectOneJobLinkConfig" parameterType="map" resultType="egovMap">
+		SELECT
+			*
+		FROM JOB_MST A LEFT OUTER JOIN JOB_LINK_CONFIG B
+			 ON A.JOB_ID  = B.JOB_ID
+		WHERE 1=1
+		AND A.JOB_ID=#{jobId}::Integer
+	</select>
+	
+	<update id="updateJobMstByJobId" parameterType="map" >
+		UPDATE JOB_MST SET
+			JOB_NM_KR= #{frmJobNmKr}
+			,CRON_EXE_CYCLE= #{frmCronExeCycle}
+			,USE_AT = #{frmUseAt}
+		WHERE JOB_ID = #{jobId}::Integer
+	</update>
+	
+	<update id="updateJobLinkConfigByJobId" parameterType="map" >
+		UPDATE JOB_LINK_CONFIG SET
+			SEND_FILE_SAVE_DIR= #{frmSendSaveDir}
+			<if test="frmJobType!=null and !frmJobType.equals('')">
+				,JOB_TYPE=#{frmJobType}
+			</if>
+			<if test="frmUdtApiEndPoint!=null and !frmUdtApiEndPoint.equals('')">
+				,UDT_API_END_POINT=#{frmUdtApiEndPoint}
+			</if>
+			<if test="frmUdtApiKey!=null and !frmUdtApiKey.equals('')">
+				,UDT_API_PARAM=#{frmUdtApiParam}
+			</if>
+		WHERE JOB_ID = #{jobId}::Integer
+	</update>
+	
+	<!-- 데이터셋 저장 테이블명 리스트 검색 -->
+	<select id="selectJobSaveTblNmList" parameterType="map" resultType="egovMap">
+		SELECT
+			JOB_ID 
+			, JOB_NM_KR
+			, SAVE_TB_NM
+		FROM
+			JOB_MST
+		WHERE 1=1
+		<if test="saveTbNm!=null and !saveTbNm.equals('')">
+			AND SAVE_TB_NM = UPPER(#{saveTbNm})
+		</if>
+		ORDER BY JOB_ID DESC
+	</select>
+	
+	<!-- 데이터셋 정보 입력 --> <!-- JOB 영문명은 저장소 테이블명과 동일 -->
+	<insert id="insertNewDataset" parameterType="map">
+		INSERT INTO JOB_MST(
+			JOB_NM_EN, JOB_NM_KR, CLASS_NM, METHOD_NM, CRON_EXE_CYCLE, JOB_DESC, SAVE_TB_NM, RECIVE_INST, RECIVE_SYS, REG_ID, UPDT_ID
+		)
+		VALUES(
+			UPPER(#{saveTbNm})
+			,#{jobNmKr}
+			,#{classNm}
+			,'execute'
+			,#{cronExeCycle}
+			,#{jobNmKr}
+			,UPPER(#{saveTbNm})
+			,''
+			,''
+			,#{userId}
+			,#{userId}
+		)
+		<selectKey keyProperty="jobId" order="AFTER" resultType="int">
+			SELECT 
+				JOB_ID
+			FROM
+				JOB_MST
+			WHERE SAVE_TB_NM = UPPER(#{saveTbNm})
+		</selectKey>
+	</insert>
+	
+	<!-- 데이터셋 관련정보 입력 -->
+	<insert id="insertNewDatasetLinkConfig" parameterType="map">
+		INSERT INTO JOB_LINK_CONFIG(
+			JOB_ID, JOB_TYPE, UDT_API_END_POINT, UDT_API_RSLT_TYPE, UDT_API_PARAM, UDT_API_FIELD_LIST, SEND_FILE_SAVE_DIR
+		)
+		VALUES(
+			#{jobId}
+			, UPPER(#{jobReqTyp})
+			, #{apiUrl}
+			, UPPER(#{udtApiRsltType})
+			, #{apiOptionParam}
+			, #{selectField}
+			, ''
+		)
+	</insert>
+	
+	<!-- 잡 내부 프로세스들의 처리 순서 저장 -->
+	<insert id="insertJobProcessSn" parameterType="map">
+		INSERT INTO JOB_PROCESS_SN(
+			JOB_ID, PROCESS_SN, PROCESS_ID
+		)
+		VALUES(
+			#{jobId}
+			, #{processSn}
+			, #{processId}
+		)
+	</insert>
+	
+	<!-- 데이터셋 연관 테이블 생성  -->
+	<select id="createNewDatasetTbl" parameterType="map">
+		CREATE TABLE ${saveTbNm} (
+			ID SERIAL NOT NULL,
+			UPDT_TIME_STEMP timestamp with time zone,
+			<foreach item="item" index="index" collection="selectField" separator=",">
+				${item} text
+		  	</foreach>
+		)
+		TABLESPACE pg_default
+	</select>
+	
+	<!-- 데이터셋 설정정보 데이터 삭제 -->
+	<delete id="deleteDatasetLinkConfig" parameterType="map">
+		DELETE FROM JOB_LINK_CONFIG
+		WHERE JOB_ID = #{jobId}::Integer
+	</delete>
+	
+	<!-- 데이터셋 데이터 삭제 -->
+	<delete id="deleteDataset" parameterType="map">
+		DELETE FROM JOB_MST
+		WHERE JOB_ID = #{jobId}::Integer
+	</delete>
+	
+	<!-- 잡 내부 프로세스 처리 순서 데이터 삭제 -->
+	<delete id="deleteJobProcessSn" parameterType="map">
+		DELETE FROM JOB_PROCESS_SN
+		WHERE JOB_ID = #{jobId}::Integer
+	</delete> 
+	
+	<!-- 데이터셋 연관 저장소(테이블) 삭제 -->
+	<update id="dropDatasetLinkTable" parameterType="map">
+		DROP TABLE ${saveTbNm}
+	</update>
+	
+	<!-- 데이터셋 정보 수정 -->
+	<update id="updateDataset" parameterType="map">
+		UPDATE JOB_MST
+		<set>
+			<if test="jobNmKr!=null and !jobNmKr.equals('')">
+				JOB_NM_KR = #{jobNmKr},
+			</if>
+			<if test="cronExeCycle!=null and !cronExeCycle.equals('')">
+				CRON_EXE_CYCLE = #{cronExeCycle},
+			</if>
+			UPDT_DT = to_char(now(),'YYYYMMDDHH24MISS'),
+			UPDT_ID = #{userId}
+		</set> 
+		WHERE JOB_ID = #{jobId}::Integer
+	</update>
+	
+	<!-- 데이터셋 설정정보 수정 -->
+	<update id="updateDatasetLinkConfig" parameterType="map">
+		UPDATE JOB_LINK_CONFIG
+		<set>
+			<if test="apiOptionParam!=null and !apiOptionParam.equals('')">
+				UDT_API_PARAM = #{apiOptionParam},
+			</if>
+			<if test="cronExeCycle!=null and !cronExeCycle.equals('')">
+				UDT_API_FIELD_LIST = #{selectField},
+			</if>
+		</set> 
+		WHERE JOB_ID = #{jobId}::Integer
+	</update>
+	
+</mapper>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/security"
+	xmlns:beans="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd">
+
+
+	<context:component-scan base-package="kr.udt.security"/>
+	
+	
+	<beans:bean id="bcryptPasswordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
+	
+	<http pattern="/**/*.js" security="none" />
+	<http pattern="/**/*.css" security="none" />
+	<http pattern="/images/**" security="none" />
+	<http pattern="/css/**"   security="none" /> 
+	<http pattern="/js/**"   security="none" /> 
+
+	<http auto-config="true" use-expressions="true">
+		
+		<csrf disabled="true"/>
+		
+		<intercept-url pattern="/udt/user/**" access="hasRole('ROLE_ADMIN')"/>
+		<intercept-url pattern="/udt/**" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+		<intercept-url pattern="/**" access="permitAll"/>
+		
+		<access-denied-handler ref="userDeniedHandler" />
+
+
+		<form-login
+			username-parameter="loginId"
+			password-parameter="loginPwd"
+			login-processing-url="/login"
+			login-page="/loginPage.do"
+			default-target-url="/udt/main.do"
+			always-use-default-target="true"
+			authentication-failure-handler-ref="loginFailureHandler"
+		/>
+
+		<!-- 로그아웃할 url 및 로그아웃성공시 이동할 url -->
+		<logout
+			logout-url="/logout"
+			logout-success-url="/loginPage.do"
+			invalidate-session="true"
+			delete-cookies="true" />
+		
+		<!-- spring security 자동로그인 -->
+		<remember-me data-source-ref="dataSource"
+            remember-me-parameter="remember-me"
+            token-validity-seconds="604800"/>
+
+         <!-- <remember-me services-ref="" /> -->
+	</http>
+
+	<beans:bean id="userDeniedHandler" class="kr.udt.security.UdtUserDeniedHandler"></beans:bean>
+	<beans:bean id="loginFailureHandler" class="kr.udt.security.UdtLoginFailureHandler"></beans:bean>
+
+	<authentication-manager>
+		<authentication-provider ref="userAuthProvider"></authentication-provider>
+		<authentication-provider user-service-ref="userService"></authentication-provider>
+	</authentication-manager>
+
+	<beans:bean id="userService" class="kr.udt.security.service.UdtUserDetailsService"/>
+	<beans:bean id="userAuthProvider" class="kr.udt.security.UdtAuthenticationProvider"/>
+
+</beans:beans>

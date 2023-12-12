@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="info" monitorInterval="30">
+    <Properties>
+        <Property name="LOG_FORMAT">%d{yyyy-MM-dd HH:mm:ss} %p %m%n</Property>
+        <Property name="BASE_DIR">/nas/log/was/UdtWebDevLog2</Property>
+        <!-- <Property name="BASE_DIR">D:/udt-admin-workspace/UdtWebDevLog</Property> -->
+        <!-- <Property name="VALIDATION_BASE_DIR">C:/log/validation</Property> -->
+        <!-- <Property name="BASE_DIR">/home/tmax/nwisbatch/crawling/logs</Property>
+        <Property name="VALIDATION_BASE_DIR">/home/tmax/nwisbatch/crawling/logs/validation</Property> --> 
+    </Properties>
+
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT" follow="true">
+            <PatternLayout pattern="${LOG_FORMAT}"/>
+        </Console>
+        <RollingFile name="UdtFileLog"
+                     fileName="${BASE_DIR}/UdtDataWebDaily.log"
+                     filePattern="${BASE_DIR}/UdtDataWebDaily.%d{yyyyMMdd}.log">
+            <PatternLayout pattern="${LOG_FORMAT}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy />
+            </Policies>
+            <DefaultRolloverStrategy>
+                <Delete basePath="${BASE_DIR}">
+                    <IfFileName glob="*.log" />
+                    <IfLastModified age="30d" />
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+        
+        <!-- <RollingFile name="ValidationLogger"
+                     fileName="${VALIDATION_BASE_DIR}/NwisSchedulerValidation.log"
+                     filePattern="${VALIDATION_BASE_DIR}/NwisScheduler.%d{yyyyMMdd}.log">
+            <PatternLayout pattern="${LOG_FORMAT}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy />
+            </Policies>
+            <DefaultRolloverStrategy>
+                <Delete basePath="${VALIDATION_BASE_DIR}">
+                    <IfFileName glob="*.log" />
+                    <IfLastModified age="30d" />
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+         -->
+        
+    </Appenders>
+
+    <Loggers>
+	    <Logger name="jdbc" level="error"/>
+	    <Logger name="jdbc.sqlonly" level="off"/>
+	    <Logger name="jdbc.audit" level="off"/>
+	    <Logger name="jdbc.sqltiming" level="info"/>
+	    <Logger name="jdbc.resultset" level="off"/>
+	    <Logger name="jdbc.resultsettable" level="info"/>
+	    <Logger name="jdbc.connection" level="error"/>
+	    <logger name="com.zaxxer.hikari" level="error"/>
+	    <logger name="java.sql" level="off"/>
+	    <logger name="egovframework" level="debug"/>
+	    <logger name="org.springframework" level="info"/>
+	    
+        <Root level="info">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="UdtFileLog" />
+        </Root>
+        
+       <!-- 벨리데이션 잡 로그 별도기록 (이상있을때만 남겨짐) -->
+       <!--
+        <Logger name="nwis.batch.wqi.crawling.validation" level="INFO" additivity="false">
+        	<AppenderRef ref="Console"/>
+            <AppenderRef ref="ValidationLogger" />
+        </Logger> -->
+        
+    </Loggers>
+        
+</Configuration>

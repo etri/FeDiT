@@ -1,0 +1,17 @@
+Globals.DbType=postgres
+Globals.DriverClassName=net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+Globals.Url=jdbc:log4jdbc:postgresql://10.0.1.15:5432/rebdata?charSet=UTF-8
+Globals.UserName=reb_dba
+Globals.Password=reb_1234@
+
+File.Dir.SrcData=/nas/share/file/srcdata/
+
+
+#\ubc30\uce58\ubaa8\ub4c8 api \uc5d4\ub4dc\ud3ec\uc778\ud2b8
+#\ub85c\uceec
+#Batch.Apisvr.Endpoint=http://localhost:8019/controllJob
+#\uac1c\ubc1c
+#Batch.Apisvr.Endpoint=http://192.168.0.110:8019/controllJob
+
+#\uc6b4\uc601(\uc6f9\ubaa8\ub4c8,\ubc30\uce58\ubaa8\ub4c8 \uac19\uc740 \uc11c\ubc84\ub0b4 \uc874\uc7ac, \ub85c\uceec)
+Batch.Apisvr.Endpoint=http://10.0.1.11:8080/controllJob
