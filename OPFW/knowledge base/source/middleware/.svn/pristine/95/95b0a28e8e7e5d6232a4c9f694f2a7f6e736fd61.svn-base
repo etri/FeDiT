@@ -1,0 +1,147 @@
+/**
+ * 
+ */
+package kr.udt.data.util;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPFile;
+import org.apache.commons.net.ftp.FTPReply;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import kr.udt.data.constant.UdtCommonConstant;
+import kr.udt.data.svo.FtpServiceVO;
+import me.saro.commons.ftp.FTP;
+
+/**
+ * @comment 2022 06 15 - 얘 안쓰이고 RebFtpUtil이 쓰임
+ * 
+ * 
+ * @설명 : (S)FTP파일 서비스 공통유틸(FTP,SFTP 모두 해당클래스로 처리한다.)
+ * @작성자 : ICTWAY - 이민열 대리
+ * @생성일 : 2021. 11. 15.
+ * @비고 : 스프링 컴포넌트로 등록하여 하나의 객체만 사용한다. 때문에 기능에 필요한 vo성 변수는 메소드의 파라미터로만 받고 클래스 내 멤버변수는 최대한 피한다.
+ * @비고2 : 예외발생시 배치실행구현부(execute())에서 통합처리해야 모너티링에 용이하다, 때문에 finally구문에서 IO관련 Close만 실행 이후 메소드가 호출된 구현부로 예외를 다시 던진다.
+ */
+
+@Component
+public class UdtFtpFileUtil {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(UdtFtpFileUtil.class);
+	
+	public FTP getFTPConnection(FtpServiceVO ftpSVO) throws IOException {
+		return FTP.openFTP(ftpSVO.getFtpLinkIp(), ftpSVO.getFtpPort(), ftpSVO.getFtpOsUser(), ftpSVO.getFtpUserPass());
+	}
+	
+	public FTP getSFTPConnection(FtpServiceVO ftpSVO) throws IOException {
+		return FTP.openSFTP(ftpSVO.getFtpLinkIp(), ftpSVO.getFtpPort(), ftpSVO.getFtpOsUser(), ftpSVO.getFtpUserPass());
+	}
+	
+	
+	/**
+	 * @설명 : 목적지 서버 파일들을 FTP or SFTP 프로토콜을 통해 로컬시스템 특정경로로 다운로드한다.  
+	 * @생성일 : 2021. 11. 15.
+	 * @파라미터 : FtpServiceVO FTP서비스 vo, String 로그제목([+실행중인 잡의 한글명+])
+	 * @리턴 : void
+	 * @비고 : 본래  me.saro.commons(FTP+SFTP 공통인터페이스화)라이브러리를 통해 하나의 메서드로 처리할려했으나, 
+	 * 		    이 라이브러리는 FTP 타임아웃지정 API가 없어 FTP 에러를 처리 할 수 없었음, 때문에 FTP는 COMMON-NET 라이브러리로 처리 
+	 */
+	public void fileDownload(FtpServiceVO ftpSVO,String logTitle) throws IOException{
+		if(ftpSVO.getFtpType()==String.valueOf(1))this.downloadUsingFTP(ftpSVO,logTitle); //FTP
+		else this.downloadUsingSFTP(ftpSVO,logTitle);//SFTP
+	}
+	
+	/**
+	 * @설명 : FTP 파일 다운로드
+	 * @생성일 : 2021. 11. 16.
+	 * @파라미터 : FtpServiceVO FTP서비스 vo, String 로그제목([+실행중인 잡의 한글명+])
+	 * @리턴 : void
+	 * @비고 : 
+	 */
+	public void downloadUsingFTP(FtpServiceVO ftpSVO,String logTitle) throws IOException{
+		FTPClient client = new FTPClient();
+		try {
+			String ftpFileDir = ftpSVO.getFtpFileDir();
+			String downloadDir = ftpSVO.getFtpRecvFileSaveDir();
+			
+			client.setControlEncoding("UTF-8");
+			client.connect(ftpSVO.getFtpLinkIp(), ftpSVO.getFtpPort());
+			
+			if(!FTPReply.isPositiveCompletion(client.getReplyCode())) {
+				throw new IOException(logTitle+"FTP 연결에 실패하였습니다. 접속정보 :["+ftpSVO.getFtpLinkIp()+":"+ftpSVO.getFtpPort()+"]");
+			}
+			client.setSoTimeout(UdtCommonConstant.FTP_TIMEOUT);
+			if (!client.login(ftpSVO.getFtpOsUser(),ftpSVO.getFtpUserPass())) {
+				throw new IOException(logTitle+"FTP 로그인에 실패하였습니다(연결은 성공). 접속정보 :[ID: "+ftpSVO.getFtpOsUser()+" PASS: "+ftpSVO.getFtpUserPass()+"]");
+			}
+		
+			// FTP의 디렉토리 커서를 이동한다.
+			if (client.changeWorkingDirectory(ftpFileDir)) {
+				int fileSn=0;
+				// 해당 디렉토리의 파일 리스트를 취득한다.
+				for (FTPFile file : client.listFiles()) {
+					if(file.isFile()) {
+						fileSn++;
+						String downloadFullPath = downloadDir+"/"+file.getName();
+						boolean result = client.retrieveFile(file.getName(), new FileOutputStream(downloadFullPath));
+						if(result)LOGGER.info(logTitle+fileSn+"번째 수신 파일 : ["+ftpFileDir+"/"+file.getName()+"] -> 다운로드 경로 : ["+downloadFullPath+"]");
+						else LOGGER.info(logTitle+"[파일수신실패]수신 실패 파일 : ["+ftpFileDir+"/"+file.getName()+"] -> 다운로드 경로 : ["+downloadFullPath+"]");
+					}
+				}
+			}else throw new IOException(logTitle+"부동산원 FTP서버 측 디렉토리가 없습니다. 입력 디렉토리 :["+ftpFileDir+"]");
+			
+			
+			client.logout();
+			
+		}catch(Exception e) {
+			throw e;
+		}
+		finally {
+			if(client.isConnected())client.disconnect();
+		}
+	}
+	
+	
+	/**
+	 * @설명 : SFTP 파일 다운로드  
+	 * @생성일 : 2021. 11. 15.
+	 * @파라미터 : FtpServiceVO FTP서비스 vo, String 로그제목([+실행중인 잡의 한글명+])
+	 * @리턴 : void
+	 * @비고 : 
+	 */
+	public void downloadUsingSFTP(FtpServiceVO ftpSVO,String logTitle) throws IOException{
+		FTP ftp = this.getSFTPConnection(ftpSVO);
+		try {
+			String ftpFileDir = ftpSVO.getFtpFileDir();
+			
+			String downloadDir = ftpSVO.getFtpRecvFileSaveDir();
+		
+			if(!ftp.cd(ftpFileDir)) {
+				ftp.close();
+				throw new IOException(logTitle+"부동산원 FTP서버 측 디렉토리가 없습니다. 입력 디렉토리 :["+ftpFileDir+"]");
+			}
+			
+			//상위 클래스에서 try~catch를 실행해야하기 때문에.. 익명클래스인 람다는 사용불가(throw불가)
+			//ftp.listFiles().forEach((fileNm) -> {System.out.println(fileNm);});
+			int fileSn=0;
+			for(String fileNm : ftp.listFiles()) {
+				fileSn++;
+				String downloadFullPath = downloadDir+"/"+fileNm;
+				boolean result = ftp.recv(fileNm, new File(downloadFullPath));
+				if(result)LOGGER.info(logTitle+fileSn+"번째 수신 파일 : ["+ftpFileDir+"/"+fileNm+"] -> 다운로드 경로 : ["+downloadFullPath+"]");
+				else LOGGER.info(logTitle+"[파일수신실패]수신 실패 파일 : ["+ftpFileDir+"/"+fileNm+"] -> 다운로드 경로 : ["+downloadFullPath+"]");
+			}
+			
+		}catch(Exception e) {
+			throw e;
+		}
+		finally {
+			ftp.close();
+		}
+	}
+}

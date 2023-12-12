@@ -1,0 +1,48 @@
+package kr.udt.data.dto;
+
+import java.math.BigDecimal;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+
+/**
+ * @설명 : RDF 메타 공통 DTO
+ * @작성자 : ICTWAY - 이민열 대리
+ * @생성일 : 2021. 12. 08
+ * @비고 : 
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class RdfMetaCommonDTO {
+	
+	private String vcardFn;
+	
+	private String vcardHasemail;
+	
+	private String vcardHastelephone;
+
+	private String foafName;
+	
+	private String foafHomepage;
+	
+	private String foafMbox;
+	
+	private String foafPhone;
+	
+	private String dctLicense;
+	
+	private String dctRights;
+	
+	private String regDt;
+	
+	private String regId;
+	
+	private String updtDt;
+	
+	private String updtId;
+}

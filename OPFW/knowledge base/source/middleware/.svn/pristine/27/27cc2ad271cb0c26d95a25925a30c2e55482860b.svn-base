@@ -1,0 +1,28 @@
+# 서버 포트 설정
+server.port=8090
+
+# PostgreSQL
+spring.datasource.driverClassName=net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+#spring.datasource.url=jdbc:log4jdbc:postgresql://192.168.0.211:5432/udt?charSet=UTF-8
+spring.datasource.url=jdbc:log4jdbc:postgresql://127.0.0.1:5432/udt?charSet=UTF-8
+spring.datasource.username=udt_dba
+spring.datasource.password=udt_1234@
+
+
+########  아래는 현재 사용 안하는 기능 관련 (2022년도 사업)  ########
+# FTP, SFTP 관련
+udt.ftp.user=root
+udt.ftp.pass=ict1234
+udt.sftp.upload.user=kabmap
+udt.sftp.upload.pass=ict1234
+udt.sftp.upload.ip=127.0.0.1
+udt.sftp.upload.port=22
+udt.sftp.upload.homedir=/home/kabmap
+
+# 메일서버 전송 관련 (프로세스 및 API 호출 실패 시 로그를 메일로 전송)
+udt.smpt.mailsvr.ip=127.0.0.1
+udt.smpt.mailsvr.pass=
+udt.smpt.mailsvr.user=
+udt.smpt.mailsvr.port=
+udt.smpt.mailsvr.sender=
+

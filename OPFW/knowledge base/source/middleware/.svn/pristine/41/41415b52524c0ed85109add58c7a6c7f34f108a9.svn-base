@@ -1,0 +1,696 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.udt.data.mapper.UdtDataFlowMapper">
+
+    <select id="getAllJobMst" resultType="kr.udt.data.dto.JobMstDTO">
+        SELECT 
+        	* 
+        FROM 
+        	JOB_MST
+    </select>
+    
+     <select id="getOneJobMstByEnNm" parameterType="kr.udt.data.dto.JobMstDTO" resultType="kr.udt.data.dto.JobMstDTO">
+        SELECT * FROM JOB_MST WHERE UPPER(JOB_NM_EN) = UPPER(#{jobNmEn});
+    </select>
+    
+    
+    <update id="updateJobMstUseAt" parameterType="kr.udt.data.dto.JobMstDTO">
+    	UPDATE JOB_MST SET
+    		USE_AT=#{useAt}
+    	WHERE JOB_NM_EN=#{jobNmEn}
+    
+    </update>
+    
+    <update id="updateHouseNmAtSrcdataApplyhomeCompetRate">
+    	/*updateHouseNmAtSrcdataApplyhomeCompetRate*/
+    	UPDATE SRCDATA_APPLYHOME_COMPET_RATE A SET 
+			HOUSE_NM = (SELECT HOUSE_NM FROM SRCDATA_APPLYHOME_APT_INFO  WHERE HOUSE_MANAGE_NO= A.HOUSE_MANAGE_NO LIMIT 1)    
+    </update>
+    
+
+
+    <select id="getOneJobMst" parameterType="kr.udt.data.dto.JobMstDTO" resultType="kr.udt.data.dto.JobMstDTO">
+        SELECT 
+        	* 
+        FROM 
+        	JOB_MST
+        WHERE
+        	JOB_ID=#{jobId}
+        	AND JOB_NM_KR=#{jobNmKr};
+    </select>
+    
+    <select id="getOneJobLinkConfig" parameterType="kr.udt.data.dto.JobMstDTO" resultType="kr.udt.data.dto.JobLinkConfigDTO">
+        SELECT 
+        	* 
+        FROM 
+        	JOB_LINK_CONFIG
+        WHERE
+        	JOB_ID=#{jobId}
+    </select>
+    
+    <select id="getProcessMstWithSnByJobId" parameterType="kr.udt.data.dto.JobMstDTO" resultType="kr.udt.data.dto.ProcessMstDTO">
+    	SELECT 
+    		A.*
+			,B.PROCESS_SN
+    	FROM 
+    		PROCESS_MST A 
+    			INNER JOIN 
+    		JOB_PROCESS_SN B
+				ON A.PROCESS_ID = B.PROCESS_ID
+		WHERE
+			 B.JOB_ID=#{jobId}
+		ORDER BY B.PROCESS_SN ASC
+    </select>
+    
+    <select id="getMetropoliSigCd" resultType="String">
+    	/*수도권만 추출인줄..알았는데 역세권에 해당하는 시군구코드를 뽑을수있는 기존자료가 없기에.. 모든 시군구코드 추출 후 API요청(261..개)*/
+    	SELECT 
+    		DISTINCT SUBSTRING(EMD_CD,1,5) SIG_CD 
+    	FROM REB_UMD 
+		WHERE EMD_YN='Y' 
+			--AND SUBSTRING(EMD_CD,1,2) IN ('11','28','41')
+			AND SUBSTRING(EMD_CD,3,1) !='0'
+		ORDER BY 1 ASC
+    </select>
+    
+    
+     <insert id="insertJobRunHstCreate" parameterType="kr.udt.data.dto.JobRunHstDTO" 
+     													useGeneratedKeys="true" keyProperty="execId" keyColumn="exec_id">
+    	INSERT INTO JOB_RUN_HST
+    		(JOB_ID, JOB_NM_KR, PROCESS_SN, JOB_START_DT)
+		VALUES 
+			(#{jobId}, #{jobNmKr}, 0, #{jobStartDt});
+    </insert>
+    
+    <update id="updateJobRunHst" parameterType="kr.udt.data.dto.JobRunHstDTO">
+	     UPDATE JOB_RUN_HST SET 
+ 			JOB_END_AT=#{jobEndAt}, 
+			PROCESS_SN=#{processSn}, 
+			JOB_END_DT=#{jobEndDt}, 
+			JOB_ELAP_TIME=#{jobElapTime}, 
+			RECV_FILE_ID=#{recvFileId}, 
+			SEND_FILE_ID=#{sendFileId},
+			DORO_CSVFILE_FULL_PATH=#{doroCsvfileFullPath}, 
+			DORO_RDFFILE_FULL_PATH=#{doroRdffileFullPath}, 
+			SAVE_TB_NM=#{saveTbNm},
+			RECV_READ_LINE=#{recvReadLine}, 
+			SEND_WRITE_LINE=#{sendWriteLine},
+			JOB_END_RSLT=#{jobEndRslt}
+		WHERE
+			EXEC_ID=#{execId}
+	</update>
+	
+	<insert id="insertJobRunDetailHst" parameterType="kr.udt.data.dto.JobRunDetailHstDTO">
+    	INSERT INTO JOB_RUN_DETAIL_HST(
+			EXEC_ID, JOB_ID, PROCESS_ID, PROCESS_NM_KR, PROCESS_SN, PROCESS_END_RSLT,
+			PROCESS_ERR_CONT, PROCESS_START_DT, PROCESS_END_DT, PROCESS_ELAP_TIME)
+		VALUES (#{execId}, #{jobId}, #{processId}, #{processNmKr}, #{processSn}, #{processEndRslt}, 
+				#{processErrCont}, #{processStartDt}, #{processEndDt}, #{processElapTime});
+    </insert>
+	
+	
+	<insert id="callRetoreJobRunHstStatis" statementType="CALLABLE">
+        call RESTORE_JOB_RUN_HST_STATIS();
+    </insert>
+    
+    <insert id="insertDatasetAphusTradeLtrInfo" parameterType="kr.udt.data.dto.dataset.AphusTradeLtrInfoDTO">
+    	<selectKey resultType="java.sql.Timestamp" keyProperty="updtTimeStmp" order="BEFORE">
+        	SELECT CURRENT_TIMESTAMP;       
+    	</selectKey>
+    	INSERT INTO APHUS_TRADE_LTR_INFO 
+			SELECT  
+				APT.SREG
+				,APT.SEUB
+				,APT.SSAN
+				,CAST(nullif(APT.SBUN1,'') AS NUMERIC)
+				,CAST(nullif(APT.SBUN2,'') AS NUMERIC)
+				,ADDR.AS1
+				,ADDR.AS2
+				,ADDR.AS3
+				,ADDR.AS4
+				,PYN.KTECH_APT_SEQ
+				,APT.COMMON_APT_NAME
+				,APT.USEAPR_DT
+				,AMT.KTECH_PYONG_SEQ
+				,COALESCE(CAST(NULLIF(replace(PYN.PYONG,',',''),'')AS NUMERIC),0)
+				,PYN.PYONG_TYPE
+				,COALESCE(CAST(NULLIF(replace(PYN.PRIV_aREA,',',''),'')AS NUMERIC),0)
+				,COALESCE(CAST(NULLIF(replace(PYN.COMM_AREA,',',''),'')AS NUMERIC),0)
+				,COALESCE(CAST(NULLIF(replace(PYN.ETC_AREA,',',''),'')AS NUMERIC),0)
+				,AMT.AMT_DT
+				,COALESCE(CAST(NULLIF(replace(AMT.S_UPPER_PRICE,',',''),'')AS NUMERIC),0)
+				,COALESCE(CAST(NULLIF(replace(AMT.S_LOWER_PRICE,',',''),'')AS NUMERIC),0)
+				,COALESCE(CAST(NULLIF(replace(AMT.R_UPPER_PRICE,',',''),'')AS NUMERIC),0)
+				,COALESCE(CAST(NULLIF(replace(AMT.R_LOWER_PRICE,',',''),'')AS NUMERIC),0)
+				,#{updtTimeStmp}
+			FROM
+				SRCDATA_STAD_PYONG_AMT AMT LEFT OUTER JOIN  SRCDATA_STAD_PYONG_PYN PYN
+					ON AMT.KTECH_PYONG_SEQ = PYN.KTECH_PYONG_SEQ
+				LEFT OUTER JOIN SRCDATA_STAD_PYONG_APT APT
+					ON PYN.KTECH_APT_SEQ = APT.KTECH_APT_SEQ	
+				LEFT OUTER JOIN SRCDATA_STAD_PYONG_ADDR ADDR
+					ON APT.SREG = ADDR.SREG
+					AND APT.SEUB = ADDR.SEUB
+    </insert>
+    
+    <insert id="insertDatasetAptSubdivsDtldInfo" parameterType="kr.udt.data.dto.dataset.AptLottAddptInfo">
+    	<selectKey resultType="java.sql.Timestamp" keyProperty="updtTimeStmp" order="BEFORE">
+    		SELECT CURRENT_TIMESTAMP;       
+    	</selectKey>
+    		INSERT INTO APT_LOTT_DTLD_INFO(
+				HUS_MNGNO, HUS_NM, SPLY_LOCA, SPLY_SCL, OVHSPZ_YN, REGTARE_YN, PRCEILSYS_YN, REBDPROJ_YN, PUBHUSDIST_YN, LRSCL_HUSSDEDIST_YN, METRO_PRVPUBHUS_YN, MODEL_NO, HUS_TYPE, SPLYAR, GNRL_SUPLY_HUSHD_CNT, SPCAL_SUPLY_HUSHD_CNT, MULTCHD_HUSHD_CNT, NWWDS_HUSHD_CNT, LFE_ST1_HUSHD_CNT, OLDPARNTS_HUSHD_CNT, INSTT_RCMDTN_HUSHD_CNT, INSTT_RCMDTN_ETC_HUSHD_CNT, MVINST_HUSHD_CNT, SPLY_AMOUNT, UPDT_TIME_STMP)
+				SELECT
+				 A.HOUSE_MANAGE_NO
+				 ,B.HOUSE_NM
+				 ,B.HSSPLY_ADRES
+				 ,COALESCE(CAST(NULLIF(B.TOT_SUPLY_HSHLDCO,'')AS NUMERIC),0)
+				 ,B.SPECLT_RDN_EARTH_AT
+				 ,B.MDAT_TRGET_AREA_SECD
+				 ,B.PARCPRC_ULS_AT
+				 ,B.IMPRMN_BSNS_AT
+				 ,B.PUBLIC_HOUSE_EARTH_AT
+				 ,B.LRSCL_BLDLND_AT
+				 ,B.NPLN_PRVOPR_PUBLIC_HOUSE_AT
+				 ,A.MODEL_NO
+				 ,A.HOUSE_TY
+				 ,COALESCE(CAST(NULLIF(replace(A.SUPLY_AR,',',''),'')AS NUMERIC),0)
+				 ,COALESCE(CAST(NULLIF(replace(A.SUPLY_HSHLDCO,',',''),'')AS NUMERIC),0)
+				 ,COALESCE(CAST(NULLIF(replace(A.SPSPLY_HSHLDCO,',',''),'')AS NUMERIC),0)
+				 ,COALESCE(CAST(NULLIF(replace(A.MNYCH_HSHLDCO,',',''),'')AS NUMERIC),0)
+				 ,COALESCE(CAST(NULLIF(replace(A.NWWDS_HSHLDCO,',',''),'')AS NUMERIC),0)
+				 ,COALESCE(CAST(NULLIF(replace(A.LFE_FRST_HSHLDCO,',',''),'')AS NUMERIC),0)
+				 ,COALESCE(CAST(NULLIF(replace(A.OLD_PARNTS_SUPORT_HSHLDCO,',',''),'')AS NUMERIC),0)
+				 ,COALESCE(CAST(NULLIF(replace(A.INSTT_RECOMEND_HSHLDCO,',',''),'')AS NUMERIC),0)
+				 ,COALESCE(CAST(NULLIF(replace(A.ETC_HSHLDCO,',',''),'')AS NUMERIC),0)
+				 ,COALESCE(CAST(NULLIF(replace(A.TRANSR_INSTT_ENFSN_HSHLDCO,',',''),'')AS NUMERIC),0)
+				 ,COALESCE(CAST(NULLIF(replace(A.LTTOT_TOP_AMOUNT,',',''),'')AS NUMERIC),0)
+				 ,#{updtTimeStmp}
+				FROM
+				SRCDATA_APPLYHOME_APT_TYPE_INFO A
+				LEFT OUTER JOIN SRCDATA_APPLYHOME_APT_INFO B
+				ON A.HOUSE_MANAGE_NO = B.HOUSE_MANAGE_NO
+				AND A.PBLANC_NO = B.PBLANC_NO
+    </insert>
+    
+    <update id="updateAptSubdivsDtldInfoLoanAbleAmount" parameterType="java.sql.Timestamp">
+    	<![CDATA[
+	    	UPDATE APT_LOTT_DTLD_INFO SET LOAN_PSBLTY_AMOUNT = 
+				CASE 
+					WHEN SPLY_AMOUNT<=90000 AND OVHSPZ_YN = 'Y' THEN SPLY_AMOUNT * 0.4
+					WHEN SPLY_AMOUNT<=90000 AND OVHSPZ_YN = 'N' AND REGTARE_YN = 'Y' THEN SPLY_AMOUNT * 0.5
+					WHEN SPLY_AMOUNT<=90000 THEN SPLY_AMOUNT * 0.6
+					
+					WHEN SPLY_AMOUNT>90000 AND SPLY_AMOUNT<=150000 AND OVHSPZ_YN = 'Y' THEN 90000 * 0.4 + (SPLY_AMOUNT-90000) * 0.2
+					WHEN SPLY_AMOUNT>90000 AND SPLY_AMOUNT<=150000 AND OVHSPZ_YN = 'N' AND REGTARE_YN = 'Y' THEN 90000 * 0.5 + (SPLY_AMOUNT-90000) * 0.3
+					WHEN SPLY_AMOUNT>90000 AND SPLY_AMOUNT<=150000 THEN SPLY_AMOUNT * 0.6
+					
+					WHEN SPLY_AMOUNT>150000 AND OVHSPZ_YN = 'Y' THEN 90000* 0.4 + 60000 * 0.2 + (SPLY_AMOUNT-150000) * 0
+					WHEN SPLY_AMOUNT>150000 AND OVHSPZ_YN = 'N' AND REGTARE_YN = 'Y' THEN 90000* 0.5 + 60000 * 0.3 + (SPLY_AMOUNT-150000) * 0
+					WHEN SPLY_AMOUNT>150000 THEN SPLY_AMOUNT * 0.6
+				END
+			WHERE UPDT_TIME_STMP = #{updtTimeStmp};
+		]]>
+    </update>
+    
+    <insert id="insertDatasetAptGnrlSuplyCmpetRateInfo" parameterType="kr.udt.data.dto.dataset.AptLottCmpetrtInfoDTO">
+    	<selectKey resultType="java.sql.Timestamp" keyProperty="updtTimeStmp" order="BEFORE">
+    		SELECT CURRENT_TIMESTAMP;       
+    	</selectKey>
+    		INSERT INTO APT_LOTT_CMPETRT_INFO 
+				SELECT 
+					HOUSE_MANAGE_NO
+					,HOUSE_NM
+					,MODEL_NO
+					,HOUSE_TY
+					,COALESCE(CAST(NULLIF(replace(SUPLY_HSHLDCO,',',''),'')AS NUMERIC),0)
+					,SUBSCRPT_RANK_CODE
+					,RESIDE_SENM
+					,COALESCE(CAST(NULLIF(replace(REQ_CNT,',',''),'')AS NUMERIC),0)
+					,CMPET_RATE
+					,#{updtTimeStmp}
+				FROM
+				SRCDATA_APPLYHOME_COMPET_RATE
+    </insert>
+    
+     <insert id="insertDatasetAptGnrlSuplyAddlScoreInfo" parameterType="kr.udt.data.dto.dataset.AptLottDtldInfoDTO">
+    	<selectKey resultType="java.sql.Timestamp" keyProperty="updtTimeStmp" order="BEFORE">
+    		SELECT CURRENT_TIMESTAMP;       
+    	</selectKey>
+    		INSERT INTO APT_LOTT_ADDPT_INFO 
+				SELECT 
+					HOUSE_MANAGE_NO
+					,HOUSE_NM
+					,MODEL_NO
+					,HOUSE_TY
+					,SUBSCRPT_RANK_CODE
+					,RESIDE_SENM
+					,COALESCE(CAST(NULLIF(replace(LWET_SCORE,',',''),'')AS NUMERIC),0)
+					,COALESCE(CAST(NULLIF(replace(TOP_SCORE,',',''),'')AS NUMERIC),0)
+					,COALESCE(CAST(NULLIF(replace(AVRG_SCORE,',',''),'')AS NUMERIC),0)
+					,#{updtTimeStmp}
+				FROM
+				SRCDATA_APPLYHOME_COMPET_RATE
+				WHERE AVRG_SCORE IS NOT NULL
+				AND COALESCE(CAST(NULLIF(replace(AVRG_SCORE,',',''),'')AS NUMERIC),0) > 0
+    </insert>
+    
+ 
+    
+    <select id="selectAphusTradeLtrInfoByTimeStmp" parameterType="kr.udt.data.dto.dataset.AphusTradeLtrInfoDTO" resultType="hashmap">
+    	SELECT * FROM APHUS_TRADE_LTR_INFO WHERE UPDT_TIME_STMP =#{updtTimeStmp} ORDER BY 1 ASC, 2 ASC , 3 ASC, 4 ASC, 5 ASC;
+    </select> 
+    <select id="selectAptSubdivsDtldInfoByTimeStmp" parameterType="kr.udt.data.dto.dataset.AptLottAddptInfo" resultType="hashmap">
+    	SELECT * FROM APT_LOTT_DTLD_INFO WHERE UPDT_TIME_STMP =#{updtTimeStmp} ORDER BY 1 ASC;
+    </select> 
+    <select id="selectAptGnrlSuplyCmpetRateInfoByTimeStmp" parameterType="kr.udt.data.dto.dataset.AptLottCmpetrtInfoDTO" resultType="hashmap">
+    	SELECT * FROM APT_LOTT_CMPETRT_INFO WHERE UPDT_TIME_STMP =#{updtTimeStmp} ORDER BY 1 ASC, 3 ASC , 4 ASC, 5 ASC, 6 ASC;
+    </select> 
+    <select id="selectAptGnrlSuplyAddlScoreInfoByTimeStmp" parameterType="kr.udt.data.dto.dataset.AptLottDtldInfoDTO" resultType="hashmap">
+    	SELECT * FROM APT_LOTT_ADDPT_INFO WHERE UPDT_TIME_STMP =#{updtTimeStmp} ORDER BY 1 ASC, 3 ASC , 4 ASC;
+    </select> 
+    <delete id="deleteSubstareaLpRtchngByTimeStmp" parameterType="java.sql.Timestamp" >
+    	DELETE FROM SUBSTAREA_LP_RTCHNG WHERE UPDT_TIME_STMP =#{updtTimeStmp};
+    </delete>  
+    
+    <delete id="deleteAphusTradeLtrInfoByTimeStmp" parameterType="java.sql.Timestamp" >
+    	DELETE FROM APHUS_TRADE_LTR_INFO WHERE UPDT_TIME_STMP =#{updtTimeStmp};
+    </delete>
+    <delete id="deleteAptSubdivsDtldInfoByTimeStmp" parameterType="java.sql.Timestamp" >
+    	DELETE FROM APT_LOTT_DTLD_INFO WHERE UPDT_TIME_STMP =#{updtTimeStmp};
+    </delete>
+    <delete id="deleteAptGnrlSuplyCmpetRateInfoByTimeStmp" parameterType="java.sql.Timestamp" >
+    	DELETE FROM APT_LOTT_CMPETRT_INFO WHERE UPDT_TIME_STMP =#{updtTimeStmp};
+    </delete>
+    <delete id="deleteAptGnrlSuplyAddlScoreInfoByTimeStmp" parameterType="java.sql.Timestamp" >
+    	DELETE FROM APT_LOTT_ADDPT_INFO WHERE UPDT_TIME_STMP =#{updtTimeStmp};
+    </delete>
+    <delete id="deleteSubstareaAphusActransctInfoByTimeStmp" parameterType="java.sql.Timestamp" >
+    	DELETE FROM SUBSTAREA_APHUS_ACTRANSCT_INFO WHERE UPDT_TIME_STMP =#{updtTimeStmp};
+    </delete>
+    <delete id="deleteSubstareaLandbldgCrtInfoByTimeStmp" parameterType="java.sql.Timestamp" >
+    	DELETE FROM SUBSTAREA_LANDBLDG_CRT_INFO WHERE UPDT_TIME_STMP =#{updtTimeStmp};
+    </delete>
+	<delete id="deleteSubstareaLduseDistInfoByTimeStmp" parameterType="java.sql.Timestamp" >
+    	DELETE FROM SUBSTAREA_LDUSE_DIST_INFO WHERE UPDT_TIME_STMP =#{updtTimeStmp};
+    </delete>
+    
+    <select id="selectTbColNms" parameterType="String" resultType="String">
+		/***selectTbColNms***/
+		SELECT
+			LOWER(COLUMN_NAME)
+		FROM
+			INFORMATION_SCHEMA.COLUMNS
+		WHERE
+			TABLE_NAME=LOWER(#{tbNm})
+			AND LOWER(COLUMN_NAME)!='updt_time_stmp'
+		ORDER BY ORDINAL_POSITION;
+	</select>
+	
+	<insert id="bulkInsertBackupSrcDataTable" parameterType="String">
+		/* bulkInsertBackupSrcDataTable ==IGNORE_LOG== */
+		INSERT INTO BACK_${value} SELECT * FROM ${value};
+	</insert>
+	
+	<insert id="bulkInsertSrcdataApplyhomeAptInfo" parameterType="java.util.List">
+		<selectKey resultType="java.sql.Timestamp" keyProperty="timestamp" order="BEFORE">
+        	SELECT CURRENT_TIMESTAMP;       
+    	</selectKey>
+    	
+		/* bulkInsertSrcdataApplyhomeAptTypeInfo ==IGNORE_LOG== */
+		INSERT INTO SRCDATA_APPLYHOME_APT_INFO
+		(house_manage_no, pblanc_no, house_nm, house_secd, house_secd_nm, house_dtl_secd, house_dtl_secd_nm, rent_secd, rent_secd_nm, subscrpt_area_code, subscrpt_area_code_nm, hssply_zip, hssply_adres, tot_suply_hshldco, rcrit_pblanc_de, rcept_bgnde, rcept_endde, spsply_rcept_bgnde, spsply_rcept_endde, gnrl_rnk1_crsparea_rcept_pd, gnrl_rnk1_etc_gg_rcptde_pd, gnrl_rnk1_etc_area_rcptde_pd, gnrl_rnk2_crsparea_rcept_pd, gnrl_rnk2_etc_gg_rcptde_pd, gnrl_rnk2_etc_area_rcptde_pd, przwner_presnatn_de, cntrct_cncls_bgnde, cntrct_cncls_endde, hmpg_adres, cnstrct_entrps_nm, mdhs_telno, bsns_mby_nm, mvn_prearnge_ym, speclt_rdn_earth_at, mdat_trget_area_secd, parcprc_uls_at, imprmn_bsns_at, public_house_earth_at, lrscl_bldlnd_at, npln_prvopr_public_house_at, updt_time_stmp)
+		 VALUES
+		 <foreach collection="list" item="item" separator=",">
+		 (
+			#{item.HOUSE_MANAGE_NO}
+			,#{item.PBLANC_NO}
+			,#{item.HOUSE_NM}
+			,#{item.HOUSE_SECD}
+			,#{item.HOUSE_SECD_NM}
+			,#{item.HOUSE_DTL_SECD}
+			,#{item.HOUSE_DTL_SECD_NM}
+			,#{item.RENT_SECD}
+			,#{item.RENT_SECD_NM}
+			,#{item.SUBSCRPT_AREA_CODE}
+			,#{item.SUBSCRPT_AREA_CODE_NM}
+			,#{item.HSSPLY_ZIP}
+			,#{item.HSSPLY_ADRES}
+			,#{item.TOT_SUPLY_HSHLDCO}
+			,#{item.RCRIT_PBLANC_DE}
+			,#{item.RCEPT_BGNDE}
+			,#{item.RCEPT_ENDDE}
+			,#{item.SPSPLY_RCEPT_BGNDE}
+			,#{item.SPSPLY_RCEPT_ENDDE}
+			,#{item.GNRL_RNK1_CRSPAREA_RCEPT_PD}
+			,#{item.GNRL_RNK1_ETC_GG_RCPTDE_PD}
+			,#{item.GNRL_RNK1_ETC_AREA_RCPTDE_PD}
+			,#{item.GNRL_RNK2_CRSPAREA_RCEPT_PD}
+			,#{item.GNRL_RNK2_ETC_GG_RCPTDE_PD}
+			,#{item.GNRL_RNK2_ETC_AREA_RCPTDE_PD}
+			,#{item.PRZWNER_PRESNATN_DE}
+			,#{item.CNTRCT_CNCLS_BGNDE}
+			,#{item.CNTRCT_CNCLS_ENDDE}
+			,#{item.HMPG_ADRES}
+			,#{item.CNSTRCT_ENTRPS_NM}
+			,#{item.MDHS_TELNO}
+			,#{item.BSNS_MBY_NM}
+			,#{item.MVN_PREARNGE_YM}
+			,#{item.SPECLT_RDN_EARTH_AT}
+			,#{item.MDAT_TRGET_AREA_SECD}
+			,#{item.PARCPRC_ULS_AT}
+			,#{item.IMPRMN_BSNS_AT}
+			,#{item.PUBLIC_HOUSE_EARTH_AT}
+			,#{item.LRSCL_BLDLND_AT}
+			,#{item.NPLN_PRVOPR_PUBLIC_HOUSE_AT}
+			,#{timestamp}
+		  )
+		 </foreach>
+	</insert>
+	
+	<insert id="bulkInsertSrcdataApplyhomeAptTypeInfo" parameterType="java.util.List">
+		<selectKey resultType="java.sql.Timestamp" keyProperty="timestamp" order="BEFORE">
+        	SELECT CURRENT_TIMESTAMP;       
+    	</selectKey>
+    	
+		/* bulkInsertSrcdataApplyhomeAptTypeInfo ==IGNORE_LOG== */
+		INSERT INTO srcdata_applyhome_apt_type_info(
+		house_manage_no, pblanc_no, model_no, house_ty, suply_ar, suply_hshldco, spsply_hshldco, mnych_hshldco, nwwds_hshldco, lfe_frst_hshldco, old_parnts_suport_hshldco, instt_recomend_hshldco, etc_hshldco, transr_instt_enfsn_hshldco, lttot_top_amount, updt_time_stmp)
+		 VALUES
+		 <foreach collection="list" item="item" separator=",">
+		 (
+		 	
+			#{item.HOUSE_MANAGE_NO}
+			,#{item.PBLANC_NO}
+			,#{item.MODEL_NO}
+			,#{item.HOUSE_TY}
+			,#{item.SUPLY_AR}
+			,#{item.SUPLY_HSHLDCO}
+			,#{item.SPSPLY_HSHLDCO}
+			,#{item.MNYCH_HSHLDCO}
+			,#{item.NWWDS_HSHLDCO}
+			,#{item.LFE_FRST_HSHLDCO}
+			,#{item.OLD_PARNTS_SUPORT_HSHLDCO}
+			,#{item.INSTT_RECOMEND_HSHLDCO}
+			,#{item.ETC_HSHLDCO}
+			,#{item.TRANSR_INSTT_ENFSN_HSHLDCO}
+			,#{item.LTTOT_TOP_AMOUNT}
+			,#{timestamp}
+		  )
+		 </foreach>
+	</insert>
+	
+	<insert id="bulkInsertSrcdataApplyhomeCompetRate" parameterType="java.util.List">
+		<selectKey resultType="java.sql.Timestamp" keyProperty="timestamp" order="BEFORE">
+        	SELECT CURRENT_TIMESTAMP;       
+    	</selectKey>
+    	
+		/* bulkInsertSrcdataApplyhomeCompetRate ==IGNORE_LOG== */
+		INSERT INTO srcdata_applyhome_compet_rate(
+		house_manage_no, house_nm, pblanc_no, model_no, house_ty, suply_hshldco, subscrpt_rank_code, reside_secd, reside_senm, req_cnt, cmpet_rate, lwet_score, top_score, avrg_score, updt_time_stmp)
+		 VALUES
+		 <foreach collection="list" item="item" separator=",">
+		 (
+			#{item.HOUSE_MANAGE_NO}
+			,#{item.HOUSE_NM}
+			,#{item.PBLANC_NO}
+			,#{item.MODEL_NO}
+			,#{item.HOUSE_TY}
+			,#{item.SUPLY_HSHLDCO}
+			,#{item.SUBSCRPT_RANK_CODE}
+			,#{item.RESIDE_SECD}
+			,#{item.RESIDE_SENM}
+			,#{item.REQ_CNT}
+			,#{item.CMPET_RATE}
+			,#{item.LWET_SCORE}
+			,#{item.TOP_SCORE}
+			,#{item.AVRG_SCORE}
+			,#{timestamp}
+		  )
+		 </foreach>
+	</insert>
+	
+	
+		
+	<delete id="truncateTable" parameterType="String">
+		/***truncateTable***/
+		TRUNCATE TABLE ${value};
+	</delete>
+	
+	 <select id="getRdfMetaCommon" resultType="kr.udt.data.dto.RdfMetaCommonDTO">
+        SELECT 
+        	* 
+        FROM 
+        	RDF_META_COMMON
+		ORDER BY REG_DT DESC 
+		LIMIT 1;
+        	
+    </select>
+    
+     <select id="getRdfMetaDataset" parameterType="kr.udt.data.dto.JobMstDTO" resultType="kr.udt.data.dto.RdfMetaDatasetDTO">
+        SELECT 
+        	* 
+        FROM 
+        	RDF_META_DATASET
+        WHERE
+        	JOB_ID=#{jobId}
+        ORDER BY REG_DT DESC 
+		LIMIT 1;
+    </select>
+    
+    <insert id="insertRebFile"  parameterType="kr.udt.data.dto.UdtFileDTO" useGeneratedKeys="true" keyProperty="fileId">
+		/***insertRebFile***/
+		INSERT INTO REB_FILE(
+		  <if test="fileId!=null and !fileId.equals('')">
+		  	FILE_ID,
+		  </if>
+			FILE_SN, FILE_DIR, FILE_SIZE, FILE_ORG_NM, FILE_SAVE_NM, FILE_EXT, FILE_TYPE)
+		VALUES (
+				<if test="fileId!=null and !fileId.equals('')">
+					#{fileId}
+				   	,(SELECT (COALESCE(MAX(FILE_SN),0)+1) AS FILE_SN FROM REB_FILE WHERE FILE_ID =#{fileId})
+				</if>
+				<if test="fileId==null">
+				  	1
+				</if>
+				 ,#{fileDir}
+				 ,#{fileSize}
+				 ,#{fileOrgNm}
+				 ,#{fileSaveNm}
+				 ,#{fileExt}
+				 ,#{fileType}
+			    );
+	</insert>
+	
+	<delete id="truncateLpRtchngeApiTemp" >
+		TRUNCATE TABLE SUBSTAREA_LP_RTCHNG_API_TEMP_TABLE;
+	</delete>
+	
+
+	<insert id="bulkInsertBackUpTestApplyhomeCompetRate">
+		insert into BACK_TEST_APPLYHOME_COMPET_RATE
+		SELECT * FROM test_applyhome_compet_rate
+	</insert>
+	
+	<delete id="deleteTestApplyhomeCompetRate">
+		truncate table test_applyhome_compet_rate;
+	</delete>
+	
+	<insert id="bulkInsertTestApplyhomeCompetRate" parameterType="java.util.ArrayList">
+			<selectKey resultType="java.sql.Timestamp" keyProperty="updtTimeStmp" order="BEFORE">
+        		SELECT CURRENT_TIMESTAMP;       
+    		</selectKey>
+    		
+			INSERT INTO test_applyhome_compet_rate(
+				house_manage_no, house_nm, pblanc_no, model_no, house_ty, suply_hshldco, subscrpt_rank_code, reside_secd, reside_senm, req_cnt, cmpet_rate, lwet_score, top_score, avrg_score, updt_time_stmp)
+			VALUES 	
+				<foreach collection="list" item="array" index="index" separator="," >
+					(<foreach collection="array" item="data" index="index" separator=",">#{data}</foreach>,#{updtTimeStmp})
+				</foreach>;
+    </insert>
+		
+	<insert id="bulkInsertTestAptLottAvgAddptInfo" parameterType="kr.udt.data.dto.dataset.TestAptLottAvgAddptInfoDTO">
+		<selectKey resultType="java.sql.Timestamp" keyProperty="updtTimeStmp" order="BEFORE">
+        	SELECT CURRENT_TIMESTAMP;       
+    	</selectKey>
+		WITH TEMP_VIEW AS(
+		    select 
+		    HOUSE_MANAGE_NO
+		    ,avg(cast(AVRG_SCORE as integer))  as avg_val
+		    from test_applyhome_compet_rate
+		    where
+		        AVRG_SCORE != '' and
+		        CAST (AVRG_SCORE AS integer) > 0
+		    group by HOUSE_MANAGE_NO
+		)
+		insert into TEST_APT_LOTT_AVG_ADDPT_INFO
+		    select 
+		        a.HOUSE_MANAGE_NO
+		        ,a.HOUSE_NM
+		        ,a.MODEL_NO
+		        ,a.HOUSE_TY
+		        ,COALESCE(CAST(NULLIF(replace(A.SUPLY_HSHLDCO,',',''),'')AS NUMERIC),0)
+		        ,a.RESIDE_SENM
+		        ,COALESCE(CAST(NULLIF(replace(A.LWET_SCORE,',',''),'')AS NUMERIC),0)
+		        ,COALESCE(CAST(NULLIF(replace(A.TOP_SCORE,',',''),'')AS NUMERIC),0)
+		        ,COALESCE(CAST(NULLIF(replace(A.AVRG_SCORE,',',''),'')AS NUMERIC),0)
+		        ,b.avg_val
+		        ,#{updtTimeStmp}
+		    from  test_applyhome_compet_rate a right outer join TEMP_VIEW b
+		    on a.HOUSE_MANAGE_NO = b.HOUSE_MANAGE_NO;
+	</insert>
+	
+	<select id="selectTestAptLottAvgAddptInfoByTimeStmp" parameterType="kr.udt.data.dto.dataset.TestAptLottAvgAddptInfoDTO" resultType="hashmap">
+    	SELECT * FROM TEST_APT_LOTT_AVG_ADDPT_INFO WHERE UPDT_TIME_STMP =#{updtTimeStmp} ORDER BY 1 ASC;
+    </select> 
+    
+    <delete id="deleteTestAptLottAvgAddptInfoByTimeStmp" parameterType="java.sql.Timestamp" >
+    	DELETE FROM TEST_APT_LOTT_AVG_ADDPT_INFO WHERE UPDT_TIME_STMP =#{updtTimeStmp};
+    </delete>
+    
+    <insert id="bulkInsertSrcdataTestHusAptTradeRteInfo" parameterType="java.util.List">
+		<selectKey resultType="java.sql.Timestamp" keyProperty="timestamp" order="BEFORE">
+        	SELECT CURRENT_TIMESTAMP;       
+    	</selectKey>
+    	
+		/* bulkInsertSrcdataTestHusAptTradeRteInfo ==IGNORE_LOG== */
+		INSERT INTO srcdata_test_hus_apt_trade_rte_info(region_cd,region_nm,research_date,deal_obj,all_cnt,age01_cnt,age02_cnt,age03_cnt,age04_cnt,age05_cnt,age06_cnt,age07_cnt,updt_time_stmp)
+		 VALUES
+		 <foreach collection="list" item="item" separator=",">
+		 (
+			#{item.REGION_CD}
+			,#{item.REGION_NM}
+			,#{item.RESEARCH_DATE}
+			,#{item.DEAL_OBJ}
+			,#{item.ALL_CNT}
+			,#{item.AGE01_CNT}
+			,#{item.AGE02_CNT}
+			,#{item.AGE03_CNT}
+			,#{item.AGE04_CNT}
+			,#{item.AGE05_CNT}
+			,#{item.AGE06_CNT}
+			,#{item.AGE07_CNT}
+			,#{timestamp}
+		  )
+		 </foreach>
+	</insert>  
+	
+	<insert id="bulkInsertTestHusAptTradeRte" parameterType="kr.udt.data.dto.dataset.TestHusAptTradeRteInfoDTO">
+		<selectKey resultType="java.sql.Timestamp" keyProperty="updtTimeStmp" order="BEFORE">
+        	SELECT CURRENT_TIMESTAMP;       
+    	</selectKey>
+		WITH TEMP_VIEW AS(
+		    select 
+            region_cd
+            ,sum(all_cnt) as all_count
+            ,sum(age03_cnt)/sum(all_cnt) as age03_rate
+            ,sum(age04_cnt)/sum(all_cnt) as age04_rate
+            from srcdata_test_hus_apt_trade_rte_info group by region_cd
+		)
+		insert into test_hus_apt_trade_rte
+		    select 
+		        a.region_cd
+		        ,a.region_nm
+		        ,a.research_date
+		        ,b.all_count
+		        ,a.age03_cnt
+                ,b.age03_rate
+                ,a.age04_cnt
+                ,b.age04_rate
+		        ,#{updtTimeStmp}
+		    from  srcdata_test_hus_apt_trade_rte_info a right outer join TEMP_VIEW b
+		    on a.region_cd = b.region_cd;
+	</insert>
+	
+	<select id="selectTestHusAptTradeRteByTimeStmp" parameterType="kr.udt.data.dto.dataset.TestHusAptTradeRteInfoDTO" resultType="hashmap">
+    	SELECT * FROM test_hus_apt_trade_rte WHERE UPDT_TIME_STMP =#{updtTimeStmp} ORDER BY 1 ASC;
+    </select>
+    
+    <delete id="deleteTestHusAptTradeRteByTimeStmp" parameterType="java.sql.Timestamp" >
+    	DELETE FROM test_hus_apt_trade_rte WHERE UPDT_TIME_STMP =#{updtTimeStmp};
+    </delete>
+    
+    <select id="getTotalCountLpRtchngeApiTemp" resultType="int">
+        SELECT COUNT(*) FROM SUBSTAREA_LP_RTCHNG_API_TEMP_TABLE;
+    </select>
+    	
+	<select id="getRegionCdList" resultType="String">
+		SELECT DISTINCT(SUBSTRING(A1, 1, 5)) FROM UNION_CAP_REB_07_MNTH_MVIEW ORDER BY 1 ASC;
+    </select>
+    
+    <insert id="bulkInsertSrcdataStareaLpRtchng" parameterType="java.util.List">
+		<selectKey resultType="java.sql.Timestamp" keyProperty="timestamp" order="BEFORE">
+        	SELECT CURRENT_TIMESTAMP;       
+    	</selectKey>
+    	
+		/* bulkInsertSrcdataStareaLpRtchng ==IGNORE_LOG== */
+		INSERT INTO srcdata_starea_lp_rtchng(giyuk10,giyuk20,giyuk30,giyuk40,giyuk61,giyuk62,giyuk63,giyuk64,giyuk71,giyuk81,giyuk91,giyuk92,giyuk93,level_no,region_cd,region_nm,research_date,updt_time_stmp)
+		 VALUES
+		 <foreach collection="list" item="item" separator=",">
+		 (
+			#{item.GIYUK10}
+			,#{item.GIYUK20}
+			,#{item.GIYUK30}
+			,#{item.GIYUK40}
+			,#{item.GIYUK61}
+			,#{item.GIYUK62}
+			,#{item.GIYUK63}
+			,#{item.GIYUK64}
+			,#{item.GIYUK71}
+			,#{item.GIYUK81}
+			,#{item.GIYUK91}
+			,#{item.GIYUK92}
+			,#{item.GIYUK93}
+			,#{item.LEVEL_NO}
+			,#{item.REGION_CD}
+			,#{item.REGION_NM}
+			,#{item.RESEARCH_DATE}
+			,#{timestamp}
+		  )
+		 </foreach>
+	</insert> 
+	
+	<insert id="insertSrcdataSumStareaLpRtchng" parameterType="hashMap">
+		INSERT INTO SRCDATA_SUM_STAREA_LP_RTCHNG
+		SELECT
+			REGION_CD || #{startDateOalp}
+			,ROUND(EXP(SUM(LN(CASE WHEN GIYUK10 != '' THEN 1 + (CAST(GIYUK10 AS NUMERIC) / 100) END))), 5) AS GIYUK10_SUM
+			,ROUND(EXP(SUM(LN(CASE WHEN GIYUK20 != '' THEN 1 + (CAST(GIYUK20 AS NUMERIC) / 100) END))), 5) AS GIYUK20_SUM
+			,ROUND(EXP(SUM(LN(CASE WHEN GIYUK30 != '' THEN 1 + (CAST(GIYUK30 AS NUMERIC) / 100) END))), 5) AS GIYUK30_SUM
+			,ROUND(EXP(SUM(LN(CASE WHEN GIYUK40 != '' THEN 1 + (CAST(GIYUK40 AS NUMERIC) / 100) END))), 5) AS GIYUK40_SUM
+			,ROUND(EXP(SUM(LN(CASE WHEN GIYUK61 != '' THEN 1 + (CAST(GIYUK61 AS NUMERIC) / 100) END))), 5) AS GIYUK61_SUM
+			,ROUND(EXP(SUM(LN(CASE WHEN GIYUK62 != '' THEN 1 + (CAST(GIYUK62 AS NUMERIC) / 100) END))), 5) AS GIYUK62_SUM
+			,ROUND(EXP(SUM(LN(CASE WHEN GIYUK63 != '' THEN 1 + (CAST(GIYUK63 AS NUMERIC) / 100) END))), 5) AS GIYUK63_SUM
+			,ROUND(EXP(SUM(LN(CASE WHEN GIYUK64 != '' THEN 1 + (CAST(GIYUK64 AS NUMERIC) / 100) END))), 5) AS GIYUK64_SUM
+			,ROUND(EXP(SUM(LN(CASE WHEN GIYUK71 != '' THEN 1 + (CAST(GIYUK71 AS NUMERIC) / 100) END))), 5) AS GIYUK71_SUM
+			,ROUND(EXP(SUM(LN(CASE WHEN GIYUK81 != '' THEN 1 + (CAST(GIYUK81 AS NUMERIC) / 100) END))), 5) AS GIYUK81_SUM
+			,ROUND(EXP(SUM(LN(CASE WHEN GIYUK91 != '' THEN 1 + (CAST(GIYUK91 AS NUMERIC) / 100) END))), 5) AS GIYUK91_SUM
+		FROM SRCDATA_STAREA_LP_RTCHNG
+		WHERE RESEARCH_DATE BETWEEN #{startDateOalp} AND #{endDateOalp}
+		GROUP BY REGION_CD
+		ORDER BY REGION_CD
+	</insert>
+	
+	<select id="mviewRefresh"> 
+		REFRESH MATERIALIZED VIEW CAP_REB_RAND_USING_LDUSE;
+		REFRESH MATERIALIZED VIEW UNION_CAP_REB_07_MNTH_MVIEW;
+	</select>
+	
+	<select id="captNewlyRebLandMviewRefresh"> 
+		REFRESH MATERIALIZED VIEW CAPT_NEWLY_REB_RAND;
+	</select>
+    
+    <!-- OpenAPI로 받아온 데이터를 적재 -->
+    <insert id="insertOpenApiData" parameterType="hashMap">
+    	INSERT INTO ${tbNm}
+    		<foreach item="item" collection="headers" index="index" open="(" separator="," close=")">
+    			${item}
+    		</foreach>
+    	VALUES
+			<foreach item="item" collection="values" separator=",">
+				<foreach item="element" collection="item.entrySet()" index="key" open="(" separator="," close=")">
+					${element}
+				</foreach>
+			</foreach>
+    </insert>
+    
+</mapper>

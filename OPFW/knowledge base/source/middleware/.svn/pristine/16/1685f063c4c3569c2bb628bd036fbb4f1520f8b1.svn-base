@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="info" monitorInterval="30">
+    <Properties>
+        <Property name="LOG_FORMAT">%d{yyyy-MM-dd HH:mm:ss} %p %m%n</Property>
+        <Property name="BASE_DIR">/nas/log/was/UdtDataFlow</Property>
+    </Properties>
+
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT" follow="true">
+            <PatternLayout pattern="${LOG_FORMAT}"/>
+        </Console>
+        <RollingFile name="UdtFileLog"
+                     fileName="${BASE_DIR}/UdtDataFlowDaily.log"
+                     filePattern="${BASE_DIR}/UdtDataFlowDaily.%d{yyyyMMdd}.log">
+            <PatternLayout pattern="${LOG_FORMAT}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy />
+            </Policies>
+            <DefaultRolloverStrategy>
+                <Delete basePath="${BASE_DIR}">
+                    <IfFileName glob="*.log" />
+                    <IfLastModified age="30d" />
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+        
+        <!-- <RollingFile name="ValidationLogger"
+                     fileName="${VALIDATION_BASE_DIR}/NwisSchedulerValidation.log"
+                     filePattern="${VALIDATION_BASE_DIR}/NwisScheduler.%d{yyyyMMdd}.log">
+            <PatternLayout pattern="${LOG_FORMAT}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy />
+            </Policies>
+            <DefaultRolloverStrategy>
+                <Delete basePath="${VALIDATION_BASE_DIR}">
+                    <IfFileName glob="*.log" />
+                    <IfLastModified age="30d" />
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+         -->
+        
+    </Appenders>
+
+    <Loggers>
+	    <Logger name="jdbc" level="error"/>
+	    <!-- 특정쿼리 로그 제거(벌크인서트 넘 길음) -->
+	    <Logger name="jdbc.sqlonly" additivity="false" level="DEBUG" >
+        	<appender-ref ref="Console">
+        		<ThreadContextMapFilter onMatch="DENY" onMismatch="NEUTRAL"> 
+				<KeyValuePair key="log" value="N"/>
+        		</ThreadContextMapFilter>
+			</appender-ref>	
+			<appender-ref ref="UdtFileLog">
+        		<ThreadContextMapFilter onMatch="DENY" onMismatch="NEUTRAL"> 
+				<KeyValuePair key="log" value="N"/>
+        		</ThreadContextMapFilter>
+			</appender-ref>	
+		</Logger>
+	    <Logger name="jdbc.audit" level="off"/>
+	    <Logger name="jdbc.sqltiming" level="off"/>
+	    <Logger name="jdbc.resultset" level="off"/>
+	    <Logger name="jdbc.resultsettable" level="off"/>
+	    <Logger name="jdbc.connection" level="error"/>
+	    <logger name="com.zaxxer.hikari" level="error"/>
+	    
+        <Root level="info">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="UdtFileLog" />
+        </Root>
+        
+    </Loggers>
+        
+</Configuration>

@@ -1,0 +1,251 @@
+/**
+ * 
+ */
+package kr.udt.data.job;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import kr.udt.data.constant.UdtCommonConstant;
+import kr.udt.data.dto.JobLinkConfigDTO;
+import kr.udt.data.dto.JobMstDTO;
+import kr.udt.data.dto.JobRunHstDTO;
+import kr.udt.data.dto.ProcessMstDTO;
+import kr.udt.data.dto.RdfMetaCommonDTO;
+import kr.udt.data.dto.RdfMetaDatasetDTO;
+import kr.udt.data.dto.dataset.AphusTradeLtrInfoDTO;
+import kr.udt.data.dto.dataset.AptLottDtldInfoDTO;
+import kr.udt.data.job.abst.UdtJobAbstractClass;
+import kr.udt.data.mapper.UdtDataFlowMapper;
+import kr.udt.data.svo.FtpServiceVO;
+import kr.udt.data.util.UdtCommonUtil;
+import kr.udt.data.util.UdtFileUtil;
+import kr.udt.data.util.UdtFtpUtil;
+import kr.udt.data.util.UdtRestApiUtil;
+
+/**
+ * @설명 : job003 - 아파트분양 상세정보 APT_LOTT_DTLD_INFO (주기 : 매주 금)
+ * @프로세스) 웹화면에서 업로드된 재료데이터 가공(DB저장) > 송신파일 생성 (CSV,RDF)> 송신파일 중계서버 파일전송 > 중계서버-교빅 업로드 API 호출 > 송신파일 디렉토리이동(파일DB저장)
+ * @작성자 : ICTWAY - 이민열 대리
+ * @생성일 : 2021. 12. 09.
+ * @비고 : 
+ */
+//@Component
+public class job003AptLottDtldInfo_UPLOADWEB extends UdtJobAbstractClass {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(job003AptLottDtldInfo_UPLOADWEB.class);
+	
+	@Autowired
+	private UdtDataFlowMapper mapper;
+	
+	@Autowired
+	private UdtFileUtil fileUtil;
+	
+	@Autowired
+	private UdtFtpUtil ftpUtil;
+	
+	@Autowired
+	private UdtRestApiUtil restApiUtil;
+	
+	private String logTitle;
+	
+	/* 스케줄잡 배치 실행부
+	 * @see kr.reb.data.job.abst.RebJobAbstractClass#execute(kr.reb.data.dto.JobMstDTO)
+	 */
+	@Override
+	public void execute(JobMstDTO jobInfo) {
+		logTitle="";
+		long jobStartTime=0;
+		long jobEndTime=0;
+		long processStartTime=0;
+		long processEndTime=0;
+		int processStep=0;
+		JobRunHstDTO jobRunHstDTO=null;
+		Timestamp timeStmp=null;
+		String csvFilePath =null;
+		String rdfFilePath=null;
+		boolean isEnterMoveFileStep=false;
+		List<ProcessMstDTO> processList = new ArrayList<ProcessMstDTO>();
+		
+		try {
+			jobStartTime=System.currentTimeMillis();
+			
+			logTitle = "["+jobInfo.getJobNmKr()+"]";
+			
+			LOGGER.info(logTitle+"스케줄 프로세스가 시작됩니다.");
+			LOGGER.info(logTitle+"실행 프로세스 정보 및 연계설정정보를 읽어옵니다."); 
+			
+			processList = mapper.getProcessMstWithSnByJobId(jobInfo);
+			JobLinkConfigDTO jobConfig = mapper.getOneJobLinkConfig(jobInfo);
+			
+			LOGGER.info(logTitle+"실행 프로세스 총 ["+processList.size()+"단계]");
+			
+			for(ProcessMstDTO processInfo : processList) {
+				int logSn=processList.indexOf(processInfo)+1;
+				LOGGER.info(logTitle+"실행 프로세스 정보("+logSn+"단계) : "+processInfo.toString());
+			}
+			
+			LOGGER.info(logTitle+"잡 설정정보 : "+jobConfig.toString());
+			
+			
+			//프로세스 호출전 job 실행이력 생성(처리상태 N, 시작시간만 등록)
+			jobRunHstDTO  = super.processStart(jobInfo,jobStartTime);
+			
+		//프로세스  시작
+			processStep=1;
+			super.loggingProcessStart(logTitle, processStep, processList, LOGGER);
+			
+		//프로세스 1 웹화면에서 업로드된 재료데이터 가공(DB저장)
+			processStartTime=System.currentTimeMillis();
+			
+			AptLottDtldInfoDTO aptSubDivDTO = new AptLottDtldInfoDTO();
+			mapper.insertDatasetAptSubdivsDtldInfo(aptSubDivDTO);
+			timeStmp = aptSubDivDTO.getUpdtTimeStmp();
+			mapper.updateAptSubdivsDtldInfoLoanAbleAmount(timeStmp);
+				
+			processEndTime=System.currentTimeMillis();
+			processStep = super.nextStep(processStep,jobRunHstDTO,processList,LOGGER,processStartTime,processEndTime);
+		//프로세스 1 끝
+			
+			
+		//프로세스2 송신파일(CSV,RDF) 생성
+			processStartTime=System.currentTimeMillis();
+			
+			//csv 데이터 가져오기, rdf 메타 태그내용 가져오기
+			List<HashMap<String,Object>> resultDataset = mapper.selectAptSubdivsDtldInfoByTimeStmp(aptSubDivDTO);
+			
+			RdfMetaCommonDTO metaCommonDto = mapper.getRdfMetaCommon();
+			RdfMetaDatasetDTO metaDatasetDto = mapper.getRdfMetaDataset(jobInfo);
+
+			//csv 가공 
+			String dataCode = metaDatasetDto.getDctIdentifier();
+			int resultCount = resultDataset.size();
+			String[] headers = mapper.selectTbColNms(jobInfo.getSaveTbNm());
+			csvFilePath = fileUtil.writeCSV(jobConfig.getSendFileSaveDir(),dataCode, resultDataset, UdtCommonConstant.FILE_ENC_UTF8, headers,true);
+			if(csvFilePath==null)throw new IOException("CSV 생성에 실패하였습니다.["+jobConfig.getSendFileSaveDir()+"/"+dataCode+".csv]");
+
+			//rdf가공
+			String startDate = UdtCommonUtil.getMondayDateStringOfWeek()+"000000";
+			String endDate = UdtCommonUtil.getFridayDateStringOfWeek()+"235959";
+			rdfFilePath = fileUtil.makeRdfFile(metaCommonDto,metaDatasetDto,UdtCommonConstant.FILE_ENC_UTF8
+					,jobConfig.getSendFileSaveDir(), dataCode,startDate,endDate);
+			if(rdfFilePath==null)throw new IOException("RDF 생성에 실패하였습니다.["+jobConfig.getSendFileSaveDir()+"/"+dataCode+".rdf]");
+			
+			processEndTime=System.currentTimeMillis();
+			processStep = super.nextStep(processStep,jobRunHstDTO,processList,LOGGER,processStartTime,processEndTime);
+		//프로세스2 끝
+			
+		//프로세스3 송신파일 중계서버 파일전송
+			processStartTime=System.currentTimeMillis();
+			
+			//sftp업로드vo 세팅 [!업로드경로 : {reb.sftp.upload.homedir(프로퍼티)}/DATASET/데이터셋명(테이블명)/ : 중계서버의 업로드 경로는 다음스텝에서 교빅SFTP API호출에서 사용하기 때문에 사용자가 웹화면에서 관리하면 노답됌]
+			String uploadDir = "DATASET/"+jobInfo.getSaveTbNm()+"/";
+
+			//sftp 업로드 호출
+			FtpServiceVO csvUploadVo = super.settingUploadSftpServiceVO(uploadDir, csvFilePath);
+			FtpServiceVO rdfUploadVo = super.settingUploadSftpServiceVO(uploadDir, rdfFilePath);
+			String csvUploadFilePath = ftpUtil.uploadUsingSFTP(csvUploadVo, logTitle);
+			String rdfUploadFilePath = ftpUtil.uploadUsingSFTP(rdfUploadVo, logTitle);
+			processEndTime=System.currentTimeMillis();
+			processStep = super.nextStep(processStep,jobRunHstDTO,processList,LOGGER,processStartTime,processEndTime);
+		//프로세스3 끝
+			
+			//if(true)throw new NullPointerException("에러테스트열");
+			
+		//프로세스4 중계서버로 교통빅데이터 플랫폼 업로드 API 호출
+			/*
+			processStartTime=System.currentTimeMillis();
+			Map<String,Object> apiParams = new HashMap<String,Object>();
+			apiParams.put("dataCode", metaDatasetDto.getDctIdentifier());
+			apiParams.put("dataSetKrNm", jobInfo.getJobNmKr());
+			apiParams.put("csvLocalFilePath", csvUploadFilePath);
+			apiParams.put("rdfLocalFilePath", rdfUploadFilePath);
+			String jsonString = restApiUtil.callPostApi(middleSvrApiEndpoint, apiParams, null, logTitle);
+			JSONObject result = restApiUtil.parsingJsonObjects(jsonString);
+			String resultCode = (String)result.get("resultStatusCode");
+			if(!resultCode.equals("200")) {
+				if(result.get("errorContent")!=null)LOGGER.error((String)result.get("errorContent"));
+				throw new IOException("부동산원 중계서버 -> 교통빅데이터플랫폼 파일업로드 API호출에 실패하였습니다. 로그를 확인해주세요");
+			}
+			LOGGER.info(logTitle+"api 호출에 성공하였습니다. 호출결과 : "+jsonString+"");
+			
+			JSONObject resultMap = (JSONObject)result.get("resultMap");
+			jobRunHstDTO.setDoroCsvfileFullPath((String)resultMap.get("saveCsvFullPath"));;
+			jobRunHstDTO.setDoroRdffileFullPath((String)resultMap.get("saveRdfFullPath"));;
+			
+			processEndTime=System.currentTimeMillis();
+			processStep = super.nextStep(processStep,jobRunHstDTO,processList,LOGGER,processStartTime,processEndTime);
+			*/
+		//프로세스4 끝
+			
+			
+		//프로세스5 송신파일 디렉토리이동(파일DB)저장
+			processStartTime=System.currentTimeMillis();
+			BigDecimal saveFileId=super.moveFileAndSaveDataBase(csvFilePath, rdfFilePath, true);
+			isEnterMoveFileStep=true;
+			processEndTime=System.currentTimeMillis();
+			processStep = super.nextStep(processStep,jobRunHstDTO,processList,LOGGER,processStartTime,processEndTime);
+		//프로세스5 끝
+		
+		//잡 종료(이력 종료처리+이력에 fileId넣기)
+			jobEndTime=System.currentTimeMillis();
+			jobRunHstDTO.setJobEndAt("Y");
+			jobRunHstDTO.setProcessSn(null);
+			jobRunHstDTO.setJobEndDt(UdtCommonUtil.getStringTimeByFormatter(UdtCommonConstant.DB_DATESTRING_FORMAAT,jobEndTime));
+			jobRunHstDTO.setJobElapTime(new BigDecimal(jobEndTime-jobStartTime));
+			jobRunHstDTO.setSendFileId(saveFileId);
+			jobRunHstDTO.setSendWriteLine(new BigDecimal(resultCount));
+			jobRunHstDTO.setJobEndRslt("S");
+			super.processEnd(jobRunHstDTO);
+			
+			LOGGER.info(logTitle+"스케줄 프로세스가 종료되었습니다. 총 소요시간 :["+TimeUnit.MILLISECONDS.toSeconds(jobEndTime-jobStartTime)+"초]");
+		
+		}catch(Exception e) {
+			//에러처리
+			try {
+				//데이터셋 db insert됐을경우 삭제  
+				if(timeStmp!=null) {
+					mapper.deleteAptSubdivsDtldInfoByTimeStmp(timeStmp);
+				}
+
+				//CSV,RDF파일 만들기까진 되었는데 교빅업로드순서까지 에러가 있는경우
+				if(!isEnterMoveFileStep&&csvFilePath!=null&&rdfFilePath!=null) {
+					BigDecimal saveFileId=super.moveFileAndSaveDataBase(csvFilePath, rdfFilePath, false);
+					jobRunHstDTO.setSendFileId(saveFileId);
+				}
+				
+				//CSV는 있고 RDF만들다가 에러난경우 CSV 파일만 실패디렉토리로이동(CSV가먼저 만들어져서 반대경우는 있을수없음)
+				if(!isEnterMoveFileStep&&csvFilePath!=null&&rdfFilePath==null) {
+					String addFolder ="/FAILED/";
+					addFolder+=fileUtil.genYYYYMMDDDirectory();
+					String orgCsvFileNm=fileUtil.getOnlyFileNm(csvFilePath);
+					String saveCsvFileNm=fileUtil.genMilitimeSaveFileName(orgCsvFileNm);
+					String saveCsvFilePath=fileUtil.getOnlyPath(csvFilePath);
+					saveCsvFilePath+=addFolder;
+					fileUtil.moveFile(saveCsvFileNm, csvFilePath, saveCsvFilePath);
+				}
+				
+
+			}catch(Exception e1) {
+				LOGGER.error(logTitle+"에러 처리중 오류가 발생하였습니다 로그를 확인해주세요.");
+				e1.printStackTrace();
+			}finally {
+				super.rebJobExceptionHandle(logTitle, processStep, processList, LOGGER, e, jobRunHstDTO,jobStartTime,processStartTime);
+			}
+			
+		}
+	}
+}

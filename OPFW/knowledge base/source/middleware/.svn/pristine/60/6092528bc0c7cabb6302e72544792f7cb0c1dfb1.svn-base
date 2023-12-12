@@ -1,0 +1,233 @@
+package kr.udt.data.service;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.PostConstruct;
+
+import org.quartz.JobDetail;
+import org.quartz.JobKey;
+import org.quartz.Scheduler;
+import org.quartz.Trigger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.scheduling.quartz.CronTriggerFactoryBean;
+import org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean;
+
+import org.springframework.stereotype.Component;
+
+import kr.udt.data.dto.JobMstDTO;
+import kr.udt.data.mapper.UdtDataFlowMapper;
+import kr.udt.data.util.UdtCommonUtil;
+
+/**
+ * @설명 : Spring Quartz 관련 서비스(스케줄,잡 관리)
+ * @작성자 : ICTWAY - 최성식 선임
+ * @생성일 : 2022. 11. 03.
+ * @비고 : 
+ */
+@Component
+public class UdtSchedulerService {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(UdtSchedulerService.class);
+	
+	@Autowired
+    private Scheduler scheduler;
+	
+	@Autowired
+	private ApplicationContext ctx;
+	
+	@Autowired
+	private UdtDataFlowMapper mapper;
+	
+	public static Map<String,JobKey> jobKeyMap = new HashMap<String,JobKey>();
+	
+	public static Map<Integer,String> jobNmMap = new HashMap<Integer,String>();
+	
+	public static Map<String,String> jobStatusMap = new HashMap<String,String>();
+	
+	@PostConstruct
+	public void init() {
+		LOGGER.info("등록된 스케줄잡을 실행합니다.");
+		try {
+			
+			scheduler.clear();
+			
+			List<JobMstDTO> list = mapper.getAllJobMst();
+			for(JobMstDTO jobInfo : list) {
+				addScheduleJob(jobInfo);
+			}
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void addScheduleJob(JobMstDTO jobInfo) throws Exception{
+		LOGGER.info("잡을 등록합니다. 잡 상세정보:["+jobInfo.toString()+"]");
+		try {
+			MethodInvokingJobDetailFactoryBean jobFactory = new MethodInvokingJobDetailFactoryBean();
+			jobFactory.setName(jobInfo.getJobNmEn());
+			jobFactory.setGroup("UDT-JOB");
+			jobFactory.setTargetObject(ctx.getBean(jobInfo.getClassNm()));
+			jobFactory.setTargetMethod(jobInfo.getMethodNm());
+			jobFactory.setConcurrent(false);
+			jobFactory.setArguments(jobInfo);
+			jobFactory.afterPropertiesSet();
+
+			JobDetail jobDetail = (JobDetail)jobFactory.getObject();
+			jobKeyMap.put(jobInfo.getJobNmEn(),jobDetail.getKey());
+			
+			CronTriggerFactoryBean cronTriggerFactory = new CronTriggerFactoryBean();
+			cronTriggerFactory.setName(jobInfo.getJobNmEn() + "-TriggerKey");
+			cronTriggerFactory.setGroup("UDT-JOB");
+			cronTriggerFactory.setJobDetail(jobDetail);
+			cronTriggerFactory.setCronExpression(jobInfo.getCronExeCycle());
+			cronTriggerFactory.afterPropertiesSet();
+			//사용여부 N인것 딜레이 최대로 주고 밑에서 등록직후 정지처리, 이후 재시작(RESTART)API 호출시 START DELAY는 없음(테스트완료)
+			if(jobInfo.getUseAt().equals("N"))cronTriggerFactory.setStartDelay(99999999);
+			scheduler.scheduleJob(jobDetail, cronTriggerFactory.getObject());
+			
+			if(jobInfo.getUseAt().equals("N")) {
+				this.pause(jobInfo.getJobNmEn());
+				LOGGER.info("["+jobInfo.getJobNmKr()+"] 스케줄 잡은 사용여부가 'N'입니다. 스케줄러 등록 즉시 일시정지 처리합니다.]");
+			}else {
+				jobStatusMap.put(jobInfo.getJobNmEn(), "running");
+				LOGGER.info("["+jobInfo.getJobNmKr()+"] 스케줄 잡이 시작되었습니다. 실행주기(크론):["+jobInfo.getCronExeCycle()+"]");
+			}
+			
+			//}
+		}catch(Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+	}
+	
+	public boolean pause(String jobNm) throws Exception {
+		boolean result = false;
+	
+		try {
+			
+			List<? extends Trigger> triggers = scheduler.getTriggersOfJob(jobKeyMap.get(jobNm));
+			if(triggers.size()==0) {
+				LOGGER.info(jobNm+" 잡이 중지에 실패하였습니다. 잡 name을 확인해주세요.");
+				result=false;
+			}else {
+				LOGGER.info(jobNm+" 잡을 중지합니다.");
+				mapper.updateJobMstUseAt(JobMstDTO.builder().useAt("N").jobNmEn(jobNm).build());
+			
+				scheduler.pauseJob(jobKeyMap.get(jobNm));
+			
+				for(Trigger trigger : triggers) {
+					LOGGER.info(jobNm+" 트리거를 중지 합니다.");
+					scheduler.pauseTrigger(trigger.getKey());
+				}
+				jobStatusMap.put(jobNm, "pause");
+				LOGGER.info(jobNm+" 잡이 중지되었습니다.");
+				result=true;
+			}
+			
+			return result;
+		}catch(Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+	}
+	
+	
+	public boolean restart(String jobNm) throws Exception {
+		boolean result = false;
+		try {
+			
+			List<? extends Trigger> triggers = scheduler.getTriggersOfJob(jobKeyMap.get(jobNm));
+			if(triggers.size()==0) {
+				LOGGER.info(jobNm+" 잡이 중지에 실패하였습니다. 잡 name을 확인해주세요.");
+				result=false;
+			}else {
+				LOGGER.info(jobNm+" 잡을 중지하고 재시작합니다.");
+				this.pause(jobNm);
+				
+				mapper.updateJobMstUseAt(JobMstDTO.builder().useAt("Y").jobNmEn(jobNm).build());
+				
+				scheduler.resumeJob(jobKeyMap.get(jobNm));
+				jobStatusMap.put(jobNm, "running");
+				LOGGER.info(jobNm+" 잡이 재시작되었습니다.");
+				
+				result=true;
+			}
+			return result;
+		}catch(Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+	}
+	
+	public boolean immediateExexcute(String jobNm) throws Exception {
+		
+		boolean result = false;
+		
+		try {
+			List<? extends Trigger> triggers = scheduler.getTriggersOfJob(jobKeyMap.get(jobNm));
+			if(triggers.size()==0) {
+				LOGGER.info(jobNm+" 잡이 중지에 실패하였습니다. 잡 name을 확인해주세요.");
+				result=false;
+			}else {
+				LOGGER.info(jobNm+" 잡을 즉시실행(1회 수동)합니다.");
+				scheduler.triggerJob(jobKeyMap.get(jobNm));
+				result=true;
+			}
+			return result;
+		}catch(Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+		
+	}
+	
+	public boolean update(String jobNm) throws Exception {
+		
+		boolean result = false;
+		
+		try {
+			LOGGER.info(jobNm+" 잡을 재설정합니다.");
+			this.delete(jobNm);
+			JobMstDTO jobInfo = mapper.getOneJobMstByEnNm(JobMstDTO.builder().jobNmEn(jobNm).build());
+			addScheduleJob(jobInfo);
+			return true;
+			
+		}catch(Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+		
+	}
+	
+	public void delete(String jobNm) throws Exception {
+		try {
+			LOGGER.info(jobNm+" 잡을 삭제합니다.");
+			scheduler.pauseJob(jobKeyMap.get(jobNm));
+			scheduler.deleteJob(jobKeyMap.get(jobNm));
+			
+			//기본적으로 쿼터즈의 scheduler.deleteJob호출시 잡에 걸려있는 트리거도 같이 삭제되나
+			//배치 프로그램 특성상 혹시 모르는 메모리 누수를 위해 잡에 걸려있는 트리거 재확인 후 만약 있다면 해당 트리거 삭제
+			List<? extends Trigger> triggers = scheduler.getTriggersOfJob(jobKeyMap.get(jobNm));
+			for(Trigger trigger : triggers) {
+				LOGGER.info(jobNm+" 트리거를 삭제 합니다.");
+				scheduler.pauseTrigger(trigger.getKey());
+				scheduler.unscheduleJob(trigger.getKey());
+				
+			}
+			jobKeyMap.remove(jobNm);
+			jobStatusMap.remove(jobNm);
+			LOGGER.info(jobNm+" 잡이 삭제되었습니다.");
+		}catch(Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+	}
+	
+}
