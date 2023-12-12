@@ -15,7 +15,7 @@ _FDTFW 프로젝트_ 는 이종 도메인의 디지털 트윈간 연합과 상�
 ### How to Contribute Your Codes
 [CONTRIBUTING.md](CONTRIBUTING.md)를 참조
 
-## History
+### History
 _FDTFW 프로젝트_ 는 2022년 4월 시작
 
 ### Authors
