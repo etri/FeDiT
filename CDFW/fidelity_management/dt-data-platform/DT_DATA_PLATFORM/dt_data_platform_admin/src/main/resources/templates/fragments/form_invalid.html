@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<th:block th:fragment="form_invalid(field)">
+    <th:block th:if="${#fields.hasErrors(field)}">
+        <th:block th:each="error: ${#fields.errors(field)}">
+            <div class="invalid-feedback d-block" th:each="message : ${error.split(',')}" th:text="${#strings.replace(message, '&amp;#44;', ',')}">
+                Please provide a valid field.
+            </div>
+        </th:block>
+    </th:block>
+</th:block>
+
+</html>

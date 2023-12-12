@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/layout}">
+
+<head>
+    <title th:text="${breadcrumb.menu_nm}">코드관리</title>
+</head>
+<div layout:fragment="content">
+    <nav th:replace="fragments/page_breadcrumb"></nav>
+    <div class="row">
+        <div class="col-5 grid-margin grid-margin-xl-0 stretch-card">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-baseline mb-2">
+                        <h6 class="card-title mb-0">단위 목록</h6>
+                        <!-- 
+                        <div>
+                            <button type="button" class="btn btn-secondary btn-icon-text btn-add-master">
+                                <i class="btn-icon-prepend" data-feather="edit"></i>등록
+                            </button>
+                        </div>
+                         -->
+                    </div>
+                    <div class="d-flex flex-column">
+                        <div class="table-responsive table-no-paging">
+                            <table class="table table-hover unit-master">
+                                <colgroup>
+                                    <col style="width: 50%;">
+                                    <col style="width: 50%;">
+                                    <!-- 
+                                    <col style="width: 35%;">
+                                     -->
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th>단위 코드</th>
+                                        <th>단위 코드명</th>
+                                        <!-- 
+                                        <th></th>
+                                         -->
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="item : ${masterList}" th:class="${item.dtl_cd} == ${dtlCd} ? 'table-info'" th:data-group-unit="${item.dtl_cd}">
+                                        <td th:text="${item.dtl_cd}">unit</td>
+                                        <td>
+                                            <a th:href="@{/setting/unit(dtlCd=${item.dtl_cd},menuCd=${params.menuCd})}" th:text="${item.dtl_cd_nm}">grp_cd_nm</a>
+                                        </td>
+                                        <!-- 
+                                        <td class="text-right">
+                                            <button type="button" class="btn btn-outline-primary btn-sm mr-2 btn-modify-master" th:data-group-unit="${item.dtl_cd}">수정</button>
+                                            <button type="button" class="btn btn-outline-danger btn-sm btn-delete-master" th:data-group-unit="${item.dtl_cd}">삭제</button>
+                                        </td>
+                                         -->
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-7 grid-margin grid-margin-xl-0 stretch-card">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-baseline mb-2">
+                        <h6 class="card-title mb-0 ml-4">세부 단위</h6>
+                        <button type="button" class="btn btn-secondary btn-icon-text btn-add-detail">
+                            <i class="btn-icon-prepend" data-feather="edit"></i>등록
+                        </button>
+                    </div>
+                    <div class="table-responsive table-no-paging">
+                        <table class="table table-hover">
+                            <colgroup>
+                                <col style="width: 5%;">
+                                <col style="width: 15%;">
+                                <col style="width: 15%;">
+                                <col style="width: 25%;">
+                                <col style="width: 5%;">
+                                <col style="width: 10%;">
+                                <col style="width: 25%;">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>현재 단위명</th>
+                                    <th>변경 단위명</th>
+                                    <th>변환식</th>
+                                    <th>사용여부</th>
+                                    <th>등록일</th>                                    
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <th:block th:include="fragments/table_empty:: table_empty(6)" th:if="${#lists.isEmpty(detailList)}"></th:block>
+                                <tr th:each="item, row : ${detailList}" th:unless="${#lists.isEmpty(detailList)}">
+                                    <td th:text="${row.index + 1}"></td>
+                                    <td th:text="${item.unit_nm_1}">unit</td>
+                                    <td th:text="${item.unit_nm_2}">dtl_cd_nm</td>
+                                    <td th:text="${item.unit_formula}">dtl_cd_nm</td>
+                                    <td th:text="${item.use_yn == 'Y'} ? '사용' : '미사용'">use_yn</td>
+                                    <td th:text="${item.reg_dt}">reg_dt</td>
+                                    <td class="text-right">
+                                    	<button type="button" class="btn btn-outline-primary btn-sm mr-2 btn-modify-detail" th:data-unit-seq="${item.unit_seq}">수정</button>
+                                        <button type="button" class="btn btn-outline-danger btn-sm btn-delete-detail" th:data-unit-seq="${item.unit_seq}">삭제</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal -->
+    <div class="modal" id="modal-group" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">그룹 코드</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <form id="groupForm" method="post">
+                                <div class="form-group row">
+                                    <label class="col-sm-3 col-form-label required">그룹 코드</label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="grp_cd" maxlength="20" placeholder="" required="required">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-3 col-form-label required">그룹 코드명</label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="grp_cd_nm" maxlength="50" placeholder="" required="required">
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark btn-icon-text mr-2 btn-register-master">
+                        <i class="btn-icon-prepend" data-feather="edit"></i>저장
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-icon-text" data-dismiss="modal">
+                        <i class="btn-icon-prepend" data-feather="x-square"></i>닫기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- // modal -->
+    <!-- Modal -->
+    <div class="modal" id="modal-detail" tabindex="-1" role="dialog" aria-hidden="true">
+        <input type="hidden" id="unit_seq">
+        <input type="hidden" id="unit_tp">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">세부 단위</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <form id="editForm" method="post">
+                                <div class="form-group row">
+                                    <label class="col-sm-3 col-form-label required">현재 단위명</label>
+                                    <select class="select" id="unit_nm_1" required="required">
+										<option th:each="item : ${unitList}" th:value="${item.dtl_cd}" th:text="${item.dtl_cd_nm}"></option>
+									</select>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-3 col-form-label required">변경 단위명</label>
+                                    <select class="select" id="unit_nm_2" required="required">
+										<option th:each="item : ${unitList}" th:value="${item.dtl_cd}" th:text="${item.dtl_cd_nm}"></option>
+									</select>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-3 col-form-label required">변환식</label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="unit_formula" maxlength="50" placeholder="" required="required">
+                                    </div>
+                                </div>
+                                 <div class="form-group row">
+                                    <label class="col-sm-3 col-form-label required">비고</label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="formula_derpn" maxlength="50" placeholder="" required="required">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-3 col-form-label required">정렬순서</label>
+                                    <div class="col-sm-9">
+                                        <input type="number" class="form-control" id="ordby" maxlength="2" placeholder="">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-3 col-form-label required">사용여부</label>
+                                    <div class="col-sm-9">
+                                        <input type="checkbox" id="use_yn" data-toggle="toggle" data-size="small" data-on="사용" data-off="미사용" data-width="80">
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark btn-icon-text mr-2 btn-register-detail">
+                        <i class="btn-icon-prepend" data-feather="edit"></i>저장
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-icon-text" data-dismiss="modal">
+                        <i class="btn-icon-prepend" data-feather="x-square"></i>닫기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- // modal -->
+</div>
+<th:block layout:fragment="custom_css">
+    <style type="text/css">
+    .table-no-paging {
+        height: 650px;
+        overflow-x: hidden;
+    }
+    </style>
+</th:block>
+<th:block layout:fragment="custom_js">
+    <script th:src="@{/assets/js/pages/setting/unit_list.js}"></script>
+</th:block>
+
+</html>

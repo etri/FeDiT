@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.stoneitgt.dt.data.platform.admin.mapper.AIModelMapper2">
+
+	<select id="getModelLoss" parameterType="int" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : AIModelMapper.xml, id : getModelLoss */
+		SELECT *
+		  FROM TB_MODEL_LOSS
+		 WHERE MODEL_SEQ = #{modelSeq}
+		   AND DEL_YN = 'N'
+		   AND USE_YN = 'Y'
+		ORDER BY EPOCHS		
+	</select>
+	
+	<select id="getModelFID" parameterType="int" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : AIModelMapper.xml, id : getModelFID */
+		SELECT *
+		  FROM TB_MODEL_FID
+		 WHERE MODEL_SEQ = #{modelSeq}
+		   AND DEL_YN = 'N'
+		   AND USE_YN = 'Y'
+		ORDER BY EPOCHS		
+	</select>
+	
+</mapper>

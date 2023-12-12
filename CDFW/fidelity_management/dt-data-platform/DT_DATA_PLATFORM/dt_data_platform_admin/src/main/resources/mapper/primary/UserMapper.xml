@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.stoneitgt.dt.data.platform.admin.mapper.UserMapper">
+	<select id="findByUserId" parameterType="string" resultType="com.stoneitgt.dt.data.platform.domain.User">
+		/* file : UserMapper.xml, id : findByUserId */
+		SELECT *, USER_PW AS PASSWORD, USER_NM AS USERNAME
+		  FROM TB_USER
+		 WHERE USER_ID            = #{id}
+		   <!-- AND USER_AUTH_CD = 'AU00' -->
+		   AND DEL_YN      = 'N'
+	</select>
+
+	<update id="updateLastLoginDate" parameterType="int">
+		/* file : UserMapper.xml, id : updateLastLoginDate */
+		UPDATE TB_USER
+		   SET LAST_LGN_DT = CURRENT_TIMESTAMP
+		 WHERE USER_SEQ        = #{userSeq}
+	</update>
+
+	<select id="getUserList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : UserMapper.xml, id : getUserList */
+		  SELECT U.*, USER_ID AS ID, USER_NM AS USERNAME
+		       , (SELECT DTL_CD_NM FROM TB_CODE_DTL D WHERE D.GRP_CD = 'AUTH' AND D.DTL_CD = U.USER_AUTH_CD LIMIT 1)  AS AUTH_NM
+		       <!--
+		       , (SELECT CODE_NAME FROM TB_CODE_DTL D WHERE D.GRP_CODE = 'COMPANY' AND D.CODE = U.COMPANY)     AS COMPANY_NM
+		       , (SELECT CODE_NAME FROM TB_CODE_DTL D WHERE D.GRP_CODE = 'POSITION' AND D.CODE = U.POSITION)   AS POSITION_NM
+		       -->
+		    FROM TB_USER U
+		   WHERE U.DEL_YN      = 'N'
+		  <if test="field != null and field != '' and keyword != null and keyword != ''">
+		     AND U.${field} LIKE CONCAT('%', #{keyword}, '%')
+		  </if>
+		ORDER BY USER_SEQ DESC
+	/*||ORDER BY USER_SEQ DESC||*/
+	</select>
+
+	<select id="getUserInfo" parameterType="int" resultType="com.stoneitgt.dt.data.platform.domain.User">
+		/* file : UserMapper.xml, id : getUserInfo */
+		  SELECT U.*, USER_ID AS ID, USER_NM AS USERNAME
+		    FROM TB_USER U
+		   WHERE U.DEL_YN      = 'N'
+		     AND U.USER_SEQ = #{userSeq}
+	</select>
+
+	<select id="existedUserId" parameterType="string" resultType="int">
+		/* file : UserMapper.xml, id : existedUserId */
+		  SELECT COUNT(*) AS CNT
+		    FROM TB_USER U
+		   WHERE U.DEL_YN      = 'N'
+		     AND U.USER_ID       = LOWER(#{id})
+	</select>
+
+	<insert id="saveUser" parameterType="com.stoneitgt.dt.data.platform.domain.User">
+		/* file : UserMapper.xml, id : saveUser */
+		INSERT
+		  INTO TB_USER (
+		              USER_SEQ
+		            , USER_ID
+		            , USER_PW
+		            , USER_NM
+		            , USER_EML
+		            , USER_CONT_1
+		            , USER_CONT_2
+		            , USER_CONT_3
+		            , USER_HP_1
+		            , USER_HP_2
+		            , USER_HP_3
+		            , USER_AUTH_CD
+		            , REG_USER_SEQ
+		            , REG_IP
+		            )
+		       VALUES (
+		             #{userSeq}
+		            , LOWER(#{id})
+		            , #{password}
+		            , #{username}
+		            , #{userEml}
+		            , #{userCont1}
+		            , #{userCont2}
+		            , #{userCont3}
+		            , #{userHp1}
+		            , #{userHp2}
+		            , #{userHp3}
+		            , #{userAuthCd}
+		            , #{loginUserSeq}
+		            , #{loginUserIp}
+		            )
+	</insert>
+
+	<insert id="updateUser" parameterType="com.stoneitgt.dt.data.platform.domain.User">
+		/* file : UserMapper.xml, id : saveUser */
+		UPDATE TB_USER
+		   SET USER_NM = #{username}
+		     , USER_EML                         = #{userEml}
+		     , USER_CONT_1                           = #{userCont1}
+		     , USER_CONT_2                           = #{userCont2}
+		     , USER_CONT_3                           = #{userCont3}
+		     , USER_HP_1                            = #{userHp1}
+		     , USER_HP_2                            = #{userHp2}
+		     , USER_HP_3                            = #{userHp3}
+		     , USER_AUTH_CD                  = #{userAuthCd}
+		     , DEL_YN                      = 'N'
+		     , mdfcn_user_seq                  = #{loginUserSeq}
+		     , mdfcn_dt                      = CURRENT_TIMESTAMP
+		     , mdfcn_ip						= #{loginUserIp}
+		  <if test="newPassword != null and newPassword != ''">
+		     , USER_PW						= #{newPassword}
+		  </if>
+		WHERE USER_SEQ = #{userSeq}
+	</insert>
+
+	<update id="deleteUser" parameterType="map" >
+		/* file : UserMapper.xml, id : deleteUser */
+		  UPDATE TB_USER
+		     SET DEL_YN      = 'Y'
+		       , DEL_USER_SEQ     = #{login_user_seq}
+		       , DEL_DATE         = CURRENT_TIMESTAMP()
+		   WHERE USER_SEQ         = #{user_seq}
+	</update>
+
+</mapper>

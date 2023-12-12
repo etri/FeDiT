@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/layout}">
+
+<head>
+    <title th:text="${breadcrumb.menu_nm}">게시판관리</title>
+    <!--임시css-->
+    <!-- <link rel="stylesheet" href="../../../assets/css/temp.css"> -->
+    
+    <style>
+    
+    
+    </style>
+</head>
+<div layout:fragment="content">
+    <div id="loading" style="margin-left: 0px;display: none;">
+        <img th:src="@{/assets/images/ajax-loading.gif}">
+    </div>
+    <nav th:replace="fragments/page_breadcrumb"></nav>
+    
+    <form name="editForm" id="editForm" th:action="@{|/simulation/form|}" th:object="${simulationModel}" method="post">
+		<input type="hidden" name="formType" id="formType" th:value="${formType}">
+        <input type="hidden" name="menuCd" id="menuCd" th:value="${menuCd}">
+        <input type="hidden" name="pageParams" th:value="${pageParams}">
+        <th:block th:if="${formType == 'U'}">
+        <input type="hidden" name="augmentSeq" id="augmentSeq" th:value="${simulationModel.augmentSeq}">
+       	</th:block>
+        
+        <div class="row">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs">
+                    <li class="nav-item"><a class="nav-link active" id="tab_input_simulation" th:href="@{|#|}">추론생성정보</a></li>
+                    <li class="nav-item"><a class="nav-link" id="tab_result_simulation" th:href="@{|#|}">추론결과정보</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- 시뮬레이션 등록 정보 -->
+        <div id="tab_input_simulation_range">
+
+		<div class="row">
+			<div class="col-lg-12 grid-margin stretch-card">
+				<div class="card">
+					<div class="card-body">
+					<h4 class="card-title">추론 정보 등록</h4>
+						<div class="form-group row">
+							<div class="col-lg-3">
+								<label class="col-form-label">제목</label>
+							</div>
+							<div class="col-lg-8">
+								<input class="form-control" th:field="*{title}" type="text">
+							</div>
+						</div>
+						<div class="form-group mb-0 row">
+							<div class="col-lg-3">
+								<label class="col-form-label">내용</label>
+							</div>
+							<div class="col-lg-8">
+								<textarea id="maxlength-textarea" class="form-control model_derpn" th:field="*{derpn}" rows="5"></textarea>
+							</div>
+						</div>
+		
+		
+		
+						<div class="form-group mb-0 row">
+							<div class="col-lg-3">
+								<label class="col-form-label">모델선택</label>
+							</div>
+							<div class="col-lg-6">
+								<span class="input-group-append">
+									<input type="text" class="form-control" name="modelNm" id="set_model_name" readonly="readonly" th:value="${simulationModel.modelNm}"/>
+									<input type="hidden" class="form-control" name="modelSeq" id="set_model_seq" th:value="${simulationModel.modelSeq}"/>
+									<input type="hidden" class="form-control" name="modelAlgrmSeq" id="set_model_algrm_seq" th:value="${simulationModel.modelAlgrmSeq}"/>
+									<input type="hidden" class="form-control" id="get_resmpl_intvl_tp" th:value="${simulationModel.resmplIntvlTp}"/>
+									<input type="hidden" class="form-control" id="get_resmpl_intvl_value" th:value="${simulationModel.resmplIntvlValue}"/>
+									
+
+									<th:block th:if="${formType == 'I'}">
+										<button type="button" class="btn btn-primary btn-icon btn-pop-select-model ml-1" style="height: 35px">
+											<i data-feather="plus"></i>
+										</button>
+										<button type="button" class="btn btn-danger btn-icon btn-pop-cancel-model ml-1" style="height: 35px">
+											<i data-feather="x"></i>
+										</button>
+									</th:block>
+																		
+								</span>
+		
+							</div>				
+						</div>    
+		
+						<div class="form-group mb-0 row" style="padding-bottom: 1px;">
+							<div class="col-lg-3">
+								<label class="col-form-label">추론기간지정</label>
+							</div>
+							<div class="col-lg-3">
+								<select id="data_crt_intvl_tp" name="dataCrtIntvlTp" class="select form-control">
+									<option value="">자료 생성 간격 범위</option>
+									<!--
+									<option value="S">초</option>
+									<option value="T">분</option>
+									<option value="H">시간</option>
+									<option value="D">일</option>
+									-->
+									<option th:each="item : ${data_crt_intvl_tp_list}" th:value="${item.dtl_cd}" th:text="${item.dtl_cd_nm}" th:selected="${item.dtl_cd == simulationModel.dataCrtIntvlTp}"></option>
+								</select>
+								<!--  &nbsp;EX) 3분 : 초단위 일경우 180row 예측 / 분단위 일경우 3row 예측-->
+							</div>							
+							<div class="col-lg-2">
+								<th:block th:if="${formType == 'I'}">
+									<input type="number" class="form-control number_only" name="dataCrtIntvlValue" id="data_crt_intvl_value" th:value="1" min="1" max="50"/>
+								</th:block>
+								<th:block th:if="${formType == 'U'}">
+									<input type="number" class="form-control number_only" name="dataCrtIntvlValue" id="data_crt_intvl_value" th:value="${simulationModel.dataCrtIntvlValue}" min="1" max="50" readonly="readonly"/>
+								</th:block>
+								
+							</div>
+							<div class="col-lg-2">
+								<th:block th:if="${formType == 'I'}">
+									<button type="button" class="btn btn-success mr-2 btn-icon-text reset-cal-term">
+						    			갱신
+									</button>
+								</th:block>
+							</div>
+						</div>
+				
+						<div class="form-group mb-0 row"  style="padding-top: 1px;">
+							<div class="col-lg-3">
+								<label class="col-form-label"></label>
+							</div>
+							<div class="col-lg-3">
+								시작 : <input type="text" class="form-control" name="dataCrtBgngDt" id="target_start_date" th:value="${simulationModel.dataCrtBgngDt}" readonly="readonly"/>
+							</div>
+							<div class="col-lg-3">
+								마지막 : <input type="text" class="form-control" name="dataCrtLastDt" id="target_last_date" th:value="${simulationModel.dataCrtLastDt}" readonly="readonly"/>
+							</div>
+						</div>				
+				
+				
+					
+						<div class="form-group mb-0 row">
+							<div class="col-lg-3">
+								<label class="col-form-label">공개여부</label><br/>
+							</div>
+							<div class="col-lg-8">
+								<div class="form-check form-check-inline">
+								    <label class="form-check-label">
+										<input type="radio" class="form-check-input" name="rlsYn" value="N" data-label="비공개" th:checked="*{rlsYn == 'N' or rlsYn == null}">비공개
+										<i class="input-frame"></i>
+								    </label>
+								</div>
+								<div class="form-check form-check-inline">
+									<label class="form-check-label">
+										<input type="radio" class="form-check-input" name="rlsYn" value="Y" data-label="공개" th:checked="*{rlsYn == 'Y'}">공개
+										<i class="input-frame"></i>
+									</label>
+								</div>
+								<div class="form-check form-check-inline">
+									<span style="color: red;">(공개로 설정한 경우 최종 생성이 완료된 데이터만 공개됩니다.)</span>
+								</div>
+							</div>
+						</div>
+		
+						<div class="row">
+							<div class="col-sm-12">
+								<th:block th:if="${formType == 'I'}">
+								<button type="button" class="btn btn-success mr-2 btn-icon-text next-simualtion">
+					    			등록
+								</button>
+								</th:block>
+								<th:block th:if="${formType == 'U'}">
+								<button type="button" class="btn btn-success mr-2 btn-icon-text next-simualtion">
+					    			수정
+								</button>
+								<button type="button" class="btn btn-danger mr-2 btn-delete" th:data-augment-seq="${simulationModel.augmentSeq}">
+						                    삭제
+								</button>								
+								</th:block>
+				                <a class="btn btn-outline-primary btn-icon-text" th:href=@{|/simulation/list?${pageParams}|}> <i class="btn-icon-prepend" data-feather="list"></i>목록
+				                </a>
+				                <br/><span style="color: red;">수정은 제목/내용/공개여부만 가능합니다.</span>
+							</div>
+						</div>
+		
+		
+					</div>
+				</div>
+			</div>		
+		</div>
+		
+		<div class="row">
+			<div class="col-lg-12 grid-margin stretch-card">
+				<div class="card">
+					<div class="card-body">		
+					<h4 class="card-title">사용 모델 정보</h4>
+					
+						<div id="tab_result_model_range" style="display: none;">
+							<div class="row">
+								<div class="col-lg-12 grid-margin  stretch-card" id="tab_getalgo_range_bottom">
+									<div class="card">
+										<div class="card-body">
+											<div class="form-group row">
+												<div class="col-md-12">
+													<div id="algorithm_meta_item_list"></div>
+												</div>
+												
+											</div>
+						      			</div>
+					            	</div>
+								</div>					
+							</div>			
+							<div class="row">
+								<div class="col-md-12 grid-margin  stretch-card" id="tab_getalgo_range_top">
+									<div class="card">
+										<div class="card-body">
+											<h4 class="card-title">사용 모델 컬럼 정보 및 상관분석</h4>
+											<div class="form-group row">
+												<div class="col-md-4">
+													<h6 class="card-title">종속변수</h6>
+													<div id="algorithmOutputRange"></div>
+												</div>
+												
+					
+												<div class="col-md-4">
+													<h6 class="card-title">독립변수</h6>
+													<div id="algorithmFeatureRange"></div>
+												</div>
+												
+												<div class="col-md-4">
+													<h6 class="card-title">Correlation analysis(상관분석)</h6>
+													<div id="view4" style="width:100%; height:400px; border-style:solid;border-width:1px;border-color:#eee;"></div>
+												</div>
+												
+											</div>
+						      			</div>
+					            	</div>
+								</div>			
+							</div>							
+											
+						</div>
+						
+						
+					</div>
+				</div>
+			</div>
+		</div>
+		
+        </div>
+
+
+		<div class="row" id="tab_result_simulation_range" style="display: none;">
+			<div class="col-md-12 grid-margin  stretch-card">
+				<div class="card">
+					<div class="card-body">
+
+						<!-- 시뮬레이션 결과 정보 -->
+						<div class="row">
+							<div id="augmentDataRange" style="width: 100%;"></div>
+						</div>
+						
+						<div class="row">
+							<div id="view2" style="width:100%; height:500px; border-style:solid;border-width:1px;border-color:#eee;"></div>
+						</div>
+			
+						<div class="row">
+								<a class="btn btn-success btn-icon-text" id="download_file"> <i class="btn-icon-prepend" data-feather="list"></i>다운로드</a>
+				                <a class="btn btn-outline-primary btn-icon-text" th:href=@{|/simulation/list?${pageParams}|}> <i class="btn-icon-prepend" data-feather="list"></i>목록</a>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+    </form>
+    
+    <form name="deleteForm" th:action="@{|/simulation/delete|}" method="post">
+        <input type="hidden" name="augmentSeq">
+        <input type="hidden" name="menuCd" th:value=${menuCd}>
+    </form>
+    
+    
+    
+    <th:block th:include="fragments/modal/modal_select_model"></th:block>
+    
+    
+    
+    
+    
+    
+</div>
+<th:block layout:fragment="custom_css">
+    <link rel="stylesheet" th:href="@{/assets/css/codemirror.css}" />    
+    <link rel="stylesheet" th:href="@{/assets/vendors/datatables.net-bs4/dataTables.bootstrap4.css}">
+        <link rel="stylesheet" th:href="@{/assets/css/custom.css}">
+</th:block>
+<th:block layout:fragment="custom_js">
+    <script th:src="@{/echarts532/dist/echarts.min.js}"></script>    
+    <script th:src="@{/assets/js/echart/echarts.js}"></script>
+	<script th:src="@{/assets/js/echart/echarts_view.js}"></script>
+	<script th:src="@{/assets/js/libs/codemirror.js}"></script>
+
+	<script th:src="@{/assets/js/pages/simulation/api.js}"></script>
+	<script th:src="@{/assets/js/pages/simulation/form.js}"></script>
+    <script th:src="@{/assets/js/pages/simulation/tab.js}"></script>
+	
+	<script th:src="@{/assets/vendors/datatables.net/jquery.dataTables.js}"></script>
+	<script th:src="@{/assets/vendors/datatables.net-bs4/dataTables.bootstrap4.js}"></script> 
+</th:block>
+
+</html>
