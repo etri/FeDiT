@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.stoneitgt.dt.data.platform.admin.mapper.UnitMapper">
+
+	<select id="getUnitMasterList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : UnitMapper.xml, id : getUnitMasterList */
+		  SELECT A.*
+		       , DATE_FORMAT(A.REG_DT, '%Y-%m-%d') AS REG_DT
+		    FROM TB_CODE_DTL A
+		   WHERE A.DEL_YN = 'N'
+		     AND A.GRP_CD='UNIT_TYPE'		
+		ORDER BY ORDBY
+	/*||ORDER BY GRP_CD||*/
+	</select>
+
+	<select id="getUnitMaster" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : UnitMapper.xml, id : getUnitMaster */
+		  SELECT A.*
+		    FROM TB_CODE_MST A
+		   WHERE A.DEL_YN = 'N'
+		     AND A.GRP_CD = #{grpCd}
+	</select>
+
+	<select id="getUnitDetailList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : UnitMapper.xml, id : getUnitDetailList */
+		  SELECT A.*
+		       , DATE_FORMAT(A.REG_DT, '%Y-%m-%d') AS REG_DT
+		    FROM TB_UNIT A
+		   WHERE A.DEL_YN = 'N'
+		     AND A.UNIT_TP = #{dtlCd}
+		ORDER BY ORDBY
+	/*||ORDER BY ORDBY||*/
+	</select>
+
+	<select id="getUnitDetail" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : UnitMapper.xml, id : getUnitDetail */
+		  SELECT A.*
+		    FROM TB_UNIT A
+		   WHERE A.DEL_YN = 'N'
+		     AND A.UNIT_SEQ = #{unitSeq}		     
+	</select>
+
+	<insert id="saveUnitDetail" parameterType="com.stoneitgt.dt.data.platform.domain.Unit">
+		/* file : UnitMapper.xml, id : saveUnitDetail */
+		INSERT
+		  INTO TB_UNIT (
+		              UNIT_SEQ
+		            , UNIT_TP
+		            , UNIT_NM_1
+		            , UNIT_CD_1
+		            , UNIT_NM_2
+		            , UNIT_CD_2
+		            , UNIT_FORMULA
+		            , FORMULA_DERPN
+		            , ORDBY
+		            , USE_YN
+		            , REG_USER_SEQ
+		            , REG_IP)
+		       VALUES (
+		              #{unitSeq}
+		            , #{unitTp}
+		            , #{unitNm1}
+		            , #{unitCd1}
+		            , #{unitNm2}
+		            , #{unitCd2}
+		            , #{unitFormula}
+		            , #{formulaDerpn}
+		            , #{ordby}
+		            , #{useYn}
+		            , #{loginUserSeq}
+		            , #{loginUserIp})
+		     ON DUPLICATE KEY UPDATE UNIT_SEQ = #{unitSeq}
+		     , UNIT_TP						= #{unitTp}
+		     , UNIT_NM_1					= #{unitNm1}
+		     , UNIT_CD_1					= #{unitCd1}
+		     , UNIT_NM_2					= #{unitNm2}
+		     , UNIT_CD_2					= #{unitCd2}
+		     , UNIT_FORMULA					= #{unitFormula}
+		     , FORMULA_DERPN				= #{formulaDerpn}
+		     , ORDBY                        = #{ordby}
+		     , USE_YN                       = #{useYn}
+		     , DEL_YN                       = 'N'
+		     , MDFCN_USER_SEQ               = #{loginUserSeq}
+		     , MDFCN_DT                     = CURRENT_TIMESTAMP
+		     , MDFCN_IP                     = #{loginUserIp}
+	</insert>
+
+	<update id="deleteUnitDetail" parameterType="com.stoneitgt.dt.data.platform.domain.Unit" >
+		/* file : UnitMapper.xml, id : deleteUnitDetail */
+		  UPDATE TB_UNIT
+		     SET DEL_YN     = 'Y'
+		       , DEL_USER_SEQ = #{loginUserSeq}
+		       , DEL_DT     = CURRENT_TIMESTAMP
+		       , DEL_IP       = #{loginUserIp}
+		   WHERE UNIT_SEQ     = #{unitSeq}		     
+	</update>
+	
+</mapper>

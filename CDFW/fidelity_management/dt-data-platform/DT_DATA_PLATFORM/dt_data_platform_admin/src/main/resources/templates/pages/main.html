@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/layout}">
+<head>
+    <title>메인</title>
+</head>
+<div layout:fragment="content">
+    <div class="row">
+        <div class="col-sm-12">
+        	Dashboard1
+        </div>
+    </div>
+</div>
+<th:block layout:fragment="custom_js">
+    <script th:inline="javascript">
+    //var data1 = /*[[${data1}]]*/ [];
+    </script>
+    <script th:src="@{/assets/js/pages/main.js}"></script>
+</th:block>
+
+</html>

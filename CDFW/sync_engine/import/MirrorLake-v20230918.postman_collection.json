@@ -1,0 +1,2504 @@
+{
+	"info": {
+		"_postman_id": "b3156b48-0302-4c00-8abf-8402a1a3c85c",
+		"name": "MirrorLake-v1",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "11129151"
+	},
+	"item": [
+		{
+			"name": "DigitalConnector",
+			"item": [
+				{
+					"name": "v1",
+					"item": [
+						{
+							"name": "sensors",
+							"item": [
+								{
+									"name": "모든 sensor 조회",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1209/mirrorlake/v1/digital-twins/{{dt_id}}/sensors",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1209",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"sensors"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "http sensor 등록",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"sensor_name\": \"test\",\r\n  \"owner\": \"seolzero\",\r\n  \"description\": \"test\",\r\n  \"tags\":[\"keti\", \"test\"] ,\r\n  \"creator_id\": \"seolzero\",\r\n  \"data_source_type\": \"PUSH\",\r\n  \"data_source_url\": \"http://localhost:1234\",\r\n  \"data_source_format\":\"json\",\r\n  \"internal_delivery_mode\": \"kafka\",\r\n  \"data_model_id\": \"dataMid\",\r\n  \"install_location\":{\r\n      \"lat\":127,\r\n      \"lng\":27\r\n  },\r\n  \"data_interval\": 3600000\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1209/mirrorlake/v1/digital-twins/{{dt_id}}/sensors",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1209",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"sensors"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "http oneM2M sensor 등록",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"sensor_name\": \"test\",\r\n  \"owner\": \"seolzero\",\r\n  \"description\": \"lidar sensor\",\r\n  \"tags\":[\"lab\", \"lidar\"] ,\r\n  \"creator_id\": \"seolzero\",\r\n  \"data_source_type\": \"oneM2M-sub\",\r\n  \"data_source_url\": \"http://10.252.73.102:7579/Mobius\",\r\n  \"data_source_format\":\"json\",\r\n  \"internal_delivery_mode\": \"kafka\",\r\n  \"data_model_id\": \"dataMid\",\r\n  \"data_interval\": 3600000,\r\n  \"install_location\":{},\r\n  \"install_time\":\"2023-08-01T02:11:11.223\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1209/mirrorlake/v1/digital-twins/{{dt_id}}/sensors",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1209",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"sensors"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "mqtt source sensor 등록",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"sensor_name\": \"test\",\r\n  \"owner\": \"seolzero\",\r\n  \"description\": \"lidar sensor\",\r\n  \"tags\":[\"lab\", \"lidar\"] ,\r\n  \"creator_id\": \"seolzero\",\r\n  \"data_source_type\": \"POLL\",\r\n  \"data_source_url\": \"mqtt://192.168.140.123:1883/test\",\r\n  \"data_source_format\":\"json\",\r\n  \"internal_delivery_mode\": \"kafka\",\r\n  \"data_model_id\": \"dataMid\",\r\n  \"data_interval\": 3600000,\r\n  \"install_location\":{},\r\n  \"install_time\":\"2023-08-01T02:11:11.223\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1209/mirrorlake/v1/digital-twins/{{dt_id}}/sensors",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1209",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"sensors"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "OpenAPI sensor 등록 xml",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"sensor_name\": \"sourcetest\",\r\n  \"owner\": \"ssul\",\r\n  \"description\": \"sensor\",\r\n  \"tags\": [\"cot\", \"lab\", \"test\", \"sensor\"],\r\n  \"location\": {\"lat\": 37.404161,\r\n    \"lng\":  127.160608},\r\n  \"creator_id\": \"ssul\",\r\n  \"data_source_type\": \"OpenAPI\",\r\n  \"data_source_uri\": \"http://apis.data.go.kr/6410000/busrouteservice/getBusRouteList?serviceKey=P1HmFl38%2BKGZkSGC1Nx1%2Ba5zR6XBhU0dMnXybf56Rnef6eoj6JY6hknu6MnbZ5loqmTLcwS0Fx5v4aale3uFIA%3D%3D&keyword=60\",\r\n  \"data_source_format\":\"xml\",\r\n  \"customized_data_source\":\"org.kafka.connect.http.HttpSourceOptionalConnector\",\r\n  \"internal_delivery_mode\": \"kafka\",\r\n  \"data_model_id\": \"dataMid\",\r\n  \"time_interval\": 5000\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1209/mirrorlake/v1/digital-twins/{{dt_id}}/sensors",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1209",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"sensors"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "OpenAPI sensor 등록 json",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"sensor_name\": \"ParticulatesSensor\",\r\n  \"owner\": \"seolzero\",\r\n  \"description\": \"openAPI Particulates sensor source\",\r\n  \"tags\": [\"Particulates\", \"sensor\"],\r\n  \"location\": {\"lat\": 37.419975,\r\n    \"lng\":  127.126299},\r\n  \"creator_id\": \"seolzero\",\r\n  \"data_source_type\": \"OpenAPI\",\r\n  \"data_source_uri\": \"http://apis.data.go.kr/6410000/GOA/GOA002?ServiceKey=P1HmFl38%2BKGZkSGC1Nx1%2Ba5zR6XBhU0dMnXybf56Rnef6eoj6JY6hknu6MnbZ5loqmTLcwS0Fx5v4aale3uFIA%3D%3D&busno=06229&type=json&numOfRows=10&pageNo=1\",\r\n  \"data_source_format\":\"json\",\r\n  \"customized_data_source\":\"org.kafka.connect.http.HttpSourceOptionalConnector\",\r\n  \"internal_delivery_mode\": \"kafka\",\r\n  \"data_model_id\": \"dataMid\",\r\n  \"time_interval\": 5000\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1209/mirrorlake/v1/digital-twins/{{dt_id}}/sensors",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1209",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"sensors"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "OpenAPI  미세먼지 데이터 sensor 등록",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"sensor_name\": \"particulate\",\r\n  \"owner\": \"seolzero\",\r\n  \"description\": \"particulate matter, PM\",\r\n  \"tags\": [\"openAPI\", \"particulate\"],\r\n  \"location\": {\"lat\": 37.404161,\r\n    \"lng\":  127.160608},\r\n  \"creator_id\": \"seolzero\",\r\n  \"data_source_type\": \"OpenAPI\",\r\n  \"data_source_uri\": \"http://apis.data.go.kr/6410000/GOA/GOA002?ServiceKey=sCNVojQKfg3G25DL9UnTctNR1Cjij9WGvbhGDxmGq5sbiTtuvI54OplPaaTaQpmBZtRqznjxYzEu7wKX6k0gJg%3D%3D&busno=06229&type=json&numOfRows=10&pageNo=1\",\r\n  \"data_source_format\":\"json\",\r\n  \"customized_data_source\":\"org.kafka.connect.http.HttpSourceOptionalConnector\",\r\n  \"additional_config\":{},\r\n  \"internal_delivery_mode\": \"kafka\",\r\n  \"data_model_id\": \"dataMid\",\r\n  \"time_interval\": 120000\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1209/mirrorlake/v1/digital-twins/{{dt_id}}/sensors",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1209",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"sensors"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "OpenAPI 기상청 데이터 sensor 등록",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"sensor_name\": \"weatherOpenAPI\",\r\n  \"owner\": \"ssul\",\r\n  \"description\": \"weather openAPI\",\r\n  \"tags\": [\"openAPI\", \"weather\"],\r\n  \"location\": {\"lat\": 37.404161,\r\n    \"lng\":  127.160608},\r\n  \"creator_id\": \"ssul\",\r\n  \"data_source_type\": \"OpenAPI\",\r\n  \"data_source_uri\": \"http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst?serviceKey=P1HmFl38%2BKGZkSGC1Nx1%2Ba5zR6XBhU0dMnXybf56Rnef6eoj6JY6hknu6MnbZ5loqmTLcwS0Fx5v4aale3uFIA%3D%3D&numOfRows=10&pageNo=1&nx=63&ny=123&dataType=JSON\",\r\n  \"data_source_format\":\"json\",\r\n  \"customized_data_source\":\"org.kafka.connect.http.HttpSourceGetWeatherConnector\",\r\n  \"additional_config\":{},\r\n  \"internal_delivery_mode\": \"kafka\",\r\n  \"data_model_id\": \"dataMid\",\r\n  \"time_interval\": 120000\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1209/mirrorlake/v1/digital-twins/{{dt_id}}/sensors",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1209",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"sensors"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "sensor 검색",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1209/mirrorlake/v1/digital-twins/{{dt_id}}/sensors?name=test",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1209",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"sensors"
+											],
+											"query": [
+												{
+													"key": "name",
+													"value": "test"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "sensor 조회",
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"method": "GET",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"name\": \"temperature\",\r\n  \"mq\": [\r\n    \"kafka\",\r\n    \"mqtt\"\r\n  ]\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1209/mirrorlake/v1/digital-twins/{{dt_id}}/sensors/S4a1e8d74b0e0d8a39a22d64d4fa4afc2",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1209",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"sensors",
+												"S4a1e8d74b0e0d8a39a22d64d4fa4afc2"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "sensor 데이터 모델 조회",
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"method": "GET",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"name\": \"temperature\",\r\n  \"mq\": [\r\n    \"kafka\",\r\n    \"mqtt\"\r\n  ]\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1209/mirrorlake/v1/digital-twins/{{dt_id}}/sensors",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1209",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"sensors"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "sensor 수정",
+									"request": {
+										"method": "PATCH",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"sensor_name\": \"particulateOpenAPI\",\r\n    \"install_location\": {\"lat\":27, \"lng\":127}\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1209/mirrorlake/v1/digital-twins/{{dt_id}}/sensors/S4a1e8d74b0e0d8a39a22d64d4fa4afc2",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1209",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"sensors",
+												"S4a1e8d74b0e0d8a39a22d64d4fa4afc2"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "sensor 삭제",
+									"request": {
+										"method": "DELETE",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1209/mirrorlake/v1/digital-twins/{{dt_id}}/sensors/S4201e5d0808208eba203c8169ea53f72",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1209",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"sensors",
+												"S4201e5d0808208eba203c8169ea53f72"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "sensor 데이터 생성",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"data\": {\r\n    \"id\": \"cotlab.test.100\",\r\n    \"temperature\": 25,\r\n    \"humidity\": 9\r\n  },\r\n  \"location\":{    \"lat\": 23.70999908,\r\n    \"lng\": 17.65999985}\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1209/mirrorlake/v1/digital-twins/{{dt_id}}/sensors/S484f07b7297d58caa20dfd884e399dd4/data",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1209",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"sensors",
+												"S484f07b7297d58caa20dfd884e399dd4",
+												"data"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "sensor 데이터 생성 without location",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"data\": {\"time\":\"2023-04-22 15:30:56.789\",\"object\":\"test_ssul\",\"data_loss_info\":0,\"average_transmission_period\":60.15}\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1209/mirrorlake/v1/digital-twins/{{dt_id}}/sensors/S47d5b49ce58781e19694c6486d44a31b/data",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1209",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"sensors",
+												"S47d5b49ce58781e19694c6486d44a31b",
+												"data"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "mobius sub sensor 데이터 생성",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"data\": {\"time\":\"2023-04-22 15:30:56.789\",\"object\":\"test_ssul\",\"data_loss_info\":0,\"average_transmission_period\":60.15}\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1209/mirrorlake/v1/digital-twins/{{dt_id}}/sensors/S4931608dba5b0443867472f6e27e2fb9/data/m2m",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1209",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"sensors",
+												"S4931608dba5b0443867472f6e27e2fb9",
+												"data",
+												"m2m"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "sensor 데이터 조회",
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"method": "GET",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1209/mirrorlake/v1/digital-twins/{{dt_id}}/sensors/S4931608dba5b0443867472f6e27e2fb9/data?from=2023-06-02T05:32:01.232&to=2023-06-02T06:48:00.232",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1209",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"sensors",
+												"S4931608dba5b0443867472f6e27e2fb9",
+												"data"
+											],
+											"query": [
+												{
+													"key": "from",
+													"value": "2023-06-02T05:32:01.232"
+												},
+												{
+													"key": "to",
+													"value": "2023-06-02T06:48:00.232"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "sensor 데이터 조회 without time",
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"method": "GET",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"name\": \"temperature\",\r\n  \"mq\": [\r\n    \"kafka\",\r\n    \"mqtt\"\r\n  ]\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1209/mirrorlake/v1/digital-twins/{{dt_id}}/sensors/S465819be7696dddbaa072f70d0d24f38/data?count=5",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1209",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"sensors",
+												"S465819be7696dddbaa072f70d0d24f38",
+												"data"
+											],
+											"query": [
+												{
+													"key": "count",
+													"value": "5"
+												}
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "DigitalBrain",
+			"item": [
+				{
+					"name": "v1",
+					"item": [
+						{
+							"name": "access-policy",
+							"item": [
+								{
+									"name": "등록",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"creator_id\": \"ssul\",\r\n  \"read_passcode\":  \"axeq\",\r\n  \"write_passcode\": \"axeq\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/access-policy",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"access-policy"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "조회",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/access-policy/access_policy_id",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"access-policy",
+												"access_policy_id"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "전체 조회",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/access-policy/access_policy_id",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"access-policy",
+												"access_policy_id"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "수정",
+									"request": {
+										"method": "PATCH",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"name\": \"service1\",\r\n  \"DO_arg\": {\"TEST_DO1\":{\"test_sensor1\":{},\"test_sensor2\":{}}},\r\n  \"SIM_arg\":{\"TEST_sim1\":\"\"},\r\n  \"url\": \"http://203.254.173.175:8080\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/access-policy/access_policy_id",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"access-policy",
+												"access_policy_id"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "삭제",
+									"request": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"type": "text",
+												"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExZWI1MTc5OWUzOGIxZGMiLCJpYXQiOjE2MTAwODY4MzUsImV4cCI6MTYxNTI3MDgzNX0.Irf9Twaq3DFhX0IOvfRTUCMSt6sRj2C0-jEY8rpjDRM"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/access-policy/access_policy_id",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"access-policy",
+												"access_policy_id"
+											]
+										},
+										"description": "DB에 저장된 device token 삭제"
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "digital-twins",
+							"item": [
+								{
+									"name": "생성",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"digital_twin_name\": \"traffic_twin\",\r\n  \"point_of_access\":\"http://10.252.73.36\",\r\n  \"description\": \"digital twin test server\",\r\n  \"owner\":  \"keti\",\r\n  \"location\":{\"lat\":125, \"lng\":33},\r\n  \"tags\": [\"keti\", \"traffic\"],\r\n  \"creator_id\": \"seolzero\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "생성 (simple version)",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"digital_twin_name\": \"simple_twin\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "검색",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins?name=DT_ssul",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins"
+											],
+											"query": [
+												{
+													"key": "name",
+													"value": "DT_ssul"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "조회",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "모든 DT 조회",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins"
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "모든 DT 조회",
+											"originalRequest": {
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins",
+													"protocol": "http",
+													"host": [
+														"{{ip}}"
+													],
+													"port": "1203",
+													"path": [
+														"mirrorlake",
+														"v1",
+														"digital-twins"
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "json",
+											"header": [
+												{
+													"key": "X-Powered-By",
+													"value": "Express"
+												},
+												{
+													"key": "Access-Control-Allow-Origin",
+													"value": "*"
+												},
+												{
+													"key": "Access-Control-Allow-Headers",
+													"value": "X-Requested-With, Authorization, Content-Type, X-Platform, X-Version"
+												},
+												{
+													"key": "Access-Control-Allow-Methods",
+													"value": "POST, GET, PUT, PATCH, DELETE, OPTIONS"
+												},
+												{
+													"key": "Access-Control-Expose-Headers",
+													"value": "Content-Disposition"
+												},
+												{
+													"key": "Content-Type",
+													"value": "application/json; charset=utf-8"
+												},
+												{
+													"key": "Content-Length",
+													"value": "2529"
+												},
+												{
+													"key": "ETag",
+													"value": "W/\"9e1-Gmz4uZQdwA3rhE9dxGc8gnYI3WA\""
+												},
+												{
+													"key": "Date",
+													"value": "Tue, 18 Jul 2023 07:29:36 GMT"
+												},
+												{
+													"key": "Connection",
+													"value": "keep-alive"
+												},
+												{
+													"key": "Keep-Alive",
+													"value": "timeout=5"
+												}
+											],
+											"cookie": [],
+											"body": "[\n    {\n        \"digital_twin_id\": \"D4b7e5be8e03555858bb4a35844acab90\",\n        \"digital_twin_name\": \"laboratory_twin\",\n        \"point_of_access\": \"http://10.252.73.36\",\n        \"description\": \"digital twin test server\",\n        \"owner\": {\n            \"owner\": \"keti\",\n            \"manager\": \"seolzero\"\n        },\n        \"tag\": \"keti,laboratory\",\n        \"creation_time\": \"2023-06-02T05:01:17.617Z\",\n        \"creator_id\": \"seolzero\",\n        \"modification_time\": \"2023-07-12T01:26:19.319Z\",\n        \"location\": {\n            \"lat\": 125,\n            \"lng\": 33\n        },\n        \"number_of_digital_objects\": 28,\n        \"number_of_subscriptions\": 3,\n        \"number_of_services\": 0,\n        \"number_of_simulations\": 2,\n        \"number_of_sensors\": 27,\n        \"number_of_controllers\": 0,\n        \"number_of_visual_models\": 0,\n        \"number_of_data_models\": 0,\n        \"number_of_behavior_models\": 0\n    },\n    {\n        \"digital_twin_id\": \"D4cd8f606fd52319db6b66f815121ecc9\",\n        \"digital_twin_name\": \"traffic_twin\",\n        \"point_of_access\": \"http://10.252.73.36\",\n        \"description\": \"digital twin test server\",\n        \"owner\": {\n            \"owner\": \"keti\",\n            \"manager\": \"seolzero\"\n        },\n        \"tag\": \"keti,traffic\",\n        \"creation_time\": \"2023-06-02T05:01:35.046Z\",\n        \"creator_id\": \"seolzero\",\n        \"modification_time\": \"2023-06-02T05:01:35.046Z\",\n        \"location\": {\n            \"lat\": 125,\n            \"lng\": 33\n        },\n        \"number_of_digital_objects\": 0,\n        \"number_of_subscriptions\": 0,\n        \"number_of_services\": 0,\n        \"number_of_simulations\": 0,\n        \"number_of_sensors\": 0,\n        \"number_of_controllers\": 0,\n        \"number_of_visual_models\": 0,\n        \"number_of_data_models\": 0,\n        \"number_of_behavior_models\": 0\n    },\n    {\n        \"digital_twin_id\": \"D41bd78a043e89ef18a1973dd4514b410\",\n        \"digital_twin_name\": \"environment_twin\",\n        \"point_of_access\": \"http://10.252.73.36\",\n        \"description\": \"digital twin test server\",\n        \"owner\": {\n            \"owner\": \"keti\",\n            \"manager\": \"seolzero\"\n        },\n        \"tag\": \"keti,environment\",\n        \"creation_time\": \"2023-06-02T05:00:04.639Z\",\n        \"creator_id\": \"seolzero\",\n        \"modification_time\": \"2023-07-12T01:45:04.138Z\",\n        \"location\": {\n            \"lat\": 125,\n            \"lng\": 33\n        },\n        \"number_of_digital_objects\": 2,\n        \"number_of_subscriptions\": 1,\n        \"number_of_services\": 0,\n        \"number_of_simulations\": 1,\n        \"number_of_sensors\": 3,\n        \"number_of_controllers\": 0,\n        \"number_of_visual_models\": 0,\n        \"number_of_data_models\": 0,\n        \"number_of_behavior_models\": 0\n    },\n    {\n        \"digital_twin_id\": \"D41ae15a8c21efcc2b80bb5f6cabf017d\",\n        \"digital_twin_name\": \"KETIparkingLot\",\n        \"point_of_access\": \"http://203.253.128.179:7599\",\n        \"description\": \"KETIparkingLot digital twin\",\n        \"owner\": {\n            \"owner\": \"keti\",\n            \"manager\": \"seolzero\"\n        },\n        \"tag\": \"keti,parkingLot\",\n        \"creation_time\": \"2023-06-12T01:38:52.908Z\",\n        \"creator_id\": \"seolzero\",\n        \"modification_time\": \"2023-06-12T06:02:13.495Z\",\n        \"location\": {\n            \"lat\": 125,\n            \"lng\": 33\n        },\n        \"number_of_digital_objects\": 4,\n        \"number_of_subscriptions\": 0,\n        \"number_of_services\": 0,\n        \"number_of_simulations\": 0,\n        \"number_of_sensors\": 4,\n        \"number_of_controllers\": 0,\n        \"number_of_visual_models\": 0,\n        \"number_of_data_models\": 0,\n        \"number_of_behavior_models\": 0\n    }\n]"
+										}
+									]
+								},
+								{
+									"name": "수정",
+									"request": {
+										"method": "PATCH",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"digital_twin_name\": \"DT_ssul\",\r\n  \"description\": \"125 server digital twin\",\r\n  \"owner\": {\r\n    \"owner\": \"error-free\",\r\n    \"manager\": \"ssul\"\r\n  },\r\n  \"tag\": \"errorFree, sensor, control\",\r\n  \"creator_id\": \"ssul\",\r\n  \"location\": {\r\n    \"lat\": \"125\",\r\n    \"lng\": \"27\"\r\n  }\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/D40ffd6bf668c48b2a455f88c1df45577",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"D40ffd6bf668c48b2a455f88c1df45577"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "삭제",
+									"request": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"type": "text",
+												"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExZWI1MTc5OWUzOGIxZGMiLCJpYXQiOjE2MTAwODY4MzUsImV4cCI6MTYxNTI3MDgzNX0.Irf9Twaq3DFhX0IOvfRTUCMSt6sRj2C0-jEY8rpjDRM"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/D40ffd6bf668c48b2a455f88c1df45577",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"D40ffd6bf668c48b2a455f88c1df45577"
+											]
+										},
+										"description": "DB에 저장된 device token 삭제"
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "digital-objects",
+							"item": [
+								{
+									"name": "등록",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"digital_object_name\": \"test\",\r\n  \"description\": \"KETI test Data\",\r\n  \"tags\": [\"test\", \"KETI\"],\r\n  \"access_url\": \" http://203.253.128.179:7599/wdc_base\",\r\n  \"access_protocol\": \"kafka\",\r\n  \"creator_id\": \"seolzero\",\r\n  \"time_sync_cond\": {},\r\n  \"spatial_sync_cond\": {\r\n    \"base_location\": \"\",\r\n    \"space_precision\": \"\"\r\n  },\r\n  \"member_sensor_ids\": [\"S46d72befc959a2d49e750436534f3cb4\"],\r\n  \"member_controller_ids\": [\"\"],\r\n  \"member_data_model_id\": \"id\",\r\n  \"member_visual_model_id\": \"id\",\r\n  \"member_behavior_model_id\": \"id\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/digital-objects",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"digital-objects"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "등록 (web version)",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"digital_object_name\": \"111\",\r\n  \"description\": \"\",\r\n  \"install_location\": {\r\n    \"lat\": 111,\r\n    \"lng\": 111\r\n  },\r\n  \"member_sensor_ids\": [],\r\n  \"member_visual_model_id\": \"40ed45bfd9610746803291d379e6f1c7\",\r\n  \"preliminary_field\": {\r\n    \"additionalURL\": \"\",\r\n    \"position\": {\r\n      \"x\": 365.0758056640625,\r\n      \"y\": 0.201099693775177,\r\n      \"z\": 424.5793151855469\r\n    },\r\n    \"scale\": {\r\n      \"x\": 1,\r\n      \"y\": 1,\r\n      \"z\": 1\r\n    },\r\n    \"rotate\": {\r\n      \"x\": 0,\r\n      \"y\": 0,\r\n      \"z\": 0\r\n    }\r\n  }\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/digital-objects",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"digital-objects"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "등록 (simple version)",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"digital_object_name\": \"test\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/digital-objects",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"digital-objects"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "모든 DO 조회",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/digital-objects",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"digital-objects"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "검색",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/digital-objects?name=DO_1",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"digital-objects"
+											],
+											"query": [
+												{
+													"key": "name",
+													"value": "DO_1"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "조회",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/digital-objects/D4c39d633b57c450c96103e1e48b39067",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"digital-objects",
+												"D4c39d633b57c450c96103e1e48b39067"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "DO 데이터 모델 조회",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/digital-objects",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"digital-objects"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "DO 수정",
+									"request": {
+										"method": "PATCH",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"digital_object_name\": \"test\",\r\n  \"description\": \"test\",\r\n  \"tag\": [\"test\", \"tags\"],\r\n  \"access_uri\": \"uri\",\r\n  \"access_protocol\": \"kafka\",\r\n  \"creator_id\": \"ssul\",\r\n  \"time_sync_cond\": {},\r\n  \"spatial_sync_cond\": {\r\n    \"base_location\": \"\",\r\n    \"space_precision\": \"x\"\r\n  },\r\n  \"sensor_id\": [\"S491510dc2774d57ba3d8b2963c5500fa\", \"S4d2ed7febeadc6f4992b1c5a273a3045\"],\r\n  \"controller_id\": [\"\"],\r\n  \"data_model_id\": \"id\",\r\n  \"visual_model_id\": \"id\",\r\n  \"behavior_model_id\": \"id\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/digital-objects/D42ca6d321c6a9935b473db8400ea9223",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"digital-objects",
+												"D42ca6d321c6a9935b473db8400ea9223"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "DO 삭제",
+									"request": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"type": "text",
+												"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExZWI1MTc5OWUzOGIxZGMiLCJpYXQiOjE2MTAwODY4MzUsImV4cCI6MTYxNTI3MDgzNX0.Irf9Twaq3DFhX0IOvfRTUCMSt6sRj2C0-jEY8rpjDRM"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/digital-objects/D49fbf610146b1ab38305bc054a4456cc",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"digital-objects",
+												"D49fbf610146b1ab38305bc054a4456cc"
+											]
+										},
+										"description": "DB에 저장된 device token 삭제"
+									},
+									"response": []
+								},
+								{
+									"name": "DO 데이터 조회",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/digital-objects/D4fa6ed818a413098bbf54452c46c3d13/data?from=2023-05-30T08:35:01.232&to=2023-05-31T08:30:00.232",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"digital-objects",
+												"D4fa6ed818a413098bbf54452c46c3d13",
+												"data"
+											],
+											"query": [
+												{
+													"key": "from",
+													"value": "2023-05-30T08:35:01.232"
+												},
+												{
+													"key": "to",
+													"value": "2023-05-31T08:30:00.232"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "DO 데이터 조회  without time (latest limit 50)",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/digital-objects/D45716d09ffca4714912e0823c287159f/data?count=1",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"digital-objects",
+												"D45716d09ffca4714912e0823c287159f",
+												"data"
+											],
+											"query": [
+												{
+													"key": "count",
+													"value": "1"
+												}
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "DO 데이터 조회  without time (latest limit 50)",
+											"originalRequest": {
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/digital-objects/D4beb9adbc77d05968c466f74d5b09f20/data?count=1",
+													"protocol": "http",
+													"host": [
+														"{{ip}}"
+													],
+													"port": "1203",
+													"path": [
+														"mirrorlake",
+														"v1",
+														"digital-twins",
+														"{{dt_id}}",
+														"digital-objects",
+														"D4beb9adbc77d05968c466f74d5b09f20",
+														"data"
+													],
+													"query": [
+														{
+															"key": "count",
+															"value": "1"
+														}
+													]
+												}
+											},
+											"status": "Created",
+											"code": 201,
+											"_postman_previewlanguage": "json",
+											"header": [
+												{
+													"key": "X-Powered-By",
+													"value": "Express"
+												},
+												{
+													"key": "Access-Control-Allow-Origin",
+													"value": "*"
+												},
+												{
+													"key": "Access-Control-Allow-Headers",
+													"value": "X-Requested-With, Authorization, Content-Type, X-Platform, X-Version"
+												},
+												{
+													"key": "Access-Control-Allow-Methods",
+													"value": "POST, GET, PUT, PATCH, DELETE, OPTIONS"
+												},
+												{
+													"key": "Access-Control-Expose-Headers",
+													"value": "Content-Disposition"
+												},
+												{
+													"key": "Content-Type",
+													"value": "application/json; charset=utf-8"
+												},
+												{
+													"key": "Content-Length",
+													"value": "456"
+												},
+												{
+													"key": "ETag",
+													"value": "W/\"1c8-yoz7QywLRr/oqVMThtdhih4iyss\""
+												},
+												{
+													"key": "Date",
+													"value": "Wed, 19 Jul 2023 04:10:15 GMT"
+												},
+												{
+													"key": "Connection",
+													"value": "keep-alive"
+												},
+												{
+													"key": "Keep-Alive",
+													"value": "timeout=5"
+												}
+											],
+											"cookie": [],
+											"body": "[\n    {\n        \"digital_object_data_id\": \"2069e3a2-2b2a-462a-a0f7-48ee855b7d62\",\n        \"mirrorlake_id\": null,\n        \"rowtime\": \"2023-07-19T04:10:10.914Z\",\n        \"location\": {},\n        \"data\": {\n            \"S43b3adc798c2b34fb34f8607020dd89a\": {\n                \"type\": \"sensor\",\n                \"humidity\": 47.63,\n                \"device_id\": \"cotlab_sensor_001\",\n                \"device_name\": \"TpHm_001\",\n                \"temperature\": 25.59\n            },\n            \"S46f4ee3c5c41d279af3296902e7ad492\": {\n                \"value\": 664\n            }\n        },\n        \"digital_twin_id\": \"D4b7e5be8e03555858bb4a35844acab90\",\n        \"digital_object_id\": \"D4beb9adbc77d05968c466f74d5b09f20\"\n    }\n]"
+										}
+									]
+								}
+							]
+						},
+						{
+							"name": "simulations",
+							"item": [
+								{
+									"name": "simulation 등록",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"simulation_name\": \"sim_test\",\r\n  \"description\": \"particulate data to virtual simulator\",\r\n  \"creator_id\": \"seolzero\",\r\n  \"tags\":[\"particulate\", \"virtual\"],\r\n  \"simulation_subject\": [\"D4301101ed0842dc99439816a454d6fb9\"],\r\n  \"simulation_access_url\": \"http://localhost:1205/receiver\",\r\n  \"time_step\": 1,\r\n  \"simulation_type\": \"default\",\r\n  \"resource_type\": \"digital_object\",\r\n  \"include_input\":\"false\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/simulations",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"simulations"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "simulation 등록 with attribute",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"simulation_name\": \"sim_test\",\r\n  \"description\": \"post water data to simulator\",\r\n  \"creator_id\": \"ssul\",\r\n  \"simulation_subject\": [\"D4ea4eb3e4fb50122be6a249a750e921b\"],\r\n  \"simulation_uri\": \"http://203.254.171.126:1005/receiver\",\r\n  \"time_step\": 1,\r\n  \"simulation_type\": \"default\",\r\n  \"simulation_attribute\":[\"pm10\"],\r\n  \"resource_type\": \"digital_object\",\r\n  \"include_input\":\"false\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/simulations",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"simulations"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "simulation 검색",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/simulations?name=TEST_sim1",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"simulations"
+											],
+											"query": [
+												{
+													"key": "name",
+													"value": "TEST_sim1"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "simulation 조회",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/simulations/S49e9137b0c5889ffb8d487435e1379c3",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"simulations",
+												"S49e9137b0c5889ffb8d487435e1379c3"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "모든 simulation 조회",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/simulations",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"simulations"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "simulation 수정",
+									"request": {
+										"method": "PATCH",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "    {\r\n        \"simulation_name\": \"sim_lstm\",\r\n        \"description\": \"post environments data to lstm simulator\",\r\n        \"creator_id\": \"seolzero\",\r\n        \"simulation_subject\": [\r\n            \"D4beb9adbc77d05968c466f74d5b09f20\"\r\n        ],\r\n        \"simulation_uri\": \"http://203.254.171.126:9090/predictions/lstm01\",\r\n        \"time_step\": 512,\r\n        \"simulation_type\": \"default\",\r\n        \"simulation_attribute\": [],\r\n        \"resource_type\": \"digital_object\",\r\n        \"include_input\": \"false\"\r\n    }",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/simulations/S4123c4b8161e3b1595c14791693f1e87",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"simulations",
+												"S4123c4b8161e3b1595c14791693f1e87"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "simulation 삭제",
+									"request": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"type": "text",
+												"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExZWI1MTc5OWUzOGIxZGMiLCJpYXQiOjE2MTAwODY4MzUsImV4cCI6MTYxNTI3MDgzNX0.Irf9Twaq3DFhX0IOvfRTUCMSt6sRj2C0-jEY8rpjDRM"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/simulations/S4387c45ef47740b3b83db8ece358b295",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"simulations",
+												"S4387c45ef47740b3b83db8ece358b295"
+											]
+										},
+										"description": "DB에 저장된 device token 삭제"
+									},
+									"response": []
+								},
+								{
+									"name": "simulation data 피딩시작 (실시간)",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/simulations/S42f62976c9f995c8856e6f9a9a1fcf7d/execute",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"simulations",
+												"S42f62976c9f995c8856e6f9a9a1fcf7d",
+												"execute"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "simulation data 피딩 중지",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/simulations/S41268ede3ad78624a759c81d2ccb6bc3/termination",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"simulations",
+												"S41268ede3ad78624a759c81d2ccb6bc3",
+												"termination"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "simulation data 생성(단발성 시뮬레이션 실행)",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/simulations/S41268ede3ad78624a759c81d2ccb6bc3/data",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"simulations",
+												"S41268ede3ad78624a759c81d2ccb6bc3",
+												"data"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "simulation data 조회",
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"method": "GET",
+										"header": [
+											{
+												"key": "Authorization",
+												"type": "text",
+												"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExZWI1MTc5OWUzOGIxZGMiLCJpYXQiOjE2MTAwODY4MzUsImV4cCI6MTYxNTI3MDgzNX0.Irf9Twaq3DFhX0IOvfRTUCMSt6sRj2C0-jEY8rpjDRM"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/simulations/S4d449f8ed93fccca81be59a6ec472063/data?count=1",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"simulations",
+												"S4d449f8ed93fccca81be59a6ec472063",
+												"data"
+											],
+											"query": [
+												{
+													"key": "count",
+													"value": "1"
+												}
+											]
+										},
+										"description": "DB에 저장된 device token 삭제"
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "subscriptions",
+							"item": [
+								{
+									"name": "subscription 등록 http",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"subscription_name\": \"env_result\",\r\n  \"description\": \"environment(pm10) temporary prediction result\",\r\n  \"creator_id\": \"seolzero\",\r\n  \"subscription_subject\": [\"S42f62976c9f995c8856e6f9a9a1fcf7d_result\"],\r\n  \"subscription_protocol\": \"http\",\r\n  \"notification_uri\": [\"http://10.252.73.36:1706/service\"],\r\n  \"expiration_time\": \"2024-10-27T17:13:40Z\",\r\n  \"expiration_count\": 0,\r\n  \"fail_count\": 3\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/subscriptions",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"subscriptions"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "subscription 등록 mqtt",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"subscription_name\": \"lidar_DigitalObject_data\",\r\n  \"description\": \"lidar data\",\r\n  \"creator_id\": \"seolzero\",\r\n  \"subscription_subject\": [\"D4dca857813d3c13bb8e045b8cf382c45\"],\r\n  \"subscription_protocol\": \"mqtt\",\r\n  \"notification_uri\": [\"mqtt://203.254.173.10:1883/lidar\"],\r\n  \"expiration_time\": \"2024-10-27T17:13:40Z\",\r\n  \"expiration_count\": 0,\r\n  \"fail_count\": 3\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/subscriptions",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"subscriptions"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "subscription 조회",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/subscriptions/S49c3b9cc0e6ed5bc8a7629f490378706",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"subscriptions",
+												"S49c3b9cc0e6ed5bc8a7629f490378706"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "모든 subscription 조회",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/subscriptions",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"subscriptions"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "subscription 검색",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/subscriptions?name=tsub1",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"subscriptions"
+											],
+											"query": [
+												{
+													"key": "name",
+													"value": "tsub1"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "subscription 수정",
+									"request": {
+										"method": "PATCH",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"subscription_name\": \"water_purifier_DigitalObject_data\",\r\n  \"description\": \"water_purifier data prediction result subscription\",\r\n  \"creator_id\": \"seolzero\",\r\n  \"subscription_subject\": [\"D4269e44e3a585e34849820bbd8289492\"],\r\n  \"subscription_protocol\": \"mqtt\",\r\n  \"notification_uri\": [\"mqtt://10.252.73.102:1883/water_digital_object\"],\r\n  \"expiration_time\": \"2024-10-27T17:13:40Z\",\r\n  \"expiration_count\": 0,\r\n  \"fail_count\": 3\r\n}\r\n",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/subscriptions/S4cf328121ffb333ea5ac8d05b3681536",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"subscriptions",
+												"S4cf328121ffb333ea5ac8d05b3681536"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "subscription 삭제",
+									"request": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"type": "text",
+												"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExZWI1MTc5OWUzOGIxZGMiLCJpYXQiOjE2MTAwODY4MzUsImV4cCI6MTYxNTI3MDgzNX0.Irf9Twaq3DFhX0IOvfRTUCMSt6sRj2C0-jEY8rpjDRM"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/subscriptions/S46039493a1128ed09ab6807ed34391bf",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"subscriptions",
+												"S46039493a1128ed09ab6807ed34391bf"
+											]
+										},
+										"description": "DB에 저장된 device token 삭제"
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "services",
+							"item": [
+								{
+									"name": "service 등록",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"service_name\": \"service1\",\r\n  \"description\": \"service\",\r\n  \"creator_id\": \"seolzero\",\r\n  \"access_uri\": \"http://10.252.73.36:1706/service\",\r\n  \"authorization\": \"ax\",\r\n  \"input_info\": \"input\",\r\n  \"output_info\": \"output\",\r\n  \"data_format\": \"json\",\r\n  \"interface_standard\": \"standard\",\r\n  \"update_period\": 3,\r\n  \"error_info\": \"error_info\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/digital-twins/v1/{{dt_id}}/services",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"digital-twins",
+												"v1",
+												"{{dt_id}}",
+												"services"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "service 검색",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/services?name=service1",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"services"
+											],
+											"query": [
+												{
+													"key": "name",
+													"value": "service1"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "service 조회",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/services/S4f2747324ed179eebf44e8c69822e70e",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"services",
+												"S4f2747324ed179eebf44e8c69822e70e"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "service 조회 Copy",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/services",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"services"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "service 수정",
+									"request": {
+										"method": "PATCH",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"service_name\": \"service1\",\r\n  \"tags\": [\"test\"],\r\n  \"preliminary_field\":{\"TEST_sim1\":\"\"},\r\n  \"authorization\": \"test\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/services/S4f2747324ed179eebf44e8c69822e70e",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"services",
+												"S4f2747324ed179eebf44e8c69822e70e"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "service 삭제",
+									"request": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"type": "text",
+												"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExZWI1MTc5OWUzOGIxZGMiLCJpYXQiOjE2MTAwODY4MzUsImV4cCI6MTYxNTI3MDgzNX0.Irf9Twaq3DFhX0IOvfRTUCMSt6sRj2C0-jEY8rpjDRM"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/services/S49ede6678d74382fb3b195957763aa53",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"services",
+												"S49ede6678d74382fb3b195957763aa53"
+											]
+										},
+										"description": "DB에 저장된 device token 삭제"
+									},
+									"response": []
+								},
+								{
+									"name": "service 실행",
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Authorization",
+												"type": "text",
+												"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExZWI1MTc5OWUzOGIxZGMiLCJpYXQiOjE2MTAwODY4MzUsImV4cCI6MTYxNTI3MDgzNX0.Irf9Twaq3DFhX0IOvfRTUCMSt6sRj2C0-jEY8rpjDRM"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/digital-twins/{{dt_id}}/services/S49ede6678d74382fb3b195957763aa53/execute",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"digital-twins",
+												"{{dt_id}}",
+												"services",
+												"S49ede6678d74382fb3b195957763aa53",
+												"execute"
+											]
+										},
+										"description": "DB에 저장된 device token 삭제"
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "controllers",
+							"item": [
+								{
+									"name": "control 생성",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"controller_name\": \"cnt01\",\r\n  \"description\": \"blahblah\",\r\n  \"tags\": \"control\",\r\n  \"owner\": \"keti\",\r\n  \"location\": {\r\n    \"type\": \"MultiPolygon\"},\r\n  \"creator_id\": \"D01\",\r\n  \"control_destination_type\": \"http\",\r\n  \"control_destination_uri\": \"http://192.168.1.123/control\",\r\n  \"acknowledgement_type\": \"request_ack\",\r\n  \"delivery_timeout\": 3000,\r\n  \"timeout_notification\": \"http://192.168.1.123/\",\r\n  \"data_model_id\": \"D001\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/D46d8c5717a08988190a816a71edff08e/controllers",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"D46d8c5717a08988190a816a71edff08e",
+												"controllers"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "control 검색",
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"method": "GET",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"sensorID\": \"1800303331000\",\r\n  \"command\": 23\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/{{dt_id}}/controllers?name=cnt01",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"{{dt_id}}",
+												"controllers"
+											],
+											"query": [
+												{
+													"key": "name",
+													"value": "cnt01"
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "control 조회",
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"method": "GET",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"sensorID\": \"1778581933000\",\r\n  \"response\": \"control success\",\r\n  \"qos\": \"dddd\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/{{dt_id}}/controllers/4bbf1c34cd604e81bc558f30ab85524e",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"{{dt_id}}",
+												"controllers",
+												"4bbf1c34cd604e81bc558f30ab85524e"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "control 수정",
+									"request": {
+										"method": "PATCH",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n  \"name\": \"control06\",\r\n  \"controlCreator\": \"ssul\",\r\n  \"controlDestinationType\": \"testtest\",\r\n  \"controlDestination\": \"http://localhost:1234/receiver\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/{{dt_id}}/controllers/4bbf1c34cd604e81bc558f30ab85524e",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"{{dt_id}}",
+												"controllers",
+												"4bbf1c34cd604e81bc558f30ab85524e"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "control 삭제",
+									"request": {
+										"method": "DELETE",
+										"header": [
+											{
+												"key": "Authorization",
+												"type": "text",
+												"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExZWI1MTc5OWUzOGIxZGMiLCJpYXQiOjE2MTAwODY4MzUsImV4cCI6MTYxNTI3MDgzNX0.Irf9Twaq3DFhX0IOvfRTUCMSt6sRj2C0-jEY8rpjDRM"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/{{dt_id}}/controllers/4bbf1c34cd604e81bc558f30ab85524e",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"{{dt_id}}",
+												"controllers",
+												"4bbf1c34cd604e81bc558f30ab85524e"
+											]
+										},
+										"description": "DB에 저장된 device token 삭제"
+									},
+									"response": []
+								},
+								{
+									"name": "control data 생성 (즉시)",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/{{dt_id}}/controllers/4bbf1c34cd604e81bc558f30ab85524e/data",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"{{dt_id}}",
+												"controllers",
+												"4bbf1c34cd604e81bc558f30ab85524e",
+												"data"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "control data 조회",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://{{ip}}:1203/mirrorlake/v1/{{dt_id}}/controllers/4bbf1c34cd604e81bc558f30ab85524e/data",
+											"protocol": "http",
+											"host": [
+												"{{ip}}"
+											],
+											"port": "1203",
+											"path": [
+												"mirrorlake",
+												"v1",
+												"{{dt_id}}",
+												"controllers",
+												"4bbf1c34cd604e81bc558f30ab85524e",
+												"data"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

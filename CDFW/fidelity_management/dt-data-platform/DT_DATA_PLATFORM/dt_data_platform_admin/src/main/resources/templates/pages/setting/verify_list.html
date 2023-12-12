@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/layout}">
+
+<head>
+    <title th:text="${breadcrumb.menu_nm}">데이터검증 관리</title>
+</head>
+<div layout:fragment="content">
+    <nav th:replace="fragments/page_breadcrumb"></nav>
+    <div class="row">
+        <div class="col-5 grid-margin grid-margin-xl-0 stretch-card">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-baseline mb-2">
+                        <h6 class="card-title mb-0">데이터 검증 목록</h6>
+                        <!-- 
+                        <div>
+                            <button type="button" class="btn btn-secondary btn-icon-text btn-add-master">
+                                <i class="btn-icon-prepend" data-feather="edit"></i>등록
+                            </button>
+                        </div>
+                         -->
+                    </div>
+                    <div class="d-flex flex-column">
+                        <div class="table-responsive table-no-paging">
+                            <table class="table table-hover unit-master">
+                                <colgroup>
+                                    <col style="width: 50%;">
+                                    <col style="width: 50%;">
+                                    <!-- 
+                                    <col style="width: 35%;">
+                                     -->
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th>검증 코드</th>
+                                        <th>검증 코드명</th>
+                                        <!-- 
+                                        <th></th>
+                                         -->
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="item : ${masterList}" th:class="${item.dtl_cd} == ${dtlCd} ? 'table-info'" th:data-group-vrfc="${item.dtl_cd}">
+                                        <td th:text="${item.dtl_cd}">verify</td>
+                                        <td>
+                                            <a th:href="@{/setting/vrfc(dtlCd=${item.dtl_cd},menuCd=${params.menuCd})}" th:text="${item.dtl_cd_nm}">grp_cd_nm</a>
+                                        </td>
+                                        <!-- 
+                                        <td class="text-right">
+                                            <button type="button" class="btn btn-outline-primary btn-sm mr-2 btn-modify-master" th:data-group-vrfc="${item.dtl_cd}">수정</button>
+                                            <button type="button" class="btn btn-outline-danger btn-sm btn-delete-master" th:data-group-vrfc="${item.dtl_cd}">삭제</button>
+                                        </td>
+                                         -->
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-7 grid-margin grid-margin-xl-0 stretch-card">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-baseline mb-2">
+                        <h6 class="card-title mb-0 ml-4">검증 항목</h6>
+                        <button type="button" class="btn btn-secondary btn-icon-text btn-add-detail">
+                            <i class="btn-icon-prepend" data-feather="edit"></i>등록
+                        </button>
+                    </div>
+                    <div class="table-responsive table-no-paging">
+                        <table class="table table-hover">
+                            <colgroup>
+                                <col style="width: 5%;">
+                                <col style="width: 15%;">
+                                <col style="width: 10%;">
+                                <col style="width: 10%;">
+                                <col style="width: 10%;">
+                                <col style="width: 5%;">
+                                <col style="width: 10%;">
+                                <col style="width: 13%;">
+                                <col style="width: 22%;">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>검증명</th>
+                                    <th>기준값 1</th>
+                                    <th>기준값 2</th>
+                                    <th>기준값 3</th>
+                                    <th>기준값 4</th>
+                                    <th>사용여부</th>
+                                    <th>등록일</th>                                    
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <th:block th:include="fragments/table_empty:: table_empty(6)" th:if="${#lists.isEmpty(detailList)}"></th:block>
+                                <tr th:each="item, row : ${detailList}" th:unless="${#lists.isEmpty(detailList)}">
+                                    <td th:text="${row.index + 1}"></td>
+                                    <td th:text="${item.vrfc_nm}">vrfc</td>
+                                    <td th:text="${item.rule_value_1}">rule_value_1</td>
+                                    <td th:text="${item.rule_value_2}">rule_value_2</td>
+                                    <td th:text="${item.rule_value_3}">rule_value_3</td>
+                                    <td th:text="${item.rule_value_4}">rule_value_4</td>
+                                    <td th:text="${item.use_yn == 'Y'} ? '사용' : '미사용'">use_yn</td>
+                                    <td th:text="${item.reg_dt}">reg_dt</td>
+                                    <td class="text-right">
+                                    	<button type="button" class="btn btn-outline-primary btn-sm mr-2 btn-modify-detail" th:data-vrfc-seq="${item.vrfc_seq}">수정</button>
+                                        <button type="button" class="btn btn-outline-danger btn-sm btn-delete-detail" th:data-vrfc-seq="${item.vrfc_seq}">삭제</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal -->
+    <div class="modal" id="modal-group" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">그룹 코드</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <form id="groupForm" method="post">
+                                <div class="form-group row">
+                                    <label class="col-sm-3 col-form-label required">그룹 코드</label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="grp_cd" maxlength="20" placeholder="" required="required">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-3 col-form-label required">그룹 코드명</label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="grp_cd_nm" maxlength="50" placeholder="" required="required">
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark btn-icon-text mr-2 btn-register-master">
+                        <i class="btn-icon-prepend" data-feather="edit"></i>저장
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-icon-text" data-dismiss="modal">
+                        <i class="btn-icon-prepend" data-feather="x-square"></i>닫기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- // modal -->
+    <!-- Modal -->
+    <div class="modal" id="modal-detail" tabindex="-1" role="dialog" aria-hidden="true">
+        <input type="hidden" id="vrfc_seq">
+        <input type="hidden" id="vrfc_tp">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">데이터 검증 항목</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <form id="editForm" method="post">
+                                <div class="form-group row">
+                                    <label class="col-sm-3 col-form-label required">검증명</label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="vrfc_nm" maxlength="50" placeholder="" required="required">
+                                    </div>                                    
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-3 col-form-label required">기준값 1</label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="rule_value_1" maxlength="50" placeholder="" required="required">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-3 col-form-label required">기준값 2</label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="rule_value_2" maxlength="50" placeholder="" required="required">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-3 col-form-label required">기준값 3</label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="rule_value_3" maxlength="50" placeholder="" required="required">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-3 col-form-label required">기준값 4</label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="rule_value_4" maxlength="50" placeholder="" required="required">
+                                    </div>
+                                </div>                               
+                                <div class="form-group row">
+                                    <label class="col-sm-3 col-form-label required">정렬순서</label>
+                                    <div class="col-sm-9">
+                                        <input type="number" class="form-control" id="ordby" maxlength="2" placeholder="">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-3 col-form-label required">사용여부</label>
+                                    <div class="col-sm-9">
+                                        <input type="checkbox" id="use_yn" data-toggle="toggle" data-size="small" data-on="사용" data-off="미사용" data-width="80">
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark btn-icon-text mr-2 btn-register-detail">
+                        <i class="btn-icon-prepend" data-feather="edit"></i>저장
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-icon-text" data-dismiss="modal">
+                        <i class="btn-icon-prepend" data-feather="x-square"></i>닫기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- // modal -->
+</div>
+<th:block layout:fragment="custom_css">
+    <style type="text/css">
+    .table-no-paging {
+        height: 650px;
+        overflow-x: hidden;
+    }
+    </style>
+</th:block>
+<th:block layout:fragment="custom_js">
+    <script th:src="@{/assets/js/pages/setting/verify_list.js}"></script>
+</th:block>
+
+</html>

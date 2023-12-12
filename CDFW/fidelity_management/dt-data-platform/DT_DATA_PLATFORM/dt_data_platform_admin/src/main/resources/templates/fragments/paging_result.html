@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<th:block th:fragment="paging_result(title)" th:with="sort=(${sort} ?: '')">
+    <div class="result-info d-flex flex-sm-row align-items-center justify-content-sm-between pb-4 w-100 m_db">
+        <div>
+            <span class="title font-weight-bold h5 mr-2" th:text="${title}">News</span>
+            <span class="result-count text-muted">
+                <span th:text="${#numbers.formatInteger(paging.total,0,'COMMA')}">87</span>
+                <span>Results</span>
+            </span>
+        </div>
+        <div class="pager row no-gutters align-items-center mobile_none" th:if="${paging.show}">
+            <div class="form-group row mr-1" style="width: 280px;" th:if="${params != null and not #strings.isEmpty(sort)}">
+                <select id="gridSortName" class="form-control col-sm-5 mr-4">
+                    <option value="">항목선택</option>
+                    <th:block th:each="item : ${#strings.arraySplit(sort, '@')}" th:with="sub=${#strings.arraySplit(item, '|')}">
+                        <option th:value="${sub[0]}" th:text="${sub[1]}" th:selected="${params.sortName == sub[0]}">항목선택</option>
+                    </th:block>
+                </select>
+                <select id="gridSortType" class="form-control col-sm-5">
+                    <option value="">정렬방식</option>
+                    <option value="ASC" th:selected="${params.sortType == 'ASC'}">오름차순</option>
+                    <option value="DESC" th:selected="${params.sortType == 'DESC'}">내림차순</option>
+                </select>
+            </div>
+            <div class="mr-1">
+                <select id="gridPageSize" class="form-control">
+                    <option value="10" th:selected="${paging.size == 10}">10</option>
+                    <option value="20" th:selected="${paging.size == 20}">20</option>
+                    <option value="50" th:selected="${paging.size == 50}">50</option>
+                    <option value="100" th:selected="${paging.size == 100}">100</option>
+                    <option value="500" th:selected="${paging.size == 500}">500</option>
+                </select>
+            </div>
+            <div class="text-muted mr-4">
+                개씩 보기
+            </div>
+            <div class="text-muted mr-1">
+                Results:
+            </div>
+            <div class="page-info mr-3">
+                <span th:text="${paging.from}">1</span>
+                <span>-</span>
+                <span th:text="${paging.to}">10</span>
+                <span>of</span>
+                <span th:text="${#numbers.formatInteger(paging.total,0,'COMMA')}">100</span>
+            </div>
+            <th:block th:if="${paging.page > 1}">
+                <button type="button" class="btn btn-icon page-link" aria-label="previous page" th:data-page="${paging.prev}">
+                    <i data-feather="chevron-left"></i>
+                </button>
+            </th:block>
+            <th:block th:unless="${paging.page > 1}">
+                <button type="button" class="btn btn-icon" aria-label="previous page" aria-disabled="true">
+                    <i data-feather="chevron-left"></i>
+                </button>
+            </th:block>
+            <th:block th:if="${paging.page < paging.last}">
+                <button type="button" class="btn btn-icon page-link" aria-label="next page" th:data-page="${paging.next}">
+                    <i data-feather="chevron-right"></i>
+                </button>
+            </th:block>
+            <th:block th:unless="${paging.page < paging.last}">
+                <button type="button" class="btn btn-icon" aria-label="next page" aria-disabled="true">
+                    <i data-feather="chevron-right"></i>
+                </button>
+            </th:block>
+        </div>
+    </div>
+</th:block>
+
+</html>
