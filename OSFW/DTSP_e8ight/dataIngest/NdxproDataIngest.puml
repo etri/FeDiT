@@ -1,0 +1,78 @@
+@startuml
+title Data Ingest
+
+participant AdminUI
+participant DataIngest
+database DB
+boundary data_source
+collections Kafka
+participant DataManager
+
+== 신규 Agent 등록 ==
+autonumber "1-."
+AdminUI -> DataIngest: POST /agents
+DataIngest -> DataIngest: agent config 파일 작성 및 저장
+DataIngest -> DB: insert agent info
+DataIngest -> AdminUI: agent 생성 결과 response
+DataIngest -> DataManager: Model isUsed status 변경 요청
+autonumber stop
+
+== Agent 조회 ==
+autonumber "2-."
+AdminUI -> DataIngest: GET /agents/{agentId}
+DataIngest -> DB: select agent Info
+DB -> DataIngest: return agent Info
+DataIngest -> AdminUI: agent 조회 결과 response
+autonumber stop
+
+== Agent 목록 조회 ==
+autonumber "3-."
+AdminUI -> DataIngest: GET /agents
+DataIngest -> DB: select agent list Info
+DB -> DataIngest: return agent list Info
+DataIngest -> AdminUI: agent list 조회 결과 response
+autonumber stop
+
+== Agent 실행 ==
+autonumber "4-."
+AdminUI -> DataIngest: PATCH /agents/{agentId} { "operation" : "start" }
+DataIngest -> DataIngest: agent 실행 (/bin/flume-ng agent -n ...)
+DataIngest -> DB: update agent state (RUN)
+
+loop Agent (loop)
+    DataIngest <- data_source: 외부 소스로부터 데이터 수집
+    DataIngest -> Kafka: 원천 데이터를 datasetId+"-org" 토픽으로 저장
+    DataIngest -> DataIngest : 수집 처리 완료 신호 전송
+end
+DataIngest -> DB: 마지막 데이터 수집 시점 업데이트
+autonumber stop
+
+== Agent 중지 ==
+autonumber "5-."
+AdminUI -> DataIngest: PATCH /agents/{agentId} { "operation" : "stop" }
+DataIngest -> DataIngest: agent 중지 (kill -9)
+DataIngest -> DB: update agent state (STOP)
+autonumber stop
+
+== Agent 수정 ==
+autonumber "6-."
+AdminUI -> DataIngest: PUT /agents/{agentId}
+alt agent is STOP
+    DataIngest -> DataIngest: agent config 파일 제거
+    DataIngest -> DB: update agent state (DROPED)
+else agent is RUN
+    DataIngest -> AdminUI: 예외 response
+end
+autonumber stop
+
+== Agent 제거 ==
+autonumber "7-."
+AdminUI -> DataIngest: DELETE /agents/{agentId}
+alt agent is STOP
+    DataIngest -> DataIngest: agent config 파일 제거
+    DataIngest -> DB: update agent state (DROPED)
+else agent is RUN
+    DataIngest -> AdminUI: 예외 response
+end
+autonumber stop
+@enduml

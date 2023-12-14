@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: DATAINGEST-SERVICE
+
+flume:
+  home: /opt/flume
+  conf-dir: ${flume.home}/conf/
+  log-dir: /opt/logs
+
+logging:
+  file:
+    name: agentManager
+    path: /opt/logs
+  pattern:
+    console: "[%d{yyyy-MM-dd HH:mm:ss}] %-5level %logger{36} - %msg%n"
+    file: "[%d{yyyy-MM-dd HH:mm:ss}] %-5level %logger{36} - %msg%n"
+  logback:
+    rollingpolicy:
+      file-name-pattern: ${LOG_PATH}/${LOG_FILE}.%d{yyyy-MM-dd}
+      max-file-size: 100MB
+      max-history: 10
