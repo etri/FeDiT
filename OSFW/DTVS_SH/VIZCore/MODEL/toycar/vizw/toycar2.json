@@ -1,0 +1,201 @@
+{
+	"note":[
+		{
+			"id": 3,
+			"kind":"RK_SURFACE_NOTE",
+			"title":"거리 = 17.43 mm\ndx,dy,dz:[17.42, 0.04, 0.29]",
+			"text_position": {
+				"x" : -11.052711,
+				"y" : -25.152458,
+				"z" : 14.331308
+			},
+			"target_position": {
+				"x" : -20.673796,
+				"y" : -12.705086,
+				"z" : 18.411432
+			},
+			"style":{ 
+					"font": {
+						"size": 16, 
+						"color": "#FF000000"
+					}, 
+					"border": {
+						"enable": true,
+						"color": "#FF000000"
+					}, 
+					"background": {
+						"enable": true,
+						"color": "#FFFFFF00"
+					}, 
+					"arrow": {
+						"size": 10.000000,
+						"color": "#FFFF0000"
+					}, 
+					"line": {
+						"thickness": 2.000000,
+						"color": "#FFFFFFFF"
+					} 
+			} 
+		},
+		{
+			"id": 4,
+			"kind":"RK_SURFACE_NOTE",
+			"title":"거리 = 17.43 mm\ndx,dy,dz:[17.42, 0.04, 0.29]",
+			"text_position": {
+				"x" : 7.221653,
+				"y" : -36.523727,
+				"z" : 23.831528
+			},
+			"target_position": {
+				"x" : -7.352418,
+				"y" : -26.374063,
+				"z" : 19.524776
+			},
+			"style":{ 
+					"font": {
+						"size": 16, 
+						"color": "#FF000000"
+					}, 
+					"border": {
+						"enable": true,
+						"color": "#FF000000"
+					}, 
+					"background": {
+						"enable": true,
+						"color": "#FFFFFF00"
+					}, 
+					"arrow": {
+						"size": 10.000000,
+						"color": "#FFFF0000"
+					}, 
+					"line": {
+						"thickness": 2.000000,
+						"color": "#FFFFFFFF"
+					} 
+			} 
+		},
+		{
+			"id": 5,
+			"kind":"RK_SURFACE_NOTE",
+			"title":"거리 = 17.43 mm\ndx,dy,dz:[17.42, 0.04, 0.29]",
+			"text_position": {
+				"x" : 25.002909,
+				"y" : -26.913792,
+				"z" : 26.574650
+			},
+			"target_position": {
+				"x" : 15.466802,
+				"y" : -23.390179,
+				"z" : 20.001177
+			},
+			"style":{ 
+					"font": {
+						"size": 16, 
+						"color": "#FF000000"
+					}, 
+					"border": {
+						"enable": true,
+						"color": "#FF000000"
+					}, 
+					"background": {
+						"enable": true,
+						"color": "#FFFFFF00"
+					}, 
+					"arrow": {
+						"size": 10.000000,
+						"color": "#FFFF0000"
+					}, 
+					"line": {
+						"thickness": 2.000000,
+						"color": "#FFFFFFFF"
+					} 
+			} 
+		}
+	],
+	"measure":[
+		{
+			"id": 1,
+			"title":"거리 = 17.43 mm\ndx,dy,dz:[17.42, 0.04, 0.29]",
+			"kind":"RK_MEASURE_POINT_DISTANCE",
+			"text_position": {
+				"x" : -2.140809,
+				"y" : -22.575932,
+				"z" : 31.485781
+			},
+			"target_1_position": {
+				"x" : -11.286209,
+				"y" : -25.910675,
+				"z" : 27.112169
+			},
+			"target_2_position": {
+				"x" : 6.138585,
+				"y" : -25.874063,
+				"z" : 26.822493
+			},
+			"style":{ 
+					"font": {
+						"size": 14, 
+						"color": "#FFFFFFFF"
+					}, 
+					"border": {
+						"enable": true,
+						"color": "#FF000000"
+					}, 
+					"background": {
+						"enable": true,
+						"color": "#FF0000FF"
+					}, 
+					"arrow": {
+						"size": 10.000000,
+						"color": "#FFFF0000"
+					}, 
+					"line": {
+						"thickness": 2.000000,
+						"color": "#FFFFFFFF"
+					} 
+			} 
+		},
+		{
+			"id": 2,
+			"title":"거리 = 49.73 mm\ndx,dy,dz:[49.71, 0.50, 1.46]",
+			"kind":"RK_MEASURE_POINT_DISTANCE",
+			"text_position": {
+				"x" : -5.589494,
+				"y" : -21.926630,
+				"z" : 22.407913
+			},
+			"target_1_position": {
+				"x" : -29.192959,
+				"y" : -25.874063,
+				"z" : 18.038359
+			},
+			"target_2_position": {
+				"x" : 20.514135,
+				"y" : -26.374063,
+				"z" : 19.501175
+			},
+			"style":{ 
+					"font": {
+						"size": 14, 
+						"color": "#FFFFFFFF"
+					}, 
+					"border": {
+						"enable": true,
+						"color": "#FF000000"
+					}, 
+					"background": {
+						"enable": true,
+						"color": "#FF0000FF"
+					}, 
+					"arrow": {
+						"size": 10.000000,
+						"color": "#FFFF0000"
+					}, 
+					"line": {
+						"thickness": 2.000000,
+						"color": "#FFFFFFFF"
+					} 
+			} 
+		}
+	]
+}
