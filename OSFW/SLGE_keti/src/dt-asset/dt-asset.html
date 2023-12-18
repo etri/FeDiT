@@ -1,0 +1,77 @@
+<script type="text/javascript">
+    RED.nodes.registerType("dt-asset", {
+        // node definition
+        category: "digital twin",
+        color: "#C7E9C0",
+        defaults: {
+            name: {value: ""},
+            dtType: {value: "Generic"},
+            aContext: {value: ""},
+            aId: {value: ""},
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "hash.svg",
+        label: function () {
+            return this.name || "dt-asset";
+        },
+        onpaletteadd: function () {
+            RED.events.on("deploy", function (msg) {
+                let allNodes = RED.nodes.createCompleteNodeSet();
+
+                //checks if model has dt nodes
+                if (!allNodes.some((node) => node.type.startsWith("dt-")))
+                    return;
+
+                //if there are dt nodes, then check if graph node exists
+                if (!allNodes.some((node) => node.type.startsWith("dt-graph"))) {
+                    RED.notify(
+                        "No dt-graph node found. Please add a dt-graph node to your model.",
+                        "error"
+                    );
+                }
+            });
+        },
+    });
+</script>
+
+<script data-template-name="dt-asset" type="text/html">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name"/>
+        <br/>
+        <label for="node-input-aContext"
+        ><i class="fa fa-tag"></i> @context</label
+        >
+        <input type="text" id="node-input-aContext" placeholder="Context"/>
+        <br/>
+        <label for="node-input-aId"><i class="fa fa-tag"></i> @id</label>
+        <input type="text" id="node-input-aId" placeholder="@id"/>
+        <br/>
+        <label for="node-input-dtType"><i class="fa fa-tag"></i> DT Type</label>
+        <select id="node-input-dtType">
+            <option value="Generic">Generic</option>
+            <option value="Part">Part</option>
+            <option value="Product">Product</option>
+            <option value="Equipment">Equipment</option>
+            <option value="Material">Material</option>
+            <option value="Process">Process</option>
+            <option value="Facility">Facility</option>
+            <option value="Environment">Environment</option>
+            <option value="Personnel">Personnel</option>
+            <option value="SupportingDocuments">SupportingDocuments</option>
+        </select>
+    </div>
+    <div class="form-tips"><b>Tip:</b> 노드에 대한 설명 (TODO)</div>
+</script>
+
+<script data-help-name="dt-asset" type="text/html">
+    <p>노드의 정보 (TODO)</p>
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>payload
+            <span class="property-type">string | buffer</span>
+        </dt>
+        <dd>노드의 출력</dd>
+    </dl>
+</script>

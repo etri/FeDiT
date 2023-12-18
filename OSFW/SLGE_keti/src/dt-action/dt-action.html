@@ -1,0 +1,46 @@
+<script type="text/javascript">
+    RED.nodes.registerType('dt-action', {
+        // node definition
+        category: 'digital twin',
+        color: '#FFCC66',
+        defaults: {
+            params: {value: {}},
+            name: {value: ""},
+            topic: {value: ""},
+            payload: {value: ""},
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: 'hash.svg',
+        label: function () {
+            return this.name || 'dt-action'
+        }
+    });
+</script>
+
+<script data-template-name="dt-action" type="text/html">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-topic"><i class="fa fa-tag"></i> Topic</label>
+        <input type="text" id="node-input-topic" placeholder="Topic">
+    </div>
+    <div class="form-row">
+        <label for="node-input-payload"><i class="fa fa-tag"></i> Payload</label>
+        <input type="text" id="node-input-payload" placeholder="{'param1': value1}">
+    </div>
+    <div class="form-tips"><b>Tip:</b> 노드에 대한 설명 (TODO)</div>
+</script>
+
+<script data-help-name="dt-action" type="text/html">
+    <p>노드의 정보 (TODO)</p>
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>payload
+            <span class="property-type">string | buffer</span>
+        </dt>
+        <dd>노드의 출력</dd>
+    </dl>
+</script>

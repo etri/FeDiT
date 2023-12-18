@@ -1,0 +1,14 @@
+{% extends "admin/login.html" %}
+
+{% block extrastyle %}{{ block.super }}
+    <style>
+        .login {
+            background-image: url("/static/images/login-splash.jpg");
+            background-size: cover;
+        }
+
+        .login #container {
+            margin-top: 10% !important;
+        }
+    </style>
+{% endblock %}

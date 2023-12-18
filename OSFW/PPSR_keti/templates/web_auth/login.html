@@ -1,0 +1,94 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+{% load i18n static admin_interface_tags %}
+
+{% block branding %}
+    {% get_admin_interface_theme as theme %}
+    <h1 id="site-name">
+        <a href="/#!/main_page/dashboard">
+            {% if theme.logo_visible %}
+                {% if theme.logo %}
+                    <img class="logo" style="display:none;" src="{{ theme.logo.url }}" {% if theme.logo.width %}width="{{ theme.logo.width }}"{% endif %} {% if theme.logo.height %}height="{{ theme.logo.height }}"{% endif %}>
+                {% else %}
+                    <img class="logo default" style="display:none;" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" width="104" height="36">
+                {% endif %}
+            {% endif %}
+            {% if theme.title_visible %}
+                <span>{% if theme.title %}{% trans theme.title %}{% else %}{{ site_header|default:_('Django administration') }}{% endif %}</span>
+            {% endif %}
+        </a>
+    </h1>
+{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+    <link rel="stylesheet" type="text/css" href="{% static "admin/css/login.css" %}"/>
+    {{ form.media }}
+    <style>
+        .login {
+            background-image: url("/static/images/login-splash.jpg");
+            background-size: cover;
+        }
+
+        .login #container {
+            margin-top: 10% !important;
+        }
+    </style>
+{% endblock %}
+{% block bodyclass %}{{ block.super }} login{% endblock %}
+{% block usertools %}{% endblock %}
+{% block nav-global %}{% endblock %}
+{% block content_title %}{% endblock %}
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+    {% if form.errors and not form.non_field_errors %}
+        <p class="errornote">
+            {% if form.errors.items|length == 1 %}{% trans "Please correct the error below." %}{% else %}{% trans "Please correct the errors below." %}{% endif %}
+        </p>
+    {% endif %}
+
+    {% if form.non_field_errors %}
+        {% for error in form.non_field_errors %}
+            <p class="errornote">
+                {{ error }}
+            </p>
+        {% endfor %}
+    {% endif %}
+
+    <div id="content-main">
+        {% if user.is_authenticated %}
+            <p class="errornote">
+                사용자 "{{ user.username }}" 는 권한이 없습니다.<br/>다른 계정으로 로그인하시겠습니까?
+                {% blocktrans trimmed %}
+                {% endblocktrans %}
+            </p>
+        {% endif %}
+
+        <form action="{{ app_path }}" method="post" id="login-form">
+            {% csrf_token %}
+            <div class="form-row">
+                {{ form.username.errors }}
+                {{ form.username.label_tag }} {{ form.username }}
+            </div>
+            <div class="form-row">
+                {{ form.password.errors }}
+                {{ form.password.label_tag }} {{ form.password }}
+                <input type="hidden" name="next" value="{{ next }}"/>
+            </div>
+            <div class="submit-row">
+                <input type="submit" value="로그인"/>
+            </div>
+        </form>
+
+        <div style="text-align: center;">
+            <div style="display: inline-block; text-align: left; font-size: smaller">
+                <p>* 시스템 문의 :</p>
+                <ul>
+                    <li>윤동식 선임 (dsyoon@keti.re.kr)</li>
+                    <li>정세리 연구원 (jseri2076@keti.re.kr)</li>
+                    <li>강정훈 수석 (budge@keti.re.kr)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+{% endblock %}
