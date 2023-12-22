@@ -76,7 +76,7 @@ rest. Advertised.port=8083
 consumer.auto.offset.reset=latest
 
 * 다운로드한 plugin 위치 주소 입력 (git 다운로드 폴더 위치 확인 필요)
-plugin.path=/home/cotlab/Mirrorlake/plugin
+plugin.path=/sync_engine/plugin
 
 Server.properties 수정 주석 제거 및 주소 입력
 Listener=PLAINTEXT://:9092
@@ -94,7 +94,7 @@ wget https://jdbc.postgresql.org/download/postgresql-42.5.1.jar
 $wget https://archive.apache.org/dist/flink/flink-1.17.0/flink-1.17.0-bin-scala_2.12.tgz
 $tar -xvzf flink-1.17.0-bin-scala_2.12.tgz
 * library 연결
- $ cp /Mirrorlake/plugin/flink-lib/* flink-1.17.0/lib)
+ $ cp /plugin/flink-lib/* flink-1.17.0/lib
  - flink-connector-files-1.17.0.jar
  - flink-sql-connector-kafka-1.17.0.jar
  - kafka-clients-3.4.0.jar
@@ -171,7 +171,7 @@ psql
  - Password 설정
  \password postgres
  - db 생성
- Create database mirrorlake;
+ Create database federated_digital_twin;
 * 외부에서 접속 허용
  - /var/lib/pgsql/12/data/postgresl.conf
  listen_addresses = ‘*’
@@ -180,10 +180,10 @@ psql
  host all all 0.0.0.0/0 md5
 
 * Postgres sql dump file import
- - Mirrorlake/import 위치에서 사용자 계정 전환
+ - Switch user accounts within the import/
  su postgres
  - Dump파일 import
- psql mirrorlake < mirrorlake-dump
+ psql federated_digital_twin < federated_digital_twin-dump
 ```
 
 -  influxdb (v1.8)
@@ -196,6 +196,6 @@ $sudo yum localinstall influxdb-1.8.10.x86_64.rpm
 Influxd
 
 * create Database
-Create database mirrorlake
-Create database MIRRORLAKE_LOG
+Create database federated_digital_twin
+Create database federated_digital_twin_LOG
 ```
