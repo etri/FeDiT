@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.stoneitgt.dt.data.platform.admin.mapper.ResourceMapper">
+
+	<insert id="insertResource" parameterType="com.stoneitgt.dt.data.platform.domain.Resource"  useGeneratedKeys="true" keyProperty="resourceSeq">
+		/* resource : ResourceMapper.xml, id : insertResource */
+		INSERT
+		  INTO TB_RESOURCE (
+		              RESOURCE_SEQ
+		            , REF_TP
+		            , FILE_TP
+		            , FILE_NM
+		            , FILE_PATH
+		            , FILE_EXTN
+		            , FILE_SZ
+		            , FILE_CONTS_TP
+		            , REG_USER_SEQ
+		            , REG_IP
+		            )
+		       VALUES (
+		              nextval('tb_resource_file_seq_seq')
+		            , #{refTp}
+		            , #{fileTp}
+		            , #{fileNm}
+		            , #{filePath}
+		            , #{fileExtn}
+		            , #{fileSz}
+		            , #{fileContsTp}
+		            , #{loginUserSeq}
+		            , #{loginUserIp}
+		            )
+	</insert>
+	
+	<update id="updateResource" parameterType="com.stoneitgt.dt.data.platform.domain.Resource">
+		/* resource : ResourceMapper.xml, id : updateResource */
+		UPDATE TB_RESOURCE
+		   SET FILE_PATH         = #{filePath}
+		     , FILE_CONTS_TP = #{fileContsTp}
+		 WHERE RESOURCE_SEQ      = #{resourceSeq}
+	</update>
+
+</mapper>

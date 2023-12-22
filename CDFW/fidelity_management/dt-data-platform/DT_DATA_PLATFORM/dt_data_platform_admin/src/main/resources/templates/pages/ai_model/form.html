@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/layout}">
+
+<head>
+    <title th:text="${breadcrumb.menu_nm}">게시판관리</title>
+    <!--임시css-->
+    <!-- <link rel="stylesheet" href="../../../assets/css/temp.css"> -->
+    
+    <style>
+    
+    
+    </style>
+</head>
+<div layout:fragment="content">
+    <div id="loading" style="margin-left: 0px;display: none;">
+        <img th:src="@{/assets/images/ajax-loading.gif}">
+    </div>
+    <nav th:replace="fragments/page_breadcrumb"></nav>
+    <form name="editForm" id="editForm" th:action="@{|/ai/model/form|}" th:object="${augmentModel}" method="post">
+        <input type="hidden" name="formType" id="formType" th:value="${formType}">
+        <input type="hidden" name="menuCd" id="menuCd" th:value="${menuCd}">
+        <input type="hidden" name="pageParams" th:value="${pageParams}">
+        <input type="hidden" name="infosNode" id="infosNode">
+        <input type="hidden" name="originData" id="originData">
+		<input type="hidden" name="uploadData" id="uploadData">
+        <input type="hidden" name="statisticsNode" id="statisticsNode">
+        <input type="hidden" name="missingValueNode" id="missingValueNode">
+        <input type="hidden" name="rangeValueNode" id="rangeValueNode">
+        <input type="hidden" name="modelSeq" id="modelSeq" th:value="${augmentModel.modelSeq}">
+        <input type="hidden" name="modelAlgrmSeq" id="modelAlgrmSeq" th:value="${augmentModel.modelAlgrmSeq}">
+        <input type="hidden" name="rangeValueNode" id="rangeValueNode">
+        <input type="hidden" name="nanValueNode" id="nanValueNode">
+        <input type="hidden" name="originFilePath" id="originFilePath" th:value="${originFilePath}">
+        <input type="hidden" name="interpolateFilePath" id="interpolateFilePath" th:value="${interpolateFilePath}">
+        <input type="hidden" name="outLierFilePath" id="outLierFilePath" th:value="${outLierFilePath}">
+        <input type="hidden" name="validateFilePath" id="validateFilePath" th:value="${validateFilePath}">
+        <input type="hidden" name="resampleFilePath" id="resampleFilePath" th:value="${resampleFilePath}">
+        <input type="hidden" name="unitFilePath" id="unitFilePath" th:value="${unitFilePath}">
+		<input type="hidden" name="interpolateOption" id="interpolateOption" th:value="${interpolateOption}">
+        <input type="hidden" name="resampleOption" id="resampleOption" th:value="${resampleOption}">
+        
+        <input type="hidden" name="algorithm_meta_set" id="algorithm_meta_set">
+        <input type="hidden" name="fileList" id="fileList">
+        <input type="hidden" name="make_resample_status" id="make_resample_status" th:value="${make_resample_status}">
+        <input type="hidden" name="make_unit_status" id="make_unit_status" th:value="${make_unit_status}">
+        <input type="hidden" name="predictionFileListCount" id="predictionFileListCount" th:value="${predictionFileListCount}">
+        <input type="hidden" name="pathLength" id="pathLength" th:value="${pathLength}">
+        <input type="hidden" name="indexTrgtCol" id="indexTrgtCol" th:value="${augmentModel.indexTrgtCol}">
+        <input type="hidden" name="missingValueYn" id="missingValueYn">
+        <input type="hidden" name="missingValueCompleteYn" id="missingValueCompleteYn">
+        <input type="hidden" name="validCompleteYn" id="validCompleteYn">
+        <input type="hidden" name="prcsLevel" id="prcsLevel" th:value="${augmentModel.prcsLevel}">
+        <input type="hidden" id="resmplIntvlValue" th:value="${augmentModel.resmplIntvlValue}">
+        <input type="hidden" name="missingValue" id="missingValue">
+        
+        <input type="hidden" name="defaultResmplIntvlTp" id="defaultResmplIntvlTp">
+        <input type="hidden" name="defaultResmplIntvlValue" id="defaultResmplIntvlValue" value="1">
+       
+        
+        <!-- 디자인 샘플  -->
+        <!-- 데이터 선택  -->
+        
+        
+        <div class="row">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs">
+                    <li class="nav-item"><a class="nav-link active" id="tab_getdata" th:href="@{|#|}">데이터 선택</a></li>
+                    <li class="nav-item"><a class="nav-link" id="tab_preproc" th:href="@{|#|}">데이터 전처리</a></li>
+                    <li class="nav-item"><a class="nav-link" id="tab_getalgo" th:href="@{|#|}">알고리즘 선택</a></li>
+                    <!-- <li class="nav-item"><a class="nav-link" id="tab_excmodel" th:href="@{|#|}">모델 실행</a></li> -->
+                    <li class="nav-item"><a class="nav-link" id="tab_savemodel" th:href="@{|#|}">모델 저장</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div  id="tab_getdata_range">
+        <div class="row">
+			<div class="col-lg-12 grid-margin stretch-card">
+				<div class="card">
+					<div class="card-body">
+						<h4 class="card-title">데이터 정보 등록</h4>
+						<!-- <p class="card-description">파일 선택 후 다음을 클릭 시 데이터가 저장 되며 이후 전처리를 진행 할 수 있습니다.</p> -->
+						<div class="form-group row">
+							<div class="col-lg-3">
+								<label class="col-form-label">모델명</label>
+							</div>
+							<div class="col-lg-8">
+								<input class="form-control" th:field="*{modelNm}" type="text">
+							</div>
+						</div>
+						<div class="form-group mb-0 row">
+							<div class="col-lg-3">
+								<label class="col-form-label">모델설명</label>
+							</div>
+							<div class="col-lg-8">
+								<textarea id="maxlength-textarea" class="form-control model_derpn" th:field="*{modelDerpn}" rows="12"></textarea>
+							</div>
+						</div>
+						<div class="form-group mb-0 row">
+							<div class="col-lg-3">
+								<label class="col-form-label">사용자데이터</label>
+							</div>
+							
+							
+                                    <div class="col-lg-8">
+                                        <th:block th:if="${not #lists.isEmpty(dataFileList)}" th:each="item : ${dataFileList}">
+                                            <div class="pt-2 attach-file">
+                                                <div class="input-group">
+                                                    <a th:href="@{|/file/download/dt/${item.file_seq}|}" class="file-download mt-1 mr-2" th:text="${item.strg_file_nm}">파일명</a>
+                                                    
+                                                    <span class="input-group-append">
+                                                        <!-- <button type="button" class="btn btn-danger btn-delete-file" th:data-file-seq="${item.file_seq}">삭제</button> -->
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </th:block>
+                                    
+                                        <div class="attach-file-group">
+                                            <!-- <div class="pt-2 attach-file" th:if="${#lists.isEmpty(fileList) || #lists.size(fileList) < 5}"> -->
+                                            <div class="pt-2 attach-file" th:if="${#lists.isEmpty(fileList)}">
+                                                <input type="file" name="attachFilesCsv" id="attachFilesCsv" class="file-upload-default">
+
+
+<th:block th:unless="${augmentModel.modelStatus == 'DOING' or augmentModel.modelStatus == 'DONE'}">                                                
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control file-upload-title" disabled="disabled" placeholder="">
+                                                    <span class="input-group-append">
+                                                        <button type="button" class="file-upload-browse btn btn-primary">파일선택</button>
+                                                        <!-- <button type="button" class="btn btn-danger btn-delete-upload ml-3">삭제</button> -->
+                                                    </span>
+                                                </div>
+</th:block>
+
+                                            </div>
+                                        </div>
+                                        <div class="text-danger mt-2">
+                                            <!-- 첨부파일은 한 파일당 100MB, 총 300MB까지 업로드 가능합니다. -->
+                                        </div>
+                                    </div>
+                                    
+                                    
+						</div>
+						
+						<th:block th:if="${formType == 'I'}">
+							<div class="form-group mb-0 row">
+								<div class="col-lg-3">
+									<label class="col-form-label">공개여부</label><br/>
+								</div>
+								<div class="col-lg-8">
+		                            <div class="form-check form-check-inline">
+		                                <label class="form-check-label">
+		                                    <input type="radio" class="form-check-input" name="rlsYn" value="N" data-label="비공개" th:checked="*{rlsYn == 'N' or rlsYn == null}">비공개
+		                                    <i class="input-frame"></i>
+		                                </label>
+		                            </div>
+		                            <div class="form-check form-check-inline">
+		                                <label class="form-check-label">
+		                                    <input type="radio" class="form-check-input" name="rlsYn" value="Y" data-label="공개" th:checked="*{rlsYn == 'Y'}">공개
+		                                    <i class="input-frame"></i>
+		                                </label>
+		                            </div>
+		                            <div class="form-check form-check-inline">
+		                            	<span style="color: red;">(공개로 설정한 경우 최종 모델 생성이 완료된 데이터만 공개됩니다.)</span>
+		                            </div>
+		                            
+								</div>
+							</div>
+						</th:block>
+						<th:block th:if="${formType == 'U'}">
+							<th:block th:if="${session.ss_admin.userAuthCd == 'AU00' or augmentModel.regUserSeq == session.ss_admin.userSeq}">
+								<div class="form-group mb-0 row">
+									<div class="col-lg-3">
+										<label class="col-form-label">공개여부</label><br/>
+									</div>
+									<div class="col-lg-8">
+			                            <div class="form-check form-check-inline">
+			                                <label class="form-check-label">
+			                                    <input type="radio" class="form-check-input" name="rlsYn" value="N" data-label="비공개" th:checked="*{rlsYn == 'N' or rlsYn == null}">비공개
+			                                    <i class="input-frame"></i>
+			                                </label>
+			                            </div>
+			                            <div class="form-check form-check-inline">
+			                                <label class="form-check-label">
+			                                    <input type="radio" class="form-check-input" name="rlsYn" value="Y" data-label="공개" th:checked="*{rlsYn == 'Y'}">공개
+			                                    <i class="input-frame"></i>
+			                                </label>
+			                            </div>
+			                            <div class="form-check form-check-inline">
+			                            	<span style="color: red;">(공개로 설정한 경우 최종 모델 생성이 완료된 데이터만 공개됩니다.)</span>
+			                            </div>
+			                            
+									</div>
+								</div>
+							</th:block>
+						</th:block>
+						
+						
+						<th:block th:if="${formType == 'U'}">
+			                <th:block th:if="${augmentModel.modelStatus == 'DOING' or augmentModel.modelStatus == 'DONE'}">  
+								<div class="col-md-12" style="text-align: center;">
+									
+									<!--
+									<span><th:block th:text="${session.ss_admin.userSeq}"></th:block></span><br/>
+									<span><th:block th:text="${session.ss_admin.userAuthCd}"></th:block></span><br/>
+									<span><th:block th:text="${augmentModel.regUserSeq}"></th:block></span>
+									-->
+									
+									<th:block th:if="${session.ss_admin.userAuthCd == 'AU00' or augmentModel.regUserSeq == session.ss_admin.userSeq}">
+						                <button type="button" class="btn btn-primary mr-2 btn-icon-text info-update">
+						                    <i class="btn-icon-prepend" data-feather="edit"></i>수정
+						                </button>
+						                <span style="margin-top: 10px;color: red;font-size: 10px;">모델명,설명,공개여부만 수정 가능합니다.</span>
+					                </th:block>
+					                
+								</div>
+							</th:block>
+						</th:block>
+									
+									
+					</div>
+				</div>
+			</div>		
+		</div>
+		
+
+		<!-- 업로드 테이블-->
+		<div class="row">
+			<div id="csvUpRange" style="width: 100%;"></div>
+		</div>		
+		
+		
+
+		<div class="row">
+			<div class="col-sm-12">
+					<th:block th:if="${formType == 'U'}">
+		                <th:block th:if="${session.ss_admin.userAuthCd == 'AU00' or augmentModel.regUserSeq == session.ss_admin.userSeq}">
+		                <!--
+		                <button type="button" class="btn btn-primary mr-2 btn-icon-text next-preproc-step float-right">
+		                   	 다음
+		                   	 <i data-feather="arrow-right"></i>
+		                </button>
+		                -->
+		                </th:block>
+					</th:block>
+<th:block th:unless="${augmentModel.modelStatus == 'DOING' or augmentModel.modelStatus == 'DONE'}">    
+		                <th:block th:if="${formType == 'I'}">
+			                <button type="button" class="btn btn-success mr-2 btn-icon-text next-preproc">
+			                    <i class="btn-icon-prepend" data-feather="edit"></i>데이터 등록
+			                </button>
+		                </th:block>
+		                <th:block th:if="${formType == 'U'}">
+		                <th:block th:if="${session.ss_admin.userAuthCd == 'AU00' or augmentModel.regUserSeq == session.ss_admin.userSeq}">
+							<button type="button" class="btn btn-danger mr-2 btn-delete" th:data-model-seq="${augmentModel.modelSeq}">
+					                    삭제
+							</button>
+			                <button type="button" class="btn btn-success mr-2 btn-icon-text next-preproc">
+			                    <i class="btn-icon-prepend" data-feather="edit"></i>데이터 재등록
+			                </button>
+		                </th:block>
+		                </th:block>
+</th:block>
+		                <!--
+		                <a class="btn btn-outline-primary btn-icon-text">
+		                    <i class="btn-icon-prepend" data-feather="list"></i>목록
+		                </a>
+		                -->
+			</div>
+		</div>
+		</div>
+		
+
+		<div id="tab_preproc_range">
+		<!-- 데이터 전처리  상단-->
+		<div class="row">
+			<div class="col-md-12 grid-margin  stretch-card">
+				<div class="card">
+					<div class="card-body">
+						<div id="preProcDataRange"></div>
+	      			</div>
+            	</div>
+			</div>
+		</div>
+
+		<!-- 데이터 전처리  중간-->
+		<div class="row">
+			<div class="col-md-12 grid-margin  stretch-card">
+				<div class="card">
+					<div class="card-body">
+						
+						
+						<div class="form-group row">
+							<div class="col-md-4">
+								<div class="form-group">
+									<div id="preProcStatisticsRange"></div>
+								</div>
+								
+								<div class="table-responsive" id="preProcDatatable">
+									<table class="table">
+										<thead>
+											<tr>
+												<th>item</th>
+												<th>value</th>
+											</tr>
+										</thead>
+										<tbody>
+										    <tr>
+										           <td>Count</td>
+										           <td><span id="StatisticsCount"></span></td>
+										    </tr>
+										    <tr>
+										           <td>Average</td>
+										           <td><span id="StatisticsAverage"></span></td>
+										    </tr>
+										    <tr>
+										           <td>Standard Deviation</td>
+										           <td><span id="StatisticsStandard"></span></td>
+										    </tr>
+										    <tr>
+										           <td>Min</td>
+										           <td><span id="StatisticsMin"></span></td>
+										    </tr>
+										    <tr>
+										           <td>25%</td>
+										           <td><span id="Statistics25"></span></td>
+										    </tr>
+										    <tr>
+										           <td>50%</td>
+										           <td><span id="Statistics50"></span></td>
+										    </tr>
+										    <tr>
+										           <td>75%</td>
+										           <td><span id="Statistics75"></span></td>
+										    </tr>
+										    <tr>
+										           <td>Max</td>
+										           <td><span id="StatisticsMax"></span></td>
+										    </tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+							
+
+							<div class="col-md-4">
+								<div class="form-group">
+									<div id="preProcHistogramRange"></div>
+								</div>
+								
+								<div id="preProcHistogramTableRange"></div>
+
+							</div>
+							
+							<div class="col-md-4">
+								<h6 class="card-title">차트</h6>
+								<div id="view3" style="width:100%; height:400px; border-style:solid;border-width:1px;border-color:#eee;"></div>
+							</div>
+							
+						</div>
+	      			</div>
+            	</div>
+			</div>
+			
+		</div>		
+		
+		
+		<!-- 데이터 전처리  하단-->
+		
+		<div class="row" id="tab_preproc_bottom_range">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs">
+                	<li class="nav-item"><a class="nav-link active" id="tab_validate" th:href="@{|#|}">Validate</a></li>
+                	<li class="nav-item"><a class="nav-link" id="tab_outlier" th:href="@{|#|}">Outlier</a></li>
+                    <li class="nav-item"><a class="nav-link" id="tab_missing" th:href="@{|#|}">Missing Value</a></li>
+                    <li class="nav-item"><a class="nav-link" id="tab_interval" th:href="@{|#|}">Interval Conversion</a></li>
+                    <li class="nav-item"><a class="nav-link" id="tab_unit" th:href="@{|#|}">Unit Conversion</a></li>
+                </ul>
+            </div>
+            
+            
+            <!-- 데이터 전처리  하단 Validate-->
+			<div class="col-md-12 grid-margin  stretch-card bottom-tab" id="tab_validate_range">
+				<div class="card">
+					<div class="card-body">
+						<!-- ======================================================================  -->
+						<div class="form-group row">
+						
+							<div class="col-md-6">
+								<div id="valid_table_range"></div>
+								<div id="tab_missing_table_range_valid"></div>
+							</div>
+						
+						
+							<div class="col-md-6">
+								<!-- <h6 class="card-title">지정한 컬럼의 validation을 진행합니다.</h6>
+								<th:block th:if="${augmentModel.modelStatus == 'DOING' or augmentModel.modelStatus == 'DONE'}">
+									<h6 class="card-title" style="font-size: 10px;color: red;">(현재 모델 생성중이거나 완료된 상태로 변환이 불가합니다.)</h6>
+								</th:block>
+								 -->
+<th:block th:unless="${augmentModel.modelStatus == 'DOING' or augmentModel.modelStatus == 'DONE'}">
+								<div class="form-group">
+									
+									<div style="display: inline-block" id="preProcValidTargetCol">
+									</div>
+									
+									<!--
+									<div style="display: inline-block;margin-right: 30px;">
+									<label>변환유형</label>
+										<select class="w-100 unit-select-box" id="select_unit_tp">
+											<option value="0">선택</option>
+											<option th:each="item : ${unit_type_list}" th:value="${item.dtl_cd}" th:text="${item.dtl_cd_nm}" ></option>
+										</select>
+									</div>
+									-->
+								</div>
+								<div class="form-group">
+								
+									<label>변환유형</label>
+									
+									<div class="select-with-text">
+										<select class="w-30 valid-select-box" id="select_valid_mater_tp">
+											<option value="0">선택</option>
+											<option th:each="item : ${valid_mater_list}" th:value="${item.dtl_cd}" th:text="${item.dtl_cd_nm}" ></option>
+										</select>
+										<span class="text-next-to-select">1단계 : 검증 방법을 선택합니다.</span>
+									</div>
+									
+									
+									<div class="select-with-text">
+										<select class="w-30 valid-select-box" id="select_valid_detail_tp">
+											<option value="0">선택</option>
+											<option></option>
+										</select>
+										<span class="text-next-to-select">2단계 : 검증에 사용할 형식을 지정합니다.</span>
+									</div>
+									
+									
+									<div class="select-with-text"  id="select_valid_clear_tp"  style="display: none;">
+										<select class="w-30 valid-select-box">
+											<option value="0">선택</option>
+											<option value="I">지정값</option>
+											<option value="O">지정외값</option>
+										</select>
+										<span class="text-next-to-select">3단계 : <br/>[지정값]2단계 형식과 일치하는 값을 삭제(빈값) <br/> [지정외값]:2단계 형식과 일치하지 않는 값을 삭제(빈값)</span>
+									</div>
+									
+									
+									<th:block th:if="${formType == 'I'}">
+										<input class="btn btn-success btn-view-valid-info" type="button" value="상태확인">
+										<input class="btn btn-primary btn-make-valid" id= "btn_make_valid" type="button" value="변환" style="display: none;">
+										<input class="btn btn-dark btn-make-validate-reset" type="button" value="초기화">
+									</th:block>
+									<th:block th:if="${formType == 'U'}">
+										<th:block th:if="${session.ss_admin.userAuthCd == 'AU00' or augmentModel.regUserSeq == session.ss_admin.userSeq}">
+											<input class="btn btn-success btn-view-valid-info" type="button" value="상태확인" >
+											<input class="btn btn-primary btn-make-valid" id="btn_make_valid" type="button" value="변환">
+											<input class="btn btn-dark btn-make-validate-reset" type="button" value="초기화">
+										</th:block>
+									</th:block>							
+								
+									<!--
+									<div class="row" id="validate_history_range">
+							            <div class="col-sm-12">
+					                                <th:block th:each="item : ${validate_history}" th:unless="${#lists.isEmpty(validate_history)}">
+					                                	<p><th:block th:text="|컬럼:${item.vrfc_trgt_col}, 유형:${item.vrfc_nm}, 변환:${item.clear_tp}|"></th:block></p>
+					                                </th:block>							            
+							            
+							            </div>
+							        </div>		
+									-->
+								
+								</div>
+								
+								<!--
+								<div id="valid_table_range"></div>
+								<div id="tab_missing_table_range_valid_object"></div>
+								-->
+</th:block>	
+							</div>
+							
+							
+						</div>
+						<!-- ======================================================================  -->
+						
+						
+	      			</div>
+            	</div>
+			</div>		
+            
+            <!-- 데이터 전처리  하단 Missing Value-->
+			<div class="col-md-12 grid-margin stretch-card bottom-tab" id="tab_missing_range" style="display: none;">
+				<div class="card">
+					<div class="card-body">
+						<div class="form-group row">
+							<div class="col-md-6">
+								<div id="tab_missing_table_range"></div>
+							</div>
+							
+
+							<div class="col-md-6" id="tab_missing_select_range">
+								<h6 class="card-title">보간 옵션</h6>
+								
+								<div class="form-group d-flex">
+									
+									<select class="w-40" id="select_interpolate">
+										<option th:each="item : ${interp_type_list}" th:value="${item.dtl_cd}" th:text="${item.dtl_cd_nm}" th:selected="${item.dtl_cd == augmentModel.interplTp}"></option>
+									</select>
+									
+									
+									
+									<th:block th:unless="${augmentModel.modelStatus == 'DOING' or augmentModel.modelStatus == 'DONE'}"> 
+										<th:block th:if="${formType == 'I'}">
+											<input class="btn btn-primary btn-make-interpolate" type="button" value="변환">
+										</th:block>
+										<th:block th:if="${formType == 'U'}">
+											<th:block th:if="${session.ss_admin.userAuthCd == 'AU00' or augmentModel.regUserSeq == session.ss_admin.userSeq}"> 
+												<input class="btn btn-primary btn-make-interpolate" type="button" value="변환">
+											</th:block>
+										</th:block>
+										
+									</th:block>
+								</div>
+								
+								<!-- 보간 처리 뷰 확인 -->
+	                            <div class="col-sd-2">
+	                            	<div id="tab_nan_table_range"></div>
+									<div id="tab_nan_table_complete_range"></div>
+	                            </div>								
+							</div>
+							
+						</div>
+	      			</div>
+            	</div>
+			</div>
+
+            <!-- 데이터 전처리  하단 Outlier-->
+			<div class="col-md-12 grid-margin  stretch-card  bottom-tab" id="tab_outlier_range" style="display: none;">
+				<div class="card">
+					<div class="card-body">
+						<div class="form-group row">
+							<div class="col-md-4">
+								
+								<div class="form-group">
+									<h6 class="card-title">이상치 처리옵션:</h6>
+									<select class="select" id="select_outlier_option">
+										<option value="0">선택</option>
+		                                <option value="standard">STANDARD</option>
+		                                <option value="kmean">KMEAN</option>
+		                                <option value="dbscan">DBSCAN</option>
+		                            </select>							
+								</div><br/>
+								
+								<!-- <h6 class="card-title">지정한 컬럼의 차트를 확인 가능합니다.</h6> -->
+								<div class="form-group" id="outlier_column_range">
+									<div id="preProcOutlierTargetCol"></div>
+								</div>	
+								
+								<div class="form-group" id="outlier_standard_range">
+									샘플링 길이:<input class="form-control" id="freq" type="text" value="50" style="width: 70%;">
+									<br/>
+									정규분포 경계:<input class="form-control" id="p_value" type="text" value="0.05" style="width: 70%;">
+								</div>
+
+								<div class="form-group" id="outlier_dbscan_range" style="display: none;">
+									샘플링 길이:<input class="form-control" id="freq" type="text" value="50"  style="width: 70%;">
+									<br/>
+									eps:<input class="form-control" id="eps" type="text" value="0.1" style="width: 70%;">
+									<br/>
+									min_samples:<input class="form-control" id="min_samples" type="text" value="2" style="width: 70%;">
+								</div>
+
+								<div class="form-group" id="outlier_kmean_range" style="display: none;">
+									샘플링 길이:<input class="form-control" id="freq" type="text" value="50"  style="width: 70%;">
+									<br/>
+									clusters 수:
+									<div style="display: flex; align-items: center;">
+									<input class="form-control" id="n_clusters" type="text" style="width: 50%;" placeholder="50">
+									<input class="btn btn-primary btn-clusters-group" type="button" value="SET">
+									</div>
+									<br/>
+									clusters 그룹선택
+									<select class="select" id="select_clusters_group" style="width: 50%;">
+										<!--
+										<option value="0">0</option>
+										<option value="1">1</option>
+										<option value="2">2</option>
+										<option value="3">3</option>
+										<option value="4" selected="selected">4</option>
+										<option value="5">5</option>
+										<option value="6">6</option>
+										<option value="7">7</option>
+										<option value="8">8</option>
+										<option value="9">9</option>
+										<option value="10">10</option>
+										<option value="11">11</option>
+										<option value="12">12</option>
+										<option value="13">13</option>
+										<option value="14">14</option>
+										<option value="15">15</option>
+										<option value="16">16</option>
+										<option value="17">17</option>
+										<option value="18">18</option>
+										<option value="19">19</option>
+										-->
+		                            </select>											
+								</div>
+								<th:block th:unless="${augmentModel.modelStatus == 'DOING' or augmentModel.modelStatus == 'DONE'}">
+								<th:block th:if="${formType == 'I'}">
+									<input class="btn btn-primary btn-make-outlier" id="btn_make_outlier" type="button" value="변환">
+									<input class="btn btn-dark btn-make-outlier-reset" type="button" value="초기화">
+								</th:block>
+								<th:block th:if="${formType == 'U'}">
+									<th:block th:if="${session.ss_admin.userAuthCd == 'AU00' or augmentModel.regUserSeq == session.ss_admin.userSeq}">
+										<input class="btn btn-primary btn-make-outlier" id="btn_make_outlier" type="button" value="변환">
+										<input class="btn btn-dark btn-make-outlier-reset" type="button" value="초기화">
+									</th:block>
+								</th:block>		
+								</th:block>
+							</div>
+
+							<div class="col-md-8" id="outlier_standard_chart_range">
+								<!-- <div id="tab_unit_file_range"></div> -->
+								<!-- <h6 class="card-title">Basic Table</h6> -->
+								<h6 class="card-title">차트</h6>
+								<div id="view5" style="width:100%; height:400px; border-style:solid;border-width:1px;border-color:#eee;"></div>								
+							</div>
+						</div>
+	      			</div>
+            	</div>
+			</div>			
+			<div class="col-md-12 grid-margin  stretch-card  bottom-tab" id="tab_outlier_range2" style="display: none;">
+				<div class="card">
+					<div class="card-body">	      			
+						<div class="form-group row">
+							<div class="col-md-12">
+								<div id="outlier_table" style="height: 500px;overflow-y: auto;"></div>
+							</div>
+	
+						</div>			      			
+	      			</div>  
+				</div>
+			</div>
+			
+			
+			
+            <!-- 데이터 전처리  하단 interval Value-->
+			<div class="col-md-12 grid-margin  stretch-card bottom-tab" id="tab_interval_range">
+				<div class="card">
+					<div class="card-body">
+						<div class="form-group row">
+							<div class="col-md-3">
+								<h6 class="card-title">날짜 컬럼의 간격을 변환할 수 있습니다.  </h6>
+								
+								<th:block th:if="${augmentModel.modelStatus == 'DOING' or augmentModel.modelStatus == 'DONE'}">
+									<h6 class="card-title" style="font-size: 10px;color: red;">(현재 모델 생성중이거나 완료된 상태로 변환이 불가합니다.)</h6>
+								</th:block>
+<th:block th:unless="${augmentModel.modelStatus == 'DOING' or augmentModel.modelStatus == 'DONE'}">								
+								<div class="form-group d-flex">
+										<label class="label-a">데이터 간격 :</label>
+			                            <code style="font-size: 11px;"><span class="span-outline" id="select_origin_term"></span></code>
+								</div>
+								<div class="form-group d-flex">
+									<label class="label-a">데이터 간격 변환 :</label>
+									<select id="select_resample" style="width: 35%;">
+										<option th:each="item : ${resamp_type_list}" th:value="${item.dtl_cd}" th:text="${item.dtl_cd_nm}" ></option>
+										<!-- th:selected="${item.dtl_cd == augmentModel.resmplIntvlTp}" -->
+									</select>
+								</div>
+
+								<div id="intvl_term" style="display: none;">
+									<div class="form-group d-flex" >
+										<label class="label-a">데이터 간격 수치 :</label>
+										<input  type="number" class="form-control number_only resmpl_intvl_value" name="resmplIntvlValue" th:value="${augmentModel.resmplIntvlValue}" style="width: 35%;">
+									</div>
+								</div>
+</th:block>
+								<div class="form-group d-flex" style="margin-left: 50px;" >
+									<th:block th:unless="${augmentModel.modelStatus == 'DOING' or augmentModel.modelStatus == 'DONE'}">  &nbsp;&nbsp;&nbsp;&nbsp; 									
+										<th:block th:if="${formType == 'I'}">
+											<input class="btn btn-success btn-make-resample" type="button" value="변환">
+											<input class="btn btn-dark btn-make-resample-reset"  type="button" value="초기화" style="margin-left: 10px;">
+										</th:block>
+										<th:block th:if="${formType == 'U'}">
+											<th:block th:if="${session.ss_admin.userAuthCd == 'AU00' or augmentModel.regUserSeq == session.ss_admin.userSeq}">
+												<input class="btn btn-success btn-make-resample" type="button" value="변환">
+												<input class="btn btn-dark btn-make-resample-reset"  type="button" value="초기화" style="margin-left: 10px;">
+											</th:block>
+										</th:block>
+									</th:block>
+								</div>
+
+								
+							</div>
+							
+
+							<div class="col-md-9">
+								<div id="tab_interval_file_range"></div>
+								<!-- <h6 class="card-title">Basic Table</h6> -->
+							</div>
+							
+						</div>
+	      			</div>
+            	</div>
+			</div>		
+			
+            <!-- 데이터 전처리  하단 Unit Conversion-->
+			<div class="col-md-12 grid-margin  stretch-card bottom-tab" id="tab_unit_range">
+				<div class="card">
+					<div class="card-body">
+						<div class="form-group row">
+							<div class="col-md-4">
+								<h6 class="card-title">지정한 컬럼의 단위를 변환할 수 있습니다. 원본 단위를 정확하게 선택하세요.</h6>
+								<th:block th:if="${augmentModel.modelStatus == 'DOING' or augmentModel.modelStatus == 'DONE'}">
+									<h6 class="card-title" style="font-size: 10px;color: red;">(현재 모델 생성중이거나 완료된 상태로 변환이 불가합니다.)</h6>
+								</th:block>
+								
+<th:block th:unless="${augmentModel.modelStatus == 'DOING' or augmentModel.modelStatus == 'DONE'}">
+								<div class="form-group">
+									
+									<div style="display: inline-block;margin-right: 30px;" id="preProcUnitTargetCol">
+									</div>
+									
+									<div style="display: inline-block;margin-right: 30px;">
+									<label>변환유형</label>
+										<select class="w-100 unit-select-box" id="select_unit_tp">
+											<option value="0">선택</option>
+											<option th:each="item : ${unit_type_list}" th:value="${item.dtl_cd}" th:text="${item.dtl_cd_nm}" ></option>
+										</select>
+									</div>
+								</div>
+								
+								<div class="form-group">
+									<div id="unit_select_box_range"></div>
+									<input type="hidden" id='select_unit_seq'>
+								</div>
+								
+								<div class="form-group">
+									<div style="display: inline-block;margin-left: 83px;">
+									
+									<th:block th:if="${formType == 'I'}">
+										<input class="btn btn-success btn-make-unit" type="button" value="변환" style="margin-left: 10px;">
+										<input class="btn btn-dark btn-make-unit-reset" type="button" value="초기화" style="margin-left: 10px;">									
+									</th:block>
+									<th:block th:if="${formType == 'U'}">
+										<th:block th:if="${session.ss_admin.userAuthCd == 'AU00' or augmentModel.regUserSeq == session.ss_admin.userSeq}">
+											<input class="btn btn-success btn-make-unit" type="button" value="변환" style="margin-left: 10px;">
+											<input class="btn btn-dark btn-make-unit-reset" type="button" value="초기화" style="margin-left: 10px;">
+										</th:block>
+									</th:block>
+									
+									
+									</div>
+								</div>
+								
+</th:block>
+							
+									<!--
+									<div class="row" id="unit_history_range">
+							            <div class="col-sm-12">
+					                                <th:block th:each="item : ${unit_history}" th:unless="${#lists.isEmpty(unit_history)}">
+					                                	<p><th:block th:text="|컬럼:${item.UNIT_TRGT_COL}, 변환전:${item.unit_nm_1}, 변환후:${item.unit_nm_2}|"></th:block></p>
+					                                </th:block>							            
+							            
+							            </div>
+							        </div>		
+									-->
+							
+							
+							
+							</div>
+							
+
+							<div class="col-md-8">
+								<div id="tab_unit_file_range"></div>
+								<!-- <h6 class="card-title">Basic Table</h6> -->
+							</div>
+							
+						</div>
+	      			</div>
+            	</div>
+			</div>					
+			
+			
+ 
+            <div class="col-sm-12">
+                <th:block th:if="${formType == 'I'}">
+                	<button type="button" class="btn btn-primary mr-2 btn-icon-text next-preproc-step float-right">
+						다음<i data-feather="arrow-right"></i>
+					</button>
+                	<button type="button" class="btn btn-primary mr-2 btn-icon-text prev-preproc-step float-right">
+						<i data-feather="arrow-left"></i>이전
+					</button>
+
+                </th:block>
+                <th:block th:if="${formType == 'U'}">
+					<th:block th:if="${session.ss_admin.userAuthCd == 'AU00' or augmentModel.regUserSeq == session.ss_admin.userSeq}">
+		                <button type="button" class="btn btn-primary mr-2 btn-icon-text next-preproc-step float-right">
+		                    	다음<i data-feather="arrow-right"></i>
+		                </button>
+	                	<button type="button" class="btn btn-primary mr-2 btn-icon-text prev-preproc-step  float-right">
+							<i data-feather="arrow-left"></i>이전
+						</button>
+
+	                </th:block>
+                </th:block>
+                
+                
+                <th:block th:if="${formType == 'U'}">
+                <th:block th:if="${session.ss_admin.userAuthCd == 'AU00' or augmentModel.regUserSeq == session.ss_admin.userSeq}">
+					<button type="button" class="btn btn-danger mr-2 btn-delete" th:data-model-seq="${augmentModel.modelSeq}">
+			                    삭제
+					</button>
+				</th:block>
+				</th:block>
+		                
+<th:block th:unless="${augmentModel.modelStatus == 'DOING' or augmentModel.modelStatus == 'DONE'}">   		                
+                <th:block th:if="${formType == 'I'}">
+		                <button type="button" class="btn btn-success mr-2 btn-icon-text btn-next-algorithm">
+		                    <i class="btn-icon-prepend" data-feather="edit"></i>알고리즘 선택
+		                </button>
+                </th:block>
+                <th:block th:if="${formType == 'U'}">
+	                <th:block th:if="${session.ss_admin.userAuthCd == 'AU00' or augmentModel.regUserSeq == session.ss_admin.userSeq}">
+		                <button type="button" class="btn btn-success mr-2 btn-icon-text btn-next-algorithm">
+		                    <i class="btn-icon-prepend" data-feather="edit"></i>알고리즘 선택
+		                </button>
+	                </th:block>
+                </th:block>
+</th:block>		                
+                <!--
+                <a class="btn btn-outline-primary btn-icon-text">
+                    <i class="btn-icon-prepend" data-feather="list"></i>목록
+                </a>
+                -->
+            </div>
+
+			
+		</div>			
+		
+		</div>
+		
+		<!-- 알고리즘 선택  상단 -->
+		<div class="row" id="tab_getalgo_range">
+			<div class="col-md-12 grid-margin  stretch-card" id="tab_getalgo_range_top">
+				<div class="card">
+					<div class="card-body">
+						<span style="font-size: 11px; color: red;">종속 변수와 독립 변수는 동일한 컬럼을 선택 할 수 없습니다.</span>
+						<div class="form-group row">
+							<div class="col-md-4">
+								<h6 class="card-title">종속변수</h6>
+								<div id="algorithmOutputRange"></div>
+							</div>
+							
+
+							<div class="col-md-4">
+								<h6 class="card-title">독립변수</h6>
+								<div id="algorithmFeatureRange"></div>
+							</div>
+							
+							<div class="col-md-4">
+								<h6 class="card-title">Correlation analysis(상관분석)</h6>
+								<div id="view4" style="width:100%; height:400px; border-style:solid;border-width:1px;border-color:#eee;"></div>
+							</div>
+							
+						</div>
+	      			</div>
+            	</div>
+			</div>
+			
+			
+            <!-- 알고리즘 선택  하단 -->
+			<div class="col-md-12 grid-margin  stretch-card" id="tab_getalgo_range_bottom">
+				<div class="card">
+					<div class="card-body">
+						<div class="form-group row">
+							<div class="col-md-6">
+								<h6 class="card-title">알고리즘 선택</h6>
+								
+								<div class="form-group">
+									<!-- <label>컬럼선택</label> -->
+									<select class="w-60"  id="select_algorithm" name="modelAlgrmSeq">
+										<option value="0">선택</option>
+										<option th:each="item : ${algorithm_list}" th:value="${item.model_algrm_seq}" th:text="${item.model_algrm}"></option>
+									</select>
+								</div>
+								
+								
+								<div class="form-group">
+									<div style="width:60%; height:200px; border-style:solid;border-width:1px;border-color:#eee;">
+										<img id="algolithm_img_box" style="height:190px;"></img>
+									</div>
+								</div>
+
+								
+							</div>
+							
+
+							<div class="col-md-6">
+										<div id="algorithm_meta_item_list"></div>
+							</div>
+							
+						</div>
+	      			</div>
+            	</div>
+			</div>
+			
+			
+
+<th:block th:unless="${augmentModel.modelStatus == 'DOING' or augmentModel.modelStatus == 'DONE'}">                    
+		        <div class="row">
+		            <div class="col-sm-12">
+		            	<th:block th:if="${formType == 'I'}">
+				                <button type="button" class="btn btn-success mr-2 btn-icon-text make-model">
+				                    <i class="btn-icon-prepend" data-feather="edit"></i>등록
+				                </button>
+		            	</th:block>
+		            	<th:block th:if="${formType == 'U'}">
+				            <th:block th:if="${session.ss_admin.userAuthCd == 'AU00' or augmentModel.regUserSeq == session.ss_admin.userSeq}">
+				                <button type="button" class="btn btn-success mr-2 btn-icon-text make-model">
+				                    <i class="btn-icon-prepend" data-feather="edit"></i>등록
+				                </button>
+							</th:block>
+		            	</th:block>
+		            
+
+		                <!--
+		                <a class="btn btn-outline-primary btn-icon-text">
+		                    <i class="btn-icon-prepend" data-feather="list"></i>목록
+		                </a>
+		                -->
+		            </div>
+		        </div>
+		        
+</th:block>
+
+	</div>	
+				
+
+
+
+            <div class="card-body " id="tab_excmodel_range">
+                <div class="col-md-12 grid-margin stretch-card">
+                    <div class="card box-shadow-none">
+                    </div>
+                </div>
+            </div>
+            
+            
+            
+            
+            
+            <!-- <div class="card-body " id="tab_savemodel_range"> -->
+            <div  id="tab_savemodel_range">
+			    
+			    <th:block th:if="${formType == 'U'}">
+			    <th:block th:unless="${#lists.isEmpty(predictionFileList)}">
+			    
+			    <div class="row">
+			        <div class="col-12 col-xl-12 grid-margin stretch-card">
+			            <div class="card">
+			                <div class="card-body">
+			                    <div class="form-group row">
+			                    	<label class="col-sm-12 col-form-label">
+				                    	Data learning model validation Result
+				                    </label>
+			                    	<div class="col-md-6">
+			                    		<label class="col-md-2 col-form-label">
+					                    	Real Data Table
+					                    </label>
+					                    <div class="col-md-12" id="data_test"></div>
+			                    	</div>
+			                    	<div class="col-md-6">
+			                    		<label class="col-md-2 col-form-label">
+					                    	Prediction Data Table
+					                    </label>
+					                    <div class="col-md-12" id="data_pred"></div>
+			                    	</div>                    	
+			                    </div>
+			                    <div class="col-md-12">
+				                    <div class="form-group row">
+				                    	<label class="col-md-1 col-form-label">
+					                    	Data Chart
+					                    </label>
+					                    <div class="col-sd-2">
+											<select class="select" id="select_data">
+				                                <option value="10">10</option>
+				                                <option value="50">50</option>
+				                                <option value="100" selected>100</option>
+				                                <option value="300">300</option>
+				                                <option value="500">500</option>
+				                                <option value="1000">1000</option>	                                
+				                            </select>
+										</div>
+				                    </div>
+			                    	<div id="view2" style="width:100%; height:500px; border-style:solid;border-width:1px;border-color:#eee;"></div>
+			                    </div>
+			                </div>
+			            </div>
+			        </div>
+			    </div>
+			    <div class="row">
+			        <div class="col-12 col-xl-12 grid-margin stretch-card">
+			            <div class="card">
+			                <div class="card-body">
+			                	<div class="form-group row">
+			                		<label class="col-sm-12 col-form-label">
+				                    	Model Validation Result Visualization
+				                    </label>
+			                		<div class="col-md-6">
+					                	<div class="table-responsive">
+							                <label class="col-sm-12 col-form-label">
+						                    	Accuracy & Loss
+						                    </label>
+					                        <table class="table table-hover scrolltable">
+					                            <colgroup>
+					                                <col style="width: 10%;">
+					                                <col style="width: 25%;">
+					                                <col style="width: 25%;">
+					                                <col style="width: 25%;">
+					                                <col style="width: 25%;">
+					                            </colgroup>
+					                            <thead>
+					                                <tr>
+					                                    <th>epochs</th>
+					                                    <th>loss</th>
+					                                    <th>val loss</th>
+					                                    <th>metrics</th>
+					                                    <th>val metrics</th>
+					                                </tr>
+					                            </thead>
+					                            <tbody>
+					                                <th:block th:include="fragments/table_empty:: table_empty(3)" th:if="${#lists.isEmpty(list_loss)}"></th:block>
+					                                <tr th:each="item : ${list_loss}" th:unless="${#lists.isEmpty(list_loss)}">
+					                                    <td th:text="${item.epochs}"></td>
+					                                    <td th:text="${#numbers.formatDecimal(item.loss,1,6)}"></td>
+					                                    <td th:text="${#numbers.formatDecimal(item.vrfc_loss,1,6)}"></td>
+					                                    <td th:text="${#numbers.formatDecimal(item.metrics,1,6)}"></td>
+					                                    <td th:text="${#numbers.formatDecimal(item.vrfc_metrics,1,6)}"></td>		                                    
+					                                </tr>
+					                            </tbody>
+					                        </table>
+					                    </div>
+				                	</div>
+					                <div class="col-md-6">
+					                	<label class="col-sm-12 col-form-label">
+					                    	Validation Loss Chart
+					                    </label>
+					                	<div id="view0" style="width:100%; height:400px; border-style:solid;border-width:1px;border-color:#eee;"></div>
+					                </div>
+			                	</div>
+			                	<div class="form-group row">
+			                		<label class="col-sm-12 col-form-label">
+										FID Score 
+									</label>
+				                 	<div class="col-md-4">
+					                	<label class="col-sm-12 col-form-label">
+											시계열 데이터 Visualization 
+										</label>
+										<div class="form-group row">
+											<div class="col-md-6">
+												<label class="col-sm-12 col-form-label">
+													Real Data 
+												</label>
+												<div class="col-sm-12">
+													<img th:src="|/files${list_fid[0].real_file_nm}|" id="real_img" width="100%">
+												</div>
+											</div>
+											<div class="col-md-6">
+												<label class="col-sm-12 col-form-label">
+													Prediction Data 
+												</label>
+												<div class="col-sm-12">
+													<img th:src="|/files${list_fid[0].fake_file_nm}|" id="fake_img" width="100%">
+												</div>
+											</div>
+										</div>
+										<div class="form-group row">
+											<label class="col-sm-6 col-form-label">Epoch</label>								
+											<div class="col-md-6">
+												<select class="select" id="select_epoch">
+					                                <option th:each="item : ${list_fid}" th:value="|/files${item.real_file_nm}|" th:text="${item.epochs}"></option>
+					                            </select>
+											</div>
+										</div>
+				                	</div>
+				                	<div class="col-md-2">
+				                	<div class="table-responsive">
+					                	<label class="col-sm-12 col-form-label">
+											FID Score Table 
+						                </label>
+					                	<table class="table table-hover scrolltable">
+					                            <colgroup>
+					                                <col style="width: 30%;">
+					                                <col style="width: 70%;">		                                
+					                            </colgroup>
+					                            <thead>
+					                                <tr>
+					                                    <th>epochs</th>
+					                                    <th>FID Score</th>		                                    
+					                                </tr>
+					                            </thead>
+					                            <tbody>
+					                                <th:block th:include="fragments/table_empty:: table_empty(3)" th:if="${#lists.isEmpty(list_fid)}"></th:block>
+					                                <tr th:each="item : ${list_fid}" th:unless="${#lists.isEmpty(list_fid)}">
+					                                    <td th:text="${item.epochs}"></td>
+					                                    <td th:text="${#numbers.formatDecimal(item.fid_score,1,6)}"></td>
+					                                </tr>
+					                            </tbody>
+					                        </table>
+									</div>
+				                	</div>
+					                <div class="col-md-6">
+						                <label class="col-sm-12 col-form-label">
+												FID Score Chart 
+						                </label>
+					                	<div id="view1" style="width:100%; height:400px; border-style:solid;border-width:1px;border-color:#eee;"></div>
+					                </div>	
+				                </div>                
+			                </div>
+			            </div>
+			        </div>
+			    </div>      
+			    </th:block>
+			    </th:block>
+			          
+			</div>
+    </form>
+    
+    <form name="deleteForm" th:action="@{|/ai/model/delete|}" method="post">
+        <input type="hidden" name="modelSeq">
+        <input type="hidden" name="menuCd" th:value=${menuCd}>
+    </form>
+    
+</div>
+<th:block layout:fragment="custom_css">
+    <link rel="stylesheet" th:href="@{/assets/css/codemirror.css}" />    
+    <link rel="stylesheet" th:href="@{/assets/vendors/datatables.net-bs4/dataTables.bootstrap4.css}">
+        <link rel="stylesheet" th:href="@{/assets/css/custom.css}">
+</th:block>
+<th:block layout:fragment="custom_js">
+    <script th:src="@{/echarts532/dist/echarts.min.js}"></script>    
+    <script th:src="@{/assets/js/echart/echarts.js}"></script>
+	<script th:src="@{/assets/js/echart/echarts_view.js}"></script>
+	<script th:src="@{/assets/js/libs/codemirror.js}"></script>
+	<script th:src="@{/assets/js/pages/ai_model/form.js}"></script>
+	<script th:src="@{/assets/js/pages/ai_model/form_functions.js}"></script>
+	<script th:src="@{/assets/js/pages/ai_model/form_view_functions.js}"></script>
+    <script th:src="@{/assets/js/pages/ai_model/tab.js}"></script>
+    <script th:src="@{/assets/js/file-upload.js}"></script>
+	
+	<script th:src="@{/assets/js/pages/ai_model/result.js}"></script>	
+	
+	<script th:src="@{/assets/vendors/datatables.net/jquery.dataTables.js}"></script>
+	<script th:src="@{/assets/vendors/datatables.net-bs4/dataTables.bootstrap4.js}"></script> 
+</th:block>
+
+</html>

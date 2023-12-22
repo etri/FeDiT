@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.stoneitgt.dt.data.platform.admin.mapper.MenuMapper">
+
+	<select id="getBreadcrumb" parameterType="string" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : MenuMapper.xml, id : getBreadcrumb */
+		SELECT A.MENU_CD
+		     , A.MENU_NM
+		     , (SELECT MENU_NM
+		          FROM TB_MENU B
+		         WHERE B.MENU_CD = A.UP_MENU_CD
+		       ) AS PARENT_MENU_NM
+		  FROM TB_MENU A
+		 WHERE A.MENU_CD = #{menuCd}
+		   AND A.DEL_YN  = 'N'
+	</select>
+
+	<select id="getUserMenuList" parameterType="string" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : MenuMapper.xml, id : getUserMenuList */
+		  SELECT A.*
+		    FROM TB_MENU A
+		       INNER JOIN TB_MENU_AUTH B
+		               ON A.MENU_CD = B.MENU_CD
+		   WHERE A.DEL_YN           = 'N'
+		     AND B.DEL_YN           = 'N'
+		     AND B.AUTH_CD               = #{authCd}
+		ORDER BY A.ORDBY
+	</select>
+
+	<select id="getMenuList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : MenuMapper.xml, id : getMenuList */
+		WITH RECURSIVE CTE AS
+		( SELECT MENU_CD
+		      , MENU_NM
+		      , UP_MENU_CD
+		      , MENU_URL
+		      , 1 AS LEVEL
+		      , ORDBY
+		      , DATE_FORMAT(REG_DT, '%Y-%m-%d') AS REG_DT
+		   FROM TB_MENU
+		  WHERE UP_MENU_CD = 'TOP'
+		    AND DEL_YN         = 'N'
+		UNION ALL
+		SELECT M.MENU_CD
+		     , M.MENU_NM
+		     , M.UP_MENU_CD
+		     , M.MENU_URL
+		     , 1 + CTE.LEVEL AS LEVEL
+		     , M.ORDBY
+		     , DATE_FORMAT(M.REG_DT, '%Y-%m-%d') AS REG_DT
+		  FROM TB_MENU M
+		   INNER JOIN CTE
+		           ON M.UP_MENU_CD = CTE.MENU_CD
+		 WHERE M.DEL_YN                = 'N'
+		)
+		  SELECT MENU_CD
+		       , MENU_NM
+		       , UP_MENU_CD
+		       , MENU_URL
+		       , LEVEL
+		       , ORDBY
+		       , REG_DT
+		    FROM CTE
+		   WHERE 1 = 1
+		<if test="field != null and field != '' and keyword != null and keyword != ''">
+			AND  ${field} LIKE CONCAT('%', #{keyword}, '%')
+		</if>
+		ORDER BY MENU_CD
+	/*||ORDER BY MENU_CD||*/
+	</select>
+
+	<select id="getAuthMenuList" parameterType="string" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : MenuMapper.xml, id : getAuthMenuList */
+		WITH RECURSIVE CTE AS
+		( SELECT MENU_CD
+		      , MENU_NM
+		      , UP_MENU_CD
+		      , 1 AS LEVEL
+		   FROM TB_MENU
+		  WHERE UP_MENU_CD = 'TOP'
+		    AND DEL_YN         = 'N'
+		UNION ALL
+		SELECT M.MENU_CD
+		     , M.MENU_NM
+		     , M.UP_MENU_CD
+		     , 1 + CTE.LEVEL AS LEVEL
+		  FROM TB_MENU M
+		   INNER JOIN CTE
+		           ON M.UP_MENU_CD = CTE.MENU_CD
+		 WHERE M.DEL_YN                = 'N'
+		)
+		  SELECT A.MENU_CD        AS ID
+		       , A.MENU_NM        AS TEXT
+		       , A.UP_MENU_CD AS PARENT_ID
+		       , LEVEL
+		       , IFNULL(B.INQ_AUTH_YN, 'N') AS VALUE
+		    FROM CTE A
+		  LEFT OUTER JOIN TB_MENU_AUTH B
+		               ON A.MENU_CD = B.MENU_CD
+		              AND B.AUTH_CD      = #{authCd}
+		              AND B.DEL_YN     = 'N'
+		ORDER BY A.MENU_CD
+	</select>
+
+	<update id="deleteAuthMenu" parameterType="com.stoneitgt.dt.data.platform.domain.MenuAuth">
+		/* file : MenuMapper.xml, id : deleteAuthMenu */
+		UPDATE TB_MENU_AUTH
+		   SET DEL_YN     = 'Y'
+		     , DEL_USER_SEQ = #{loginUserSeq}
+		     , DEL_DT     = CURRENT_TIMESTAMP
+		     , DEL_IP     = #{loginUserIp}
+		 WHERE AUTH_CD         = #{authCd}
+	</update>
+
+	<insert id="saveAuthMenu" parameterType="com.stoneitgt.dt.data.platform.domain.MenuAuth">
+		/* file : MenuMapper.xml, id : saveAuthMenu */
+		INSERT
+		  INTO TB_MENU_AUTH (
+		              AUTH_CD
+		            , MENU_CD
+		            , INQ_AUTH_YN
+		            , REG_USER_SEQ
+		            , REG_IP)
+		       VALUES (
+		              #{authCd}
+		            , #{menuCd}
+		            , 'Y'
+		            , #{loginUserSeq}
+		            , #{loginUserIp})
+		    ON DUPLICATE KEY UPDATE INQ_AUTH_YN = 'Y'
+		     , DEL_YN                       = 'N'
+		     , MDFCN_USER_SEQ                   = #{loginUserSeq}
+		     , MDFCN_DT                       = CURRENT_TIMESTAMP
+		     , MDFCN_IP                         = #{loginUserIp}
+		     , DEL_USER_SEQ                   = NULL
+		     , DEL_DT                       = NULL
+		     , DEL_IP                       = NULL
+	</insert>
+
+	<select id="getAuthMenuParent" parameterType="string" resultType="string">
+		/* file : MenuMapper.xml, id : getAuthMenuParent */
+		SELECT UP_MENU_CD
+		  FROM (  SELECT UP_MENU_CD
+		           FROM TB_MENU
+		          WHERE DEL_YN = 'N'
+		            AND MENU_CD IN
+		                ( SELECT MENU_CD
+		                   FROM TB_MENU_AUTH
+		                  WHERE DEL_YN = 'N'
+		                    AND AUTH_CD     = #{authCd}
+		                )
+		       GROUP BY UP_MENU_CD
+		       ) P
+		 WHERE UP_MENU_CD != 'TOP'
+	</select>
+
+	<select id="getParentMenuList" parameterType="string" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : MenuMapper.xml, id : getParentMenuList */
+		  SELECT MENU_CD AS CODE
+		       , MENU_NM AS CODE_NAME
+		    FROM TB_MENU
+		   WHERE DEL_YN         = 'N'
+		     AND UP_MENU_CD = 'TOP'
+		ORDER BY ORDBY
+	</select>
+
+	<insert id="saveMenu" parameterType="com.stoneitgt.dt.data.platform.domain.Menu">
+		/* file : MenuMapper.xml, id : saveMenu */
+		INSERT
+		  INTO TB_MENU (
+		              MENU_CD
+		            , MENU_NM
+		            , UP_MENU_CD
+		            , MENU_URL
+		            , MENU_ICON
+		            , ORDBY
+		            , REG_USER_SEQ
+		            , REG_IP)
+		       VALUES (
+		              UPPER( #{menuCd} )
+		            , #{menuNm}
+		            , #{upMenuCd}
+		            , #{menuUrl}
+		            , #{menuIcon}
+		            , #{ordby}
+		            , #{loginUserSeq}
+		            , #{loginUserIp})
+		    ON DUPLICATE KEY UPDATE MENU_NM = #{menuNm}
+		     , UP_MENU_CD               = #{upMenuCd}
+		     , MENU_URL                      = #{menuUrl}
+		     , MENU_ICON                      = #{menuIcon}
+		     , ORDBY                          = #{ordby}
+		     , DEL_YN                       = 'N'
+		     , MDFCN_USER_SEQ                   = #{loginUserSeq}
+		     , MDFCN_DT                       = CURRENT_TIMESTAMP
+		     , MDFCN_IP                         = #{loginUserIp}
+	</insert>
+
+	<update id="deleteMenu" parameterType="com.stoneitgt.dt.data.platform.domain.Menu" >
+		/* file : MenuMapper.xml, id : deleteMenu */
+		  UPDATE TB_MENU
+		     SET DEL_YN     = 'Y'
+		       , DEL_USER_SEQ = #{loginUserSeq}
+		       , DEL_DT     = CURRENT_TIMESTAMP
+		       , DEL_IP = #{loginUserIp}
+		   WHERE MENU_CD    = #{menuCd}
+	</update>
+
+	<update id="deleteMenuParent" parameterType="com.stoneitgt.dt.data.platform.domain.Menu" >
+		/* file : MenuMapper.xml, id : deleteMenuParent */
+		  UPDATE TB_MENU
+		     SET DEL_YN         = 'Y'
+		       , DEL_USER_SEQ     = #{loginUserSeq}
+		       , DEL_DT         = CURRENT_TIMESTAMP
+		       , DEL_IP = #{loginUserIp}
+		   WHERE UP_MENU_CD = #{menuCd}
+	</update>
+
+	<select id="getMenu" parameterType="string" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : MenuMapper.xml, id : getMenu */
+		SELECT A.*
+		  FROM TB_MENU A
+		 WHERE A.MENU_CD = #{menuCd}
+		   AND A.DEL_YN  = 'N'
+	</select>
+
+</mapper>

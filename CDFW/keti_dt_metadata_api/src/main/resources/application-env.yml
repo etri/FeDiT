@@ -1,0 +1,224 @@
+# --------------------------------------
+# keti https://etrioss.kr/ 용
+# --------------------------------------
+
+# DataBase
+spring:
+  config:
+    activate:
+      on-profile:
+      - local
+  datasource:
+    url: jdbc:postgresql://1.234.5.217:5432/dtmeta
+    username: meta_manager
+    password: rhksflwk1!
+    driver-class-name: org.postgresql.Driver    
+    
+# Spring Doc Open Api    
+springdoc.swagger-ui.enabled: true
+# swagger-ui custom path
+#springdoc.swagger-ui.path: /swagger-ui.html
+
+# File
+#file:
+#  upload-path: /opt/dtmeata
+      
+  
+# Security
+
+oauth:
+  public-key: http://192.168.123.81:33000/security/publickey
+  access-token: http://192.168.123.81:33000/oauth2.0/token
+authorization: 
+  data : true
+  default-auth:
+    use-flag: true  
+    list: AUT_META_DEFAULT
+  
+platform.common.api.url: http://localhost:6998
+
+# Virtuoso 
+virtuoso:
+  datasource:
+    url: jdbc:virtuoso://203.245.28.195:1111/charset=UTF-8
+    username: meta_manager
+    password: rhksflwk1!
+  graph:
+    dev: DEV_GRAPH_NM
+    use: USE_GRAPH_NM
+  conductor-url: http://203.245.28.195:8890/conductor
+
+# Metadata RDF URL (Namespace) 
+dtmeta:
+  # TODO : 임시 정의, 추후 수정 필요
+  resource:
+    base-url: http://1.234.5.217:8084/meta/resource/page/
+    data-url: http://1.234.5.217:8084/meta/api/v1/resource/data/
+  # TODO : 임시 정의, 추후 수정 필요
+  rdf-schema:
+    base-url: http://1.234.5.217:8084/meta/ns/digitaltwin#
+    skos-url: http://1.234.5.217:8084/meta/skos/digitaltwin#
+    
+# NEO4J
+neo4j:
+  authentication:
+    username: neo4j
+    password: rhksflwk1!
+  uri: bolt://203.245.28.195:7687
+  browser-url: http://203.245.28.195:7474/browser
+  
+# Elastic Search
+elastic:
+  authentication:
+    username: elastic
+    password: es_admin1!
+  protocol: https
+    # TODO : 임시 정의, 추후 수정 필요
+  server-ip: 1.234.5.217
+  server-port: 9200
+  kibana-port: 5601
+  fingerprint: 4cd6a201122ff2ddad6545b074f7d9c38b8d431f4adf66bf7473a6449ab463d7
+  index-name: test_meta
+  
+---
+
+spring:
+  config:
+    activate:
+      on-profile:
+      - dev
+  datasource:
+    url: jdbc:postgresql://1.234.5.217:5432/dtmeta
+    username: meta_manager
+    password: rhksflwk1!
+    driver-class-name: org.postgresql.Driver      
+
+springdoc.swagger-ui.enabled: true
+
+
+# Security
+
+oauth:
+  public-key: http://192.168.123.81:33000/security/publickey
+  access-token: http://192.168.123.81:33000/oauth2.0/token
+authorization: 
+  data : true
+  default-auth:
+    use-flag: true  
+    list: AUT_META_DEFAULT
+  
+platform.common.api.url: http://1.234.5.217:6998
+
+# Virtuoso 
+virtuoso:
+  datasource:
+    url: jdbc:virtuoso://203.245.28.195:1111/charset=UTF-8
+    username: meta_manager
+    password: rhksflwk1!
+  graph:
+    dev: DEV_GRAPH_NM
+    use: USE_GRAPH_NM
+  conductor-url: http://203.245.28.195:8890/conductor    
+    
+# Metadata RDF URL (Namespace) 
+dtmeta:
+  # TODO : 임시 정의, 추후 수정 필요
+  resource:
+    base-url: http://1.234.5.217:8084/meta/resource/page/
+    data-url: http://1.234.5.217:8084/meta/api/v1/resource/data/
+  # TODO : 임시 정의, 추후 수정 필요
+  rdf-schema:
+    base-url: http://1.234.5.217:8084/meta/ns/digitaltwin#
+    skos-url: http://1.234.5.217:8084/meta/skos/digitaltwin#
+    
+# NEO4J
+neo4j:
+  authentication:
+    username: neo4j
+    password: rhksflwk1!
+  uri: bolt://203.245.28.195:7687
+  browser-url: http://203.245.28.195:7474/browser
+  
+# Elastic Search
+elastic:
+  authentication:
+    username: elastic
+    password: es_admin1!
+  protocol: https
+    # TODO : 임시 정의, 추후 수정 필요
+  server-ip: 1.234.5.217
+  server-port: 9200
+  kibana-port: 5601
+  fingerprint: 4cd6a201122ff2ddad6545b074f7d9c38b8d431f4adf66bf7473a6449ab463d7
+  index-name: test_meta
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile:
+      - prod
+  datasource:
+    url: jdbc:postgresql://1.234.5.217:5432/dtmeta
+    username: meta_manager
+    password: rhksflwk1!
+    driver-class-name: org.postgresql.Driver      
+
+# Disabling the swagger-ui
+springdoc.swagger-ui.enabled: false
+
+oauth:
+  public-key: http://192.168.123.81:33000/security/publickey
+  access-token: http://192.168.123.81:33000/oauth2.0/token
+authorization: 
+  data : true
+  default-auth:
+    use-flag: true  
+    list: AUT_META_DEFAULT
+
+platform.common.api.url: http://1.234.5.217:6998
+
+# Virtuoso 
+virtuoso:
+  datasource:
+    url: jdbc:virtuoso://203.245.28.195:1111/charset=UTF-8
+    username: meta_manager
+    password: rhksflwk1!
+  graph:
+    dev: DEV_GRAPH_NM
+    use: USE_GRAPH_NM
+  conductor-url: http://203.245.28.195:8890/conductor    
+
+# Metadata RDF URL (Namespace) 
+dtmeta:
+  # TODO : 임시 정의, 추후 수정 필요
+  resource:
+    base-url: http://digitaltwin.keti.re.kr/meta/resource/page/
+    data-url: http://digitaltwin.keti.re.kr/meta/api/v1/resource/data/
+  # TODO : 임시 정의, 추후 수정 필요
+  rdf-schema:
+    base-url: http://vocab.keti.re.kr/meta/ns/digitaltwin#
+    skos-url: http://vocab.keti.re.kr/meta/skos/digitaltwin#
+    
+# NEO4J
+neo4j:
+  authentication:
+    username: neo4j
+    password: rhksflwk1!
+  uri: bolt://203.245.28.195:7687
+  browser-url: http://203.245.28.195:7474/browser 
+
+# Elastic Search
+elastic:
+  authentication:
+    username: elastic
+    password: es_admin1!
+  protocol: https
+    # TODO : 임시 정의, 추후 수정 필요
+  server-ip: 1.234.5.217
+  server-port: 9200
+  kibana-port: 5601
+  fingerprint: 4cd6a201122ff2ddad6545b074f7d9c38b8d431f4adf66bf7473a6449ab463d7
+  index-name: test_meta
+

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/layout}">
+
+<head>
+    <title th:text="${breadcrumb.menu_nm}">사용자관리</title>
+</head>
+<div layout:fragment="content">
+    <nav th:replace="fragments/page_breadcrumb"></nav>
+    <div class="row">
+        <div class="col-12 col-xl-12 grid-margin stretch-card">
+            <div class="card">
+                <div class="card-body">
+                    <form name="searchForm" th:action="@{/setting/user(menuCd=${params.menuCd})}" th:object="${params}" method="get">
+                        <th:block th:include="fragments/search_hidden"></th:block>
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <div class="form-group row">
+                                    <div class="col-sm-4">
+                                        <select th:field="*{field}" class="form-control">
+                                            <option value="user_id">아이디</option>
+                                            <option value="user_nm">이름</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-sm-8">
+                                        <input type="text" th:field="*{keyword}" class="form-control" placeholder="검색어를 입력하세요">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12 text-right">
+                                <button type="submit" class="btn btn-primary mr-2 btn-icon-text btn-search">
+                                    <i class="btn-icon-prepend" data-feather="search"></i>조회
+                                </button>
+                                <a th:href="@{|/setting/user/form?${pageParams}|}" class="btn btn-secondary btn-icon-text">
+                                    <i class="btn-icon-prepend" data-feather="edit"></i>등록
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12 col-xl-12 grid-margin stretch-card">
+            <div class="card">
+                <div class="card-body">
+                    <p class="card-description">
+                        <th:block th:include="fragments/paging_result:: paging_result(title='',sort='reg_dt|등록일@id|아이디@user_nm|이름')"></th:block>
+                    </p>
+                    <p class="card-description"></p>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <colgroup>
+                                <col style="width: 5%;">
+                                <col style="width: 10%;">
+                                <col style="width: 10%;">
+                                <col style="width: 10%;">
+                                <col style="width: 15%;">
+                                <col style="width: 10%;">
+                                <col style="width: 10%;">
+                                <col style="width: 8%;">
+                                <col style="width: 12%;">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>아이디</th>
+                                    <th>이름</th>
+                                    <th>권한</th>
+                                    <th>이메일</th>
+                                    <th>전화번호</th>
+                                    <th>등록일</th>
+                                    <th>최근 로그인 일시</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <th:block th:include="fragments/table_empty:: table_empty(9)" th:if="${#lists.isEmpty(list)}"></th:block>
+                                <tr th:each="item : ${list}" th:unless="${#lists.isEmpty(list)}">
+                                    <td th:text="${paging.total - item.rnum + 1}">1</td>
+                                    <td th:text="${item.id}">아이디</td>
+                                    <td>
+                                        <a th:href="@{|/setting/user/${item.user_seq}?${pageParams}|}" th:text="${item.user_nm}">이름</a>
+                                    </td>
+                                    <td th:text="${item.auth_nm}">권한</td>
+                                    <td th:text="${item.user_eml}">이메일</td>
+                                    <td th:text="|${item.user_hp_1}${item.user_hp_2}${item.user_hp_3}|">전화번호</td>
+                                    <td th:text="${item.reg_dt}">등록일</td>
+                                    <td th:text="${item.last_lgn_dt}">등록일</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <th:block th:include="fragments/paging"></th:block>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<th:block layout:fragment="custom_css">
+</th:block>
+<th:block layout:fragment="custom_js">
+    <script th:src="@{/assets/js/pages/setting/user_list.js}"></script>
+</th:block>
+
+</html>
