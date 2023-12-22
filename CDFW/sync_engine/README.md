@@ -93,11 +93,15 @@ wget https://jdbc.postgresql.org/download/postgresql-42.5.1.jar
 * download
 $wget https://archive.apache.org/dist/flink/flink-1.17.0/flink-1.17.0-bin-scala_2.12.tgz
 $tar -xvzf flink-1.17.0-bin-scala_2.12.tgz
-* library download (download location: flink-1.17.0/lib)
-$wget https://repo1.maven.org/maven2/org/apache/flink/flink-sql-connector-kafka/1.17.0/flink-sql-connector-kafka-1.17.0.jar
-$wget https://repo1.maven.org/maven2/org/apache/kafka/kafka-clients/3.4.0/kafka-clients-3.4.0.jar
-$wget https://jdbc.postgresql.org/download/postgresql-42.6.0.jar
-$wget https://repo.maven.apache.org/maven2/org/apache/flink/flink-connector-jdbc/3.1.0-1.17/flink-connector-jdbc-3.1.0-1.17.jar
+* library 연결
+ $ cp /Mirrorlake/plugin/flink-lib/* flink-1.17.0/lib)
+ - flink-connector-files-1.17.0.jar
+ - flink-sql-connector-kafka-1.17.0.jar
+ - kafka-clients-3.4.0.jar
+ - postgresql-42.6.0.jar
+ - flink-connector-jdbc-3.1.0-1.17.jar
+ - flink-json-1.17.0.jar
+ - sedona-flink-shaded_2.12-1.5.1-SNAPSHOT.jar
 
 * Config file (conf/flink-conf.yaml)
 jobmanager.rpc.address: 192.168.145.13
