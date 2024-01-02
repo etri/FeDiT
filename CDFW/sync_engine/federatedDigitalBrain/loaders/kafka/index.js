@@ -18,30 +18,21 @@ exports.init = async () => {
       logger.error("error" + err);
    });
 
-   //BrokerNotAvailableError: Could not find the leader
-   client.refreshMetadata(["DOcomposition"], (err) => {
-      if (err) {
-         console.warn("Error refreshing kafka metadata", err);
-      }
-   });
-
    const status = await model.kafka.GetConnectorCheck({
       connectors: [
          "DigitalBase_latestFederatedDigitalObjects",
-         "DigitalBase_latestUnalliedDigitalObject",
+         "DigitalBase_UnalliedDigitalObjects",
       ],
    });
-   if (status) {
-      console.log("Default connectors already exist");
-   } else {
+   if (!status) {
       model.kafka.createPostgresSinkConnector({
          topic: "latestFederatedDigitalObjects",
          type: "federated_digital_object",
          table: "federated_digital_object_data",
       });
       model.kafka.createPostgresSinkConnector({
-         topic: "latestUnalliedDigitalObject",
-         type: "digital_object",
+         topic: "UnalliedDigitalObjects",
+         type: "UnalliedDigitalObjects",
          table: "digital_object_data",
       });
    }
