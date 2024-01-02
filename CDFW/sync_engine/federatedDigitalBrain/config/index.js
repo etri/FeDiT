@@ -1,7 +1,15 @@
 /**
  * window된 디오 데이터 생성용 flink table config
- * 추 후에 재 논의 필요
+ * default term: [0]
  */
+exports.setWindowDOtable = {
+   term: [0, 1, 10, 60],
+}; //term 마다 디오 테이블 생성
+
+exports.setSedonaFlinkFunc = {
+   jarLocation:
+      "/home/cotlab/flink-release-1.17.0/build-target/lib/sedona-flink-shaded_2.12-1.5.1-SNAPSHOT.jar",
+};
 
 exports.nginx = {
    url: null,
@@ -10,22 +18,18 @@ exports.nginx = {
    base: "mirrorlake/v1/digital-twins",
 };
 
-exports.windowPolicy = {
-   term: [10, 60],
-}; //term 마다 디오 테이블 생성
-
 exports.type = {
    mirrorlake: 0,
    federatedDigitalTwin: 1,
-   digitalTwins: 2,
-   federatedDigitalObject: 3,
-   service: 4,
-   simulation: 5,
-   subscription: 6,
-   dataModel: 7,
-   visualModel: 8,
-   validation: 9,
-   fidelity: 10,
+   federatedDigitalObject: 2,
+   digitalObject: 3,
+   controller: 4,
+   visualModel: 5,
+   dataModel: 6,
+   behaviorModel: 7,
+   simulation: 8,
+   service: 9,
+   subscription: 10,
 };
 
 exports.mirrorlake = {
