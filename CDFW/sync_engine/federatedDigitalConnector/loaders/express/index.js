@@ -19,7 +19,7 @@ exports.init = ({ app }) => {
       })
    );
 
-   logger.info("morgan Format : " + morganFormat);
+   //logger.info("morgan Format : " + morganFormat);
    app.use(morgan(morganFormat, { stream: logger.stream })); // morgan 로그 설정
 
    // response format
@@ -63,7 +63,7 @@ exports.init = ({ app }) => {
       logger.info(`Server Start on port ${port}`);
    });
 
-   figlet("Mirror Lake!!", function (err, data) {
+   figlet("FederatedTwin", function (err, data) {
       if (err) {
          console.log("Something went wrong...");
          console.dir(err);
