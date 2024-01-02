@@ -2,7 +2,7 @@ const config = require("../../config");
 const lib = require("../../lib");
 const { connectHost } = config.kafka;
 const [hostname, port] = connectHost.split(":");
-
+const ErrorHandler = require("../../lib/error-handler");
 const http = require("http");
 
 class Kafka {
@@ -59,7 +59,7 @@ class Kafka {
             messages: data, //sensor_data post body
          },
       ];
-      logger.info("payload: ", payload);
+
       producer.send(payload, function (err, data) {
          if (err) logger.error(err);
          else logger.info(data);
@@ -67,60 +67,6 @@ class Kafka {
       return 0;
    }
 
-   /**
-    *
-    * @param {String} type (DigitalObjects, Sensors)
-    * @returns
-    */
-   async createlatestDataSinkConnector({ type }) {
-      let field;
-      if (type == "UnalliedDigitalObject") {
-         field = "@.digital_object_id";
-      } else if (type == "FederatedDigitalObjects") {
-         field = "@.federated_digital_object_id";
-      }
-      const bodyConfig = {
-         name: "latestDataSink_" + type,
-         config: {
-            "connector.class": "com.keti.connector.kafka.KafkaSinkConnector",
-            "key.converter": "org.apache.kafka.connect.storage.StringConverter",
-            "value.converter":
-               "org.apache.kafka.connect.storage.StringConverter",
-            "kafka.sink.bootstrap": config.kafka.host,
-            "kafka.sink.topic": "latest" + type,
-            "tasks.max": "1",
-            topics: type,
-            "kafka.key.enabled": "true",
-            "kafka.key.field": field,
-         },
-      };
-      await lib.request({
-         method: "post",
-         url: `http://${config.kafka.connectHost}/connectors`,
-         bodyParams: bodyConfig,
-      });
-      return 0;
-   }
-
-   /**
-    * {
-  name: 'Sink',
-  config: {
-    'connector.class': 'org.kafka.connect.http.HttpSinkSubscriptionConnector',
-    'tasks.max': '1',
-    'http.api.url': 'http://localhost:1234/receiver,http://localhost:1235/receiver',
-    topics: 'D21,D20',//simulation_subject
-    'digital.twin.id': 'D46d8c5717a08988190a816a71edff08e',
-    'subscription.id': 'S47cd94f6338a2890bc1a1bf3bb69357a',
-    'subscription.name': 'tsub1',
-    'request.method': 'POST',
-    headers: 'Content-Type:application/json|Accept-Encoding: application/json',
-    'key.converter': 'org.apache.kafka.connect.storage.StringConverter',
-    'value.converter': 'org.apache.kafka.connect.storage.StringConverter'
-  }
-}
-    * @param {*} param0 
-    */
    async createSimulationSinkConnector({
       digital_twin_id,
       simulation_id,
@@ -148,16 +94,16 @@ class Kafka {
             "time.step": time_step,
             "kafka.api.url": config.kafka.host,
             "http.api.url": simulation_access_url,
-            topics: "latestDigitalObjects",
+            topics: "latestFederatedDigitalObjects",
             digital_twin_id,
             "simulation.id": simulation_id,
             "simulation.name": simulation_name,
             "resource.type": resource_type,
             "include.input": include_input,
-            "key.field": "digital_object_id",
+            "key.field": "federated_digital_object_id",
             "key.topic": simulation_subject,
             "postgres.password": config.postgresPool.password,
-            "postgres.url": `jdbc:postgresql://${config.postgresPool.host}:${config.postgresPool.port}/mirrorlake`,
+            "postgres.url": `jdbc:postgresql://${config.postgresPool.host}:${config.postgresPool.port}/${config.postgresPool.database}`,
             "postgres.user": config.postgresPool.user,
          },
       };
@@ -201,16 +147,16 @@ class Kafka {
          "time.step": time_step,
          "kafka.api.url": config.kafka.host,
          "http.api.url": simulation_access_url,
-         topics: "latestDigitalObjects",
+         topics: "latestFederatedDigitalObjects",
          digital_twin_id,
          "simulation.id": simulation_id,
          "simulation.name": simulation_name,
          "resource.type": resource_type,
          "include.input": include_input,
-         "key.field": "digital_object_id",
+         "key.field": "federated_digital_object_id",
          "key.topic": simulation_subject,
          "postgres.password": config.postgresPool.password,
-         "postgres.url": `jdbc:postgresql://${config.postgresPool.host}:${config.postgresPool.port}/mirrorlake`,
+         "postgres.url": `jdbc:postgresql://${config.postgresPool.host}:${config.postgresPool.port}/${config.postgresPool.database}`,
          "postgres.user": config.postgresPool.user,
       };
 
@@ -235,23 +181,25 @@ class Kafka {
       topics,
       topicArr,
       subscription_protocol,
+      filtering_action_list,
+      filtering_condition_list,
    }) {
-      let hasDTopic = false; // "D"로 시작하는 요소가 있는지 여부를 추적하기 위한 변수
+      let hasDTopic = false; // "FD"로 시작하는 요소가 있는지 여부를 추적하기 위한 변수
       let topicList = ""; // 최종 결과를 저장할 변수
       for (let i = 0; i < topicArr.length; i++) {
-         if (topicArr[i].startsWith("D")) {
+         if (topicArr[i].startsWith("FD")) {
             if (!hasDTopic) {
                if (topicList !== "") {
                   topicList += ",";
                }
-               topicList += "latestDigitalObjects"; // "D"로 시작하는 요소가 처음 발견된 경우
+               topicList += "latestFederatedDigitalObjects"; // "FD"로 시작하는 요소가 처음 발견된 경우
                hasDTopic = true;
             }
          } else {
             if (topicList !== "") {
                topicList += ",";
             }
-            topicList += topicArr[i]; // "D"로 시작하지 않는 요소일 경우
+            topicList += topicArr[i]; // "FD"로 시작하지 않는 요소일 경우
          }
       }
 
@@ -275,6 +223,7 @@ class Kafka {
                "value.converter":
                   "org.apache.kafka.connect.storage.StringConverter",
                "key.topic": lib.arryToString(topics),
+               "resource.type": "federated_digital_object",
             },
          };
 
@@ -285,23 +234,38 @@ class Kafka {
          });
          return 0;
       } else if (subscription_protocol === "mqtt") {
-         let splitURLsink = notification_url.split("/");
+         let mqttBrokerUri = notification_url.split("//")[1].split("/")[0];
+         let mqttTopic = notification_url
+            .split("//")[1]
+            .split("/")
+            .slice(1)
+            .join("/");
          const ConnectorBody = {
             name: `SUB${subscription_id}`,
             config: {
                "connector.class":
-                  "org.kafka.connect.mqtt.MqttSubscriptionKeyFieldSinkConnector",
+                  "org.kafka.connect.mqtt.MqttSubscriptionActionSinkConnector",
                topics: topicList,
-               "mqtt.topic": splitURLsink[3],
+               "mqtt.topic": mqttTopic,
                "mqtt.client.id": subscription_id,
-               "mqtt.broker.uri": `tcp://${splitURLsink[2]}`,
+               "mqtt.broker.uri": `tcp://${mqttBrokerUri}`,
                "key.converter":
                   "org.apache.kafka.connect.storage.StringConverter",
                "value.converter":
                   "org.apache.kafka.connect.storage.StringConverter",
                "key.topic": lib.arryToString(topics),
+               "resource.type": "federated_digital_object",
             },
          };
+
+         if (filtering_action_list != null) {
+            ConnectorBody.config["filtering.action.list"] = lib.kafkaEnum(
+               filtering_action_list
+            );
+            ConnectorBody.config["filtering.condition.list"] = lib.kafkaEnum(
+               filtering_condition_list
+            );
+         }
 
          await lib.request({
             method: "post",
@@ -322,23 +286,25 @@ class Kafka {
       topics,
       topicArr,
       subscription_protocol,
+      filtering_action_list,
+      filtering_condition_list,
    }) {
-      let hasDTopic = false; // "D"로 시작하는 요소가 있는지 여부를 추적하기 위한 변수
+      let hasDTopic = false; // "FD"로 시작하는 요소가 있는지 여부를 추적하기 위한 변수
       let topicList = ""; // 최종 결과를 저장할 변수
       for (let i = 0; i < topicArr.length; i++) {
-         if (topicArr[i].startsWith("D")) {
+         if (topicArr[i].startsWith("FD")) {
             if (!hasDTopic) {
                if (topicList !== "") {
                   topicList += ",";
                }
-               topicList += "latestDigitalObjects"; // "D"로 시작하는 요소가 처음 발견된 경우
+               topicList += "latestFederatedDigitalObjects"; // "FD"로 시작하는 요소가 처음 발견된 경우
                hasDTopic = true;
             }
          } else {
             if (topicList !== "") {
                topicList += ",";
             }
-            topicList += topicArr[i]; // "D"로 시작하지 않는 요소일 경우
+            topicList += topicArr[i]; // "FD"로 시작하지 않는 요소일 경우
          }
       }
 
@@ -359,6 +325,7 @@ class Kafka {
             "value.converter":
                "org.apache.kafka.connect.storage.StringConverter",
             "key.topic": topics,
+            "resource.type": "federated_digital_object",
          };
 
          await lib.request({
@@ -368,19 +335,31 @@ class Kafka {
          });
          return 0;
       } else if (subscription_protocol === "mqtt") {
-         let splitURLsink = notification_url.split("/");
+         let mqttBrokerUri = notification_url.split("//")[1].split("/")[0];
+         let mqttTopic = notification_url
+            .split("//")[1]
+            .split("/")
+            .slice(1)
+            .join("/");
          const ConnectorBody = {
             "connector.class":
-               "org.kafka.connect.mqtt.MqttSubscriptionKeyFieldSinkConnector",
+               "org.kafka.connect.mqtt.MqttSubscriptionActionSinkConnector",
             topics: topicList,
-            "mqtt.topic": splitURLsink[3],
+            "mqtt.topic": mqttTopic,
             "mqtt.client.id": subscription_id,
-            "mqtt.broker.uri": `tcp://${splitURLsink[2]}`,
+            "mqtt.broker.uri": `tcp://${mqttBrokerUri}`,
             "key.converter": "org.apache.kafka.connect.storage.StringConverter",
             "value.converter":
                "org.apache.kafka.connect.storage.StringConverter",
             "key.topic": topics,
+            "resource.type": "federated_digital_object",
          };
+
+         if (filtering_action_list != null) {
+            ConnectorBody["filtering.action.list"] = filtering_action_list;
+            ConnectorBody["filtering.condition.list"] =
+               filtering_condition_list;
+         }
 
          await lib.request({
             method: "put",
@@ -393,7 +372,40 @@ class Kafka {
       }
    }
 
-   async createServiceSinkConnector({}) {}
+   /**
+    *
+    * @param {String} type (DigitalObjects, Sensors)
+    * @returns
+    */
+   async createlatestDataSinkConnector({ type }) {
+      let field;
+      if (type == "UnalliedDigitalObjects") {
+         field = "@.digital_object_id";
+      } else if (type == "FederatedDigitalObjects") {
+         field = "@.federated_digital_object_id";
+      }
+      const bodyConfig = {
+         name: "latestDataSink_" + type,
+         config: {
+            "connector.class": "com.keti.connector.kafka.KafkaSinkConnector",
+            "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+            "value.converter":
+               "org.apache.kafka.connect.storage.StringConverter",
+            "kafka.sink.bootstrap": config.kafka.host,
+            "kafka.sink.topic": "latest" + type,
+            "tasks.max": "1",
+            topics: type,
+            "kafka.key.enabled": "true",
+            "kafka.key.field": field,
+         },
+      };
+      await lib.request({
+         method: "post",
+         url: `http://${config.kafka.connectHost}/connectors`,
+         bodyParams: bodyConfig,
+      });
+      return 0;
+   }
 
    async createPostgresSinkConnector({ topic, table, type }) {
       const sinkConnectorBody = {
@@ -426,6 +438,10 @@ class Kafka {
       return 0;
    }
 
+   async createServiceSinkConnector({}) {
+      return 0;
+   }
+
    /**
     *
     * @param {string} type (SIM , SUB)
@@ -433,21 +449,26 @@ class Kafka {
     * @returns
     */
    async deleteSink({ type, connectorName }) {
-      if (type) {
-         await lib.request({
-            method: "delete",
-            url: `http://${config.kafka.connectHost}/connectors/${type}${connectorName}`,
-            bodyParams: {},
-         });
-      } else {
-         await lib.request({
-            method: "delete",
-            url: `http://${config.kafka.connectHost}/connectors/${connectorName}`,
-            bodyParams: {},
-         });
-      }
+      const url = type
+         ? `http://${config.kafka.connectHost}/connectors/${type}${connectorName}`
+         : `http://${config.kafka.connectHost}/connectors/${connectorName}`;
+
+      await lib.request({
+         method: "delete",
+         url,
+         bodyParams: {},
+      });
 
       return 0;
+   }
+
+   async connectorOperation({ name, action }) {
+      const result = await lib.request({
+         method: "put",
+         url: `http://${config.kafka.connectHost}/connectors/${name}/${action}`,
+      });
+
+      return result;
    }
 }
 

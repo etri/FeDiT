@@ -25,7 +25,7 @@ class Postgres {
             if (response.rowCount) {
                return response.rows[0];
             } else {
-               return {};
+               return [];
             }
          })
          .catch((e) => {
@@ -41,7 +41,7 @@ class Postgres {
                return response.rows;
             } else {
                //if no response
-               return {};
+               return [];
             }
          })
          .catch((e) => {
@@ -86,10 +86,10 @@ class Postgres {
     * @param {String} name (required)
     * @returns {Boolean} true = 이미 존재 하는 이름
     */
-   async checkNameExist({ table, check, name, federated_twin_id }) {
+   async checkNameExist({ table, check, name, federated_digital_twin_id }) {
       let sql = "";
-      if (federated_twin_id) {
-         sql = `select exists(select * from ${table} where ${check} = '${name}' and federated_digital_twin_id = '${federated_twin_id}');`;
+      if (federated_digital_twin_id) {
+         sql = `select exists(select * from ${table} where ${check} = '${name}' and federated_digital_twin_id = '${federated_digital_twin_id}');`;
       } else {
          sql = `select exists(select * from ${table} where ${check} = '${name}');`;
       }
