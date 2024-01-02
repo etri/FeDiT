@@ -37,12 +37,7 @@ exports.request = async ({ method, url, headers, bodyParams }) => {
       headers = {
          "Content-Type": "application/json",
       };
-      logger.info("params: ", {
-         method,
-         url,
-         headers,
-         data: bodyParams,
-      });
+
       const response = await axios({
          method,
          url,
