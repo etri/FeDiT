@@ -10,9 +10,9 @@ const joi = require("../../../../../middlewares/joi");
  */
 router.post("/", joi.federatedDigitalObjects.create, async function (req, res) {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const result = await services.federatedDigitalObjects.create(
-         federated_twin_id,
+         federated_digital_twin_id,
          req.body
       );
 
@@ -29,31 +29,31 @@ router.post("/", joi.federatedDigitalObjects.create, async function (req, res) {
       e.handle(
          req,
          res,
-         `POST /mirrorlake/v1/federated_twins/{federated_twin_id}/federated_digital_objects ${e}`
+         `POST /mirrorlake/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects ${e}`
       );
    }
 });
 
 /**
  * federated-digital-object Search
- * localhost:1203/mirrorlake/v1/federated-twins/{federated_twin_id}/federated_digital_objects/{federated_digital_object_id}
+ * localhost:1203/mirrorlake/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}
  * ?name=SIcrain
  * @param {string} name (required)
  * @returns {Json} {}
  */
 router.get("/", async (req, res) => {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { name } = req.query;
       let result;
       if (name) {
          result = await services.federatedDigitalObjects.Search({
-            federated_twin_id,
+            federated_digital_twin_id,
             name,
          });
       } else {
          result = await services.federatedDigitalObjects.getAll({
-            federated_twin_id,
+            federated_digital_twin_id,
          });
       }
       res.success(200, result);
@@ -65,24 +65,24 @@ router.get("/", async (req, res) => {
       e.handle(
          req,
          res,
-         `Search /mirrorlake/v1/federated-twins/{federated_twin_id}/federated_digital_objects/{federated_digital_object_id}`
+         `Search /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`
       );
    }
 });
 
 /**
  * federated-digital-object Retrieve
- * localhost:1203/mirrorlake/v1/federated-twins/{federated_twin_id}/federated_digital_objects/{federated_digital_object_id}
+ * localhost:1203/mirrorlake/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}
  * ?name=SIcrain
  * @param {string} federated_digital_object_id (required)
  * @returns {Json} {}
  */
 router.get("/:federated_digital_object_id", async (req, res) => {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { federated_digital_object_id } = req.params;
       const result = await services.federatedDigitalObjects.Retrieve({
-         federated_digital_twin_id: federated_twin_id,
+         federated_digital_twin_id,
          federated_digital_object_id,
       });
 
@@ -99,16 +99,16 @@ router.get("/:federated_digital_object_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Retrieve /mirrorlake/v1/federated-twins/{federated_twin_id}/federated_digital_objects/{federated_digital_object_id}`
+         `Retrieve /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`
       );
    }
 });
 
 /**
  * get federated digital object data
- * localhost:1203/mirrorlake/v1/federated-twins/{federated_twin_id}/federated_digital_objects/{federated_digital_object_id}/data
+ * localhost:1203/mirrorlake/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/data
  * @body {String} federated_digital_object_data_id (system)
- * @body {String} federated_twin_id (required)
+ * @body {String} federated_digital_twin_id (required)
  * @body {String} federated_digital_object_id (required)
  * @body {String} timestamp (system)
  * @body {Json} location (optional)
@@ -117,12 +117,12 @@ router.get("/:federated_digital_object_id", async (req, res) => {
  */
 router.get("/:federated_digital_object_id/data", async function (req, res) {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { federated_digital_object_id } = req.params;
       const { from, to, count } = req.query;
 
       const result = await services.federatedDigitalObjects.getData({
-         federated_digital_twin_id: federated_twin_id,
+         federated_digital_twin_id,
          id: federated_digital_object_id,
          from,
          to,
@@ -137,21 +137,21 @@ router.get("/:federated_digital_object_id/data", async function (req, res) {
       e.handle(
          req,
          res,
-         "GET /mirrorlake/v1/federated_twins/{federated_twin_id}/federated_digital_objects/{federated_digital_object_id}/data"
+         "GET /mirrorlake/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/data"
       );
    }
 });
 
 /*
  * FDO DELETE
- * localhost:1005/mirrorlake/v1/federated-twins/{federated_twin_id}/federated_digital_objects/{federated_digital_object_id}
+ * localhost:1005/mirrorlake/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}
  */
 router.delete("/:federated_digital_object_id", async (req, res) => {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { federated_digital_object_id } = req.params;
       const result = await services.federatedDigitalObjects.delete({
-         federated_digital_twin_id: federated_twin_id,
+         federated_digital_twin_id,
          id: federated_digital_object_id,
       });
 
@@ -164,7 +164,7 @@ router.delete("/:federated_digital_object_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Retrieve /mirrorlake/v1/federated-twins/{federated_twin_id}/federated_digital_objects/{federated_digital_object_id}`
+         `Retrieve /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`
       );
    }
 });
@@ -177,12 +177,12 @@ router.patch(
    joi.federatedDigitalObjects.update,
    async (req, res) => {
       try {
-         const { federated_twin_id } = req;
+         const { federated_digital_twin_id } = req;
          const { federated_digital_object_id } = req.params;
 
          const result = await services.federatedDigitalObjects.update(
             {
-               federated_digital_twin_id: federated_twin_id,
+               federated_digital_twin_id,
                id: federated_digital_object_id,
             },
             req.body
@@ -201,7 +201,114 @@ router.patch(
          e.handle(
             req,
             res,
-            `UPDATE /mirrorlake/v1/federated_twins/{federated_twin_id}/federated_digital_objects/{federated_digital_object_id}`
+            `UPDATE /mirrorlake/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`
+         );
+      }
+   }
+);
+
+/**
+ * FDO Control Creation (federated Digital Object control message Creation)
+ */
+router.post(
+   "/:federated_digital_object_id/control",
+   joi.federatedDigitalObjects.controlCreate,
+   async function (req, res) {
+      try {
+         const { federated_digital_twin_id } = req;
+         const { federated_digital_object_id } = req.params;
+
+         const result = await services.federatedDigitalObjects.createControl(
+            federated_digital_twin_id,
+            federated_digital_object_id,
+            req.body
+         );
+
+         res.success(201, result);
+      } catch (e) {
+         if (!(e instanceof ErrorHandler)) {
+            logger.error(e);
+            e = new ErrorHandler(
+               500,
+               500,
+               "Internal Server Error of FDO Creation"
+            );
+         }
+         e.handle(
+            req,
+            res,
+            `POST /mirrorlake/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects ${e}`
+         );
+      }
+   }
+);
+
+/**
+ * federated-digital-object Control Search
+ * localhost:1203/mirrorlake/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}
+ * ?name=SIcrain
+ * @param {string} name (required)
+ * @returns {Json} {}
+ */
+router.get("/:federated_digital_object_id/control", async (req, res) => {
+   try {
+      const { federated_digital_twin_id } = req;
+      const { federated_digital_object_id } = req.params;
+      const { from, to } = req.query;
+      const result = await services.federatedDigitalObjects.searchControl({
+         federated_digital_twin_id,
+         federated_digital_object_id,
+         from,
+         to,
+      });
+      res.success(200, result);
+   } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+         logger.error(e);
+         e = new ErrorHandler(500, 500, "Internal Server Error of search FDO");
+      }
+      e.handle(
+         req,
+         res,
+         `Search /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`
+      );
+   }
+});
+
+/**
+ * federated-digital-object Control Retrive
+ * localhost:1203/mirrorlake/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/federated_digital_object_control_data_id
+ * @param {string} name (required)
+ * @returns {Json} {}
+ */
+router.get(
+   "/:federated_digital_object_id/control/:federated_digital_object_control_data_id",
+   async (req, res) => {
+      try {
+         const { federated_digital_twin_id } = req;
+         const {
+            federated_digital_object_id,
+            federated_digital_object_control_data_id,
+         } = req.params;
+         const result = await services.federatedDigitalObjects.retrieveControl({
+            federated_digital_twin_id,
+            federated_digital_object_id,
+            federated_digital_object_control_data_id,
+         });
+         res.success(200, result);
+      } catch (e) {
+         if (!(e instanceof ErrorHandler)) {
+            logger.error(e);
+            e = new ErrorHandler(
+               500,
+               500,
+               "Internal Server Error of search FDO"
+            );
+         }
+         e.handle(
+            req,
+            res,
+            `Search /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`
          );
       }
    }

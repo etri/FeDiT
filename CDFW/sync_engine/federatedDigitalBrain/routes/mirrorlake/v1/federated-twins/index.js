@@ -50,7 +50,7 @@ router.get("/:federated_twin_id/export", async (req, res) => {
    try {
       const { federated_twin_id } = req.params;
       let result = await services.federatedDigitalTwins.Export({
-         federated_twin_id,
+         federated_digital_twin_id: federated_twin_id,
       });
       res.success(200, result);
    } catch (e) {
@@ -172,7 +172,7 @@ router.delete("/:federated_twin_id", async (req, res) => {
 });
 
 const receiveFederatedDigitalTwinId = (req, res, next) => {
-   req.federated_twin_id = req.params.federated_twin_id;
+   req.federated_digital_twin_id = req.params.federated_twin_id;
    next();
 };
 

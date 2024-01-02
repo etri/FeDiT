@@ -13,9 +13,9 @@ const joi = require("../../../../../middlewares/joi");
  */
 router.post("/", joi.simulations.create, async function (req, res) {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const result = await services.simulations.create(
-         federated_twin_id,
+         federated_digital_twin_id,
          req.body
       );
 
@@ -32,7 +32,7 @@ router.post("/", joi.simulations.create, async function (req, res) {
       e.handle(
          req,
          res,
-         `POST /mirrorlake/v1/federated-twins/{federated_twin_id}}/simulations ${e}`
+         `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}}/simulations ${e}`
       );
    }
 });
@@ -44,16 +44,18 @@ router.post("/", joi.simulations.create, async function (req, res) {
  */
 router.get("/", async (req, res) => {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { name } = req.query;
       let result;
       if (name) {
          result = await services.simulations.search({
-            federated_twin_id,
+            federated_digital_twin_id,
             name,
          });
       } else {
-         result = await services.simulations.getAll({ federated_twin_id });
+         result = await services.simulations.getAll({
+            federated_digital_twin_id,
+         });
       }
       res.success(200, result);
    } catch (e) {
@@ -68,7 +70,7 @@ router.get("/", async (req, res) => {
       e.handle(
          req,
          res,
-         `Search /mirrorlake/v1/federated-twins/{federated_twin_id}}/simulations/{simulation_id}`
+         `Search /mirrorlake/v1/federated-twins/{federated_digital_twin_id}}/simulations/{simulation_id}`
       );
    }
 });
@@ -80,10 +82,10 @@ router.get("/", async (req, res) => {
  */
 router.get("/:simulation_id", async (req, res) => {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { simulation_id } = req.params;
       const result = await services.simulations.retrieve({
-         federated_twin_id,
+         federated_digital_twin_id,
          simulation_id,
       });
 
@@ -100,7 +102,7 @@ router.get("/:simulation_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Retrieve /mirrorlake/v1/federated-twins/{federated_twin_id}}/simulation/{simulation_id}`
+         `Retrieve /mirrorlake/v1/federated-twins/{federated_digital_twin_id}}/simulation/{simulation_id}`
       );
    }
 });
@@ -117,11 +119,11 @@ router.patch(
    joi.simulations.update,
    async function (req, res) {
       try {
-         const { federated_twin_id } = req;
+         const { federated_digital_twin_id } = req;
          const { simulation_id } = req.params;
 
          const result = await services.simulations.update(
-            { federated_twin_id, simulation_id },
+            { federated_digital_twin_id, simulation_id },
             req.body
          );
 
@@ -138,7 +140,7 @@ router.patch(
          e.handle(
             req,
             res,
-            `POST /mirrorlake/v1/federated-twins/{federated_twin_id}/simulations/{simulation_id} ${e}`
+            `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/simulations/{simulation_id} ${e}`
          );
       }
    }
@@ -151,11 +153,11 @@ router.patch(
  */
 router.delete("/:simulation_id", async (req, res) => {
    try {
-      const { federated_twin_id } = req;
-      const { federated_simulation_id } = req.params;
+      const { federated_digital_twin_id } = req;
+      const { simulation_id } = req.params;
       const result = await services.simulations.delete({
-         federated_twin_id,
-         federated_simulation_id,
+         federated_digital_twin_id,
+         simulation_id,
       });
 
       res.success(200, result);
@@ -171,7 +173,7 @@ router.delete("/:simulation_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Delete /mirrorlake/v1/federated-twins/{federated_twin_id}}/simulations/{simulation_id} ${e}`
+         `Delete /mirrorlake/v1/federated-twins/{federated_digital_twin_id}}/simulations/{simulation_id} ${e}`
       );
    }
 });
@@ -183,10 +185,10 @@ router.delete("/:simulation_id", async (req, res) => {
  */
 router.post("/:simulation_id/execute", async function (req, res) {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { simulation_id } = req.params;
       const result = await services.simulations.execute({
-         federated_twin_id,
+         federated_digital_twin_id,
          simulation_id,
       });
 
@@ -203,27 +205,23 @@ router.post("/:simulation_id/execute", async function (req, res) {
       e.handle(
          req,
          res,
-         `POST /mirrorlake/v1/federated-twins/{federated_twin_id}/simulations/{simulation_id} ${e}`
+         `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/simulations/{simulation_id} ${e}`
       );
    }
 });
 
 /**
- * 시뮬레이션 데이터 피딩 중지
+ * 시뮬레이션 데이터 피딩 일시중지
  * @param {string} simulation_id (required)
  * @returns {Json} {}
  */
 router.post("/:simulation_id/termination", async function (req, res) {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { simulation_id } = req.params;
-      const { from, to, count } = req.query;
       const result = await services.simulations.termination({
-         federated_twin_id,
+         federated_digital_twin_id,
          simulation_id,
-         from,
-         to,
-         count,
       });
       res.success(200, result);
    } catch (e) {
@@ -238,11 +236,37 @@ router.post("/:simulation_id/termination", async function (req, res) {
       e.handle(
          req,
          res,
-         `POST /mirrorlake/v1/federated-twins/{federated_twin_id}/simulations/{simulation_id} ${e}`
+         `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/simulations/{simulation_id} ${e}`
       );
    }
 });
 
+/**
+ * 시뮬레이션 데이터 피딩 재시작
+ * @param {string} simulation_id (required)
+ * @returns {Json} {}
+ */
+router.post("/:simulation_id/resume", async function (req, res) {
+   try {
+      const { federated_digital_twin_id } = req;
+      const { simulation_id } = req.params;
+      const result = await services.simulations.resume({
+         federated_digital_twin_id,
+         simulation_id,
+      });
+      res.success(200, result);
+   } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+         logger.error(e);
+         e = new ErrorHandler(500, 500, "Internal Server Error");
+      }
+      e.handle(
+         req,
+         res,
+         `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/simulations/{simulation_id} ${e}`
+      );
+   }
+});
 /**
  * 시뮬레이션 데이터 생성(단발성 시뮬레이션 실행)
  * @param {string} simulation_id (required)
@@ -255,12 +279,15 @@ router.post("/:simulation_id/termination", async function (req, res) {
  */
 router.post("/:simulation_id/data", async function (req, res) {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { simulation_id } = req.params;
-      const result = await services.simulations.dataCreate({
-         federated_twin_id,
-         simulation_id,
-      });
+      const result = await services.simulations.dataCreate(
+         {
+            federated_digital_twin_id,
+            simulation_id,
+         },
+         req.body
+      );
       res.success(200, result);
    } catch (e) {
       if (!(e instanceof ErrorHandler)) {
@@ -274,7 +301,7 @@ router.post("/:simulation_id/data", async function (req, res) {
       e.handle(
          req,
          res,
-         `POST /mirrorlake/v1/federated-twins/{federated_twin_id}/simulations/{simulation_id}/data ${e}`
+         `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/simulations/{simulation_id}/data ${e}`
       );
    }
 });
@@ -286,11 +313,11 @@ router.post("/:simulation_id/data", async function (req, res) {
  */
 router.get("/:simulation_id/data", async function (req, res) {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { simulation_id } = req.params;
       const { from, to, count } = req.query;
       const result = await services.simulations.dataRetrieve({
-         federated_twin_id,
+         federated_digital_twin_id,
          simulation_id,
          from,
          to,
@@ -309,7 +336,7 @@ router.get("/:simulation_id/data", async function (req, res) {
       e.handle(
          req,
          res,
-         `POST /mirrorlake/v1/federated-twins/{federated_twin_id}/simulations/{simulation_id} ${e}`
+         `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/simulations/{simulation_id} ${e}`
       );
    }
 });
@@ -324,11 +351,11 @@ router.post(
    "/:simulation_id/data/:simulation_data_id/result",
    async function (req, res) {
       try {
-         const { digital_twin_id } = req;
+         const { federated_digital_twin_id } = req;
          const { simulation_id, simulation_data_id } = req.params;
          const result_data = req.body;
          const result = await services.simulations.resultAsyncUpdate({
-            digital_twin_id,
+            federated_digital_twin_id,
             simulation_id,
             simulation_data_id,
             result_data,

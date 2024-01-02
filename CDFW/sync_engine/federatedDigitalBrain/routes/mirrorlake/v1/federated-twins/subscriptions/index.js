@@ -6,11 +6,10 @@ const ErrorHandler = require("../../../../../lib/error-handler");
 const auth = require("../../../../../middlewares/auth");
 const joi = require("../../../../../middlewares/joi");
 
-//구독은 단발성으로 보내고 받기만 하면 되니까 1회성
 /**
  * subscription Creation
  * @body {String} subscription_id (system)
- * @body {Json} federated_twin_id (system)
+ * @body {Json} federated_digital_twin_id (system)
  * @body {Json} subscription_name (required)
  * @body {String} description (optional)
  * @body {String} create_time (system)
@@ -26,9 +25,9 @@ const joi = require("../../../../../middlewares/joi");
  */
 router.post("/", joi.subscriptions.create, async function (req, res) {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const result = await services.subscriptions.create(
-         federated_twin_id,
+         federated_digital_twin_id,
          req.body
       );
 
@@ -45,7 +44,7 @@ router.post("/", joi.subscriptions.create, async function (req, res) {
       e.handle(
          req,
          res,
-         `POST /mirrorlake/v1/federated_twins/{federated_twin_id}/subscriptions ${e}`
+         `POST /mirrorlake/v1/federated_twins/{federated_digital_twin_id}/subscriptions ${e}`
       );
    }
 });
@@ -57,16 +56,18 @@ router.post("/", joi.subscriptions.create, async function (req, res) {
  */
 router.get("/", async (req, res) => {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { name } = req.query;
       let result;
       if (name) {
          result = await services.subscriptions.search({
-            federated_twin_id,
+            federated_digital_twin_id,
             name,
          });
       } else {
-         result = await services.subscriptions.getAll({ federated_twin_id });
+         result = await services.subscriptions.getAll({
+            federated_digital_twin_id,
+         });
       }
       res.success(200, result);
    } catch (e) {
@@ -81,7 +82,7 @@ router.get("/", async (req, res) => {
       e.handle(
          req,
          res,
-         `Search /mirrorlake/v1/federated-twins/{federated_twin_id}/subscriptions/{subscription_id}`
+         `Search /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/subscriptions/{subscription_id}`
       );
    }
 });
@@ -93,10 +94,10 @@ router.get("/", async (req, res) => {
  */
 router.get("/:subscription_id", async (req, res) => {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { subscription_id } = req.params;
       const result = await services.subscriptions.retrieve({
-         federated_twin_id,
+         federated_digital_twin_id,
          subscription_id,
       });
 
@@ -113,7 +114,7 @@ router.get("/:subscription_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Retrieve /mirrorlake/v1/federated-twins/{federated_twin_id}/subscriptions/{subscription_id} ${e}`
+         `Retrieve /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/subscriptions/{subscription_id} ${e}`
       );
    }
 });
@@ -128,10 +129,10 @@ router.patch(
    joi.subscriptions.update,
    async function (req, res) {
       try {
-         const { federated_twin_id } = req;
+         const { federated_digital_twin_id } = req;
          const { subscription_id } = req.params;
          const result = await services.subscriptions.update(
-            { federated_twin_id, subscription_id },
+            { federated_digital_twin_id, subscription_id },
             req.body
          );
 
@@ -148,17 +149,11 @@ router.patch(
          e.handle(
             req,
             res,
-            `POST /mirrorlake/v1/federated-twins/{federated_twin_id}/subscriptions/{subscription_id} ${e}`
+            `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/subscriptions/{subscription_id} ${e}`
          );
       }
    }
 );
-
-/**
- * subscription execute
- * @param {String} subscription_id (required)
- * @returns {Json} {}
- */
 
 /**
  * subscription delete
@@ -167,10 +162,10 @@ router.patch(
  */
 router.delete("/:subscription_id", async (req, res) => {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { subscription_id } = req.params;
       const result = await services.subscriptions.delete({
-         federated_twin_id,
+         federated_digital_twin_id,
          subscription_id,
       });
 
@@ -187,7 +182,7 @@ router.delete("/:subscription_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Delete /mirrorlake/v1/federated-twins/{federated_twin_id}/subscriptions/{subscription_id} ${e}`
+         `Delete /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/subscriptions/{subscription_id} ${e}`
       );
    }
 });
