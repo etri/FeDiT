@@ -27,7 +27,8 @@
 		"uuid": "^9.0.0",
 		"uuid4": "^2.0.3",
 		"winston": "^3.8.2",
-		"winston-daily-rotate-file": "^4.7.1"
+		"winston-daily-rotate-file": "^4.7.1",
+		"wkt": "^0.1.1"
 	},
 	"scripts": {
 		"start": "node ./app.js",
