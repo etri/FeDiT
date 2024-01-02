@@ -6,7 +6,6 @@ const app = express();
 async function start() {
    await loaders.start({ app });
    require("./routes")(app);
-   require("./swagger")(app);
 }
 start();
 
