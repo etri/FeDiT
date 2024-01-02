@@ -4,7 +4,7 @@ const router = asyncify(express.Router());
 const fs = require("fs");
 
 const receiveFederatedDigitalTwinId = (req, res, next) => {
-   req.federated_twin_id = req.params.federated_twin_id;
+   req.federated_digital_twin_id = req.params.federated_twin_id;
    next();
 };
 
