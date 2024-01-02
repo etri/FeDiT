@@ -5,30 +5,18 @@ exports.create = (req, res, next) => {
    const schema = Joi.object({
       digital_twin_id: Joi.string().allow(),
       simulation_name: Joi.string().required(),
-      description: Joi.string().default(null),
-      tags: Joi.array()
-         .items(Joi.string().allow("").default("etc"))
-         .default([]),
-      creator_id: Joi.string().default("anonymous"),
-      simulation_subject: Joi.array().items(Joi.string().required()).required(),
+      description: Joi.string().required(),
+      tags: Joi.array().items(Joi.string()).required(),
+      subject: Joi.string().required(),
+      creation_time: Joi.string().required(),
+      modification_time: Joi.string().required(),
       simulation_access_url: Joi.string().required(),
-      authorization: Joi.string().default(null),
-      simulation_request_param: Joi.object().default(null),
-      simulation_response_info: Joi.object().default(null),
-      response_format_type: Joi.string().valid("json", "xml").default(null),
-      interface_type: Joi.string().default(null),
-      error_info: Joi.object().default(null),
-      time_step: Joi.number().required(),
-      simulation_type: Joi.string()
-         .valid("default", "later")
-         .default("default"),
-      simulation_attribute: Joi.array()
-         .items(Joi.string().allow("").default(""))
-         .default([]),
-      resource_type: Joi.string()
-         .valid("digital_object", "simulation")
-         .required(),
-      include_input: Joi.string().valid("true", "false").default("false"),
+      authorization: Joi.string().required(),
+      simulation_request_param: Joi.object().required(),
+      simulation_response_info: Joi.object().required(),
+      response_format_type: Joi.string().valid("json", "xml").required(),
+      interface_type: Joi.string().required(),
+      error_info: Joi.object().required(),
       preliminary_field: Joi.object().empty({}).default(null),
    });
    validate(schema, req, res, next);
@@ -41,20 +29,16 @@ exports.update = (req, res, next) => {
       simulation_name: Joi.string().allow(),
       description: Joi.string().allow(),
       tags: Joi.array().items(Joi.string()).allow(),
-      creator_id: Joi.string().allow(),
-      simulation_subject: Joi.array().items(Joi.string()).allow(),
+      creation_time: Joi.string().allow(),
+      modification_time: Joi.string().allow(),
+      subject: Joi.string().allow(),
       simulation_access_url: Joi.string().allow(),
       authorization: Joi.string().allow(),
       simulation_request_param: Joi.object().allow(),
       simulation_response_info: Joi.string().allow(),
-      response_format_type: Joi.string().allow(),
+      response_format_type: Joi.string().valid("json", "xml").allow(),
       interface_type: Joi.string().allow(),
       error_info: Joi.object().allow(),
-      time_step: Joi.number().allow(),
-      simulation_type: Joi.string().valid("default", "later").allow(),
-      simulation_attribute: Joi.array().items(Joi.string()).allow(),
-      resource_type: Joi.string().valid("digital_object", "simulation").allow(),
-      include_input: Joi.string().allow(),
       preliminary_field: Joi.object().allow(),
    });
 

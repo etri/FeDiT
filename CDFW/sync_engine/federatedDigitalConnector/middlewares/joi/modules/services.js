@@ -9,14 +9,16 @@ exports.create = (req, res, next) => {
       tags: Joi.array()
          .items(Joi.string().allow("").default("etc"))
          .default([]),
-      creator_id: Joi.string().default("anonymous"),
+      subject: Joi.string().required(),
+      creation_time: Joi.string().empty("").required(),
+      modification_time: Joi.string().empty("").required(),
       service_access_url: Joi.string().required(),
-      authorization: Joi.string().default(null),
-      service_request_param: Joi.string().default(null),
-      service_response_info: Joi.string().default(null),
-      response_format_type: Joi.string().default(null),
-      interface_type: Joi.string().default(null),
-      error_info: Joi.string().default(null),
+      authorization: Joi.string().default(null).required(),
+      service_request_param: Joi.object().empty({}).required(),
+      service_response_info: Joi.object().empty({}).required(),
+      response_format_type: Joi.string().default(null).required(),
+      interface_type: Joi.string().default(null).required(),
+      error_info: Joi.object().empty({}).required(),
       preliminary_field: Joi.object().empty({}).default(null),
    });
 
@@ -30,14 +32,15 @@ exports.update = (req, res, next) => {
       service_name: Joi.string().allow(),
       description: Joi.string().allow(),
       tags: Joi.array().items(Joi.string()).allow(),
-      creator_id: Joi.string().allow(),
+      creation_time: Joi.string().empty("").allow(),
+      modification_time: Joi.string().empty("").allow(),
       service_access_url: Joi.string().allow(),
       authorization: Joi.string().allow(),
-      service_request_param: Joi.string().allow(),
-      service_response_info: Joi.string().allow(),
+      service_request_param: Joi.object().allow(),
+      service_response_info: Joi.object().allow(),
       response_format_type: Joi.string().allow(),
       interface_type: Joi.string().allow(),
-      error_info: Joi.string().allow(),
+      error_info: Joi.object().allow(),
       preliminary_field: Joi.object().allow(),
    });
 

@@ -10,13 +10,13 @@ exports.create = (req, res, next) => {
          .items(Joi.string().allow("").default("etc"))
          .default([]),
       creator_id: Joi.string().default("anonymous"),
-      service_access_url: Joi.string().required(),
-      authorization: Joi.string().default(null),
-      service_request_param: Joi.string().default(null),
-      service_response_info: Joi.string().default(null),
-      response_format_type: Joi.string().default(null),
-      interface_type: Joi.string().default(null),
-      error_info: Joi.string().default(null),
+      service_access_url: Joi.string().empty("").required(),
+      authorization: Joi.string().empty("").default(null),
+      service_request_param: Joi.string().empty("").default(null),
+      service_response_info: Joi.string().empty("").default(null),
+      response_format_type: Joi.string().empty("").default(null),
+      interface_type: Joi.string().empty("").default(null),
+      error_info: Joi.string().empty("").default(null),
       preliminary_field: Joi.object().empty({}).default(null),
    });
 

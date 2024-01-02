@@ -50,24 +50,24 @@ exports.update = (req, res, next) => {
 };
 
 exports.DataCreate = (req, res, next) => {
-   const schema = Joi.object({
-      digital_twin_id: Joi.string().allow(),
-      controller_id: Joi.string().allow(),
-      control_data_creator: Joi.string().required(),
-      control_command: Joi.object().required(),
-   });
+   const schema = Joi.array().items(
+      Joi.object({
+         digital_twin_id: Joi.string().required(),
+         digital_object_id: Joi.string().required(),
+         control_data_creator: Joi.string().required(),
+         control_command: Joi.object().required(),
+      })
+   );
 
    validate(schema, req, res, next);
 };
 
-exports.DataUpdate = (req, res, next) => {
+exports.DataResultCreate = (req, res, next) => {
    const schema = Joi.object({
       digital_twin_id: Joi.string().allow(),
-      controller_id: Joi.string().allow(),
-      control_data_creator: Joi.string().allow(),
-      control_command: Joi.object().allow(),
+      digital_object_control_data_id: Joi.string().allow(),
       control_execution_time: Joi.string().required(),
-      control_execution_result: Joi.string().required(),
+      control_execution_result: Joi.object().required(),
    });
 
    validate(schema, req, res, next);

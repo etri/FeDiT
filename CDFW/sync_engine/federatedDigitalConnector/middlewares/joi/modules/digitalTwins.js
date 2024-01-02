@@ -17,9 +17,9 @@ exports.create = (req, res, next) => {
       subject: Joi.string().default(null),
       location: Joi.object().empty({}).default(null),
       member_digital_objects_ids: Joi.array().default(null),
-      number_of_digital_objects: Joi.string().default(null),
-      number_of_services: Joi.string().default(null),
-      number_of_simulations: Joi.string().default(null),
+      number_of_digital_objects: Joi.number().default(null),
+      number_of_services: Joi.number().default(null),
+      number_of_simulations: Joi.number().default(null),
    });
    validate(schema, req, res, next);
 };
@@ -38,9 +38,9 @@ exports.update = (req, res, next) => {
       subject: Joi.string().allow(),
       location: Joi.object().allow(),
       member_digital_objects_ids: Joi.array().allow(),
-      number_of_digital_objects: Joi.string().allow(),
-      number_of_services: Joi.string().allow(),
-      number_of_simulations: Joi.string().allow(),
+      number_of_digital_objects: Joi.number().allow(),
+      number_of_services: Joi.number().allow(),
+      number_of_simulations: Joi.number().allow(),
    });
    validate(schema, req, res, next);
 };
