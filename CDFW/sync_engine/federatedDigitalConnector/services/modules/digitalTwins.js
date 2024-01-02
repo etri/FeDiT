@@ -26,7 +26,7 @@ class DigitalTwins {
     * @param {number} number_of_simulations (required)
     * @returns {Boolean} true
     */
-   async create(federated_twin_id, params) {
+   async create(federated_digital_twin_id, params) {
       //이거는 single dt의 digital object라고 정의하고 작성 할 것.
       const {
          digital_twin_name,
@@ -51,20 +51,8 @@ class DigitalTwins {
       const modification_time_temp = modification_time
          ? `'${modification_time}'`
          : null;
-      //member_digital_objects_ids에서 각 DO가 정의되어 있는 DO인지 확인 해야 됨
 
-      for (let i in member_digital_objects_ids) {
-         let isExistID = await model.posrgres.checkIdExist({
-            table: "digital_objects",
-            check: "digital_object_id",
-            id: member_digital_objects_ids[i],
-         });
-         if (!isExistID) {
-            throw new ErrorHandler(412, 5252, "Unregistered digital object");
-         }
-      }
-
-      const sql = `insert into digital_twins (
+      const insertSQL = `insert into digital_twins (
          federated_digital_twin_id,
          digital_twin_id,
          digital_twin_name,
@@ -82,20 +70,21 @@ class DigitalTwins {
          number_of_digital_objects,
          number_of_services,
          number_of_simulations
-      ) values ('${federated_twin_id}','${digital_twin_id}', '${digital_twin_name}',  
+      ) values ('${federated_digital_twin_id}','${digital_twin_id}', '${digital_twin_name}',  
        '${description}', '${owner}', '{${tags}}', ${creation_time_temp}, '${creator_id}', 
       ${modification_time_temp},'${point_of_access}', '${contact_point}', '{${subject}}', '${JSON.stringify(
          location
       )}', 
       '{${member_digital_objects_ids}}', ${number_of_digital_objects}, ${number_of_services}, ${number_of_simulations});`;
 
-      const res = await model.postgres.sendQuery({ sql });
-      // await model.postgres.insertRelationInfo({
-      //    parent_id: mirrorlake_id,
-      //    resource_id: federated_digital_twin_id,
-      //    type: 1,
-      // });
+      const selectFDTsql = `select * from federated_digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
+      const selectedFDTdata = await model.postgres.selectData({
+         sql: selectFDTsql,
+      });
+      const DTcount = parseInt(selectedFDTdata.number_of_digital_twins) + 1;
+      const updateDTcountSQL = `update federated_digital_twins set number_of_digital_twins = ${DTcount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}';`;
 
+      await model.postgres.sendQuery({ sql: insertSQL + updateDTcountSQL });
       return { digital_twin_id };
    }
 
@@ -105,17 +94,17 @@ class DigitalTwins {
     * @param {string} name
     * @returns {Json}
     */
-   async Export({ federated_twin_id }) {
+   async Export({ federated_digital_twin_id }) {
       const isExistID = await model.postgres.checkIdExist({
          table: "federated_digital_twins",
          check: "federated_digital_twin_id",
-         id: federated_twin_id,
+         id: federated_digital_twin_id,
       });
 
       const resourceArr = ["digital_objects", "services", "simulations"];
 
       if (isExistID) {
-         const list_sql = `select digital_twin_id from digital_twins where federated_digital_twin_id = '${federated_twin_id}'`;
+         const list_sql = `select digital_twin_id from digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
          const Twinlist = await model.postgres.selectData({ sql });
 
          const total_return = {};
@@ -141,7 +130,7 @@ class DigitalTwins {
       } else {
          throw new ErrorHandler(
             412,
-            5252,
+            412,
             "Unregistered federated_digital-twin"
          );
       }
@@ -152,21 +141,21 @@ class DigitalTwins {
     * @param {string} id
     * @returns {Json}
     */
-   async Retrieve({ federated_twin_id, digital_twin_id }) {
+   async Retrieve({ federated_digital_twin_id, digital_twin_id }) {
       const isExistID = await model.postgres.checkIdExist({
          table: "federated_digital_twins",
          check: "federated_digital_twin_id",
-         id: federated_twin_id,
+         id: federated_digital_twin_id,
       });
       // federated_digital_Twin이 존재하면 조회
       if (isExistID) {
-         const sql = `select * from digital_twins where federated_digital_twin_id = '${federated_twin_id}' and digital_twin_id = '${digital_twin_id}'`;
+         const sql = `select * from digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}' and digital_twin_id = '${digital_twin_id}'`;
          const selectedData = await model.postgres.selectData({ sql });
          return selectedData;
       } else {
          throw new ErrorHandler(
             412,
-            5252,
+            412,
             "Unregistered digital-twin via twin_id"
          );
       }
@@ -177,23 +166,19 @@ class DigitalTwins {
     * @param {string} name
     * @returns {Json}
     */
-   async Search({ federated_twin_id, name }) {
+   async Search({ federated_digital_twin_id, name }) {
       const isExistID = await model.postgres.checkIdExist({
          table: "federated_digital_twins",
          check: "federated_digital_twin_id",
-         id: federated_twin_id,
+         id: federated_digital_twin_id,
       });
       // federated_digital_Twin이 존재하면 조회
       if (isExistID) {
-         const sql = `select * from digital_twins where federated_digital_twin_id = '${federated_twin_id}' and digital_twin_name = '${name}'`;
+         const sql = `select * from digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}' and digital_twin_name = '${name}'`;
          const selectedData = await model.postgres.selectData({ sql });
          return selectedData;
       } else {
-         throw new ErrorHandler(
-            412,
-            5252,
-            "Unregistered digital-twin via name"
-         );
+         throw new ErrorHandler(412, 412, "Unregistered digital-twin via name");
       }
    }
 
@@ -202,11 +187,11 @@ class DigitalTwins {
     * @param
     * @returns {Boolean} true
     */
-   async update(federated_twin_id, digital_twin_id, params) {
+   async update(federated_digital_twin_id, digital_twin_id, params) {
       const isExistFID = await model.postgres.checkIdExist({
          table: "federated_digital_twins",
          check: "federated_digital_twin_id",
-         id: federated_twin_id,
+         id: federated_digital_twin_id,
       });
 
       const isExistID = await model.postgres.checkIdExist({
@@ -219,25 +204,29 @@ class DigitalTwins {
       if (!isExistID && !isExistFID) {
          throw new ErrorHandler(
             412,
-            5252,
+            412,
             "Unregistered federated_digital-twin or digital_twin"
          );
       } else {
          let sql = `update digital_twins set `;
+         let hasSetClause = false;
          for (let key in params) {
             if (key === "location") {
-               sql += `${key} = '${JSON.stringify(params[key])}', `;
+               sql += `${hasSetClause ? ", " : ""}${key} = '${JSON.stringify(
+                  params[key]
+               )}'`;
             } else if (
                key === "tags" ||
                key === "subject" ||
                key === "member_digital_objects_ids"
             ) {
-               sql += `${key} = '{${params[key]}}', `;
+               sql += `${hasSetClause ? ", " : ""}${key} = '{${params[key]}}'`;
             } else {
-               sql += `${key} = '${params[key]}', `;
+               sql += `${hasSetClause ? ", " : ""}${key} = '${params[key]}'`;
             }
+            hasSetClause = true;
          }
-         sql += ` modification_time='${lib.timestamp()}' where federated_digital_twin_id = '${federated_twin_id}' 
+         sql += ` where federated_digital_twin_id = '${federated_digital_twin_id}' 
          and digital_twin_id = '${digital_twin_id}'`;
          await model.postgres.sendQuery({ sql });
 
@@ -250,11 +239,11 @@ class DigitalTwins {
     * @param {string} name
     * @returns {Json}
     */
-   async delete({ federated_twin_id, digital_twin_id }) {
+   async delete({ federated_digital_twin_id, digital_twin_id }) {
       const isExistFID = await model.postgres.checkIdExist({
          table: "federated_digital_twins",
          check: "federated_digital_twin_id",
-         id: federated_twin_id,
+         id: federated_digital_twin_id,
       });
 
       const isExistID = await model.postgres.checkIdExist({
@@ -263,20 +252,40 @@ class DigitalTwins {
          id: digital_twin_id,
       });
 
-      //delete from relations where resource_id = '{${digital_twin_id}}' or parent_id = '${digital_twin_id}';
       if (isExistID && isExistFID) {
-         const sql = `delete from digital_twins where digital_twin_id = '${digital_twin_id}' and 
-         federated_digital_twin_id = '${federated_twin_id}'; 
-         delete from digital_objects where digital_twin_id = '${digital_twin_id}'; 
-         delete from simulations where digital_twin_id = '${digital_twin_id}'; 
-         delete from services where digital_twin_id = '${digital_twin_id}';`;
-         await model.postgres.sendQuery({ sql });
+         console.log("delete when !isExistID && isExistFID");
+         const selectFDTsql = `select * from federated_digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
+         const selectedFDTdata = await model.postgres.selectData({
+            sql: selectFDTsql,
+         });
+         const DTcount = parseInt(selectedFDTdata.number_of_digital_twins) - 1;
+         const updateDTcountSQL = `update federated_digital_twins set number_of_digital_twins = ${DTcount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}';`;
 
+         const deleteSQL = `delete from digital_twins where digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}';         
+         delete from digital_objects where digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'; 
+         delete from digital_object_data where digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'; 
+         delete from digital_object_controllers where digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}';
+         delete from digital_object_control_result where digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'; 
+         delete from simulations where digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'; 
+         delete from services where digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}';`;
+         await model.postgres.sendQuery({ sql: deleteSQL + updateDTcountSQL });
+
+         return { delete: digital_twin_id };
+      } else if (digital_twin_id === "undefind") {
+         console.log("delete when !digital_twin_id");
+         const deleteSQL = `delete from digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}';         
+         delete from digital_objects where federated_digital_twin_id = '${federated_digital_twin_id}'; 
+         delete from digital_object_data where federated_digital_twin_id = '${federated_digital_twin_id}'; 
+         delete from digital_object_controllers where federated_digital_twin_id = '${federated_digital_twin_id}';
+         delete from digital_object_control_result where federated_digital_twin_id = '${federated_digital_twin_id}'; 
+         delete from simulations where federated_digital_twin_id = '${federated_digital_twin_id}'; 
+         delete from services where federated_digital_twin_id = '${federated_digital_twin_id}';`;
+         await model.postgres.sendQuery({ sql: deleteSQL });
          return { delete: digital_twin_id };
       } else {
          throw new ErrorHandler(
             412,
-            5252,
+            412,
             "Unregistered digital-twin or already deleted"
          );
       }
@@ -286,8 +295,8 @@ class DigitalTwins {
     * 저장된 모든 digitalTwin의 이름 조회
     * @returns {List}
     */
-   async getAll({ federated_twin_id }) {
-      const sql = `select * from digital_twins where federated_digital_twin_id = '${federated_twin_id}'`;
+   async getAll({ federated_digital_twin_id }) {
+      const sql = `select * from digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
       const DTentireList = await model.postgres.selectDataS({ sql });
 
       return DTentireList;
