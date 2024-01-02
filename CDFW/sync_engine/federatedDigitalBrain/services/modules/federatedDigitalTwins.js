@@ -108,7 +108,7 @@ class FederatedDigitalTwins {
       } else {
          throw new ErrorHandler(
             412,
-            5252,
+            412,
             "Unregistered federated-digital-twin"
          );
       }
@@ -133,7 +133,7 @@ class FederatedDigitalTwins {
       } else {
          throw new ErrorHandler(
             412,
-            5252,
+            412,
             "Unregistered federated-digital-twin "
          );
       }
@@ -158,7 +158,7 @@ class FederatedDigitalTwins {
       } else {
          throw new ErrorHandler(
             412,
-            5252,
+            412,
             "Unregistered federated-digital-twin"
          );
       }
@@ -179,7 +179,7 @@ class FederatedDigitalTwins {
       if (!isExistID) {
          throw new ErrorHandler(
             412,
-            5252,
+            412,
             "Unregistered federated-digital-twin"
          );
       } else {
@@ -197,12 +197,6 @@ class FederatedDigitalTwins {
          sql += ` modification_time='${modification_time}' where federated_digital_twin_id = '${federated_digital_twin_id}'`;
          await model.postgres.sendQuery({ sql });
 
-         //수정된 결과 조회해서 return
-         // const selectSQL = `select * from federated_digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
-         // const selectedData = await model.postgres.selectData({
-         //    sql: selectSQL,
-         // });
-         //수정부분만 return 할 것인가 선택
          return { update: federated_digital_twin_id };
       }
    }
@@ -220,8 +214,8 @@ class FederatedDigitalTwins {
       });
 
       if (isExistID) {
-         //delete from relations where resource_id = '{${id}}' or parent_id = '${id}';
          const sql = `delete from federated_digital_twins where federated_digital_twin_id = '${id}';
+           delete from relations where resource_id = '{${id}}' or parent_id = '${id}';
            delete from digital_twins where federated_digital_twin_id = '${id}'; 
            delete from federated_digital_objects where federated_digital_twin_id = '${id}';
            delete from federated_digital_object_data where federated_digital_twin_id = '${id}';
@@ -231,14 +225,20 @@ class FederatedDigitalTwins {
            delete from federated_data_models where federated_digital_twin_id = '${id}';
            delete from federated_visual_models where federated_digital_twin_id = '${id}';
            delete from federated_validations where federated_digital_twin_id = '${id}';
-           delete from federated_fidelities where federated_digital_twin_id = '${id}';`;
+           delete from federated_fidelities where federated_digital_twin_id = '${id}';
+           delete from do_compositions where federated_digital_twin_id = '${id}';
+           delete from do_sync_compositions where federated_digital_twin_id = '${id}';`;
          await model.postgres.sendQuery({ sql });
 
+         await lib.request({
+            method: "delete",
+            url: `http://${config.federatedDigitalConnector.ip}${config.federatedDigitalConnector.port}/mirrorlake/v1/federated-twins/${id}/digital-twins/undefind`,
+         });
          return { delete: id };
       } else {
          throw new ErrorHandler(
             412,
-            5252,
+            412,
             "Unregistered federated-digital-twin"
          );
       }

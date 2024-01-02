@@ -34,7 +34,7 @@ class Services {
       if (!isExistDtId) {
          throw new ErrorHandler(
             412,
-            5252,
+            412,
             "Unregistered federated-digital-twin"
          );
       } else {
@@ -60,7 +60,7 @@ class Services {
       } = params;
 
       const creationTime = lib.timestamp();
-      const service_id = "FS" + uuid();
+      const service_id = "FSER" + uuid();
 
       const upsertserviceCountSQL = `insert into federated_services (service_id, federated_digital_twin_id, service_name, description, tags, creation_time, modification_time, creator_id, service_access_url, "authorization", service_request_param, service_response_info, response_format_type, interface_type, error_info, preliminary_field) values ('${service_id}', '${federated_digital_twin_id}', '${service_name}', '${description}', '{${tags}}', '${creationTime}','${creationTime}', '${creator_id}', '${service_access_url}', '${authorization}', '${service_request_param}', '${service_response_info}', '${response_format_type}', '${interface_type}', '${error_info}', '${JSON.stringify(
          preliminary_field
@@ -83,20 +83,20 @@ class Services {
     */
    async search({ federated_digital_twin_id, name }) {
       const isExistName = await model.postgres.checkNameExist({
-         table: "services",
+         table: "federated_services",
          check: "service_name",
          name,
          federated_digital_twin_id,
       });
 
       if (isExistName) {
-         const sql = `select * from services where service_name = '${name}' and federated_digital_twin_id = '${federated_digital_twin_id}'`;
+         const sql = `select * from federated_services where service_name = '${name}' and federated_digital_twin_id = '${federated_digital_twin_id}'`;
          const selectedData = await model.postgres.selectDataS({ sql });
          return selectedData;
       } else {
          throw new ErrorHandler(
             412,
-            5252,
+            412,
             "Unregistered services under search function"
          );
       }
@@ -107,7 +107,7 @@ class Services {
     * @returns {List}
     */
    async getAll({ federated_digital_twin_id }) {
-      const sql = `select * from services where federated_digital_twin_id = '${federated_digital_twin_id}';`;
+      const sql = `select * from federated_services where federated_digital_twin_id = '${federated_digital_twin_id}';`;
       const serviceEntireList = await model.postgres.selectDataS({ sql });
 
       return serviceEntireList;
@@ -120,20 +120,20 @@ class Services {
     */
    async retrieve({ federated_digital_twin_id, service_id }) {
       const isExistID = await model.postgres.checkIdExist({
-         table: "services",
+         table: "federated_services",
          check: "service_id",
          id: service_id,
          federated_digital_twin_id,
       });
       // digitalObjects이 존재하면 조회
       if (isExistID) {
-         const sql = `select * from services where service_id = '${service_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'`;
+         const sql = `select * from federated_services where service_id = '${service_id}' and federated_digital_twin_id = '${federated_digital_twin_id}';`;
          const selectedData = await model.postgres.selectData({ sql });
          return selectedData;
       } else {
          throw new ErrorHandler(
             412,
-            5252,
+            412,
             "Unregistered services under retrieve function"
          );
       }
@@ -146,15 +146,15 @@ class Services {
     */
    async update({ federated_digital_twin_id, service_id }, params) {
       const isExistID = await model.postgres.checkIdExist({
-         table: "services",
+         table: "federated_services",
          check: "service_id",
          id: service_id,
          federated_digital_twin_id,
       });
       if (!isExistID) {
-         throw new ErrorHandler(412, 5252, "Unregistered services at FDT");
+         throw new ErrorHandler(412, 412, "Unregistered services");
       } else {
-         let sql = `UPDATE services SET `;
+         let sql = `update federated_services set `;
          for (let key in params) {
             if (key === "tags") {
                //string array type
@@ -170,7 +170,7 @@ class Services {
             }
          }
 
-         sql += ` modification_time='${lib.timestamp()}' WHERE service_id = '${service_id}' and digital_twin_id = '${digital_twin_id}';`;
+         sql += ` modification_time='${lib.timestamp()}' where service_id = '${service_id}' and federated_digital_twin_id = '${federated_digital_twin_id}';`;
 
          await model.postgres.sendQuery({ sql });
          return { update: service_id };
@@ -184,27 +184,23 @@ class Services {
     */
    async delete({ federated_digital_twin_id, service_id }) {
       const isExistID = await model.postgres.checkIdExist({
-         table: "services",
+         table: "federated_services",
          check: "service_id",
          id: service_id,
          federated_digital_twin_id,
       });
 
       if (!isExistID) {
-         throw new ErrorHandler(412, 5252, "Unregistered service of FDT");
+         throw new ErrorHandler(412, 412, "Unregistered service");
       } else {
          const selectFDTsql = `select * from federated_digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
          const selectedFDTdata = await model.postgres.selectData({
             sql: selectFDTsql,
          });
          const serviceCount = parseInt(selectedFDTdata.number_of_services) - 1;
-         const sql = `delete from relations where resource_id = '{${service_id}}'; delete from services where service_id = '${service_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'; update federated_digital_twins set number_of_services = ${serviceCount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}';`;
+         const sql = `delete from relations where resource_id = '{${service_id}}'; delete from federated_services where service_id = '${service_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'; update federated_digital_twins set number_of_services = ${serviceCount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}';`;
          await model.postgres.sendQuery({ sql });
 
-         // await model.kafka.deleteSink({
-         //    type: service_id,
-         //    connectorName: "_result",
-         // });
          return { delete: service_id };
       }
    }
@@ -216,7 +212,7 @@ class Services {
     */
    async execute({ federated_digital_twin_id, service_id }) {
       const isExistID = await model.postgres.checkIdExist({
-         table: "services",
+         table: "federated_services",
          check: "service_id",
          id: service_id,
          federated_digital_twin_id,
@@ -227,7 +223,7 @@ class Services {
          await model.kafka.createServiceSinkConnector({});
          return { execute: service_id };
       } else {
-         throw new ErrorHandler(412, 5252, "Unregistered service");
+         throw new ErrorHandler(412, 412, "Unregistered service");
       }
    }
 }

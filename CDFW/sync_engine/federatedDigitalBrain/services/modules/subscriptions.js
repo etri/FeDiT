@@ -31,7 +31,11 @@ class Subscriptions {
          id: federated_digital_twin_id,
       });
       if (!isExistDtId) {
-         throw new ErrorHandler(412, 5252, "Unregistered federated_digital-twin");
+         throw new ErrorHandler(
+            412,
+            412,
+            "Unregistered federated_digital-twin"
+         );
       } else {
          const selectFDTsql = `select * from federated_digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
          const selectedFDTdata = await model.postgres.selectData({
@@ -50,14 +54,55 @@ class Subscriptions {
          expiration_time,
          expiration_count,
          fail_count,
+         filtering_action_list,
+         filtering_condition_list,
       } = params;
+
+      let checkExistID;
+      for (const subject of subscription_subject) {
+         if (subject.startsWith("FDO")) {
+            checkExistID = await model.postgres.checkIdExist({
+               table: "federated_digital_objects",
+               check: "federated_digital_object_id",
+               id: subject,
+               federated_digital_twin_id,
+            });
+            if (!checkExistID) {
+               throw new ErrorHandler(
+                  412,
+                  412,
+                  `Unregistered subscription_subject (digital_object)`
+               );
+            }
+         } else if (subject.startsWith("SIM")) {
+            checkExistID = await model.postgres.checkIdExist({
+               table: "federated_simulations",
+               check: "simulation_id",
+               id: subject,
+               federated_digital_twin_id,
+            });
+            if (!checkExistID) {
+               throw new ErrorHandler(
+                  412,
+                  412,
+                  `Unregistered subscription_subject (simulation)`
+               );
+            }
+         } else {
+            throw new ErrorHandler(
+               412,
+               412,
+               `Unregistered subscription_subject`
+            );
+         }
+      }
 
       const expiration_time_temp = expiration_time
          ? `'${expiration_time}'`
          : null;
       const creationTime = lib.timestamp();
       const subscription_id = "FSUB" + uuid();
-      const insertsubscriptionDataSQL = `update federated_digital_twins set number_of_subscriptions = ${subCount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}'; insert into subscriptions (
+      const insertsubscriptionDataSQL = `update federated_digital_twins set number_of_subscriptions = ${subCount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}'; insert into federated_subscriptions (
          subscription_id,
          federated_digital_twin_id,
          subscription_name,
@@ -71,8 +116,12 @@ class Subscriptions {
          expiration_count,
          fail_count,
          notification_url,
-         tags
-      ) values ('${subscription_id}', '${federated_digital_twin_id}', '${subscription_name}', '${description}', '${creationTime}', '${creator_id}', '${creationTime}', '{${subscription_subject}}', '${subscription_protocol}', ${expiration_time_temp}, '${expiration_count}', '${fail_count}', '{${notification_url}}', '{${tags}}');`;
+         tags,
+         filtering_action_list,
+         filtering_condition_list
+      ) values ('${subscription_id}', '${federated_digital_twin_id}', '${subscription_name}', '${description}', '${creationTime}', '${creator_id}', 
+      '${creationTime}', '{${subscription_subject}}', '${subscription_protocol}', ${expiration_time_temp}, ${expiration_count}, ${fail_count}, 
+      '{${notification_url}}', '{${tags}}', '${filtering_action_list}', '${filtering_condition_list}');`;
       await model.postgres.sendQuery({ sql: insertsubscriptionDataSQL });
       await model.postgres.insertRelationInfo({
          parent_id: federated_digital_twin_id,
@@ -82,13 +131,15 @@ class Subscriptions {
 
       //kafka sink connector 생성
       await model.kafka.createSubscriptionSinkConnector({
-         federated_digital_twin_id,
+         digital_twin_id: federated_digital_twin_id,
          subscription_id,
          subscription_name,
          notification_url: lib.arryToString(notification_url),
          topics: lib.arryToEnum(subscription_subject),
          topicArr: subscription_subject,
          subscription_protocol,
+         filtering_action_list,
+         filtering_condition_list,
       });
 
       return { subscription_id };
@@ -101,18 +152,18 @@ class Subscriptions {
     */
    async search({ federated_digital_twin_id, name }) {
       const isExistName = await model.postgres.checkNameExist({
-         table: "subscriptions",
+         table: "federated_subscriptions",
          check: "subscription_name",
          name: name,
          federated_digital_twin_id,
       });
 
       if (isExistName) {
-         const sql = `select * from subscriptions where subscription_name = '${name}' and federated_digital_twin_id = '${federated_digital_twin_id}'`;
+         const sql = `select * from federated_subscriptions where subscription_name = '${name}' and federated_digital_twin_id = '${federated_digital_twin_id}'`;
          const selectedData = await model.postgres.selectDataS({ sql });
          return selectedData;
       } else {
-         throw new ErrorHandler(412, 5252, "Unregistered subscriptions in FDT");
+         throw new ErrorHandler(412, 412, "Unregistered subscriptions");
       }
    }
 
@@ -123,17 +174,17 @@ class Subscriptions {
     */
    async retrieve({ federated_digital_twin_id, subscription_id }) {
       const isExistID = await model.postgres.checkIdExist({
-         table: "subscriptions",
+         table: "federated_subscriptions",
          check: "subscription_id",
          id: subscription_id,
       });
       // federatedDigitalObjects이 존재하면 조회
       if (isExistID) {
-         const sql = `select * from subscriptions where subscription_id = '${subscription_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'`;
+         const sql = `select * from federated_subscriptions where subscription_id = '${subscription_id}' and federated_digital_twin_id = '${federated_digital_twin_id}';`;
          const selectedData = await model.postgres.selectData({ sql });
          return selectedData;
       } else {
-         throw new ErrorHandler(412, 5252, "Unregistered subscriptions in FDT (retrieve function error)");
+         throw new ErrorHandler(412, 412, "Unregistered subscription");
       }
    }
 
@@ -142,15 +193,15 @@ class Subscriptions {
     */
    async update({ federated_digital_twin_id, subscription_id }, params) {
       const isExistID = await model.postgres.checkIdExist({
-         table: "subscriptions",
+         table: "federated_subscriptions",
          check: "subscription_id",
          id: subscription_id,
          federated_digital_twin_id,
       });
       if (!isExistID) {
-         throw new ErrorHandler(412, 5252, "Unregistered subscription");
+         throw new ErrorHandler(412, 412, "Unregistered subscription");
       } else {
-         let sql = `update subscriptions set `;
+         let sql = `update federated_subscriptions set `;
          for (let key in params) {
             if (
                key === "subscription_subject" ||
@@ -170,7 +221,12 @@ class Subscriptions {
          sql += ` modification_time='${lib.timestamp()}' where subscription_id = '${subscription_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'`;
 
          await model.postgres.sendQuery({ sql });
-         if (params.subscription_subject || params.notification_url) {
+         if (
+            params.subscription_subject ||
+            params.notification_url ||
+            params.filtering_action_list ||
+            params.filtering_condition_list
+         ) {
             await this.execute({ federated_digital_twin_id, subscription_id });
          }
 
@@ -178,9 +234,8 @@ class Subscriptions {
       }
    }
 
-   // is neccessary?
-   async execute({ digital_twin_id, subscription_id }) {
-      const sql = `select * from subscriptions where subscription_id = '${subscription_id}' and digital_twin_id = '${digital_twin_id}'`;
+   async execute({ federated_digital_twin_id, subscription_id }) {
+      const sql = `select * from federated_subscriptions where subscription_id = '${subscription_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'`;
       const selectedData = await model.postgres.selectData({ sql });
       const {
          subscription_name,
@@ -190,6 +245,8 @@ class Subscriptions {
          expiration_time,
          expiration_count,
          fail_count,
+         filtering_action_list,
+         filtering_condition_list,
       } = selectedData;
 
       const str_subscription_subject = lib.arryToString(subscription_subject);
@@ -197,13 +254,15 @@ class Subscriptions {
 
       //kafka sink connector 생성
       await model.kafka.updateSubscriptionSinkConnector({
-         digital_twin_id,
+         digital_twin_id: federated_digital_twin_id,
          subscription_id,
          subscription_name,
          notification_url: str_subscription_url,
          topics: str_subscription_subject,
          topicArr: subscription_subject,
          subscription_protocol,
+         filtering_action_list,
+         filtering_condition_list,
       });
 
       return { execute: subscription_id };
@@ -216,20 +275,20 @@ class Subscriptions {
     */
    async delete({ federated_digital_twin_id, subscription_id }) {
       const isExistID = await model.postgres.checkIdExist({
-         table: "subscriptions",
+         table: "federated_subscriptions",
          check: "subscription_id",
          id: subscription_id,
          federated_digital_twin_id,
       });
       if (!isExistID) {
-         throw new ErrorHandler(412, 5252, "Unregistered simulation in FDT (delete function error)");
+         throw new ErrorHandler(412, 412, "Unregistered simulation");
       } else {
-         const selectFDTsql = `select * from federated_digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
+         const selectFDTsql = `select * from federated_digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}';`;
          const selectedFDTdata = await model.postgres.selectData({
             sql: selectFDTsql,
          });
          const subCount = parseInt(selectedFDTdata.number_of_subscriptions) - 1;
-         const sql = `delete from relations where resource_id = '{${subscription_id}}'; delete from subscriptions where subscription_id = '${subscription_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'; update federated_digital_twins set number_of_subscriptions = ${subCount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}';`;
+         const sql = `delete from relations where resource_id = '{${subscription_id}}'; delete from federated_subscriptions where subscription_id = '${subscription_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'; update federated_digital_twins set number_of_subscriptions = ${subCount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}';`;
          await model.postgres.sendQuery({ sql });
          await model.kafka.deleteSink({
             type: "SUB",
@@ -244,7 +303,7 @@ class Subscriptions {
     * @returns {List}
     */
    async getAll({ federated_digital_twin_id }) {
-      const sql = `select * from subscriptions where federated_digital_twin_id = '${federated_digital_twin_id}';`;
+      const sql = `select * from federated_subscriptions where federated_digital_twin_id = '${federated_digital_twin_id}';`;
       const subscriptionEntireList = await model.postgres.selectDataS({ sql });
 
       return subscriptionEntireList;

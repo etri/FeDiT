@@ -10,7 +10,7 @@ class VisualModel {
    /**
     * visualModel create
     * @param {String} visual_model_id (system)
-    * @param {String} digital_twin_id (system)
+    * @param {String} federated_digital_twin_id (system)
     * @param {String} visual_model_name (required)
     * @param {String} description (required)
     * @param {Stringn array} tags (required)
@@ -25,17 +25,17 @@ class VisualModel {
     *
     * @returns {Json} {}
     */
-   async create(digital_twin_id, req) {
+   async create(federated_digital_twin_id, req) {
       let visualModelCount;
       const isExistDtId = await model.postgres.checkIdExist({
-         table: "digital_twins",
-         check: "digital_twin_id",
-         id: digital_twin_id,
+         table: "federated_digital_twins",
+         check: "federated_digital_twin_id",
+         id: federated_digital_twin_id,
       });
       if (!isExistDtId) {
          throw new ErrorHandler(412, 5252, "Unregistered digital-twin");
       } else {
-         const selectDTsql = `select * from digital_twins where digital_twin_id = '${digital_twin_id}'`;
+         const selectDTsql = `select * from federated_digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
          const selectedDTdata = await model.postgres.selectData({
             sql: selectDTsql,
          });
@@ -48,10 +48,10 @@ class VisualModel {
 
       try {
          const isExistName = await model.postgres.checkNameExist({
-            table: "visual_models",
+            table: "federated_visual_models",
             check: "visual_model_name",
             name: visual_model_name,
-            digital_twin_id,
+            federated_digital_twin_id,
          });
          if (isExistName) {
             throw new ErrorHandler(
@@ -87,13 +87,13 @@ class VisualModel {
                ? config.nginx.port
                : config.federatedDigitalBrain.port,
          };
-         const access_url = `http://${address.access_ip}:${address.access_port}/${config.federatedDigitalBrain.base}/${digital_twin_id}/visual-models/${visual_model_id}/download`;
+         const access_url = `http://${address.access_ip}:${address.access_port}/${config.federatedDigitalBrain.base}/${federated_digital_twin_id}/visual-models/${visual_model_id}/download`;
          const visual_datafile_size = visual_data.size;
          const visual_datafile_path = visual_data.destination;
 
-         let sql = `INSERT INTO visual_models  (
+         let sql = `INSERT INTO federated_visual_models  (
             visual_model_id,
-            digital_twin_id,
+            federated_digital_twin_id,
             visual_model_name,
             description,
             subject,
@@ -105,9 +105,9 @@ class VisualModel {
             visual_datafile_size,
             visual_datafile_path,
             tags
-         ) VALUES ('${visual_model_id}', '${digital_twin_id}', '${visual_model_name}', '${description}', '${subject}', '${creationTime}', '${creator_id}', '${modification_time}', '${access_url}', '${visual_datafile_format}', '${visual_datafile_size}', '${visual_datafile_path}', '{${tags}}'); `;
+         ) VALUES ('${visual_model_id}', '${federated_digital_twin_id}', '${visual_model_name}', '${description}', '${subject}', '${creationTime}', '${creator_id}', '${modification_time}', '${access_url}', '${visual_datafile_format}', '${visual_datafile_size}', '${visual_datafile_path}', '{${tags}}'); `;
 
-         const updatevisualModelCountSQL = `update digital_twins set number_of_visual_models = ${visualModelCount}, modification_time = '${lib.timestamp()}' where digital_twin_id = '${digital_twin_id}';`;
+         const updatevisualModelCountSQL = `update digital_twins set number_of_visual_models = ${visualModelCount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}';`;
 
          await model.postgres.sendQuery({
             sql: sql + updatevisualModelCountSQL,
@@ -126,20 +126,20 @@ class VisualModel {
     * @param {string} name
     * @returns {Json}
     */
-   async search({ digital_twin_id, name }) {
-      if (!digital_twin_id || !name) {
+   async search({ federated_digital_twin_id, name }) {
+      if (!federated_digital_twin_id || !name) {
          throw new ErrorHandler(412, 5252, "please check mandatory field.");
       }
 
       const isExistName = await model.postgres.checkNameExist({
-         table: "visual_models",
+         table: "federated_visual_models",
          check: "visual_model_name",
          name: name,
-         digital_twin_id,
+         federated_digital_twin_id,
       });
 
       if (isExistName) {
-         const sql = `select * from visual_models where visual_model_name = '${name}' and digital_twin_id = '${digital_twin_id}'`;
+         const sql = `select * from federated_visual_models where visual_model_name = '${name}' and federated_digital_twin_id = '${federated_digital_twin_id}'`;
          const selectedData = await model.postgres.selectDataS({ sql });
          return selectedData;
       } else {
@@ -151,8 +151,8 @@ class VisualModel {
     * 저장된 모든 visual model의 이름 조회
     * @returns {List}
     */
-   async getAll({ digital_twin_id }) {
-      const sql = `select * from visual_models where digital_twin_id = '${digital_twin_id}';`;
+   async getAll({ federated_digital_twin_id }) {
+      const sql = `select * from federated_visual_models where federated_digital_twin_id = '${federated_digital_twin_id}';`;
       const visualModelEntireList = await model.postgres.selectDataS({ sql });
 
       return visualModelEntireList;
@@ -163,22 +163,22 @@ class VisualModel {
     * @param {string} name
     * @returns {Json}
     */
-   async retrieve({ digital_twin_id, visual_model_id }) {
-      if (!digital_twin_id || !visual_model_id) {
+   async retrieve({ federated_digital_twin_id, visual_model_id }) {
+      if (!federated_digital_twin_id || !visual_model_id) {
          throw new ErrorHandler(412, 5252, "please check mandatory field.");
       }
 
       const isExistID = await model.postgres.checkIdExist({
-         table: "visual_models",
+         table: "federated_visual_models",
          check: "visual_model_id",
          id: visual_model_id,
-         digital_twin_id,
+         federated_digital_twin_id,
       });
       // visual model이 존재하면 조회
       if (!isExistID) {
          throw new ErrorHandler(412, 5252, "Unregistered visual model");
       } else {
-         const sql = `select * from visual_models where visual_model_id = '${visual_model_id}' and digital_twin_id = '${digital_twin_id}'`;
+         const sql = `select * from federated_visual_models where visual_model_id = '${visual_model_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'`;
          const selectedData = await model.postgres.selectData({ sql });
          return selectedData;
       }
@@ -189,16 +189,16 @@ class VisualModel {
     * @param {string} name
     * @returns {Json}
     */
-   async download({ digital_twin_id, visual_model_id }) {
-      if (!digital_twin_id || !visual_model_id) {
+   async download({ federated_digital_twin_id, visual_model_id }) {
+      if (!federated_digital_twin_id || !visual_model_id) {
          throw new ErrorHandler(412, 5252, "please check mandatory field.");
       }
 
       const isExistID = await model.postgres.checkIdExist({
-         table: "visual_models",
+         table: "federated_visual_models",
          check: "visual_model_id",
          id: visual_model_id,
-         digital_twin_id,
+         federated_digital_twin_id,
       });
       // visual model이 존재하면 조회
       if (!isExistID) {
@@ -208,9 +208,12 @@ class VisualModel {
             visual_model_name,
             visual_datafile_path,
             visual_datafile_format,
-         } = await this.retrieve({ digital_twin_id, visual_model_id });
+         } = await this.retrieve({
+            federated_digital_twin_id,
+            visual_model_id,
+         });
          const file = `${visual_datafile_path}/${visual_model_id}${visual_datafile_format}`;
-         // const sql = `select * from visual_models where visual_model_id = '${visual_model_id}'`;
+         // const sql = `select * from federated_visual_models where visual_model_id = '${visual_model_id}'`;
          // const selectedData = await model.postgres.selectData({ sql });
          return file;
       }
@@ -221,23 +224,23 @@ class VisualModel {
     * @param {String} visual_model_id
     * @returns {Json}
     */
-   async update({ digital_twin_id, visual_model_id }, params) {
-      if (!digital_twin_id || !visual_model_id) {
+   async update({ federated_digital_twin_id, visual_model_id }, params) {
+      if (!federated_digital_twin_id || !visual_model_id) {
          throw new ErrorHandler(412, 5252, "please check mandatory field.");
       }
 
       const isExistID = await model.postgres.checkIdExist({
-         table: "visual_models",
+         table: "federated_visual_models",
          check: "visual_model_id",
          id: visual_model_id,
-         digital_twin_id,
+         federated_digital_twin_id,
       });
 
       // visual model이 존재하면 update
       if (!isExistID) {
          throw new ErrorHandler(412, 5252, "Unregistered visual model");
       } else {
-         let sql = `UPDATE visual_models SET `;
+         let sql = `UPDATE federated_visual_models SET `;
 
          for (let key in params) {
             if (key === "tags") {
@@ -248,7 +251,7 @@ class VisualModel {
                sql += `${key} = '${params[key]}', `;
             }
          }
-         sql += ` modification_time='${lib.timestamp()}' where visual_model_id = '${visual_model_id}' and digital_twin_id = '${digital_twin_id}'`;
+         sql += ` modification_time='${lib.timestamp()}' where visual_model_id = '${visual_model_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'`;
 
          await model.postgres.sendQuery({ sql });
          return { update: visual_model_id };
@@ -260,29 +263,29 @@ class VisualModel {
     * @param {string} visual_model_id
     * @returns {Json}
     */
-   async delete({ digital_twin_id, visual_model_id }) {
-      if (!digital_twin_id || !visual_model_id) {
+   async delete({ federated_digital_twin_id, visual_model_id }) {
+      if (!federated_digital_twin_id || !visual_model_id) {
          throw new ErrorHandler(412, 5252, "please check mandatory field.");
       }
 
       const isExistID = await model.postgres.checkIdExist({
-         table: "visual_models",
+         table: "federated_visual_models",
          check: "visual_model_id",
          id: visual_model_id,
-         digital_twin_id,
+         federated_digital_twin_id,
       });
 
       if (isExistID) {
-         const selectDTsql = `select * from digital_twins where digital_twin_id = '${digital_twin_id}'`;
+         const selectDTsql = `select * from digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
          const selectedDTdata = await model.postgres.selectData({
             sql: selectDTsql,
          });
          const visualModelCount =
             parseInt(selectedDTdata.number_of_visual_models) - 1;
-         const updatevisualModelCountSQL = `update digital_twins set number_of_visual_models = ${visualModelCount}, modification_time = '${lib.timestamp()}' where digital_twin_id = '${digital_twin_id}'; `;
+         const updatevisualModelCountSQL = `update digital_twins set number_of_visual_models = ${visualModelCount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}'; `;
 
          const { visual_datafile_path, visual_datafile_format } =
-            await this.retrieve({ digital_twin_id, visual_model_id });
+            await this.retrieve({ federated_digital_twin_id, visual_model_id });
          try {
             fs.unlinkSync(
                `${visual_datafile_path}/${visual_model_id}${visual_datafile_format}`
@@ -293,7 +296,7 @@ class VisualModel {
          } catch (e) {
             logger.error("Visual Model File Delete Fail : ", e);
          }
-         const sql = `delete from visual_models where visual_model_id = '${visual_model_id}' and digital_twin_id = '${digital_twin_id}';`;
+         const sql = `delete from federated_visual_models where visual_model_id = '${visual_model_id}' and federated_digital_twin_id = '${federated_digital_twin_id}';`;
          await model.postgres.sendQuery({
             sql: updatevisualModelCountSQL + sql,
          });

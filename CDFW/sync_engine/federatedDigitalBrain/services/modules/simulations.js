@@ -41,7 +41,7 @@ class Simulations {
       if (!isExistDtId) {
          throw new ErrorHandler(
             412,
-            5252,
+            412,
             "Unregistered federated digital-twin"
          );
       } else {
@@ -90,7 +90,7 @@ class Simulations {
             if (existArr[i] === false) {
                throw new ErrorHandler(
                   412,
-                  5252,
+                  412,
                   `Unregistered federated-simulation_subject`
                );
             }
@@ -98,7 +98,7 @@ class Simulations {
       } else if (resource_type == "simulation") {
          for (let item = 0; item < simulation_subject.length; item++) {
             checkExistID = await model.postgres.checkIdExist({
-               table: "simulations",
+               table: "federated_simulations",
                check: "simulation_id",
                id: simulation_subject[item],
                federated_digital_twin_id,
@@ -110,7 +110,7 @@ class Simulations {
             if (existArr[i] === false) {
                throw new ErrorHandler(
                   412,
-                  5252,
+                  412,
                   `Unregistered simulation_subject of FDT`
                );
             }
@@ -120,7 +120,7 @@ class Simulations {
       const creationTime = lib.timestamp();
       const simulation_id = "FSIM" + uuid();
 
-      const insertSimulationDataSQL = `insert into simulations (
+      const insertSimulationDataSQL = `insert into federated_simulations (
          simulation_id,
          federated_digital_twin_id,
          simulation_name,
@@ -142,15 +142,15 @@ class Simulations {
          response_format_type,
          interface_type,
          error_info,
-         preliminary_field
+         preliminary_field,
+         simulation_state
       ) values ('${simulation_id}', '${federated_digital_twin_id}', '${simulation_name}', '${description}', '${creationTime}', '${creator_id}', '${creationTime}', '{${simulation_subject}}', '${simulation_access_url}', '${time_step}', '${simulation_type}', '{${simulation_attribute}}', '${resource_type}', '${include_input}', '{${tags}}', '${authorization}', '${JSON.stringify(
          simulation_request_param
       )}', '${JSON.stringify(
          simulation_response_info
       )}', '${response_format_type}', '${interface_type}', '${JSON.stringify(
          error_info
-      )}', '${JSON.stringify(preliminary_field)}');`;
-      await model.postgres.sendQuery({ sql: insertSimulationDataSQL });
+      )}', '${JSON.stringify(preliminary_field)}', 'off');`;
       await model.postgres.insertRelationInfo({
          parent_id: federated_digital_twin_id,
          resource_id: simulation_id,
@@ -158,7 +158,23 @@ class Simulations {
       });
 
       const updatesimCountSQL = `update federated_digital_twins set number_of_simulations = ${simCount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}'`;
-      await model.postgres.sendQuery({ sql: updatesimCountSQL });
+      await model.postgres.sendQuery({
+         sql: insertSimulationDataSQL + updatesimCountSQL,
+      });
+
+      if (simulation_type == "default") {
+         await model.kafka.createPostgresSinkConnector({
+            topic: `${simulation_id}_result`,
+            table: "federated_simulation_data",
+            type: "simulation_result",
+         });
+
+         client.refreshMetadata([`${simulation_id}_result`], (err) => {
+            if (err) {
+               console.warn("Error refreshing kafka metadata", err);
+            }
+         });
+      }
 
       return { simulation_id };
    }
@@ -170,18 +186,22 @@ class Simulations {
     */
    async search({ federated_digital_twin_id, name }) {
       const isExistName = await model.postgres.checkNameExist({
-         table: "simulations",
+         table: "federated_simulations",
          check: "simulation_name",
          name,
          federated_digital_twin_id,
       });
 
       if (isExistName) {
-         const sql = `select * from simulations where simulation_name = '${name}' and federated_digital_twin_id = '${federated_digital_twin_id}'`;
+         const sql = `select * from federated_simulations where simulation_name = '${name}' and federated_digital_twin_id = '${federated_digital_twin_id}'`;
          const selectedData = await model.postgres.selectDataS({ sql });
          return selectedData;
       } else {
-         throw new ErrorHandler(412, 5252, "Unregistered simulations of FDT");
+         throw new ErrorHandler(
+            412,
+            412,
+            "Unregistered federated_simulations of FDT"
+         );
       }
    }
 
@@ -192,18 +212,22 @@ class Simulations {
     */
    async retrieve({ federated_digital_twin_id, simulation_id }) {
       const isExistID = await model.postgres.checkIdExist({
-         table: "simulations",
+         table: "federated_simulations",
          check: "simulation_id",
          id: simulation_id,
          federated_digital_twin_id,
       });
       // digitalObjects이 존재하면 조회
       if (isExistID) {
-         const sql = `select * from simulations where simulation_id = '${simulation_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'`;
+         const sql = `select * from federated_simulations where simulation_id = '${simulation_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'`;
          const selectedData = await model.postgres.selectData({ sql });
          return selectedData;
       } else {
-         throw new ErrorHandler(412, 5252, "Unregistered simulations of FDT");
+         throw new ErrorHandler(
+            412,
+            412,
+            "Unregistered federated_simulations of FDT"
+         );
       }
    }
 
@@ -226,112 +250,101 @@ class Simulations {
     */
    async update({ federated_digital_twin_id, simulation_id }, params) {
       const isExistID = await model.postgres.checkIdExist({
-         table: "simulations",
+         table: "federated_simulations",
          check: "simulation_id",
          id: simulation_id,
          federated_digital_twin_id,
       });
+
       if (!isExistID) {
-         throw new ErrorHandler(412, 5252, "Unregistered simulations of FDT");
-      } else {
-         let checkExistID;
-         let existArr = [];
-         if (params.resource_type == "federated_digital_object") {
-            for (
-               let item = 0;
-               item < params.simulation_subject.length;
-               item++
-            ) {
+         throw new ErrorHandler(
+            412,
+            412,
+            "Unregistered federated_simulations of FDT"
+         );
+      }
+
+      let checkExistID;
+      if (params.simulation_subject) {
+         for (const subject of params.simulation_subject) {
+            if (subject.startsWith("FD")) {
                checkExistID = await model.postgres.checkIdExist({
                   table: "federated_digital_objects",
                   check: "federated_digital_object_id",
-                  id: params.simulation_subject[item],
+                  id: subject,
                   federated_digital_twin_id,
                });
-               existArr.push(checkExistID);
-            }
-
-            for (let i = 0; i < existArr.length; i++) {
-               if (existArr[i] === false) {
+               if (!checkExistID) {
                   throw new ErrorHandler(
                      412,
-                     5252,
-                     `Unregistered simulation_subject of FDT in federated-digital-object`
+                     412,
+                     `Unregistered simulation_subject (digital_object)`
                   );
                }
-            }
-         } else if (params.resource_type == "simulation") {
-            for (
-               let item = 0;
-               item < params.simulation_subject.length;
-               item++
-            ) {
+            } else {
                checkExistID = await model.postgres.checkIdExist({
-                  table: "simulations",
+                  table: "federated_simulations",
                   check: "simulation_id",
-                  id: params.simulation_subject[item],
+                  id: subject,
                   federated_digital_twin_id,
                });
-               existArr.push(checkExistID);
-            }
-
-            for (let i = 0; i < existArr.length; i++) {
-               if (existArr[i] === false) {
+               if (!checkExistID) {
                   throw new ErrorHandler(
                      412,
-                     5252,
-                     `Unregistered simulation_subject of FDT in type of simulation`
+                     412,
+                     `Unregistered simulation_subject (simulation)`
                   );
                }
             }
          }
+      }
 
-         let sql = `update simulations set `;
-         for (let key in params) {
+      const updateFields = Object.entries(params)
+         .map(([key, value]) => {
             if (
                key === "simulation_subject" ||
                key === "simulation_attribute" ||
                key === "tags"
             ) {
-               //string array type
-               sql += `${key} = '{${params[key]}}', `;
+               return `${key} = '{${value}}'`;
             } else if (
                key === "simulation_request_param" ||
                key === "simulation_response_info" ||
                key === "error_info" ||
                key === "preliminary_field"
             ) {
-               //json type
-               sql += `${key} = '${JSON.stringify(params[key])}', `;
+               return `${key} = '${JSON.stringify(value)}'`;
             } else if (key === "time_step") {
-               // integer type
-               sql += `${key} = ${params[key]}, `;
+               return `${key} = ${value}`;
             } else if (key === "authorization") {
-               sql += `"${key}" = '${value}'`;
-            } else {
-               //string type
-               sql += `${key} = '${params[key]}', `;
+               return `"${key}" = '${value}'`;
+            } else if (value !== undefined) {
+               return `${key} = '${value}'`;
             }
-         }
-         sql += ` modification_time='${lib.timestamp()}' where simulation_id = '${simulation_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'`;
-         await model.postgres.sendQuery({ sql });
+            return null;
+         })
+         .filter((field) => field !== null)
+         .join(", ");
 
-         if (
-            params.simulation_subject ||
-            params.time_step ||
-            params.simulation_type ||
-            params.resource_type ||
-            params.include_input
-         ) {
-            await this.execute({
-               federated_digital_twin_id,
-               simulation_id,
-               caseOfcreate: "put",
-            });
-         }
+      const sql = `UPDATE federated_simulations SET ${updateFields}, modification_time='${lib.timestamp()}' WHERE simulation_id = '${simulation_id}' AND federated_digital_twin_id = '${federated_digital_twin_id}'`;
 
-         return { update: simulation_id };
+      await model.postgres.sendQuery({ sql });
+
+      if (
+         params.simulation_subject ||
+         params.time_step ||
+         params.simulation_type ||
+         params.resource_type ||
+         params.include_input
+      ) {
+         await this.execute({
+            federated_digital_twin_id,
+            simulation_id,
+            caseOfcreate: "put",
+         });
       }
+
+      return { update: simulation_id };
    }
 
    /**
@@ -341,68 +354,59 @@ class Simulations {
     */
    async delete({ federated_digital_twin_id, simulation_id }) {
       const isExistID = await model.postgres.checkIdExist({
-         table: "simulations",
+         table: "federated_simulations",
          check: "simulation_id",
          id: simulation_id,
          federated_digital_twin_id,
       });
       if (!isExistID) {
-         throw new ErrorHandler(412, 5252, "Unregistered simulation in FDT");
+         throw new ErrorHandler(412, 412, "Unregistered simulation in FDT");
       } else {
-         const selectFDTsql = `select * from federated_digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
+         const selectFDTsql = `SELECT * FROM federated_digital_twins WHERE federated_digital_twin_id = '${federated_digital_twin_id}'`;
          const selectedFDTdata = await model.postgres.selectData({
             sql: selectFDTsql,
          });
+
          const simCount = parseInt(selectedFDTdata.number_of_simulations) - 1;
-         const sql = `delete from relations where resource_id = '{${simulation_id}}'; delete from simulations where simulation_id = '${simulation_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'; delete from simulation_data where simulation_id = '${simulation_id}'; update federated_digital_twins set number_of_simulations = ${simCount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}';`;
+
+         // Combine SQL operations into a single query
+         const sql = `
+            DELETE FROM relations WHERE resource_id = '{${simulation_id}}';
+            DELETE FROM federated_simulations WHERE simulation_id = '${simulation_id}' AND federated_digital_twin_id = '${federated_digital_twin_id}';
+            DELETE FROM federated_simulation_data WHERE simulation_id = '${simulation_id}';
+            UPDATE federated_digital_twins SET number_of_simulations = ${simCount}, modification_time = '${lib.timestamp()}' WHERE federated_digital_twin_id = '${federated_digital_twin_id}';
+         `;
+
          await model.postgres.sendQuery({ sql });
-         await model.kafka.deleteSink({
-            type: "SIM",
-            connectorName: simulation_id,
-         });
-         await model.kafka.deleteSink({
-            type: "DigitalBase_",
-            connectorName: `${simulation_id}_result`,
-         });
+
+         // Parallelize Kafka deletion
+         const kafkaPromises = [
+            model.kafka.deleteSink({
+               type: "SIM",
+               connectorName: simulation_id,
+            }),
+            model.kafka.deleteSink({
+               type: "DigitalBase_",
+               connectorName: `${simulation_id}_result`,
+            }),
+         ];
+
+         await Promise.all(kafkaPromises);
+
          return { delete: simulation_id };
       }
    }
 
-   /**
-    * [request body] simulation execute format
-    * select * from simulations where simulation_id
-    * {
-    "simulation_id": "S41268ede3ad78624a759c81d2ccb6bc3",
-    "digital_twin_id": "D46d8c5717a08988190a816a71edff08e",
-    "simulation_name": "tsim03",
-    "description": "test simulation",
-    "creation_time": "2023-03-21T07:29:21.236Z",
-    "creator_id": "ssul",
-    "modification_time": "2023-03-21T07:29:21.236Z",
-    "simulation_subject": [
-        "D1"
-    ],
-    "simulation_access_url": "http://localhost:1234/receiver",
-    "time_step": 100,
-    "simulation_type": "response",
-    "simulation_attribute": [
-        "temperature"
-    ]
-}
+   /*
     * @param {string}
     * @returns {Json}
     */
    async execute({ federated_digital_twin_id, simulation_id, caseOfcreate }) {
-      const isExistID = await model.postgres.checkIdExist({
-         table: "simulations",
-         check: "simulation_id",
-         id: simulation_id,
-         federated_digital_twin_id,
+      const selectedData = await model.postgres.selectData({
+         sql: `SELECT * FROM federated_simulations WHERE simulation_id = '${simulation_id}' AND federated_digital_twin_id = '${federated_digital_twin_id}'`,
       });
-      // simulation이 존재하면 조회
-      if (isExistID) {
-         const sql = `select * from simulations where simulation_id = '${simulation_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'`;
-         const selectedData = await model.postgres.selectData({ sql });
+
+      if (selectedData) {
          const {
             simulation_name,
             simulation_subject,
@@ -420,47 +424,58 @@ class Simulations {
             str_simulation_attribute = "";
          }
 
-         // kafka sink connector 생성
-         if (caseOfcreate) {
-            //put
-            await model.kafka.updateSimulationSinkConnector({
-               digital_twin_id,
-               simulation_id,
-               simulation_name,
-               simulation_subject: str_simulation_subject,
-               simulation_access_url,
-               simulation_attribute: str_simulation_attribute,
-               time_step,
-               resource_type,
-               include_input,
-            });
-         } else {
-            //post
-            await model.kafka.createSimulationSinkConnector({
-               digital_twin_id,
-               simulation_id,
-               simulation_name,
-               simulation_subject: str_simulation_subject,
-               simulation_access_url,
-               simulation_attribute: str_simulation_attribute,
-               time_step,
-               resource_type,
-               include_input,
-            });
+         // Check and create/update Kafka sink connectors concurrently
+         const kafkaPromises = [];
 
-            await model.kafka.createPostgresSinkConnector({
-               topic: `${simulation_id}_result`,
-               table: "simulation_data",
-               type: "simulation_result",
-            });
+         if (caseOfcreate) {
+            // Update Kafka sink connector
+            kafkaPromises.push(
+               model.kafka.updateSimulationSinkConnector({
+                  digital_twin_id: federated_digital_twin_id,
+                  simulation_id,
+                  simulation_name,
+                  simulation_subject: str_simulation_subject,
+                  simulation_access_url,
+                  simulation_attribute: str_simulation_attribute,
+                  time_step,
+                  resource_type,
+                  include_input,
+               })
+            );
+         } else {
+            // Create Kafka sink connector
+            kafkaPromises.push(
+               model.kafka.createSimulationSinkConnector({
+                  digital_twin_id: federated_digital_twin_id,
+                  simulation_id,
+                  simulation_name,
+                  simulation_subject: str_simulation_subject,
+                  simulation_access_url,
+                  simulation_attribute: str_simulation_attribute,
+                  time_step,
+                  resource_type,
+                  include_input,
+               })
+            );
+
+            // Create Postgres sink connector
+            kafkaPromises.push(
+               model.kafka.createPostgresSinkConnector({
+                  topic: `${simulation_id}_result`,
+                  table: "federated_simulation_data",
+                  type: "simulation_result",
+               })
+            );
          }
+
+         await Promise.all(kafkaPromises);
 
          return { execute: simulation_id };
       } else {
          throw new ErrorHandler(
             412,
-            5252,
-            "Unregistered simulations of execute in FDT"
+            412,
+            "Unregistered federated_simulations of execute in FDT"
          );
       }
    }
@@ -472,17 +487,75 @@ class Simulations {
     */
    async termination({ federated_digital_twin_id, simulation_id }) {
       const isExistID = await model.postgres.checkIdExist({
-         table: "simulations",
+         table: "federated_simulations",
          check: "simulation_id",
          id: simulation_id,
          federated_digital_twin_id,
       });
-      // simulation이 존재하면 조회
-      if (isExistID) {
-         return { termination: simulation_id };
-      } else {
-         return "Unregistered simulation in FDT";
+
+      if (!isExistID) {
+         throw new ErrorHandler(
+            412,
+            412,
+            "Unregistered federated_simulations of FDT"
+         );
       }
+
+      const updateSQL = `
+         UPDATE federated_simulations
+         SET simulation_state = 'off'
+         WHERE simulation_id = '${simulation_id}' AND federated_digital_twin_id = '${federated_digital_twin_id}';
+      `;
+
+      await model.postgres.sendQuery({ sql: updateSQL });
+
+      await model.kafka.connectorOperation({
+         name: `SIM${simulation_id}`,
+         action: "pause",
+      });
+
+      return { termination: simulation_id };
+   }
+
+   /**
+    *  simulation Resume
+    * @param {string}
+    * @returns {Json}
+    */
+   async resume({ federated_digital_twin_id, simulation_id }) {
+      const isExistID = await model.postgres.checkIdExist({
+         table: "federated_simulations",
+         check: "simulation_id",
+         id: simulation_id,
+         federated_digital_twin_id,
+      });
+
+      if (!isExistID) {
+         throw new ErrorHandler(
+            412,
+            412,
+            "Unregistered federated_simulations of FDT"
+         );
+      }
+
+      const updateSQL = `
+         UPDATE federated_simulations
+         SET simulation_state = 'on'
+         WHERE simulation_id = '${simulation_id}' AND federated_digital_twin_id = '${federated_digital_twin_id}';
+      `;
+
+      await model.postgres.sendQuery({ sql: updateSQL });
+
+      const selectedData = await model.postgres.selectData({
+         sql: `SELECT * FROM federated_simulations WHERE simulation_id = '${simulation_id}' AND federated_digital_twin_id = '${federated_digital_twin_id}'`,
+      });
+
+      await model.kafka.connectorOperation({
+         name: `SIM${selectedData.simulation_id}`,
+         action: "resume",
+      });
+
+      return { resume: simulation_id };
    }
 
    /**
@@ -490,15 +563,59 @@ class Simulations {
     * @param {string}
     * @returns {Json}
     */
-   async dataCreate({ federated_digital_twin_id, simulation_id }) {
+   async dataCreate({ federated_digital_twin_id, simulation_id }, body) {
       const isExistID = await model.postgres.checkIdExist({
-         table: "simulations",
+         table: "federated_simulations",
          check: "simulation_id",
          id: simulation_id,
          federated_digital_twin_id,
       });
-      // simulation이 존재하면 조회
+
       if (isExistID) {
+         const sql = `select * from federated_simulations where simulation_id = '${simulation_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'`;
+         const selectedData = await model.postgres.selectData({ sql });
+         const {
+            simulation_name,
+            simulation_subject,
+            simulation_access_url,
+            simulation_attribute,
+         } = selectedData;
+
+         const trigger_time = lib.timestamp();
+         const simulationBody = {
+            rowtime: trigger_time,
+            simulation_id,
+            federated_digital_twin_id,
+            simulation_name,
+            simulation_subject,
+            simulation_attribute,
+            input_data: body,
+         };
+
+         const result = await lib.request({
+            url: simulation_access_url,
+            bodyParams: simulationBody,
+         });
+
+         const jsonResult = result.data
+            ? JSON.stringify(result.data)
+            : JSON.stringify(result);
+         const simulationResultBody = {
+            simulation_id,
+            simulation_data_id: `FSD${uuid()}`,
+            trigger_time,
+            result_time: lib.timestamp(),
+            input_data: JSON.stringify(body),
+            result_data: jsonResult,
+         };
+
+         const kafkaKey = { simulation_id };
+         model.kafka.kafkaProducer({
+            topic: `${simulation_id}_result`,
+            kafkaKey: JSON.stringify(kafkaKey),
+            data: JSON.stringify(simulationResultBody),
+         }); //string
+
          return { dataCreate: simulation_id };
       } else {
          return "Unregistered simulation of dataCreate in FDT";
@@ -511,30 +628,30 @@ class Simulations {
     * @returns {Json}
     */
    async resultAsyncUpdate({
-      digital_twin_id,
+      federated_digital_twin_id,
       simulation_id,
       simulation_data_id,
       result_data,
    }) {
       const isExistSimulationID = await model.postgres.checkIdExist({
-         table: "simulations",
+         table: "federated_simulations",
          check: "simulation_id",
          id: simulation_id,
-         digital_twin_id,
+         federated_digital_twin_id,
       });
 
       const isExistSimulationDataID = await model.postgres.checkIdExist({
-         table: "simulation_data",
+         table: "federated_simulation_data",
          check: "simulation_data_id",
          id: simulation_data_id,
       });
       // simulation이 존재하면 조회
       if (isExistSimulationID) {
          if (isExistSimulationDataID) {
-            let sql = `update simulation_data set result_data='${JSON.stringify(
+            let sql = `update federated_simulation_data set result_data='${JSON.stringify(
                result_data
             )}', result_time='${lib.timestamp()}' where simulation_id = '${simulation_id}' and simulation_data_id = '${simulation_data_id}'`;
-            console.log(sql);
+
             await model.postgres.sendQuery({ sql });
 
             return { simulation_data_id };
@@ -559,41 +676,41 @@ class Simulations {
       count,
    }) {
       const isExistID = await model.postgres.checkIdExist({
-         table: "simulations",
+         table: "federated_simulations",
          check: "simulation_id",
          id: simulation_id,
          federated_digital_twin_id,
       });
+
       if (!isExistID) {
          throw new ErrorHandler(
             412,
-            5252,
+            412,
             "Unregistered simulation of dataRetrieve in FDT"
          );
       }
 
       if (from && to) {
-         const sql = `SELECT * FROM simulation_data WHERE simulation_id = '${simulation_id}' AND rowtime >= '${from}'::timestamp AND rowtime <= '${to}'::timestamp;`;
+         const sql = `SELECT * FROM federated_simulation_data WHERE simulation_id = '${simulation_id}' AND trigger_time >= '${from}'::timestamp AND trigger_time <= '${to}'::timestamp;`;
          const retrievedData = await model.postgres.selectDataS({ sql });
          return retrievedData;
       } else if (count) {
-         const sql = `SELECT * FROM simulation_data WHERE simulation_id = '${simulation_id}' order by rowtime desc limit ${count};`;
+         const sql = `SELECT * FROM federated_simulation_data WHERE simulation_id = '${simulation_id}' order by trigger_time desc limit ${count};`;
          const retrievedData = await model.postgres.selectDataS({ sql });
          return retrievedData;
       } else {
-         const sql = `SELECT * FROM simulation_data WHERE simulation_id = '${simulation_id}' order by rowtime desc limit 100;`;
+         const sql = `SELECT * FROM federated_simulation_data WHERE simulation_id = '${simulation_id}' order by trigger_time desc limit 100;`;
          const retrievedData = await model.postgres.selectDataS({ sql });
          return retrievedData;
       }
    }
 
    /**
-    * 저장된 모든 simulations의 이름 조회
+    * 저장된 모든 federated_simulations의 이름 조회
     * @returns {List}
     */
    async getAll({ federated_digital_twin_id }) {
-      const sql = `select * from simulations where federated_digital_twin_id = '${federated_digital_twin_id}';`;
-      //const sql = `select * from simulations`;
+      const sql = `select * from federated_simulations where federated_digital_twin_id = '${federated_digital_twin_id}';`;
       const simulationEntireList = await model.postgres.selectDataS({ sql });
 
       return simulationEntireList;
