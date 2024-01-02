@@ -1,5 +1,3 @@
-const Flink = require("./modules/flink");
-const Redis = require("./modules/redis");
 const Kafka = require("./modules/kafka");
 const Mqtt = require("./modules/mqtt");
 const Postgres = require("./modules/postgres");
@@ -16,14 +14,6 @@ class Models {
       return this[className];
    }
 
-   get flink() {
-      return this.#getInstance(Flink);
-   }
-
-   get redis() {
-      return this.#getInstance(Redis);
-   }
-
    get kafka() {
       return this.#getInstance(Kafka);
    }
@@ -31,6 +21,7 @@ class Models {
    get mqtt() {
       return this.#getInstance(Mqtt);
    }
+
    get postgres() {
       return this.#getInstance(Postgres);
    }
