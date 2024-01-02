@@ -11,7 +11,7 @@ const joi = require("../../../../../middlewares/joi");
  * Visual Model Creation
  *
  * @body {String} visual_model_id (system)
- * @body {String} federated_twin_id (required)
+ * @body {String} federated_digital_twin_id (required)
  * @body {String} visual_model_name (required)
  * @body {String} description (optional)
  * @body {String} subject (required)
@@ -30,11 +30,11 @@ const joi = require("../../../../../middlewares/joi");
 
 router.post("/", async function (req, res) {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       visualModelUpload(req, res, async (err) => {
          try {
             const result = await services.visualModel.create(
-               federated_twin_id,
+               federated_digital_twin_id,
                req
             );
             res.success(201, result);
@@ -46,7 +46,7 @@ router.post("/", async function (req, res) {
             e.handle(
                req,
                res,
-               `Post /mirrorlake/v1/federated-twins/{federated_twin_id}/visual-models`
+               `Post /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/visual-models`
             );
          }
 
@@ -62,23 +62,25 @@ router.post("/", async function (req, res) {
       e.handle(
          req,
          res,
-         `Post /mirrorlake/v1/federated-twins/{federated_twin_id}/visual-models`
+         `Post /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/visual-models`
       );
    }
 });
 
 router.get("/", async (req, res) => {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { name } = req.query;
       let result;
       if (name) {
          result = await services.visualModel.search({
-            federated_twin_id,
+            federated_digital_twin_id,
             name,
          });
       } else {
-         result = await services.visualModel.getAll({ federated_twin_id });
+         result = await services.visualModel.getAll({
+            federated_digital_twin_id,
+         });
       }
       res.success(200, result);
    } catch (e) {
@@ -89,17 +91,17 @@ router.get("/", async (req, res) => {
       e.handle(
          req,
          res,
-         `Search /mirrorlake/v1/federated-twins/{federated_twin_id}/visual-models?name={name}`
+         `Search /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/visual-models?name={name}`
       );
    }
 });
 
 router.get("/:visual_model_id", async (req, res) => {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { visual_model_id } = req.params;
       const result = await services.visualModel.retrieve({
-         federated_twin_id,
+         federated_digital_twin_id,
          visual_model_id,
       });
       res.success(200, result);
@@ -111,17 +113,17 @@ router.get("/:visual_model_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Retrieve /mirrorlake/v1/federated-twins/{federated_twin_id}/visual-models/{visual_model_id}`
+         `Retrieve /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/visual-models/{visual_model_id}`
       );
    }
 });
 
 router.get("/:visual_model_id/download", async (req, res) => {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { visual_model_id } = req.params;
       const result = await services.visualModel.download({
-         federated_twin_id,
+         federated_digital_twin_id,
          visual_model_id,
       });
       res.download(result);
@@ -134,18 +136,18 @@ router.get("/:visual_model_id/download", async (req, res) => {
       e.handle(
          req,
          res,
-         `Download /mirrorlake/v1/federated-twins/{federated_twin_id}/visual-models/{visual_model_id}`
+         `Download /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/visual-models/{visual_model_id}`
       );
    }
 });
 
 router.patch("/:visual_model_id", async (req, res) => {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { visual_model_id } = req.params;
 
       const result = await services.visualModel.update(
-         { federated_twin_id, visual_model_id },
+         { federated_digital_twin_id, visual_model_id },
          req.body
       );
 
@@ -158,17 +160,17 @@ router.patch("/:visual_model_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Update /mirrorlake/v1/federated-twins/{federated_twin_id}/visual-models/{visual_model_id}`
+         `Update /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/visual-models/{visual_model_id}`
       );
    }
 });
 
 router.delete("/:visual_model_id", async (req, res) => {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { visual_model_id } = req.params;
       const result = await services.visualModel.delete({
-         federated_twin_id,
+         federated_digital_twin_id,
          visual_model_id,
       });
 
@@ -181,7 +183,7 @@ router.delete("/:visual_model_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Delete /mirrorlake/v1/federated-twins/{federated_twin_id}/visual-models/{visual_model_id}`
+         `Delete /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/visual-models/{visual_model_id}`
       );
    }
 });
