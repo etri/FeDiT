@@ -10,9 +10,9 @@ const joi = require("../../../../../../middlewares/joi");
  */
 router.post("/", joi.digitalObjects.create, async function (req, res) {
    try {
-      const { federated_twin_id, digital_twin_id } = req;
+      const { federated_digital_twin_id, digital_twin_id } = req;
       const result = await services.digitalObjects.create(
-         federated_twin_id,
+         federated_digital_twin_id,
          digital_twin_id,
          req.body
       );
@@ -30,7 +30,7 @@ router.post("/", joi.digitalObjects.create, async function (req, res) {
       e.handle(
          req,
          res,
-         `POST /mirrorlake/v1/federated-twins/{federated_twin_id}/digital-twins/{digital_twin_id}}/digital-objects ${e}`
+         `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}}/digital-objects ${e}`
       );
    }
 });
@@ -45,16 +45,18 @@ router.post("/", joi.digitalObjects.create, async function (req, res) {
 
 router.get("/", async (req, res) => {
    try {
-      const { federated_twin_id, digital_twin_id } = req;
+      const { federated_digital_twin_id, digital_twin_id } = req;
       const { name } = req.query;
       let result;
       if (name) {
          result = await services.digitalObjects.Search({
+            federated_digital_twin_id,
             digital_twin_id,
             name,
          });
       } else {
          result = await services.digitalObjects.getAll({
+            federated_digital_twin_id,
             digital_twin_id,
          });
       }
@@ -81,9 +83,10 @@ router.get("/", async (req, res) => {
  */
 router.get("/:digital_object_id", async (req, res) => {
    try {
-      const { federated_twin_id, digital_twin_id } = req;
+      const { federated_digital_twin_id, digital_twin_id } = req;
       const { digital_object_id } = req.params;
       const result = await services.digitalObjects.Retrieve({
+         federated_digital_twin_id,
          digital_twin_id,
          digital_object_id,
       });
@@ -110,10 +113,10 @@ router.post(
    joi.digitalObjects.dataCreate,
    async function (req, res) {
       try {
-         const { federated_twin_id, digital_twin_id } = req;
+         const { federated_digital_twin_id, digital_twin_id } = req;
          const { digital_object_id } = req.params;
          const result = await services.digitalObjects.createDigitalObjectData(
-            { federated_twin_id, digital_twin_id, digital_object_id },
+            { federated_digital_twin_id, digital_twin_id, digital_object_id },
             req.body
          );
 
@@ -130,7 +133,7 @@ router.post(
          e.handle(
             req,
             res,
-            `POST /mirrorlake/v1/federated-twins/{federated_twin_id}/digital-twins/{digital_twin_id}}/digital-objects ${e}`
+            `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}}/digital-objects ${e}`
          );
       }
    }
@@ -150,12 +153,12 @@ router.post(
  */
 router.get("/:digital_object_id/data", async function (req, res) {
    try {
-      const { federated_twin_id, digital_twin_id } = req;
+      const { federated_digital_twin_id, digital_twin_id } = req;
       const { digital_object_id } = req.params;
       const { from, to, count } = req.query;
 
       const result = await services.digitalObjects.getData({
-         federated_twin_id,
+         federated_digital_twin_id,
          digital_twin_id,
          id: digital_object_id,
          from,
@@ -182,9 +185,10 @@ router.get("/:digital_object_id/data", async function (req, res) {
  */
 router.delete("/:digital_object_id", async (req, res) => {
    try {
-      const { federated_twin_id, digital_twin_id } = req;
+      const { federated_digital_twin_id, digital_twin_id } = req;
       const { digital_object_id } = req.params;
       const result = await services.digitalObjects.delete({
+         federated_digital_twin_id,
          digital_twin_id,
          id: digital_object_id,
       });
@@ -198,7 +202,7 @@ router.delete("/:digital_object_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Retrieve /mirrorlake/v1/{digital_twin_id}/digital-objects/{digital_object_id}`
+         `delete /mirrorlake/v1/{digital_twin_id}/digital-objects/{digital_object_id}`
       );
    }
 });
@@ -211,11 +215,15 @@ router.patch(
    joi.digitalObjects.update,
    async (req, res) => {
       try {
-         const { federated_twin_id, digital_twin_id } = req;
+         const { federated_digital_twin_id, digital_twin_id } = req;
          const { digital_object_id } = req.params;
 
          const result = await services.digitalObjects.update(
-            { digital_twin_id, id: digital_object_id },
+            {
+               federated_digital_twin_id,
+               digital_twin_id,
+               id: digital_object_id,
+            },
             req.body
          );
 
@@ -236,6 +244,7 @@ router.patch(
 
 /**
  * digital-object control data creation
+ * localhost:1203/mirrorlake/v1/federated-twins/{federated_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control
  * @body {String} digital_twin_id (required)
  * @body {String} digital_object_id (required)
  * @body {String} control_data_id (system)
@@ -244,16 +253,17 @@ router.patch(
  */
 router.post(
    "/:digital_object_id/control",
-   joi.controllers.create,
+   joi.controllers.DataCreate,
    async function (req, res) {
       try {
-         const { federated_twin_id, digital_twin_id } = req;
+         const { federated_digital_twin_id, digital_twin_id } = req;
          const { digital_object_id } = req.params;
-         const { control_messages } = req.body;
-         const result = await services.digitalObjects.createControl(
+         // const { control_messages } = req.body;
+         const result = await services.digitalObjects.createDOControlData(
+            federated_digital_twin_id,
             digital_twin_id,
             digital_object_id,
-            control_messages
+            req.body // control_data_creator, controller_id, control_command
          );
 
          res.success(201, result);
@@ -265,7 +275,48 @@ router.post(
          e.handle(
             req,
             res,
-            "POST /mirrorlake/v1/{digital_twin_id}/digital-objects/{digital_object_id}/control}"
+            "POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control}"
+         );
+      }
+   }
+);
+
+/**
+ * digital-object control data creation
+ * localhost:1203/mirrorlake/v1/federated-twins/{federated_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control/{control_data_id}/control-result
+ * @body {String} digital_twin_id (required)
+ * @body {String} digital_object_id (required)
+ * @body {String} control_data_id (system)
+ * @body {Json Array} control_messages (controller_id, control_data_creator command)
+ * @returns {Json} {}
+ */
+router.post(
+   "/:digital_object_id/control/:control_data_id/control-result",
+   joi.controllers.DataResultCreate,
+   async function (req, res) {
+      try {
+         const { federated_digital_twin_id, digital_twin_id } = req;
+         const { digital_object_id, digital_object_control_data_id } =
+            req.params;
+
+         const result = await services.digitalObjects.createDOExecutionData(
+            federated_digital_twin_id,
+            digital_twin_id,
+            digital_object_id,
+            digital_object_control_data_id,
+            req.body // controller_id, execution result
+         );
+
+         res.success(201, result);
+      } catch (e) {
+         if (!(e instanceof ErrorHandler)) {
+            logger.error(e);
+            e = new ErrorHandler(500, 500, "Internal Server Error");
+         }
+         e.handle(
+            req,
+            res,
+            "POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control}"
          );
       }
    }
@@ -273,19 +324,22 @@ router.post(
 
 /**
  * digital-object control data retrieve
- * localhost:1203/mirrorlake/v1/{digital_twin_id}/digital-objects/{digital_object_id}/control
- * ?name=SIcrain
+ * localhost:1203/mirrorlake/v1/federated-twins/{federated_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control?from=2023-03-12T23:32:01.232&to=2023-04-12T06:48:45.232
  * @param {string} name (required)
  * @returns {Json} {}
  */
 router.get("/:digital_object_id/control", async (req, res) => {
    try {
-      const { federated_twin_id, digital_twin_id } = req;
+      const { federated_digital_twin_id, digital_twin_id } = req;
       const { digital_object_id } = req.params;
+      const { from, to } = req.query;
 
-      const result = await services.digitalObjects.retrieveControl({
+      const result = await services.digitalObjects.searchControl({
+         federated_digital_twin_id,
          digital_twin_id,
          digital_object_id,
+         from,
+         to,
       });
 
       res.success(200, result);
@@ -301,5 +355,41 @@ router.get("/:digital_object_id/control", async (req, res) => {
       );
    }
 });
+
+/**
+ * digital-object control data retrieve
+ * localhost:1203/mirrorlake/v1/federated-twins/{federated_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control/{digital_object_control_data_id}
+ * @param {string} name (required)
+ * @returns {Json} {}
+ */
+router.get(
+   "/:digital_object_id/control/:digital_object_control_data_id",
+   async (req, res) => {
+      try {
+         const { federated_digital_twin_id, digital_twin_id } = req;
+         const { digital_object_id, digital_object_control_data_id } =
+            req.params;
+
+         const result = await services.digitalObjects.retrieveControl({
+            federated_digital_twin_id,
+            digital_twin_id,
+            digital_object_id,
+            digital_object_control_data_id,
+         });
+
+         res.success(200, result);
+      } catch (e) {
+         if (!(e instanceof ErrorHandler)) {
+            logger.error(e);
+            e = new ErrorHandler(500, 500, "Internal Server Error");
+         }
+         e.handle(
+            req,
+            res,
+            `Retrive /mirrorlake/v1/{digital_twin_id}/digital-objects/{digital_object_id}/control`
+         );
+      }
+   }
+);
 
 module.exports = router;

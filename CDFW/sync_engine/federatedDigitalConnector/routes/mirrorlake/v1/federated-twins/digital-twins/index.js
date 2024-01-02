@@ -33,9 +33,9 @@ const fs = require("fs");
  */
 router.post("/", joi.digitalTwins.create, async function (req, res) {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const result = await services.digitalTwins.create(
-         federated_twin_id,
+         federated_digital_twin_id,
          req.body
       );
       res.success(201, result);
@@ -57,10 +57,10 @@ router.post("/", joi.digitalTwins.create, async function (req, res) {
  */
 router.get("/:digital_twin_id/export", async (req, res) => {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { digital_twin_id } = req.params;
       let result = await services.digitalTwins.Export({
-         federated_twin_id,
+         federated_digital_twin_id,
          digital_twin_id,
       });
       res.success(200, result);
@@ -82,16 +82,18 @@ router.get("/:digital_twin_id/export", async (req, res) => {
  */
 router.get("/", async (req, res) => {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { name } = req.query;
       let result;
       if (name) {
          result = await services.digitalTwins.Search({
-            federated_twin_id,
+            federated_digital_twin_id,
             name,
          });
       } else {
-         result = await services.digitalTwins.getAll({ federated_twin_id });
+         result = await services.digitalTwins.getAll({
+            federated_digital_twin_id,
+         });
       }
 
       res.success(200, result);
@@ -113,10 +115,10 @@ router.get("/", async (req, res) => {
  */
 router.get("/:digital_twin_id", async (req, res) => {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { digital_twin_id } = req.params;
       const result = await services.digitalTwins.Retrieve({
-         federated_twin_id,
+         federated_digital_twin_id,
          digital_twin_id,
       });
 
@@ -142,10 +144,10 @@ router.patch(
    joi.digitalTwins.update,
    async function (req, res) {
       try {
-         const { federated_twin_id } = req;
+         const { federated_digital_twin_id } = req;
          const { digital_twin_id } = req.params;
          const result = await services.digitalTwins.update(
-            federated_twin_id,
+            federated_digital_twin_id,
             digital_twin_id,
             req.body
          );
@@ -170,10 +172,10 @@ router.patch(
  */
 router.delete("/:digital_twin_id", async (req, res) => {
    try {
-      const { federated_twin_id } = req;
+      const { federated_digital_twin_id } = req;
       const { digital_twin_id } = req.params;
       const result = await services.digitalTwins.delete({
-         federated_twin_id,
+         federated_digital_twin_id,
          digital_twin_id,
       });
 

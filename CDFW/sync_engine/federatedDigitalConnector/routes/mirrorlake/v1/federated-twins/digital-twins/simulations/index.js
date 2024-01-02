@@ -3,18 +3,16 @@ const asyncify = require("express-asyncify");
 const router = asyncify(express.Router());
 const services = require("../../../../../../services");
 const ErrorHandler = require("../../../../../../lib/error-handler");
-const auth = require("../../../../../../middlewares/auth");
 const joi = require("../../../../../../middlewares/joi");
-// 네이밍 과정에서 simulation은 그냥 표현되어도 되나? FDT만을 위한 새로운 시뮬레이션이 있는지?
-//아니면 기존 DT의 시뮬레이션을 상속받아 사용하는지??
 /**
  * simulation Creation
  */
 router.post("/", joi.simulations.create, async function (req, res) {
    try {
-      const { federated_twin_id, digital_twin_id } = req;
+      const { federated_digital_twin_id, digital_twin_id } = req;
       const result = await services.simulations.create(
          federated_digital_twin_id,
+         digital_twin_id,
          req.body
       );
 
@@ -43,17 +41,19 @@ router.post("/", joi.simulations.create, async function (req, res) {
  */
 router.get("/", async (req, res) => {
    try {
-      const { federated_twin_id, digital_twin_id } = req;
+      const { federated_digital_twin_id, digital_twin_id } = req;
       const { name } = req.query;
       let result;
       if (name) {
          result = await services.simulations.search({
             federated_digital_twin_id,
+            digital_twin_id,
             name,
          });
       } else {
          result = await services.simulations.getAll({
             federated_digital_twin_id,
+            digital_twin_id,
          });
       }
       res.success(200, result);
@@ -69,7 +69,7 @@ router.get("/", async (req, res) => {
       e.handle(
          req,
          res,
-         `Search /mirrorlake/v1/federated-twins/{federated_twin_id}}/digital-twins/{digital_twin_id}/simulations/{simulation_id}`
+         `Search /mirrorlake/v1/federated-twins/{federated_digital_twin_id}}/digital-twins/{digital_twin_id}/simulations/{simulation_id}`
       );
    }
 });
@@ -81,10 +81,11 @@ router.get("/", async (req, res) => {
  */
 router.get("/:simulation_id", async (req, res) => {
    try {
-      const { federated_twin_id, digital_twin_id } = req;
+      const { federated_digital_twin_id, digital_twin_id } = req;
       const { simulation_id } = req.params;
       const result = await services.simulations.retrieve({
          federated_digital_twin_id,
+         digital_twin_id,
          simulation_id,
       });
 
@@ -118,11 +119,11 @@ router.patch(
    joi.simulations.update,
    async function (req, res) {
       try {
-         const { federated_twin_id, digital_twin_id } = req;
+         const { federated_digital_twin_id, digital_twin_id } = req;
          const { simulation_id } = req.params;
 
          const result = await services.simulations.update(
-            { federated_digital_twin_id, simulation_id },
+            { federated_digital_twin_id, digital_twin_id, simulation_id },
             req.body
          );
 
@@ -152,11 +153,12 @@ router.patch(
  */
 router.delete("/:simulation_id", async (req, res) => {
    try {
-      const { federated_twin_id, digital_twin_id } = req;
-      const { federated_simulation_id } = req.params;
+      const { federated_digital_twin_id, digital_twin_id } = req;
+      const { simulation_id } = req.params;
       const result = await services.simulations.delete({
          federated_digital_twin_id,
-         federated_simulation_id,
+         digital_twin_id,
+         simulation_id,
       });
 
       res.success(200, result);
@@ -173,144 +175,6 @@ router.delete("/:simulation_id", async (req, res) => {
          req,
          res,
          `Delete /mirrorlake/v1/federated-twins/{federated_digital_twin_id}}/digital-twins/{digital_twin_id}/simulations/{simulation_id} ${e}`
-      );
-   }
-});
-
-/**
- * 시뮬레이션 데이터 피딩 시작 (실시간)
- * @param {string} simulation_id (required)
- * @returns {Json} {}
- */
-router.post("/:simulation_id/execute", async function (req, res) {
-   try {
-      const { federated_twin_id, digital_twin_id } = req;
-      const { simulation_id } = req.params;
-      const result = await services.simulations.execute({
-         federated_digital_twin_id,
-         simulation_id,
-      });
-
-      res.success(200, result);
-   } catch (e) {
-      if (!(e instanceof ErrorHandler)) {
-         logger.error(e);
-         e = new ErrorHandler(
-            500,
-            500,
-            "Internal Server Error of executing simulation in FDT"
-         );
-      }
-      e.handle(
-         req,
-         res,
-         `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}/simulations/{simulation_id} ${e}`
-      );
-   }
-});
-
-/**
- * 시뮬레이션 데이터 피딩 중지
- * @param {string} simulation_id (required)
- * @returns {Json} {}
- */
-router.post("/:simulation_id/termination", async function (req, res) {
-   try {
-      const { federated_twin_id, digital_twin_id } = req;
-      const { simulation_id } = req.params;
-      const { from, to, count } = req.query;
-      const result = await services.simulations.termination({
-         federated_digital_twin_id,
-         simulation_id,
-         from,
-         to,
-         count,
-      });
-      res.success(200, result);
-   } catch (e) {
-      if (!(e instanceof ErrorHandler)) {
-         logger.error(e);
-         e = new ErrorHandler(
-            500,
-            500,
-            "Internal Server Error of terminating simulation in FDT"
-         );
-      }
-      e.handle(
-         req,
-         res,
-         `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}/simulations/{simulation_id} ${e}`
-      );
-   }
-});
-
-/**
- * 시뮬레이션 데이터 생성(단발성 시뮬레이션 실행)
- * @param {string} simulation_id (required)
- * @body {string} simulation_data_id (system)
- * @body {string} simulation_id (system)
- * @body {string} timestamp (system)
- * @body {JSON} input_data (required)
- * @body {JSON} result_data (required)
- * @returns {Json} {}
- */
-router.post("/:simulation_id/data", async function (req, res) {
-   try {
-      const { federated_twin_id, digital_twin_id } = req;
-      const { simulation_id } = req.params;
-      const result = await services.simulations.dataCreate({
-         federated_digital_twin_id,
-         simulation_id,
-      });
-      res.success(200, result);
-   } catch (e) {
-      if (!(e instanceof ErrorHandler)) {
-         logger.error(e);
-         e = new ErrorHandler(
-            500,
-            500,
-            "Internal Server Error of creating simulation data"
-         );
-      }
-      e.handle(
-         req,
-         res,
-         `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}/simulations/{simulation_id}/data ${e}`
-      );
-   }
-});
-
-/**
- * 시뮬레이션 데이터 조회
- * @param {string} simulation_id (required)
- * @returns {Json} {}
- */
-router.get("/:simulation_id/data", async function (req, res) {
-   try {
-      const { federated_twin_id, digital_twin_id } = req;
-      const { simulation_id } = req.params;
-      const { from, to, count } = req.query;
-      const result = await services.simulations.dataRetrieve({
-         federated_digital_twin_id,
-         simulation_id,
-         from,
-         to,
-         count,
-      });
-      res.success(200, result);
-   } catch (e) {
-      if (!(e instanceof ErrorHandler)) {
-         logger.error(e);
-         e = new ErrorHandler(
-            500,
-            500,
-            "Internal Server Error of retrieving simulation data"
-         );
-      }
-      e.handle(
-         req,
-         res,
-         `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}/simulations/{simulation_id} ${e}`
       );
    }
 });
