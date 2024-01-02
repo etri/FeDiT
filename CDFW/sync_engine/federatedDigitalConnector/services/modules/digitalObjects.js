@@ -3,6 +3,7 @@ const lib = require("../../lib/index");
 const config = require("../../config");
 const Model = require("../../models");
 const model = new Model();
+const { stringify } = require("wkt");
 
 class DigitalObjects {
    /**
@@ -24,14 +25,14 @@ class DigitalObjects {
     *
     * @returns {Json} {}
     */
-   async create(federated_twin_id, digital_twin_id, params) {
+   async create(federated_digital_twin_id, digital_twin_id, params) {
       try {
          // Check if the federated_digital twin ID exists
          // FDT가 있고 DT가 등록이 되어 있고 등록된 DT 안에 DO를 등록해야 됨
          const isExistFDtId = await model.postgres.checkIdExist({
             table: "federated_digital_twins",
             check: "federated_digital_twin_id",
-            id: federated_twin_id,
+            id: federated_digital_twin_id,
          });
 
          const isExistDtId = await model.postgres.checkIdExist({
@@ -43,20 +44,9 @@ class DigitalObjects {
          if (!isExistDtId && !isExistFDtId) {
             throw new ErrorHandler(
                412,
-               5252,
+               412,
                "Unregistered digital-twin or federated_digital_twin"
             );
-         }
-
-         // Fetch the digital twin data
-         // and 연산 : 서로 다른 FDT에 서로 다른 센서를 등록할 수 있음
-         const selectDTsql = `select * from digital_twins where federated_digital_twin_id = '${federated_twin_id}' and digital_twin_id = '${digital_twin_id}';`;
-         const selectedDTdata = await model.postgres.selectData({
-            sql: selectDTsql,
-         });
-         let DOcount = 0;
-         if (selectedDTdata.number_of_digital_objects) {
-            DOcount = parseInt(selectedDTdata.number_of_digital_objects) + 1;
          }
 
          const {
@@ -77,6 +67,7 @@ class DigitalObjects {
          } = params;
          const digital_object_id = "D" + uuid();
          const sql = `INSERT INTO digital_objects (
+                           federated_digital_twin_id,
                            digital_twin_id,
                            digital_object_id,
                            digital_object_name,
@@ -93,7 +84,7 @@ class DigitalObjects {
                            digital_object_control_request_model,
                            do_metadata,
                            preliminary_field
-                        ) VALUES ('${digital_twin_id}','${digital_object_id}', '${digital_object_name}', '${description}', '{${tags}}', '{${subject}}', '${creation_time}', '${modification_time}', '${digital_object_data_access_type}', '${digital_object_data_access_url}','${digital_object_control_url}', '${JSON.stringify(
+                        ) VALUES ('${federated_digital_twin_id}', '${digital_twin_id}', '${digital_object_id}', '${digital_object_name}', '${description}', '{${tags}}', '{${subject}}', '${creation_time}', '${modification_time}', '${digital_object_data_access_type}', '${digital_object_data_access_url}','${digital_object_control_url}', '${JSON.stringify(
             digital_object_data_model
          )}', ${digital_object_data_interval}, '${JSON.stringify(
             digital_object_control_request_model
@@ -103,46 +94,9 @@ class DigitalObjects {
 
          await model.postgres.sendQuery({ sql });
 
-         // let insertRelationsSQL = "";
-         // insertRelationsSQL += await model.postgres.createinsertRelationSQL({
-         //    parent_id: digital_twin_id,
-         //    resource_id: digital_object_id,
-         //    type: config.type.digitalObject,
-         // });
-         // insertRelationsSQL += await model.postgres.createinsertRelationSQL({
-         //    parent_id: digital_object_id,
-         //    resource_id: member_sensor_ids,
-         //    type: config.type.sensor,
-         // });
-         // insertRelationsSQL += await model.postgres.createinsertRelationSQL({
-         //    parent_id: digital_object_id,
-         //    resource_id: member_controller_ids,
-         //    type: config.type.controller,
-         // });
-         // insertRelationsSQL += await model.postgres.createinsertRelationSQL({
-         //    parent_id: digital_object_id,
-         //    resource_id: member_visual_model_id,
-         //    type: config.type.visualModel,
-         // });
-         // insertRelationsSQL += await model.postgres.createinsertRelationSQL({
-         //    parent_id: digital_object_id,
-         //    resource_id: member_data_model_id,
-         //    type: config.type.dataModel,
-         // });
-         // insertRelationsSQL += await model.postgres.createinsertRelationSQL({
-         //    parent_id: digital_object_id,
-         //    resource_id: member_behavior_model_id,
-         //    type: config.type.behaviorModel,
-         // });
-         const updateDOcountSQL = `update digital_twins set number_of_digital_objects = ${DOcount}, modification_time = '${lib.timestamp()}' where digital_twin_id = '${digital_twin_id}';`;
-
-         await model.postgres.sendQuery({
-            sql: updateDOcountSQL,
-         });
-
          return { digital_object_id };
       } catch (error) {
-         throw new ErrorHandler(500, 5252, error);
+         throw new ErrorHandler(500, 412, error);
       }
    }
 
@@ -151,20 +105,25 @@ class DigitalObjects {
     * @param {string} digital_object_id
     * @returns {Json}
     */
-   async Retrieve({ digital_twin_id, digital_object_id }) {
+   async Retrieve({
+      federated_digital_twin_id,
+      digital_twin_id,
+      digital_object_id,
+   }) {
       const isExistID = await model.postgres.checkIdExist({
          table: "digital_objects",
          check: "digital_object_id",
          id: digital_object_id,
          digital_twin_id,
+         federated_digital_twin_id,
       });
       // digitalObjects이 존재하면 조회
       if (isExistID) {
-         const sql = `select * from digital_objects where digital_object_id = '${digital_object_id}' and digital_twin_id = '${digital_twin_id}'`;
+         const sql = `select * from digital_objects where federated_digital_twin_id = '${federated_digital_twin_id}' and digital_object_id = '${digital_object_id}' and digital_twin_id = '${digital_twin_id}'`;
          const selectedData = await model.postgres.selectData({ sql });
          return selectedData;
       } else {
-         throw new ErrorHandler(412, 5252, "Unregistered digital-objects");
+         throw new ErrorHandler(412, 412, "Unregistered digital-objects");
       }
    }
 
@@ -179,6 +138,7 @@ class DigitalObjects {
          check: "digital_object_name",
          name: name,
          digital_twin_id,
+         federated_digital_twin_id,
       });
 
       if (isExistName) {
@@ -186,7 +146,7 @@ class DigitalObjects {
          const selectedData = await model.postgres.selectDataS({ sql });
          return selectedData;
       } else {
-         throw new ErrorHandler(412, 5252, "Unregistered digital-objects");
+         throw new ErrorHandler(412, 412, "Unregistered digital-objects");
       }
    }
 
@@ -212,41 +172,48 @@ class DigitalObjects {
     * @returns {Json} {}
     */
 
-   async update({ digital_twin_id, id }, params) {
+   async update({ federated_digital_twin_id, digital_twin_id, id }, params) {
       const isExistID = await model.postgres.checkIdExist({
          table: "digital_objects",
          check: "digital_object_id",
          id,
          digital_twin_id,
+         federated_digital_twin_id,
       });
 
       // digitalObjects이 존재하면 수정
       if (!isExistID) {
-         throw new ErrorHandler(412, 5252, "Unregistered digital_object");
+         throw new ErrorHandler(412, 412, "Unregistered digital_object");
       } else {
          let sql = `update digital_objects set `;
+         let hasSetClause = false;
          for (let key in params) {
             if (key === "tags" || key === "subject") {
-               sql += `${key} = '{${params[key]}}', `;
+               sql += `${hasSetClause ? ", " : ""}${key} = '{${params[key]}}'`;
             } else if (
-               //json type
+               // json type
                key === "digital_object_data_model" ||
                key === "digital_object_control_request_model" ||
                key === "do_metadata" ||
                key === "preliminary_field"
             ) {
-               sql += `${key} = '${JSON.stringify(params[key])}', `;
+               sql += `${hasSetClause ? ", " : ""}${key} = '${JSON.stringify(
+                  params[key]
+               )}'`;
             } else if (
-               //integer type
+               // integer type
                key === "digital_object_data_interval"
             ) {
-               sql += `${key} = ${params[key]}, `;
+               sql += `${hasSetClause ? ", " : ""}${key} = ${params[key]}`;
             } else {
-               //string type
-               sql += `${key} = '${params[key]}', `;
+               // string type
+               sql += `${hasSetClause ? ", " : ""}${key} = '${params[key]}'`;
             }
+
+            hasSetClause = true;
          }
-         sql += ` modification_time='${lib.timestamp()}' where digital_object_id = '${id}' and digital_twin_id = '${digital_twin_id}'`;
+
+         sql += ` where digital_object_id = '${id}' and digital_twin_id = '${digital_twin_id}'`;
          await model.postgres.sendQuery({ sql });
 
          return { update: id };
@@ -258,27 +225,19 @@ class DigitalObjects {
     * @param {string} name
     * @returns {Json}
     */
-   async delete({ digital_twin_id, id }) {
+   async delete({ federated_digital_twin_id, digital_twin_id, id }) {
       const isExistID = await model.postgres.checkIdExist({
          table: "digital_objects",
          check: "digital_object_id",
          id,
          digital_twin_id,
+         federated_digital_twin_id,
       });
       if (!isExistID) {
-         throw new ErrorHandler(412, 5252, "Unregistered digital_object");
+         throw new ErrorHandler(412, 412, "Unregistered digital_object");
       } else {
-         const selectDTsql = `select * from digital_twins where digital_twin_id = '${digital_twin_id}'`;
-         const selectedDTdata = await model.postgres.selectData({
-            sql: selectDTsql,
-         });
-         const DOcount = parseInt(selectedDTdata.number_of_digital_objects) - 1;
-         const updateDOcountSQL = `update digital_twins set number_of_digital_objects = ${DOcount}, modification_time = '${lib.timestamp()}' where digital_twin_id = '${digital_twin_id}';`;
-         const deleteSQL = `delete from digital_objects where digital_object_id = '${id}'; delete from digital_object_data where digital_object_id = '${id}';`;
-         await model.postgres.sendQuery({ sql: updateDOcountSQL + deleteSQL });
-         // const sql = `delete from relations where resource_id = '{${id}}' or parent_id = '${id}'; UPDATE name_list set list=array_remove(list, '${id}') where type='digital_object' and digital_twin_id='${digital_twin_id}';`
-         // await model.postgres.sendQuery({ sql });
-
+         const deleteSQL = `delete from digital_objects where digital_object_id = '${id}' and federated_digital_twin_id = '${federated_digital_twin_id}'; delete from digital_object_data where digital_object_id = '${id}' and federated_digital_twin_id = '${federated_digital_twin_id}';`;
+         await model.postgres.sendQuery({ sql: deleteSQL });
          return { delete: id };
       }
    }
@@ -288,7 +247,7 @@ class DigitalObjects {
     * @returns {}
     */
    async createDigitalObjectData(
-      { federated_twin_id, digital_twin_id, digital_object_id },
+      { federated_digital_twin_id, digital_twin_id, digital_object_id },
       body
    ) {
       const isExistID = await model.postgres.checkIdExist({
@@ -296,24 +255,36 @@ class DigitalObjects {
          check: "digital_object_id",
          id: digital_object_id,
          digital_twin_id,
+         federated_digital_twin_id,
       });
       if (!isExistID) {
-         throw new ErrorHandler(412, 5252, "Unregistered digital_object");
+         throw new ErrorHandler(412, 412, "Unregistered digital_object");
       }
       const rowtime = lib.timestamp();
-
+      let geojsonToWkt;
+      try {
+         geojsonToWkt = body.location
+            ? stringify(body.location)
+            : "POINT EMPTY";
+      } catch (error) {
+         throw new ErrorHandler(
+            412,
+            412,
+            "location requires a valid GeoJSON Feature or geometry object as input"
+         );
+      }
       const valueObjectMessage = {
-         federated_digital_twin_id: federated_twin_id,
+         federated_digital_twin_id,
          digital_twin_id,
          digital_object_id,
          data: JSON.stringify(body.data),
          rowtime,
-         location: JSON.stringify(body.location),
+         location: geojsonToWkt,
       };
 
       const kafkaKey = { digital_object_id };
       model.kafka.kafkaProducer({
-         topic: "UnalliedDigitalObject",
+         topic: "UnalliedDigitalObjects",
          kafkaKey: JSON.stringify(kafkaKey),
          data: JSON.stringify(valueObjectMessage),
       }); //string
@@ -333,27 +304,35 @@ class DigitalObjects {
     * @param {string} to endDateTime
     * @returns {Json} 기간별 조회
     */
-   async getData({ federated_twin_id, digital_twin_id, id, from, to, count }) {
+   async getData({
+      federated_digital_twin_id,
+      digital_twin_id,
+      id,
+      from,
+      to,
+      count,
+   }) {
       const isExistID = await model.postgres.checkIdExist({
          table: "digital_objects",
          check: "digital_object_id",
          id,
          digital_twin_id,
+         federated_digital_twin_id,
       });
       if (!isExistID) {
-         throw new ErrorHandler(412, 5252, "Unregistered digital_object");
+         throw new ErrorHandler(412, 412, "Unregistered digital_object");
       }
 
       if (from && to) {
-         const sql = `SELECT * FROM digital_object_data WHERE digital_twin_id='${digital_twin_id}' AND digital_object_id = '${id}' AND rowtime >= '${from}'::timestamp AND rowtime <= '${to}'::timestamp;`;
+         const sql = `SELECT * FROM digital_object_data WHERE federated_digital_twin_id='${federated_digital_twin_id}' AND digital_twin_id='${digital_twin_id}' AND digital_object_id = '${id}' AND rowtime >= '${from}'::timestamp AND rowtime <= '${to}'::timestamp;`;
          const retrievedData = await model.postgres.selectDataS({ sql });
          return retrievedData;
       } else if (count) {
-         const sql = `SELECT * FROM digital_object_data WHERE digital_twin_id='${digital_twin_id}' AND digital_object_id = '${id}' order by rowtime desc limit ${count};`;
+         const sql = `SELECT * FROM digital_object_data WHERE federated_digital_twin_id='${federated_digital_twin_id}' AND digital_twin_id='${digital_twin_id}' AND digital_object_id = '${id}' order by rowtime desc limit ${count};`;
          const retrievedData = await model.postgres.selectDataS({ sql });
          return retrievedData;
       } else {
-         const sql = `SELECT * FROM digital_object_data WHERE digital_twin_id='${digital_twin_id}' AND digital_object_id = '${id}' order by rowtime desc limit 100;`;
+         const sql = `SELECT * FROM digital_object_data WHERE federated_digital_twin_id='${federated_digital_twin_id}' AND digital_twin_id='${digital_twin_id}' AND digital_object_id = '${id}' order by rowtime desc limit 100;`;
          const retrievedData = await model.postgres.selectDataS({ sql });
          return retrievedData;
       }
@@ -363,8 +342,8 @@ class DigitalObjects {
     * 저장된 모든 DO의 이름 조회
     * @returns {List}
     */
-   async getAll({ digital_twin_id }) {
-      const sql = `select * from digital_objects where digital_twin_id = '${digital_twin_id}';`;
+   async getAll({ federated_digital_twin_id, digital_twin_id }) {
+      const sql = `select * from digital_objects where digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}';`;
       const DOentireList = await model.postgres.selectDataS({ sql });
 
       return DOentireList;
@@ -381,147 +360,226 @@ class DigitalObjects {
       return DOentireDelete;
    }
 
-   /*********************************************************************
+   /**
     * Digital Object의 Controller 제어
-    *
-    * controller 데이터를 담은 data object 생성
-    *  - DO controller_id 리스트에 등록되어있는지 확인필요.
-    *  - controller service module에 request passing
-    *
     * @param {String} digital_twin_id (required)
-    * @param {String} digital_object_name (required)
+    * @param {String} digital_object_id (required)
     * @param {Json Array} control_messages (required)
     *
     * @returns {Json} {}
     */
-   async createControl(digital_twin_id, digital_object_id, params) {
-      const control_messages = params;
-      let returnMessage = [];
+   async createDOControlData(
+      federated_digital_twin_id,
+      digital_twin_id,
+      digital_object_id,
+      params
+   ) {
+      // params = [{ controller_id: string, control_data_creator : string, control_command : { } }]
+      const control_creation_time = lib.timestamp();
+      let sendData = [];
 
-      if (!digital_twin_id || !digital_object_id || !control_messages) {
-         throw new ErrorHandler(412, 5252, "please check mandatory field.");
+      if (!digital_twin_id || !digital_object_id) {
+         throw new ErrorHandler(412, 412, "please check mandatory field.");
       }
 
-      if (!Array.isArray(control_messages) || control_messages.length == 0) {
-         throw new ErrorHandler(412, 5252, "empty control message");
+      if (!Array.isArray(params) || params.length == 0) {
+         throw new ErrorHandler(412, 412, "empty control message");
+      }
+
+      // DO 존재하는지 확인
+      const isExistID = await model.postgres.checkIdExist({
+         table: "digital_objects",
+         check: "digital_object_id",
+         id: digital_object_id,
+         digital_twin_id,
+         federated_digital_twin_id,
+      });
+      if (!isExistID) {
+         throw new ErrorHandler(412, 412, "Unregistered digital_object");
       }
 
       /**
-       * get DO's controller id list
+       * DO Control Access URL 조회
        */
-      let { controller_id } = await this.Retrieve({
+      let { digital_object_control_url } = await this.Retrieve({
+         federated_digital_twin_id,
          digital_twin_id,
          digital_object_id,
       });
-      let DO_controller_id = controller_id;
-      if (DO_controller_id == null || DO_controller_id == undefined) {
-         throw new ErrorHandler(
-            412,
-            5252,
-            "Controllers are not registered with Digital Object."
-         );
-      }
-      if (!Array.isArray(DO_controller_id) || DO_controller_id.length == 0) {
-         throw new ErrorHandler(
-            412,
-            5252,
-            "Controllers are not registered with Digital Object."
-         );
-      }
 
       /**
        * control message 처리
        */
-      // controller가 존재하는지, DO controller list에 포함되어 있는지 확인
-      control_messages.forEach(async (element) => {
-         let isExistID = await model.postgres.checkIdExist({
-            table: "controllers",
-            check: "controller_id",
-            id: element.controller_id,
-         });
-
-         let isIncludeID = DO_controller_id.includes(element.controller_id);
-
-         if (!isExistID) {
-            throw new ErrorHandler(
-               412,
-               5252,
-               `Unregistered controller : ${element.controller_id}`
-            );
-         }
-         if (!isIncludeID) {
-            throw new ErrorHandler(
-               412,
-               5252,
-               `${element.controller_id} controller is not registered with Digital Object(${digital_object_id}).`
-            );
-         }
+      // DO에 control messages 전달
+      param.forEach((element) => {
+         let digital_object_control_data_id = "C" + uuid();
+         element.digital_object_control_data_id =
+            digital_object_control_data_id;
+         sendData.push(element);
       });
-
-      // 유효성 검사 마치고 한 번에 전송
-      control_messages.forEach(async (element) => {
-         try {
-            let createControlData = await lib.request({
-               url: `http://${config.federatedDigitalConnector.ip}:${config.federatedDigitalConnector.port}/${config.federatedDigitalConnector.base}/${digital_twin_id}/controllers/${element.controller_id}/data`,
-               bodyParams: {
-                  control_data_creator: element.control_data_creator,
-                  control_command: element.control_command,
-               },
-            });
-            returnMessage.push(createControlData.control_data_id);
-         } catch (e) {
-            throw new ErrorHandler(
-               412,
-               5252,
-               `create control data error \n ${e}`
-            );
-         }
+      let httpResponse = await lib.request({
+         url: digital_object_control_url,
+         bodyParams: sendData,
       });
-      return { control_data_id: returnMessage };
+      // httpResponse : [{digital_object_control_data_id : uuid , control_delivery_result : Fail}, ...] 라고 가정하고 진행
+      const control_delivery_time = lib.timestamp();
+      for (let do_control_data of httpResponse) {
+         let data = sendData.filter(
+            (element) =>
+               element.digital_object_control_data_id ==
+               do_control_data.digital_object_control_data_id
+         );
+         if (data.length !== 0) {
+            let digital_object_control_data_id =
+               do_control_data.digital_object_control_data_id;
+            let controller_id = data[0].controller_id;
+            let control_data_creator = data[0].control_data_creator;
+            let control_delivery_result =
+               do_control_data.control_delivery_result;
+            let control_command = data[0].control_command;
+            let sql = `insert into digital_object_controllers (digital_twin_id, digital_object_control_data_id, controller_id, control_data_creator, control_creation_time, control_delivery_time, control_delivery_result, control_command) values ('${digital_twin_id}', '${digital_object_control_data_id}', '${controller_id}', '${control_data_creator}', '${control_creation_time}', '${control_delivery_time}', '${control_delivery_result}', '${JSON.stringify(
+               control_command
+            )}');`;
+            await model.postgres.sendQuery({ sql });
+         }
+      }
+      return httpResponse;
    }
 
    /**
-    * digital_object data 조회
+    * Digital Object의 Controller execution result 저장 --> kafka (control_exec_result)
+    * @param {String} digital_twin_id (required)
+    * @param {String} digital_object_id (required)
+    * @param {String} control_data_id (required)
+    * @param {Json Array} execution_result (required)
+    *
+    * @returns {Json} {}
+    */
+   async createDOExecutionData(
+      federated_digital_twin_id,
+      digital_twin_id,
+      digital_object_id,
+      digital_object_control_data_id,
+      params
+   ) {
+      const digital_object_control_result_id = "C" + uuid();
+      const control_execution_time = lib.timestamp();
+      // const { controller_id, contrl_execution_result } = parmas;
+      const { control_execution_result } = params;
+
+      if (!digital_twin_id || !digital_object_id) {
+         throw new ErrorHandler(412, 412, "please check mandatory field.");
+      }
+
+      if (!control_execution_time || !control_execution_result) {
+         throw new ErrorHandler(
+            412,
+            412,
+            "data needs control_execution_result field."
+         );
+      }
+      let executionResultMessage = {
+         digital_twin_id,
+         digital_object_control_result_id,
+         digital_object_control_data_id,
+         control_execution_result,
+         control_execution_time,
+      };
+      const kafkaKey = { digital_twin_id, digital_object_id };
+      await model.kafka.kafkaProducer({
+         topic: "control_exec_result",
+         kafkaKey: JSON.stringify(kafkaKey),
+         data: JSON.stringify(executionResultMessage),
+      });
+
+      // const sql = `insert into digital_object_control_result (digital_twin_id, digital_object_control_result_id, digital_object_control_data_id, control_execution_time, control_execution_result) values ('${digital_twin_id}', '${digital_object_control_result_id}', '${digital_object_control_data_id}', '${control_execution_time}', '${control_execution_result}');`;
+      // await model.postgres.sendQuery({ sql });
+      // return { digital_object_control_result_id, control_execution_result };
+   }
+
+   /**
+    * digital_object contorl data 조회 - 최신 데이터
     * @param {string} digital_twin_id
-    * @param {string} id digital_object_id
+    * @param {string} digital_object_id
     * @param {string} from startDateTime
     * @param {string} to endDateTime
     * @returns {Json} 기간별 조회
     */
-   async retrieveControl({ digital_twin_id, digital_object_id }) {
+   async searchControl({
+      federated_digital_twin_id,
+      digital_twin_id,
+      digital_object_id,
+      from,
+      to,
+   }) {
       if (!digital_twin_id || !digital_object_id) {
-         throw new ErrorHandler(412, 5252, "please check mandatory field.");
+         throw new ErrorHandler(412, 412, "please check mandatory field.");
       }
       const isExistID = await model.postgres.checkIdExist({
          table: "digital_objects",
          check: "digital_object_id",
          digital_object_id,
+         federated_digital_twin_id,
+      });
+
+      if (!isExistID) {
+         throw new ErrorHandler(412, 412, "Unregistered digital_object");
+      }
+
+      if (from && to) {
+         const sql = `SELECT * FROM digital_object_control_data WHERE digital_twin_id='${digital_twin_id}' AND rowtime >= '${from}'::timestamp AND rowtime <= '${to}'::timestamp;`;
+         const retrievedData = await model.postgres.selectDataS({ sql });
+         return retrievedData;
+      } else if (from) {
+         const sql = `SELECT * FROM digital_object_control_data WHERE digital_twin_id='${digital_twin_id}' AND rowtime >= '${from}'::timestamp;`;
+         const retrievedData = await model.postgres.selectDataS({ sql });
+         return retrievedData;
+      } else if (to) {
+         const sql = `SELECT * FROM digital_object_control_data WHERE digital_twin_id='${digital_twin_id}' AND rowtime <= '${to}'::timestamp;`;
+         const retrievedData = await model.postgres.selectDataS({ sql });
+         return retrievedData;
+      } else {
+         let sql = `select * from digital_object_control_data `;
+         const retrievedData = await model.postgres.selectDataS({ sql });
+         return retrievedData;
+      }
+   }
+
+   /**
+    * digital_object contorl data 조회 - id 조회
+    * @param {string} digital_twin_id
+    * @param {string} digital_object_id
+    * @param {string} digital_object_control_data_id
+    * @returns {Json}
+    */
+   async retrieveControl({
+      federated_digital_twin_id,
+      digital_twin_id,
+      digital_object_id,
+      digital_object_control_data_id,
+   }) {
+      if (
+         !digital_twin_id ||
+         !digital_object_id ||
+         !digital_object_control_data_id
+      ) {
+         throw new ErrorHandler(412, 412, "please check mandatory field.");
+      }
+      const isExistID = await model.postgres.checkIdExist({
+         table: "digital_object_controllers",
+         check: "digital_object_control_data_id",
+         digital_object_control_data_id,
+         federated_digital_twin_id,
       });
       if (!isExistID) {
-         throw new ErrorHandler(412, 5252, "Unregistered digital_object");
+         throw new ErrorHandler(
+            412,
+            412,
+            "Unregistered digital_object control data"
+         );
       }
 
-      // Get Digital Object's Controller list
-      let { controller_id } = await this.Retrieve({
-         digital_twin_id,
-         digital_object_id,
-      });
-      controller_id = controller_id.replace(/[\[\]]/gi, "");
-      let controller_id_list = controller_id.split(",");
-      if (
-         !Array.isArray(controller_id_list) ||
-         controller_id_list.length == 0
-      ) {
-         return {};
-      }
-
-      // Get Controller's joined data
-      let sql = `select * from control_data where controller_id in ( `;
-      controller_id_list.forEach((element, index) => {
-         if (index != 0) sql += `, `;
-         sql += `'${element}'`;
-      });
-      sql += `);`;
+      let sql = `select * from control_data where digital_object_control_data_id = ${digital_object_control_data_id} `;
 
       const retrievedData = await model.postgres.selectDataS({ sql });
       return retrievedData;
