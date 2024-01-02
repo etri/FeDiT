@@ -21,7 +21,7 @@ class Postgres {
             if (response.rowCount) {
                return response.rows[0];
             } else {
-               return {};
+               return [];
             }
          })
          .catch((e) => {
@@ -37,7 +37,7 @@ class Postgres {
             if (response.rowCount) {
                return response.rows;
             } else {
-               return {};
+               return [];
             }
          })
          .catch((e) => {
@@ -82,10 +82,18 @@ class Postgres {
     * @param {String} name (required)
     * @returns {Boolean} true = 이미 존재 하는 이름
     */
-   async checkNameExist({ table, check, name, digital_twin_id }) {
+   async checkNameExist({
+      table,
+      check,
+      name,
+      digital_twin_id,
+      federated_digital_twin_id,
+   }) {
       let sql = "";
       if (digital_twin_id) {
          sql = `select exists(select * from ${table} where ${check} = '${name}' and digital_twin_id = '${digital_twin_id}');`;
+      } else if (federated_digital_twin_id) {
+         sql = `select exists(select * from ${table} where ${check} = '${name}' and digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}');`;
       } else {
          sql = `select exists(select * from ${table} where ${check} = '${name}');`;
       }
@@ -116,14 +124,14 @@ class Postgres {
       table,
       check,
       id,
-      federated_twin_id,
+      federated_digital_twin_id,
       digital_twin_id,
    }) {
       let sql = "";
       if (digital_twin_id) {
          sql = `select exists(select * from ${table} where ${check} = '${id}' and digital_twin_id = '${digital_twin_id}');`;
-      } else if (federated_twin_id) {
-         sql = `select exists(select * from ${table} where ${check} = '${id}' and digital_twin_id = '${digital_twin_id}' and federated_twin_id = '${federated_twin_id}');`;
+      } else if (federated_digital_twin_id) {
+         sql = `select exists(select * from ${table} where ${check} = '${id}' and digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}');`;
       } else {
          sql = `select exists(select * from ${table} where ${check} = '${id}');`;
       }
