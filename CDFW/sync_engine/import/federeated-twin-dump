@@ -588,9 +588,9 @@ ALTER TABLE ONLY public.fdo_compositions
     ADD CONSTRAINT do_compositions_pkey PRIMARY KEY (compose_id);
 
 
-CREATE INDEX index_federated_digital_object ON public.federated_digital_objects USING btree (federated_digital_twin_id, digital_twin_id, federated_digital_object_id, creation_time);
+CREATE INDEX index_federated_digital_object ON public.federated_digital_objects USING btree (federated_digital_twin_id, federated_digital_object_id, creation_time);
 
-CREATE INDEX index_federated_digital_objects ON public.federated_digital_object_data USING btree (federated_digital_twin_id, digital_twin_id, federated_digital_object_id, rowtime);
+CREATE INDEX index_federated_digital_objects ON public.federated_digital_object_data USING btree (federated_digital_twin_id, federated_digital_object_id, rowtime);
 
 CREATE INDEX index_digital_object ON public.digital_objects USING btree (federated_digital_twin_id, digital_twin_id, digital_object_id, creation_time);
 
