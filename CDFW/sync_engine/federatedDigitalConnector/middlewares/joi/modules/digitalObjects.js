@@ -24,6 +24,10 @@ exports.create = (req, res, next) => {
          .empty("")
          .default(null)
          .required(),
+      digital_object_data_source_type: Joi.string()
+         .valid("PUSH", "POLL")
+         .default(null),
+      digital_object_data_source_url: Joi.string().empty("").default(null),
       digital_object_control_url: Joi.string()
          .empty("")
          .default(null)
@@ -66,6 +70,10 @@ exports.update = (req, res, next) => {
       digital_object_data_access_type: Joi.string().allow(),
       digital_object_data_access_url: Joi.string().allow(),
       digital_object_control_url: Joi.string().allow(),
+      digital_object_data_source_type: Joi.string()
+         .valid("PUSH", "POLL")
+         .allow(),
+      digital_object_data_source_url: Joi.string().allow(),
       digital_object_data_model: Joi.string().allow(),
       digital_object_data_interval: Joi.number().allow(),
       digital_object_control_request_model: Joi.object().empty({}).allow(),

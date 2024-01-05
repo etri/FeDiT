@@ -57,7 +57,6 @@ class Kafka {
             messages: data, //sensor_data post body
          },
       ];
-      logger.info("payload: ", payload);
       producer.send(payload, function (err, data) {
          if (err) logger.error(err);
          else logger.info(data);
@@ -66,7 +65,7 @@ class Kafka {
    }
 
    async deleteSink({ id }) {
-      logger.info("Delete Sink Connector");
+      logger.info(`Delete Sink Connector ${id}`);
       await lib.request({
          method: "delete",
          url: `http://${config.kafka.connectHost}/connectors/${id}`,
