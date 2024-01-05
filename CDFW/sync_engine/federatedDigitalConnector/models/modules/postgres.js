@@ -1,5 +1,3 @@
-const logger = require("../../../DigitalBrain/lib/logger");
-
 class Postgres {
    async sendQuery({ sql }) {
       //logger.info(sql);
