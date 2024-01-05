@@ -19,9 +19,9 @@ exports.type = {
 
 exports.nginx = {
    url: null,
-   ip: "175.45.195.227",
-   port: "1221",
-   base: "mirrorlake/v1/digital-twins",
+   ip: null,
+   port: null,
+   base: null,
 };
 
 exports.digitalBrain = {

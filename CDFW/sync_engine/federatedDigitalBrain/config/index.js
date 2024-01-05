@@ -3,7 +3,7 @@
  * default term: [0]
  */
 exports.setWindowDOtable = {
-   term: [0, 1, 10, 60],
+   term: [0],
 }; //term 마다 디오 테이블 생성
 
 exports.setSedonaFlinkFunc = {
@@ -13,9 +13,9 @@ exports.setSedonaFlinkFunc = {
 
 exports.nginx = {
    url: null,
-   ip: "175.45.195.227",
-   port: "1221",
-   base: "mirrorlake/v1/digital-twins",
+   ip: null,
+   port: null,
+   base: null,
 };
 
 exports.type = {
