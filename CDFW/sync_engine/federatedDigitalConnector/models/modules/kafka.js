@@ -103,61 +103,59 @@ class Kafka {
       return 0;
    }
 
-   async createSourceOpenAPIConnector({
+   async createSourceHttpConnector({
       id,
       url,
-      time_interval,
-      data_source_format,
       digital_twin_id,
-      customized_data_source,
-      additional_config,
+      federated_digital_twin_id,
+      digital_object_data_interval,
    }) {
-      let sinkConnectorBody = {
-         name: "OpenAPI" + id,
+      let sourceConnectorBody = {
+         name: "HttpSource" + id,
          config: {
-            "connector.class": customized_data_source,
-            "tasks.max": "1",
-            "kafka.topic": "Sensors",
+            "connector.class":
+               "org.kafka.connect.http.HttpSourceOptionalConnector",
+            "kafka.topic": "UnalliedDigitalObjects",
             "api.url": url,
-            "api.key": "source",
-            "poll.interval.ms": time_interval,
+            "poll.interval.ms": digital_object_data_interval,
             "digital.twin.id": digital_twin_id,
-            "sensor.id": id,
+            "federated.digital.twin.id": federated_digital_twin_id,
+            "digital.object.id": id,
             "request.method": "POST",
             headers:
                "Content-Type:application/json|Accept-Encoding: application/json",
             "key.converter": "org.apache.kafka.connect.storage.StringConverter",
             "value.converter":
                "org.apache.kafka.connect.storage.StringConverter",
-            "data.source.format": data_source_format,
+            "data.source.format": "json",
          },
       };
-
-      if (additional_config) {
-         for (let key in additional_config) {
-            sinkConnectorBody.config.key = additional_config[key];
-         }
-      }
-
       await lib.request({
          url: `http://${config.kafka.connectHost}/connectors`,
-         bodyParams: sinkConnectorBody,
+         bodyParams: sourceConnectorBody,
       });
       return 0;
    }
 
-   async createSourceMqttConnector({ id, url, digital_twin_id }) {
-      const splitUrl = url.split("/");
-      let sinkConnectorBody = {
+   async createSourceMqttConnector({
+      id,
+      url,
+      digital_twin_id,
+      federated_digital_twin_id,
+   }) {
+      let mqttBrokerUri = url.split("//")[1].split("/")[0];
+      let mqttTopic = url.split("//")[1].split("/").slice(1).join("/");
+      let sourceConnectorBody = {
          name: "MqttSource" + id,
          config: {
             "connector.class": "org.kafka.connect.mqtt.MqttSourceConnector",
-            "mqtt.topic": splitUrl[3],
+            "mqtt.topic": mqttTopic,
             "mqtt.client.id": id,
-            "mqtt.broker.uri": `tcp://${splitUrl[2]}`,
-            "kafka.topic": "Sensors",
-            "sensor.id": id,
+            "mqtt.broker.uri": `tcp://${mqttBrokerUri}`,
+            "kafka.topic": "UnalliedDigitalObjects",
             "digital.twin.id": digital_twin_id,
+            "federated.digital.twin.id": federated_digital_twin_id,
+            "digital.object.id": id,
             "key.converter": "org.apache.kafka.connect.storage.StringConverter",
             "key.converter.schemas.enable": false,
             "value.converter":
@@ -165,11 +163,9 @@ class Kafka {
             "value.converter.schemas.enable": false,
          },
       };
-
-      console.log(sinkConnectorBody);
       await lib.request({
          url: `http://${config.kafka.connectHost}/connectors`,
-         bodyParams: sinkConnectorBody,
+         bodyParams: sourceConnectorBody,
       });
       return 0;
    }
