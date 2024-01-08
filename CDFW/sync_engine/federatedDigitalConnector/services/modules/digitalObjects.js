@@ -81,16 +81,16 @@ class DigitalObjects {
                            creation_time,
                            modification_time,
                            digital_object_data_access_type,
-                           digital_object_data_access_url,
                            digital_object_data_source_type,
                            digital_object_data_source_url,
+                           digital_object_data_access_url,
                            digital_object_control_url,
                            digital_object_data_model,
                            digital_object_data_interval,
                            digital_object_control_request_model,
                            do_metadata,
                            preliminary_field
-                           ) VALUES ('${federated_digital_twin_id}', '${digital_twin_id}', '${digital_object_id}', '${digital_object_name}', '${description}', '{${tags}}', '{${subject}}', '${creation_time}', '${modification_time}', '${digital_object_data_access_type}', '${digital_object_data_source_type}', '${digital_object_data_source_url}', '${digital_object_data_access_url}','${digital_object_control_url}', '${JSON.stringify(
+                        ) VALUES ('${federated_digital_twin_id}', '${digital_twin_id}', '${digital_object_id}', '${digital_object_name}', '${description}', '{${tags}}', '{${subject}}', '${creation_time}', '${modification_time}', '${digital_object_data_access_type}', '${digital_object_data_source_type}', '${digital_object_data_source_url}', '${digital_object_data_access_url}','${digital_object_control_url}', '${JSON.stringify(
             digital_object_data_model
          )}', ${digital_object_data_interval}, '${JSON.stringify(
             digital_object_control_request_model
@@ -119,6 +119,7 @@ class DigitalObjects {
                }
             }
          }
+
          return { digital_object_id };
       } catch (error) {
          throw new ErrorHandler(500, 412, error);
@@ -265,7 +266,6 @@ class DigitalObjects {
          const sql = `select * from digital_objects where federated_digital_twin_id = '${federated_digital_twin_id}' and digital_object_id = '${id}' and digital_twin_id = '${digital_twin_id}'`;
          const selectedData = await model.postgres.selectData({ sql });
          await model.postgres.sendQuery({ sql: deleteSQL });
-         console.log("delete: ", selectedData);
          if (selectedData.digital_object_data_source_type == "POLL") {
             await model.kafka.deleteSink({ id: `HttpSource${id}` });
          }

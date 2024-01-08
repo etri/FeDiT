@@ -89,10 +89,7 @@ exports.oneM2MsubRequest = async ({
          data: jsonBody,
       };
 
-      console.log(config);
-      console.log(JSON.stringify(jsonBody));
       const response = await axios(config);
-      console.log(response);
       return response.data;
    } catch (e) {
       logger.error(e);

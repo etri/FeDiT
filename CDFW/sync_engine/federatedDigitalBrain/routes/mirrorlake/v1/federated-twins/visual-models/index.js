@@ -51,7 +51,7 @@ router.post("/", async function (req, res) {
          }
 
          if (err) {
-            console.log("Fail visual model upload");
+            logger.error("Fail visual model upload");
          }
       });
    } catch (e) {

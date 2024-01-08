@@ -82,19 +82,19 @@ exports.init = async () => {
             }
          });
 
-         console.log(sqlArr);
-         // for (let i of sqlArr) {
-         //    let StatementObj = {
-         //       statement: i,
-         //    };
+         // console.log(sqlArr);
+         for (let i of sqlArr) {
+            let StatementObj = {
+               statement: i,
+            };
 
-         //    const res = await lib.request({
-         //       url: `http://${config.flink.gwOption.host}/v1/sessions/${SESSIONID}/statements`,
-         //       bodyParams: StatementObj,
-         //    });
+            const res = await lib.request({
+               url: `http://${config.flink.gwOption.host}/v1/sessions/${SESSIONID}/statements`,
+               bodyParams: StatementObj,
+            });
 
-         //    console.log("[flink] ", i, "\n", res.data);
-         // }
+            console.log("[flink] ", i, "\n", res.data);
+         }
       } else {
          logger.error(
             "[FLINK] Failure to open sessions. FLINK SQL-GATEWAY must be executed to get the Flink Session."

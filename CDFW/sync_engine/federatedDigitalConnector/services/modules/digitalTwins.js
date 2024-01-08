@@ -253,7 +253,6 @@ class DigitalTwins {
       });
 
       if (isExistID && isExistFID) {
-         console.log("delete when !isExistID && isExistFID");
          const selectFDTsql = `select * from federated_digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
          const selectedFDTdata = await model.postgres.selectData({
             sql: selectFDTsql,
@@ -272,7 +271,6 @@ class DigitalTwins {
 
          return { delete: digital_twin_id };
       } else if (digital_twin_id === "undefind") {
-         console.log("delete when !digital_twin_id");
          const deleteSQL = `delete from digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}';         
          delete from digital_objects where federated_digital_twin_id = '${federated_digital_twin_id}'; 
          delete from digital_object_data where federated_digital_twin_id = '${federated_digital_twin_id}'; 

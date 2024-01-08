@@ -2,7 +2,6 @@ const Joi = require("joi");
 const { validate } = require("./base/validate.js");
 
 exports.create = (req, res, next) => {
-   console.log("create", req.body);
    const schema = Joi.object({
       digital_twin_id: Joi.string().allow(),
       controller_name: Joi.string().required(),
