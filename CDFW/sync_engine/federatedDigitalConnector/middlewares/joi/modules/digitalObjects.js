@@ -69,11 +69,11 @@ exports.update = (req, res, next) => {
       modification_time: Joi.string().allow(),
       digital_object_data_access_type: Joi.string().allow(),
       digital_object_data_access_url: Joi.string().allow(),
-      digital_object_control_url: Joi.string().allow(),
       digital_object_data_source_type: Joi.string()
          .valid("PUSH", "POLL")
          .allow(),
       digital_object_data_source_url: Joi.string().allow(),
+      digital_object_control_url: Joi.string().allow(),
       digital_object_data_model: Joi.string().allow(),
       digital_object_data_interval: Joi.number().allow(),
       digital_object_control_request_model: Joi.object().empty({}).allow(),
