@@ -140,7 +140,7 @@ class Postgres {
 
    /**
     * insert relation information to relations table
-    * type: {"mirrorlake":0,"digitalTwin":1,"digitalObject":2,"sensor":3,"controller":4,"visualModel":5,"dataModel":6,"behaviorModel":7,"simulation":8,"service":9,"subscription":10}
+    * type: {"federatedTwin":0,"digitalTwin":1,"digitalObject":2,"sensor":3,"controller":4,"visualModel":5,"dataModel":6,"behaviorModel":7,"simulation":8,"service":9,"subscription":10}
     * @param {String} parent_id (required)
     * @param {String} resource_id (required)
     * @param {String} type (required)

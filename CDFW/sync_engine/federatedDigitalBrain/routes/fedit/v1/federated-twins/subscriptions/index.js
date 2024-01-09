@@ -44,7 +44,7 @@ router.post("/", joi.subscriptions.create, async function (req, res) {
       e.handle(
          req,
          res,
-         `POST /mirrorlake/v1/federated_twins/{federated_digital_twin_id}/subscriptions ${e}`
+         `POST /fedit/v1/federated_twins/{federated_digital_twin_id}/subscriptions ${e}`
       );
    }
 });
@@ -82,7 +82,7 @@ router.get("/", async (req, res) => {
       e.handle(
          req,
          res,
-         `Search /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/subscriptions/{subscription_id}`
+         `Search /fedit/v1/federated-twins/{federated_digital_twin_id}/subscriptions/{subscription_id}`
       );
    }
 });
@@ -114,7 +114,7 @@ router.get("/:subscription_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Retrieve /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/subscriptions/{subscription_id} ${e}`
+         `Retrieve /fedit/v1/federated-twins/{federated_digital_twin_id}/subscriptions/{subscription_id} ${e}`
       );
    }
 });
@@ -149,7 +149,7 @@ router.patch(
          e.handle(
             req,
             res,
-            `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/subscriptions/{subscription_id} ${e}`
+            `POST /fedit/v1/federated-twins/{federated_digital_twin_id}/subscriptions/{subscription_id} ${e}`
          );
       }
    }
@@ -182,7 +182,7 @@ router.delete("/:subscription_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Delete /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/subscriptions/{subscription_id} ${e}`
+         `Delete /fedit/v1/federated-twins/{federated_digital_twin_id}/subscriptions/{subscription_id} ${e}`
       );
    }
 });

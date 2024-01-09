@@ -46,7 +46,7 @@ router.post("/", async function (req, res) {
             e.handle(
                req,
                res,
-               `Post /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/visual-models`
+               `Post /fedit/v1/federated-twins/{federated_digital_twin_id}/visual-models`
             );
          }
 
@@ -62,7 +62,7 @@ router.post("/", async function (req, res) {
       e.handle(
          req,
          res,
-         `Post /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/visual-models`
+         `Post /fedit/v1/federated-twins/{federated_digital_twin_id}/visual-models`
       );
    }
 });
@@ -91,7 +91,7 @@ router.get("/", async (req, res) => {
       e.handle(
          req,
          res,
-         `Search /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/visual-models?name={name}`
+         `Search /fedit/v1/federated-twins/{federated_digital_twin_id}/visual-models?name={name}`
       );
    }
 });
@@ -113,7 +113,7 @@ router.get("/:visual_model_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Retrieve /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/visual-models/{visual_model_id}`
+         `Retrieve /fedit/v1/federated-twins/{federated_digital_twin_id}/visual-models/{visual_model_id}`
       );
    }
 });
@@ -136,7 +136,7 @@ router.get("/:visual_model_id/download", async (req, res) => {
       e.handle(
          req,
          res,
-         `Download /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/visual-models/{visual_model_id}`
+         `Download /fedit/v1/federated-twins/{federated_digital_twin_id}/visual-models/{visual_model_id}`
       );
    }
 });
@@ -160,7 +160,7 @@ router.patch("/:visual_model_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Update /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/visual-models/{visual_model_id}`
+         `Update /fedit/v1/federated-twins/{federated_digital_twin_id}/visual-models/{visual_model_id}`
       );
    }
 });
@@ -183,7 +183,7 @@ router.delete("/:visual_model_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Delete /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/visual-models/{visual_model_id}`
+         `Delete /fedit/v1/federated-twins/{federated_digital_twin_id}/visual-models/{visual_model_id}`
       );
    }
 });

@@ -1,5 +1,6 @@
 const Model = require("../../models");
 const model = new Model();
+const config = require("../../config");
 const ErrorHandler = require("../../lib/error-handler");
 const lib = require("../../lib/index");
 
@@ -18,7 +19,6 @@ class FederatedDigitalTwins {
 
    async create(params) {
       const {
-         mirrorlake_id,
          federated_digital_twin_name,
          description,
          owner,
@@ -32,7 +32,6 @@ class FederatedDigitalTwins {
       const federated_digital_twin_id = "F" + uuid();
 
       const sql = `insert into federated_digital_twins (
-         mirrorlake_id,
          federated_digital_twin_id,
          federated_digital_twin_name,
          description,
@@ -48,19 +47,12 @@ class FederatedDigitalTwins {
          number_of_services,
          number_of_simulations,
          number_of_digital_twins
-      ) values ('${mirrorlake_id}', '${federated_digital_twin_id}', '${federated_digital_twin_name}',  '${description}', '${owner}', '{${tags}}', '${point_of_access}', '${creation_time}',
+      ) values ('${federated_digital_twin_id}', '${federated_digital_twin_name}',  '${description}', '${owner}', '{${tags}}', '${point_of_access}', '${creation_time}',
        '${creator_id}', '${creation_time}', '${JSON.stringify(
          location
       )}', 0, 0, 0, 0, 0);`;
 
       await model.postgres.sendQuery({ sql });
-
-      //relations
-      // await model.postgres.insertRelationInfo({
-      //    parent_id: mirrorlake_id,
-      //    resource_id: federated_digital_twin_id,
-      //    type: 1,
-      // });
 
       return { federated_digital_twin_id };
    }
@@ -226,13 +218,13 @@ class FederatedDigitalTwins {
            delete from federated_visual_models where federated_digital_twin_id = '${id}';
            delete from federated_validations where federated_digital_twin_id = '${id}';
            delete from federated_fidelities where federated_digital_twin_id = '${id}';
-           delete from do_compositions where federated_digital_twin_id = '${id}';
-           delete from do_sync_compositions where federated_digital_twin_id = '${id}';`;
+           delete from fdo_compositions where federated_digital_twin_id = '${id}';
+           delete from fdo_sync_compositions where federated_digital_twin_id = '${id}';`;
          await model.postgres.sendQuery({ sql });
 
          await lib.request({
             method: "delete",
-            url: `http://${config.federatedDigitalConnector.ip}${config.federatedDigitalConnector.port}/mirrorlake/v1/federated-twins/${id}/digital-twins/undefind`,
+            url: `http://${config.federatedDigitalConnector.ip}${config.federatedDigitalConnector.port}/fedit/v1/federated-twins/${id}/digital-twins/undefind`,
          });
          return { delete: id };
       } else {

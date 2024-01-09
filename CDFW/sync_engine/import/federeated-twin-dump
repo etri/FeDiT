@@ -260,7 +260,6 @@ ALTER TABLE public.federated_data_models OWNER TO postgres;
 
 CREATE TABLE public.federated_digital_object_data (
     federated_digital_object_data_id text,
-    mirrorlake_id text,
     federated_digital_twin_id text,
     federated_digital_object_id text,
     rowtime timestamp with time zone,
@@ -305,7 +304,6 @@ ALTER TABLE public.federated_digital_objects OWNER TO postgres;
 --
 
 CREATE TABLE public.federated_digital_twins (
-    mirrorlake_id text,
     federated_digital_twin_id text,
     federated_digital_twin_name text,
     description text,

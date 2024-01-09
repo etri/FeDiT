@@ -1,7 +1,7 @@
 {
 	"info": {
-		"_postman_id": "4cecd056-4a7e-40a4-9710-c91035fb62af",
-		"name": "Federeated-twin",
+		"_postman_id": "44fe180c-c4bc-43f2-90f9-9ee5d59c8b25",
+		"name": "Federeated-twin-fedit",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "11129151"
 	},
@@ -36,14 +36,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -79,14 +79,14 @@
 																	}
 																},
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations",
+																	"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -97,11 +97,11 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}"
+																			"value": "D46d8c5717a08988190a816a71edff08e"
 																		}
 																	]
 																}
@@ -166,14 +166,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -200,14 +200,14 @@
 																"method": "GET",
 																"header": [],
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations",
+																	"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -218,11 +218,11 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}"
+																			"value": "D46d8c5717a08988190a816a71edff08e"
 																		}
 																	]
 																}
@@ -287,14 +287,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations?name=sim-test",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations?name=sim-test",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -327,14 +327,14 @@
 																"method": "GET",
 																"header": [],
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations?name=sim-test",
+																	"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations?name=sim-test",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -351,11 +351,11 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}"
+																			"value": "D46d8c5717a08988190a816a71edff08e"
 																		}
 																	]
 																}
@@ -420,14 +420,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations/:simulation_id",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations/:simulation_id",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -459,14 +459,14 @@
 																"method": "GET",
 																"header": [],
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations/:simulation_id",
+																	"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations/:simulation_id",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -478,11 +478,11 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}"
+																			"value": "D46d8c5717a08988190a816a71edff08e"
 																		},
 																		{
 																			"key": "simulation_id",
@@ -560,14 +560,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations/:simulation_id",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations/:simulation_id",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -608,14 +608,14 @@
 																	}
 																},
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations/:simulation_id",
+																	"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations/:simulation_id",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -627,11 +627,11 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}"
+																			"value": "D46d8c5717a08988190a816a71edff08e"
 																		},
 																		{
 																			"key": "simulation_id",
@@ -716,14 +716,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations/:simulation_id",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations/:simulation_id",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -772,14 +772,14 @@
 																	}
 																},
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations/:simulation_id",
+																	"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/simulations/:simulation_id",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -791,11 +791,11 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}"
+																			"value": "D46d8c5717a08988190a816a71edff08e"
 																		},
 																		{
 																			"key": "simulation_id",
@@ -878,14 +878,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -921,14 +921,14 @@
 																	}
 																},
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services",
+																	"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -939,11 +939,11 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}"
+																			"value": "D46d8c5717a08988190a816a71edff08e"
 																		}
 																	]
 																}
@@ -1008,14 +1008,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services?name=service-test-1",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services?name=service-test-1",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -1048,14 +1048,14 @@
 																"method": "GET",
 																"header": [],
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services?name=service-test-1",
+																	"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services?name=service-test-1",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -1072,11 +1072,11 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}"
+																			"value": "D46d8c5717a08988190a816a71edff08e"
 																		}
 																	]
 																}
@@ -1141,14 +1141,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services/:service_id",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services/:service_id",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -1180,14 +1180,14 @@
 																"method": "GET",
 																"header": [],
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services/:service_id",
+																	"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services/:service_id",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -1199,11 +1199,11 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}"
+																			"value": "D46d8c5717a08988190a816a71edff08e"
 																		},
 																		{
 																			"key": "service_id",
@@ -1272,14 +1272,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -1306,14 +1306,14 @@
 																"method": "GET",
 																"header": [],
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services",
+																	"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -1324,11 +1324,11 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}"
+																			"value": "D46d8c5717a08988190a816a71edff08e"
 																		}
 																	]
 																}
@@ -1402,14 +1402,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services/:service_id",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services/:service_id",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -1450,14 +1450,14 @@
 																	}
 																},
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services/:service_id",
+																	"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services/:service_id",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -1469,11 +1469,11 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}"
+																			"value": "D46d8c5717a08988190a816a71edff08e"
 																		},
 																		{
 																			"key": "service_id",
@@ -1557,14 +1557,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services/:service_id",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services/:service_id",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -1612,14 +1612,14 @@
 																	}
 																},
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services/:service_id",
+																	"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/services/:service_id",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -1631,11 +1631,11 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}"
+																			"value": "D46d8c5717a08988190a816a71edff08e"
 																		},
 																		{
 																			"key": "service_id",
@@ -1721,14 +1721,14 @@
 																	}
 																},
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data",
+																	"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data",
 																	"protocol": "http",
 																	"host": [
 																		"{{ip}}"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -1770,14 +1770,14 @@
 																			}
 																		},
 																		"url": {
-																			"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data",
+																			"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data",
 																			"protocol": "http",
 																			"host": [
-																				"{{ip}}"
+																				"localhost"
 																			],
 																			"port": "1219",
 																			"path": [
-																				"mirrorlake",
+																				"fedit",
 																				"v1",
 																				"federated-twins",
 																				":federated_twin_id",
@@ -1790,11 +1790,11 @@
 																			"variable": [
 																				{
 																					"key": "federated_twin_id",
-																					"value": "{{fdt_id}}"
+																					"value": "FDT"
 																				},
 																				{
 																					"key": "digital_twins_id",
-																					"value": "{{dt_id}}"
+																					"value": "D46d8c5717a08988190a816a71edff08e"
 																				},
 																				{
 																					"key": "digital_object_id",
@@ -1870,14 +1870,14 @@
 																			}
 																		},
 																		"url": {
-																			"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data",
+																			"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data",
 																			"protocol": "http",
 																			"host": [
 																				"{{ip}}"
 																			],
 																			"port": "1219",
 																			"path": [
-																				"mirrorlake",
+																				"fedit",
 																				"v1",
 																				"federated-twins",
 																				":federated_twin_id",
@@ -1972,14 +1972,14 @@
 																	}
 																},
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data",
+																	"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data",
 																	"protocol": "http",
 																	"host": [
 																		"{{ip}}"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -2021,14 +2021,14 @@
 																			}
 																		},
 																		"url": {
-																			"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data",
+																			"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data",
 																			"protocol": "http",
 																			"host": [
-																				"{{ip}}"
+																				"localhost"
 																			],
 																			"port": "1219",
 																			"path": [
-																				"mirrorlake",
+																				"fedit",
 																				"v1",
 																				"federated-twins",
 																				":federated_twin_id",
@@ -2041,11 +2041,11 @@
 																			"variable": [
 																				{
 																					"key": "federated_twin_id",
-																					"value": "{{fdt_id}}"
+																					"value": "FDT"
 																				},
 																				{
 																					"key": "digital_twins_id",
-																					"value": "{{dt_id}}"
+																					"value": "D46d8c5717a08988190a816a71edff08e"
 																				},
 																				{
 																					"key": "digital_object_id",
@@ -2121,14 +2121,14 @@
 																			}
 																		},
 																		"url": {
-																			"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data",
+																			"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data",
 																			"protocol": "http",
 																			"host": [
 																				"{{ip}}"
 																			],
 																			"port": "1219",
 																			"path": [
-																				"mirrorlake",
+																				"fedit",
 																				"v1",
 																				"federated-twins",
 																				":federated_twin_id",
@@ -2214,14 +2214,14 @@
 																"method": "GET",
 																"header": [],
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data?count=3",
+																	"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data?count=3",
 																	"protocol": "http",
 																	"host": [
 																		"{{ip}}"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -2240,18 +2240,15 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}",
-																			"type": "string"
+																			"value": "{{fdt_id}}"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}",
-																			"type": "string"
+																			"value": "{{dt_id}}"
 																		},
 																		{
 																			"key": "digital_object_id",
-																			"value": "D487f8da280ff059f9e273d424f36edfb",
-																			"type": "string"
+																			"value": "D487f8da280ff059f9e273d424f36edfb"
 																		}
 																	]
 																}
@@ -2263,14 +2260,14 @@
 																		"method": "GET",
 																		"header": [],
 																		"url": {
-																			"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data?count=10",
+																			"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data?count=10",
 																			"protocol": "http",
 																			"host": [
-																				"{{ip}}"
+																				"localhost"
 																			],
 																			"port": "1219",
 																			"path": [
-																				"mirrorlake",
+																				"fedit",
 																				"v1",
 																				"federated-twins",
 																				":federated_twin_id",
@@ -2289,18 +2286,15 @@
 																			"variable": [
 																				{
 																					"key": "federated_twin_id",
-																					"value": "{{fdt_id}}",
-																					"type": "string"
+																					"value": "FDT"
 																				},
 																				{
 																					"key": "digital_twins_id",
-																					"value": "{{dt_id}}",
-																					"type": "string"
+																					"value": "D46d8c5717a08988190a816a71edff08e"
 																				},
 																				{
 																					"key": "digital_object_id",
-																					"value": "D487f8da280ff059f9e273d424f36edfb",
-																					"type": "string"
+																					"value": "D487f8da280ff059f9e273d424f36edfb"
 																				}
 																			]
 																		}
@@ -2365,14 +2359,14 @@
 																"method": "GET",
 																"header": [],
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data?from=2023-12-19T06:00:00.631&to=2023-12-19T06:12:37.631",
+																	"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data?from=2023-12-19T06:00:00.631&to=2023-12-19T06:12:37.631",
 																	"protocol": "http",
 																	"host": [
 																		"{{ip}}"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -2395,18 +2389,15 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}",
-																			"type": "string"
+																			"value": "{{fdt_id}}"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}",
-																			"type": "string"
+																			"value": "{{dt_id}}"
 																		},
 																		{
 																			"key": "digital_object_id",
-																			"value": "D487f8da280ff059f9e273d424f36edfb",
-																			"type": "string"
+																			"value": "D487f8da280ff059f9e273d424f36edfb"
 																		}
 																	]
 																}
@@ -2418,14 +2409,14 @@
 																		"method": "GET",
 																		"header": [],
 																		"url": {
-																			"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data?from=2023-12-19T06:00:00.631&to=2023-12-19T06:12:37.631",
+																			"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/data?from=2023-12-19T06:00:00.631&to=2023-12-19T06:12:37.631",
 																			"protocol": "http",
 																			"host": [
-																				"{{ip}}"
+																				"localhost"
 																			],
 																			"port": "1219",
 																			"path": [
-																				"mirrorlake",
+																				"fedit",
 																				"v1",
 																				"federated-twins",
 																				":federated_twin_id",
@@ -2448,18 +2439,15 @@
 																			"variable": [
 																				{
 																					"key": "federated_twin_id",
-																					"value": "{{fdt_id}}",
-																					"type": "string"
+																					"value": "FDT"
 																				},
 																				{
 																					"key": "digital_twins_id",
-																					"value": "{{dt_id}}",
-																					"type": "string"
+																					"value": "D46d8c5717a08988190a816a71edff08e"
 																				},
 																				{
 																					"key": "digital_object_id",
-																					"value": "D487f8da280ff059f9e273d424f36edfb",
-																					"type": "string"
+																					"value": "D487f8da280ff059f9e273d424f36edfb"
 																				}
 																			]
 																		}
@@ -2533,14 +2521,14 @@
 																	}
 																},
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/control",
+																	"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/control",
 																	"protocol": "http",
 																	"host": [
 																		"{{ip}}"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -2553,18 +2541,15 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}",
-																			"type": "string"
+																			"value": "{{fdt_id}}"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}",
-																			"type": "string"
+																			"value": "{{dt_id}}"
 																		},
 																		{
 																			"key": "digital_object_id",
-																			"value": "",
-																			"type": "string"
+																			"value": ""
 																		}
 																	]
 																}
@@ -2586,14 +2571,14 @@
 																	}
 																},
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/control-result",
+																	"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/control-result",
 																	"protocol": "http",
 																	"host": [
 																		"{{ip}}"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -2606,18 +2591,15 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}",
-																			"type": "string"
+																			"value": "{{fdt_id}}"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}",
-																			"type": "string"
+																			"value": "{{dt_id}}"
 																		},
 																		{
 																			"key": "digital_object_id",
-																			"value": "",
-																			"type": "string"
+																			"value": ""
 																		}
 																	]
 																}
@@ -2630,14 +2612,14 @@
 																"method": "GET",
 																"header": [],
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/control?count=10",
+																	"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/control?count=10",
 																	"protocol": "http",
 																	"host": [
 																		"{{ip}}"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -2656,18 +2638,15 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}",
-																			"type": "string"
+																			"value": "{{fdt_id}}"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}",
-																			"type": "string"
+																			"value": "{{dt_id}}"
 																		},
 																		{
 																			"key": "digital_object_id",
-																			"value": "",
-																			"type": "string"
+																			"value": ""
 																		}
 																	]
 																}
@@ -2680,14 +2659,14 @@
 																"method": "GET",
 																"header": [],
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/control?from=2023-09-12T23:32:01.232&to=2023-09-12T06:48:45.232",
+																	"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id/control?from=2023-09-12T23:32:01.232&to=2023-09-12T06:48:45.232",
 																	"protocol": "http",
 																	"host": [
 																		"{{ip}}"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -2710,18 +2689,15 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}",
-																			"type": "string"
+																			"value": "{{fdt_id}}"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}",
-																			"type": "string"
+																			"value": "{{dt_id}}"
 																		},
 																		{
 																			"key": "digital_object_id",
-																			"value": "",
-																			"type": "string"
+																			"value": ""
 																		}
 																	]
 																}
@@ -2737,7 +2713,7 @@
 														"header": [],
 														"body": {
 															"mode": "raw",
-															"raw": "{\r\n    \"digital_object_name\": \"Parking_Block_Visitor\",\r\n    \"description\": \"Parking_Block_Visitor\",\r\n    \"creation_time\": \"20231114T010101\",\r\n    \"modification_time\": \"20231114T010101\",\r\n    \"tags\":[\"parkingLot\"], \r\n    \"subject\":[\"etc\"] ,\r\n    \"digital_object_data_access_type\":\"http\",\r\n    \"digital_object_data_access_url\":\"http://\",\r\n    \"digital_object_data_model\":\"data_model\",\r\n    \"digital_object_data_interval\":5000,\r\n    \"digital_object_control_url\":\"http://\",\r\n    \"digital_object_control_request_model\":{\"control_model\":null}\r\n}",
+															"raw": "{\r\n    \"digital_object_name\": \"digital_object_1\",\r\n    \"description\": \"didgital_object\",\r\n    \"creation_time\": \"20231114T010101\",\r\n    \"modification_time\": \"20231114T010101\",\r\n    \"tags\":[\"DO\"], \r\n    \"subject\":[\"etc\"] ,\r\n    \"digital_object_data_access_type\":\"http\",\r\n    \"digital_object_data_access_url\":\"http://\",\r\n    \"digital_object_data_source_type\":\"POLL\",\r\n    \"digital_object_data_source_url\":\"http://192.168.140.123:9091/getime\",\r\n    \"digital_object_data_model\":\"data_model\",\r\n    \"digital_object_data_interval\":5000,\r\n    \"digital_object_control_url\":\"http://\",\r\n    \"digital_object_control_request_model\":{\"control_model\":null},\r\n    \"do_metadata\":{\"sensors\":[{\"sensor_id\": \"S1\"}], \"controllers\":[{\"controllers_id\": \"C1\"}], \"visual_models\":{\"visual_model_id\": \"V1\"}}\r\n}",
 															"options": {
 																"raw": {
 																	"language": "json"
@@ -2745,14 +2721,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -2780,7 +2756,7 @@
 																"header": [],
 																"body": {
 																	"mode": "raw",
-																	"raw": "{\r\n    \"digital_object_name\": \"Block_Visitor\",\r\n    \"description\": \"parkingLot Data\",\r\n    \"creation_time\": \"20231114T010101\",\r\n    \"modification_time\": \"20231114T010101\",\r\n    \"tags\":[\"parkingLot\", \"Block_Visitor\"], \r\n    \"subject\":[\"etc\"] ,\r\n    \"digital_object_data_access_type\":\"null\",\r\n    \"digital_object_data_access_url\":\"null\",\r\n    \"digital_object_data_model\":\"null\",\r\n    \"digital_object_data_interval\":5000,\r\n    \"digital_object_control_url\":\"null\",\r\n    \"digital_object_control_request_model\":{\"control_model\":null}\r\n}",
+																	"raw": "{\r\n    \"digital_object_name\": \"digital_object_1\",\r\n    \"description\": \"didgital_object\",\r\n    \"creation_time\": \"20231114T010101\",\r\n    \"modification_time\": \"20231114T010101\",\r\n    \"tags\":[\"DO\"], \r\n    \"subject\":[\"etc\"] ,\r\n    \"digital_object_data_access_type\":\"http\",\r\n    \"digital_object_data_access_url\":\"http://\",\r\n    \"digital_object_data_model\":\"data_model\",\r\n    \"digital_object_data_interval\":5000,\r\n    \"digital_object_control_url\":\"http://\",\r\n    \"digital_object_control_request_model\":{\"control_model\":null},\r\n    \"do_metadata\":{\"sensors\":[{\"sensor_id\": \"S1\"}], \"controllers\":[{\"controllers_id\": \"C1\"}], \"visual_models\":{\"visual_model_id\": \"V1\"}}\r\n}",
 																	"options": {
 																		"raw": {
 																			"language": "json"
@@ -2788,14 +2764,14 @@
 																	}
 																},
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects",
+																	"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -2806,11 +2782,11 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}"
+																			"value": "D46d8c5717a08988190a816a71edff08e"
 																		}
 																	]
 																}
@@ -2849,11 +2825,11 @@
 																},
 																{
 																	"key": "ETag",
-																	"value": "W/\"39-JXB+lQhF5TgdkCxMF5op63DT19o\""
+																	"value": "W/\"39-NU/avqMVOwBY4Ey+8dwF0nwf0Ps\""
 																},
 																{
 																	"key": "Date",
-																	"value": "Tue, 21 Nov 2023 07:43:15 GMT"
+																	"value": "Fri, 05 Jan 2024 05:17:33 GMT"
 																},
 																{
 																	"key": "Connection",
@@ -2865,7 +2841,7 @@
 																}
 															],
 															"cookie": [],
-															"body": "{\n    \"digital_object_id\": \"D4fd51ddb986c398b94526c6dfc140f9f\"\n}"
+															"body": "{\n    \"digital_object_id\": \"D48c69e940aecda16b51356801cbab19f\"\n}"
 														},
 														{
 															"name": "단일 디지털 트윈 객체 정보 등록",
@@ -2874,7 +2850,7 @@
 																"header": [],
 																"body": {
 																	"mode": "raw",
-																	"raw": "{\r\n    \"digital_object_name\": \"Parking_Block_Visitor\",\r\n    \"description\": \"Parking_Block_Visitor\",\r\n    \"creation_time\": \"20231114T010101\",\r\n    \"modification_time\": \"20231114T010101\",\r\n    \"tags\":[\"parkingLot\"], \r\n    \"subject\":[\"etc\"] ,\r\n    \"digital_object_data_access_type\":\"http\",\r\n    \"digital_object_data_access_url\":\"http://\",\r\n    \"digital_object_data_model\":\"data_model\",\r\n    \"digital_object_data_interval\":5000,\r\n    \"digital_object_control_url\":\"http://\",\r\n    \"digital_object_control_request_model\":{\"control_model\":null}\r\n}",
+																	"raw": "{\r\n    \"digital_object_name\": \"digital_object_1\",\r\n    \"description\": \"didgital_object\",\r\n    \"creation_time\": \"20231114T010101\",\r\n    \"modification_time\": \"20231114T010101\",\r\n    \"tags\":[\"DO\"], \r\n    \"subject\":[\"etc\"] ,\r\n    \"digital_object_data_access_type\":\"http\",\r\n    \"digital_object_data_access_url\":\"http://\",\r\n    \"digital_object_data_source_type\":\"POLL\",\r\n    \"digital_object_data_source_url\":\"http://192.168.140.123:9091/getime\",\r\n    \"digital_object_data_model\":\"data_model\",\r\n    \"digital_object_data_interval\":5000,\r\n    \"digital_object_control_url\":\"http://\",\r\n    \"digital_object_control_request_model\":{\"control_model\":null},\r\n    \"do_metadata\":{\"sensors\":[{\"sensor_id\": \"S1\"}], \"controllers\":[{\"controllers_id\": \"C1\"}], \"visual_models\":{\"visual_model_id\": \"V1\"}}\r\n}",
 																	"options": {
 																		"raw": {
 																			"language": "json"
@@ -2882,14 +2858,14 @@
 																	}
 																},
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects",
+																	"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects",
 																	"protocol": "http",
 																	"host": [
 																		"{{ip}}"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -2943,11 +2919,11 @@
 																},
 																{
 																	"key": "ETag",
-																	"value": "W/\"39-yUwRULNyYqtvHRAdcpjTuNsECO0\""
+																	"value": "W/\"39-TfPbmvD+dpN4umu89pxHtEbM1Lg\""
 																},
 																{
 																	"key": "Date",
-																	"value": "Tue, 19 Dec 2023 06:24:02 GMT"
+																	"value": "Fri, 05 Jan 2024 06:49:45 GMT"
 																},
 																{
 																	"key": "Connection",
@@ -2959,7 +2935,7 @@
 																}
 															],
 															"cookie": [],
-															"body": "{\n    \"digital_object_id\": \"D40f677d94002368798c19c8c01f059a2\"\n}"
+															"body": "{\n    \"digital_object_id\": \"D49af01cc0e947d81b860942538d712d6\"\n}"
 														}
 													]
 												},
@@ -2969,14 +2945,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -3003,14 +2979,14 @@
 																"method": "GET",
 																"header": [],
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects",
+																	"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -3021,11 +2997,11 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}"
+																			"value": "D46d8c5717a08988190a816a71edff08e"
 																		}
 																	]
 																}
@@ -3088,14 +3064,14 @@
 																"method": "GET",
 																"header": [],
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects",
+																	"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects",
 																	"protocol": "http",
 																	"host": [
 																		"{{ip}}"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -3175,14 +3151,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects?name=Block_Visitor",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects?name=Block_Visitor",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -3199,13 +3175,11 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}",
-																	"type": "string"
+																	"value": "{{fdt_id}}"
 																},
 																{
 																	"key": "digital_twins_id",
-																	"value": "{{dt_id}}",
-																	"type": "string"
+																	"value": "{{dt_id}}"
 																}
 															]
 														}
@@ -3217,14 +3191,14 @@
 																"method": "GET",
 																"header": [],
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects?name=Block_Visitor",
+																	"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects?name=Block_Visitor",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -3241,13 +3215,11 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}",
-																			"type": "string"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}",
-																			"type": "string"
+																			"value": "D46d8c5717a08988190a816a71edff08e"
 																		}
 																	]
 																}
@@ -3312,14 +3284,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -3351,14 +3323,14 @@
 																"method": "GET",
 																"header": [],
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id",
+																	"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -3370,11 +3342,11 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}"
+																			"value": "D46d8c5717a08988190a816a71edff08e"
 																		},
 																		{
 																			"key": "digital_object_id",
@@ -3452,14 +3424,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -3500,14 +3472,14 @@
 																	}
 																},
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id",
+																	"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -3519,11 +3491,11 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}"
+																			"value": "D46d8c5717a08988190a816a71edff08e"
 																		},
 																		{
 																			"key": "digital_object_id",
@@ -3607,14 +3579,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -3662,14 +3634,14 @@
 																	}
 																},
 																"url": {
-																	"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id",
+																	"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id/digital-objects/:digital_object_id",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1219",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -3681,11 +3653,11 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "digital_twins_id",
-																			"value": "{{dt_id}}"
+																			"value": "D46d8c5717a08988190a816a71edff08e"
 																		},
 																		{
 																			"key": "digital_object_id",
@@ -3765,14 +3737,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins",
+													"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1219",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -3802,14 +3774,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins",
+															"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -3818,7 +3790,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																}
 															]
 														}
@@ -3890,14 +3862,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -3978,14 +3950,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins",
+															"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -4059,14 +4031,14 @@
 												"method": "GET",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins",
+													"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1219",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -4087,14 +4059,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins",
+															"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -4103,7 +4075,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																}
 															]
 														}
@@ -4168,14 +4140,14 @@
 												"method": "GET",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins?name=laboratory_twin",
+													"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins?name=laboratory_twin",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1219",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -4202,14 +4174,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins?name=laboratory_twin",
+															"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins?name=laboratory_twin",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -4224,7 +4196,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																}
 															]
 														}
@@ -4289,14 +4261,14 @@
 												"method": "GET",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id",
+													"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1219",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -4322,14 +4294,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id",
+															"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -4339,7 +4311,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																},
 																{
 																	"key": "digital_twins_id",
@@ -4417,14 +4389,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id",
+													"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1219",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -4459,14 +4431,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id",
+															"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -4476,7 +4448,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																},
 																{
 																	"key": "digital_twins_id",
@@ -4560,14 +4532,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id",
+													"raw": "http://{{ip}}:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1219",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -4609,14 +4581,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1219/mirrorlake/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id",
+															"raw": "http://localhost:1219/fedit/v1/federated-twins/:federated_twin_id/digital-twins/:digital_twins_id",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1219",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -4626,7 +4598,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																},
 																{
 																	"key": "digital_twins_id",
@@ -4718,14 +4690,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id/data?count=10",
+															"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id/data?count=10",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -4758,14 +4730,14 @@
 																"method": "GET",
 																"header": [],
 																"url": {
-																	"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id/data?count=10",
+																	"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id/data?count=10",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1213",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -4782,7 +4754,7 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "federated_digital_object_id",
@@ -4841,7 +4813,7 @@
 																}
 															],
 															"cookie": [],
-															"body": "[\n    {\n        \"federated_digital_object_data_id\": \"928793b0-78e6-4aa0-aa98-84fd0baa628a\",\n        \"mirrorlake_id\": null,\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:25:55.686Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"3\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11287510768386 37.414146057504595, 127.11287510768386 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.414146057504595, 127.11287510768386 37.414146057504595))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"d8e2fa7f-311e-42b2-aec8-7751ecaee692\",\n        \"mirrorlake_id\": null,\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:25:22.315Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"2\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"23e53f18-ee50-4e00-b98f-7832e3880914\",\n        \"mirrorlake_id\": null,\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:25:16.898Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"1\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"ff19aa18-a035-48a2-8988-ea8a3aa751e1\",\n        \"mirrorlake_id\": null,\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:23:46.202Z\",\n        \"data\": {\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"0113b429-2fac-47b3-9abd-54977c49f30b\",\n        \"mirrorlake_id\": null,\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:22:44.083Z\",\n        \"data\": {\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 6\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516))\"\n    }\n]"
+															"body": "[\n    {\n        \"federated_digital_object_data_id\": \"928793b0-78e6-4aa0-aa98-84fd0baa628a\",\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:25:55.686Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"3\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11287510768386 37.414146057504595, 127.11287510768386 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.414146057504595, 127.11287510768386 37.414146057504595))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"d8e2fa7f-311e-42b2-aec8-7751ecaee692\",\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:25:22.315Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"2\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"23e53f18-ee50-4e00-b98f-7832e3880914\",\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:25:16.898Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"1\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"ff19aa18-a035-48a2-8988-ea8a3aa751e1\",\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:23:46.202Z\",\n        \"data\": {\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"0113b429-2fac-47b3-9abd-54977c49f30b\",\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:22:44.083Z\",\n        \"data\": {\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 6\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516))\"\n    }\n]"
 														},
 														{
 															"name": "센서 하나만 location이 있을 경우 센서2개 조합 fDigitalObject 데이터",
@@ -4849,14 +4821,14 @@
 																"method": "GET",
 																"header": [],
 																"url": {
-																	"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id/data?count=1",
+																	"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id/data?count=1",
 																	"protocol": "http",
 																	"host": [
 																		"{{ip}}"
 																	],
 																	"port": "1213",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -4932,7 +4904,7 @@
 																}
 															],
 															"cookie": [],
-															"body": "[\n    {\n        \"federated_digital_object_data_id\": \"ff2cda9d-43ea-4589-a60e-d58eeeffc3c2\",\n        \"mirrorlake_id\": null,\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO4e022590d0e3c7829fbd1c954839a653\",\n        \"rowtime\": \"2023-12-22T01:27:58.201Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"3\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((0 0, 0 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 0, 0 0))\"\n    }\n]"
+															"body": "[\n    {\n        \"federated_digital_object_data_id\": \"ff2cda9d-43ea-4589-a60e-d58eeeffc3c2\",\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO4e022590d0e3c7829fbd1c954839a653\",\n        \"rowtime\": \"2023-12-22T01:27:58.201Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"3\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((0 0, 0 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 0, 0 0))\"\n    }\n]"
 														}
 													]
 												},
@@ -4942,14 +4914,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id/data?from=2023-12-22T01:22:44.083&to=2023-12-22T01:32:04.076",
+															"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id/data?from=2023-12-22T01:22:44.083&to=2023-12-22T01:32:04.076",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -4986,14 +4958,14 @@
 																"method": "GET",
 																"header": [],
 																"url": {
-																	"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id/data?from=2023-12-22T01:22:44.083&to=2023-12-22T01:32:04.076",
+																	"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id/data?from=2023-12-22T01:22:44.083&to=2023-12-22T01:32:04.076",
 																	"protocol": "http",
 																	"host": [
-																		"{{ip}}"
+																		"localhost"
 																	],
 																	"port": "1213",
 																	"path": [
-																		"mirrorlake",
+																		"fedit",
 																		"v1",
 																		"federated-twins",
 																		":federated_twin_id",
@@ -5014,7 +4986,7 @@
 																	"variable": [
 																		{
 																			"key": "federated_twin_id",
-																			"value": "{{fdt_id}}"
+																			"value": "FDT"
 																		},
 																		{
 																			"key": "federated_digital_object_id",
@@ -5073,7 +5045,7 @@
 																}
 															],
 															"cookie": [],
-															"body": "[\n    {\n        \"federated_digital_object_data_id\": \"0113b429-2fac-47b3-9abd-54977c49f30b\",\n        \"mirrorlake_id\": null,\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:22:44.083Z\",\n        \"data\": {\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 6\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"ff19aa18-a035-48a2-8988-ea8a3aa751e1\",\n        \"mirrorlake_id\": null,\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:23:46.202Z\",\n        \"data\": {\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"23e53f18-ee50-4e00-b98f-7832e3880914\",\n        \"mirrorlake_id\": null,\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:25:16.898Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"1\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"d8e2fa7f-311e-42b2-aec8-7751ecaee692\",\n        \"mirrorlake_id\": null,\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:25:22.315Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"2\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"928793b0-78e6-4aa0-aa98-84fd0baa628a\",\n        \"mirrorlake_id\": null,\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:25:55.686Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"3\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11287510768386 37.414146057504595, 127.11287510768386 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.414146057504595, 127.11287510768386 37.414146057504595))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"cca7ed29-15fd-4b7e-bd5e-1768a1b146cb\",\n        \"mirrorlake_id\": null,\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:27:58.201Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"3\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((0 0, 0 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 0, 0 0))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"fdce36d4-e36a-4a36-ab15-7f11a8e261b7\",\n        \"mirrorlake_id\": null,\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:31:30.817Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"4\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((0 0, 0 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 0, 0 0))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"3037ecb8-6308-431a-9f86-6b5a517f9799\",\n        \"mirrorlake_id\": null,\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:31:33.825Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"5\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((0 0, 0 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 0, 0 0))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"9c8db122-e634-40bf-b5d8-64acddffd963\",\n        \"mirrorlake_id\": null,\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:31:58.797Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"5\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 8\n                }\n            }\n        },\n        \"location\": \"POLYGON ((0 0, 0 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 0, 0 0))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"e4721735-481e-4bdb-bc0a-df06748095a2\",\n        \"mirrorlake_id\": null,\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:32:04.076Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"8\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 8\n                }\n            }\n        },\n        \"location\": \"POLYGON ((0 0, 0 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 0, 0 0))\"\n    }\n]"
+															"body": "[\n    {\n        \"federated_digital_object_data_id\": \"0113b429-2fac-47b3-9abd-54977c49f30b\",\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:22:44.083Z\",\n        \"data\": {\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 6\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"ff19aa18-a035-48a2-8988-ea8a3aa751e1\",\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:23:46.202Z\",\n        \"data\": {\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"23e53f18-ee50-4e00-b98f-7832e3880914\",\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:25:16.898Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"1\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"d8e2fa7f-311e-42b2-aec8-7751ecaee692\",\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:25:22.315Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"2\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.41493177965516))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"928793b0-78e6-4aa0-aa98-84fd0baa628a\",\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:25:55.686Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"3\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((127.11287510768386 37.414146057504595, 127.11287510768386 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 37.414146057504595, 127.11287510768386 37.414146057504595))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"cca7ed29-15fd-4b7e-bd5e-1768a1b146cb\",\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:27:58.201Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"3\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((0 0, 0 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 0, 0 0))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"fdce36d4-e36a-4a36-ab15-7f11a8e261b7\",\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:31:30.817Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"4\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((0 0, 0 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 0, 0 0))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"3037ecb8-6308-431a-9f86-6b5a517f9799\",\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:31:33.825Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"5\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 7\n                }\n            }\n        },\n        \"location\": \"POLYGON ((0 0, 0 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 0, 0 0))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"9c8db122-e634-40bf-b5d8-64acddffd963\",\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:31:58.797Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"5\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 8\n                }\n            }\n        },\n        \"location\": \"POLYGON ((0 0, 0 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 0, 0 0))\"\n    },\n    {\n        \"federated_digital_object_data_id\": \"e4721735-481e-4bdb-bc0a-df06748095a2\",\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_object_id\": \"FDO43310e6125212dfa88e368d258c65d7c\",\n        \"rowtime\": \"2023-12-22T01:32:04.076Z\",\n        \"data\": {\n            \"D43649758fa72608eb461db61564a81dc\": {\n                \"id\": \"KETI_Block\",\n                \"KETI_Block\": {\n                    \"8\": {\n                        \"lt\": \"20230907T084634\",\n                        \"rn\": \"parkingSpot_212\",\n                        \"status\": \"occupied\"\n                    }\n                }\n            },\n            \"D487f8da280ff059f9e273d424f36edfb\": {\n                \"id\": \"temperature\",\n                \"lab_temperature\": {\n                    \"id\": \"cotlab.test.1\",\n                    \"humidity\": 1,\n                    \"temperature\": 8\n                }\n            }\n        },\n        \"location\": \"POLYGON ((0 0, 0 37.41493177965516, 127.11336973267038 37.41493177965516, 127.11336973267038 0, 0 0))\"\n    }\n]"
 														}
 													]
 												},
@@ -5092,14 +5064,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id/control",
+															"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id/control",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -5127,14 +5099,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id/control?count=10",
+															"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id/control?count=10",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -5168,14 +5140,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id/control?from=2023-03-12T23:32:01.232&to=2023-04-12T06:48:45.232",
+															"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id/control?from=2023-03-12T23:32:01.232&to=2023-04-12T06:48:45.232",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -5224,14 +5196,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -5261,14 +5233,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -5277,7 +5249,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																}
 															]
 														}
@@ -5349,14 +5321,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects",
+															"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -5430,14 +5402,14 @@
 												"method": "GET",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -5458,14 +5430,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -5474,7 +5446,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																}
 															]
 														}
@@ -5539,14 +5511,14 @@
 												"method": "GET",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects?name=test",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects?name=test",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -5573,14 +5545,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects?name=test",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects?name=test",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -5595,7 +5567,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																}
 															]
 														}
@@ -5660,14 +5632,14 @@
 												"method": "GET",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -5693,14 +5665,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -5710,7 +5682,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																},
 																{
 																	"key": "federated_digital_object_id",
@@ -5788,14 +5760,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -5830,14 +5802,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -5847,7 +5819,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																},
 																{
 																	"key": "federated_digital_object_id",
@@ -5931,14 +5903,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -5980,14 +5952,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/federated-digital-objects/:federated_digital_object_id",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -5997,7 +5969,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																},
 																{
 																	"key": "federated_digital_object_id",
@@ -6080,14 +6052,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/subscriptions",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/subscriptions",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -6117,14 +6089,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/subscriptions",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/subscriptions",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -6133,7 +6105,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																}
 															]
 														}
@@ -6207,14 +6179,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/subscriptions",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/subscriptions",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -6244,14 +6216,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/subscriptions",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/subscriptions",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -6260,7 +6232,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																}
 															]
 														}
@@ -6325,14 +6297,14 @@
 												"method": "GET",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/subscriptions",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/subscriptions",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -6353,14 +6325,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/subscriptions",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/subscriptions",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -6369,7 +6341,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																}
 															]
 														}
@@ -6434,14 +6406,14 @@
 												"method": "GET",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/subscriptions/:subscription_id",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/subscriptions/:subscription_id",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -6467,14 +6439,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/subscriptions/:subscription_id",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/subscriptions/:subscription_id",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -6484,7 +6456,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																},
 																{
 																	"key": "subscription_id",
@@ -6553,14 +6525,14 @@
 												"method": "GET",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/subscriptions?name=test-sub",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/subscriptions?name=test-sub",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -6587,14 +6559,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/subscriptions?name=test-sub",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/subscriptions?name=test-sub",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -6609,7 +6581,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																}
 															]
 														}
@@ -6683,14 +6655,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/subscriptions/:subscription_id",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/subscriptions/:subscription_id",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -6725,14 +6697,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/subscriptions/:subscription_id",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/subscriptions/:subscription_id",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -6742,7 +6714,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																},
 																{
 																	"key": "subscription_id",
@@ -6826,14 +6798,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/subscriptions/:subscription_id",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/subscriptions/:subscription_id",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -6875,14 +6847,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/subscriptions/:subscription_id",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/subscriptions/:subscription_id",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -6892,7 +6864,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																},
 																{
 																	"key": "subscription_id",
@@ -6975,14 +6947,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -7012,14 +6984,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/simulations",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -7028,7 +7000,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																}
 															]
 														}
@@ -7102,14 +7074,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -7139,14 +7111,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/simulations",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -7155,7 +7127,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																}
 															]
 														}
@@ -7229,14 +7201,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -7258,14 +7230,14 @@
 												"method": "GET",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations?name=sim_test",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations?name=sim_test",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -7292,14 +7264,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations?name=sim_test",
+															"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations?name=sim_test",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -7379,14 +7351,14 @@
 												"method": "GET",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations/:simulation_id",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations/:simulation_id",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -7412,14 +7384,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations/:simulation_id",
+															"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations/:simulation_id",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -7498,14 +7470,14 @@
 												"method": "GET",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -7526,14 +7498,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations",
+															"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -7616,14 +7588,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations/:simulation_id",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations/:simulation_id",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -7658,14 +7630,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations/:simulation_id",
+															"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations/:simulation_id",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -7759,14 +7731,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations/:simulation_id",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations/:simulation_id",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -7808,14 +7780,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations/:simulation_id",
+															"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations/:simulation_id",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -7894,14 +7866,14 @@
 												"method": "POST",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/execute",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/execute",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -7928,14 +7900,14 @@
 														"method": "POST",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/execute",
+															"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/execute",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -8015,14 +7987,14 @@
 												"method": "POST",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/termination",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/termination",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -8049,14 +8021,14 @@
 														"method": "POST",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/termination",
+															"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/termination",
 															"protocol": "http",
 															"host": [
 																"{{ip}}"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -8136,14 +8108,14 @@
 												"method": "POST",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/resume",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/resume",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -8170,14 +8142,14 @@
 														"method": "POST",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/resume",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/resume",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -8188,7 +8160,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																},
 																{
 																	"key": "simulation_id",
@@ -8266,14 +8238,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/data",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/data",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -8309,14 +8281,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/data",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/data",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -8327,7 +8299,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																},
 																{
 																	"key": "simulation_id",
@@ -8411,14 +8383,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/data/:simulation_data_id/result",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/data/:simulation_data_id/result",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -8467,14 +8439,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/data/:simulation_data_id/result",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/data/:simulation_data_id/result",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -8487,7 +8459,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																},
 																{
 																	"key": "simulation_id",
@@ -8578,14 +8550,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/data?count=1",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/data?count=1",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -8624,24 +8596,15 @@
 																"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExZWI1MTc5OWUzOGIxZGMiLCJpYXQiOjE2MTAwODY4MzUsImV4cCI6MTYxNTI3MDgzNX0.Irf9Twaq3DFhX0IOvfRTUCMSt6sRj2C0-jEY8rpjDRM"
 															}
 														],
-														"body": {
-															"mode": "raw",
-															"raw": "",
-															"options": {
-																"raw": {
-																	"language": "json"
-																}
-															}
-														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/data?count=10",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/simulations/:simulation_id/data?count=10",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -8658,7 +8621,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																},
 																{
 																	"key": "simulation_id",
@@ -8741,14 +8704,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/services",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/services",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -8778,14 +8741,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/services",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/services",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -8794,7 +8757,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																}
 															]
 														}
@@ -8859,14 +8822,14 @@
 												"method": "GET",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/services?name=service-test",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/services?name=service-test",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -8893,14 +8856,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/services?name=service-test",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/services?name=service-test",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -8915,7 +8878,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																}
 															]
 														}
@@ -8980,14 +8943,14 @@
 												"method": "GET",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/services/:service_id",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/services/:service_id",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -9013,14 +8976,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/services/:service_id",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/services/:service_id",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -9030,7 +8993,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																},
 																{
 																	"key": "service_id",
@@ -9099,14 +9062,14 @@
 												"method": "GET",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/services",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/services",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -9127,14 +9090,14 @@
 														"method": "GET",
 														"header": [],
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/services",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/services",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -9143,7 +9106,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																}
 															]
 														}
@@ -9217,14 +9180,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/services/:service_id",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/services/:service_id",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -9259,14 +9222,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/services/:service_id",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/services/:service_id",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -9276,7 +9239,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																},
 																{
 																	"key": "service_id",
@@ -9360,14 +9323,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/services/:service_id",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/services/:service_id",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -9409,14 +9372,14 @@
 															}
 														},
 														"url": {
-															"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/services/:service_id",
+															"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id/services/:service_id",
 															"protocol": "http",
 															"host": [
-																"{{ip}}"
+																"localhost"
 															],
 															"port": "1213",
 															"path": [
-																"mirrorlake",
+																"fedit",
 																"v1",
 																"federated-twins",
 																":federated_twin_id",
@@ -9426,7 +9389,7 @@
 															"variable": [
 																{
 																	"key": "federated_twin_id",
-																	"value": "{{fdt_id}}"
+																	"value": "FDT"
 																},
 																{
 																	"key": "service_id",
@@ -9530,14 +9493,14 @@
 													]
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/visual-models",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/visual-models",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -9571,14 +9534,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/visual-models?name=car001",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/visual-models?name=car001",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -9618,14 +9581,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/visual-models/:visual_model_id",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/visual-models/:visual_model_id",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -9664,14 +9627,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/visual-models",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/visual-models",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -9702,14 +9665,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/visual-models/:visual_model_id",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/visual-models/:visual_model_id",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -9751,14 +9714,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id/visual-models/:visual_model_id",
+													"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id/visual-models/:visual_model_id",
 													"protocol": "http",
 													"host": [
 														"{{ip}}"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id",
@@ -9789,7 +9752,7 @@
 										"header": [],
 										"body": {
 											"mode": "raw",
-											"raw": "{\r\n  \"mirrorlake_id\": \"M1\",\r\n  \"federated_digital_twin_name\": \"first_DT\",\r\n  \"point_of_access\":\"http://192.168.140.123\",\r\n  \"description\": \"federated digital twin server\",\r\n  \"owner\":  \"keti\",\r\n  \"location\":{\"lat\":37.403914, \"lng\":127.160494},\r\n  \"tags\": [\"keti\", \"DT\"],\r\n  \"creator_id\": \"seolzero\"\r\n}",
+											"raw": "{\r\n  \"federated_digital_twin_name\": \"first_DT\",\r\n  \"point_of_access\":\"http://192.168.140.123\",\r\n  \"description\": \"federated digital twin server\",\r\n  \"owner\":  \"keti\",\r\n  \"location\":{\"lat\":37.403914, \"lng\":127.160494},\r\n  \"tags\": [\"keti\", \"DT\"],\r\n  \"creator_id\": \"seolzero\"\r\n}",
 											"options": {
 												"raw": {
 													"language": "json"
@@ -9797,14 +9760,14 @@
 											}
 										},
 										"url": {
-											"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins",
+											"raw": "http://{{ip}}:1213/fedit/v1/federated-twins",
 											"protocol": "http",
 											"host": [
 												"{{ip}}"
 											],
 											"port": "1213",
 											"path": [
-												"mirrorlake",
+												"fedit",
 												"v1",
 												"federated-twins"
 											]
@@ -9818,7 +9781,7 @@
 												"header": [],
 												"body": {
 													"mode": "raw",
-													"raw": "{\r\n  \"mirrorlake_id\": \"M1\",\r\n  \"federated_digital_twin_name\": \"first_DT\",\r\n  \"point_of_access\":\"http://192.168.140.123\",\r\n  \"description\": \"federated digital twin server\",\r\n  \"owner\":  \"keti\",\r\n  \"location\":{\"lat\":37.403914, \"lng\":127.160494},\r\n  \"tags\": [\"keti\", \"DT\"],\r\n  \"creator_id\": \"seolzero\"\r\n}",
+													"raw": "{\r\n  \"federated_digital_twin_name\": \"first_DT\",\r\n  \"point_of_access\":\"http://192.168.140.123\",\r\n  \"description\": \"federated digital twin server\",\r\n  \"owner\":  \"keti\",\r\n  \"location\":{\"lat\":37.403914, \"lng\":127.160494},\r\n  \"tags\": [\"keti\", \"DT\"],\r\n  \"creator_id\": \"seolzero\"\r\n}",
 													"options": {
 														"raw": {
 															"language": "json"
@@ -9826,14 +9789,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins",
+													"raw": "http://localhost:1213/fedit/v1/federated-twins",
 													"protocol": "http",
 													"host": [
-														"{{ip}}"
+														"localhost"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins"
 													]
@@ -9899,14 +9862,14 @@
 										"method": "GET",
 										"header": [],
 										"url": {
-											"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins?name=first_DT",
+											"raw": "http://{{ip}}:1213/fedit/v1/federated-twins?name=first_DT",
 											"protocol": "http",
 											"host": [
 												"{{ip}}"
 											],
 											"port": "1213",
 											"path": [
-												"mirrorlake",
+												"fedit",
 												"v1",
 												"federated-twins"
 											],
@@ -9925,14 +9888,14 @@
 												"method": "GET",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins?name=first_DT",
+													"raw": "http://localhost:1213/fedit/v1/federated-twins?name=first_DT",
 													"protocol": "http",
 													"host": [
-														"{{ip}}"
+														"localhost"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins"
 													],
@@ -9994,7 +9957,7 @@
 												}
 											],
 											"cookie": [],
-											"body": "[\n    {\n        \"mirrorlake_id\": \"M1\",\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_twin_name\": \"first_DT\",\n        \"description\": \"federated digital twin server\",\n        \"owner\": \"keti\",\n        \"tags\": [\n            \"keti\",\n            \"DT\"\n        ],\n        \"point_of_access\": \"http://192.168.140.123\",\n        \"creation_time\": \"2023-12-18T08:01:05.988Z\",\n        \"creator_id\": \"seolzero\",\n        \"modification_time\": \"2023-12-18T08:01:05.988Z\",\n        \"location\": {\n            \"lat\": 37.403914,\n            \"lng\": 127.160494\n        },\n        \"number_of_federated_digital_objects\": 0,\n        \"number_of_subscriptions\": 0,\n        \"number_of_services\": 0,\n        \"number_of_simulations\": 0,\n        \"number_of_digital_twins\": 0\n    }\n]"
+											"body": "[\n    {\n       \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_twin_name\": \"first_DT\",\n        \"description\": \"federated digital twin server\",\n        \"owner\": \"keti\",\n        \"tags\": [\n            \"keti\",\n            \"DT\"\n        ],\n        \"point_of_access\": \"http://192.168.140.123\",\n        \"creation_time\": \"2023-12-18T08:01:05.988Z\",\n        \"creator_id\": \"seolzero\",\n        \"modification_time\": \"2023-12-18T08:01:05.988Z\",\n        \"location\": {\n            \"lat\": 37.403914,\n            \"lng\": 127.160494\n        },\n        \"number_of_federated_digital_objects\": 0,\n        \"number_of_subscriptions\": 0,\n        \"number_of_services\": 0,\n        \"number_of_simulations\": 0,\n        \"number_of_digital_twins\": 0\n    }\n]"
 										}
 									]
 								},
@@ -10004,14 +9967,14 @@
 										"method": "GET",
 										"header": [],
 										"url": {
-											"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id",
+											"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id",
 											"protocol": "http",
 											"host": [
 												"{{ip}}"
 											],
 											"port": "1213",
 											"path": [
-												"mirrorlake",
+												"fedit",
 												"v1",
 												"federated-twins",
 												":federated_twin_id"
@@ -10031,14 +9994,14 @@
 												"method": "GET",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id",
+													"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id",
 													"protocol": "http",
 													"host": [
-														"{{ip}}"
+														"localhost"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id"
@@ -10046,7 +10009,7 @@
 													"variable": [
 														{
 															"key": "federated_twin_id",
-															"value": "{{fdt_id}}"
+															"value": "FDT"
 														}
 													]
 												}
@@ -10101,7 +10064,7 @@
 												}
 											],
 											"cookie": [],
-											"body": "{\n    \"mirrorlake_id\": \"M1\",\n    \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n    \"federated_digital_twin_name\": \"first_DT\",\n    \"description\": \"federated digital twin server\",\n    \"owner\": \"keti\",\n    \"tags\": [\n        \"keti\",\n        \"DT\"\n    ],\n    \"point_of_access\": \"http://192.168.140.123\",\n    \"creation_time\": \"2023-12-18T08:01:05.988Z\",\n    \"creator_id\": \"seolzero\",\n    \"modification_time\": \"2023-12-18T08:01:05.988Z\",\n    \"location\": {\n        \"lat\": 37.403914,\n        \"lng\": 127.160494\n    },\n    \"number_of_federated_digital_objects\": 0,\n    \"number_of_subscriptions\": 0,\n    \"number_of_services\": 0,\n    \"number_of_simulations\": 0,\n    \"number_of_digital_twins\": 0\n}"
+											"body": "{\n    \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n    \"federated_digital_twin_name\": \"first_DT\",\n    \"description\": \"federated digital twin server\",\n    \"owner\": \"keti\",\n    \"tags\": [\n        \"keti\",\n        \"DT\"\n    ],\n    \"point_of_access\": \"http://192.168.140.123\",\n    \"creation_time\": \"2023-12-18T08:01:05.988Z\",\n    \"creator_id\": \"seolzero\",\n    \"modification_time\": \"2023-12-18T08:01:05.988Z\",\n    \"location\": {\n        \"lat\": 37.403914,\n        \"lng\": 127.160494\n    },\n    \"number_of_federated_digital_objects\": 0,\n    \"number_of_subscriptions\": 0,\n    \"number_of_services\": 0,\n    \"number_of_simulations\": 0,\n    \"number_of_digital_twins\": 0\n}"
 										}
 									]
 								},
@@ -10111,14 +10074,14 @@
 										"method": "GET",
 										"header": [],
 										"url": {
-											"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins",
+											"raw": "http://{{ip}}:1213/fedit/v1/federated-twins",
 											"protocol": "http",
 											"host": [
 												"{{ip}}"
 											],
 											"port": "1213",
 											"path": [
-												"mirrorlake",
+												"fedit",
 												"v1",
 												"federated-twins"
 											]
@@ -10131,14 +10094,14 @@
 												"method": "GET",
 												"header": [],
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins",
+													"raw": "http://localhost:1213/fedit/v1/federated-twins",
 													"protocol": "http",
 													"host": [
-														"{{ip}}"
+														"localhost"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins"
 													]
@@ -10194,7 +10157,7 @@
 												}
 											],
 											"cookie": [],
-											"body": "[\n    {\n        \"mirrorlake_id\": \"M1\",\n        \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_twin_name\": \"first_DT\",\n        \"description\": \"federated digital twin server\",\n        \"owner\": \"keti\",\n        \"tags\": [\n            \"keti\",\n            \"DT\"\n        ],\n        \"point_of_access\": \"http://192.168.140.123\",\n        \"creation_time\": \"2023-12-18T08:01:05.988Z\",\n        \"creator_id\": \"seolzero\",\n        \"modification_time\": \"2023-12-18T08:01:05.988Z\",\n        \"location\": {\n            \"lat\": 37.403914,\n            \"lng\": 127.160494\n        },\n        \"number_of_federated_digital_objects\": 0,\n        \"number_of_subscriptions\": 0,\n        \"number_of_services\": 0,\n        \"number_of_simulations\": 0,\n        \"number_of_digital_twins\": 0\n    }\n]"
+											"body": "[\n    {\n       \"federated_digital_twin_id\": \"F4d4eef8dcf241888bc9c55b81b36f83c\",\n        \"federated_digital_twin_name\": \"first_DT\",\n        \"description\": \"federated digital twin server\",\n        \"owner\": \"keti\",\n        \"tags\": [\n            \"keti\",\n            \"DT\"\n        ],\n        \"point_of_access\": \"http://192.168.140.123\",\n        \"creation_time\": \"2023-12-18T08:01:05.988Z\",\n        \"creator_id\": \"seolzero\",\n        \"modification_time\": \"2023-12-18T08:01:05.988Z\",\n        \"location\": {\n            \"lat\": 37.403914,\n            \"lng\": 127.160494\n        },\n        \"number_of_federated_digital_objects\": 0,\n        \"number_of_subscriptions\": 0,\n        \"number_of_services\": 0,\n        \"number_of_simulations\": 0,\n        \"number_of_digital_twins\": 0\n    }\n]"
 										}
 									]
 								},
@@ -10213,14 +10176,14 @@
 											}
 										},
 										"url": {
-											"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id",
+											"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id",
 											"protocol": "http",
 											"host": [
 												"{{ip}}"
 											],
 											"port": "1213",
 											"path": [
-												"mirrorlake",
+												"fedit",
 												"v1",
 												"federated-twins",
 												":federated_twin_id"
@@ -10249,14 +10212,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id",
+													"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id",
 													"protocol": "http",
 													"host": [
-														"{{ip}}"
+														"localhost"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id"
@@ -10264,7 +10227,7 @@
 													"variable": [
 														{
 															"key": "federated_twin_id",
-															"value": "{{fdt_id}}"
+															"value": "FDT"
 														}
 													]
 												}
@@ -10344,14 +10307,14 @@
 											}
 										},
 										"url": {
-											"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id",
+											"raw": "http://{{ip}}:1213/fedit/v1/federated-twins/:federated_twin_id",
 											"protocol": "http",
 											"host": [
 												"{{ip}}"
 											],
 											"port": "1213",
 											"path": [
-												"mirrorlake",
+												"fedit",
 												"v1",
 												"federated-twins",
 												":federated_twin_id"
@@ -10387,14 +10350,14 @@
 													}
 												},
 												"url": {
-													"raw": "http://{{ip}}:1213/mirrorlake/v1/federated-twins/:federated_twin_id",
+													"raw": "http://localhost:1213/fedit/v1/federated-twins/:federated_twin_id",
 													"protocol": "http",
 													"host": [
-														"{{ip}}"
+														"localhost"
 													],
 													"port": "1213",
 													"path": [
-														"mirrorlake",
+														"fedit",
 														"v1",
 														"federated-twins",
 														":federated_twin_id"

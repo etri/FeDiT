@@ -19,7 +19,7 @@ exports.nginx = {
 };
 
 exports.type = {
-   mirrorlake: 0,
+   fedit: 0,
    federatedDigitalTwin: 1,
    federatedDigitalObject: 2,
    digitalObject: 3,
@@ -32,33 +32,16 @@ exports.type = {
    subscription: 10,
 };
 
-exports.mirrorlake = {
-   id: "M423c90f0157b22b0bd61e4132e6ff37e",
-   digital_twin_id: "D410c5c8a19905787b8029ef49fe96c53",
-};
-
-exports.digitalBrain = {
-   ip: "localhost",
-   port: "1203",
-   base: "mirrorlake/v1/digital-twins",
-};
-
-exports.digitalConnector = {
-   ip: "localhost",
-   port: "1209",
-   base: "mirrorlake/v1/digital-twins",
-};
-
 exports.federatedDigitalBrain = {
    ip: "localhost",
    port: "1213",
-   base: "mirrorlake/v1/digital-twins",
+   base: "fedit/v1/digital-twins",
 };
 
 exports.federatedDigitalConnector = {
    ip: "localhost",
    port: "1219",
-   base: "mirrorlake/v1/digital-twins",
+   base: "fedit/v1/digital-twins",
 };
 
 /**
@@ -109,8 +92,8 @@ exports.postgresPool = {
 };
 
 exports.multer = {
-   // uploadFolder: "/home/cotlab/mirrorlake/visual-model-assets/",
-   uploadFolder: "D:/GitHub/MirrorLake/visual-model-assets/",
+   // uploadFolder: "/home/cotlab/fedit/visual-model-assets/",
+   uploadFolder: "D:/GitHub/DigitalTwin/visual-model-assets/",
    fileSizeLimit: 100 * 1024 * 1024, // 100mb
    allowMimetype: [
       ".fbx",

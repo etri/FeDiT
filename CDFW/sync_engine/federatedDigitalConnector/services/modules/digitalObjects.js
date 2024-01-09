@@ -326,10 +326,6 @@ class DigitalObjects {
 
    /**
     * digital_object data 조회
-    * example)
-    * url = http://{{ip}}:1209/mirrorlake/v1/D46d8c5717a08988190a816a71edff08e/digital_objects/S449fd692f225c086862abc729030aeb8/data?from=2023-03-12T23:32:01.232&to=2023-04-12T06:48:45.232
-    * set time sql = SELECT * FROM digital_object_data WHERE digital_twin_id='D46d8c5717a08988190a816a71edff08e' AND digital_object_id = 'S449fd692f225c086862abc729030aeb8' AND rowtime >= '2023-03-12T23:32:01.232'::timestamp AND rowtime <= '2023-04-12T06:48:45.232'::timestamp;
-    * default sql = SELECT * FROM digital_object_data WHERE digital_twin_id='D46d8c5717a08988190a816a71edff08e' AND digital_object_id = 'S449fd692f225c086862abc729030aeb8' order by rowtime desc limit 100;
     * @param {string} digital_twin_id
     * @param {string} id digital_object_id
     * @param {string} from startDateTime

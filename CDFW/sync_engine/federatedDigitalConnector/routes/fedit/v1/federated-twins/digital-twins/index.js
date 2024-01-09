@@ -8,8 +8,6 @@ const joi = require("../../../../../middlewares/joi");
 const fs = require("fs");
 /**
  * digital-twins Creation
- * localhost:1203/mirrorlake/v1/digital-twins
- *
  * @body {String} digitalTwinID (system)
  * @body {String} digitalTwinName (required)
  * @body {String} pointOfAccess (required)
@@ -44,14 +42,12 @@ router.post("/", joi.digitalTwins.create, async function (req, res) {
          logger.error(e);
          e = new ErrorHandler(500, 500, "Internal Server Error");
       }
-      e.handle(req, res, `POST /mirrorlake/v1/digital-twins ${e}`);
+      e.handle(req, res, `POST /fedit/v1/digital-twins ${e}`);
    }
 });
 
 /**
  * digital-twins metaData export
- * localhost:1203/mirrorlake/v1/digital-twins/meta
- * ?name=SIcrain
  * @query {string} name (required)
  * @returns {Json} {}
  */
@@ -69,14 +65,12 @@ router.get("/:digital_twin_id/export", async (req, res) => {
          logger.error(e);
          e = new ErrorHandler(500, 500, "Internal Server Error");
       }
-      e.handle(req, res, `Retrieve /mirrorlake/v1/digital-twins`);
+      e.handle(req, res, `Retrieve /fedit/v1/digital-twins`);
    }
 });
 
 /**
  * digital-twins Search
- * localhost:1203/mirrorlake/v1/digital-twins
- * ?name=SIcrain
  * @query {string} name (required)
  * @returns {Json} {}
  */
@@ -102,14 +96,12 @@ router.get("/", async (req, res) => {
          logger.error(e);
          e = new ErrorHandler(500, 500, "Internal Server Error");
       }
-      e.handle(req, res, `Retrieve /mirrorlake/v1/digital-twins`);
+      e.handle(req, res, `Retrieve /fedit/v1/digital-twins`);
    }
 });
 
 /**
  * digital-twins Retrieve
- * localhost:1203/mirrorlake/v1/digital-twins
- * ?name=SIcrain
  * @param {string} digital_twin_id (required)
  * @returns {Json} {}
  */
@@ -128,13 +120,12 @@ router.get("/:digital_twin_id", async (req, res) => {
          logger.error(e);
          e = new ErrorHandler(500, 500, "Internal Server Error");
       }
-      e.handle(req, res, `Retrieve /mirrorlake/v1/digital-twins`);
+      e.handle(req, res, `Retrieve /fedit/v1/digital-twins`);
    }
 });
 
 /**
  * digital-twins Update
- * localhost:1203/mirrorlake/v1/digital-twins
  *
  * @body
  * @returns {Json} {}
@@ -158,14 +149,13 @@ router.patch(
             logger.error(e);
             e = new ErrorHandler(500, 500, "Internal Server Error");
          }
-         e.handle(req, res, `PUT /mirrorlake/v1/digital-twins ${e}`);
+         e.handle(req, res, `PUT /fedit/v1/digital-twins ${e}`);
       }
    }
 );
 
 /**
  * digital-twins delete
- * localhost:1203/mirrorlake/v1/digital-twins
  * ?name=SIcrain
  * @param {string} name (required)
  * @returns {Json} {}
@@ -185,7 +175,7 @@ router.delete("/:digital_twin_id", async (req, res) => {
          logger.error(e);
          e = new ErrorHandler(500, 500, "Internal Server Error");
       }
-      e.handle(req, res, `Delete /mirrorlake/v1/digital-twins`);
+      e.handle(req, res, `Delete /fedit/v1/digital-twins`);
    }
 });
 

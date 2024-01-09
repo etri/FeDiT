@@ -3,7 +3,6 @@ const model = new Model();
 const ErrorHandler = require("../../lib/error-handler");
 const lib = require("../../lib/index");
 const config = require("../../config");
-const mirrorlake_id = config.mirrorlake.id;
 class DigitalTwins {
    /**
     * digitalTwin information create in FDT Meta data
@@ -27,32 +26,37 @@ class DigitalTwins {
     * @returns {Boolean} true
     */
    async create(federated_digital_twin_id, params) {
-      //이거는 single dt의 digital object라고 정의하고 작성 할 것.
-      const {
-         digital_twin_name,
-         description,
-         owner,
-         tags,
-         creation_time,
-         creator_id,
-         modification_time,
-         point_of_access,
-         contact_point,
-         subject,
-         location,
-         member_digital_objects_ids,
-         number_of_digital_objects,
-         number_of_services,
-         number_of_simulations,
-      } = params;
+      const isExistID = await model.postgres.checkIdExist({
+         table: "federated_digital_twins",
+         check: "federated_digital_twin_id",
+         id: federated_digital_twin_id,
+      });
+      if (isExistID) {
+         const {
+            digital_twin_name,
+            description,
+            owner,
+            tags,
+            creation_time,
+            creator_id,
+            modification_time,
+            point_of_access,
+            contact_point,
+            subject,
+            location,
+            member_digital_objects_ids,
+            number_of_digital_objects,
+            number_of_services,
+            number_of_simulations,
+         } = params;
 
-      const digital_twin_id = "DT" + uuid();
-      const creation_time_temp = creation_time ? `'${creation_time}'` : null;
-      const modification_time_temp = modification_time
-         ? `'${modification_time}'`
-         : null;
+         const digital_twin_id = "DT" + uuid();
+         const creation_time_temp = creation_time ? `'${creation_time}'` : null;
+         const modification_time_temp = modification_time
+            ? `'${modification_time}'`
+            : null;
 
-      const insertSQL = `insert into digital_twins (
+         const insertSQL = `insert into digital_twins (
          federated_digital_twin_id,
          digital_twin_id,
          digital_twin_name,
@@ -73,19 +77,26 @@ class DigitalTwins {
       ) values ('${federated_digital_twin_id}','${digital_twin_id}', '${digital_twin_name}',  
        '${description}', '${owner}', '{${tags}}', ${creation_time_temp}, '${creator_id}', 
       ${modification_time_temp},'${point_of_access}', '${contact_point}', '{${subject}}', '${JSON.stringify(
-         location
-      )}', 
+            location
+         )}', 
       '{${member_digital_objects_ids}}', ${number_of_digital_objects}, ${number_of_services}, ${number_of_simulations});`;
 
-      const selectFDTsql = `select * from federated_digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
-      const selectedFDTdata = await model.postgres.selectData({
-         sql: selectFDTsql,
-      });
-      const DTcount = parseInt(selectedFDTdata.number_of_digital_twins) + 1;
-      const updateDTcountSQL = `update federated_digital_twins set number_of_digital_twins = ${DTcount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}';`;
+         const selectFDTsql = `select * from federated_digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
+         const selectedFDTdata = await model.postgres.selectData({
+            sql: selectFDTsql,
+         });
+         const DTcount = parseInt(selectedFDTdata.number_of_digital_twins) + 1;
+         const updateDTcountSQL = `update federated_digital_twins set number_of_digital_twins = ${DTcount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}';`;
 
-      await model.postgres.sendQuery({ sql: insertSQL + updateDTcountSQL });
-      return { digital_twin_id };
+         await model.postgres.sendQuery({ sql: insertSQL + updateDTcountSQL });
+         return { digital_twin_id };
+      } else {
+         throw new ErrorHandler(
+            412,
+            412,
+            "Unregistered federated_digital-twin"
+         );
+      }
    }
 
    /**

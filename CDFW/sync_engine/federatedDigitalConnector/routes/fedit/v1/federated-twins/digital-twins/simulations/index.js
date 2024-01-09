@@ -29,7 +29,7 @@ router.post("/", joi.simulations.create, async function (req, res) {
       e.handle(
          req,
          res,
-         `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}}/digital-twins/{digital_twin_id}/simulations ${e}`
+         `POST /fedit/v1/federated-twins/{federated_digital_twin_id}}/digital-twins/{digital_twin_id}/simulations ${e}`
       );
    }
 });
@@ -69,7 +69,7 @@ router.get("/", async (req, res) => {
       e.handle(
          req,
          res,
-         `Search /mirrorlake/v1/federated-twins/{federated_digital_twin_id}}/digital-twins/{digital_twin_id}/simulations/{simulation_id}`
+         `Search /fedit/v1/federated-twins/{federated_digital_twin_id}}/digital-twins/{digital_twin_id}/simulations/{simulation_id}`
       );
    }
 });
@@ -102,7 +102,7 @@ router.get("/:simulation_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Retrieve /mirrorlake/v1/federated-twins/{federated_digital_twin_id}}/digital-twins/{digital_twin_id}/simulation/{simulation_id}`
+         `Retrieve /fedit/v1/federated-twins/{federated_digital_twin_id}}/digital-twins/{digital_twin_id}/simulation/{simulation_id}`
       );
    }
 });
@@ -140,7 +140,7 @@ router.patch(
          e.handle(
             req,
             res,
-            `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}/simulations/{simulation_id} ${e}`
+            `POST /fedit/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}/simulations/{simulation_id} ${e}`
          );
       }
    }
@@ -174,7 +174,7 @@ router.delete("/:simulation_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Delete /mirrorlake/v1/federated-twins/{federated_digital_twin_id}}/digital-twins/{digital_twin_id}/simulations/{simulation_id} ${e}`
+         `Delete /fedit/v1/federated-twins/{federated_digital_twin_id}}/digital-twins/{digital_twin_id}/simulations/{simulation_id} ${e}`
       );
    }
 });

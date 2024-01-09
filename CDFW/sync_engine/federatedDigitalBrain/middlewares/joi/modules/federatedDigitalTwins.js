@@ -3,7 +3,6 @@ const { validate } = require("./base/validate.js");
 
 exports.create = (req, res, next) => {
    const schema = Joi.object({
-      mirrorlake_id: Joi.string().required(),
       federated_digital_twin_name: Joi.string().required(),
       description: Joi.string().default(null),
       owner: Joi.string().default("anonymous"),
@@ -19,7 +18,6 @@ exports.create = (req, res, next) => {
 
 exports.update = (req, res, next) => {
    const schema = Joi.object({
-      mirrorlake_id: Joi.string().allow(),
       federated_digital_twin_name: Joi.string().allow(),
       description: Joi.string().allow(),
       owner: Joi.string().allow(),

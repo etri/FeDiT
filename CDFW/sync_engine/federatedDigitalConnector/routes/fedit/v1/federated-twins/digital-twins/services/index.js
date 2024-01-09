@@ -1,10 +1,10 @@
 const express = require("express");
 const asyncify = require("express-asyncify");
 const router = asyncify(express.Router());
-const ErrorHandler = require("../../../../../lib/error-handler");
-const services = require("../../../../../services");
-const auth = require("../../../../../middlewares/auth");
-const joi = require("../../../../../middlewares/joi");
+const services = require("../../../../../../services");
+const ErrorHandler = require("../../../../../../lib/error-handler");
+const auth = require("../../../../../../middlewares/auth");
+const joi = require("../../../../../../middlewares/joi");
 /**
  * service Creation
 
@@ -27,9 +27,10 @@ const joi = require("../../../../../middlewares/joi");
  */
 router.post("/", joi.services.create, async function (req, res) {
    try {
-      const { federated_digital_twin_id } = req;
+      const { federated_digital_twin_id, digital_twin_id } = req;
       const result = await services.services.create(
          federated_digital_twin_id,
+         digital_twin_id,
          req.body
       );
 
@@ -46,7 +47,7 @@ router.post("/", joi.services.create, async function (req, res) {
       e.handle(
          req,
          res,
-         `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/services ${e}`
+         `POST /fedit/v1/federated-twins/{federated_digital_twin_id}}/digital-twins/{digital_twin_id}/services ${e}`
       );
    }
 });
@@ -58,16 +59,20 @@ router.post("/", joi.services.create, async function (req, res) {
  */
 router.get("/", async (req, res) => {
    try {
-      const { federated_digital_twin_id } = req;
+      const { federated_digital_twin_id, digital_twin_id } = req;
       const { name } = req.query;
       let result;
       if (name) {
          result = await services.services.search({
             federated_digital_twin_id,
+            digital_twin_id,
             name,
          });
       } else {
-         result = await services.services.getAll({ federated_digital_twin_id });
+         result = await services.services.getAll({
+            federated_digital_twin_id,
+            digital_twin_id,
+         });
       }
       res.success(200, result);
    } catch (e) {
@@ -82,22 +87,23 @@ router.get("/", async (req, res) => {
       e.handle(
          req,
          res,
-         `Search /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/digital_twins/{digital_twin_id}/services/{service_id}`
+         `Search /fedit/v1/federated-twins/{federated_digital_twin_id}/digital_twins/{digital_twin_id}/services/{service_id}`
       );
    }
 });
 
 /**
- * service Retrieve  ## 서비스 아이디는 그냥 service_id 로 정의 해도 문제가 생기지 않나?
+ * service Retrieve
  * @param {string} service_id (required)
  * @returns {Json} {}
  */
 router.get("/:service_id", async (req, res) => {
    try {
-      const { federated_digital_twin_id } = req;
+      const { federated_digital_twin_id, digital_twin_id } = req;
       const { service_id } = req.params;
       const result = await services.services.retrieve({
          federated_digital_twin_id,
+         digital_twin_id,
          service_id,
       });
 
@@ -114,7 +120,7 @@ router.get("/:service_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Retrieve /mirrorlake/v1/federated-twins/{federated_digital_twin_id}}/services/{service_id}`
+         `Retrieve /fedit/v1/federated-twins/{federated_digital_twin_id}}/digital-twins/{digital_twin_id}/services/{service_id}`
       );
    }
 });
@@ -128,11 +134,11 @@ router.get("/:service_id", async (req, res) => {
  */
 router.patch("/:service_id", joi.services.update, async function (req, res) {
    try {
-      const { federated_digital_twin_id } = req;
+      const { federated_digital_twin_id, digital_twin_id } = req;
       const { service_id } = req.params;
 
       const result = await services.services.update(
-         { federated_digital_twin_id, service_id },
+         { federated_digital_twin_id, digital_twin_id, service_id },
          req.body
       );
 
@@ -149,7 +155,7 @@ router.patch("/:service_id", joi.services.update, async function (req, res) {
       e.handle(
          req,
          res,
-         `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}}/services/{service_id}/update ${e}`
+         `POST /fedit/v1/federated-twins/{federated_digital_twin_id}}/digital-twins/{digital_twin_id}/services/{service_id}/update ${e}`
       );
    }
 });
@@ -161,10 +167,11 @@ router.patch("/:service_id", joi.services.update, async function (req, res) {
  */
 router.delete("/:service_id", async (req, res) => {
    try {
-      const { federated_digital_twin_id } = req;
+      const { federated_digital_twin_id, digital_twin_id } = req;
       const { service_id } = req.params;
       const result = await services.services.delete({
          federated_digital_twin_id,
+         digital_twin_id,
          service_id,
       });
 
@@ -181,7 +188,7 @@ router.delete("/:service_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Delete /mirrorlake/v1/federated-twins/{federated_digital_twin_id}}/services/{service_id}/delete ${e}`
+         `Delete /fedit/v1/federated-twins/{federated_digital_twin_id}}/digital-twins/{digital_twin_id}/services/{service_id}/delete ${e}`
       );
    }
 });

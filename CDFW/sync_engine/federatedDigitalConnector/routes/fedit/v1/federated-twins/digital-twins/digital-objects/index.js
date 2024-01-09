@@ -30,14 +30,14 @@ router.post("/", joi.digitalObjects.create, async function (req, res) {
       e.handle(
          req,
          res,
-         `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}}/digital-objects ${e}`
+         `POST /fedit/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}}/digital-objects ${e}`
       );
    }
 });
 
 /**
  * digital-object Search
- * localhost:1203/mirrorlake/v1/{digital_twin_id}/digital-objects
+ * localhost:1203/fedit/v1/{digital_twin_id}/digital-objects
  * ?name=SIcrain
  * @param {string} name (required)
  * @returns {Json} {}
@@ -69,14 +69,14 @@ router.get("/", async (req, res) => {
       e.handle(
          req,
          res,
-         `Search /mirrorlake/v1/digital-twins/digital-objects/digital-objects`
+         `Search /fedit/v1/digital-twins/digital-objects/digital-objects`
       );
    }
 });
 
 /**
  * digital-object Retrieve
- * localhost:1203/mirrorlake/v1/{digital_twin_id}/digital-objects
+ * localhost:1203/fedit/v1/{digital_twin_id}/digital-objects
  * ?name=SIcrain
  * @param {string} digital_object_id (required)
  * @returns {Json} {}
@@ -100,7 +100,7 @@ router.get("/:digital_object_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `Retrieve /mirrorlake/v1/{digital_twin_id}/digital-objects`
+         `Retrieve /fedit/v1/{digital_twin_id}/digital-objects`
       );
    }
 });
@@ -133,7 +133,7 @@ router.post(
          e.handle(
             req,
             res,
-            `POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}}/digital-objects ${e}`
+            `POST /fedit/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}}/digital-objects ${e}`
          );
       }
    }
@@ -141,9 +141,9 @@ router.post(
 
 /**
  * get digital object data
- * localhost:1203/mirrorlake/v1/{digital_twin_id}/digital-objects/{digital_object_id}/data
+ * localhost:1203/fedit/v1/{digital_twin_id}/digital-objects/{digital_object_id}/data
  * @body {String} digital_object_data_id (system)
- * @body {String} mirrorlake_id (required)
+ * @body {String} fedit_id (required)
  * @body {String} digital_twin_id (required)
  * @body {String} digital_object_id (required)
  * @body {String} timestamp (system)
@@ -174,14 +174,14 @@ router.get("/:digital_object_id/data", async function (req, res) {
       e.handle(
          req,
          res,
-         "GET /mirrorlake/v1/{digital_twin_id}/digital-objects/{digital_object_id}/data"
+         "GET /fedit/v1/{digital_twin_id}/digital-objects/{digital_object_id}/data"
       );
    }
 });
 
 /*
  * DO DELETE
- * localhost:1005/mirrorlake/v1/{digital_twin_id}/digital-objects?name=DOcrain26
+ * localhost:1005/fedit/v1/{digital_twin_id}/digital-objects?name=DOcrain26
  */
 router.delete("/:digital_object_id", async (req, res) => {
    try {
@@ -202,7 +202,7 @@ router.delete("/:digital_object_id", async (req, res) => {
       e.handle(
          req,
          res,
-         `delete /mirrorlake/v1/{digital_twin_id}/digital-objects/{digital_object_id}`
+         `delete /fedit/v1/{digital_twin_id}/digital-objects/{digital_object_id}`
       );
    }
 });
@@ -236,7 +236,7 @@ router.patch(
          e.handle(
             req,
             res,
-            `UPDATE /mirrorlake/v1/{digital_twin_id}/digital-objects/{digital_object_id}`
+            `UPDATE /fedit/v1/{digital_twin_id}/digital-objects/{digital_object_id}`
          );
       }
    }
@@ -244,7 +244,7 @@ router.patch(
 
 /**
  * digital-object control data creation
- * localhost:1203/mirrorlake/v1/federated-twins/{federated_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control
+ * localhost:1203/fedit/v1/federated-twins/{federated_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control
  * @body {String} digital_twin_id (required)
  * @body {String} digital_object_id (required)
  * @body {String} control_data_id (system)
@@ -275,7 +275,7 @@ router.post(
          e.handle(
             req,
             res,
-            "POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control}"
+            "POST /fedit/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control}"
          );
       }
    }
@@ -283,7 +283,7 @@ router.post(
 
 /**
  * digital-object control data creation
- * localhost:1203/mirrorlake/v1/federated-twins/{federated_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control/{control_data_id}/control-result
+ * localhost:1203/fedit/v1/federated-twins/{federated_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control/{control_data_id}/control-result
  * @body {String} digital_twin_id (required)
  * @body {String} digital_object_id (required)
  * @body {String} control_data_id (system)
@@ -316,7 +316,7 @@ router.post(
          e.handle(
             req,
             res,
-            "POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control}"
+            "POST /fedit/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control}"
          );
       }
    }
@@ -324,7 +324,7 @@ router.post(
 
 /**
  * digital-object control data retrieve
- * localhost:1203/mirrorlake/v1/federated-twins/{federated_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control?from=2023-03-12T23:32:01.232&to=2023-04-12T06:48:45.232
+ * localhost:1203/fedit/v1/federated-twins/{federated_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control?from=2023-03-12T23:32:01.232&to=2023-04-12T06:48:45.232
  * @param {string} name (required)
  * @returns {Json} {}
  */
@@ -351,14 +351,14 @@ router.get("/:digital_object_id/control", async (req, res) => {
       e.handle(
          req,
          res,
-         `Retrive /mirrorlake/v1/{digital_twin_id}/digital-objects/{digital_object_id}/control`
+         `Retrive /fedit/v1/{digital_twin_id}/digital-objects/{digital_object_id}/control`
       );
    }
 });
 
 /**
  * digital-object control data retrieve
- * localhost:1203/mirrorlake/v1/federated-twins/{federated_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control/{digital_object_control_data_id}
+ * localhost:1203/fedit/v1/federated-twins/{federated_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control/{digital_object_control_data_id}
  * @param {string} name (required)
  * @returns {Json} {}
  */
@@ -386,7 +386,7 @@ router.get(
          e.handle(
             req,
             res,
-            `Retrive /mirrorlake/v1/{digital_twin_id}/digital-objects/{digital_object_id}/control`
+            `Retrive /fedit/v1/{digital_twin_id}/digital-objects/{digital_object_id}/control`
          );
       }
    }

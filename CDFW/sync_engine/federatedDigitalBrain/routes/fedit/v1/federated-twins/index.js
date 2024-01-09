@@ -7,7 +7,7 @@ const auth = require("../../../../middlewares/auth");
 const joi = require("../../../../middlewares/joi");
 /**
  * federated-digital-twins Creation
- * localhost:1203/mirrorlake/v1/federated-twins
+ * localhost:1203/fedit/v1/federated-twins
  *
  * @body {String} federatedDigitalTwinID (system)
  * @body {String} federatedDigitalTwinName (required)
@@ -35,13 +35,13 @@ router.post("/", joi.federatedDigitalTwins.create, async function (req, res) {
          logger.error(e);
          e = new ErrorHandler(500, 500, "Internal Server Error");
       }
-      e.handle(req, res, `POST /mirrorlake/v1/federated-twins ${e}`);
+      e.handle(req, res, `POST /fedit/v1/federated-twins ${e}`);
    }
 });
 
 /**
  * federated-digital-twins metaData export
- * localhost:1203/mirrorlake/v1/federated-twins/meta
+ * localhost:1203/fedit/v1/federated-twins/meta
  * ?name=SIcrain
  * @query {string} name (required)
  * @returns {Json} {}
@@ -58,13 +58,13 @@ router.get("/:federated_twin_id/export", async (req, res) => {
          logger.error(e);
          e = new ErrorHandler(500, 500, "Internal Server Error");
       }
-      e.handle(req, res, `Retrieve /mirrorlake/v1/federated-twins`);
+      e.handle(req, res, `Retrieve /fedit/v1/federated-twins`);
    }
 });
 
 /**
  * digital-twins Search
- * localhost:1203/mirrorlake/v1/federated-twins
+ * localhost:1203/fedit/v1/federated-twins
  * ?name=SIcrain
  * @query {string} name (required)
  * @returns {Json} {}
@@ -86,13 +86,13 @@ router.get("/", async (req, res) => {
          logger.error(e);
          e = new ErrorHandler(500, 500, "Internal Server Error");
       }
-      e.handle(req, res, `Retrieve /mirrorlake/v1/federated-twins`);
+      e.handle(req, res, `Retrieve /fedit/v1/federated-twins`);
    }
 });
 
 /**
  * federated-digital-twins Retrieve
- * localhost:1203/mirrorlake/v1/federated-digital-twins
+ * localhost:1203/fedit/v1/federated-digital-twins
  * ?name=SIcrain
  * @param {string} federated_twin_id (required)
  * @returns {Json} {}
@@ -110,13 +110,13 @@ router.get("/:federated_twin_id", async (req, res) => {
          logger.error(e);
          e = new ErrorHandler(500, 500, "Internal Server Error");
       }
-      e.handle(req, res, `Retrieve /mirrorlake/v1/federated-twins`);
+      e.handle(req, res, `Retrieve /fedit/v1/federated-twins`);
    }
 });
 
 /**
  * digital-twins Update
- * localhost:1203/mirrorlake/v1/digital-twins
+ * localhost:1203/fedit/v1/digital-twins
  *
  * @body
  * @returns {Json} {}
@@ -142,14 +142,14 @@ router.patch(
                "Internal Server Error of patch reqest"
             );
          }
-         e.handle(req, res, `PUT /mirrorlake/v1/federated-twins ${e}`);
+         e.handle(req, res, `PUT /fedit/v1/federated-twins ${e}`);
       }
    }
 );
 
 /**
  * federated-digital-twins delete
- * localhost:1203/mirrorlake/v1/federated-twins
+ * localhost:1203/fedit/v1/federated-twins
  * ?name=SIcrain
  * @param {string} name (required)
  * @returns {Json} {}
@@ -167,7 +167,7 @@ router.delete("/:federated_twin_id", async (req, res) => {
          logger.error(e);
          e = new ErrorHandler(500, 500, "Internal Server Error of delete FDT");
       }
-      e.handle(req, res, `Delete /mirrorlake/v1/federated-twins`);
+      e.handle(req, res, `Delete /fedit/v1/federated-twins`);
    }
 });
 

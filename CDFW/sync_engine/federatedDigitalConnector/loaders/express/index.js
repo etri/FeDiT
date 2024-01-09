@@ -69,6 +69,7 @@ exports.init = ({ app }) => {
          console.dir(err);
          return;
       }
+      console.log(data);
    });
 
    return app;

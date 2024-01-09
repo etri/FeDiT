@@ -550,7 +550,6 @@ class FederatedDigitalObjects {
       }
       /**
        * DT별 DO control 메세지 보내기
-       * "POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control}"
        */
       for (let dtid of Object.keys(messageByDt)) {
          for (let doid of Object.keys(messageByDt[dtid])) {
