@@ -3,13 +3,14 @@ const { validate } = require("./base/validate.js");
 
 exports.create = (req, res, next) => {
    const schema = Joi.object({
+      digital_twin_identifier: Joi.string().empty("").default(null),
       federated_digital_twin_name: Joi.string().required(),
-      description: Joi.string().default(null),
+      description: Joi.string().empty("").default(null),
       owner: Joi.string().default("anonymous"),
       tags: Joi.array()
          .items(Joi.string().allow("").default("etc"))
          .default([]),
-      point_of_access: Joi.string().default(null),
+      point_of_access: Joi.string().empty("").default(null),
       creator_id: Joi.string().default("anonymous"),
       location: Joi.object().empty({}).default(null),
    });

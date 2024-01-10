@@ -19,6 +19,7 @@ class FederatedDigitalTwins {
 
    async create(params) {
       const {
+         digital_twin_identifier,
          federated_digital_twin_name,
          description,
          owner,
@@ -28,8 +29,26 @@ class FederatedDigitalTwins {
          location,
       } = params;
 
+      let federated_digital_twin_id;
+      if (digital_twin_identifier) {
+         const isExistDtId = await model.postgres.checkIdExist({
+            table: "federated_digital_twins",
+            check: "federated_digital_twin_id",
+            id: digital_twin_identifier,
+         });
+         if (isExistDtId) {
+            throw new ErrorHandler(
+               412,
+               412,
+               "digital_twin_identifier already in use"
+            );
+         }
+         federated_digital_twin_id = digital_twin_identifier;
+      } else {
+         federated_digital_twin_id = "F" + uuid();
+      }
+
       const creation_time = lib.timestamp();
-      const federated_digital_twin_id = "F" + uuid();
 
       const sql = `insert into federated_digital_twins (
          federated_digital_twin_id,
@@ -224,8 +243,9 @@ class FederatedDigitalTwins {
 
          await lib.request({
             method: "delete",
-            url: `http://${config.federatedDigitalConnector.ip}${config.federatedDigitalConnector.port}/fedit/v1/federated-twins/${id}/digital-twins/undefind`,
+            url: `http://${config.federatedDigitalConnector.ip}:${config.federatedDigitalConnector.port}/fedit/v1/federated-twins/${id}/digital-twins/undefind`,
          });
+
          return { delete: id };
       } else {
          throw new ErrorHandler(

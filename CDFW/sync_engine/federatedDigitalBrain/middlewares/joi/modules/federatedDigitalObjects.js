@@ -3,6 +3,7 @@ const { validate } = require("./base/validate.js");
 
 exports.create = (req, res, next) => {
    const schema = Joi.object({
+      digital_object_identifier: Joi.string().empty("").default(null),
       federated_digital_twin_id: Joi.string().allow(),
       federated_digital_object_name: Joi.string().required(),
       description: Joi.string().empty("").default(null),

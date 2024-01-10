@@ -24,7 +24,6 @@ class FederatedDigitalObjects {
     */
    async create(federated_digital_twin_id, params) {
       try {
-         // Check if the federated digital twin ID exists
          const isExistDtId = await model.postgres.checkIdExist({
             table: "federated_digital_twins",
             check: "federated_digital_twin_id",
@@ -37,15 +36,8 @@ class FederatedDigitalObjects {
                "Unregistered federatd digital-twin"
             );
          }
-         // Fetch the federated digital twin data
-         const selectDTsql = `select * from federated_digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
-         const selectedDTdata = await model.postgres.selectData({
-            sql: selectDTsql,
-         });
-         const FDOcount =
-            parseInt(selectedDTdata.number_of_federated_digital_objects) + 1;
-
          const {
+            digital_object_identifier,
             federated_digital_object_name,
             description,
             tags,
@@ -60,6 +52,34 @@ class FederatedDigitalObjects {
             preliminary_field,
          } = params;
 
+         let federated_digital_object_id;
+         if (digital_object_identifier) {
+            const isExistDOid = await model.postgres.checkIdExist({
+               table: "federated_digital_objects",
+               check: "federated_digital_object_id",
+               id: digital_object_identifier,
+               federated_digital_twin_id,
+            });
+            if (isExistDOid) {
+               throw new ErrorHandler(
+                  412,
+                  412,
+                  "digital_object_identifier already in use"
+               );
+            }
+            federated_digital_object_id = digital_object_identifier;
+         } else {
+            federated_digital_object_id = "FDO" + uuid();
+         }
+
+         // Fetch the federated digital twin data
+         const selectDTsql = `select * from federated_digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
+         const selectedDTdata = await model.postgres.selectData({
+            sql: selectDTsql,
+         });
+         const FDOcount =
+            parseInt(selectedDTdata.number_of_federated_digital_objects) + 1;
+
          if (
             !config.setWindowDOtable.term.includes(time_sync_cond.time_interval)
          ) {
@@ -72,12 +92,11 @@ class FederatedDigitalObjects {
             );
          }
 
-         //digital_twin_object_id리스트에서 digital_twin_object가 등록된 DO인지 확인
-         for (let i in member_digital_twin_object_ids) {
-            let isExistID = await model.postgres.checkIdExist({
+         const promises = member_digital_twin_object_ids.map(async (id) => {
+            const isExistID = await model.postgres.checkIdExist({
                table: "digital_objects",
                check: "digital_object_id",
-               id: member_digital_twin_object_ids[i],
+               id,
             });
             if (!isExistID) {
                throw new ErrorHandler(
@@ -86,14 +105,13 @@ class FederatedDigitalObjects {
                   "Unregistered digital twin object"
                );
             }
-         }
+         });
 
-         // fdo의 control의 경우에는 센서와 같이 병렬적으로 있는것이 아니라 하위에 포함되어 있음을 유의
+         await Promise.all(promises);
+
          const creationTime = lib.timestamp();
-         const federated_digital_object_id = "FDO" + uuid();
          const member_digital_twin_object_count =
             member_digital_twin_object_ids.length;
-
          let compose_sql = "";
          for (let i = 0; i < member_digital_twin_object_count; i++) {
             compose_sql += `INSERT INTO fdo_compositions (compose_id, federated_digital_twin_id, federated_digital_object_id, digital_object_id, rowtime, digital_object_count) VALUES ('CP${uuid()}', '${federated_digital_twin_id}', '${federated_digital_object_id}', '${
