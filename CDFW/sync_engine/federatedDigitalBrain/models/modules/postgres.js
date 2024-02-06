@@ -138,6 +138,31 @@ class Postgres {
          });
    }
 
+   checkTableExistence = async (tableName) => {
+      const query = `
+         SELECT EXISTS (
+            SELECT 1
+            FROM information_schema.tables
+            WHERE table_name = $1
+         );
+      `;
+
+      const result = await global.pool.query(query, [tableName]);
+      return result.rows[0].exists;
+   };
+
+   TableExistCheck = async ({ connectors }) => {
+      try {
+         const existences = await Promise.all(
+            connectors.map(this.checkTableExistence)
+         );
+         return existences;
+      } catch (error) {
+         console.error("Error checking table existence:", error);
+         throw error;
+      }
+   };
+
    /**
     * insert relation information to relations table
     * type: {"federatedTwin":0,"digitalTwin":1,"digitalObject":2,"sensor":3,"controller":4,"visualModel":5,"dataModel":6,"behaviorModel":7,"simulation":8,"service":9,"subscription":10}
