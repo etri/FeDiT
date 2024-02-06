@@ -43,12 +43,27 @@ class Kafka {
          url: `http://${config.kafka.connectHost}/connectors`,
       });
       const data = new Set(getConnectors.data);
-      for (let i = 0; i < connectors.length; i++) {
-         if (!data.has(connectors[i])) {
+      for (const connector of connectors) {
+         if (!data.has(connector)) {
             return false;
          }
       }
       return true;
+   }
+
+   async checkAndCreateConnector(connectorNames, createCallback) {
+      const getConnectors = await lib.request({
+         method: "get",
+         url: `http://${config.kafka.connectHost}/connectors`,
+      });
+
+      const existingConnectors = new Set(getConnectors.data);
+
+      for (const connector of connectorNames) {
+         if (!existingConnectors.has(connector)) {
+            await createCallback(connector);
+         }
+      }
    }
 
    kafkaProducer({ topic, kafkaKey, data }) {
@@ -64,6 +79,39 @@ class Kafka {
          if (err) logger.error(err);
          else logger.info(data);
       });
+      return 0;
+   }
+
+   /**
+    *
+    * @param {String} topic latestFederatedDigitalObjects
+    * @param {String} key federated_digital_object_id
+    * @param {String} type Define source topic FDO_/FDO_window_10_
+    * @returns
+    */
+   async createKeyTopicDistributeSink({ topic, key, type }) {
+      const ConnectorBody = {
+         name: `keyTopicDistSink_${topic}`,
+         config: {
+            "connector.class":
+               "com.keti.connector.kafka.KafkaSinkKeyTopicConnector",
+            "kafka.sink.bootstrap": config.kafka.host,
+            "tasks.max": "1",
+            topics: topic,
+            "value.converter":
+               "org.apache.kafka.connect.storage.StringConverter",
+            "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+            "kafka.key.field": key,
+            "topic.type": type,
+         },
+      };
+
+      await lib.request({
+         method: "post",
+         url: `http://${config.kafka.connectHost}/connectors`,
+         bodyParams: ConnectorBody,
+      });
+
       return 0;
    }
 
@@ -372,39 +420,98 @@ class Kafka {
       }
    }
 
+   // /**
+   //  * @param {String} type
+   //  * @param {String} term
+   //  * @returns
+   //  */
+   // async createlatestDataSinkConnector({ type, term }) {
+   //    let field, topicType;
+   //    if (type == "UnalliedDigitalObjects") {
+   //       field = "@.digital_object_id";
+   //       topicType = "DO";
+   //    } else if (type == "FederatedDigitalObjects") {
+   //       field = "@.federated_digital_object_id";
+   //       topicType = "FDO";
+   //    } else if (type == "FDOsyncWindows") {
+   //       field = "@.federated_digital_object_id";
+   //       topicType = `FWindows${term}`;
+   //    }
+
+   //    const bodyConfig = {
+   //       name: "latestDataSink_" + type + (term ? term : ""),
+   //       config: {
+   //          "connector.class": "com.keti.connector.kafka.KafkaSinkConnector",
+   //          "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+   //          "value.converter":
+   //             "org.apache.kafka.connect.storage.StringConverter",
+   //          "kafka.sink.bootstrap": config.kafka.host,
+   //          "kafka.sink.topic": "latest" + type + (term ? term : ""), // Check if term is provided
+   //          "tasks.max": "1",
+   //          topics: type + (term ? term : ""), // Check if term is provided
+   //          "kafka.key.enabled": "true",
+   //          "kafka.key.field": field,
+   //          "topic.type": topicType,
+   //       },
+   //    };
+
+   //    console.log({ bodyConfig });
+   //    await lib.request({
+   //       method: "post",
+   //       url: `http://${config.kafka.connectHost}/connectors`,
+   //       bodyParams: bodyConfig,
+   //    });
+
+   //    return 0;
+   // }
+
    /**
-    *
-    * @param {String} type (DigitalObjects, Sensors)
+    * @param {String} type
+    * @param {String} term
     * @returns
     */
-   async createlatestDataSinkConnector({ type }) {
-      let field;
-      if (type == "UnalliedDigitalObjects") {
-         field = "@.digital_object_id";
-      } else if (type == "FederatedDigitalObjects") {
-         field = "@.federated_digital_object_id";
+   async createlatestDataSinkConnector({ type, term }) {
+      try {
+         let field, topicType;
+         if (type == "UnalliedDigitalObjects") {
+            field = "@.digital_object_id";
+            topicType = "DO";
+         } else if (type == "FederatedDigitalObjects") {
+            field = "@.federated_digital_object_id";
+            topicType = "FDO";
+         } else if (type == "FDOsyncWindows") {
+            field = "@.federated_digital_object_id";
+            topicType = `FWindows${term}`;
+         }
+
+         const bodyConfig = {
+            name: "latestDataSink_" + type + (term ? term : ""),
+            config: {
+               "connector.class": "com.keti.connector.kafka.KafkaSinkConnector",
+               "key.converter":
+                  "org.apache.kafka.connect.storage.StringConverter",
+               "value.converter":
+                  "org.apache.kafka.connect.storage.StringConverter",
+               "kafka.sink.bootstrap": config.kafka.host,
+               "kafka.sink.topic": "latest" + type + (term ? term : ""), // Check if term is provided
+               "tasks.max": "1",
+               topics: type + (term ? term : ""), // Check if term is provided
+               "kafka.key.enabled": "true",
+               "kafka.key.field": field,
+               "topic.type": topicType,
+            },
+         };
+
+         await lib.request({
+            method: "post",
+            url: `http://${config.kafka.connectHost}/connectors`,
+            bodyParams: bodyConfig,
+         });
+
+         return 0;
+      } catch (error) {
+         logger.error(`[kafka] ${error}`);
       }
-      const bodyConfig = {
-         name: "latestDataSink_" + type,
-         config: {
-            "connector.class": "com.keti.connector.kafka.KafkaSinkConnector",
-            "key.converter": "org.apache.kafka.connect.storage.StringConverter",
-            "value.converter":
-               "org.apache.kafka.connect.storage.StringConverter",
-            "kafka.sink.bootstrap": config.kafka.host,
-            "kafka.sink.topic": "latest" + type,
-            "tasks.max": "1",
-            topics: type,
-            "kafka.key.enabled": "true",
-            "kafka.key.field": field,
-         },
-      };
-      await lib.request({
-         method: "post",
-         url: `http://${config.kafka.connectHost}/connectors`,
-         bodyParams: bodyConfig,
-      });
-      return 0;
    }
 
    async createPostgresSinkConnector({ topic, table, type }) {

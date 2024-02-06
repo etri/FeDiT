@@ -133,11 +133,7 @@ class FederatedDigitalObjects {
             );
          }
 
-         let synComposeSQL = "";
-         if (timeSyncInteger !== 0) {
-            synComposeSQL = `INSERT INTO fdo_sync_compositions (compose_id, federated_digital_twin_id, federated_digital_object_id, time_sync, spatial_sync) VALUES ('CP${uuid()}', '${federated_digital_twin_id}', '${federated_digital_object_id}', ${timeSyncInteger}, '${spatialSyncWkt}');`;
-         }
-
+         const synComposeSQL = `INSERT INTO fdo_sync_compositions (compose_id, federated_digital_twin_id, federated_digital_object_id, time_sync, spatial_sync, rowtime) VALUES ('CP${uuid()}', '${federated_digital_twin_id}', '${federated_digital_object_id}', ${timeSyncInteger}, '${spatialSyncWkt}', '${creationTime}');`;
          const insert_sql = `INSERT INTO federated_digital_objects (
                            federated_digital_object_id,
                            federated_digital_twin_id,
@@ -374,19 +370,13 @@ class FederatedDigitalObjects {
                   "spatial_sync_cond requires a valid GeoJSON Feature or geometry object as input"
                );
             }
-            if (timeSyncInteger !== 0) {
-               synComposeSQL = `update fdo_sync_compositions set time_sync=${timeSyncInteger}, spatial_sync='${spatialSyncWkt}' ${whereClause}`;
-            } else {
-               synComposeSQL = `delete from fdo_sync_compositions ${whereClause}`;
-            }
+
+            synComposeSQL = `update fdo_sync_compositions set time_sync=${timeSyncInteger}, spatial_sync='${spatialSyncWkt}' ${whereClause}`;
          } else if (params.time_sync_cond && !params.spatial_sync_cond) {
             // Only time_sync_cond exists
             const timeSyncInteger = params.time_sync_cond.time_interval;
-            if (timeSyncInteger !== 0) {
-               synComposeSQL = `update fdo_sync_compositions set time_sync=${timeSyncInteger} ${whereClause}`;
-            } else {
-               synComposeSQL = `delete from fdo_sync_compositions ${whereClause}`;
-            }
+
+            synComposeSQL = `update fdo_sync_compositions set time_sync=${timeSyncInteger} ${whereClause}`;
          } else if (!params.time_sync_cond && params.spatial_sync_cond) {
             // Only spatial_sync_cond exists
             let spatialSyncWkt;
@@ -458,7 +448,7 @@ class FederatedDigitalObjects {
     * @param {string} to endDateTime
     * @returns {Json} 기간별 조회
     */
-   async getData({ federated_digital_twin_id, id, from, to, count }) {
+   async getData({ federated_digital_twin_id, id, from, to, count, window }) {
       const isExistID = await model.postgres.checkIdExist({
          table: "federated_digital_objects",
          check: "federated_digital_object_id",
@@ -473,18 +463,40 @@ class FederatedDigitalObjects {
          );
       }
 
-      if (from && to) {
-         const sql = `SELECT * FROM federated_digital_object_data WHERE federated_digital_twin_id='${federated_digital_twin_id}' AND federated_digital_object_id = '${id}' AND rowtime >= '${from}'::timestamp AND rowtime <= '${to}'::timestamp;`;
-         const retrievedData = await model.postgres.selectDataS({ sql });
-         return retrievedData;
-      } else if (count) {
-         const sql = `SELECT * FROM federated_digital_object_data WHERE federated_digital_twin_id='${federated_digital_twin_id}' AND federated_digital_object_id = '${id}' order by rowtime desc limit ${count};`;
-         const retrievedData = await model.postgres.selectDataS({ sql });
-         return retrievedData;
+      if (window) {
+         if (!config.setWindowDOtable.term.includes(parseInt(window))) {
+            throw new ErrorHandler(
+               412,
+               412,
+               `time_interval Error: ${window} is not present in Window setting config`
+            );
+         }
+
+         const baseSql = `SELECT * FROM federated_digital_object_window_data_${window} WHERE federated_digital_twin_id='${federated_digital_twin_id}' AND federated_digital_object_id = '${id}'`;
+
+         if (from && to) {
+            const sql = `${baseSql} AND rowtime >= '${from}'::timestamp AND rowtime <= '${to}'::timestamp;`;
+            return await model.postgres.selectDataS({ sql });
+         } else if (count) {
+            const sql = `${baseSql} ORDER BY rowtime DESC LIMIT ${count};`;
+            return await model.postgres.selectDataS({ sql });
+         } else {
+            const sql = `${baseSql} ORDER BY rowtime DESC LIMIT 100;`;
+            return await model.postgres.selectDataS({ sql });
+         }
       } else {
-         const sql = `SELECT * FROM federated_digital_object_data WHERE federated_digital_twin_id='${federated_digital_twin_id}' AND federated_digital_object_id = '${id}' order by rowtime desc limit 100;`;
-         const retrievedData = await model.postgres.selectDataS({ sql });
-         return retrievedData;
+         const baseSql = `SELECT * FROM federated_digital_object_data WHERE federated_digital_twin_id='${federated_digital_twin_id}' AND federated_digital_object_id = '${id}'`;
+
+         if (from && to) {
+            const sql = `${baseSql} AND rowtime >= '${from}'::timestamp AND rowtime <= '${to}'::timestamp;`;
+            return await model.postgres.selectDataS({ sql });
+         } else if (count) {
+            const sql = `${baseSql} ORDER BY rowtime DESC LIMIT ${count};`;
+            return await model.postgres.selectDataS({ sql });
+         } else {
+            const sql = `${baseSql} ORDER BY rowtime DESC LIMIT 100;`;
+            return await model.postgres.selectDataS({ sql });
+         }
       }
    }
 
