@@ -142,7 +142,6 @@ router.post(
 /**
  * get digital object data
  * localhost:1203/fedit/v1/{digital_twin_id}/digital-objects/{digital_object_id}/data
- * @body {String} digital_object_data_id (system)
  * @body {String} fedit_id (required)
  * @body {String} digital_twin_id (required)
  * @body {String} digital_object_id (required)

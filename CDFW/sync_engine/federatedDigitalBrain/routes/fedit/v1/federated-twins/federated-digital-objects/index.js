@@ -107,7 +107,6 @@ router.get("/:federated_digital_object_id", async (req, res) => {
 /**
  * get federated digital object data
  * localhost:1203/fedit/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/data
- * @body {String} federated_digital_object_data_id (system)
  * @body {String} federated_digital_twin_id (required)
  * @body {String} federated_digital_object_id (required)
  * @body {String} timestamp (system)
@@ -119,7 +118,7 @@ router.get("/:federated_digital_object_id/data", async function (req, res) {
    try {
       const { federated_digital_twin_id } = req;
       const { federated_digital_object_id } = req.params;
-      const { from, to, count } = req.query;
+      const { from, to, count, window } = req.query;
 
       const result = await services.federatedDigitalObjects.getData({
          federated_digital_twin_id,
@@ -127,6 +126,7 @@ router.get("/:federated_digital_object_id/data", async function (req, res) {
          from,
          to,
          count,
+         window,
       });
       res.success(201, result);
    } catch (e) {
