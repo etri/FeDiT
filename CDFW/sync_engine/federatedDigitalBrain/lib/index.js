@@ -44,6 +44,7 @@ exports.request = async ({ method, url, headers, bodyParams }) => {
          headers,
          data: bodyParams,
       });
+
       return response;
    } catch (e) {
       logger.error(e);

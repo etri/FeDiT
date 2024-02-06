@@ -3,13 +3,8 @@
  * default term: [0]
  */
 exports.setWindowDOtable = {
-   term: [0],
+   term: [0, 10, 60],
 }; //term 마다 디오 테이블 생성
-
-exports.setSedonaFlinkFunc = {
-   jarLocation:
-      "/home/cotlab/flink-release-1.17.0/build-target/lib/sedona-flink-shaded_2.12-1.5.1-SNAPSHOT.jar",
-};
 
 exports.nginx = {
    url: null,
@@ -78,6 +73,8 @@ exports.flink = {
       hostname: "192.168.140.123",
       port: 8087,
    },
+   sedonaJarLocation:
+      "/home/cotlab/flink-release-1.17.0/build-target/lib/sedona/sedona-flink-shaded_2.12-1.5.1-SNAPSHOT.jar",
 };
 
 exports.postgresPool = {
