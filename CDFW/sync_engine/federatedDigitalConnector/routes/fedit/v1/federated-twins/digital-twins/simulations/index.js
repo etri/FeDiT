@@ -179,4 +179,95 @@ router.delete("/:simulation_id", async (req, res) => {
    }
 });
 
+/**
+ * 시뮬레이션 데이터 생성(단발성 시뮬레이션 실행)
+ * @param {string} simulation_id (required)
+ * @body {string} simulation_data_id (system)
+ * @body {string} simulation_id (system)
+ * @body {string} timestamp (system)
+ * @body {JSON} input_data (required)
+ * @body {JSON} result_data (required)
+ * @returns {Json} {}
+ */
+router.post("/:simulation_id/execute", async function (req, res) {
+   try {
+      const { federated_digital_twin_id, digital_twin_id } = req;
+      const { simulation_id } = req.params;
+      const result = await services.simulations.dataCreate(
+         {
+            federated_digital_twin_id,
+            digital_twin_id,
+            simulation_id,
+         },
+         req.body
+      );
+      res.success(200, result);
+   } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+         logger.error(e);
+         e = new ErrorHandler(500, 500, "Internal Server Error");
+      }
+      e.handle(req, res, `POST /DigitalTwin/simulations/data`);
+   }
+});
+
+/**
+ * 시뮬레이션 결과 저장(지연성 시뮬레이션 실행결과 저장)
+ * @param {string} simulation_id (required)
+ * @param {string} simulation_data_id (system)
+ * @returns {Json} {}
+ */
+router.post(
+   "/:simulation_id/data/:simulation_data_id/result",
+   async function (req, res) {
+      try {
+         const { federated_digital_twin_id, digital_twin_id } = req;
+         const { simulation_id, simulation_data_id } = req.params;
+         const result_data = req.body;
+         const result = await services.simulations.resultAsyncUpdate({
+            federated_digital_twin_id,
+            digital_twin_id,
+            simulation_id,
+            simulation_data_id,
+            result_data,
+         });
+         res.success(200, result);
+      } catch (e) {
+         if (!(e instanceof ErrorHandler)) {
+            logger.error(e);
+            e = new ErrorHandler(500, 500, "Internal Server Error");
+         }
+         e.handle(req, res, `POST /DigitalTwin/simulations/data/result`);
+      }
+   }
+);
+
+/**
+ * 시뮬레이션 데이터 조회
+ * @param {string} simulation_id (required)
+ * @returns {Json} {}
+ */
+router.get("/:simulation_id/data", async function (req, res) {
+   try {
+      const { federated_digital_twin_id, digital_twin_id } = req;
+      const { simulation_id } = req.params;
+      const { from, to, count } = req.query;
+      const result = await services.simulations.dataRetrieve({
+         federated_digital_twin_id,
+         digital_twin_id,
+         simulation_id,
+         from,
+         to,
+         count,
+      });
+      res.success(200, result);
+   } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+         logger.error(e);
+         e = new ErrorHandler(500, 500, "Internal Server Error");
+      }
+      e.handle(req, res, `POST /DigitalTwin/simulations/data`);
+   }
+});
+
 module.exports = router;

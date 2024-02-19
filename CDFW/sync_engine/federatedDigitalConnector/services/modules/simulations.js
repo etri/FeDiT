@@ -99,6 +99,12 @@ class Simulations {
       '${JSON.stringify(preliminary_field)}');`;
       await model.postgres.sendQuery({ sql });
 
+      client.refreshMetadata([`${simulation_id}_result`], (err) => {
+         if (err) {
+            console.warn("Error refreshing kafka metadata", err);
+         }
+      });
+
       return { simulation_id };
    }
 
@@ -230,7 +236,8 @@ class Simulations {
       if (!isExistID) {
          throw new ErrorHandler(412, 412, "Unregistered simulation in FDT");
       } else {
-         const sql = `delete from simulations where simulation_id = '${simulation_id}' and digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}';`;
+         const sql = `delete from simulations where simulation_id = '${simulation_id}' and digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}';
+         delete from simulation_data where simulation_id = '${simulation_id}' and digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}';`;
          await model.postgres.sendQuery({ sql });
          return { delete: simulation_id };
       }
@@ -246,6 +253,155 @@ class Simulations {
       const simulationEntireList = await model.postgres.selectDataS({ sql });
 
       return simulationEntireList;
+   }
+
+   /**
+    *  simulation dataCreate
+    * @param {string}
+    * @returns {Json}
+    */
+   async dataCreate(
+      { federated_digital_twin_id, digital_twin_id, simulation_id },
+      body
+   ) {
+      const isExistID = await model.postgres.checkIdExist({
+         table: "simulations",
+         check: "simulation_id",
+         id: simulation_id,
+         digital_twin_id,
+         federated_digital_twin_id,
+      });
+      // simulation이 존재하면 조회
+      if (isExistID) {
+         const sql = `select * from simulations where simulation_id = '${simulation_id}' and digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}';`;
+         const selectedData = await model.postgres.selectData({ sql });
+         const { simulation_name, simulation_access_url } = selectedData;
+
+         const simulation_data_id = `S${uuid()}`;
+         const trigger_time = lib.timestamp();
+         const simulationBody = {
+            federated_digital_twin_id,
+            digital_twin_id,
+            rowtime: trigger_time,
+            simulation_id,
+            simulation_name,
+            input_data: body,
+         };
+
+         const result = await lib.request({
+            url: simulation_access_url,
+            bodyParams: simulationBody,
+         });
+
+         const result_data = result.data ? result.data : JSON.stringify(result);
+
+         const input_data = JSON.stringify(body);
+         const simulationResultBody = {
+            simulation_id,
+            simulation_data_id,
+            trigger_time,
+            result_time: lib.timestamp(),
+            input_data,
+            result_data,
+         };
+
+         const kafkaKey = { simulation_data_id };
+         model.kafka.kafkaProducer({
+            topic: `${simulation_id}_result`,
+            kafkaKey: JSON.stringify(kafkaKey),
+            data: JSON.stringify(simulationResultBody),
+         }); //string
+
+         let Updatesql = `insert into simulation_data (federated_digital_twin_id, digital_twin_id, simulation_data_id, simulation_id, input_data, result_data, trigger_time, result_time) values (
+            '${federated_digital_twin_id}', '${digital_twin_id}', '${simulation_data_id}', '${simulation_id}', '${input_data}', '${result_data}', '${trigger_time}', '${lib.timestamp()}')`;
+
+         await model.postgres.sendQuery({ sql: Updatesql });
+
+         return { dataCreate: simulation_data_id };
+      } else {
+         return "Unregistered simulation";
+      }
+   }
+
+   /**
+    *  simulation result asynchronous input
+    * @param {string}
+    * @returns {Json}
+    */
+   async resultAsyncUpdate({
+      federated_digital_twin_id,
+      digital_twin_id,
+      simulation_id,
+      simulation_data_id,
+      result_data,
+   }) {
+      const isExistSimulationID = await model.postgres.checkIdExist({
+         table: "simulations",
+         check: "simulation_id",
+         id: simulation_id,
+         digital_twin_id,
+         federated_digital_twin_id,
+      });
+
+      const isExistSimulationDataID = await model.postgres.checkIdExist({
+         table: "simulation_data",
+         check: "simulation_data_id",
+         id: simulation_data_id,
+      });
+      // simulation이 존재하면 조회
+      if (isExistSimulationID) {
+         if (isExistSimulationDataID) {
+            let sql = `update simulation_data set result_data='${JSON.stringify(
+               result_data
+            )}', result_time='${lib.timestamp()}' where simulation_id = '${simulation_id}' and simulation_data_id = '${simulation_data_id}'`;
+            console.log(sql);
+            await model.postgres.sendQuery({ sql });
+
+            return { simulation_data_id };
+         } else {
+            return "Unregistered simulation_data";
+         }
+      } else {
+         return "Unregistered simulation";
+      }
+   }
+   /**
+    *  simulation dataRetrieve
+    * @param {string}
+    * @returns {Json}
+    */
+   async dataRetrieve({
+      federated_digital_twin_id,
+      digital_twin_id,
+      simulation_id,
+      from,
+      to,
+      count,
+   }) {
+      const isExistID = await model.postgres.checkIdExist({
+         table: "simulations",
+         check: "simulation_id",
+         id: simulation_id,
+         digital_twin_id,
+         federated_digital_twin_id,
+      });
+      if (!isExistID) {
+         throw new ErrorHandler(412, 5252, "Unregistered simulation");
+      }
+
+      if (from && to) {
+         const sql = `SELECT * FROM simulation_data WHERE simulation_id = '${simulation_id}' AND trigger_time >= '${from}'::timestamp AND trigger_time <= '${to}'::timestamp;`;
+         const retrievedData = await model.postgres.selectDataS({ sql });
+         return retrievedData;
+      } else if (count) {
+         const sql = `SELECT * FROM simulation_data WHERE simulation_id = '${simulation_id}' order by trigger_time desc limit ${count};`;
+         const retrievedData = await model.postgres.selectDataS({ sql });
+         return retrievedData;
+      } else {
+         const sql = `SELECT * FROM simulation_data WHERE simulation_id = '${simulation_id}' order by trigger_time desc limit 100;`;
+         const retrievedData = await model.postgres.selectDataS({ sql });
+         return retrievedData;
+      }
    }
 }
 
