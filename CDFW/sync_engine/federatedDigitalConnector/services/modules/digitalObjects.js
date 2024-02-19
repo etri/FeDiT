@@ -52,6 +52,7 @@ class DigitalObjects {
          }
 
          const {
+            digital_object_identifier,
             digital_object_name,
             description,
             tags,
@@ -69,7 +70,28 @@ class DigitalObjects {
             do_metadata,
             preliminary_field,
          } = params;
-         const digital_object_id = "D" + uuid();
+
+         let digital_object_id;
+         if (digital_object_identifier) {
+            const isExistDOid = await model.postgres.checkIdExist({
+               table: "digital_objects",
+               check: "digital_object_id",
+               id: digital_object_id,
+               digital_twin_id,
+               federated_digital_twin_id,
+            });
+            if (isExistDOid) {
+               throw new ErrorHandler(
+                  412,
+                  412,
+                  "digital_object_identifier already in use"
+               );
+            }
+            digital_object_id = digital_object_identifier;
+         } else {
+            digital_object_id = "D" + uuid();
+         }
+
          const sql = `INSERT INTO digital_objects (
                            federated_digital_twin_id,
                            digital_twin_id,

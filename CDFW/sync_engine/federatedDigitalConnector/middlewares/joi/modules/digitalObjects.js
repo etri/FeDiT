@@ -3,6 +3,7 @@ const { validate } = require("./base/validate.js");
 
 exports.create = (req, res, next) => {
    const schema = Joi.object({
+      digital_object_identifier: Joi.string().empty("").default(null),
       digital_object_name: Joi.string().required(),
       description: Joi.string().empty("").default(null).required(),
       tags: Joi.array()
@@ -26,7 +27,7 @@ exports.create = (req, res, next) => {
          .required(),
       digital_object_data_source_type: Joi.string()
          .valid("PUSH", "POLL")
-         .default(null),
+         .default("POLL"),
       digital_object_data_source_url: Joi.string().empty("").default(null),
       digital_object_control_url: Joi.string()
          .empty("")

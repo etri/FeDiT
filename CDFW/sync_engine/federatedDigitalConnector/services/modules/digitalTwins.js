@@ -33,6 +33,7 @@ class DigitalTwins {
       });
       if (isExistID) {
          const {
+            digital_twin_identifier,
             digital_twin_name,
             description,
             owner,
@@ -50,7 +51,25 @@ class DigitalTwins {
             number_of_simulations,
          } = params;
 
-         const digital_twin_id = "DT" + uuid();
+         let digital_twin_id;
+         if (digital_twin_identifier) {
+            const isExistDtId = await model.postgres.checkIdExist({
+               table: "digital_twins",
+               check: "digital_twin_id",
+               id: digital_twin_identifier,
+            });
+            if (isExistDtId) {
+               throw new ErrorHandler(
+                  412,
+                  412,
+                  "digital_twin_identifier already in use"
+               );
+            }
+            digital_twin_id = digital_twin_identifier;
+         } else {
+            digital_twin_id = "DT" + uuid();
+         }
+
          const creation_time_temp = creation_time ? `'${creation_time}'` : null;
          const modification_time_temp = modification_time
             ? `'${modification_time}'`
@@ -158,7 +177,7 @@ class DigitalTwins {
          check: "federated_digital_twin_id",
          id: federated_digital_twin_id,
       });
-      // federated_digital_Twin이 존재하면 조회
+
       if (isExistID) {
          const sql = `select * from digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}' and digital_twin_id = '${digital_twin_id}'`;
          const selectedData = await model.postgres.selectData({ sql });
