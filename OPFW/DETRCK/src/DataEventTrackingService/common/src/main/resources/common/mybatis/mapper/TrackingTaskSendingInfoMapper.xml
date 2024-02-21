@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.DtEvtTracking.common.mapper.TrackingTaskSendingInfoMapper">
+  	
+  	<select id="getTaskSending" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingTaskSendingInfo">
+  		SELECT task_sending_id,
+		   	task_processing_id,
+		    tracking_process_id,
+		   	request_tracking_id,
+		    task_connection_url,
+		    task_sending_control_command_param,
+		    task_sending_control_command,
+		    task_sending_time,
+		   	task_sending_status,
+		    task_receive_result_msg,
+		    task_sending_identifiier
+		FROM tracking_task_sending_info
+		
+  		WHERE 1=1
+  			<if test="taskSendingId != null">
+  				and task_sending_id = #{taskSendingId}
+  			</if>
+  			<if test="taskProcessingId != null">
+  				and task_processing_id = #{taskProcessingId}
+  			</if>
+  			<if test="trackingProcessId != null">
+  				and tracking_process_id = #{trackingProcessId}
+  			</if>
+  			<if test="requestTrackingId != null">
+  				and request_tracking_id = #{requestTrackingId}
+  			</if>
+		order by task_sending_id desc	
+  	</select>
+	
+	<select id="getTaskSendingInfo" parameterType="Map" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingTaskSendingInfo">
+  		SELECT task_sending_id,
+		   	task_processing_id,
+		    tracking_process_id,
+		   	request_tracking_id,
+		    task_connection_url,
+		    task_sending_control_command_param,
+		    task_sending_control_command,
+		    task_sending_time,
+		   	task_sending_status,
+		    task_receive_result_msg,
+		    task_sending_identifiier
+		FROM tracking_task_sending_info
+  		WHERE 1=1
+  			<if test="taskSendingId != null">
+  				and task_sending_id = #{taskSendingId}
+  			</if>
+  			<if test="taskSendingIdentifiier != null">
+  				and task_sending_identifiier = #{taskSendingIdentifiier}
+  			</if>
+			<if test="task_connection_url != null">
+  				and task_connection_url = #{task_connection_url}
+  			</if>
+			<if test="taskSendingControlCommand != null">
+  				and task_sending_control_command = #{taskSendingControlCommand}
+  			</if>
+  			<if test="taskProcessingId != null">
+  				and task_processing_id = #{taskProcessingId}
+  			</if>
+  			<if test="trackingProcessId != null">
+  				and tracking_process_id = #{trackingProcessId}
+  			</if>
+			<if test="requestTrackingId != null">
+  				and request_tracking_id = #{requestTrackingId}
+  			</if>
+		order by task_sending_id desc	
+	</select>
+  	
+  	<insert id="insertTaskSending" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingTaskSendingInfo"
+  		useGeneratedKeys="true" keyColumn="task_sending_id" keyProperty="taskSendingId">
+		INSERT INTO tracking_task_sending_info
+		(
+			task_processing_id,
+			tracking_process_id,
+			request_tracking_id,
+			task_connection_url,
+			task_sending_control_command_param,
+			task_sending_control_command,
+			task_sending_time,
+			task_sending_status,
+			task_sending_identifiier
+		)
+		VALUES
+		(
+			#{taskProcessingId},
+			#{trackingProcessId},
+			#{requestTrackingId},
+			#{taskConnectionUrl},
+			#{taskSendingControlCommandParam},
+			#{taskSendingControlCommand},
+			NOW(3),
+			#{taskSendingStatus},
+			#{taskSendingIdentifiier}
+		)
+  	</insert>
+  	
+  	<update id="updateTaskSending" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingTaskSendingInfo">
+		UPDATE tracking_task_sending_info
+		SET
+			task_receive_result_time =  NOW(3)
+			<if test="taskSendingStatus != null">
+				,task_sending_status = #{taskSendingStatus}
+			</if>
+			<if test="taskReceiveResultMsg != null">
+				,task_receive_result_msg = #{taskReceiveResultMsg}
+			</if>
+		WHERE 
+			task_sending_id = #{taskSendingId} 
+			AND task_processing_id = #{taskProcessingId} 
+			AND tracking_process_id = #{trackingProcessId} 
+			AND request_tracking_id = #{requestTrackingId}
+  	</update>
+  	
+  	<delete id="deleteTaskSending" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingTaskSendingInfo">
+  		DELETE FROM tracking_task_sending_info
+  		WHERE 
+  			task_sending_id = #{taskSendingId}
+  	</delete>
+  	
+</mapper>

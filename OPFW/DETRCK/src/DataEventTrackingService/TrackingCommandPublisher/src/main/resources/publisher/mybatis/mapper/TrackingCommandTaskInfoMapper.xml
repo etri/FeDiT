@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.DtEvtTracking.trackCmdPublisher.mapper.TrackingCommandTaskInfoMapper">
+	<select id="getTrackingCmdSeqIdList" parameterType="HashMap" resultType="java.lang.Integer">
+		SELECT 
+			    tracking_process_id 
+			FROM
+			    tracking_process_info A
+			WHERE 1=1						
+				<if test="sequenceStatus != null">
+		  			 AND tracking_status = #{sequenceStatus}
+		  		</if>	
+		  		<if test="sequenceActTypeList != null and sequenceActTypeList != ''">
+					and tracking_process_type in 
+					<foreach collection="sequenceActTypeList" item="item" index="index" separator="," open="(" close=")">
+						#{item}
+					</foreach>
+				</if>
+			order by tracking_process_id    	
+			<if test="start != null">
+  		 		 LIMIT #{start},#{end} 
+  		 	</if>	
+	</select>
+
+
+  	<select id="getTotalCountTrackingCmdTaskInfo" parameterType="HashMap" resultType="HashMap">
+		  SELECT 
+			    count(*) cnt, ifnull(min(tracking_process_id), 0) min, ifnull(max(tracking_process_id), 0) max
+			FROM
+			    ttracking_process_info A
+			WHERE NOT EXISTS( 
+			       SELECT 
+			            tracking_process_id, request_tracking_id
+			        FROM
+			            tracking_task_processing_info B
+			        WHERE
+			            B.tracking_process_id = A.tracking_process_id
+			                AND B.request_tracking_id = A.request_tracking_id
+					) 
+						
+				<if test="sequenceStatus != null">
+		  			 AND tracking_status = #{sequenceStatus}
+		  		</if>	
+		  		<if test="sequenceActTypeList != null and sequenceActTypeList != ''">
+					and tracking_process_type in 
+					<foreach collection="sequenceActTypeList" item="item" index="index" separator="," open="(" close=")">
+						#{item}
+					</foreach>
+				</if>
+	</select>
+  	     <select id="getTrackingCommandTaskInfoList" parameterType="HashMap" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingProcessInfo">
+			 SELECT 
+			    tracking_process_id,
+			    request_tracking_id,
+			    tracking_process_type,
+			    digital_twin_id,
+			    digital_object_id,
+			    tracking_command,
+			    tracking_process_identifier,
+			    event_condition,
+			    event_occurred,
+			    event_delay,
+			    event_end_date,
+			    tracking_kafka_group,
+			    tracking_kafka_topic,
+			    tracking_status_change_time,
+			    data_filter_type,
+			    federated_twin_id,
+			    federated_digital_object_id,
+			    tracking_status
+			FROM
+			    tracking_process_info A
+			WHERE 1=1		
+			<if test="isProcTaskExists != null">	
+			    AND NOT EXISTS( 
+			       SELECT 
+			            tracking_process_id, request_tracking_id
+			        FROM
+			            tracking_task_processing_info B
+			        WHERE
+			            B.tracking_process_id = A.tracking_process_id
+			        AND B.request_tracking_id = A.request_tracking_id)
+			</if>			 
+			 <if test="trackingProcessId != null">
+	  			 AND tracking_process_id = #{trackingProcessId}
+	  		 </if>
+	  		 <if test="procSeqList != null">
+				and tracking_process_id in 
+				<foreach collection="procSeqList" item="item" index="index" separator="," open="(" close=")">
+					#{item}
+				</foreach>
+			</if>
+			
+			<if test="trackingStatus != null">
+	  			 AND tracking_status = #{trackingStatus}
+	  		</if>	
+	  		 ORDER BY A.tracking_process_id
+	  		 <if test="start != null">
+  		 		 LIMIT #{start},#{end} 
+  		 	</if>
+	  	</select>
+	  	
+	  	  <select id="getTrackCmdTaskInfoList" parameterType="HashMap" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingProcessInfo">
+			 SELECT 
+			    tracking_process_id,
+			    request_tracking_id,
+			    tracking_process_identifier,
+			    tracking_process_type,
+			    federated_twin_id,
+			    federated_digital_object_id
+			    digital_twin_id,
+			    digital_object_id,
+			    tracking_command,
+			    tracking_kafka_group,
+			    tracking_kafka_topic,
+			    data_filter_type,
+			    event_occurred_count,
+			    event_condition,
+			    event_delay,
+			    event_end_date,
+			    tracking_status,
+			    tracking_status_change_time,
+			    create_time
+			FROM
+			    tracking_process_info A
+			WHERE 1=1					 
+	  			 AND request_tracking_id = #{requestTrackingId}
+	  		</select>
+	  	
+	  	
+	  	
+	  	<select id="getTrackingCommandSequenceTaskProcInfo" parameterType="HashMap" resultType="iitp.federatedTwins.DtEvtTracking.trackCmdPublisher.vo.CtrlCmdSeqTaskProcVO">
+			 SELECT 
+			    A.tracking_process_id,
+			    A.request_tracking_id,
+			    A.tracking_process_identifier,
+			    A.tracking_process_type,
+			    A.federated_twin_id,
+			    A.federated_digital_object_id
+			    A.digital_twin_id,
+			    A.digital_object_id,
+			    A.tracking_command,
+			    A.tracking_kafka_group,
+			    A.tracking_kafka_topic,
+			    A.data_filter_type,
+			    A.event_occurred_count,
+			    A.event_condition,
+			    A.event_delay,
+			    A.event_end_date,
+			    A.tracking_status,
+			    tracking_status_change_time,
+                B.task_processing_id,
+                B.task_processing_status
+			FROM
+			    tracking_process_info A
+                inner join tracking_task_processing_info B on B.tracking_process_id = A.tracking_process_id AND B.request_tracking_id = A.request_tracking_id			
+			WHERE	
+				A.tracking_process_id = #{trackingProcessId}
+                and B.task_processing_id = #{taskProcessingId}
+	  	</select>
+	  	
+	  	
+	  	
+	  	
+	  	
+	  	
+	  	
+  	
+  		<update id="updateTrackingCmdSeqInfoTaskProc" parameterType="HashMap">
+  		UPDATE tracking_process_info
+			SET			
+			<if test="sequenceStatus != null">
+				tracking_status = #{sequenceStatus},
+			</if>
+			tracking_status_change_time = NOW(3)
+		WHERE
+			<choose>
+				<when test="procSeqList != null">
+					tracking_process_id in 
+					<foreach collection="procSeqList" item="item" index="index" separator="," open="(" close=")">
+						#{item}
+					</foreach>
+				</when>
+				<otherwise>
+					tracking_process_id = #{trackingProcessId} 
+				</otherwise>
+			</choose> 
+  	</update>
+  	
+  	
+  	<insert id="insertTrackingCmdSeqChangeHisMultiProcInfo" parameterType="HashMap">
+  		insert into tracking_sequence_status_change_record
+		(tracking_process_id, request_tracking_id, change_status, status_update_time, status_result_msg)
+		SELECT tracking_process_id,  request_tracking_id, tracking_status, NOW(3), #{statusResultMsg} status_result_msg
+		FROM tracking_process_info
+		WHERE 1=1
+			<if test="tracingStatus != null">
+	  			and tracking_status = #{trackingStatus}
+	  		</if>	
+			<choose>
+				<when test="procSeqList != null">
+					and tracking_process_id in 
+					<foreach collection="procSeqList" item="item" index="index" separator="," open="(" close=")">
+						#{item}
+					</foreach>
+				</when>
+				<otherwise>
+					and tracking_process_id = #{trackingProcessId} 
+				</otherwise>
+			</choose> 
+  	</insert>
+</mapper>

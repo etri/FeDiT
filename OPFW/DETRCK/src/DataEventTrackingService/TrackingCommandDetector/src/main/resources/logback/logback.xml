@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<property name="LOG_DIR"
+		value="/hdd/federatedTwins/DtEvtTracking/trackCmdDetector"></property>
+
+	<appender name="CONSOLE"
+		class="ch.qos.logback.core.ConsoleAppender">
+		<encoder
+			class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<pattern>▶%-5level %d{HH:mm:ss:.SSS} [%thread] %logger[%method:%line]
+				- %msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="ROLLING-FILE"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LOG_DIR}/TrackingCommandDetector.log</file>
+		<encoder
+			class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<pattern>▶%-5level %d{HH:mm:ss:.SSS} [%thread] %logger[%method:%line]
+				- %msg%n</pattern>
+		</encoder>
+		<rollingPolicy
+			class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_DIR}/TrackingCommandDetector.%d{yyyy-MM-dd}_%i.log
+			</fileNamePattern>
+			<timeBasedFileNamingAndTriggeringPolicy
+				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>256MB</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+		</rollingPolicy>
+	</appender>
+
+	<root level="DEBUG">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="ROLLING-FILE" />
+	</root>
+
+	<logger name="org.apache.ibatis" level="DEBUG"
+		additivity="false">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="ROLLING-FILE" />
+	</logger>
+
+	<logger name="org.springframework" level="DEBUG"
+		additivity="false">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="ROLLING-FILE" />
+	</logger>
+
+	<logger
+		name="iitp.federatedTwins.DtEvtTracking.trackCmdDetector.schdule"
+		level="DEBUG" additivity="false">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="ROLLING-FILE" />
+	</logger>
+
+	<logger
+		name="iitp.federatedTwins.DtEvtTracking.trackCmdDetector.task"
+		level="DEBUG" additivity="false">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="ROLLING-FILE" />
+	</logger>
+
+
+	<logger name="iitp.federatedTwins.DtEvtTracking.common.config"
+		level="DEBUG" additivity="false">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="ROLLING-FILE" />
+	</logger>
+
+	<logger
+		name="iitp.federatedTwins.DtEvtTracking.common.exception"
+		level="DEBUG" additivity="false">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="ROLLING-FILE" />
+	</logger>
+
+	<logger name="iitp.federatedTwins.DtEvtTracking.common.util"
+		level="DEBUG" additivity="false">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="ROLLING-FILE" />
+	</logger>
+
+	<logger name="iitp.federatedTwins.DtEvtTracking.common.dto"
+		level="DEBUG" additivity="false">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="ROLLING-FILE" />
+	</logger>
+
+	<logger name="iitp.federatedTwins.DtEvtTracking.common.dao"
+		level="DEBUG" additivity="false">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="ROLLING-FILE" />
+	</logger>
+
+	<logger name="com.zaxxer.hikari" level="DEBUG" />
+	<logger name="com.zaxxer.hikari.HikariConfig" level="DEBUG" />
+
+</configuration>

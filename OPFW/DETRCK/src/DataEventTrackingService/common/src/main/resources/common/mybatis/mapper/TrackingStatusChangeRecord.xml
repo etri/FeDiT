@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.DtEvtTracking.common.mapper.TrackingStatusChangeRecordMapper">
+  	
+  	<select id="getTrackingStatusChangeHistoryList" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingStatusChangeRecord">
+  		SELECT
+		   tracking_status_change_id,
+		    status_update_time,
+		    change_status,
+		    status_result_msg,
+		    request_tracking_id
+		FROM 
+		   tracking_status_change_record
+		   where 1=1 
+		 <if test='trackingStatusChangeId != null'>
+			 and tracking_status_change_id = #{trackingStatusChangeId}
+		</if>
+			  <if test='requestTrackingId != null'>
+			 and request_tracking_id = #{requestTrackingId}
+		</if>
+		order by tracking_status_change_id desc
+  		</select>
+  	
+  	 <insert id="insertTrackingStatusChangeHistory" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingStatusChangeRecord">	 
+			INSERT INTO tracking_status_change_record
+			(
+		    status_update_time,
+		    change_status,
+		    status_result_msg,
+		    request_tracking_id
+		   )
+			VALUES
+			(
+			NOW(3),
+			#{changeStatus},
+			#{statusResultMsg},
+			#{requestTrackingId}
+		   )
+	  </insert>
+	  
+	  <update id="updateTrackingStatusChangeHistory" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingStatusChangeRecord">
+	  UPDATE tracking_status_change_record
+		SET
+	    <if test='requestTrackingId != null'>
+		request_tracking_id = #{requestTrackingId},
+		</if>	 
+		<if test='statusResultMsg != null'>
+		status_result_msg = #{statusResultMsg},
+		</if>
+		<if test='changeStatus != null'>
+		change_status = #{changeStatus},
+		</if>
+		status_update_time = NOW(3)
+		WHERE
+		  tracking_status_change_id = #{trackingStatusChangeId}
+		          AND request_tracking_id = #{requestTrackingId}
+	  </update>
+	  
+	  <delete id="deleteTrackingStatusChangeHistory" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingStatusChangeRecord">
+	  	DELETE 
+	  	  FROM 
+	  	   tracking_status_change_record
+		WHERE
+		  tracking_status_change_id = #{trackingStatusChangeId}
+		          AND request_tracking_id = #{requestTrackingId}
+	   </delete>
+	
+  	
+
+
+	
+  	
+</mapper>
