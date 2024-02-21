@@ -69,7 +69,7 @@ public class CtrlCmdStsCheckerScheduler {
 			if (procReqIdList != null && procReqIdList.size() > 0) {
 				String url = "";
 				for (int i = 0; i < procReqIdList.size(); i++) {
-					url = "http://192.168.2.115:8000/fdt/msaoc/tsm/transmitter/" + String.valueOf(procReqIdList.get(i));
+					url = "http://localhost:8000/fdt/msaoc/tsm/transmitter/" + String.valueOf(procReqIdList.get(i));
 					HashMap<String, Object> param = new HashMap<String, Object>();
 
 					System.out.println("url >>>>>>>>>>>>>>>>>>>" + url);

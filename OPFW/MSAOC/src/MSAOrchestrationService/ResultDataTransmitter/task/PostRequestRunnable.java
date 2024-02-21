@@ -87,17 +87,6 @@ public class PostRequestRunnable implements Runnable {
 		}
 		
 		int taskSendingId = msaTaskSendingInfo.getTaskSendingId(); 
-
-//		// JSON 객체 생성
-//		JSONObject jsonObject = new JSONObject();
-//		jsonObject.put("requestIdtifier", String.valueOf(System.currentTimeMillis()));
-//		jsonObject.put("callBackUrl", "192.168.2.115:13479/litp");
-//		String requestBody = jsonObject.toJSONString();
-//
-//		// JSON 데이터를 요청의 본문에 포함시킴
-//		HttpEntity requestEntity = new StringEntity(requestBody, ContentType.APPLICATION_JSON);
-//		httpPost.setEntity(requestEntity);
-		
 		
 		HttpPost httpPost = new HttpPost(requestUrl);
 		
