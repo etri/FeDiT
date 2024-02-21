@@ -58,6 +58,7 @@ class Manager:
     use_model_yn:None  #모델데이터 사용여부
     real_time_yn:None   #실시간 사용 여부    
     output_file:None   #최종 저장파일 
+    trgt_col_list:None #알고리즘 선택 리스트
 
     def __init__(self, data=None, modelArgs=None, inputArgs=None) -> None:
         self.data = data
@@ -89,6 +90,7 @@ class Manager:
         self.resmpl_intvl_tp = inputArgs.resmpl_intvl_tp
         self.resmpl_intvl_value = inputArgs.resmpl_intvl_value
         self.index_column = inputArgs.index_column
+        self.trgt_col_list = inputArgs.trgt_col_list
         
 
 
@@ -287,12 +289,26 @@ class Manager:
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
         
         #GPU 설정
+        """
         physical_devices = tf.config.list_physical_devices('GPU')
-        try:
-            tf.config.experimental.set_memory_growth(physical_devices[0], True)
-        except Exception as e:
-            raise e
+        if physical_devices:
+            try:
+                tf.config.experimental.set_visible_devices(physical_devices[0], 'GPU')
+                tf.config.experimental.set_memory_growth(physical_devices[0], True)
+            except Exception as e:
+                raise e
+        """
 
+        # gpu 이름
+        gpus = tf.config.experimental.list_logical_devices('GPU')
+
+        # gpu가 2개 이상이면, MirroredStrategy 인스턴스 생성
+        if len(gpus) > 1: 
+            strategy = tf.distribute.MirroredStrategy([gpu.name for gpu in gpus])
+
+        # gpu가 1개 이하면, 디폴트 전략 설정
+        else:
+            strategy = tf.distribute.get_strategy() # default strategy that works on CPU and single GPU
 
         #폴더확인        
         temp = os.path.join(self.filepath, 'temp')
@@ -313,9 +329,18 @@ class Manager:
             print('------------------A')
             #컬럼생성
             scale_cols = []
-            for c in self.data.columns:
-                scale_cols.append(c)
+            
+            if self.trgt_col_list == None:
+                for c in self.data.columns:
+                #for c in self.trgt_col_list:
+                    scale_cols.append(c)
+            else:
+                #for c in self.data.columns:
+                for c in self.trgt_col_list:
+                    scale_cols.append(c)            
+            
             print(scale_cols)
+            print(self.trgt_col_list)
 
             print('------------------B')
             #정규화(0~1변환)
@@ -340,53 +365,55 @@ class Manager:
             print(x_test)
             print(y_test)
             
-            print('------------------E')
-            #모델적용 데이터셋 생성
-            if self.is_indpds:
-                #독립변수 데이터 생성
-                train_data = self.windowed_dataset2((x_train, y_train), self.window_size, self.batch_size, True)
-                test_data = self.windowed_dataset2((x_test, y_test), self.window_size, self.batch_size, False)
-            else:
-                #종속변수로 데이터 생성 (setModel-input_shape = 1 고정)
-                train_data = self.windowed_dataset(y_train, self.window_size, self.batch_size, True)
-                test_data = self.windowed_dataset(y_test, self.window_size, self.batch_size, False)
-            
-            print(train_data)
-            print(test_data)
 
-            print('------------------F')            
-            #모델설정
-            if self.is_indpds:
-                #독립변수 모델생성
-                model = self.setModel(len(self.feature_cols), len(self.output_cols), self.window_size, self.units)
-                #model = self.setModel2(len(self.feature_cols), len(self.output_cols), self.window_size, self.units, output_size=self.output_size)
-            else:
-                #종속변수로 모델생성 (입출력값은 동일해야함)
-                model = self.setModel(len(self.output_cols), len(self.output_cols), self.window_size, self.units)
-                #model = self.setModel2(len(self.output_cols), len(self.output_cols), self.window_size, self.units, output_size=self.output_size)
-            
-            print(len(self.feature_cols), len(self.output_cols))
-            
-            # print('------------------G')
-            # #성능옵션
-            # model.compile(optimizer=Adam(0.0005), loss=Huber(), metrics=['mse'])
-            # #model.compile(optimizer=Adam(0.0005), loss=Huber(), metrics=['accuracy'])
-            # print(model.summary())
+            with strategy.scope():
+                print('------------------E')
+                #모델적용 데이터셋 생성
+                if self.is_indpds:
+                    #독립변수 데이터 생성
+                    train_data = self.windowed_dataset2((x_train, y_train), self.window_size, self.batch_size, True)
+                    test_data = self.windowed_dataset2((x_test, y_test), self.window_size, self.batch_size, False)
+                else:
+                    #종속변수로 데이터 생성 (setModel-input_shape = 1 고정)
+                    train_data = self.windowed_dataset(y_train, self.window_size, self.batch_size, True)
+                    test_data = self.windowed_dataset(y_test, self.window_size, self.batch_size, False)
+                
+                print(train_data)
+                print(test_data)
 
-            print('------------------G')
-            #earlystopping은 10번 epoch 동안 val_loss 개선이 없다면 학습을 멈춤
-            cb_earlystopping = EarlyStopping(monitor='val_loss', patience=self.patience)
-            #val_loss 기준 bast 체크포인터 생성
-            #cp_filename = os.path.join(self.filepath, 'tmp', self.filename + '_ckeckpointer.ckpt')
-            cb_checkpoint = ModelCheckpoint(modelCKFile, save_weights_only=True, save_best_only=True, monitor='val_loss', verbose=1)
-            #checkpoint_model = ModelCheckpoint(filepath=self.MODEL_FILE_PATH + 'tmp\\model\\' + 'model_{epoch:02d}.h5')
-            #중간값 추론
-            cb_fid = fid.FIDCallback(generator=model, epochs_to_fid=1, window_size=self.window_size, real_data=y_test, test_data=test_data, output_cols=self.output_cols, filepath=fidHistoryPath, data_size=self.data_size)
-            #rlr = ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=self.patience, verbose=1)
-            
-            #모델학습
-            hist = model.fit(train_data, validation_data=(test_data), epochs=self.epochs, callbacks=[cb_checkpoint, cb_fid, cb_earlystopping])
-            
+                print('------------------F')            
+                #모델설정
+                if self.is_indpds:
+                    #독립변수 모델생성
+                    model = self.setModel(len(self.feature_cols), len(self.output_cols), self.window_size, self.units)
+                    #model = self.setModel2(len(self.feature_cols), len(self.output_cols), self.window_size, self.units, output_size=self.output_size)
+                else:
+                    #종속변수로 모델생성 (입출력값은 동일해야함)
+                    model = self.setModel(len(self.output_cols), len(self.output_cols), self.window_size, self.units)
+                    #model = self.setModel2(len(self.output_cols), len(self.output_cols), self.window_size, self.units, output_size=self.output_size)
+                
+                print(len(self.feature_cols), len(self.output_cols))
+                
+                # print('------------------G')
+                # #성능옵션
+                # model.compile(optimizer=Adam(0.0005), loss=Huber(), metrics=['mse'])
+                # #model.compile(optimizer=Adam(0.0005), loss=Huber(), metrics=['accuracy'])
+                # print(model.summary())
+
+                print('------------------G')
+                #earlystopping은 10번 epoch 동안 val_loss 개선이 없다면 학습을 멈춤
+                cb_earlystopping = EarlyStopping(monitor='val_loss', patience=self.patience)
+                #val_loss 기준 bast 체크포인터 생성
+                #cp_filename = os.path.join(self.filepath, 'tmp', self.filename + '_ckeckpointer.ckpt')
+                cb_checkpoint = ModelCheckpoint(modelCKFile, save_weights_only=True, save_best_only=True, monitor='val_loss', verbose=1)
+                #checkpoint_model = ModelCheckpoint(filepath=self.MODEL_FILE_PATH + 'tmp\\model\\' + 'model_{epoch:02d}.h5')
+                #중간값 추론
+                cb_fid = fid.FIDCallback(generator=model, epochs_to_fid=1, window_size=self.window_size, real_data=y_test, test_data=test_data, output_cols=self.output_cols, filepath=fidHistoryPath, data_size=self.data_size)
+                #rlr = ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=self.patience, verbose=1)
+                
+                #모델학습
+                hist = model.fit(train_data, validation_data=(test_data), epochs=self.epochs, callbacks=[cb_checkpoint, cb_fid, cb_earlystopping])
+                
             print('------------------H')  
             #모델검증
             mse = model.evaluate(test_data)
@@ -657,24 +684,34 @@ class Manager:
             print("--------A")
             #모델로드
             #model = keras.models.load_model(self.MODEL_FILE_PATH + self.filename)        
-            print(self.filename)
+            #print(self.filename)
             model = keras.models.load_model(self.filename)
-            print(model.summary())
-            print(self.data)
-
+            #print(model.summary())
+            #print(self.data)
+            print(self.trgt_col_list)
             print("--------B")
             #컬럼추출
             scale_cols = []
             cols_blank = []
             cols_nos = []
             no = 0
-            for c in self.data.columns:
-                cols_blank.append(0)
-                scale_cols.append(c)
-                for col in self.output_cols:
-                    if c==col:
-                        cols_nos.append(no)
-                no = no + 1
+
+            if (self.trgt_col_list == ''):
+                for c in self.data.columns:
+                    cols_blank.append(0)
+                    scale_cols.append(c)
+                    for col in self.output_cols:
+                        if c==col:
+                            cols_nos.append(no)
+                    no = no + 1
+            else:
+                for c in self.trgt_col_list:
+                    cols_blank.append(0)
+                    scale_cols.append(c)
+                    for col in self.output_cols:
+                        if c==col:
+                            cols_nos.append(no)
+                    no = no + 1
 
             print(scale_cols)
             print(cols_nos)

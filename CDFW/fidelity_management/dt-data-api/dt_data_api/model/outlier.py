@@ -249,12 +249,26 @@ class Manager:
 
 
         #GPU 설정
+        """
         physical_devices = tf.config.list_physical_devices('GPU')
         try:
             tf.config.experimental.set_memory_growth(physical_devices[0], True)
         except Exception as e:
             raise e
-        
+        """
+
+        # gpu 이름
+        gpus = tf.config.experimental.list_logical_devices('GPU')
+
+        # gpu가 2개 이상이면, MirroredStrategy 인스턴스 생성
+        if len(gpus) > 1: 
+            strategy = tf.distribute.MirroredStrategy([gpu.name for gpu in gpus])
+
+        # gpu가 1개 이하면, 디폴트 전략 설정
+        else:
+            strategy = tf.distribute.get_strategy() # default strategy that works on CPU and single GPU
+
+
 
         # 모델 재현성을 위해 난수 시드설정
         tf.random.set_seed(777)
@@ -310,41 +324,43 @@ class Manager:
         print(train_gen[0][0].shape)  # (32, 10, 5)
         print(train_gen[0][1].shape)  # (32, 5)
 
+
         # 모델만들기
         # 2개 층의 LSTM으로 인코더 만듬
         # RepeatVector는 input을 window_size만큼 복사해줌
-        model = Sequential([
-            # >> 인코더 시작
-            LSTM(64, activation='relu', return_sequences=True, input_shape=(window_size, n_features)),
-            LSTM(16, activation='relu', return_sequences=False),
-            ## << 인코더 끝
-            ## >> Bottleneck
-            RepeatVector(window_size),
-            ## << Bottleneck
-            ## >> 디코더 시작
-            LSTM(16, activation='relu', return_sequences=True),
-            LSTM(64, activation='relu', return_sequences=False),
-            Dense(n_features)
-            ## << 디코더 끝
-        ])
+        with strategy.scope():
+            model = Sequential([
+                # >> 인코더 시작
+                LSTM(64, activation='relu', return_sequences=True, input_shape=(window_size, n_features)),
+                LSTM(16, activation='relu', return_sequences=False),
+                ## << 인코더 끝
+                ## >> Bottleneck
+                RepeatVector(window_size),
+                ## << Bottleneck
+                ## >> 디코더 시작
+                LSTM(16, activation='relu', return_sequences=True),
+                LSTM(64, activation='relu', return_sequences=False),
+                Dense(n_features)
+                ## << 디코더 끝
+            ])
 
-        # 체크포인트
-        # 학습을 진행하며 validation 결과가 가장 좋은 모델을 저장해둠       
-        modelCKFile = os.path.join('dt_data_api/data/temp/', 'mymodel.ckpt')
-        cb_checkpoint = ModelCheckpoint(modelCKFile, save_weights_only=True, save_best_only=True, monitor='val_loss', verbose=1)
+            # 체크포인트
+            # 학습을 진행하며 validation 결과가 가장 좋은 모델을 저장해둠       
+            modelCKFile = os.path.join('dt_data_api/data/temp/', 'mymodel.ckpt')
+            cb_checkpoint = ModelCheckpoint(modelCKFile, save_weights_only=True, save_best_only=True, monitor='val_loss', verbose=1)
 
-        # 얼리스탑
-        # 학습을 진행하며 validation 결과가 나빠지면 스톱. patience 횟수만큼은 참고 지켜본다
-        early_stop = EarlyStopping(monitor='val_loss', patience=5)
+            # 얼리스탑
+            # 학습을 진행하며 validation 결과가 나빠지면 스톱. patience 횟수만큼은 참고 지켜본다
+            early_stop = EarlyStopping(monitor='val_loss', patience=5)
 
-        model.compile(loss='mae', optimizer='adam',metrics=["mae"])
+            model.compile(loss='mae', optimizer='adam',metrics=["mae"])
 
-        hist = model.fit(train_gen, 
-            validation_data=valid_gen,
-            steps_per_epoch=len(train_gen),
-            validation_steps=len(valid_gen),
-            epochs=50, 
-            callbacks=[cb_checkpoint, early_stop])
+            hist = model.fit(train_gen, 
+                validation_data=valid_gen,
+                steps_per_epoch=len(train_gen),
+                validation_steps=len(valid_gen),
+                epochs=50, 
+                callbacks=[cb_checkpoint, early_stop])
 
         model.load_weights(modelCKFile)
 
