@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="./assets/uikit-3/css/uikit.min.css">
+    <link rel="stylesheet" href="./index.css">
+    <script src="./assets/uikit-3/js/uikit.min.js"></script>
+    <script src="./assets/uikit-3/js/uikit-icons.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Icons" rel="stylesheet">
+
+    <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Outlined" rel="stylesheet">
+
+</head>
+<body>
+    <!-- Container Start -->
+    
+    <div 
+        uk-grid 
+        uk-height-viewport="expand: true"
+        class="uk-child-width-1-4@s">
+        <!-- Left Pannel Start -->
+        <div 
+            class="uk-box-shadow-xlarge"
+            style="background-color: white;"
+            >
+            <div
+                style="
+                    height:64px; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    background-color: #4984FA;
+                    color: white;
+                    font-weight: bold;
+                    "
+                >
+                연합 디지털트윈 예측 매니저
+            </div>
+            <ul class="uk-tab-left" uk-tab style="padding-left: 20px;">
+                <li class="uk-active" onclick="select_tab('home')" style="padding:8px;">
+                    <a href="#">
+                        <span class="material-icons-outlined">
+                            home
+                        </span>
+                        Home
+                    </a>
+                </li>
+                <li onclick="select_tab('notebook')" style="padding:8px;">
+                    <a href="#">
+                        <span class="material-icons-outlined">
+                            keyboard_alt
+                        </span>
+                        Notebooks
+                    </a>
+                </li>
+                <li onclick="select_tab('models')" style="padding:8px;">
+                    <a href="#">
+                        <span class="material-icons-outlined">
+                            list
+                        </span>
+                        Models
+                    </a>
+                </li>
+                <li onclick="select_tab('pipelines')" style="padding:8px;">
+                    <a href="#">
+                        <span class="material-icons-outlined">
+                            account_tree
+                        </span>
+                        Pipelines
+                    </a>
+                </li>
+                <li onclick="select_tab('analysis')" style="padding:8px;">
+                    <a href="#">
+                        <span class="material-icons-outlined">
+                            inventory
+                        </span>
+                        Analysis
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <!-- Left Pannel End -->
+        
+        <!-- Right Pannel Start -->
+        <div
+            style="padding:0; flex-grow:1">
+            <!-- Header Start-->
+            <div 
+                class="uk-box-shadow-xlarge" 
+                style="
+                    height:64px; 
+                    background-color: white; 
+                    padding: 0 24px; 
+                    align-items: center;
+                    display: flex;">
+                <span class="material-icons-outlined">
+                    account_circle
+                </span>
+                <span class="uk-text-middle">
+                    FDT-USER (Developer)
+                </span>
+                <span style="flex-grow: 1;"></span>
+                
+                <span class="material-icons-outlined">
+                    settings
+                </span>
+            </div>
+            <!-- Header End -->
+
+            <!-- Body Start -->
+            <div style="padding:1rem;">
+
+                <!-- Home Tab Start -->
+                <div id="tab_home">
+                    <div uk-grid>
+                        <!-- <div class="uk-card uk-card-default uk-card-body">Item</div> -->
+                        <div class="uk-width-1-2" >
+                            <h3 class="uk-card uk-card-default nc-padding-8 nc-round-8">Connected FDTS</h3>
+                            
+                            <div style="display:flex; gap:8px" >
+                                <div style="flex-grow: 1; ">
+                                    <button class="uk-button nc-round-8" type="button" style="width:100%; display: flex; align-items: center; justify-content: center;">
+                                        <span>연합트윈</span>
+                                        <span class="material-icons-outlined">
+                                            arrow_drop_down
+                                        </span>
+                                    </button>
+                                    <div uk-dropdown>
+                                        <ul class="uk-nav uk-dropdown-nav">
+                                            <li class="uk-active"><a href="#">연합트윈</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div style="flex-grow: 1;">
+                                    <button class="uk-button nc-round-8" type="button" style="width:100%; display: flex; align-items: center; justify-content: center;">
+                                        <span id="home_cat2_btn">단일트윈 (전체)</span>
+                                        <span class="material-icons-outlined">
+                                            arrow_drop_down
+                                        </span>
+                                    </button>
+                                    <div uk-dropdown>
+                                        <ul class="uk-nav uk-dropdown-nav" id="home_cat2">
+                                            <li class="uk-active" onclick="home_select_cat2(this,'all')"><a href="#">단일트윈 (전체)</a></li>
+                                            <li onclick="home_select_cat2(this,'tour')"><a href="#">관광트윈</a></li>
+                                            <li onclick="home_select_cat2(this,'traffic')"><a href="#">교통트윈</a></li>
+                                            <li onclick="home_select_cat2(this,'env')"><a href="#">환경트윈</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div style="flex-grow: 1;">
+                                    <button class="uk-button nc-round-8" type="button" style="width:100%; display: flex; align-items: center; justify-content: center;">
+                                        <span id="home_cat3_btn">서비스</span>
+                                        <span class="material-icons-outlined">
+                                            arrow_drop_down
+                                        </span>
+                                    </button>
+                                    <div uk-dropdown>
+                                        <ul class="uk-nav uk-dropdown-nav" id="home_cat3">
+                                            <li class="uk-active"><a href="#">서비스 (전체)</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <table class="uk-table uk-table-striped nc-round-8" style="background-color: white;">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Description</th>
+                                        <th>Data</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="home_table">
+                                    
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="uk-width-1-2" uk-height-viewport="expand: true" grid>
+                            
+                            <div class="uk-card uk-card-default nc-round-8">
+                                <div class="uk-card-header">
+                                    <h4 >Recent Services</h4>
+                                </div>
+                                <div class="uk-card-body" id="home_recent_services">
+                                    <!-- Service List -->
+                                </div>
+                                
+                            </div>
+                            <br>
+
+                            <div class="uk-card uk-card-default nc-round-8">
+                                <div class="uk-card-header">
+                                    <h4 >Recent Models</h4>
+                                </div>
+                                <div class="uk-card-body" id="home_recent_models">
+                                    <!-- Model List -->
+                                </div>
+                                
+                            </div>
+                            <br>
+
+                            <div class="uk-card uk-card-default nc-round-8">
+                                <div class="uk-card-header">
+                                    <h4 >Recent Pipelines</h4>
+                                </div>
+                                <div class="uk-card-body" id="home_recent_pipelines">
+                                    <!-- Pipeline List -->
+                                </div>
+                                
+                            </div>
+                            <br>
+                            
+                           
+                        </div>
+                    </div>
+                </div>
+                <!-- Home Tab End -->
+
+                <!-- Models Tab Start -->
+                <div id="tab_models">
+                    <div style="display: flex; gap:16px;">
+                        <input type="button" style="flex-grow: 1; background-color: white; border-radius: 8px; border-style: none; height:36px; cursor: pointer;" value="Create"></input>
+                        <input type="button" style="flex-grow: 1; background-color: white; border-radius: 8px; border-style: none; height:36px; cursor: pointer;" value="Refresh"></input>
+                        <input type="button" style="flex-grow: 1; background-color: white; border-radius: 8px; border-style: none; height:36px; cursor: pointer;" value="Delete"></input>
+                        <input type="text" style="flex-grow: 6; background-color: white; border-radius: 8px; border-style: none; overflow: hidden;">
+                            <span class="material-icons-outlined" style="width:48px; height: 28px; color:white; background-color: #4984FA; position: absolute;right:16px;padding:4px; border-radius: 8px; display: flex; justify-content: center; align-items: center; cursor:pointer;">
+                                search
+                            </span>
+                        </input>
+                    
+                    </div>
+                    <table class="uk-table uk-table-striped nc-round-8" style="background-color: white;">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Service</th>
+                                <th>Status</th>
+                                <th>Modified on</th>
+                            </tr>
+                        </thead>
+                        <tbody id="models_table">
+                            
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Models Tab End -->
+
+                <!-- Pipelines Tab Start -->
+                <div id="tab_pipelines">
+                    <div style="display: flex; gap: 16px;">
+                        <div style="flex-grow: 1; min-width: 480px;">
+                            <input type="button" value="Select" style="cursor: pointer;background-color: white; border-radius: 8px; border-style: none; width:128px; height:28px;">
+                            <div style="background-color: white; border-radius: 8px; margin-top: 16px; height:80vh">
+                                <div class="flowchart" id="pipeline_flowchart">
+                                    <div class="step success">
+                                        <div class="progress"></div>
+                                        <div class="title">Procedure 1</div>
+                                        <div class="process">Success</div>
+                                        <div class="time">10 sec</div>
+                                    </div>
+                                    
+                                    <div class="step running">
+                                        <div class="progress"></div>
+                                        <div class="title">Procedure 2</div>
+                                        <div class="process">Running..</div>
+                                        <div class="time">- sec</div>
+                                    </div>
+                                    
+                                    <div class="step waiting">
+                                        <div class="progress"></div>
+                                        <div class="title">Procedure 3</div>
+                                        <div class="process">Waiting</div>
+                                        <div class="time">- sec</div>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                        </div>
+                        <div style="flex-grow: 1;">
+                            <input type="button" value="Run" style="cursor: pointer;background-color: white; border-radius: 8px; border-style: none; width:128px; height:28px;" onclick="onclick_flowchart_run()">
+                            <div style="background-color: white; border-radius: 8px; margin-top: 16px; height:80vh; padding: 16px;">
+                                <ul class="uk-tab" uk-switcher>
+                                    <li><a href="#">Source</a></li>
+                                    <li><a href="#">Outputs</a></li>
+                                </ul>
+                            
+                                <ul class="uk-switcher uk-margin" style="background-color: #333; height:90%; padding:16px; color:white; border-radius: 8px;overflow: scroll; font-size: small;">
+                                    <li id="pipeline_source">source</li>
+                                    <li id="pipeline_output">output</li>
+                                </ul>
+                                
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Pipelines Tab End -->
+
+                <!-- Run Tab Start -->
+                <div id="tab_run">
+                    run
+                </div>
+                <!-- Run Tab End -->
+
+            </div>
+            <!-- Body End -->
+
+        </div>
+        <!-- Right Pannel End -->
+        
+        
+    </div>
+<!-- Container End -->
+<!--
+        <footer>
+            <p>Icons provided by <a href="https://fontawesome.com/">Font Awesome</a> under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0 License</a>.</p>
+        </footer>
+    -->
+</body>
+<script src="index.js"></script>
+</html>

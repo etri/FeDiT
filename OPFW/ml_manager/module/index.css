@@ -1,0 +1,98 @@
+body {
+    background-color: #E4E9F2;
+}
+.nc-round-8{
+    border-radius: 8px;
+}
+.nc-padding-8{
+    padding:8px;
+}
+
+
+.step:hover {
+    box-shadow: #4984FA 0px 0px 8px;
+}
+
+.step > .progress {
+    width:100%;
+    height:8px;
+    background-color: #1DCD66;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.step > .title {
+    display: block;
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+}
+
+.step > .process {
+    display: block;
+    font-size: 14px;
+    font-weight: bold;
+    color:grey;
+}
+
+.step > .time {
+    display: block;
+    font-size: 14px;
+}
+
+
+.flowchart {
+    text-align: center;
+    padding-top: 20px;
+}
+
+.step {
+    margin: 44px auto;
+    width: 240px;
+    border-radius: 8px;
+    background-color: #FFFFFF;
+    position: relative;
+    transition-duration: 0.3s;
+    box-shadow: rgba(0,0,0,0.3) 0 0 8px;
+}
+
+/* 선의 시작점과 길이 조정 */
+.step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    width: 2px;
+    height: 44px; /* 예: 다음 .step 요소까지의 거리 */
+    background-color: gray;
+    left: 50%;
+    bottom: -44px; /* .step 요소의 높이 절반 */
+    transform: translateX(-50%);
+}
+
+/* 화살표 위치 조정 */
+.step:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid gray;
+    left: 50%;
+    bottom: -44px; /* 선의 길이에 맞춰 조정 */
+    transform: translateX(-50%);
+}
+
+.waitting{
+    border: 1px solid gray
+}
+
+.running{
+    border: 1px solid #4984FA
+}
+
+.success{
+    border: 1px solid #1DCD66
+}
+.selected{
+    background-color: #d4f4cb;
+}
