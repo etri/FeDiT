@@ -78,7 +78,7 @@ public class Constant {
 	public static final int TWO_TH_CONN_BASE_PORT = 23499;
 	
 	
-	public static final String EUREKA_GATEWAY_CONN_BASE_URL = "http://192.168.2.91";
+	public static final String EUREKA_GATEWAY_CONN_BASE_URL = "http://localhost";
 	public static final int EUREKA_GATEWAY_CONN_BASE_PORT = 8000;
 	
 

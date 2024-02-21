@@ -18,7 +18,7 @@ public class KafkaProducerConfig {
     public ProducerFactory<String, Object> factory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "221.133.48.16:9092");
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         return new DefaultKafkaProducerFactory<>(props);
     }
