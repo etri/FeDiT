@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.msaOrchstr.ctrlCmdStsChekcer.mapper.MsaControlCommandStsCheckerMapper">
+	<select id="getReqCtrlCmdIdList" parameterType="Map" resultType="int">
+		 SELECT 
+			    request_control_command_id
+			FROM
+			    msa_request_control_command_info A
+			WHERE 1=1						
+			<if test="reqCtrlCmdStatus != null">
+	  			 AND req_ctrl_cmd_status = #{reqCtrlCmdStatus}
+	  		</if>
+	  			 AND transmission_status is null
+			<if test="start != null">
+  		 		 LIMIT #{start},#{end} 
+  		 	</if>	
+	</select>
+</mapper>

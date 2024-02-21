@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.msaOrchstr.common.mapper.MsaTaskSendingInfoMapper">
+  	
+  	<select id="getTaskSending" resultType="iitp.federatedTwins.msaOrchstr.common.dto.MsaTaskSendingInfo">
+  		SELECT task_sending_id,
+		   	task_processing_id,
+		    ctrl_cmd_sequence_id,
+		   	request_control_command_id,
+		    task_connection_url,
+		    task_sending_control_command_param,
+		    task_sending_control_command,
+		    task_sending_time,
+		   	task_sending_status,
+		    task_receive_result_msg,
+		    task_sending_identifiier
+		FROM msa_task_sending_info
+		
+  		WHERE 1=1
+  			<if test="taskSendingId != null">
+  				and task_sending_id = #{taskSendingId}
+  			</if>
+  			<if test="taskProcessingId != null">
+  				and task_processing_id = #{taskProcessingId}
+  			</if>
+  			<if test="ctrlCmdSequenceId != null">
+  				and ctrl_cmd_sequence_id = #{ctrlCmdSequenceId}
+  			</if>
+  			<if test="requestControlCommandId != null">
+  				and request_control_command_id = #{requestControlCommandId}
+  			</if>
+		order by task_sending_id desc	
+  	</select>
+	
+	<select id="getTaskSendingInfo" parameterType="Map" resultType="iitp.federatedTwins.msaOrchstr.common.dto.MsaTaskSendingInfo">
+  		SELECT task_sending_id,
+		   	task_processing_id,
+		    ctrl_cmd_sequence_id,
+		   	request_control_command_id,
+		    task_connection_url,
+		    task_sending_control_command_param,
+		    task_sending_control_command,
+		    task_sending_time,
+		   	task_sending_status,
+		    task_receive_result_msg,
+		    task_sending_identifiier
+		FROM msa_task_sending_info
+  		WHERE 1=1
+  			<if test="taskSendingId != null">
+  				and task_sending_id = #{taskSendingId}
+  			</if>
+  			<if test="taskSendingIdentifiier != null">
+  				and task_sending_identifiier = #{taskSendingIdentifiier}
+  			</if>
+			<if test="task_connection_url != null">
+  				and task_connection_url = #{task_connection_url}
+  			</if>
+			<if test="taskSendingControlCommand != null">
+  				and task_sending_control_command = #{taskSendingControlCommand}
+  			</if>
+  			<if test="taskProcessingId != null">
+  				and task_processing_id = #{taskProcessingId}
+  			</if>
+  			<if test="ctrlCmdSequenceId != null">
+  				and ctrl_cmd_sequence_id = #{ctrlCmdSequenceId}
+  			</if>
+			<if test="requestControlCommandId != null">
+  				and request_control_command_id = #{requestControlCommandId}
+  			</if>
+		order by task_sending_id desc	
+	</select>
+  	
+  	<insert id="insertTaskSending" parameterType="iitp.federatedTwins.msaOrchstr.common.dto.MsaTaskSendingInfo"
+  		useGeneratedKeys="true" keyColumn="task_sending_id" keyProperty="taskSendingId">
+		INSERT INTO msa_task_sending_info
+		(
+			task_processing_id,
+			ctrl_cmd_sequence_id,
+			request_control_command_id,
+			task_connection_url,
+			task_sending_control_command_param,
+			task_sending_control_command,
+			task_sending_time,
+			task_sending_status,
+			task_sending_identifiier
+		)
+		VALUES
+		(
+			#{taskProcessingId},
+			#{ctrlCmdSequenceId},
+			#{requestControlCommandId},
+			#{taskConnectionUrl},
+			#{taskSendingControlCommandParam},
+			#{taskSendingControlCommand},
+			NOW(3),
+			#{taskSendingStatus},
+			#{taskSendingIdentifiier}
+		)
+  	</insert>
+  	
+  	<update id="updateTaskSending" parameterType="iitp.federatedTwins.msaOrchstr.common.dto.MsaTaskSendingInfo">
+		UPDATE msa_task_sending_info
+		SET
+			task_receive_result_time =  NOW(3)
+			<if test="taskSendingStatus != null">
+				,task_sending_status = #{taskSendingStatus}
+			</if>
+			<if test="taskReceiveResultMsg != null">
+				,task_receive_result_msg = #{taskReceiveResultMsg}
+			</if>
+		WHERE 
+			task_sending_id = #{taskSendingId} 
+			AND task_processing_id = #{taskProcessingId} 
+			AND ctrl_cmd_sequence_id = #{ctrlCmdSequenceId} 
+			AND request_control_command_id = #{requestControlCommandId}
+  	</update>
+  	
+  	<delete id="deleteTaskSending" parameterType="iitp.federatedTwins.msaOrchstr.common.dto.MsaTaskSendingInfo">
+  		DELETE FROM msa_task_sending_info
+  		WHERE 
+  			task_sending_id = #{taskSendingId}
+  	</delete>
+  	
+  	
+  	<select id="getNextSequenceInfo" parameterType="Map" resultType="iitp.federatedTwins.msaOrchstr.common.dto.MsaControlCommandSequenceInfo">
+	  	SELECT 
+		  request_control_command_id,
+		  ctrl_cmd_sequence_id
+		    FROM msa_control_command_sequence_info where sequence_identifier = (SELECT 
+		    next_sequence_identifier
+		FROM
+		    msa_task_sending_info tsi
+		        INNER JOIN msa_task_processing_info tpi ON tsi.task_processing_id = tpi.task_processing_id and tsi.ctrl_cmd_sequence_id = tpi.ctrl_cmd_sequence_id
+		        INNER JOIN msa_control_command_sequence_info csi ON tpi.ctrl_cmd_sequence_id = csi.ctrl_cmd_sequence_id and tpi.request_control_command_id = csi.request_control_command_id
+		WHERE tsi.task_sending_identifiier = #{taskSendingIdentifiier})
+  	</select>
+  	
+  	
+  	
+</mapper>

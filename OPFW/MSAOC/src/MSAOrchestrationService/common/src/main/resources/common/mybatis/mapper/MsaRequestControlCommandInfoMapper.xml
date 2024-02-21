@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.msaOrchstr.common.mapper.MsaRequestControlCommandInfoMapper">
+  	
+  	<select id="getMsaRequestControlCommandList" resultType="iitp.federatedTwins.msaOrchstr.common.dto.MsaRequestControlCommandInfo">
+  		SELECT
+		   msa_identifier,
+		   req_identifier,
+  		   req_ctrl_cmd_type,
+		   req_ctrl_cmd_time,
+		   req_ctrl_cmd_status,
+		   result_callback_url,
+		   req_ctrl_cmd,
+		   req_status_change_time, 
+		   transmission_status,
+		   transmission_time
+		FROM 
+		   msa_request_control_command_info
+		   where 1=1 
+		 <if test='requestControlCommandId != null'>
+			and request_control_command_id = #{requestControlCommandId}
+		</if>
+		order by request_control_command_id desc
+  		</select>
+  	
+  	 <insert id="insertMsaRequestControlCommandInfo" parameterType="iitp.federatedTwins.msaOrchstr.common.dto.MsaRequestControlCommandInfo" 
+  	 			useGeneratedKeys="true" keyColumn="request_control_command_id" keyProperty="requestControlCommandId">	 
+			INSERT INTO msa_request_control_command_info
+			(
+			   msa_identifier,
+			   req_identifier,
+	  		   req_ctrl_cmd_type,
+			   req_ctrl_cmd_time,
+			   req_ctrl_cmd_status,
+			   result_callback_url,
+			   req_ctrl_cmd,
+			   req_status_change_time
+		   )
+			VALUES
+			(
+			#{msaIdentifier},
+			#{reqIdentifier},
+			#{reqCtrlCmdType},
+			NOW(3),
+			#{reqCtrlCmdStatus},
+			#{resultCallBackUrl},
+			#{reqCtrlCmd},
+			NOW(3)
+		   )
+	  </insert>
+	  
+  	 <update id="updateMsaRequestControlCommandInfo" parameterType="iitp.federatedTwins.msaOrchstr.common.dto.MsaRequestControlCommandInfo">
+	  UPDATE msa_request_control_command_info
+		SET
+		req_status_change_time = NOW(3)
+	    <if test='reqCtrlCmdType != null'>
+		,req_ctrl_cmd_type = #{reqCtrlCmdType}
+		</if>	 
+		<if test='reqCtrlCmdTime != null'>
+		,req_ctrl_cmd_time = #{reqCtrlCmdTime}
+		</if>
+		<if test='reqCtrlCmdStatus != null'>
+		,req_ctrl_cmd_status = #{reqCtrlCmdStatus}
+		</if>
+		<if test='resultCallBackUrl != null'>
+		,result_callback_url = #{resultCallBackUrl}
+		</if>
+		<if test='reqCtrlCmd != null'>
+		,req_ctrl_cmd = #{reqCtrlCmd}
+		</if>
+		<if test='msaIdentifier != null'>
+		,msa_identifier = #{msaIdentifier}
+		</if>
+		<if test='reqIdentifier != null'>
+		,req_identifier = #{reqIdentifier}
+		</if>
+		<if test='transmissionStatus != null'>
+		,transmission_status = #{transmissionStatus}
+		</if>
+		<if test='transmissionTime != null'>
+		,transmission_time = #{transmissionTime}
+		</if>
+		WHERE
+		  request_control_command_id = #{requestControlCommandId}
+	  </update>
+	  
+	  <update id="updateMsaRequestControlCommandInfobyParam" parameterType="map">
+	  UPDATE msa_request_control_command_info
+		SET
+		req_status_change_time = NOW(3)
+	    <if test='reqCtrlCmdType != null'>
+		,req_ctrl_cmd_type = #{reqCtrlCmdType}
+		</if>	 
+		<if test='reqCtrlCmdTime != null'>
+		,req_ctrl_cmd_time = #{reqCtrlCmdTime}
+		</if>
+		<if test='reqCtrlCmdStatus != null'>
+		,req_ctrl_cmd_status = #{reqCtrlCmdStatus}
+		</if>
+		<if test='resultCallBackUrl != null'>
+		,result_callback_url = #{resultCallBackUrl}
+		</if>
+		<if test='reqCtrlCmd != null'>
+		,req_ctrl_cmd = #{reqCtrlCmd}
+		</if>
+		<if test='msaIdentifier != null'>
+		,msa_identifier = #{msaIdentifier}
+		</if>
+		<if test='reqIdentifier != null'>
+		,req_identifier = #{reqIdentifier}
+		</if>
+		<if test='transmissionStatus != null'>
+		,transmission_status = #{transmissionStatus}
+		</if>
+		<if test='transmissionTime != null'>
+		,transmission_time = #{transmissionTime}
+		</if>
+		WHERE
+		  request_control_command_id = #{requestControlCommandId}
+	  </update>
+	  
+	  <delete id="deleteMsaRequestControlCommandInfo" parameterType="Map">
+	  	DELETE 
+	  	  FROM 
+	  	   msa_request_control_command_info
+		 WHERE
+		 	 request_control_command_id = #{requestControlCommandId}
+	   </delete>
+	
+  	
+
+
+	
+  	
+</mapper>
