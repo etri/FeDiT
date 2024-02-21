@@ -1,0 +1,8 @@
+﻿  main.cpp
+D:\LBM Training\2D Lid-Driven Cavity Flow LBGK\2D Lid-Driven Cavity Flow LBGK\main.cpp(89,17): warning C4101: 'end' :참조되지 않은 지역 변수입니다.
+D:\LBM Training\2D Lid-Driven Cavity Flow LBGK\2D Lid-Driven Cavity Flow LBGK\main.cpp(284,11): warning C4244: '초기화 중': 'T'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+          with
+          [
+              T=double
+          ]
+  2D Lid-Driven Cavity Flow LBGK.vcxproj -> D:\LBM Training\2D Lid-Driven Cavity Flow LBGK\x64\Debug\2D Lid-Driven Cavity Flow LBGK.exe
