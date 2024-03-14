@@ -237,7 +237,7 @@ router.post(
          e.handle(
             req,
             res,
-            `POST /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects ${e}`
+            `POST /mirrorlake/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects ${e}`
          );
       }
    }
@@ -245,7 +245,7 @@ router.post(
 
 /**
  * federated-digital-object Control Search
- * localhost:1203/fedit/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}
+ * localhost:1203/mirrorlake/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}
  * ?name=SIcrain
  * @param {string} name (required)
  * @returns {Json} {}
@@ -254,12 +254,13 @@ router.get("/:federated_digital_object_id/control", async (req, res) => {
    try {
       const { federated_digital_twin_id } = req;
       const { federated_digital_object_id } = req.params;
-      const { from, to } = req.query;
+      const { from, to, count } = req.query;
       const result = await services.federatedDigitalObjects.searchControl({
          federated_digital_twin_id,
          federated_digital_object_id,
          from,
          to,
+         count,
       });
       res.success(200, result);
    } catch (e) {
@@ -270,14 +271,14 @@ router.get("/:federated_digital_object_id/control", async (req, res) => {
       e.handle(
          req,
          res,
-         `Search /fedit/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`
+         `Search /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`
       );
    }
 });
 
 /**
  * federated-digital-object Control Retrive
- * localhost:1203/fedit/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/federated_digital_object_control_data_id
+ * localhost:1203/mirrorlake/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/federated_digital_object_control_data_id
  * @param {string} name (required)
  * @returns {Json} {}
  */
@@ -308,7 +309,7 @@ router.get(
          e.handle(
             req,
             res,
-            `Search /fedit/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`
+            `Search /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`
          );
       }
    }

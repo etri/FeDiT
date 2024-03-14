@@ -76,9 +76,7 @@ class DigitalObjects {
             const isExistDOid = await model.postgres.checkIdExist({
                table: "digital_objects",
                check: "digital_object_id",
-               id: digital_object_id,
-               digital_twin_id,
-               federated_digital_twin_id,
+               id: digital_object_identifier,
             });
             if (isExistDOid) {
                throw new ErrorHandler(
@@ -89,7 +87,7 @@ class DigitalObjects {
             }
             digital_object_id = digital_object_identifier;
          } else {
-            digital_object_id = "D" + uuid();
+            digital_object_id = "DO" + uuid();
          }
 
          const sql = `INSERT INTO digital_objects (
@@ -253,6 +251,17 @@ class DigitalObjects {
                key === "digital_object_data_interval"
             ) {
                sql += `${hasSetClause ? ", " : ""}${key} = ${params[key]}`;
+            } else if (key === "digital_object_data_source_url") {
+               await model.kafka.updateSourceHttpConnector({
+                  id,
+                  url: params.digital_object_data_source_url,
+                  digital_twin_id,
+                  federated_digital_twin_id,
+                  digital_object_data_interval:
+                     params.digital_object_data_interval,
+               });
+
+               sql += `${hasSetClause ? ", " : ""}${key} = '${params[key]}'`;
             } else {
                // string type
                sql += `${hasSetClause ? ", " : ""}${key} = '${params[key]}'`;
@@ -427,13 +436,13 @@ class DigitalObjects {
       // params = [{ controller_id: string, control_data_creator : string, control_command : { } }]
       const control_creation_time = lib.timestamp();
       let sendData = [];
-
+      const control_messages = params.commands;
       if (!digital_twin_id || !digital_object_id) {
-         throw new ErrorHandler(412, 412, "please check mandatory field.");
+         throw new ErrorHandler(412, 5252, "please check mandatory field.");
       }
 
-      if (!Array.isArray(params) || params.length == 0) {
-         throw new ErrorHandler(412, 412, "empty control message");
+      if (!Array.isArray(control_messages) || control_messages.length == 0) {
+         throw new ErrorHandler(412, 5252, "empty control message");
       }
 
       // DO 존재하는지 확인
@@ -441,27 +450,26 @@ class DigitalObjects {
          table: "digital_objects",
          check: "digital_object_id",
          id: digital_object_id,
-         digital_twin_id,
-         federated_digital_twin_id,
+         digital_twin_id: digital_twin_id,
       });
       if (!isExistID) {
-         throw new ErrorHandler(412, 412, "Unregistered digital_object");
+         throw new ErrorHandler(412, 5252, "Unregistered digital_object");
       }
 
       /**
        * DO Control Access URL 조회
        */
       let { digital_object_control_url } = await this.Retrieve({
-         federated_digital_twin_id,
          digital_twin_id,
          digital_object_id,
+         federated_digital_twin_id,
       });
 
       /**
        * control message 처리
        */
       // DO에 control messages 전달
-      param.forEach((element) => {
+      control_messages.forEach((element) => {
          let digital_object_control_data_id = "C" + uuid();
          element.digital_object_control_data_id =
             digital_object_control_data_id;
@@ -473,27 +481,31 @@ class DigitalObjects {
       });
       // httpResponse : [{digital_object_control_data_id : uuid , control_delivery_result : Fail}, ...] 라고 가정하고 진행
       const control_delivery_time = lib.timestamp();
-      for (let do_control_data of httpResponse) {
-         let data = sendData.filter(
-            (element) =>
-               element.digital_object_control_data_id ==
-               do_control_data.digital_object_control_data_id
-         );
-         if (data.length !== 0) {
-            let digital_object_control_data_id =
-               do_control_data.digital_object_control_data_id;
-            let controller_id = data[0].controller_id;
-            let control_data_creator = data[0].control_data_creator;
-            let control_delivery_result =
-               do_control_data.control_delivery_result;
-            let control_command = data[0].control_command;
-            let sql = `insert into digital_object_controllers (digital_twin_id, digital_object_control_data_id, controller_id, control_data_creator, control_creation_time, control_delivery_time, control_delivery_result, control_command) values ('${digital_twin_id}', '${digital_object_control_data_id}', '${controller_id}', '${control_data_creator}', '${control_creation_time}', '${control_delivery_time}', '${control_delivery_result}', '${JSON.stringify(
-               control_command
-            )}');`;
-            await model.postgres.sendQuery({ sql });
+      if (httpResponse) {
+         for (let do_control_data of httpResponse) {
+            let data = sendData.filter(
+               (element) =>
+                  element.digital_object_control_data_id ==
+                  do_control_data.digital_object_control_data_id
+            );
+            if (data.length !== 0) {
+               let digital_object_control_data_id =
+                  do_control_data.digital_object_control_data_id;
+               let controller_id = data[0].controller_id;
+               let control_data_creator = data[0].control_data_creator;
+               let control_delivery_result =
+                  do_control_data.control_delivery_result;
+               let control_command = data[0].control_command;
+               let sql = `insert into digital_object_controllers (digital_twin_id, digital_object_control_data_id, controller_id, control_data_creator, control_creation_time, control_delivery_time, control_delivery_result, control_command) values ('${digital_twin_id}', '${digital_object_control_data_id}', '${controller_id}', '${control_data_creator}', '${control_creation_time}', '${control_delivery_time}', '${control_delivery_result}', '${JSON.stringify(
+                  control_command
+               )}');`;
+               let result = await model.postgres.sendQuery({ sql });
+            }
          }
+         return httpResponse;
+      } else {
+         throw new ErrorHandler(412, 5252, "No Controller Response");
       }
-      return httpResponse;
    }
 
    /**
@@ -506,28 +518,32 @@ class DigitalObjects {
     * @returns {Json} {}
     */
    async createDOExecutionData(
-      federated_digital_twin_id,
       digital_twin_id,
       digital_object_id,
       digital_object_control_data_id,
       params
    ) {
       const digital_object_control_result_id = "C" + uuid();
+      const federated_digital_object_control_result_id = "FDOCR" + uuid();
       const control_execution_time = lib.timestamp();
       // const { controller_id, contrl_execution_result } = parmas;
-      const { control_execution_result } = params;
+      const {
+         control_execution_result,
+         federated_digital_object_control_data_id,
+      } = params;
 
       if (!digital_twin_id || !digital_object_id) {
-         throw new ErrorHandler(412, 412, "please check mandatory field.");
+         throw new ErrorHandler(412, 5252, "please check mandatory field.");
       }
 
       if (!control_execution_time || !control_execution_result) {
          throw new ErrorHandler(
             412,
-            412,
+            5252,
             "data needs control_execution_result field."
          );
       }
+
       let executionResultMessage = {
          digital_twin_id,
          digital_object_control_result_id,
@@ -535,12 +551,32 @@ class DigitalObjects {
          control_execution_result,
          control_execution_time,
       };
+
       const kafkaKey = { digital_twin_id, digital_object_id };
       await model.kafka.kafkaProducer({
-         topic: "control_exec_result",
+         topic: "do_control_result",
          kafkaKey: JSON.stringify(kafkaKey),
          data: JSON.stringify(executionResultMessage),
       });
+
+      if (federated_digital_object_control_data_id) {
+         let fdoExecutionResultMessage = {
+            digital_object_id,
+            federated_digital_object_control_result_id,
+            federated_digital_object_control_data_id,
+            federated_digital_object_control_execution_result:
+               control_execution_result,
+            federated_digital_object_control_execution_time:
+               control_execution_time,
+         };
+
+         const kafkaKey = { federated_digital_object_control_data_id };
+         await model.kafka.kafkaProducer({
+            topic: "fdo_control_result",
+            kafkaKey: JSON.stringify(kafkaKey),
+            data: JSON.stringify(fdoExecutionResultMessage),
+         });
+      }
 
       // const sql = `insert into digital_object_control_result (digital_twin_id, digital_object_control_result_id, digital_object_control_data_id, control_execution_time, control_execution_result) values ('${digital_twin_id}', '${digital_object_control_result_id}', '${digital_object_control_data_id}', '${control_execution_time}', '${control_execution_result}');`;
       // await model.postgres.sendQuery({ sql });
@@ -555,41 +591,35 @@ class DigitalObjects {
     * @param {string} to endDateTime
     * @returns {Json} 기간별 조회
     */
-   async searchControl({
-      federated_digital_twin_id,
-      digital_twin_id,
-      digital_object_id,
-      from,
-      to,
-   }) {
+   async searchControl({ digital_twin_id, digital_object_id, from, to }) {
       if (!digital_twin_id || !digital_object_id) {
-         throw new ErrorHandler(412, 412, "please check mandatory field.");
+         throw new ErrorHandler(412, 5252, "please check mandatory field.");
       }
       const isExistID = await model.postgres.checkIdExist({
          table: "digital_objects",
          check: "digital_object_id",
-         digital_object_id,
-         federated_digital_twin_id,
+         id: digital_object_id,
+         digital_twin_id: digital_twin_id,
       });
 
       if (!isExistID) {
-         throw new ErrorHandler(412, 412, "Unregistered digital_object");
+         throw new ErrorHandler(412, 5252, "Unregistered digital_object");
       }
 
       if (from && to) {
-         const sql = `SELECT * FROM digital_object_control_data WHERE digital_twin_id='${digital_twin_id}' AND rowtime >= '${from}'::timestamp AND rowtime <= '${to}'::timestamp;`;
+         const sql = `SELECT * FROM digital_object_control_result WHERE digital_twin_id='${digital_twin_id}' AND control_execution_time >= '${from}'::timestamp AND control_execution_time <= '${to}'::timestamp;`;
          const retrievedData = await model.postgres.selectDataS({ sql });
          return retrievedData;
       } else if (from) {
-         const sql = `SELECT * FROM digital_object_control_data WHERE digital_twin_id='${digital_twin_id}' AND rowtime >= '${from}'::timestamp;`;
+         const sql = `SELECT * FROM digital_object_control_result WHERE digital_twin_id='${digital_twin_id}' AND control_execution_time >= '${from}'::timestamp;`;
          const retrievedData = await model.postgres.selectDataS({ sql });
          return retrievedData;
       } else if (to) {
-         const sql = `SELECT * FROM digital_object_control_data WHERE digital_twin_id='${digital_twin_id}' AND rowtime <= '${to}'::timestamp;`;
+         const sql = `SELECT * FROM digital_object_control_result WHERE digital_twin_id='${digital_twin_id}' AND control_execution_time <= '${to}'::timestamp;`;
          const retrievedData = await model.postgres.selectDataS({ sql });
          return retrievedData;
       } else {
-         let sql = `select * from digital_object_control_data `;
+         let sql = `select * from digital_object_control_result `;
          const retrievedData = await model.postgres.selectDataS({ sql });
          return retrievedData;
       }
@@ -603,7 +633,6 @@ class DigitalObjects {
     * @returns {Json}
     */
    async retrieveControl({
-      federated_digital_twin_id,
       digital_twin_id,
       digital_object_id,
       digital_object_control_data_id,
@@ -613,23 +642,23 @@ class DigitalObjects {
          !digital_object_id ||
          !digital_object_control_data_id
       ) {
-         throw new ErrorHandler(412, 412, "please check mandatory field.");
+         throw new ErrorHandler(412, 5252, "please check mandatory field.");
       }
       const isExistID = await model.postgres.checkIdExist({
          table: "digital_object_controllers",
          check: "digital_object_control_data_id",
-         digital_object_control_data_id,
-         federated_digital_twin_id,
+         id: digital_object_control_data_id,
+         digital_twin_id: digital_twin_id,
       });
       if (!isExistID) {
          throw new ErrorHandler(
             412,
-            412,
-            "Unregistered digital_object control data"
+            5252,
+            "Unregistered digital_object_control_data"
          );
       }
 
-      let sql = `select * from control_data where digital_object_control_data_id = ${digital_object_control_data_id} `;
+      let sql = `select * from digital_object_control_result where digital_object_control_data_id = '${digital_object_control_data_id}'; `;
 
       const retrievedData = await model.postgres.selectDataS({ sql });
       return retrievedData;

@@ -127,7 +127,7 @@ class Kafka {
       include_input,
    }) {
       const ConnectorBody = {
-         name: `SIM${simulation_id}`,
+         name: `${simulation_id}`,
          config: {
             "connector.class":
                "org.kafka.connect.http.HttpSinkSimulationSlideStepConnector",
@@ -214,7 +214,7 @@ class Kafka {
 
       await lib.request({
          method: "put",
-         url: `http://${config.kafka.connectHost}/connectors/SIM${simulation_id}/config`,
+         url: `http://${config.kafka.connectHost}/connectors/${simulation_id}/config`,
          bodyParams: ConnectorBody,
       });
 
@@ -222,45 +222,28 @@ class Kafka {
    }
 
    async createSubscriptionSinkConnector({
-      digital_twin_id,
+      federated_digital_twin_id,
       subscription_id,
       subscription_name,
       notification_url,
       topics,
-      topicArr,
+      topicList,
       subscription_protocol,
       filtering_action_list,
       filtering_condition_list,
    }) {
-      let hasDTopic = false; // "FD"로 시작하는 요소가 있는지 여부를 추적하기 위한 변수
-      let topicList = ""; // 최종 결과를 저장할 변수
-      for (let i = 0; i < topicArr.length; i++) {
-         if (topicArr[i].startsWith("FD")) {
-            if (!hasDTopic) {
-               if (topicList !== "") {
-                  topicList += ",";
-               }
-               topicList += "latestFederatedDigitalObjects"; // "FD"로 시작하는 요소가 처음 발견된 경우
-               hasDTopic = true;
-            }
-         } else {
-            if (topicList !== "") {
-               topicList += ",";
-            }
-            topicList += topicArr[i]; // "FD"로 시작하지 않는 요소일 경우
-         }
-      }
-
+      //topics: kafka에서 consuming하는 주체
+      //key.topic: consuming한 데이터에서 key를 지정하여 걸러냄
       if (subscription_protocol === "http") {
          const ConnectorBody = {
-            name: `SUB${subscription_id}`,
+            name: `${subscription_id}`,
             config: {
                "connector.class":
                   "org.kafka.connect.http.HttpSinkSubscriptionKeyFieldConnector",
                "tasks.max": "1",
                "http.api.url": notification_url,
                topics: topicList,
-               "digital.twin.id": digital_twin_id,
+               "federated.digital.twin.id": federated_digital_twin_id,
                "subscription.id": subscription_id,
                "subscription.name": subscription_name,
                "request.method": "POST",
@@ -270,7 +253,7 @@ class Kafka {
                   "org.apache.kafka.connect.storage.StringConverter",
                "value.converter":
                   "org.apache.kafka.connect.storage.StringConverter",
-               "key.topic": lib.arryToString(topics),
+               "key.topic": topics,
                "resource.type": "federated_digital_object",
             },
          };
@@ -289,7 +272,7 @@ class Kafka {
             .slice(1)
             .join("/");
          const ConnectorBody = {
-            name: `SUB${subscription_id}`,
+            name: `${subscription_id}`,
             config: {
                "connector.class":
                   "org.kafka.connect.mqtt.MqttSubscriptionActionSinkConnector",
@@ -301,7 +284,7 @@ class Kafka {
                   "org.apache.kafka.connect.storage.StringConverter",
                "value.converter":
                   "org.apache.kafka.connect.storage.StringConverter",
-               "key.topic": lib.arryToString(topics),
+               "key.topic": topics,
                "resource.type": "federated_digital_object",
             },
          };
@@ -327,35 +310,16 @@ class Kafka {
    }
 
    async updateSubscriptionSinkConnector({
-      digital_twin_id,
+      federated_digital_twin_id,
       subscription_id,
       subscription_name,
       notification_url,
       topics,
-      topicArr,
+      topicList,
       subscription_protocol,
       filtering_action_list,
       filtering_condition_list,
    }) {
-      let hasDTopic = false; // "FD"로 시작하는 요소가 있는지 여부를 추적하기 위한 변수
-      let topicList = ""; // 최종 결과를 저장할 변수
-      for (let i = 0; i < topicArr.length; i++) {
-         if (topicArr[i].startsWith("FD")) {
-            if (!hasDTopic) {
-               if (topicList !== "") {
-                  topicList += ",";
-               }
-               topicList += "latestFederatedDigitalObjects"; // "FD"로 시작하는 요소가 처음 발견된 경우
-               hasDTopic = true;
-            }
-         } else {
-            if (topicList !== "") {
-               topicList += ",";
-            }
-            topicList += topicArr[i]; // "FD"로 시작하지 않는 요소일 경우
-         }
-      }
-
       if (subscription_protocol === "http") {
          const ConnectorBody = {
             "connector.class":
@@ -363,7 +327,7 @@ class Kafka {
             "tasks.max": "1",
             "http.api.url": notification_url,
             topics: topicList,
-            "digital.twin.id": digital_twin_id,
+            "federated.digital.twin.id": federated_digital_twin_id,
             "subscription.id": subscription_id,
             "subscription.name": subscription_name,
             "request.method": "POST",
@@ -378,7 +342,7 @@ class Kafka {
 
          await lib.request({
             method: "put",
-            url: `http://${config.kafka.connectHost}/connectors/SUB${subscription_id}/config`,
+            url: `http://${config.kafka.connectHost}/connectors/${subscription_id}/config`,
             bodyParams: ConnectorBody,
          });
          return 0;
@@ -411,7 +375,7 @@ class Kafka {
 
          await lib.request({
             method: "put",
-            url: `http://${config.kafka.connectHost}/connectors/SUB${subscription_id}/config`,
+            url: `http://${config.kafka.connectHost}/connectors/${subscription_id}/config`,
             bodyParams: ConnectorBody,
          });
          return 0;
@@ -419,51 +383,6 @@ class Kafka {
          throw new ErrorHandler(412, 5252, "This protocol is not supported");
       }
    }
-
-   // /**
-   //  * @param {String} type
-   //  * @param {String} term
-   //  * @returns
-   //  */
-   // async createlatestDataSinkConnector({ type, term }) {
-   //    let field, topicType;
-   //    if (type == "UnalliedDigitalObjects") {
-   //       field = "@.digital_object_id";
-   //       topicType = "DO";
-   //    } else if (type == "FederatedDigitalObjects") {
-   //       field = "@.federated_digital_object_id";
-   //       topicType = "FDO";
-   //    } else if (type == "FDOsyncWindows") {
-   //       field = "@.federated_digital_object_id";
-   //       topicType = `FWindows${term}`;
-   //    }
-
-   //    const bodyConfig = {
-   //       name: "latestDataSink_" + type + (term ? term : ""),
-   //       config: {
-   //          "connector.class": "com.keti.connector.kafka.KafkaSinkConnector",
-   //          "key.converter": "org.apache.kafka.connect.storage.StringConverter",
-   //          "value.converter":
-   //             "org.apache.kafka.connect.storage.StringConverter",
-   //          "kafka.sink.bootstrap": config.kafka.host,
-   //          "kafka.sink.topic": "latest" + type + (term ? term : ""), // Check if term is provided
-   //          "tasks.max": "1",
-   //          topics: type + (term ? term : ""), // Check if term is provided
-   //          "kafka.key.enabled": "true",
-   //          "kafka.key.field": field,
-   //          "topic.type": topicType,
-   //       },
-   //    };
-
-   //    console.log({ bodyConfig });
-   //    await lib.request({
-   //       method: "post",
-   //       url: `http://${config.kafka.connectHost}/connectors`,
-   //       bodyParams: bodyConfig,
-   //    });
-
-   //    return 0;
-   // }
 
    /**
     * @param {String} type
@@ -551,7 +470,7 @@ class Kafka {
 
    /**
     *
-    * @param {string} type (SIM , SUB)
+    * @param {string} type (SIM , SUB, DigitalBase_)
     * @param {string} connectorName
     * @returns
     */

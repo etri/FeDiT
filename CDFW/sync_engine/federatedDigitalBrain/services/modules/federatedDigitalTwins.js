@@ -19,7 +19,7 @@ class FederatedDigitalTwins {
 
    async create(params) {
       const {
-         digital_twin_identifier,
+         federated_digital_twin_identifier,
          federated_digital_twin_name,
          description,
          owner,
@@ -30,20 +30,20 @@ class FederatedDigitalTwins {
       } = params;
 
       let federated_digital_twin_id;
-      if (digital_twin_identifier) {
+      if (federated_digital_twin_identifier) {
          const isExistDtId = await model.postgres.checkIdExist({
             table: "federated_digital_twins",
             check: "federated_digital_twin_id",
-            id: digital_twin_identifier,
+            id: federated_digital_twin_identifier,
          });
          if (isExistDtId) {
             throw new ErrorHandler(
                412,
                412,
-               "digital_twin_identifier already in use"
+               "federated_digital_twin_identifier already in use"
             );
          }
-         federated_digital_twin_id = digital_twin_identifier;
+         federated_digital_twin_id = federated_digital_twin_identifier;
       } else {
          federated_digital_twin_id = "F" + uuid();
       }
@@ -225,6 +225,31 @@ class FederatedDigitalTwins {
       });
 
       if (isExistID) {
+         const selectSIMsql = `SELECT * FROM federated_simulations WHERE federated_digital_twin_id = '${id}'`;
+         const selectedSIMs = await model.postgres.selectDataS({
+            sql: selectSIMsql,
+         });
+
+         for (const selectedSIM of selectedSIMs) {
+            await model.kafka.deleteSink({
+               connectorName: `${selectedSIM.simulation_id}`,
+            });
+
+            await model.kafka.deleteSink({
+               connectorName: `DigitalBase_${selectedSIM.simulation_id}_result`,
+            });
+         }
+
+         const selectSUBsql = `SELECT * FROM federated_subscriptions WHERE federated_digital_twin_id = '${id}'`;
+         const selectedSUBs = await model.postgres.selectDataS({
+            sql: selectSUBsql,
+         });
+
+         for (const selectedSUB of selectedSUBs) {
+            await model.kafka.deleteSink({
+               connectorName: `${selectedSUB.subscription_id}`,
+            });
+         }
          const sql = `delete from federated_digital_twins where federated_digital_twin_id = '${id}';
            delete from relations where resource_id = '{${id}}' or parent_id = '${id}';
            delete from digital_twins where federated_digital_twin_id = '${id}'; 

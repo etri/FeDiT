@@ -70,7 +70,6 @@ exports.init = async () => {
             }
          });
 
-         console.log(sqlArr);
          for (let i of sqlArr) {
             let StatementObj = {
                statement: i,

@@ -37,7 +37,7 @@ class FederatedDigitalObjects {
             );
          }
          const {
-            digital_object_identifier,
+            federated_digital_object_identifier,
             federated_digital_object_name,
             description,
             tags,
@@ -53,21 +53,21 @@ class FederatedDigitalObjects {
          } = params;
 
          let federated_digital_object_id;
-         if (digital_object_identifier) {
+         if (federated_digital_object_identifier) {
             const isExistDOid = await model.postgres.checkIdExist({
                table: "federated_digital_objects",
                check: "federated_digital_object_id",
-               id: digital_object_identifier,
+               id: federated_digital_object_identifier,
                federated_digital_twin_id,
             });
             if (isExistDOid) {
                throw new ErrorHandler(
                   412,
                   412,
-                  "digital_object_identifier already in use"
+                  "federated_digital_object_identifier already in use"
                );
             }
-            federated_digital_object_id = digital_object_identifier;
+            federated_digital_object_id = federated_digital_object_identifier;
          } else {
             federated_digital_object_id = "FDO" + uuid();
          }
@@ -291,8 +291,8 @@ class FederatedDigitalObjects {
                //string array type
                for (let i in params[key]) {
                   let isExistID = await model.postgres.checkIdExist({
-                     table: "digital_twin_objects",
-                     check: "digital_twin_object_id",
+                     table: "digital_objects",
+                     check: "digital_object_id",
                      id: params[key][i],
                   });
                   if (!isExistID) {
@@ -331,7 +331,7 @@ class FederatedDigitalObjects {
                      )} is not present in Window setting config`
                   );
                } else {
-                  updateSql += `${key} = '${JSON.stringify(params[key])}', `;
+                  sql += `${key} = '${JSON.stringify(params[key])}', `;
                }
             } else {
                //string type
@@ -344,10 +344,14 @@ class FederatedDigitalObjects {
          if (params.member_digital_twin_object_ids) {
             const deleteDOcomposeSQL = `delete from fdo_compositions ${whereClause}`;
             let compose_sql = "";
-            for (let i = 0; i < member_digital_twin_object_ids.length; i++) {
+            for (
+               let i = 0;
+               i < params.member_digital_twin_object_ids.length;
+               i++
+            ) {
                compose_sql += `INSERT INTO fdo_compositions (compose_id, federated_digital_twin_id, federated_digital_object_id, digital_object_id, rowtime) VALUES ('CP${uuid()}', '${federated_digital_twin_id}', '${id}', '${
-                  member_digital_twin_object_ids[i]
-               }', '${creationTime}');`;
+                  params.member_digital_twin_object_ids[i]
+               }', '${lib.timestamp()}');`;
             }
             await model.postgres.sendQuery({
                sql: deleteDOcomposeSQL + compose_sql,
@@ -529,27 +533,28 @@ class FederatedDigitalObjects {
       federated_digital_object_id,
       params
    ) {
+      const federated_digital_object_control_data_id = "FDOC" + uuid();
       const federated_digital_object_control_creation_time = lib.timestamp();
-      const control_messages = params;
-      let returnMessage = [];
+      const control_messages = params.commands;
+      let returnMessage = {};
 
       if (!federated_digital_twin_id || !federated_digital_object_id) {
-         throw new ErrorHandler(412, 412, "please check mandatory field.");
+         throw new ErrorHandler(412, 5252, "please check mandatory field.");
       }
 
-      if (!Array.isArray(params) || params.length == 0) {
-         throw new ErrorHandler(412, 412, "empty control message");
+      if (!Array.isArray(control_messages) || control_messages.length == 0) {
+         throw new ErrorHandler(412, 5252, "empty control message");
       }
       const isExistID = await model.postgres.checkIdExist({
          table: "federated_digital_objects",
          check: "federated_digital_object_id",
-         federated_digital_object_id,
+         id: federated_digital_object_id,
       });
 
       if (!isExistID) {
          throw new ErrorHandler(
             412,
-            412,
+            5252,
             "Unregistered federated_digital_object"
          );
       }
@@ -559,6 +564,8 @@ class FederatedDigitalObjects {
          federated_digital_object_id,
       });
       let messageByDt = {};
+      // let executionResult = {};
+      console.log("THIS IS CONTROLMESSAGE : ", control_messages);
       for (let message of control_messages) {
          /**
           * get FDO's DO 목록 불러와서 DO id 유효성 확인
@@ -569,38 +576,61 @@ class FederatedDigitalObjects {
          if (!member_digital_twin_object_ids.includes(doid)) {
             throw new ErrorHandler(
                412,
-               412,
+               5252,
                `'${doid}' is unregistered federated_digital_object with message '${message}'`
             );
          }
          /**
           * DT-DO 별로 컨트롤 메세지 구분
           */
+         if (!messageByDt[dtid]) {
+            messageByDt[dtid] = {};
+         }
+         if (!messageByDt[dtid][doid]) {
+            messageByDt[dtid][doid] = [];
+         }
+         message.federated_digital_object_control_data_id =
+            federated_digital_object_control_data_id;
          messageByDt[dtid][doid].push(message);
+         // executionResult[doid] = "null";
       }
       /**
        * DT별 DO control 메세지 보내기
+       * "POST /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control}"
        */
       for (let dtid of Object.keys(messageByDt)) {
          for (let doid of Object.keys(messageByDt[dtid])) {
             let createControlData = await lib.request({
-               url: `http://${config.federatedDigitalConnector.ip}:${config.federatedDigitalConnector.port}/${config.federatedDigitalConnector.base}/federated-twins/${federated_digital_twin_id}/digital-twins/${dtid}/digital-objects/${doid}/control`,
-               bodyParams: messageByDt[dtid][doid],
+               url: `http://${config.federatedDigitalConnector.ip}:${config.federatedDigitalConnector.port}/${config.federatedDigitalConnector.base}/${federated_digital_twin_id}/digital-twins/${dtid}/digital-objects/${doid}/control`,
+               bodyParams: { commands: messageByDt[dtid][doid] },
             });
-            returnMessage.push(createControlData);
+            returnMessage[doid] = createControlData.data;
          }
       }
 
-      const federated_digital_object_control_data_id = "FDOC" + uuid();
       const federated_digital_object_control_data_creator =
          control_messages[0].control_data_creator;
       const federated_digital_object_control_delivery_time = lib.timestamp();
-      const federated_digital_object_control_delivery_result = returnMessage;
-      const federated_digital_object_control_command = control_messages;
+      const federated_digital_object_control_delivery_result =
+         JSON.stringify(returnMessage);
+      const federated_digital_object_control_command =
+         JSON.stringify(control_messages);
       const sql = `insert into federated_controls (federated_digital_object_control_data_id, federated_digital_object_id, federated_digital_object_control_data_creator, federated_digital_object_control_creation_time, federated_digital_object_control_delivery_time, federated_digital_object_control_delivery_result, federated_digital_object_control_command) values ('${federated_digital_object_control_data_id}', '${federated_digital_object_id}', '${federated_digital_object_control_data_creator}', '${federated_digital_object_control_creation_time}', '${federated_digital_object_control_delivery_time}', '${federated_digital_object_control_delivery_result}', '${federated_digital_object_control_command}');`;
       await model.postgres.sendQuery({ sql });
+      /**
+       * Execution result null로 세팅
+       */
+      let federated_digital_object_control_result_id = "";
+      for (let dtid of Object.keys(messageByDt)) {
+         for (let doid of Object.keys(messageByDt[dtid])) {
+            // fdo execution result
+            federated_digital_object_control_result_id = "FDOCR" + uuid();
+            const fdo_sql = `insert into federated_control_result (federated_digital_object_control_result_id, federated_digital_object_control_data_id, federated_digital_object_control_execution_time, federated_digital_object_control_execution_result, digital_object_id) values ('${federated_digital_object_control_result_id}', '${federated_digital_object_control_data_id}', '${lib.timestamp()}', 'null', '${doid}');`;
+            await model.postgres.sendQuery({ sql: fdo_sql });
+         }
+      }
 
-      return { control_data_id: returnMessage };
+      return { federated_digital_object_control_data_id };
    }
 
    /**
@@ -616,36 +646,93 @@ class FederatedDigitalObjects {
       federated_digital_object_id,
       from,
       to,
+      count,
    }) {
       if (!federated_digital_twin_id || !federated_digital_object_id) {
-         throw new ErrorHandler(412, 412, "please check mandatory field.");
+         throw new ErrorHandler(412, 5252, "please check mandatory field.");
       }
+      let retrievedData = [];
       const isExistID = await model.postgres.checkIdExist({
          table: "federated_digital_objects",
          check: "federated_digital_object_id",
-         federated_digital_object_id,
+         id: federated_digital_object_id,
       });
       if (!isExistID) {
-         throw new ErrorHandler(412, 412, "Unregistered digital_object");
+         throw new ErrorHandler(412, 5252, "Unregistered digital_object");
       }
+      // Federated Digital Object Control Data ID 로 Group by 하고 그 결과들 모아서 JSON Array 로 전송
+      let sql = `SELECT
+      t1.federated_digital_object_control_data_id,
+      t1.federated_digital_object_id,
+      t1.digital_object_id,
+      t1.federated_digital_object_control_creation_time,
+      t2.federated_digital_object_control_result_id,
+      t2.federated_digital_object_control_execution_time,
+      t2.federated_digital_object_control_execution_result
+      FROM
+         (select federated_digital_object_control_data_id, federated_digital_object_control_creation_time, federated_digital_object_id, jsonb_array_elements(c.federated_digital_object_control_command):: jsonb ->> 'digital_object_id' as digital_object_id 
+         from federated_controls c) as t1
+      LEFT JOIN
+      (SELECT DISTINCT ON (federated_digital_object_control_data_id, digital_object_id) *
+         FROM federated_control_result
+         ORDER BY federated_digital_object_control_data_id, digital_object_id, federated_digital_object_control_execution_time DESC) as t2 
+    ON t1.federated_digital_object_control_data_id = t2.federated_digital_object_control_data_id AND t1.digital_object_id = t2.digital_object_id`;
 
       if (from && to) {
-         const sql = `SELECT * FROM federated_control_result WHERE rowtime >= '${from}'::timestamp AND rowtime <= '${to}'::timestamp;`;
-         const retrievedData = await model.postgres.selectDataS({ sql });
-         return retrievedData;
+         sql += ` WHERE federated_digital_object_control_creation_time >= '${from}'::timestamp AND federated_digital_object_control_creation_time <= '${to}'::timestamp`;
       } else if (from) {
-         const sql = `SELECT * FROM federated_control_result WHERE rowtime >= '${from}'::timestamp;`;
-         const retrievedData = await model.postgres.selectDataS({ sql });
-         return retrievedData;
+         sql += ` WHERE federated_digital_object_control_creation_time >= '${from}'::timestamp`;
       } else if (to) {
-         const sql = `SELECT * FROM federated_control_result WHERE rowtime <= '${to}'::timestamp;`;
-         const retrievedData = await model.postgres.selectDataS({ sql });
-         return retrievedData;
-      } else {
-         let sql = `select * from federated_control_result `;
-         const retrievedData = await model.postgres.selectDataS({ sql });
-         return retrievedData;
+         sql += ` WHERE federated_digital_object_control_creation_time <= '${to}'::timestamp`;
       }
+      sql += ` ORDER BY federated_digital_object_control_creation_time DESC;`;
+      retrievedData = await model.postgres.selectDataS({ sql });
+      console.log(retrievedData);
+
+      // Retrieved Data -->> 같은 control_data_id끼리 json으로 묶어서 return
+      /**
+       * { control_data_id : {time:, fdo_id:, result: {doid:{result id, time, result}, doid:{result id, time, result}, doid:null}},
+       *   control_data_id : {time:, fdo_id:, result: {doid:{result id, time, result}, doid:{result id, time, result}, doid:null}}, }
+       */
+      let returnData = {};
+      let returnDataCount = 0;
+      if (retrievedData.length != 0) {
+         for (let data of retrievedData) {
+            let doData = {
+               control_execution_result_id:
+                  data.federated_digital_object_control_result_id,
+               control_execution_time:
+                  data.federated_digital_object_control_execution_time,
+               control_execution_result:
+                  data.federated_digital_object_control_execution_result,
+            };
+            let doID = data.digital_object_id;
+            if (returnData[data.federated_digital_object_control_data_id]) {
+               returnData[data.federated_digital_object_control_data_id][
+                  "federated_digital_object_control_execution_result"
+               ][doID] = doData;
+            } else {
+               if (count && count <= returnDataCount) {
+                  break;
+               }
+               returnDataCount++;
+               returnData[data.federated_digital_object_control_data_id] = {};
+               returnData[data.federated_digital_object_control_data_id][
+                  "federated_digital_object_control_creation_time"
+               ] = data.federated_digital_object_control_creation_time;
+               returnData[data.federated_digital_object_control_data_id][
+                  "federated_digital_object_id"
+               ] = data.federated_digital_object_id;
+               returnData[data.federated_digital_object_control_data_id][
+                  "federated_digital_object_control_execution_result"
+               ] = {};
+               returnData[data.federated_digital_object_control_data_id][
+                  "federated_digital_object_control_execution_result"
+               ][doID] = doData;
+            }
+         }
+      }
+      return returnData;
    }
 
    /**
@@ -665,26 +752,75 @@ class FederatedDigitalObjects {
          !federated_digital_object_id ||
          !federated_digital_object_control_data_id
       ) {
-         throw new ErrorHandler(412, 412, "please check mandatory field.");
+         throw new ErrorHandler(412, 5252, "please check mandatory field.");
       }
       const isExistID = await model.postgres.checkIdExist({
          table: "federated_control_result",
          check: "federated_digital_object_control_data_id",
-         federated_digital_object_control_data_id,
+         id: federated_digital_object_control_data_id,
       });
       if (!isExistID) {
          throw new ErrorHandler(
             412,
-            412,
+            5252,
             "Unregistered federated_digital_object control data"
          );
       }
 
-      let sql = `select * from federated_control_result where federated_digital_object_control_data_id = ${federated_digital_object_control_data_id} `;
+      // let sql = `select * from federated_control_result where federated_digital_object_control_data_id = ${federated_digital_object_control_data_id} `;
+      let sql = `SELECT
+      t1.federated_digital_object_control_data_id,
+      t1.federated_digital_object_id,
+      t1.digital_object_id,
+      t1.federated_digital_object_control_creation_time,
+      t2.federated_digital_object_control_result_id,
+      t2.federated_digital_object_control_execution_time,
+      t2.federated_digital_object_control_execution_result
+      FROM
+         (select federated_digital_object_control_data_id, federated_digital_object_control_creation_time, federated_digital_object_id, jsonb_array_elements(c.federated_digital_object_control_command):: jsonb ->> 'digital_object_id' as digital_object_id 
+         from federated_controls c) as t1
+      LEFT JOIN
+      (SELECT DISTINCT ON (federated_digital_object_control_data_id, digital_object_id) *
+         FROM federated_control_result
+         ORDER BY federated_digital_object_control_data_id, digital_object_id, federated_digital_object_control_execution_time DESC) as t2 
+    ON t1.federated_digital_object_control_data_id = t2.federated_digital_object_control_data_id AND t1.digital_object_id = t2.digital_object_id`;
 
       const retrievedData = await model.postgres.selectDataS({ sql });
-      return retrievedData;
+
+      let returnData = {};
+      if (retrievedData.length != 0) {
+         for (let data of retrievedData) {
+            let doData = {
+               control_execution_result_id:
+                  data.federated_digital_object_control_result_id,
+               control_execution_time:
+                  data.federated_digital_object_control_execution_time,
+               control_execution_result:
+                  data.federated_digital_object_control_execution_result,
+            };
+            let doID = data.digital_object_id;
+            if (returnData[data.federated_digital_object_control_data_id]) {
+               returnData[data.federated_digital_object_control_data_id][
+                  "federated_digital_object_control_execution_result"
+               ][doID] = doData;
+            } else {
+               returnData[data.federated_digital_object_control_data_id] = {};
+               returnData[data.federated_digital_object_control_data_id][
+                  "federated_digital_object_control_creation_time"
+               ] = data.federated_digital_object_control_creation_time;
+               returnData[data.federated_digital_object_control_data_id][
+                  "federated_digital_object_id"
+               ] = data.federated_digital_object_id;
+               returnData[data.federated_digital_object_control_data_id][
+                  "federated_digital_object_control_execution_result"
+               ] = {};
+               returnData[data.federated_digital_object_control_data_id][
+                  "federated_digital_object_control_execution_result"
+               ][doID] = doData;
+            }
+         }
+      }
+      return returnData;
    }
 }
-
 module.exports = FederatedDigitalObjects;

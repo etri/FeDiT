@@ -18,6 +18,22 @@ class Postgres {
          });
    }
 
+   async selectDataRows({ sql }) {
+      return pool
+         .query(sql)
+         .then((response) => {
+            // console.log(response);
+            if (response) {
+               return response;
+            } else {
+               return [];
+            }
+         })
+         .catch((e) => {
+            throw e;
+         });
+   }
+
    async selectData({ sql }) {
       return pool
          .query(sql)

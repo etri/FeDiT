@@ -30,13 +30,13 @@ exports.type = {
 exports.federatedDigitalBrain = {
    ip: "localhost",
    port: "1213",
-   base: "fedit/v1/digital-twins",
+   base: "fedit/v1/federated-twins",
 };
 
 exports.federatedDigitalConnector = {
    ip: "localhost",
    port: "1219",
-   base: "fedit/v1/digital-twins",
+   base: "fedit/v1/federated-twins",
 };
 
 /**
@@ -74,7 +74,7 @@ exports.flink = {
       port: 8087,
    },
    sedonaJarLocation:
-      "/home/cotlab/flink-release-1.17.0/build-target/lib/sedona/sedona-flink-shaded_2.12-1.5.1-SNAPSHOT.jar",
+      "/home/User/FederatedTwin/plugin/flink-lib/sedona-flink-shaded_2.12-1.5.1-SNAPSHOT.jar",
 };
 
 exports.postgresPool = {
@@ -89,8 +89,7 @@ exports.postgresPool = {
 };
 
 exports.multer = {
-   // uploadFolder: "/home/cotlab/fedit/visual-model-assets/",
-   uploadFolder: "D:/GitHub/DigitalTwin/visual-model-assets/",
+   uploadFolder: "/home/User/FederatedTwin/visual-model-assets/",
    fileSizeLimit: 100 * 1024 * 1024, // 100mb
    allowMimetype: [
       ".fbx",

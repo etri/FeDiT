@@ -15,7 +15,9 @@ exports.create = (req, res, next) => {
       modification_time: Joi.string().default(null),
       point_of_access: Joi.string().default(null),
       contact_point: Joi.string().default(null),
-      subject: Joi.string().default(null),
+      subject: Joi.array()
+         .items(Joi.string().allow("").default("etc"))
+         .default([]),
       location: Joi.object().empty({}).default(null),
       member_digital_objects_ids: Joi.array().default(null),
       number_of_digital_objects: Joi.number().default(null),
@@ -36,7 +38,7 @@ exports.update = (req, res, next) => {
       modification_time: Joi.string().allow(),
       point_of_access: Joi.string().allow(),
       contact_point: Joi.string().allow(),
-      subject: Joi.string().allow(),
+      subject: Joi.array().items(Joi.string()).allow(),
       location: Joi.object().allow(),
       member_digital_objects_ids: Joi.array().allow(),
       number_of_digital_objects: Joi.number().allow(),

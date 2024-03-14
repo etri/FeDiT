@@ -348,13 +348,12 @@ class Simulations {
          check: "simulation_data_id",
          id: simulation_data_id,
       });
-      // simulation이 존재하면 조회
+
       if (isExistSimulationID) {
          if (isExistSimulationDataID) {
             let sql = `update simulation_data set result_data='${JSON.stringify(
                result_data
             )}', result_time='${lib.timestamp()}' where simulation_id = '${simulation_id}' and simulation_data_id = '${simulation_data_id}'`;
-            console.log(sql);
             await model.postgres.sendQuery({ sql });
 
             return { simulation_data_id };

@@ -283,33 +283,63 @@ class DigitalTwins {
       });
 
       if (isExistID && isExistFID) {
-         const selectFDTsql = `select * from federated_digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
+         const selectFDTsql = `SELECT * FROM federated_digital_twins WHERE federated_digital_twin_id = '${federated_digital_twin_id}'`;
          const selectedFDTdata = await model.postgres.selectData({
             sql: selectFDTsql,
          });
          const DTcount = parseInt(selectedFDTdata.number_of_digital_twins) - 1;
-         const updateDTcountSQL = `update federated_digital_twins set number_of_digital_twins = ${DTcount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}';`;
+         const updateDTcountSQL = `UPDATE federated_digital_twins SET number_of_digital_twins = ${DTcount}, modification_time = '${lib.timestamp()}' WHERE federated_digital_twin_id = '${federated_digital_twin_id}';`;
 
-         const deleteSQL = `delete from digital_twins where digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}';         
-         delete from digital_objects where digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'; 
-         delete from digital_object_data where digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'; 
-         delete from digital_object_controllers where digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}';
-         delete from digital_object_control_result where digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'; 
-         delete from simulations where digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'; 
-         delete from services where digital_twin_id = '${digital_twin_id}' and federated_digital_twin_id = '${federated_digital_twin_id}';`;
+         const selectDOsql = `SELECT * FROM digital_objects WHERE federated_digital_twin_id = '${federated_digital_twin_id}' AND digital_twin_id = '${digital_twin_id}'`;
+         const selectedDOs = await model.postgres.selectDataS({
+            sql: selectDOsql,
+         });
+
+         for (const selectedDO of selectedDOs) {
+            if (selectedDO.digital_object_data_source_type === "POLL") {
+               await model.kafka.deleteSink({
+                  id: `HttpSource${selectedDO.digital_object_id}`,
+               });
+            }
+         }
+
+         const deleteSQLs = [
+            `DELETE FROM digital_twins WHERE digital_twin_id = '${digital_twin_id}' AND federated_digital_twin_id = '${federated_digital_twin_id}';`,
+            `DELETE FROM digital_objects WHERE digital_twin_id = '${digital_twin_id}' AND federated_digital_twin_id = '${federated_digital_twin_id}';`,
+            `DELETE FROM digital_object_data WHERE digital_twin_id = '${digital_twin_id}' AND federated_digital_twin_id = '${federated_digital_twin_id}';`,
+            `DELETE FROM digital_object_controllers WHERE digital_twin_id = '${digital_twin_id}';`,
+            `DELETE FROM digital_object_control_result WHERE digital_twin_id = '${digital_twin_id}';`,
+            `DELETE FROM simulations WHERE digital_twin_id = '${digital_twin_id}' AND federated_digital_twin_id = '${federated_digital_twin_id}';`,
+            `DELETE FROM services WHERE digital_twin_id = '${digital_twin_id}' AND federated_digital_twin_id = '${federated_digital_twin_id}';`,
+         ];
+         const deleteSQL = deleteSQLs.join("\n");
          await model.postgres.sendQuery({ sql: deleteSQL + updateDTcountSQL });
 
          return { delete: digital_twin_id };
       } else if (digital_twin_id === "undefind") {
-         const deleteSQL = `delete from digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}';         
-         delete from digital_objects where federated_digital_twin_id = '${federated_digital_twin_id}'; 
-         delete from digital_object_data where federated_digital_twin_id = '${federated_digital_twin_id}'; 
-         delete from digital_object_controllers where federated_digital_twin_id = '${federated_digital_twin_id}';
-         delete from digital_object_control_result where federated_digital_twin_id = '${federated_digital_twin_id}'; 
-         delete from simulations where federated_digital_twin_id = '${federated_digital_twin_id}'; 
-         delete from services where federated_digital_twin_id = '${federated_digital_twin_id}';`;
+         //fdt 삭제 시 실행
+         const selectDOsql = `SELECT * FROM digital_objects WHERE federated_digital_twin_id = '${federated_digital_twin_id}'`;
+         const selectedDOs = await model.postgres.selectDataS({
+            sql: selectDOsql,
+         });
+
+         for (const selectedDO of selectedDOs) {
+            if (selectedDO.digital_object_data_source_type === "POLL") {
+               await model.kafka.deleteSink({
+                  id: `HttpSource${selectedDO.digital_object_id}`,
+               });
+            }
+         }
+
+         const deleteSQLs = [
+            `DELETE FROM digital_twins WHERE federated_digital_twin_id = '${federated_digital_twin_id}';`,
+            `DELETE FROM digital_objects WHERE federated_digital_twin_id = '${federated_digital_twin_id}';`,
+            `DELETE FROM digital_object_data WHERE federated_digital_twin_id = '${federated_digital_twin_id}';`,
+            `DELETE FROM simulations WHERE federated_digital_twin_id = '${federated_digital_twin_id}';`,
+            `DELETE FROM services WHERE federated_digital_twin_id = '${federated_digital_twin_id}';`,
+         ];
+         const deleteSQL = deleteSQLs.join("\n");
          await model.postgres.sendQuery({ sql: deleteSQL });
-         return { delete: digital_twin_id };
       } else {
          throw new ErrorHandler(
             412,

@@ -382,7 +382,6 @@ class Simulations {
          // Parallelize Kafka deletion
          const kafkaPromises = [
             model.kafka.deleteSink({
-               type: "SIM",
                connectorName: simulation_id,
             }),
             model.kafka.deleteSink({

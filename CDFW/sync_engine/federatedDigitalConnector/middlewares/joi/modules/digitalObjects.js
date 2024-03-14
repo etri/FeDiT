@@ -33,8 +33,8 @@ exports.create = (req, res, next) => {
          .empty("")
          .default(null)
          .required(),
-      digital_object_data_model: Joi.string()
-         .empty("")
+      digital_object_data_model: Joi.object()
+         .empty({})
          .default(null)
          .required(),
       digital_object_data_interval: Joi.number().default(null).required(),

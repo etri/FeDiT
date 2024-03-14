@@ -58,50 +58,15 @@ class Subscriptions {
          filtering_condition_list,
       } = params;
 
-      let checkExistID;
-      for (const subject of subscription_subject) {
-         if (subject.startsWith("FDO")) {
-            checkExistID = await model.postgres.checkIdExist({
-               table: "federated_digital_objects",
-               check: "federated_digital_object_id",
-               id: subject,
-               federated_digital_twin_id,
-            });
-            if (!checkExistID) {
-               throw new ErrorHandler(
-                  412,
-                  412,
-                  `Unregistered subscription_subject (digital_object)`
-               );
-            }
-         } else if (subject.startsWith("SIM")) {
-            checkExistID = await model.postgres.checkIdExist({
-               table: "federated_simulations",
-               check: "simulation_id",
-               id: subject,
-               federated_digital_twin_id,
-            });
-            if (!checkExistID) {
-               throw new ErrorHandler(
-                  412,
-                  412,
-                  `Unregistered subscription_subject (simulation)`
-               );
-            }
-         } else {
-            throw new ErrorHandler(
-               412,
-               412,
-               `Unregistered subscription_subject`
-            );
-         }
-      }
+      const topicList = await this.makeTopicList({ subscription_subject });
+
+      const subscription_id = "FSUB" + uuid();
 
       const expiration_time_temp = expiration_time
          ? `'${expiration_time}'`
          : null;
       const creationTime = lib.timestamp();
-      const subscription_id = "FSUB" + uuid();
+
       const insertsubscriptionDataSQL = `update federated_digital_twins set number_of_subscriptions = ${subCount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}'; insert into federated_subscriptions (
          subscription_id,
          federated_digital_twin_id,
@@ -131,18 +96,100 @@ class Subscriptions {
 
       //kafka sink connector 생성
       await model.kafka.createSubscriptionSinkConnector({
-         digital_twin_id: federated_digital_twin_id,
+         federated_digital_twin_id,
          subscription_id,
          subscription_name,
          notification_url: lib.arryToString(notification_url),
-         topics: lib.arryToEnum(subscription_subject),
-         topicArr: subscription_subject,
+         topics: lib.arryToString(subscription_subject),
+         topicList,
          subscription_protocol,
          filtering_action_list,
          filtering_condition_list,
       });
 
       return { subscription_id };
+   }
+
+   async makeTopicList({ subscription_subject }) {
+      let checkSQL = ``;
+      for (const subject of subscription_subject) {
+         checkSQL += `
+         SELECT 
+    CASE
+        WHEN digital_objects.digital_object_id IS NOT NULL THEN 'digital_objects'
+        WHEN federated_digital_objects.federated_digital_object_id IS NOT NULL THEN 'federated_digital_objects'
+        WHEN federated_simulations.simulation_id IS NOT NULL THEN 'simulation_result'
+        ELSE 'Not Found'
+    END AS subject_type
+FROM 
+    digital_objects
+FULL OUTER JOIN 
+    federated_digital_objects ON digital_objects.digital_object_id = federated_digital_objects.federated_digital_object_id
+FULL OUTER JOIN
+    federated_simulations ON digital_objects.digital_object_id = federated_simulations.simulation_id
+WHERE 
+    digital_objects.digital_object_id = '${subject}' OR federated_digital_objects.federated_digital_object_id = '${subject}' OR federated_simulations.simulation_id = '${subject}';`;
+      }
+
+      const selectedData = await model.postgres.selectDataRows({
+         sql: checkSQL,
+      });
+
+      let topicList = "";
+      if (!selectedData) {
+         throw new ErrorHandler(412, 412, `Unregistered subscription_subject`);
+      } else {
+         const topicSet = new Set();
+         if (Array.isArray(selectedData)) {
+            for (let i = 0; i < selectedData.length; i++) {
+               const row = selectedData[i].rows[0];
+               if (row) {
+                  if (row.subject_type === "digital_objects") {
+                     topicSet.add("UnalliedDigitalObjects");
+                  } else if (row.subject_type === "federated_digital_objects") {
+                     if (!topicSet.has("latestFederatedDigitalObjects")) {
+                        topicSet.add("latestFederatedDigitalObjects");
+                     }
+                  } else if (row.subject_type === "simulation_result") {
+                     topicSet.add(`${subscription_subject[i]}_result`);
+                  }
+               } else {
+                  throw new ErrorHandler(
+                     412,
+                     412,
+                     `Unregistered subscription_subject '${subscription_subject[i]}'`
+                  );
+               }
+            }
+         } else {
+            const row = selectedData.rows[0];
+            if (row?.subject_type) {
+               if (row.subject_type === "digital_objects") {
+                  topicSet.add("UnalliedDigitalObjects");
+               } else if (row.subject_type === "federated_digital_objects") {
+                  if (!topicSet.has("latestFederatedDigitalObjects")) {
+                     topicSet.add("latestFederatedDigitalObjects");
+                  }
+               } else if (row.subject_type === "simulation_result") {
+                  topicSet.add(`${subscription_subject[0]}_result`);
+               }
+            } else {
+               throw new ErrorHandler(
+                  412,
+                  412,
+                  `Unregistered subscription_subject '${subscription_subject[0]}'`
+               );
+            }
+         }
+
+         if (topicSet.size > 0) {
+            topicList = Array.from(topicSet).join(",");
+         } else {
+            topicList = subscription_subject.join(",");
+         }
+      }
+
+      return topicList;
    }
 
    /**
@@ -251,15 +298,16 @@ class Subscriptions {
 
       const str_subscription_subject = lib.arryToString(subscription_subject);
       const str_subscription_url = lib.arryToString(notification_url);
+      const topicList = await this.makeTopicList({ subscription_subject });
 
       //kafka sink connector 생성
       await model.kafka.updateSubscriptionSinkConnector({
-         digital_twin_id: federated_digital_twin_id,
+         federated_digital_twin_id,
          subscription_id,
          subscription_name,
          notification_url: str_subscription_url,
          topics: str_subscription_subject,
-         topicArr: subscription_subject,
+         topicList,
          subscription_protocol,
          filtering_action_list,
          filtering_condition_list,
@@ -291,7 +339,6 @@ class Subscriptions {
          const sql = `delete from relations where resource_id = '{${subscription_id}}'; delete from federated_subscriptions where subscription_id = '${subscription_id}' and federated_digital_twin_id = '${federated_digital_twin_id}'; update federated_digital_twins set number_of_subscriptions = ${subCount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}';`;
          await model.postgres.sendQuery({ sql });
          await model.kafka.deleteSink({
-            type: "SUB",
             connectorName: subscription_id,
          });
          return { delete: subscription_id };

@@ -5,7 +5,12 @@
 -- Dumped from database version 12.13 (Ubuntu 12.13-1.pgdg18.04+1)
 -- Dumped by pg_dump version 15.2
 
--- Started on 2023-12-29 13:11:05
+
+CREATE DATABASE federated_digital_twin;
+
+ALTER DATABASE federated_digital_twin OWNER TO postgres;
+
+\connect federated_digital_twin
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -19,18 +24,22 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- TOC entry 6 (class 2615 OID 2200)
--- Name: public; Type: SCHEMA; Schema: -; Owner: postgres
+-- TOC entry 3113 (class 0 OID 0)
+-- Name: federated_digital_twin; Type: DATABASE PROPERTIES; Schema: -; Owner: postgres
 --
 
--- *not* creating schema, since initdb creates it
+ALTER DATABASE federated_digital_twin SET "TimeZone" TO 'UTC';
+
+--
 
 
-ALTER SCHEMA public OWNER TO postgres;
+CREATE TABLE public.country_codes (
+    code_number text NOT NULL,
+    description text
+);
 
-SET default_tablespace = '';
 
-SET default_table_access_method = heap;
+ALTER TABLE public.country_codes OWNER TO postgres;
 
 --
 -- TOC entry 222 (class 1259 OID 41464)
@@ -43,7 +52,6 @@ CREATE TABLE public.digital_object_control_result (
     digital_object_control_data_id text,
     control_execution_time timestamp with time zone,
     control_execution_result text,
-    federated_digital_twin_id text
 );
 
 
@@ -63,7 +71,6 @@ CREATE TABLE public.digital_object_controllers (
     control_delivery_time timestamp with time zone,
     control_delivery_result text,
     control_command jsonb,
-    federated_digital_twin_id text
 );
 
 
@@ -100,9 +107,7 @@ CREATE TABLE public.digital_objects (
     creation_time timestamp with time zone,
     modification_time timestamp with time zone,
     digital_object_data_access_type text,
-    digital_object_data_access_url text,    
-    digital_object_data_source_type text,
-    digital_object_data_source_url text,
+    digital_object_data_access_url text,
     digital_object_control_url text,
     digital_object_data_model json,
     digital_object_data_interval integer,
@@ -110,7 +115,9 @@ CREATE TABLE public.digital_objects (
     do_metadata jsonb,
     preliminary_field jsonb,
     subject text[],
-    federated_digital_twin_id text
+    federated_digital_twin_id text,
+    digital_object_data_source_type text,
+    digital_object_data_source_url text
 );
 
 
@@ -154,7 +161,8 @@ CREATE TABLE public.fdo_compositions (
     federated_digital_twin_id text,
     federated_digital_object_id text,
     digital_object_id text,
-    rowtime timestamp with time zone
+    rowtime timestamp with time zone,
+    digital_object_count integer
 );
 
 
@@ -266,6 +274,54 @@ CREATE TABLE public.federated_digital_object_data (
 
 
 ALTER TABLE public.federated_digital_object_data OWNER TO postgres;
+
+--
+-- TOC entry 237 (class 1259 OID 49492)
+-- Name: federated_digital_object_window_data_1; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.federated_digital_object_window_data_1 (
+    federated_digital_twin_id text,
+    federated_digital_object_id text,
+    rowtime timestamp with time zone,
+    location text,
+    data jsonb
+);
+
+
+ALTER TABLE public.federated_digital_object_window_data_1 OWNER TO postgres;
+
+--
+-- TOC entry 238 (class 1259 OID 49499)
+-- Name: federated_digital_object_window_data_10; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.federated_digital_object_window_data_10 (
+    federated_digital_twin_id text,
+    federated_digital_object_id text,
+    rowtime timestamp with time zone,
+    location text,
+    data jsonb
+);
+
+
+ALTER TABLE public.federated_digital_object_window_data_10 OWNER TO postgres;
+
+--
+-- TOC entry 239 (class 1259 OID 49506)
+-- Name: federated_digital_object_window_data_60; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.federated_digital_object_window_data_60 (
+    federated_digital_twin_id text,
+    federated_digital_object_id text,
+    rowtime timestamp with time zone,
+    location text,
+    data jsonb
+);
+
+
+ALTER TABLE public.federated_digital_object_window_data_60 OWNER TO postgres;
 
 --
 -- TOC entry 204 (class 1259 OID 41355)
@@ -507,6 +563,46 @@ CREATE TABLE public.federated_visual_models (
 ALTER TABLE public.federated_visual_models OWNER TO postgres;
 
 --
+-- TOC entry 229 (class 1259 OID 41708)
+-- Name: object_classification_facility; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.object_classification_facility (
+    code_number character varying(5) NOT NULL,
+    classification_type_name character varying(255)
+);
+
+
+ALTER TABLE public.object_classification_facility OWNER TO postgres;
+
+--
+-- TOC entry 228 (class 1259 OID 41703)
+-- Name: object_classification_product; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.object_classification_product (
+    code_number character varying(6) NOT NULL,
+    classification_type_name character varying(255)
+);
+
+
+ALTER TABLE public.object_classification_product OWNER TO postgres;
+
+--
+-- TOC entry 227 (class 1259 OID 41695)
+-- Name: object_classification_types; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.object_classification_types (
+    code_number integer NOT NULL,
+    classification_type_name character varying(255),
+    description text
+);
+
+
+ALTER TABLE public.object_classification_types OWNER TO postgres;
+
+--
 -- TOC entry 225 (class 1259 OID 41539)
 -- Name: relations; Type: TABLE; Schema: public; Owner: postgres
 --
@@ -549,6 +645,25 @@ CREATE TABLE public.services (
 ALTER TABLE public.services OWNER TO postgres;
 
 --
+-- TOC entry 240 (class 1259 OID 50183)
+-- Name: simulation_data; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.simulation_data (
+    simulation_data_id text,
+    simulation_id text,
+    input_data jsonb,
+    result_data jsonb,
+    trigger_time timestamp with time zone,
+    result_time timestamp with time zone,
+    federated_digital_twin_id text,
+    digital_twin_id text
+);
+
+
+ALTER TABLE public.simulation_data OWNER TO postgres;
+
+--
 -- TOC entry 217 (class 1259 OID 41434)
 -- Name: simulations; Type: TABLE; Schema: public; Owner: postgres
 --
@@ -577,12 +692,210 @@ CREATE TABLE public.simulations (
 ALTER TABLE public.simulations OWNER TO postgres;
 
 --
--- TOC entry 2882 (class 2606 OID 41488)
+-- TOC entry 230 (class 1259 OID 41714)
+-- Name: twin_classification_types; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.twin_classification_types (
+    code_number text NOT NULL,
+    classification_type text,
+    description text
+);
+
+
+ALTER TABLE public.twin_classification_types OWNER TO postgres;
+
+--
+-- TOC entry 234 (class 1259 OID 41746)
+-- Name: twin_public_resource_categorie_c; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.twin_public_resource_categorie_c (
+    code_number integer NOT NULL,
+    classification_type_name text,
+    description text
+);
+
+
+ALTER TABLE public.twin_public_resource_categorie_c OWNER TO postgres;
+
+--
+-- TOC entry 235 (class 1259 OID 41754)
+-- Name: twin_public_resource_categorie_k; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.twin_public_resource_categorie_k (
+    code_number integer NOT NULL,
+    classification_type_name text,
+    description text
+);
+
+
+ALTER TABLE public.twin_public_resource_categorie_k OWNER TO postgres;
+
+--
+-- TOC entry 236 (class 1259 OID 41762)
+-- Name: twin_public_resource_categorie_n; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.twin_public_resource_categorie_n (
+    code_number integer NOT NULL,
+    classification_type_name text,
+    description text
+);
+
+
+ALTER TABLE public.twin_public_resource_categorie_n OWNER TO postgres;
+
+--
+-- TOC entry 233 (class 1259 OID 41738)
+-- Name: twin_public_resource_major_categories; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.twin_public_resource_major_categories (
+    code_number text NOT NULL,
+    classification_type_name text,
+    description text
+);
+
+
+ALTER TABLE public.twin_public_resource_major_categories OWNER TO postgres;
+
+--
+-- TOC entry 232 (class 1259 OID 41730)
+-- Name: twin_standard_industry_categorie_c; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.twin_standard_industry_categorie_c (
+    code_number integer NOT NULL,
+    classification_type_name text,
+    description text
+);
+
+
+ALTER TABLE public.twin_standard_industry_categorie_c OWNER TO postgres;
+
+--
+-- TOC entry 231 (class 1259 OID 41722)
+-- Name: twin_standard_industry_major_categories; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.twin_standard_industry_major_categories (
+    code_number text NOT NULL,
+    classification_type_name text,
+    description text
+);
+
+
+ALTER TABLE public.twin_standard_industry_major_categories OWNER TO postgres;
+
+--
+-- TOC entry 2957 (class 2606 OID 41638)
+-- Name: country_codes country_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.country_codes
+    ADD CONSTRAINT country_codes_pkey PRIMARY KEY (code_number);
+
+
+--
+-- TOC entry 2955 (class 2606 OID 41488)
 -- Name: fdo_compositions do_compositions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.fdo_compositions
     ADD CONSTRAINT do_compositions_pkey PRIMARY KEY (compose_id);
+
+
+--
+-- TOC entry 2963 (class 2606 OID 41712)
+-- Name: object_classification_facility object_classification_facility_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.object_classification_facility
+    ADD CONSTRAINT object_classification_facility_pkey PRIMARY KEY (code_number);
+
+
+--
+-- TOC entry 2961 (class 2606 OID 41707)
+-- Name: object_classification_product object_classification_product_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.object_classification_product
+    ADD CONSTRAINT object_classification_product_pkey PRIMARY KEY (code_number);
+
+
+--
+-- TOC entry 2959 (class 2606 OID 41702)
+-- Name: object_classification_types object_classification_types_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.object_classification_types
+    ADD CONSTRAINT object_classification_types_pkey PRIMARY KEY (code_number);
+
+
+--
+-- TOC entry 2965 (class 2606 OID 41721)
+-- Name: twin_classification_types twin_classification_types_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.twin_classification_types
+    ADD CONSTRAINT twin_classification_types_pkey PRIMARY KEY (code_number);
+
+
+--
+-- TOC entry 2973 (class 2606 OID 41753)
+-- Name: twin_public_resource_categorie_c twin_public_resource_categorie_c_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.twin_public_resource_categorie_c
+    ADD CONSTRAINT twin_public_resource_categorie_c_pkey PRIMARY KEY (code_number);
+
+
+--
+-- TOC entry 2975 (class 2606 OID 41761)
+-- Name: twin_public_resource_categorie_k twin_public_resource_categorie_k_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.twin_public_resource_categorie_k
+    ADD CONSTRAINT twin_public_resource_categorie_k_pkey PRIMARY KEY (code_number);
+
+
+--
+-- TOC entry 2977 (class 2606 OID 41769)
+-- Name: twin_public_resource_categorie_n twin_public_resource_categorie_n_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.twin_public_resource_categorie_n
+    ADD CONSTRAINT twin_public_resource_categorie_n_pkey PRIMARY KEY (code_number);
+
+
+--
+-- TOC entry 2971 (class 2606 OID 41745)
+-- Name: twin_public_resource_major_categories twin_public_resource_major_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.twin_public_resource_major_categories
+    ADD CONSTRAINT twin_public_resource_major_categories_pkey PRIMARY KEY (code_number);
+
+
+--
+-- TOC entry 2969 (class 2606 OID 41737)
+-- Name: twin_standard_industry_categorie_c twin_standard_industry_categorie_c_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.twin_standard_industry_categorie_c
+    ADD CONSTRAINT twin_standard_industry_categorie_c_pkey PRIMARY KEY (code_number);
+
+
+--
+-- TOC entry 2967 (class 2606 OID 41729)
+-- Name: twin_standard_industry_major_categories twin_standard_industry_major_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.twin_standard_industry_major_categories
+    ADD CONSTRAINT twin_standard_industry_major_categories_pkey PRIMARY KEY (code_number);
+
 
 
 CREATE INDEX index_federated_digital_object ON public.federated_digital_objects USING btree (federated_digital_twin_id, federated_digital_object_id, creation_time);
@@ -594,8 +907,33 @@ CREATE INDEX index_digital_object ON public.digital_objects USING btree (federat
 CREATE INDEX index_digital_objects ON public.digital_object_data USING btree (federated_digital_twin_id, digital_twin_id, digital_object_id, rowtime);
 
 
+
 --
--- TOC entry 3014 (class 0 OID 0)
+-- TOC entry 2978 (class 1259 OID 49498)
+-- Name: index_federated_digital_objectswindow_data_1; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX index_federated_digital_objectswindow_data_1 ON public.federated_digital_object_window_data_1 USING btree (federated_digital_twin_id, federated_digital_object_id, rowtime);
+
+
+--
+-- TOC entry 2979 (class 1259 OID 49505)
+-- Name: index_federated_digital_objectswindow_data_10; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX index_federated_digital_objectswindow_data_10 ON public.federated_digital_object_window_data_10 USING btree (federated_digital_twin_id, federated_digital_object_id, rowtime);
+
+
+--
+-- TOC entry 2980 (class 1259 OID 49512)
+-- Name: index_federated_digital_objectswindow_data_60; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX index_federated_digital_objectswindow_data_60 ON public.federated_digital_object_window_data_60 USING btree (federated_digital_twin_id, federated_digital_object_id, rowtime);
+
+
+--
+-- TOC entry 3114 (class 0 OID 0)
 -- Dependencies: 6
 -- Name: SCHEMA public; Type: ACL; Schema: -; Owner: postgres
 --
@@ -604,7 +942,7 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 GRANT ALL ON SCHEMA public TO PUBLIC;
 
 
--- Completed on 2023-12-29 13:11:05
+-- Completed on 2024-02-22 14:39:30
 
 --
 -- PostgreSQL database dump complete

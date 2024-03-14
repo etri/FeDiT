@@ -49,24 +49,30 @@ exports.update = (req, res, next) => {
 };
 
 exports.DataCreate = (req, res, next) => {
-   const schema = Joi.array().items(
-      Joi.object({
-         digital_twin_id: Joi.string().required(),
-         digital_object_id: Joi.string().required(),
-         control_data_creator: Joi.string().required(),
-         control_command: Joi.object().required(),
-      })
-   );
+   const schema = Joi.object({
+      commands: Joi.array()
+         .items(
+            Joi.object({
+               digital_twin_id: Joi.string().required(),
+               digital_object_id: Joi.string().required(),
+               federated_digital_object_control_data_id: Joi.string().allow(),
+               control_data_creator: Joi.string().required(),
+               controller_id: Joi.string().required(),
+               control_command: Joi.object({
+                  command: Joi.string().required(),
+               }).required(),
+            })
+         )
+         .required(),
+   });
 
    validate(schema, req, res, next);
 };
 
 exports.DataResultCreate = (req, res, next) => {
    const schema = Joi.object({
-      digital_twin_id: Joi.string().allow(),
-      digital_object_control_data_id: Joi.string().allow(),
-      control_execution_time: Joi.string().required(),
-      control_execution_result: Joi.object().required(),
+      federated_digital_object_control_data_id: Joi.string().allow(),
+      control_execution_result: Joi.string().required(),
    });
 
    validate(schema, req, res, next);

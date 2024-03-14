@@ -3,7 +3,7 @@ const { validate } = require("./base/validate.js");
 
 exports.create = (req, res, next) => {
    const schema = Joi.object({
-      digital_object_identifier: Joi.string().empty("").default(null),
+      federated_digital_object_identifier: Joi.string().empty("").default(null),
       federated_digital_twin_id: Joi.string().allow(),
       federated_digital_object_name: Joi.string().required(),
       description: Joi.string().empty("").default(null),
@@ -51,13 +51,21 @@ exports.update = (req, res, next) => {
 };
 
 exports.controlCreate = (req, res, next) => {
-   const schema = Joi.array().items(
-      Joi.object({
-         digital_twin_id: Joi.string().allow(),
-         digital_object_id: Joi.string().required(),
-         control_data_creator: Joi.string().required(),
-         control_command: Joi.object().required(),
-      })
-   );
+   const schema = Joi.object({
+      commands: Joi.array()
+         .items(
+            Joi.object({
+               digital_twin_id: Joi.string().required(),
+               digital_object_id: Joi.string().required(),
+               control_data_creator: Joi.string().required(),
+               controller_id: Joi.string().required(),
+               control_command: Joi.object({
+                  command: Joi.string().required(),
+               }).required(),
+            })
+         )
+         .required(),
+   });
+
    validate(schema, req, res, next);
 };

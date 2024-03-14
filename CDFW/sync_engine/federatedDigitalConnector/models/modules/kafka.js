@@ -117,7 +117,6 @@ class Kafka {
                "org.kafka.connect.http.HttpSourceOptionalConnector",
             "kafka.topic": "UnalliedDigitalObjects",
             "api.url": url,
-            "poll.interval.ms": digital_object_data_interval,
             "digital.twin.id": digital_twin_id,
             "federated.digital.twin.id": federated_digital_twin_id,
             "digital.object.id": id,
@@ -130,8 +129,49 @@ class Kafka {
             "data.source.format": "json",
          },
       };
+
+      if (digital_object_data_interval) {
+         sourceConnectorBody.config["poll.interval.ms"] =
+            digital_object_data_interval;
+      }
+
       await lib.request({
          url: `http://${config.kafka.connectHost}/connectors`,
+         bodyParams: sourceConnectorBody,
+      });
+      return 0;
+   }
+
+   async updateSourceHttpConnector({
+      id,
+      url,
+      digital_twin_id,
+      federated_digital_twin_id,
+      digital_object_data_interval,
+   }) {
+      let sourceConnectorBody = {
+         "connector.class":
+            "org.kafka.connect.http.HttpSourceOptionalConnector",
+         "kafka.topic": "UnalliedDigitalObjects",
+         "api.url": url,
+         "digital.twin.id": digital_twin_id,
+         "federated.digital.twin.id": federated_digital_twin_id,
+         "digital.object.id": id,
+         "request.method": "POST",
+         headers:
+            "Content-Type:application/json|Accept-Encoding: application/json",
+         "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+         "value.converter": "org.apache.kafka.connect.storage.StringConverter",
+         "data.source.format": "json",
+      };
+
+      if (digital_object_data_interval != undefined) {
+         sourceConnectorBody["poll.interval.ms"] = digital_object_data_interval;
+      }
+
+      await lib.request({
+         method: "put",
+         url: `http://${config.kafka.connectHost}/connectors/HttpSource${id}/config`,
          bodyParams: sourceConnectorBody,
       });
       return 0;

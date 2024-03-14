@@ -243,7 +243,7 @@ router.patch(
 
 /**
  * digital-object control data creation
- * localhost:1203/fedit/v1/federated-twins/{federated_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control
+ * localhost:1203/mirrorlake/v1/federated-twins/{federated_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control
  * @body {String} digital_twin_id (required)
  * @body {String} digital_object_id (required)
  * @body {String} control_data_id (system)
@@ -290,7 +290,7 @@ router.post(
  * @returns {Json} {}
  */
 router.post(
-   "/:digital_object_id/control/:control_data_id/control-result",
+   "/:digital_object_id/control/:digital_object_control_data_id/control-result",
    joi.controllers.DataResultCreate,
    async function (req, res) {
       try {
@@ -299,7 +299,6 @@ router.post(
             req.params;
 
          const result = await services.digitalObjects.createDOExecutionData(
-            federated_digital_twin_id,
             digital_twin_id,
             digital_object_id,
             digital_object_control_data_id,
@@ -334,7 +333,6 @@ router.get("/:digital_object_id/control", async (req, res) => {
       const { from, to } = req.query;
 
       const result = await services.digitalObjects.searchControl({
-         federated_digital_twin_id,
          digital_twin_id,
          digital_object_id,
          from,
@@ -370,7 +368,6 @@ router.get(
             req.params;
 
          const result = await services.digitalObjects.retrieveControl({
-            federated_digital_twin_id,
             digital_twin_id,
             digital_object_id,
             digital_object_control_data_id,
