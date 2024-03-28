@@ -65,11 +65,12 @@ class FederatedDigitalTwins {
          number_of_subscriptions,
          number_of_services,
          number_of_simulations,
-         number_of_digital_twins
+         number_of_digital_twins,
+         number_of_visual_models
       ) values ('${federated_digital_twin_id}', '${federated_digital_twin_name}',  '${description}', '${owner}', '{${tags}}', '${point_of_access}', '${creation_time}',
        '${creator_id}', '${creation_time}', '${JSON.stringify(
          location
-      )}', 0, 0, 0, 0, 0);`;
+      )}', 0, 0, 0, 0, 0, 0);`;
 
       await model.postgres.sendQuery({ sql });
 

@@ -299,6 +299,7 @@ router.post(
             req.params;
 
          const result = await services.digitalObjects.createDOExecutionData(
+            federated_digital_twin_id,
             digital_twin_id,
             digital_object_id,
             digital_object_control_data_id,

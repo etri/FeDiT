@@ -93,10 +93,7 @@ public class MqttSubscriptionActionSinkTask extends SinkTask implements MqttCall
 
     }
 
-    private boolean isFilteringListMatch(String value, String condition) {
-//        logger.info("@@@ isFilteringListMatch value: " + value);
-//        logger.info("@@@ isFilteringListMatch condition: " + condition);
-//
+    private boolean isFilteringListMatch(String value, String condition) {//
 //        logger.info("JsonPath: " + JsonPath.read(value, condition).toString());
 //        logger.info("JsonPath-result: " + !JsonPath.read(value, condition).toString().equals("[]"));
         return !JsonPath.read(value, condition).toString().equals("[]");
@@ -111,7 +108,6 @@ public class MqttSubscriptionActionSinkTask extends SinkTask implements MqttCall
         if (filtering_condition_list.size() != filtering_action_list.size()) {
 //            logger.info("filtering_condition_list.size() != filtering_action_list.size()");
         }
-//        logger.info("### getMatchingAction");
 //        logger.info("filtering_action : " + filtering_condition_list);
 //        logger.info("filtering_condition : " + filtering_action_list);
         for (int i = 0; i < filtering_condition_list.size(); i++) {
@@ -195,6 +191,45 @@ public class MqttSubscriptionActionSinkTask extends SinkTask implements MqttCall
             if (record_topic.equals("latestFederatedDigitalObjects")) {
                 try {
                     String digital_Id = JsonPath.read(record.value().toString(), "$.federated_digital_object_id");
+                    String[] key_topicArray = key_topic.toString().split(",");
+                    for (String topic : key_topicArray) {
+                        if (digital_Id.equals(topic)) {
+                            sendMqttMessage(value);
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.info(String.valueOf(e));
+                    sendMqttMessage(value);
+                }
+            } else if (record_topic.equals("UnalliedDigitalObjects")) {
+                try {
+                    String digital_Id = JsonPath.read(record.value().toString(), "$.digital_object_id");
+                    String[] key_topicArray = key_topic.toString().split(",");
+                    for (String topic : key_topicArray) {
+                        if (digital_Id.equals(topic)) {
+                            sendMqttMessage(value);
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.info(String.valueOf(e));
+                    sendMqttMessage(value);
+                }
+            } else if (record_topic.equals("fdo_control_result")) {
+                try {
+                    String digital_Id = JsonPath.read(record.value().toString(), "$.federated_digital_object_id");
+                    String[] key_topicArray = key_topic.toString().split(",");
+                    for (String topic : key_topicArray) {
+                        if (digital_Id.equals(topic)) {
+                            sendMqttMessage(value);
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.info(String.valueOf(e));
+                    sendMqttMessage(value);
+                }
+            } else if (record_topic.equals("do_control_result")) {
+                try {
+                    String digital_Id = JsonPath.read(record.value().toString(), "$.digital_object_id");
                     String[] key_topicArray = key_topic.toString().split(",");
                     for (String topic : key_topicArray) {
                         if (digital_Id.equals(topic)) {

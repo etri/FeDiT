@@ -89,7 +89,9 @@ exports.postgresPool = {
 };
 
 exports.multer = {
-   uploadFolder: "/home/User/FederatedTwin/visual-model-assets/",
+   // uploadFolder: "/home/User/FederatedTwin/visual-model-assets/",
+   uploadFolder: "visual-model-assets/",
+
    fileSizeLimit: 100 * 1024 * 1024, // 100mb
    allowMimetype: [
       ".fbx",

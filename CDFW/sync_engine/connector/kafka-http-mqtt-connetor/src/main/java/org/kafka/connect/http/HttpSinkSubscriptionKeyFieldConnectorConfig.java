@@ -13,6 +13,7 @@ public class HttpSinkSubscriptionKeyFieldConnectorConfig extends AbstractConfig 
             .define("http.api.url", Type.LIST, "https://localhost:1234", Importance.HIGH, "http.api.url")
             .define("subscription.id", Type.STRING, "sub_id", Importance.HIGH, "subscription.id")
             .define("digital.twin.id", Type.STRING, "dt_id", Importance.HIGH, "digital.twin.id")
+            .define("federated.digital.twin.id", Type.STRING, "fdt_id", Importance.HIGH, "federated.digital.twin.id")
             .define("subscription.name", Type.STRING, "sub_name", Importance.HIGH, "subscription.name")
             .define("resource.type", Type.STRING, "digital_object", Importance.HIGH, "resource.type")
             .define("key.topic", Type.STRING, "digital_id", Importance.HIGH, "key.topic"); //ex) D1234

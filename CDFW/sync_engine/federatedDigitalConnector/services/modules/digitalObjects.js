@@ -475,6 +475,7 @@ class DigitalObjects {
             digital_object_control_data_id;
          sendData.push(element);
       });
+
       let httpResponse = await lib.request({
          url: digital_object_control_url,
          bodyParams: sendData,
@@ -503,13 +504,33 @@ class DigitalObjects {
             }
          }
          return httpResponse;
+      } else if (httpResponse == undefined) {
+         let returnData = [];
+         for (let data of sendData) {
+            let digital_object_control_data_id =
+               data.digital_object_control_data_id;
+            let controller_id = data.controller_id;
+            let control_data_creator = data.control_data_creator;
+            let control_delivery_result = "No controller response";
+            let control_command = data.control_command;
+            let sql = `insert into digital_object_controllers (digital_twin_id, digital_object_control_data_id, controller_id, control_data_creator, control_creation_time, control_delivery_time, control_delivery_result, control_command) values ('${digital_twin_id}', '${digital_object_control_data_id}', '${controller_id}', '${control_data_creator}', '${control_creation_time}', '${control_delivery_time}', '${control_delivery_result}', '${JSON.stringify(
+               control_command
+            )}');`;
+            await model.postgres.sendQuery({ sql });
+
+            returnData.push({
+               digital_object_control_data_id,
+               control_delivery_result: "No Controller Response",
+            });
+         }
+         return returnData;
       } else {
-         throw new ErrorHandler(412, 5252, "No Controller Response");
+         throw new ErrorHandler(412, 5252, "Something Control Error");
       }
    }
 
    /**
-    * Digital Object의 Controller execution result 저장 --> kafka (control_exec_result)
+    * Digital Object의 Controller execution result 저장 --> kafka (do_control_result)
     * @param {String} digital_twin_id (required)
     * @param {String} digital_object_id (required)
     * @param {String} control_data_id (required)
@@ -518,21 +539,24 @@ class DigitalObjects {
     * @returns {Json} {}
     */
    async createDOExecutionData(
+      federated_digital_twin_id,
       digital_twin_id,
       digital_object_id,
       digital_object_control_data_id,
       params
    ) {
       const digital_object_control_result_id = "C" + uuid();
-      const federated_digital_object_control_result_id = "FDOCR" + uuid();
       const control_execution_time = lib.timestamp();
-      // const { controller_id, contrl_execution_result } = parmas;
       const {
          control_execution_result,
          federated_digital_object_control_data_id,
       } = params;
 
-      if (!digital_twin_id || !digital_object_id) {
+      if (
+         !federated_digital_twin_id ||
+         !digital_twin_id ||
+         !digital_object_id
+      ) {
          throw new ErrorHandler(412, 5252, "please check mandatory field.");
       }
 
@@ -546,6 +570,7 @@ class DigitalObjects {
 
       let executionResultMessage = {
          digital_twin_id,
+         digital_object_id,
          digital_object_control_result_id,
          digital_object_control_data_id,
          control_execution_result,
@@ -560,27 +585,20 @@ class DigitalObjects {
       });
 
       if (federated_digital_object_control_data_id) {
-         let fdoExecutionResultMessage = {
-            digital_object_id,
-            federated_digital_object_control_result_id,
-            federated_digital_object_control_data_id,
-            federated_digital_object_control_execution_result:
-               control_execution_result,
-            federated_digital_object_control_execution_time:
-               control_execution_time,
-         };
+         // POST /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/control-result
+         const sql = `SELECT federated_digital_object_id FROM federated_controls where federated_digital_object_control_data_id='${federated_digital_object_control_data_id}'`;
+         const { federated_digital_object_id } =
+            await model.postgres.selectData({ sql });
+         const fdo_control_result_url = `http://${config.federatedDigitalBrain.ip}:${config.federatedDigitalBrain.port}/${config.federatedDigitalBrain.base}/${federated_digital_twin_id}/federated-digital-objects/${federated_digital_object_id}/control-result`;
+         params.digital_object_id = digital_object_id;
 
-         const kafkaKey = { federated_digital_object_control_data_id };
-         await model.kafka.kafkaProducer({
-            topic: "fdo_control_result",
-            kafkaKey: JSON.stringify(kafkaKey),
-            data: JSON.stringify(fdoExecutionResultMessage),
+         let fdo_control_result_resp = await lib.request({
+            url: fdo_control_result_url,
+            bodyParams: params,
          });
+         console.log(fdo_control_result_resp);
       }
-
-      // const sql = `insert into digital_object_control_result (digital_twin_id, digital_object_control_result_id, digital_object_control_data_id, control_execution_time, control_execution_result) values ('${digital_twin_id}', '${digital_object_control_result_id}', '${digital_object_control_data_id}', '${control_execution_time}', '${control_execution_result}');`;
-      // await model.postgres.sendQuery({ sql });
-      // return { digital_object_control_result_id, control_execution_result };
+      return;
    }
 
    /**

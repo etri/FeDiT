@@ -94,7 +94,7 @@ public class HttpSinkSubscriptionKeyFieldTask extends SinkTask {
                         String[] key_topicArray = key_topic.toString().split(",");
                         for (String topic : key_topicArray) {
                             if (digital_Id.equals(topic)) {
-                                System.out.println("Matching value found: " + digital_Id);
+//                                System.out.println("Matching value found: " + digital_Id);
                                 jsonObject.put("digital_twin_id", config.getString("digital.twin.id"));
                                 jsonObject.put("subscription_id", config.getString("subscription.id"));
                                 jsonObject.put("subscription_name", config.getString("subscription.name"));
@@ -170,8 +170,113 @@ public class HttpSinkSubscriptionKeyFieldTask extends SinkTask {
                         String[] key_topicArray = key_topic.toString().split(",");
                         for (String topic : key_topicArray) {
                             if (digital_Id.equals(topic)) {
-                                System.out.println("Matching value found: " + digital_Id);
-                                jsonObject.put("federated_digital_twin_id", config.getString("digital.twin.id"));
+//                                System.out.println("Matching value found: " + digital_Id);
+                                jsonObject.put("federated_digital_twin_id", config.getString("federated.digital.twin.id"));
+                                jsonObject.put("subscription_id", config.getString("subscription.id"));
+                                jsonObject.put("subscription_name", config.getString("subscription.name"));
+                                jsonObject.put("data", recordValue);
+
+                                StringBuilder builder = new StringBuilder();
+                                builder.append(record.value());
+
+                                conn = (HttpURLConnection) uri.openConnection();
+                                conn.setRequestMethod("POST");
+                                conn.setRequestProperty("Content-Type", "application/json");
+                                conn.setRequestProperty("Accept-Encoding", "application/json");
+                                conn.setDoOutput(true);
+                                OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream(), "UTF-8");
+                                writer.write(builder.toString());
+                                writer.close();
+
+                                // get Response
+                                int status = conn.getResponseCode();
+                                //System.out.println("RESPONSE CODE : " + status + "\nresponse message: " + conn.getResponseMessage());
+
+                                conn.disconnect();
+                            }
+                        }
+
+                    } catch (Exception e) {
+                        logger.error("sendPostRequest] Try-catch Exception e : " + e);
+                    }
+                } else if (record_topic.equals("UnalliedDigitalObjects")) {
+                    try {
+                        String digital_Id = JsonPath.read(recordValue, "$.digital_object_id");
+                        String[] key_topicArray = key_topic.toString().split(",");
+                        for (String topic : key_topicArray) {
+                            if (digital_Id.equals(topic)) {
+//                                System.out.println("Matching value found: " + digital_Id);
+                                jsonObject.put("federated_digital_twin_id", config.getString("federated.digital.twin.id"));
+                                jsonObject.put("subscription_id", config.getString("subscription.id"));
+                                jsonObject.put("subscription_name", config.getString("subscription.name"));
+                                jsonObject.put("data", recordValue);
+
+                                StringBuilder builder = new StringBuilder();
+                                builder.append(record.value());
+
+                                conn = (HttpURLConnection) uri.openConnection();
+                                conn.setRequestMethod("POST");
+                                conn.setRequestProperty("Content-Type", "application/json");
+                                conn.setRequestProperty("Accept-Encoding", "application/json");
+                                conn.setDoOutput(true);
+                                OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream(), "UTF-8");
+                                writer.write(builder.toString());
+                                writer.close();
+
+                                // get Response
+                                int status = conn.getResponseCode();
+                                //System.out.println("RESPONSE CODE : " + status + "\nresponse message: " + conn.getResponseMessage());
+
+                                conn.disconnect();
+                            }
+                        }
+
+                    } catch (Exception e) {
+                        logger.error("sendPostRequest] Try-catch Exception e : " + e);
+                    }
+                } else if (record_topic.equals("fdo_control_result")) {
+                    try {
+                        String digital_Id = JsonPath.read(recordValue, "$.federated_digital_object_id");
+                        String[] key_topicArray = key_topic.toString().split(",");
+                        for (String topic : key_topicArray) {
+                            if (digital_Id.equals(topic)) {
+//                                System.out.println("Matching value found: " + digital_Id);
+                                jsonObject.put("federated_digital_twin_id", config.getString("federated.digital.twin.id"));
+                                jsonObject.put("subscription_id", config.getString("subscription.id"));
+                                jsonObject.put("subscription_name", config.getString("subscription.name"));
+                                jsonObject.put("data", recordValue);
+
+                                StringBuilder builder = new StringBuilder();
+                                builder.append(record.value());
+
+                                conn = (HttpURLConnection) uri.openConnection();
+                                conn.setRequestMethod("POST");
+                                conn.setRequestProperty("Content-Type", "application/json");
+                                conn.setRequestProperty("Accept-Encoding", "application/json");
+                                conn.setDoOutput(true);
+                                OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream(), "UTF-8");
+                                writer.write(builder.toString());
+                                writer.close();
+
+                                // get Response
+                                int status = conn.getResponseCode();
+                                //System.out.println("RESPONSE CODE : " + status + "\nresponse message: " + conn.getResponseMessage());
+
+                                conn.disconnect();
+                            }
+                        }
+
+                    } catch (Exception e) {
+                        logger.error("sendPostRequest] Try-catch Exception e : " + e);
+                    }
+                } else if (record_topic.equals("do_control_result")) {
+                    try {
+                        String digital_Id = JsonPath.read(recordValue, "$.digital_object_id");
+                        String[] key_topicArray = key_topic.toString().split(",");
+                        for (String topic : key_topicArray) {
+                            if (digital_Id.equals(topic)) {
+//                                System.out.println("Matching value found: " + digital_Id);
+                                jsonObject.put("federated_digital_twin_id", config.getString("federated.digital.twin.id"));
                                 jsonObject.put("subscription_id", config.getString("subscription.id"));
                                 jsonObject.put("subscription_name", config.getString("subscription.name"));
                                 jsonObject.put("data", recordValue);

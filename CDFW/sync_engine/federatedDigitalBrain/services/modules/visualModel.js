@@ -17,10 +17,10 @@ class VisualModel {
     * @param {String} creation_time (system)
     * @param {String} creator_id (required)
     * @param {String} modification_time (system)
-    * @param {String} visual_data_access_url (system)
-    * @param {String enum} visual_datafile_format (system)
-    * @param {Integer} visual_datafile_size (system)
-    * @param {String} visual_datafile_path (system)
+    * @param {String} access_url (system)
+    * @param {String enum} file_format (system)
+    * @param {Integer} file_size (system)
+    * @param {String} location (system)
     * @param {Object} visual_data (required)
     *
     * @returns {Json} {}
@@ -42,43 +42,33 @@ class VisualModel {
          visualModelCount =
             parseInt(selectedDTdata.number_of_visual_models) + 1;
       }
-      const { visual_model_name, description, subject, tags, creator_id } =
+      const { visual_model_name, description, tags, creator_id } =
          req.body;
       const visual_data = req.file;
 
-      try {
-         const isExistName = await model.postgres.checkNameExist({
-            table: "federated_visual_models",
-            check: "visual_model_name",
-            name: visual_model_name,
-            federated_digital_twin_id,
-         });
-         if (isExistName) {
-            throw new ErrorHandler(
-               409,
-               4091,
-               `${visual_model_name} is already exist`
-            );
-         }
-      } catch (e) {
-         logger.error(e);
+      const isExistName = await model.postgres.checkNameExist({
+         table: "federated_visual_models",
+         check: "visual_model_name",
+         name: visual_model_name,
+         federated_digital_twin_id,
+      });
+      if (isExistName) {
          throw new ErrorHandler(
             409,
             4091,
-            `${visual_model_name} is already exist`,
-            e
+            `${visual_model_name} is already exist`
          );
       }
 
       // const visual_model_id = uuid();
       if (visual_data?.originalname) {
-         const visual_datafile_format = path.extname(visual_data.originalname);
+         const file_format = path.extname(visual_data.originalname);
          const visual_model_id = path.basename(
             visual_data.filename,
-            visual_datafile_format
+            file_format
          );
-         const creationTime = lib.timestamp();
-         const modification_time = creationTime;
+         const creation_time = lib.timestamp();
+         const modification_time = creation_time;
          const address = {
             access_ip: config.nginx.ip
                ? config.nginx.ip
@@ -88,26 +78,24 @@ class VisualModel {
                : config.federatedDigitalBrain.port,
          };
          const access_url = `http://${address.access_ip}:${address.access_port}/${config.federatedDigitalBrain.base}/${federated_digital_twin_id}/visual-models/${visual_model_id}/download`;
-         const visual_datafile_size = visual_data.size;
-         const visual_datafile_path = visual_data.destination;
+         const file_size = visual_data.size;
+         const location = visual_data.destination;
 
          let sql = `INSERT INTO federated_visual_models  (
             visual_model_id,
             federated_digital_twin_id,
             visual_model_name,
             description,
-            subject,
             creation_time,
             creator_id,
             modification_time,
             access_url, 
-            visual_datafile_format,
-            visual_datafile_size,
-            visual_datafile_path,
+            file_format,
+            file_size,
+            location,
             tags
-         ) VALUES ('${visual_model_id}', '${federated_digital_twin_id}', '${visual_model_name}', '${description}', '${subject}', '${creationTime}', '${creator_id}', '${modification_time}', '${access_url}', '${visual_datafile_format}', '${visual_datafile_size}', '${visual_datafile_path}', '{${tags}}'); `;
-
-         const updatevisualModelCountSQL = `update digital_twins set number_of_visual_models = ${visualModelCount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}';`;
+         ) VALUES ('${visual_model_id}', '${federated_digital_twin_id}', '${visual_model_name}', '${description}', '${creation_time}', '${creator_id}', '${modification_time}', '${access_url}', '${file_format}', '${file_size}', '${location}', '{${tags}}'); `;
+         const updatevisualModelCountSQL = `update federated_digital_twins set number_of_visual_models = ${visualModelCount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}';`;
 
          await model.postgres.sendQuery({
             sql: sql + updatevisualModelCountSQL,
@@ -206,13 +194,13 @@ class VisualModel {
       } else {
          let {
             visual_model_name,
-            visual_datafile_path,
-            visual_datafile_format,
+            location,
+            file_format,
          } = await this.retrieve({
             federated_digital_twin_id,
             visual_model_id,
          });
-         const file = `${visual_datafile_path}/${visual_model_id}${visual_datafile_format}`;
+         const file = `${location}/${visual_model_id}${file_format}`;
          // const sql = `select * from federated_visual_models where visual_model_id = '${visual_model_id}'`;
          // const selectedData = await model.postgres.selectData({ sql });
          return file;
@@ -284,14 +272,14 @@ class VisualModel {
             parseInt(selectedDTdata.number_of_visual_models) - 1;
          const updatevisualModelCountSQL = `update digital_twins set number_of_visual_models = ${visualModelCount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}'; `;
 
-         const { visual_datafile_path, visual_datafile_format } =
+         const { location, file_format } =
             await this.retrieve({ federated_digital_twin_id, visual_model_id });
          try {
             fs.unlinkSync(
-               `${visual_datafile_path}/${visual_model_id}${visual_datafile_format}`
+               `${location}/${visual_model_id}${file_format}`
             );
             logger.info(
-               `Visual Model File Delete Success : ${visual_datafile_path}/${visual_model_id}${visual_datafile_format}`
+               `Visual Model File Delete Success : ${location}/${visual_model_id}${file_format}`
             );
          } catch (e) {
             logger.error("Visual Model File Delete Fail : ", e);

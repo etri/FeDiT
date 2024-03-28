@@ -822,5 +822,75 @@ class FederatedDigitalObjects {
       }
       return returnData;
    }
+
+   /**
+    * federated digital object의 control execution result data 생성 -> kafka (fdo_control_result)
+    * @param {string} federated_digital_twin_id
+    * @param {string} federated_digital_object_id
+    * @param {string} federated_digital_object_control_data_id
+    * @param {Json Array} execution_result
+    * 
+    * @returns {Json}
+    */
+   async createFDOExecutionData( federated_digital_twin_id, federated_digital_object_id, params ) {
+      const federated_digital_object_control_result_id = "FDOCR" + uuid();
+      const control_execution_time = lib.timestamp();
+      const {
+         control_execution_result,
+         federated_digital_object_control_data_id,
+         digital_object_id,
+      } = params;
+
+      if (!federated_digital_twin_id || !federated_digital_object_id) {
+         throw new ErrorHandler(412, 5252, "please check mandatory field.");
+      }
+
+      const isExistID = await model.postgres.checkIdExist({
+         table: "federated_controls",
+         check: "federated_digital_object_control_data_id",
+         id: federated_digital_object_control_data_id
+      });
+
+
+      if (!isExistID) {
+         throw new ErrorHandler(
+            412,
+            412,
+            "Unregistered federated_digital_object_control_data_id"
+         );
+      }
+
+
+      if (!control_execution_result) {
+         throw new ErrorHandler(
+            412,
+            5252,
+            "data needs control_execution_result field."
+         );
+      }
+
+      let fdoExecutionResultMessage = {
+         federated_digital_object_id,
+         digital_object_id,
+         federated_digital_object_control_result_id,
+         federated_digital_object_control_data_id,
+         federated_digital_object_control_execution_result:
+            control_execution_result,
+         federated_digital_object_control_execution_time:
+            control_execution_time,
+      };
+
+      console.log(fdoExecutionResultMessage);
+
+      const kafkaKey = { federated_digital_object_id };
+      await model.kafka.kafkaProducer({
+         topic: "fdo_control_result",
+         kafkaKey: JSON.stringify(kafkaKey),
+         data: JSON.stringify(fdoExecutionResultMessage),
+      });
+
+      return { federated_digital_object_control_data_id };
+   }
 }
+
 module.exports = FederatedDigitalObjects;

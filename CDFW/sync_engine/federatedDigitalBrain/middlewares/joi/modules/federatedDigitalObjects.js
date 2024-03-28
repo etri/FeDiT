@@ -69,3 +69,12 @@ exports.controlCreate = (req, res, next) => {
 
    validate(schema, req, res, next);
 };
+
+exports.dataResultCreate = (req, res, next) => {
+   const schema = Joi.object({
+      federated_digital_object_control_data_id: Joi.string().required(),
+      control_execution_result: Joi.string().required(),
+      digital_object_id: Joi.string().required(),
+   });
+   validate(schema, req, res, next);
+};

@@ -58,8 +58,10 @@ class Subscriptions {
          filtering_condition_list,
       } = params;
 
-      const topicList = await this.makeTopicList({ subscription_subject });
-
+      const topicList = await this.makeTopicList({ subscription_subject }); //consuming할 kafka topic list
+      let modifiedSubscription = await this.modifyArray({
+         subscription_subject,
+      });
       const subscription_id = "FSUB" + uuid();
 
       const expiration_time_temp = expiration_time
@@ -84,8 +86,8 @@ class Subscriptions {
          tags,
          filtering_action_list,
          filtering_condition_list
-      ) values ('${subscription_id}', '${federated_digital_twin_id}', '${subscription_name}', '${description}', '${creationTime}', '${creator_id}', 
-      '${creationTime}', '{${subscription_subject}}', '${subscription_protocol}', ${expiration_time_temp}, ${expiration_count}, ${fail_count}, 
+      ) values ('${subscription_id}', '${federated_digital_twin_id}', '${subscription_name}', '${description}', '${creationTime}', '${creator_id}',
+      '${creationTime}', '{${subscription_subject}}', '${subscription_protocol}', ${expiration_time_temp}, ${expiration_count}, ${fail_count},
       '{${notification_url}}', '{${tags}}', '${filtering_action_list}', '${filtering_condition_list}');`;
       await model.postgres.sendQuery({ sql: insertsubscriptionDataSQL });
       await model.postgres.insertRelationInfo({
@@ -100,7 +102,7 @@ class Subscriptions {
          subscription_id,
          subscription_name,
          notification_url: lib.arryToString(notification_url),
-         topics: lib.arryToString(subscription_subject),
+         topics: modifiedSubscription,
          topicList,
          subscription_protocol,
          filtering_action_list,
@@ -110,40 +112,102 @@ class Subscriptions {
       return { subscription_id };
    }
 
-   async makeTopicList({ subscription_subject }) {
-      let checkSQL = ``;
-      for (const subject of subscription_subject) {
-         checkSQL += `
-         SELECT 
-    CASE
-        WHEN digital_objects.digital_object_id IS NOT NULL THEN 'digital_objects'
-        WHEN federated_digital_objects.federated_digital_object_id IS NOT NULL THEN 'federated_digital_objects'
-        WHEN federated_simulations.simulation_id IS NOT NULL THEN 'simulation_result'
-        ELSE 'Not Found'
-    END AS subject_type
-FROM 
-    digital_objects
-FULL OUTER JOIN 
-    federated_digital_objects ON digital_objects.digital_object_id = federated_digital_objects.federated_digital_object_id
-FULL OUTER JOIN
-    federated_simulations ON digital_objects.digital_object_id = federated_simulations.simulation_id
-WHERE 
-    digital_objects.digital_object_id = '${subject}' OR federated_digital_objects.federated_digital_object_id = '${subject}' OR federated_simulations.simulation_id = '${subject}';`;
+   async modifyArray({ subscription_subject }) {
+      // 새로운 배열 생성
+      let modifiedArr = [];
+
+      // 배열 요소를 순회하며 조건에 맞게 값 변경
+      for (let i = 0; i < subscription_subject.length; i++) {
+         let subject = subscription_subject[i];
+
+         // '_fdo_control' 또는 '_do_control'을 포함하고 있는 경우 처리
+         if (
+            subject.includes("_fdo_control") ||
+            subject.includes("_do_control")
+         ) {
+            // '_fdo_control' 또는 '_do_control'을 제거한 값으로 배열 값을 변경
+            let modifiedSubject = subject
+               .replace("_fdo_control", "")
+               .replace("_do_control", "");
+            modifiedArr.push(modifiedSubject);
+         } else {
+            // 해당하는 문자열이 없는 경우 그대로 유지
+            modifiedArr.push(subject);
+         }
       }
 
-      const selectedData = await model.postgres.selectDataRows({
-         sql: checkSQL,
-      });
+      return lib.arryToString(modifiedArr);
+   }
 
+   async makeTopicList({ subscription_subject }) {
+      let checkSQL = ``;
+      const topicSet = new Set();
+
+      for (const subject of subscription_subject) {
+         if (subject.includes("_fdo_control")) {
+            topicSet.add("fdo_control_result");
+         } else if (subject.includes("_do_control")) {
+            topicSet.add("do_control_result");
+         } else {
+            checkSQL += `
+              SELECT 
+                  CASE
+                      WHEN digital_objects.digital_object_id IS NOT NULL THEN 'digital_objects'
+                      WHEN federated_digital_objects.federated_digital_object_id IS NOT NULL THEN 'federated_digital_objects'
+                      WHEN federated_simulations.simulation_id IS NOT NULL THEN 'simulation_result'
+                      ELSE 'Not Found'
+                  END AS subject_type
+              FROM 
+                  digital_objects
+              FULL OUTER JOIN 
+                  federated_digital_objects ON digital_objects.digital_object_id = federated_digital_objects.federated_digital_object_id
+              FULL OUTER JOIN
+                  federated_simulations ON digital_objects.digital_object_id = federated_simulations.simulation_id
+              WHERE 
+                  digital_objects.digital_object_id = '${subject}' OR federated_digital_objects.federated_digital_object_id = '${subject}' OR federated_simulations.simulation_id = '${subject}';`;
+         }
+      }
+
+      let selectedData;
       let topicList = "";
-      if (!selectedData) {
-         throw new ErrorHandler(412, 412, `Unregistered subscription_subject`);
-      } else {
-         const topicSet = new Set();
-         if (Array.isArray(selectedData)) {
-            for (let i = 0; i < selectedData.length; i++) {
-               const row = selectedData[i].rows[0];
-               if (row) {
+      if (checkSQL.trim() !== "") {
+         selectedData = await model.postgres.selectDataRows({
+            sql: checkSQL,
+         });
+
+         if (!selectedData) {
+            throw new ErrorHandler(
+               412,
+               412,
+               `Unregistered subscription_subject`
+            );
+         } else {
+            if (Array.isArray(selectedData)) {
+               for (let i = 0; i < selectedData.length; i++) {
+                  const row = selectedData[i].rows[0];
+                  if (row) {
+                     if (row.subject_type === "digital_objects") {
+                        topicSet.add("UnalliedDigitalObjects");
+                     } else if (
+                        row.subject_type === "federated_digital_objects"
+                     ) {
+                        if (!topicSet.has("latestFederatedDigitalObjects")) {
+                           topicSet.add("latestFederatedDigitalObjects");
+                        }
+                     } else if (row.subject_type === "simulation_result") {
+                        topicSet.add(`${subscription_subject[i]}_result`);
+                     }
+                  } else {
+                     throw new ErrorHandler(
+                        412,
+                        412,
+                        `Unregistered subscription_subject '${subscription_subject[i]}'`
+                     );
+                  }
+               }
+            } else {
+               const row = selectedData.rows[0];
+               if (row?.subject_type) {
                   if (row.subject_type === "digital_objects") {
                      topicSet.add("UnalliedDigitalObjects");
                   } else if (row.subject_type === "federated_digital_objects") {
@@ -151,42 +215,22 @@ WHERE
                         topicSet.add("latestFederatedDigitalObjects");
                      }
                   } else if (row.subject_type === "simulation_result") {
-                     topicSet.add(`${subscription_subject[i]}_result`);
+                     topicSet.add(`${subscription_subject[0]}_result`);
                   }
                } else {
                   throw new ErrorHandler(
                      412,
                      412,
-                     `Unregistered subscription_subject '${subscription_subject[i]}'`
+                     `Unregistered subscription_subject '${subscription_subject[0]}'`
                   );
                }
             }
-         } else {
-            const row = selectedData.rows[0];
-            if (row?.subject_type) {
-               if (row.subject_type === "digital_objects") {
-                  topicSet.add("UnalliedDigitalObjects");
-               } else if (row.subject_type === "federated_digital_objects") {
-                  if (!topicSet.has("latestFederatedDigitalObjects")) {
-                     topicSet.add("latestFederatedDigitalObjects");
-                  }
-               } else if (row.subject_type === "simulation_result") {
-                  topicSet.add(`${subscription_subject[0]}_result`);
-               }
-            } else {
-               throw new ErrorHandler(
-                  412,
-                  412,
-                  `Unregistered subscription_subject '${subscription_subject[0]}'`
-               );
-            }
          }
-
-         if (topicSet.size > 0) {
-            topicList = Array.from(topicSet).join(",");
-         } else {
-            topicList = subscription_subject.join(",");
-         }
+      }
+      if (topicSet.size > 0) {
+         topicList = Array.from(topicSet).join(",");
+      } else {
+         topicList = subscription_subject.join(",");
       }
 
       return topicList;

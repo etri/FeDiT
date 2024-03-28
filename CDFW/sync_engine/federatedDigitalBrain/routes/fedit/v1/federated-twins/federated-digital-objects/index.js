@@ -237,7 +237,7 @@ router.post(
          e.handle(
             req,
             res,
-            `POST /mirrorlake/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects ${e}`
+            `POST /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/control`
          );
       }
    }
@@ -271,7 +271,7 @@ router.get("/:federated_digital_object_id/control", async (req, res) => {
       e.handle(
          req,
          res,
-         `Search /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`
+         `Search /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/control`
       );
    }
 });
@@ -309,7 +309,45 @@ router.get(
          e.handle(
             req,
             res,
-            `Search /mirrorlake/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`
+            `Search /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/control/{federated_digital_object_control_data_id}`
+         );
+      }
+   }
+);
+
+/**
+ * federated-digital-object control data creation
+ * localhost:1203/fedit/v1/federated-twins/{federated_twin_id}/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control/{control_data_id}/control-result
+ * @body {String} digital_twin_id (required)
+ * @body {String} digital_object_id (required)
+ * @body {String} control_data_id (system)
+ * @body {Json Array} control_messages (controller_id, control_data_creator command)
+ * @returns {Json} {}
+ */
+router.post(
+   "/:federated_digital_object_id/control-result",
+   joi.federatedDigitalObjects.dataResultCreate,
+   async function (req, res) {
+      try {
+         const { federated_digital_twin_id } = req;
+         const { federated_digital_object_id } = req.params;
+         const result =
+            await services.federatedDigitalObjects.createFDOExecutionData(
+               federated_digital_twin_id,
+               federated_digital_object_id,
+               req.body // controller_id, execution result
+            );
+
+         res.success(201, result);
+      } catch (e) {
+         if (!(e instanceof ErrorHandler)) {
+            logger.error(e);
+            e = new ErrorHandler(500, 500, "Internal Server Error");
+         }
+         e.handle(
+            req,
+            res,
+            "POST /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/control-result"
          );
       }
    }

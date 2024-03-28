@@ -48,6 +48,7 @@ ALTER TABLE public.country_codes OWNER TO postgres;
 
 CREATE TABLE public.digital_object_control_result (
     digital_twin_id text,
+    digital_object_id text,
     digital_object_control_result_id text,
     digital_object_control_data_id text,
     control_execution_time timestamp with time zone,
@@ -214,6 +215,8 @@ ALTER TABLE public.federated_augment_models OWNER TO postgres;
 CREATE TABLE public.federated_control_result (
     federated_digital_object_control_result_id text,
     federated_digital_object_control_data_id text,
+    federated_digital_object_id text,
+    digital_object_id text,
     federated_digital_object_control_execution_time timestamp with time zone,
     federated_digital_object_control_execution_result text
 );
@@ -371,7 +374,8 @@ CREATE TABLE public.federated_digital_twins (
     number_of_subscriptions integer,
     number_of_services integer,
     number_of_simulations integer,
-    number_of_digital_twins integer
+    number_of_digital_twins integer,
+    number_of_visual_models integer
 );
 
 
@@ -550,6 +554,7 @@ CREATE TABLE public.federated_visual_models (
     visual_model_id text,
     visual_model_name text,
     description text,
+    tags text[],
     creation_time timestamp with time zone,
     creator_id text,
     modification_time timestamp with time zone,

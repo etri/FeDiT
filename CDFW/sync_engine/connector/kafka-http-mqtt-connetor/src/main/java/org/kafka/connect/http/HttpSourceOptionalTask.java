@@ -82,7 +82,7 @@ public class HttpSourceOptionalTask extends SourceTask {
         while (retryCount < MAX_RETRY_COUNT && !success) {
             try {
                 conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestProperty("Accept", "*/*;q=0.9");
+                conn.setRequestProperty("Accept", "*/*;q=0.9"); //header
                 // get status check
                 int status = conn.getResponseCode();
                 if (Response.Status.Family.familyOf(status) != Response.Status.Family.SUCCESSFUL) {
@@ -210,7 +210,7 @@ public class HttpSourceOptionalTask extends SourceTask {
                     data = getOpenAPIjsonDataRequest(key_topic);
                 }
 
-                if (data == null) {
+                if (data == null || data.equals("")) {
                     logger.warning("[data null] There is something wrong with the data");
                 } else {
                     JSONObject kafka_key = new JSONObject();

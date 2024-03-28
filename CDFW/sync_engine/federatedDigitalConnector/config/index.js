@@ -22,13 +22,13 @@ exports.nginx = {
 exports.federatedDigitalBrain = {
    ip: "localhost",
    port: "1213",
-   base: "fedit/v1/digital-twins",
+   base: "fedit/v1/federated-twins",
 };
 
 exports.federatedDigitalConnector = {
    ip: "localhost",
    port: "1219",
-   base: "fedit/v1/digital-twins",
+   base: "fedit/v1/federated-twins",
 };
 
 /**

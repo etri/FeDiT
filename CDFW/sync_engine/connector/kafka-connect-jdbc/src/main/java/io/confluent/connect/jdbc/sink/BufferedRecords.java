@@ -161,9 +161,11 @@ public class BufferedRecords {
     .field("digital_object_control_data_id", Schema.STRING_SCHEMA)
     .field("control_execution_time", Timestamp.SCHEMA)
     .field("control_execution_result", Schema.STRING_SCHEMA)
+    .field("digital_object_id", Schema.STRING_SCHEMA)
     .build();
     } else if (config.dataType.equals("fdo_control_result")) {
       this.valueSchema = SchemaBuilder.struct()
+    .field("federated_digital_object_id", Schema.STRING_SCHEMA)
     .field("federated_digital_object_control_result_id", Schema.STRING_SCHEMA)
     .field("federated_digital_object_control_data_id", Schema.STRING_SCHEMA)
     .field("federated_digital_object_control_execution_time", Timestamp.SCHEMA)
@@ -293,6 +295,10 @@ public class BufferedRecords {
       log.debug("Flushing {} buffered records", records.size());
       for (SinkRecord record : records) {
         try {
+          if (isNull(record.value())) {
+            log.debug("Records is null");
+            return new ArrayList<>();
+          }
           Map<String, Object> recordValue = (Map<String, Object>) record.value();
                     
           Iterator<String> iteratorKey = recordValue.keySet().iterator();
