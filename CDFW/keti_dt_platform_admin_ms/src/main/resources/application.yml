@@ -1,0 +1,41 @@
+#common
+server:
+  port: 6991
+  servlet:
+    context-path: /admin
+    session : 
+      cookie : 
+        path : /
+
+spring:
+  application:
+    name: Platform_Admin_MS
+  profiles:
+    include:
+    - env
+    active: local
+  jpa:
+    properties:
+      hibernate:
+        order_inserts: true
+        order_updates: true
+        jdbc:
+          batch_size: 500
+  sleuth:
+    sampler:
+      probability: 1.0
+    
+management:
+  endpoint:
+    health:
+      show-details: always
+      
+  endpoints:
+    web:
+      exposure:
+        include:
+        - "*"    
+
+logging:
+  level:
+    kr.co.n2m.platform: debug
