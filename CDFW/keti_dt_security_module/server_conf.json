@@ -1,0 +1,14 @@
+{
+  "serverip": "220.124.222.86",
+  "serverport": 33000,
+  "dbUserId": "security_manager",
+  "dbUserPwd": "rhksflwk1!",
+  "dbHost": "220.124.222.86",
+  "dbName": "hubsecurity",
+  "dbPort": 5432,
+  "emailAccountId": "",
+  "emailAccountPwd": "",
+  "token_type": "JWS",
+  "program_type": "general"
+}
+
