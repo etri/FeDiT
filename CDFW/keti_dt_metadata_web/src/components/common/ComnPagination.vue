@@ -23,7 +23,7 @@
       >
       </el-pagination>
     </div>
-    <div class="pagination-total"></div>
+     <div class="pagination-total"></div>
   </div>
 </template>
 
@@ -124,23 +124,21 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.ly-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 16px;
-}
 .pagination-area {
-  display: flex;
-  justify-content: space-between;
+  margin-top:15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content:space-between;
+  width:100%;
+  height:48px;
+  //justify-content: space-between;
   .ly-pagination {
     display: inline-flex;
   }
 }
 .pagination-total {
-  display: inline-flex;  
-  align-items: center;
-  margin-top:15px;
+  display:flex;
+  margin-right:auto;
   min-width: 300px;
   width:450px;
   color: #606878;  

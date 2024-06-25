@@ -26,7 +26,7 @@
               v-model="platformLanguage"
               class="ml-2"
               inline-prompt
-              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949;"
               active-text="KR"
               active-value="ko"
               inactive-text="EN"
@@ -119,8 +119,9 @@ const onLogout = () => {
 }
 
 const n2mLogo = ref("N2M");
-const platformLogo = ref(process.env.VUE_APP_PLATFORM_LOGO_TEXT);
-const logo = ref( platformLogo.value === null || platformLogo.value === undefined ? n2mLogo : platformLogo);
+const naraLogo = ref(process.env.VUE_APP_NARA_SERVICE_LOGO);
+const ketiLogo = ref(process.env.VUE_APP_AIOT_LOGO);
+const logo = ref( naraLogo.value === null|| naraLogo.value === undefined ?  (ketiLogo.value === null || ketiLogo.value === undefined ? n2mLogo : ketiLogo) : naraLogo);
 const alarmIcon = ref(false);
 
 const platformLanguageVisible = ref(false);

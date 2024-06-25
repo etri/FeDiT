@@ -12,14 +12,14 @@
         <el-form label-position="left"
           :inline="true"
           :model="pageInfo"
-          class="demo-form-inline"
+          class="demo-form-inline search-form"
           label-width="120px"
         >
-          <el-form-item label="수정일">
-            <el-row :gutter="20">
-              <el-col :span="11">
-                <div class="demo-date-picker">
-                  <div class="block">
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="수정일">
+                <div class="inline-area">
+                  <div class="demo-date-picker">
                     <el-date-picker
                       v-model="pageInfo.srchStartDd"
                       type="date"
@@ -30,12 +30,8 @@
                       style="width: 150px"
                     />
                   </div>
-                </div>
-              </el-col>
-              <el-col :span="1"><span>~</span></el-col>
-              <el-col :span="8">
-                <div class="demo-date-picker">
-                  <div class="block">
+                  <div class="date-picker-tilde">~</div>
+                  <div class="demo-date-picker">
                     <el-date-picker
                       v-model="pageInfo.srchEndDd"
                       type="date"
@@ -48,13 +44,10 @@
                     />
                   </div>
                 </div>
-              </el-col>
-            </el-row>
-          </el-form-item>
-
-          <el-form-item label="데이터 상태">
-            <el-row :gutter="20">
-              <el-col :span="17">
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="데이터 상태">
                 <el-select
                   v-model="pageInfo.ctgryDataSttusMtcd"
                   @change="changeCd"
@@ -68,62 +61,36 @@
                     :value="item.mtcd"
                   />
                 </el-select>
-              </el-col>
-            </el-row>
-          </el-form-item>
-        </el-form>
+              </el-form-item>
+            </el-col>
+          </el-row>
 
-        <el-form label-position="left"
-          :inline="true"
-          :model="pageInfo"
-          class="demo-form-inline"
-          label-width="150px"
-        >
-          <el-form-item label="상위 카테고리">
-            <el-row :gutter="20">
-              <el-col :span="11">
-                <el-input
-                  class="w-80 m-2"
-                  v-model="pageInfo.upCtgryNm"
-                  disabled
-                  style="width: 150px"
-                />
-                <!--upCtgryId -->
-              </el-col>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <ComnFormItemInput2Btns label="상위 카테고리" v-model="pageInfo.upCtgryNm"
+                @click-search="dialogVisibleSearch = true" @click-refresh="refreshCategory" />
 
-              <el-col :span="12">
-                <div class="btnSec taR">
-                  <el-button type="default" @click="dialogVisibleSearch = true">
-                    <el-icon class="icon icon-search"></el-icon>
-                  </el-button>
-                  <el-button type="delete" @click="refreshCategory"
-                    ><el-icon class="icon icon-refresh"
-                  /></el-button>
-                </div>
-              </el-col>
               <el-dialog v-model="dialogVisibleSearch" title="카테고리 검색">
                 <CategoryDialogSearch @selectCategory="selectCategory" />
               </el-dialog>
-            </el-row>
-          </el-form-item>
-
-          <el-form-item label="검색어">
-            <el-row :gutter="20">
-              <el-col :span="11">
-                <el-select v-model="pageInfo.searchType" placeholder="선택">
-                  <el-option label="카테고리 명" value="1" />
-                  <el-option label="카테고리 ID" value="2" />
-                  <el-option label="카테고리 RDF 개념명" value="3" />
-                </el-select>
-              </el-col>
-              <el-col :span="11">
-                <el-input
-                  class="w-50 m-2"
-                  v-model="pageInfo.searchWord"
-                  placeholder="검색어를 입력하세요."
-                  @keyup.enter="getCategoryList(1)" /></el-col
-            ></el-row>
-          </el-form-item>
+            </el-col>       
+            <el-col :span="12">
+              <el-form-item label="검색어">
+                <div class="inline-area">
+                  <el-select v-model="pageInfo.searchType" placeholder="선택" style="width: 140px;">
+                    <el-option label="카테고리 명" value="1" />
+                    <el-option label="카테고리 ID" value="2" />
+                    <el-option label="카테고리 RDF 개념명" value="3" />
+                  </el-select>
+                  <el-input
+                    class="ml15"
+                    v-model="pageInfo.searchWord"
+                    placeholder="검색어를 입력하세요."
+                    @keyup.enter="getCategoryList(1)" />
+                </div>
+              </el-form-item>
+            </el-col>
+          </el-row>
         </el-form>
       </div>
     </div>
@@ -131,6 +98,7 @@
 </template>
 <script setup>
 import CategoryDialogSearch from "@/components/meta/category/CategoryDialogSearch.vue";
+import ComnFormItemInput2Btns from "@/components/common/ComnFormItemInput2Btns.vue";
 
 import { ref, reactive, defineEmits } from "vue"; //, onMounted
 import { useStore } from "vuex";

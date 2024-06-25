@@ -188,7 +188,8 @@
         "saveMyConfirmedNotifc"      : "/api/meta/api/v1/portal/mypage/confirmednotifcs",
         "getMyNotifcSettingList"     : "/api/meta/api/v1/portal/mypage/notifcsettings",
 				"createNotificationSetting"  : "/api/meta/api/v1/portal/mypage/notifcsettings",
-				"modifyNotificationSetting"  : "/api/meta/api/v1/portal/mypage/notifcsettings/%s"        
+        "modifyNotificationSetting"  : "/api/meta/api/v1/portal/mypage/notifcsettings/%s",
+        "getPatList"                 : "/api/meta/api/v1/portal/mypage/pats"               
 			}, 
       "notification": {
         "getNotificationTypeList"  : "/api/meta/api/v1/portal/notifictypes", 
@@ -203,6 +204,11 @@
         "createNotificationTarget"  : "/api/meta/api/v1/portal/notifictargets",
         "modifyNotificationTarget"  : "/api/meta/api/v1/portal/notifictargets/%s",
         "deleteNotificationTarget"  : "/api/meta/api/v1/portal/notifictargets/%s"
+      },
+      "pat": {
+        "getPat"                 : "/api/meta/api/v1/portal/pats/%s",
+        "deletePat"              : "/api/meta/api/v1/portal/pats/%s",
+        "setPat"                 : "/api/meta/api/v1/portal/pats"
       }
     },
     "resource": {
@@ -303,7 +309,7 @@
         "initializeNeo4jGraph"      : "/api/meta/api/v1/rdf/graph/neo4j/data/init",
         "initializeNeo4jRdbGraph"   : "/api/meta/api/v1/rdf/graph/neo4j/origindata/init"
       },
-      "virtuoso" : {
+      "virtuoso": {
         "createRdfInfoToVirtuoso"  : "/api/meta/api/v1/rdf/graph/virtuoso/data/%s",
         "deleteRdfInfoToVirtuoso"  : "/api/meta/api/v1/rdf/graph/virtuoso/data/%s",
         "getVirtuosoConductorUrl"  : "/api/meta/api/v1/rdf/graph/virtuoso/conductor-url",
@@ -311,7 +317,13 @@
         "initializeVirtuoso"       : "/api/meta/api/v1/rdf/graph/virtuoso/data/init",
         "initializeNsOfVirtuoso"   : "/api/meta/api/v1/rdf/graph/virtuoso/data/namespace",
         "initializeSkosOfVirtuoso" : "/api/meta/api/v1/rdf/graph/virtuoso/data/category",
-        "executeSparqlQuery"  : "/api/meta/api/v1/rdf/graph/virtuoso/sparql"
+        "executeSparqlQuery"       : "/api/meta/api/v1/rdf/graph/virtuoso/sparql"
+      },
+      "elastic" : {
+        "getKibanaUrl"              : "/api/meta/api/v1/search/elastic/kibana-url",
+        "createElasticData"         : "/api/meta/api/v1/search/elastic/data/%s",
+        "deleteElasticData"         : "/api/meta/api/v1/search/elastic/data/%s",
+        "initializeElastic"         : "/api/meta/api/v1/search/elastic/data/init"
       }
 		},
 		"data": {
@@ -366,6 +378,28 @@
       "getWork"  : "/api/meta/api/v1/collection/works/%s",
       "createWork"  : "/api/meta/api/v1/collection/works",
       "updateWork"  : "/api/meta/api/v1/collection/works/%s"
+    },
+    "schema": {
+      "idschemecode": {
+        "getIdSchemeStdIndCodeList"         : "/api/meta/api/v1/schema/ksiccodes",
+        "getIdSchemeStdIndLctgCodeList"     : "/api/meta/api/v1/schema/ksiccodes/lctgcodes",
+        "getIdSchemeStdIndCode"             : "/api/meta/api/v1/schema/ksiccodes/%s", 
+        "createKsicCode"                    : "/api/meta/api/v1/schema/ksiccodes",
+        "modifyKsicCode"                    : "/api/meta/api/v1/schema/ksiccodes/%s",
+        "getIdSchemePubRiCodeList"          : "/api/meta/api/v1/schema/pbrccodes",
+        "getIdSchemePubRiLctgCodeList"      : "/api/meta/api/v1/schema/pbrccodes/lctgcodes",
+        "getIdSchemePubRiCode"              : "/api/meta/api/v1/schema/pbrccodes/%s", 
+        "createPbrcCode"                    : "/api/meta/api/v1/schema/pbrccodes",
+        "modifyPbrcCode"                    : "/api/meta/api/v1/schema/pbrccodes/%s",
+        "getIdSchemeProductCodeList"        : "/api/meta/api/v1/schema/productcodes",
+        "getIdSchemeProductCode"            : "/api/meta/api/v1/schema/productcodes/%s",
+        "createProductCode"                 : "/api/meta/api/v1/schema/productcodes",
+        "modifyProductCode"                 : "/api/meta/api/v1/schema/productcodes/%s",
+        "getIdSchemeFacilityCodeList"       : "/api/meta/api/v1/schema/facilitycodes",
+        "getIdSchemeFacilityCode"           : "/api/meta/api/v1/schema/facilitycodes/%s",
+        "createFacilityCode"                : "/api/meta/api/v1/schema/facilitycodes",
+        "modifyFacilityCode"                : "/api/meta/api/v1/schema/facilitycodes/%s"
+      }
     }
   }
 }

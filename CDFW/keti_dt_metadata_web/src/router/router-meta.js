@@ -70,6 +70,10 @@ import MyQnaDetailPage from "@/views/feature/meta/mypage/qna/MyQnaDetailPage.vue
 import MyQnaModifyPage from "@/views/feature/meta/mypage/qna/MyQnaModifyPage.vue"
 import MyQnaEditPage from "@/views/feature/meta/mypage/qna/MyQnaEditPage.vue"
 
+import PatListPage from "@/views/feature/meta/mypage/pat/PatListPage.vue"
+import PatDetailPage from "@/views/feature/meta/mypage/pat/PatDetailPage.vue"
+import PatEditPage from "@/views/feature/meta/mypage/pat/PatEditPage.vue"
+
 import RetrievalDigitalTwinListPage from "@/views/feature/meta/search/dt/RetrievalDigitalTwinListPage.vue";
 import RetrievalDigitalTwinDatasetPage from "@/views/feature/meta/search/dt/RetrievalDigitalTwinDatasetPage";
 
@@ -95,6 +99,11 @@ import KetidtInfoPage from "@/views/feature/meta/resource/KetidtInfoPage.vue";
 import KetidtskosInfoPage from "@/views/feature/meta/resource/KetidtskosInfoPage.vue";
 import MetadataSetPage from "@/views/feature/meta/resource/MetadataSetPage.vue";
 import MetadataSetEmptyPage from "@/views/feature/meta/resource/MetadataSetEmptyPage.vue";
+
+import KsicCodeListPage from "@/views/feature/meta/stddata/ksiccode/KsicCodeListPage.vue";
+import PbrcCodeListPage from "@/views/feature/meta/stddata/pbrccode/PbrcCodeListPage.vue";
+import ProductCodeListPage from "@/views/feature/meta/stddata/productcode/ProductCodeListPage.vue";
+import FacilityCodeListPage from "@/views/feature/meta/stddata/facilitycode/FacilityCodeListPage.vue";
 
 const contenxtPath = "";
 const metaRootPath = "/meta";
@@ -328,7 +337,29 @@ export const metaRoutes = {
               components: { default: MyNotifcListPage },
 						}
 					]					
-				},        
+				},   
+        {
+          path: "pat",
+          name: "meta_Pat",
+          meta: { title: "PAT 관리" },
+					children: [
+						{
+              path: ":",
+              name: "meta_PatListPage",
+              components: { default: PatListPage },
+						},
+            {
+              path: "detail",
+              name: "meta_PatDetailPage",
+              components: { default: PatDetailPage },
+						},
+            {
+              path: "edit",
+              name: "meta_PatEditPage",
+              components: { default: PatEditPage },
+						}
+					]					
+				},     
 				//내 디지털트윈 검색
 				{
           path: "dt",
@@ -606,7 +637,55 @@ export const metaRoutes = {
               components: { default: CountryCodeListPage },
             }
           ],					
-				}  
+				},
+        {
+          path: "ksiccode",
+          name: "meta_Ksiccode",
+          meta: { title: "표준산업분류 코드 관리" },
+          children: [
+            {
+              path: ":",
+              name: "meta_KsicCodeListPage",
+              components: { default: KsicCodeListPage },
+            }
+          ],					
+				},
+        {
+          path: "pbrccode",
+          name: "meta_Pbrccode",
+          meta: { title: "공공자원분류 코드 관리" },
+          children: [
+            {
+              path: ":",
+              name: "meta_PbrcCodeListPage",
+              components: { default: PbrcCodeListPage },
+            }
+          ],					
+				},
+        {
+          path: "productcode",
+          name: "meta_Productcode",
+          meta: { title: "객체 - 물품 코드 관리" },
+          children: [
+            {
+              path: ":",
+              name: "meta_ProductCodeListPage",
+              components: { default: ProductCodeListPage },
+            }
+          ],					
+				},
+        {
+          path: "facilitycode",
+          name: "meta_Facilitycode",
+          meta: { title: "객체 - 시설 코드 관리" },
+          children: [
+            {
+              path: ":",
+              name: "meta_FacilityCodeListPage",
+              components: { default: FacilityCodeListPage },
+            }
+          ],					
+				}
       ]
     },
     {

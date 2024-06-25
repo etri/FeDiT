@@ -1,14 +1,10 @@
 <template>
   <div>
     <div class="cntSec">
-      <div class="boxLayout">
-        <div class="boxTit">
-          <h3>공지사항 검색</h3>
-        </div>
-        <div class="boxCnt">
-          <OpernoticeSearchForm @searchOpernotice="searchOpernotice" />
-        </div>
-      </div>
+      
+      <!-- 공지사항 검색 -->
+      <OpernoticeSearchForm @searchOpernotice="searchOpernotice" />
+      
       <div class="boxLayout">
         <div class="boxTit">
           <h3>공지사항 목록</h3>

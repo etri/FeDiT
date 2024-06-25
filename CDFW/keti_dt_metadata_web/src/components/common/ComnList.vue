@@ -3,16 +3,16 @@
     :style="`width: 100%; ${(!height && minHeight) ? 'min-height: ' + minHeight + 'px;' : ''}`"
     v-bind="$attrs"
     v-loading="loading"
+    :class="className"
     :height="height"
     :data="table.filterTableData"
-    :class="className"
     :row-class-name="tableRowClassName"
     :cell-class-name="tableCellClassName"
     :empty-text="emptyText"
     :default-sort="defaultSort"
-    @current-change="handleCurrentChange"
     @header-click="clickHeader"
     @row-click="rowClick"
+    @current-change="handleCurrentChange"
     @selection-change="handleSelectionChange"
     @expand-change="handleExpandChange"
   >
@@ -133,7 +133,7 @@ export default {
     loading: {
       type: Boolean,
       default: false
-    }
+    },
   },
   setup(props, { emit }) {
     const { sortable, } = toRef(props);
@@ -200,7 +200,12 @@ export default {
 
     const handleSelectionChange = (selectionRows) => emit("selectionChange", selectionRows);
 
-    const handleExpandChange = (selectionRow) => emit("expandChange", selectionRow);
+    const handleExpandChange = (row, expandedRows) => {
+      emit("handleExpandChange", {
+        data: row,
+        expanded: expandedRows,
+      });
+    }
 
     return {
       table,

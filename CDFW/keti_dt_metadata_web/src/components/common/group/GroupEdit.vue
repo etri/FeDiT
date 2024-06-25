@@ -7,7 +7,7 @@
     class="demo-ruleForm"
     :label-position="labelPosition"
   >
-    <el-form-item label="그룹명" prop="grpNm">
+    <el-form-item label="그룹 명" prop="grpNm">
       <el-input v-model="state.group.grpNm"></el-input>
     </el-form-item>
 
@@ -49,24 +49,12 @@ const state = reactive({
     grpNm: [
       {
         required: true,
-        message: "이름을 입력하세요.",
+        message: "그룹 명을 입력하세요.",
         trigger: "blur",
       },
       {
         min: 0,
-        message: "이름 입력",
-        trigger: "blur",
-      },
-    ],
-    grpDesc: [
-      {
-        required: true,
-        message: "내용을 입력하세요.",
-        trigger: "blur",
-      },
-      {
-        min: 0,
-        message: "내용 입력",
+        message: "그룹 명 입력",
         trigger: "blur",
       },
     ],

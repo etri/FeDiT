@@ -15,7 +15,7 @@
   font-weight:400;
   src:url('../fonts/NotoSansKR-Regular.eot'),
       url('../fonts/NotoSansKR-Regular.ttf') format('turetype'),
-      url('../fonts/NotoSansKR-Regular.woff2') format('woff2');
+      url('../fonts/NotoSansKR-Regular.woff2') format('font-woff2');
 }
 @font-face{
   font-family: 'Noto Sans';
@@ -23,7 +23,7 @@
   font-weight: 700;
   src:url('../fonts/NotoSansKR-Bold.eot'),
       url('../fonts/NotoSansKR-Bold.ttf') format('turetype'),
-      url('../fonts/NotoSansKR-Bold.woff2') format('woff2');
+      url('../fonts/NotoSansKR-Bold.woff2') format('font-woff2');
 }
 @font-face{
   font-family : 'Min Sans';

@@ -22,7 +22,7 @@
     </div>
   </div>
   <el-dialog v-model="dialogLogMappingInfo" title="수집 로그 매핑 정보">
-      <div class="cntSec">
+      <div class="dialog-area">
         <div class="boxLayout">
             <div class="boxTit"><h3>수집 로그 매핑 정보</h3></div>
             <div class="boxCnt">

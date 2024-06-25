@@ -16,3 +16,17 @@
       color: white;
     }
   }
+//여백으로 인한 수정
+.el-dialog__body {
+  padding-bottom:20px;
+  .cntSec{
+    .boxLayout{
+      &:last-child{
+        margin-bottom:0;
+      }
+    }
+  }
+  &+footer{
+    padding-top:0px;
+  }
+}

@@ -13,7 +13,7 @@
           label-width="100"
         >
           <el-form-item prop="modelPrptyDelWhy" label="삭제사유" >
-            <el-input style="fit-content" v-model="state.deleteProperty.modelPrptyDelWhy"></el-input>
+            <el-input style="fit-content" v-model="state.deleteProperty.modelPrptyDelWhy" @keydown.enter.prevent=""></el-input>
           </el-form-item>          
         </el-form>
         <div class="taR">

@@ -20,6 +20,25 @@
 						<el-input v-model="state.metadataSet.modelNm" disabled></el-input>
 					</el-form-item>
 
+					<el-form-item label="식별체계 - 국가코드" prop="idSchmCntryCd" v-show="IdSchmUseYn === 'Y'">
+						<div class="inline-area">
+							<el-input v-model="state.metadataSet.idSchmCntryCd" disabled style="width: 100px"></el-input>
+							<el-input v-model="state.metadataSet.idSchmCntryNm" disabled style="width: 250px; margin-left: 5px;"></el-input>
+						</div>
+					</el-form-item>
+
+					<el-form-item label="식별체계 - 분류코드 종류" prop="idSchmType" v-show="IdSchmUseYn === 'Y'">
+						<el-input v-model="state.metadataSet.idSchmType" disabled style="width: 100px"></el-input>
+						<el-input v-model="state.metadataSet.idSchmTypeNm" disabled style="width: 250px; margin-left: 5px;"></el-input>
+					</el-form-item>
+
+					<el-form-item label="식별체계 - 코드" prop="idSchmCd" v-show="IdSchmUseYn === 'Y'">
+						<div class="inline-area">
+							<el-input v-model="state.metadataSet.idSchmCd" disabled style="width: 100px"></el-input>
+							<el-input v-model="state.metadataSet.idSchmCdNm" disabled style="width: 250px; margin-left: 5px;"></el-input>
+						</div>
+					</el-form-item>
+
 					<el-form-item label="디지털트윈 명" prop="medataSetNm"><!-- 디지털트윈 명 (언어무관) -->
 						<el-input v-model="state.metadataSet.medataSetNm"></el-input>
 					</el-form-item>
@@ -60,6 +79,7 @@ const $emitter =
   getCurrentInstance().appContext.config.globalProperties.$emitter;
 
 const ruleFormRef = ref(null);
+const IdSchmUseYn = ref(process.env.VUE_APP_METADATA_ID_SCHM_USE_YN);
 
 const emits = defineEmits([
 	"cancelModifyDialog",
@@ -121,11 +141,41 @@ const getMetadataSetDetail = () => {
 		.get(util.format($apiUrls.meta.resource.metadatasets.getMetadataSet, medataSetId))
 		.then((res) => {
 			state.metadataSet = res.data;
+			if(IdSchmUseYn.value === 'Y') {
+				if(res.data.idSchmType === "01") {
+					getIdSchemeStdIndCode(res.data.idSchmCd);
+				}
+				if(res.data.idSchmType === "02") {
+					getIdSchemePubRiCode(res.data.idSchmCd);
+				}
+			}
 		})
 		.catch((err) => {
 			console.log(err);
 		});
 };
+
+const getIdSchemeStdIndCode = (idSchmCd) => {
+	$axios
+		.get(util.format($apiUrls.meta.schema.idschemecode.getIdSchemeStdIndCode, idSchmCd))
+		.then((res) => {
+			state.metadataSet.idSchmCdNm = res.data.idSchmCdNm;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const getIdSchemePubRiCode = (idSchmCd) => {
+	$axios
+		.get(util.format($apiUrls.meta.schema.idschemecode.getIdSchemePubRiCode, idSchmCd))
+		.then((res) => {
+			state.metadataSet.idSchmCdNm = res.data.idSchmCdNm;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+}
 
 const modifyMetadataSetInfo = async () => {
 

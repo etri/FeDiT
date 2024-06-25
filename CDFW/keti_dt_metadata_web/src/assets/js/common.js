@@ -59,7 +59,11 @@ export const now = (format) => {
   }
 }
 
-export const getCalcDate = (minutes) => {
+export const getCalcDate = (days) => {
+  return dayjs().add(days, 'day').format("YYYY-MM-DD");
+}
+
+export const getCalcDateTime = (minutes) => {
   return dayjs().add(minutes, 'minute').format("YYYY-MM-DD HH:mm:ss");
 }
 

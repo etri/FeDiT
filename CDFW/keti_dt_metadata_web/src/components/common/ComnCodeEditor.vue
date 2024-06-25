@@ -1,9 +1,9 @@
 <template>
-  <Codemirror ref="cmRef" v-model:value="code" :options="cmOptions" :height="height" @change="onChange" />
+  <Codemirror ref="cmRef" v-model:value="codeText" :options="option" :height="height" @change="onChange" />
 </template>
 
 <script>
-import { ref, watch, onMounted, } from "vue"
+import { ref, watch, onMounted, onUnmounted, } from "vue"
 
 import Codemirror from "codemirror-editor-vue3"
 
@@ -11,6 +11,7 @@ import "codemirror/mode/clike/clike.js"
 import "codemirror/mode/javascript/javascript.js"
 import "codemirror/mode/vue/vue.js"
 import "codemirror/mode/xml/xml.js"
+import "codemirror/mode/sql/sql.js"
 
 // placeholder
 import "codemirror/addon/display/placeholder.js";
@@ -42,11 +43,11 @@ export default {
   setup(props, { emit }) {
     const cmRef = ref()
 
-    const code = ref('')
+    const codeText = ref('')
     watch(
       () => props.code,
       (cur, prev) => {
-        code.value = cur;
+        codeText.value = cur;
       },
       { deep: true }
     )
@@ -67,15 +68,18 @@ export default {
 
     watch(
       () => props.cmOptions,
-      (cur, prev) => {
-        option.value = Object.assign(option.value, cur);
+      (crr, prev) => {
+        option.value = Object.assign(option.value, crr);
       },
       { deep: true }
     )
 
+    const setOptionsByMode = (val) => {
+      option.value.mode = val;
+    }
+
     const setCode = (val) => {
-      console.log('call setcode')
-      code.value = val;
+      codeText.value = val;
     }
 
     const onChange = (val, cm) => {
@@ -92,11 +96,17 @@ export default {
       }, 3000)
     });
 
+    onUnmounted(() => {
+      cmRef.value?.destroy();
+    });
+
     return {
       cmRef,
-      code,
-      cmOptions: option,
+      codeText,
+      option,
+      // cmOptions: option,
       setCode,
+      setOptionsByMode,
       onChange,
     };
   },

@@ -123,7 +123,9 @@ onMounted(() => {
 const getPlatformList = () => {
   $axios
     .get($apiUrls.platform.getPlatformPaging, {
-      params: {},
+      params: {
+        curPage: state.pageInfo.curPage,
+      },
     })
     .then((res) => {
       state.platformList = res.data.data;

@@ -59,7 +59,7 @@ onMounted(() => {
 
 const state = reactive({
   searchInfo: {
-    queryStr: "",
+    query: "",
     resultFormat: "",
     timeoutMillis: ""
   }

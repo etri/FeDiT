@@ -1,14 +1,7 @@
 <template>
   <div>
     <div class="cntSec">
-      <div class="boxLayout">
-        <div class="boxTit">
-          <h3>코드그룹 검색</h3>
-        </div>
-        <div class="boxCnt">
-          <CodeSearchForm @searchCodegroup="searchCodegroup" />
-        </div>
-      </div>
+      <CodeSearchForm @searchCodegroup="searchCodegroup" />
       <div class="boxLayout">
         <div class="boxTit">
           <h3>코드그룹 목록</h3>
@@ -61,9 +54,8 @@ const state = reactive({
   codeList: [],
   pageInfo: {
     curPage: 1,
-    fromDate: "",
-    toDate: "",
-    searchWord: "",
+    grpNm: "",
+    grpVal: "",
     searchType: "0",
     totalListSize: 0,
     pageListSize: 10,
@@ -82,12 +74,8 @@ const getCodegroupList = () => {
     .get($apiUrls.admin.code.getCodegroupList, {
       params: {
         curPage: state.pageInfo.curPage,
-        grpNm:
-          state.pageInfo.searchType == 1 ? state.pageInfo.searchWord : null,
-        grpVal:
-          state.pageInfo.searchType == 2 ? state.pageInfo.searchWord : null,
-        searchWord:
-          state.pageInfo.searchType == 0 ? state.pageInfo.searchWord : null,
+        grpNm: state.pageInfo.grpNm,
+        grpVal: state.pageInfo.grpVal,
         pltfrmId: getCookie("pltfrmId"),
       },
     })
@@ -113,8 +101,8 @@ const pageMove = (payload) => {
 
 const searchCodegroup = (payload) => {
   state.pageInfo.curPage = payload.curPage;
-  state.pageInfo.searchType = payload.searchType;
-  state.pageInfo.searchWord = payload.searchWord;
+  state.pageInfo.grpNm = payload.grpNm;
+  state.pageInfo.grpVal = payload.grpVal;
   getCodegroupList();
 };
 

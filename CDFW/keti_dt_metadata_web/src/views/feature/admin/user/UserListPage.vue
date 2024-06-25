@@ -1,14 +1,10 @@
 <template>
   <div>
     <div class="cntSec">
-      <div class="boxLayout">
-        <div class="boxTit">
-          <h3>사용자 검색</h3>
-        </div>
-        <div class="boxCnt">
-          <UserSearchForm @searchUser="searchUser" />
-        </div>
-      </div>
+
+      <!-- 사용자 검색 -->
+      <UserSearchForm @searchUser="searchUser" />
+
       <div class="boxLayout">
         <div class="boxTit">
           <h3>사용자 목록</h3>

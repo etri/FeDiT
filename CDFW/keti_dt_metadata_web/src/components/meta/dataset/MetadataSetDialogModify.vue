@@ -23,7 +23,26 @@
 
 					<el-form-item label="메타데이터 모델" prop="modelNm">
 						<el-input v-model="state.metadataSet.modelNm" disabled></el-input>
-					</el-form-item>					
+					</el-form-item>
+					
+					<el-form-item label="식별체계 - 국가코드" prop="idSchmCntryCd" v-show="IdSchmUseYn === 'Y' && metaIdSchmSettings.id_schm_object.typeModelId == state.metadataSet.typeModelId">
+						<div class="inline-area">
+							<el-input v-model="state.metadataSet.idSchmCntryCd" disabled style="width: 100px"></el-input>
+							<el-input v-model="state.metadataSet.idSchmCntryNm" disabled style="width: 250px; margin-left: 5px;"></el-input>
+						</div>
+					</el-form-item>
+
+					<el-form-item label="식별체계 - 분류코드 종류" prop="idSchmType" v-show="IdSchmUseYn === 'Y' && metaIdSchmSettings.id_schm_object.typeModelId == state.metadataSet.typeModelId">
+						<el-input v-model="state.metadataSet.idSchmType" disabled style="width: 100px"></el-input>
+						<el-input v-model="state.metadataSet.idSchmTypeNm" disabled style="width: 250px; margin-left: 5px;"></el-input>
+					</el-form-item>
+
+					<el-form-item label="식별체계 - 코드" prop="idSchmCd" v-show="IdSchmUseYn === 'Y' && metaIdSchmSettings.id_schm_object.typeModelId == state.metadataSet.typeModelId">
+						<div class="inline-area">
+							<el-input v-model="state.metadataSet.idSchmCd" disabled style="width: 100px"></el-input>
+							<el-input v-model="state.metadataSet.idSchmCdNm" disabled style="width: 250px; margin-left: 5px;"></el-input>
+						</div>
+					</el-form-item>
 
 					<el-form-item label="메타데이터 셋 명" prop="medataSetNm">
 						<el-input v-model="state.metadataSet.medataSetNm"></el-input>
@@ -114,6 +133,7 @@
 <script setup>
 import MetadataSetDialogSearch from "@/components/meta/dt/MetadataSetDialogSearch.vue";
 import DigitalTwinDialogUpperDigitalTwinList from "@/components/meta/dataset/DigitalTwinDialogUpperDigitalTwinList.vue";
+import metaIdSchmSettings from "@/assets/json/metaIdSchmSettings.json";
 
 import { ref, toRefs, defineProps, defineEmits, reactive, onMounted, watch, getCurrentInstance  } from "vue";
 import { useRoute } from "vue-router";
@@ -129,6 +149,7 @@ const $emitter =
 
 const ruleFormRef = ref(null);
 const ruleFormRef2 = ref(null);
+const IdSchmUseYn = ref(process.env.VUE_APP_METADATA_ID_SCHM_USE_YN);
 
 const dialogVisibleModelSearch = ref(false);
 const searchSttusCd = "use"; //use 조건절 지정 (모델 검색 시 사용 상태만 select)
@@ -248,11 +269,41 @@ const getMetadataSetDetail = () => {
 		.get(util.format($apiUrls.meta.resource.metadatasets.getMetadataSet, medataSetId))
 		.then((res) => {
 			state.metadataSet = res.data;
+			if(IdSchmUseYn.value === 'Y' && metaIdSchmSettings.id_schm_object.typeModelId == res.data.typeModelId) {
+				if(res.data.idSchmType === "1") {
+					getIdSchemeProductCode(res.data.idSchmCd);
+				}
+				if(res.data.idSchmType === "2") {
+					getIdSchemeFacilityCode(res.data.idSchmCd);
+				}
+			}
 		})
 		.catch((err) => {
 			console.log(err);
 		});
 };
+
+const getIdSchemeProductCode = (idSchmCd) => {
+	$axios
+		.get(util.format($apiUrls.meta.schema.idschemecode.getIdSchemeProductCode, idSchmCd))
+		.then((res) => {
+			state.metadataSet.idSchmCdNm = res.data.idSchmCdNm;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+};
+
+const getIdSchemeFacilityCode = (idSchmCd) => {
+	$axios
+		.get(util.format($apiUrls.meta.schema.idschemecode.getIdSchemeFacilityCode, idSchmCd))
+		.then((res) => {
+			state.metadataSet.idSchmCdNm = res.data.idSchmCdNm;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+}
 
 const getUpperMetadataSetDtwListBySubSetId = () => {
 	let medataSetId = props.medataSetId;

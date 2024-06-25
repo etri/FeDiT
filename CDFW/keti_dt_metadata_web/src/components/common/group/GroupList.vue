@@ -39,12 +39,12 @@ const tableHeader = ref([
   },
   {
     prop: "grpNm",
-    label: "그룹명",
+    label: "그룹 명",
     width: 250,
   },
   {
     prop: "regrNm",
-    label: "등록자명",
+    label: "등록자 명",
     width: 250,
   },
   {

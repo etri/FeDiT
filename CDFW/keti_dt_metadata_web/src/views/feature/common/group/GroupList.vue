@@ -1,14 +1,6 @@
 <template>
   <div class="cntSec">
-    <div class="boxLayout">
-      <div class="boxTit">
-        <h3>그룹 검색</h3>
-      </div>
-      <div class="boxCnt">
-        <GroupSearchForm @searchGroup="searchGroup" />
-      </div>
-    </div>
-
+    <GroupSearchForm @searchGroup="searchGroup" />
     <div class="boxLayout">
       <div class="boxTit">
         <h3>그룹 목록</h3>
@@ -54,13 +46,13 @@ const state = reactive({
   groupList: [],
   pageInfo: {
     curPage: 1,
-    searchType: "0",
-    searchWord: "",
-    searchUseYn: "0",
+    grpNm: "",
     typeCd: "",
     totalListSize: 0,
     pageListSize: 10,
     blockSize: 5,
+    fromDate: "",
+    toDate: "",
   },
 });
 
@@ -73,16 +65,14 @@ const getGroupList = () => {
     .get($apiUrls.common.group.getGroupList, {
       params: {
         curPage: state.pageInfo.curPage,
-        grpNm:
-          state.pageInfo.searchType == 1 ? state.pageInfo.searchWord : null,
-        grpDesc:
-          state.pageInfo.searchType == 2 ? state.pageInfo.searchWord : null,
-        searchWord:
-          state.pageInfo.searchType == 0 ? state.pageInfo.searchWord : "",
+        grpNm : state.pageInfo.grpNm,
+        searchRegSt: state.pageInfo.fromDate,
+        searchRegEd: state.pageInfo.toDate,
       },
     })
     .then((res) => {
       state.groupList = res.data.data;
+      state.pageInfo.curPage = res.data.page.curPage;
       state.pageInfo.totalListSize = res.data.page.totalListSize;
     })
     .catch((err) => {
@@ -102,9 +92,8 @@ const pageMove = (payload) => {
 };
 
 const searchGroup = (payload) => {
-  state.pageInfo.curPage = payload.curPage;
-  state.pageInfo.searchType = payload.pageInfo.value.searchType;
-  state.pageInfo.searchWord = payload.pageInfo.value.searchWord;
+  state.pageInfo.grpNm =
+    payload.grpNm == "" ? "" : payload.grpNm;
   getGroupList();
 };
 

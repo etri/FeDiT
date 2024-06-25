@@ -1,31 +1,38 @@
 <template>
-  <div>
-    <el-form
-      :inline="true"
-      :model="pageInfo"
-      class="demo-form-inline"
-      label-width="120px"
-    >
-      <el-form-item label="검색어">
-        <el-row :gutter="20">
-          <el-col :span="9">
-            <el-select v-model="pageInfo.searchType" placeholder="선택">
-              <el-option label="선택" value="0" />
-              <el-option label="코드 그룹 명" value="1" />
-              <el-option label="코드 그룹 값" value="2" />
-            </el-select>
-          </el-col>
-          <el-col :span="11">
+  <div class="boxLayout">
+    <div class="boxTit">
+      <h3>코드그룹 검색</h3>
+      <div class="btnSec taR">
+        <el-button class="el-button--gray" size="small" :icon="Refresh" @click="resetSearchForm()">초기화</el-button>
+        <el-button type="primary" size="small" @click="getCodeGroupList(1)">검색</el-button>
+      </div>
+    </div>
+    <div class="boxCnt">
+      <el-form
+        :inline="true"
+        :model="pageInfo"
+        class="demo-form-inline"
+        label-width="120px"
+      >
+      <el-row :gutter="10">
+        <el-col :span="5">
+          <el-form-item label="코드 그룹 명">
             <el-input
-              class="w-50 m-2"
-              v-model="pageInfo.searchWord"
-              placeholder="검색어를 입력하세요."
-              @keyup.enter="getCodeGroupList(1)" /></el-col
-        ></el-row>
-      </el-form-item>
-    </el-form>
-    <div class="btnSec taR">
-      <el-button type="primary" @click="getCodeGroupList(1)">검색</el-button>
+              v-model="pageInfo.grpNm"
+              placeholder="검색할 코드 그룹 명을 입력하세요."
+              @keydown.enter="getCodeGroupList(1)" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="5">
+          <el-form-item label="코드 그룹 값">
+            <el-input
+              v-model="pageInfo.grpVal"
+              placeholder="검색할 코드 그룹 값을 입력하세요."
+              @keydown.enter="getCodeGroupList(1)" />
+          </el-form-item>
+        </el-col>
+      </el-row>
+      </el-form>
     </div>
   </div>
 </template>
@@ -34,16 +41,33 @@ import { ref, defineEmits } from "vue";
 const emits = defineEmits(["searchCodegroup"]);
 
 const pageInfo = ref({
-  searchType: "0",
-  searchWord: "",
+  grpNm: "",
+  grpVal: "",
 });
 
 const getCodeGroupList = (data) => {
   emits("searchCodegroup", {
     curPage: data,
-    searchType: pageInfo.value.searchType,
-    searchWord: pageInfo.value.searchWord,
+    grpNm: pageInfo.value.grpNm,
+    grpVal: pageInfo.value.grpVal,
   });
 };
+
+const resetSearchForm = () => {
+  pageInfo.value = {};
+  getCodeGroupList();
+};
+
 </script>
-<style lang=""></style>
+<style lang="scss" scoped>
+.demo-form-inline {
+  overflow:hidden;
+  display:flex;
+  .el-row {
+    width:100%;
+    .el-form-item {
+      width: 100% !important;
+    }
+  }
+}
+</style>

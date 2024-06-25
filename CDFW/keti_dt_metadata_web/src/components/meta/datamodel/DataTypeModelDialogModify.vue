@@ -55,6 +55,7 @@
 									@change="changeMetaCodeGroupId"
                   v-bind:disabled="curPage != 'modify'"
 									placeholder="해당없음">
+									<el-option value="" label="해당없음" />
 									<el-option
 											v-for="item in metaCodeGroupList"
 											:key="item.mtcdGrpId"
@@ -73,6 +74,7 @@
 									@change="changeUseLangMtcd"
                   v-bind:disabled="curPage != 'modify'"
 									placeholder="해당없음">
+									<el-option value="" label="해당없음" />
 									<el-option
 											v-for="item in useLangCdList"
 											:key="item.mtcd"

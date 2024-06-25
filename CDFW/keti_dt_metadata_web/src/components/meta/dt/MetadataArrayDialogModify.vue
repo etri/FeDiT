@@ -159,6 +159,8 @@
 								cnctPrptyId: props.generalProperty.prptyId,
 							}"
 							cnctInfoDisabledYn="Y"
+							:countryCodeList="countryCodeList" 
+							:idSchmObjectList="idSchmObjectList"
 							@cancelDialog="cancelDialog"
 							@editMetadataSetInfo="editMetadataSetInfo" /> <!-- 해당 화면 내 셋ID와 프라퍼티ID는 신규 메타데이터 셋 등록 시, 상위 ID 로 이용 -->						
 					</el-dialog>
@@ -274,6 +276,8 @@ const $emitter =
 const store = useStore();
 
 const langMtcdList = ref([]); //언어코드 리스트
+const countryCodeList = ref([]);
+const idSchmObjectList = ref([]);
 
 const dialogVisibleEdit = ref(false); //메타데이터 셋 편집 modal(object type 신규 등록)
 const dialogVisibleSearchMetadataSet = ref(false); //메타데이터 셋 검색 modal (object type 선택 등록)
@@ -328,6 +332,8 @@ const state = reactive({
 
 onMounted(() => {
 	getMetaCodeList();
+	getCountryCodeList();
+	getIdSchmObjectList();
 	if ('data_type' === props.generalProperty.rangeModelTypeMtcd) {
 		getMetadataList();
 	} else {
@@ -346,6 +352,35 @@ const getMetaCodeList = async () => {
 
 	const List = store.getters["MetaStore/getStoreMetaCodeList"]("MCG00006");  // 언어코드
 	langMtcdList.value = List;
+};
+
+const getCountryCodeList = async () => {
+  await store.dispatch("MetaStore/getCountryCodeList", {
+    axios: $axios,
+    apiUrls: $apiUrls,
+  });
+
+  const CountryCodeList = store.getters["MetaStore/getStoreCountryCodeList"];
+  countryCodeList.value = CountryCodeList;
+};
+
+const getIdSchmObjectList = async () => {
+
+await store.dispatch("MetaStore/getMetaCodeList", {
+	axios: $axios,
+	apiUrls: $apiUrls,
+	params: {
+		mtcdGrpIdList: ["MCG00029"],
+	},
+});
+
+const List = store.getters["MetaStore/getStoreMetaCodeList"]("MCG00029");
+idSchmObjectList.value = [];
+for(var i=0; i < List.length; i++) {
+	if(List[i].upMtcd === "id_schm_object") {
+		idSchmObjectList.value.push(List[i]);
+	}
+}
 };
 
 const searchMetadataList = (payload) => {

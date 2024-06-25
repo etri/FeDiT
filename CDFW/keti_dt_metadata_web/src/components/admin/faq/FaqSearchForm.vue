@@ -1,67 +1,72 @@
 <template>
-  <el-form
-    :inline="true"
-    :model="pageInfo"
-    class="demo-form-inline"
-    label-width="120px"
-  >
-    <el-form-item label="검색어">
-      <el-row :gutter="20">
-        <el-col :span="9">
-          <el-select v-model="pageInfo.searchType" placeholder="선택">
-            <el-option label="선택" value="0" />
-            <el-option label="제목" value="1" />
-            <el-option label="작성자" value="2" />
-          </el-select>
-        </el-col>
-        <el-col :span="11">
-          <el-input
-            class="w-50 m-2"
-            v-model="pageInfo.searchWord"
-            placeholder="검색어를 입력하세요."
-            @keyup.enter="getFaqList(1)" /></el-col
-      ></el-row>
-    </el-form-item>
+  <div class="boxLayout">
+    <div class="boxTit">
+      <h3>FAQ 검색</h3>
+      <div class="btnSec taR">
+        <el-button type="primary" @click="getFaqList(1)">검색</el-button>
+        <!-- <el-button type="default" @click="refresh">초기화</el-button> -->
+      </div>
+    </div>
+    <div class="boxCnt">
 
-    <el-form-item label="등록일">
-      <el-row :gutter="20">
-        <el-col :span="11">
-          <div class="demo-date-picker">
-            <div class="block">
-              <el-date-picker
-                v-model="pageInfo.fromDate"
-                type="date"
-                placeholder="시작일"
-                format="YYYY-MM-DD"
-                value-format="YYYY-MM-DD"
-                :disabled-date="disabledDate1"
-                style="width: 150px"
-              />
+      <el-form
+        :inline="true"
+        :model="pageInfo"
+        class="demo-form-inline"
+        label-width="120px"
+      >
+        <el-row :gutter="20">
+          <el-form-item label="검색어">
+            <div class="inline-area">
+              <el-select v-model="pageInfo.searchType" placeholder="전체" style="width: 230px">
+                <el-option label="전체" value="0" /><!-- 전체(제목/작성자) -->
+                <el-option label="제목" value="1" />
+                <el-option label="작성자" value="2" />
+              </el-select>
+              <el-input
+                class="w-50 ml15"
+                v-model="pageInfo.searchWord"
+                placeholder="검색어를 입력하세요."
+                @keyup.enter="getFaqList(1)" />
             </div>
-          </div>
-        </el-col>
-        <el-col :span="1"><span>~</span></el-col>
-        <el-col :span="8">
-          <div class="demo-date-picker">
-            <div class="block">
-              <el-date-picker
-                v-model="pageInfo.toDate"
-                type="date"
-                placeholder="종료일"
-                format="YYYY-MM-DD"
-                value-format="YYYY-MM-DD"
-                :disabled-date="disabledDate2"
-                style="width: 150px"
-                @change="changeDate"
-              />
+          </el-form-item>
+
+          <el-form-item label="등록일">
+            <div class="inline-area">
+              <div class="demo-date-picker">
+                <el-date-picker
+                  v-model="pageInfo.fromDate"
+                  type="date"
+                  placeholder="시작일"
+                  format="YYYY-MM-DD"
+                  value-format="YYYY-MM-DD"
+                  :disabled-date="disabledDate1"
+                  style="width: 150px !important;"
+                />
+              </div>
+              <div class="date-picker-tilde">~</div>
+              <div class="demo-date-picker">
+                <el-date-picker
+                  v-model="pageInfo.toDate"
+                  type="date"
+                  placeholder="종료일"
+                  format="YYYY-MM-DD"
+                  value-format="YYYY-MM-DD"
+                  :disabled-date="disabledDate2"
+                  style="width: 150px !important;"
+                  @change="changeDate"
+                />
+              </div>
             </div>
-          </div>
-        </el-col>
-      </el-row>
-    </el-form-item>
-  </el-form>
-  <div class="btnSec taR">
-    <el-button type="primary" @click="getFaqList(1)">검색</el-button>
+          </el-form-item>
+        </el-row>
+      </el-form>
+
+      <!-- <div class="btnSec taR">
+        <el-button type="primary" @click="getFaqList(1)">검색</el-button>
+      </div> -->
+
+    </div>
   </div>
 </template>
 <script setup>
@@ -99,4 +104,3 @@ const getFaqList = (data) => {
   });
 };
 </script>
-<style lang="scss"></style>

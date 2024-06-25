@@ -1,7 +1,7 @@
 <template>
 	<div class="dialog-area">
 
-		<el-form ref="ruleFormRef" :model="state.metadataSet" :rules="state.rules" label-width="200px"
+		<el-form ref="ruleFormRef" :model="state.metadataSet" :rules="IdSchmUseYn == 'Y' && metaIdSchmSettings.id_schm_object.typeModelId == model.typeModelId ? state.rules : state.idSchmNotUseRules" label-width="200px"
 			class="demo-ruleForm" label-position="right">
 
 			<div class="boxLayout">
@@ -35,6 +35,47 @@
 								:typeModelId="state.metadataSet.typeModelId" 
 								@selectedRow="selectedMetaDataModel" />
 						</el-dialog>						
+					</el-form-item>
+
+					<el-form-item label="식별체계 - 국가코드" prop="idSchmCntryCd" v-show="IdSchmUseYn === 'Y' && metaIdSchmSettings.id_schm_object.typeModelId == model.typeModelId">
+						<el-select 
+								v-model="state.metadataSet.idSchmCntryCd"
+								placeholder="선택">
+								<el-option
+									v-for="item in countryCodeList"
+									:key="item.cntryCd"
+									:label="item.cntryNm"
+									:value="item.cntryCd"
+								/>
+              			</el-select>
+					</el-form-item>
+
+					<el-form-item label="식별체계 - 분류코드 종류" prop="idSchmType" v-show="IdSchmUseYn === 'Y' && metaIdSchmSettings.id_schm_object.typeModelId == model.typeModelId">
+						<el-select 
+								v-model="state.metadataSet.idSchmType"
+								placeholder="선택"
+								@change="typeChg()">
+								<el-option
+									v-for="item in idSchmObjectList"
+									:key="item.mtcd"
+									:label="item.mtcdNm"
+									:value="item.mtcd"
+								/>
+              			</el-select>
+					</el-form-item>
+
+					<el-form-item label="식별체계 - 코드" prop="idSchmCd" v-show="IdSchmUseYn === 'Y' && metaIdSchmSettings.id_schm_object.typeModelId == model.typeModelId">
+						<div class="inline-area">
+							<el-input	v-model="state.metadataSet.idSchmCd"	disabled style="width: 100px" />
+							<el-input	v-model="state.idSchmCdNm"	disabled style="width: 250px; margin-left: 5px;" />
+							<el-button type="default" class="ml15" @click="codeSearchClick"><el-icon class="icon icon-search"/></el-button>
+							<el-button type="delete" @click="refreshCodeInfo"><el-icon class="icon icon-refresh"/></el-button>
+						</div>	
+						<el-dialog v-model="dialogVisibleCodeSearch" :title="`식별체계 코드 검색 - ${state.idSchmTypeNm}`">
+							<IdSchemeCodeSearchPage 
+							:idSchmType="state.metadataSet.idSchmType" 
+							@selectedRow="selectedIdSchmCd" />
+						</el-dialog>
 					</el-form-item>
 
 					<el-form-item label="메타데이터 셋 명" prop="medataSetNm">
@@ -102,6 +143,8 @@
 <script setup>
 import MetaDataModelSearchPage from "@/views/feature/meta/setting/datamodel/MetaDataModelSearchPage.vue";
 import MetadataSetDialogSearch from "@/components/meta/dt/MetadataSetDialogSearch.vue";
+import IdSchemeCodeSearchPage from "@/views/feature/meta/stddata/idshemecommon/IdSchemeCodeSearchPage.vue";
+import metaIdSchmSettings from "@/assets/json/metaIdSchmSettings.json";
 
 import { ref, toRefs, reactive, defineEmits, defineProps, watch, onMounted } from "vue";
 import { useRoute } from "vue-router";
@@ -115,8 +158,10 @@ const $axios = getGlobalProperties().$axios;
 const $apiUrls = getGlobalProperties().$apiUrls;
 
 const ruleFormRef = ref(null);
+const IdSchmUseYn = ref(process.env.VUE_APP_METADATA_ID_SCHM_USE_YN);
 
 const dialogVisibleModelSearch = ref(false);
+const dialogVisibleCodeSearch = ref(false);
 const searchSttusCd = "use"; //use 조건절 지정 (모델 검색 시 사용 상태만 select)
 const searchMode = "objectType"; 
 
@@ -155,6 +200,14 @@ const props = defineProps({
 		required: false,
 		default: 'N',
 	},
+	countryCodeList: { // 국가코드
+		type: Array,
+		required: false,
+	},
+	idSchmObjectList: {
+		type: Array,
+		required: false,
+	},
 });
 
 const propsModel = toRefs(props).model;
@@ -166,6 +219,7 @@ watch(propsModel, (curr, prev) => {
 	state.metadataSet.modelNm = curr.modelNm;
 	state.metadataSet.typeModelId = curr.typeModelId;
 	state.metadataSet.typeModelNm = curr.typeModelNm;
+	state.idSchmCdNm = "";
 });
 
 const propsCnct = toRefs(props).cnctInfo;
@@ -186,13 +240,104 @@ const state = reactive({
 		medataSetNm: "", //메타데이터 셋 명
 		medataSetLogicNm: "", //메타데이터 셋 논리 명
 		medataSetDesc: "", //메타데이터 셋 설명
+		idSchmCntryCd: IdSchmUseYn.value == 'Y' && metaIdSchmSettings.id_schm_object.typeModelId == props.model.typeModelId ? "KR" : "",
+		idSchmType: "",
+		idSchmCd: "",
+		idSchmUseYn: IdSchmUseYn.value, 
 		cnctMedataSetId: props.cnctInfo.cnctMedataSetId, //연결 메타데이터 셋 ID (상위) -> prop을 통해 이전 화면부터 선택한 값 전송받기
 		cnctMedataSetNm: props.cnctInfo.cnctMedataSetNm,
 		cnctPrptyId: props.cnctInfo.cnctPrptyId, //연결 프라퍼티 ID (상위) -> prop을 통해 이전 화면부터 선택한 값 전송받기
 	},
+	idSchmCdNm: "",
+	idSchmTypeNm: "",
 	selectedUpperPrptyList: [], // 선택한 상위 메타데이터 셋에 연결된 프라퍼티 목록
 
 	rules: {
+    modelNm: [
+      {
+        required: true,
+        message: "모델을 선택하세요.",
+        trigger: "blur",
+      },
+      {
+        min: 0,
+        message: "모델 선택",
+        trigger: "blur",
+      },
+    ], 
+	idSchmCntryCd: [
+		{
+			required: true,
+			message: "",
+			trigger: "blur",
+		},
+    ],
+	idSchmType: [
+		{
+			required: true,
+			message: "",
+			trigger: "blur",
+		},
+    ],
+	idSchmCd: [
+		{
+			required: true,
+			message: "코드를 선택하세요.",
+			trigger: "blur",
+		},
+	], 
+		medataSetNm: [
+			{
+				required: true,
+        message: "메타데이터 셋 명을 입력하세요.",
+        trigger: "blur",				
+			},			
+			{
+				max: 128,
+				message: "128자 이하만 가능합니다.",
+				trigger: "blur",
+			}
+		],
+		medataSetLogicNm: [
+			{
+				max: 128,
+				message: "128자 이하만 가능합니다.",
+				trigger: "blur",
+			}
+		],
+		medataSetDesc: [
+			{
+				required: true,
+				message: "메타데이터 셋 설명을 입력하세요.",
+				trigger: "blur",				
+			},
+			{
+				max: 1000,
+				message: "1000자 이하만 가능합니다.",
+				trigger: "blur",
+			}
+		],
+    cnctMedataSetNm: [
+      {
+        required: true,
+        message: "연결 메타데이터 셋을 선택하세요.",
+        trigger: "blur",
+      },
+      {
+        min: 0,
+        message: "연결 메타데이터 셋 선택",
+        trigger: "blur",
+      },
+    ],		
+		cnctPrptyId: [
+			{
+				required: true,
+        message: "연결 프라퍼티를 선택하세요.",
+        trigger: "blur",				
+			},			
+		],		
+	},
+	idSchmNotUseRules: {
     modelNm: [
       {
         required: true,
@@ -382,6 +527,38 @@ const selectedUpperPrptyList = (propertyMap, cnctPrptyId) => {
 	} else if (state.selectedUpperPrptyList.length == 1) {
 		state.metadataSet.cnctPrptyId = state.selectedUpperPrptyList[0].prptyId;
 	}
+};
+
+const typeChg = () => {
+	if(state.metadataSet.idSchmType === "1") {
+		state.idSchmTypeNm = "물품"
+	}
+	if(state.metadataSet.idSchmType === "2") {
+		state.idSchmTypeNm = "시설"
+	}
+
+	refreshCodeInfo();
+};
+
+const codeSearchClick = () => {
+	if(state.metadataSet.idSchmType === ""){
+		alert("분류코드 종류를 먼저 선택해주세요");
+		return;
+	}
+	dialogVisibleCodeSearch.value = true;
+};
+
+const refreshCodeInfo = () => {
+	state.metadataSet.idSchmCd = "";
+	state.idSchmCdNm = "";
+};
+
+
+const selectedIdSchmCd = (payload) => {
+	state.metadataSet.idSchmCd = payload.rowData.idSchmCd;
+	state.idSchmCdNm = payload.rowData.idSchmCdNm;
+	
+	dialogVisibleCodeSearch.value = false;
 };
 
 </script>

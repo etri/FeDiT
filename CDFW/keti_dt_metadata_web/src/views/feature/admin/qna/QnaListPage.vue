@@ -1,14 +1,10 @@
 <template>
   <div>
     <div class="cntSec">
-      <div class="boxLayout">
-        <div class="boxTit">
-          <h3>QNA 검색</h3>
-        </div>
-        <div class="boxCnt">
-          <QnaSearchForm @searchQna="searchQna" :qnaCode="state.qnaCode" />
-        </div>
-      </div>
+
+      <!--QNA 검색 -->
+      <QnaSearchForm @searchQna="searchQna" :qnaCode="state.qnaCode" />
+
       <div class="boxLayout">
         <div class="boxTit">
           <h3>QNA 목록</h3>

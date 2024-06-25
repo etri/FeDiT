@@ -53,6 +53,7 @@
 									v-model="state.dataTypeModel.mtcdGrpId"
 									@change="changeMetaCodeGroupId"
 									placeholder="해당없음">
+									<el-option value="" label="해당없음" />
 									<el-option
 											v-for="item in metaCodeGroupList"
 											:key="item.mtcdGrpId"
@@ -70,6 +71,7 @@
 									v-model="state.dataTypeModel.useLangMtcd"
 									@change="changeUseLangMtcd"
 									placeholder="해당없음">
+									<el-option value="" label="해당없음" />
 									<el-option
 											v-for="item in useLangCdList"
 											:key="item.mtcd"
@@ -270,7 +272,7 @@ const resetDataTypeModel = () => {
     state.dataTypeModel.modelNm="",
     state.dataTypeModel.modelLogicNm="",
     state.dataTypeModel.modelDesc="",
-    state.dataTypeModel.modelDataSttusMtcd="",
+    state.dataTypeModel.modelDataSttusMtcd="use",
     state.dataTypeModel.modelSortOdrg="",
     state.dataTypeModel.dataTypeMtcd="",
     state.dataTypeModel.dataTypeValExam="",

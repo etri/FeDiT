@@ -224,6 +224,7 @@ const changeupMtcdCd = (data) => {
 };
 
 const cancelSubDialog = () => {
+	resetMetaCodeData();
 	emits("cancelSubDialog");
 };
 

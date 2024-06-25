@@ -9,7 +9,8 @@
 					@click="dialogVisibleEdit = true">등록</el-button>
 			</div>
 			<el-dialog v-model="dialogVisibleEdit" title="디지털트윈 등록">
-				<DigitalTwinDialogEdit @cancelDialog="cancelDialog" @editMetadataSetInfo="editMetadataSetInfo" />
+				<DigitalTwinDialogEdit @cancelDialog="cancelDialog" @editMetadataSetInfo="editMetadataSetInfo" 
+									   :countryCodeList="countryCodeList" :idSchmDtList="idSchmDtList"/>
 			</el-dialog>
 
 			<div class="boxLayout">
@@ -55,6 +56,8 @@ const $emitter =
 
 const dialogVisibleEdit = ref(false);
 const dataStatusList = ref([]);
+const countryCodeList = ref([]);
+const idSchmDtList = ref([]);
 const user = getUser(); //login user
 
 const state = reactive({
@@ -82,6 +85,8 @@ const state = reactive({
 
 onMounted(() => {
 	getMetaCodeList();
+	getCountryCodeList();
+	getIdSchmDtList();
 	getMetadataSetList();
 });
 
@@ -97,6 +102,35 @@ const getMetaCodeList = async () => {
 
 	const List = store.getters["MetaStore/getStoreMetaCodeList"]("MCG00001");
 	dataStatusList.value = List;
+};
+
+const getCountryCodeList = async () => {
+  await store.dispatch("MetaStore/getCountryCodeList", {
+    axios: $axios,
+    apiUrls: $apiUrls,
+  });
+
+  const CountryCodeList = store.getters["MetaStore/getStoreCountryCodeList"];
+  countryCodeList.value = CountryCodeList;
+};
+
+const getIdSchmDtList = async () => {
+
+	await store.dispatch("MetaStore/getMetaCodeList", {
+		axios: $axios,
+		apiUrls: $apiUrls,
+		params: {
+			mtcdGrpIdList: ["MCG00029"],
+		},
+	});
+
+	const List = store.getters["MetaStore/getStoreMetaCodeList"]("MCG00029");
+	idSchmDtList.value = [];
+	for(var i=0; i < List.length; i++) {
+		if(List[i].upMtcd === "id_schm_dt") {
+			idSchmDtList.value.push(List[i]);
+		}
+	}
 };
 
 const getMetadataSetList = () => {

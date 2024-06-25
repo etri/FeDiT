@@ -2,7 +2,7 @@
   <el-form label-width="160px" :model="group">
     <el-row>
       <el-col :span="20" :xs="24">
-        <el-form-item label="그룹명">{{ group.grpNm }}</el-form-item>
+        <el-form-item label="그룹 명">{{ group.grpNm }}</el-form-item>
       </el-col></el-row
     >
     <el-row>

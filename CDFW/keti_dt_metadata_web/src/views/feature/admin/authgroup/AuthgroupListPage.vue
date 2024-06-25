@@ -1,14 +1,6 @@
 <template>
   <div class="cntSec">
-    <div class="boxLayout">
-      <div class="boxTit">
-        <h3>권한 검색</h3>
-      </div>
-      <div class="boxCnt">
-        <AuthgroupSearchForm @searchAuthgroup="searchAuthgroup" />
-      </div>
-    </div>
-
+    <AuthgroupSearchForm @searchAuthgroup="searchAuthgroup" />
     <div class="boxLayout">
       <div class="boxTit">
         <h3>권한 목록</h3>
@@ -60,8 +52,7 @@ const state = reactive({
   authList: [],
   pageInfo: {
     curPage: 1,
-    searchType: "0",
-    searchWord: "",
+    autName: "",
     searchUseYn: "0",
     typeCd: "",
     totalListSize: 0,
@@ -80,12 +71,7 @@ const getAuthgroupList = () => {
     .get($apiUrls.admin.auth.getAuthList, {
       params: {
         curPage: state.pageInfo.curPage,
-        autName:
-          state.pageInfo.searchType == 1 ? state.pageInfo.searchWord : null,
-        autDesc:
-          state.pageInfo.searchType == 2 ? state.pageInfo.searchWord : null,
-        searchWord:
-          state.pageInfo.searchType == 0 ? state.pageInfo.searchWord : "",
+        autName: state.pageInfo.autName,
         useYn:
           state.pageInfo.searchUseYn == 0
             ? null
@@ -118,8 +104,7 @@ const pageMove = (payload) => {
 
 const searchAuthgroup = (payload) => {
   state.pageInfo.curPage = payload.curPage;
-  state.pageInfo.searchType = payload.pageInfo.value.searchType;
-  state.pageInfo.searchWord = payload.pageInfo.value.searchWord;
+  state.pageInfo.autName = payload.pageInfo.value.autName;
   state.pageInfo.searchUseYn = payload.pageInfo.value.searchUseYn;
   state.pageInfo.typeCd = payload.pageInfo.value.typeCd;
   getAuthgroupList();

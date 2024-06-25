@@ -11,12 +11,12 @@
       <el-form label-position="left"
         :inline="true"
         :model="pageInfo"
-        class="demo-form-inline"
+        class="demo-form-inline search-form"
         label-width="150px"
       >
-        <el-form-item label="RDF 매핑 형식" style="margin-left: 21px">
-          <el-row :gutter="20">
-            <el-col :span="24">
+        <el-row :gutter="20">
+          <el-col :span="4">
+            <el-form-item label="RDF 매핑 형식">
               <el-select v-model="pageInfo.rdfFormMtcd" placeholder="선택">
                 <el-option
                   v-for="item in rdfFormMtcdList"
@@ -25,13 +25,10 @@
                   :value="item.mtcd"
                 />
               </el-select>
-            </el-col>
-          </el-row>
-        </el-form-item>
-
-        <el-form-item label="메타데이터 유형" style="margin-left: 21px">
-          <el-row :gutter="20">
-            <el-col :span="24">
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item label="메타데이터 유형">
               <el-select v-model="pageInfo.typeModelId" placeholder="선택">
                 <el-option label="전체" value="" />
                 <el-option
@@ -41,28 +38,21 @@
                   :value="item.modelId"
                 />
               </el-select>
-            </el-col>
-          </el-row>
-        </el-form-item>
-      </el-form>
-
-      <el-form label-position="left"
-        :inline="true"
-        :model="pageInfo"
-        class="demo-form-inline"
-        label-width="150px"
-      >
-        <el-form-item label="매핑 여부" style="margin-left: 21px">
-          <el-row :gutter="20">
-            <el-col :span="24">
+            </el-form-item>
+          </el-col>
+          <el-col :span="4">
+            <el-form-item label="매핑 여부">
               <el-select v-model="pageInfo.rdfMappgYn" placeholder="선택">
                 <el-option label="전체" value="" />
                 <el-option label="Y" value="Y" />
                 <el-option label="N" value="N" />
               </el-select>
-            </el-col>
-          </el-row>
-        </el-form-item>
+            </el-form-item>
+          </el-col>
+          <!-- <el-col :span="10">  -->
+          <el-col> 
+          </el-col>
+        </el-row>
       </el-form>
     </div>
   </div>

@@ -21,7 +21,8 @@
                       placeholder="선택"
                       @change="changeModel"
                       :style="{ width: '300px' }"
-                    >
+                      :disabled="row.comboYn == 'N' ? true : false"
+                      >
                       <el-option
                         v-for="childNode in row.metaDataModelList"
                         :key="childNode.modelId"
@@ -58,6 +59,7 @@ const state = reactive({
   comboMap: new Map([]),
   metaDataModelList: [], // 전체 metaDataModel (콤보박스)
   modelPrptyList: [], // 트리
+  treeDepth: 0,
 });
 
 const getTypeModelList = () => {
@@ -114,13 +116,16 @@ const getModelPropertyList = (modelId) => {
     metaDataModelList: [], // 콤보박스
   };
   state.modelPrptyList.push(root);
-  makeTree(state.modelPrptyList[0], true, true);
+  state.treeDepth = 0;
+  makeTree(state.modelPrptyList[0], true, true, state.treeDepth);
 };
 
-const makeTree = (node, firstLoadingYn, checkComboListYn) => {
+const makeTree = (node, firstLoadingYn, checkComboListYn, depth) => {
   if (!node) {
     return;
   }
+
+  state.treeDepth = depth + 1;
 
   $axios
     .get(util.format($apiUrls.meta.data.std.getStdModelPropertyList, node.treeId))
@@ -137,13 +142,21 @@ const makeTree = (node, firstLoadingYn, checkComboListYn) => {
           tmpList.push(data);
         }
       });
+
       if (firstLoadingYn == false && checkComboListYn == false) {
         appendNode(node, tmpList, firstLoadingYn, false);
       } else {
         appendNode(node, tmpList, firstLoadingYn, true);
       }
       for (let childNode of tmpList) {
-        makeTree(childNode, firstLoadingYn, true);
+        childNode.comboYn = "Y";
+        if(childNode.treeId == "DigitalObject" && state.treeDepth > 1) {
+          childNode.treeId = childNode.prptyId + " " + childNode.prptyLogicNm;
+          childNode.comboYn = "N";
+        }
+        if(node.rangeModelId != childNode.rangeModelId) {
+          makeTree(childNode, firstLoadingYn, true, state.treeDepth);
+        }
       }
     })
     .catch((err) => {
@@ -170,15 +183,16 @@ const appendNode = (node, children, firstLoadingYn, checkComboListYn) => {
     node.children = [];
   }
   node.children = children;
+
   if (firstLoadingYn == false && checkComboListYn == false) {
     state.modelPrptyList = [...state.modelPrptyList];
     return;
   }
 
   let tmpList = [];
-  let typeModel = {}; // 콤보박스의 첫 번재 값
+  let typeModel = {}; // 콤보박스의 첫 번째 값
   let stdModel = {};  // 콤보박스에서 기본적으로 선택되어있는 기본값
-
+    
   for (let model of state.metaDataModelList) {
     if (model.typeModelId == node.rangeModelId) {
       tmpList.push(model);
@@ -197,6 +211,7 @@ const appendNode = (node, children, firstLoadingYn, checkComboListYn) => {
   if (tmpList) {
     node.metaDataModelList = tmpList;
   }
+  
   if (stdModel.modelId !== undefined) {
     node.rangeModelId = stdModel.modelId;
   }
@@ -222,7 +237,7 @@ const findNode = (children, id) => {
 const changeModel = async (data) => {
   let node = findNode(state.modelPrptyList, data);
   //console.log(node);
-  makeTree(node, false, false);
+  makeTree(node, false, false, 0);
 };
 </script>
 

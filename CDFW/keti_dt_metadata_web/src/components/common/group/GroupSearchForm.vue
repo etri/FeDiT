@@ -1,31 +1,30 @@
 <template>
-  <div>
-    <el-form
-      :inline="true"
-      :model="pageInfo"
-      class="demo-form-inline"
-      label-width="120px"
-    >
-      <el-form-item label="검색어">
-        <el-row :gutter="20">
-          <el-col :span="9">
-            <el-select v-model="pageInfo.searchType" placeholder="선택">
-              <el-option label="선택" value="0" />
-              <el-option label="그룹명" value="1" />
-              <el-option label="설명" value="2" />
-            </el-select>
+  <div class="boxLayout">
+    <div class="boxTit">
+      <h3>그룹 검색</h3>
+      <div class="btnSec taR">
+        <el-button class="el-button--gray" size="small" :icon="Refresh" @click="resetSearchForm()">초기화</el-button>
+        <el-button type="primary" size="small" @click="getGroupList(1)">검색</el-button>
+      </div>
+    </div>
+    <div class="boxCnt">
+      <el-form
+        :inline="true"
+        :model="pageInfo"
+        class="demo-form-inline"
+        label-width="120px"
+      >
+        <el-row :gutter="10">
+          <el-col :span="6">
+            <el-form-item label="그룹 명">
+              <el-input
+                v-model="pageInfo.grpNm"
+                placeholder="검색할 그룹 명을 입력하세요."
+                @keydown.enter="getGroupList(1)" />
+            </el-form-item>
           </el-col>
-          <el-col :span="11">
-            <el-input
-              class="w-50 m-2"
-              v-model="pageInfo.searchWord"
-              placeholder="검색어를 입력하세요."
-              @keyup.enter="getGroupList(1)" /></el-col
-        ></el-row>
-      </el-form-item>
-    </el-form>
-    <div class="btnSec taR">
-      <el-button type="primary" @click="getGroupList(1)">검색</el-button>
+        </el-row>
+      </el-form>
     </div>
   </div>
 </template>
@@ -33,23 +32,41 @@
 import { useStore } from "vuex";
 import { getGlobalProperties } from "@/assets/js/common.js";
 import { ref, defineEmits } from "vue";
-const emits = defineEmits(["searchGroup"]);
+
 const store = useStore();
 const $axios = getGlobalProperties().$axios;
 const $apiUrls = getGlobalProperties().$apiUrls;
 
+const emits = defineEmits(["searchGroup"]);
+
 const pageInfo = ref({
-  searchWord: "",
-  searchType: "0",
+  grpNm: "",
 });
 
 const getGroupList = (data) => {
   console.log(pageInfo);
 
   emits("searchGroup", {
-    curPage: data, pageInfo
+    curPage: data,
+    grpNm: pageInfo.value.grpNm,
   });
 };
 
+const resetSearchForm = () => {
+  pageInfo.value = {};
+  getGroupList();
+};
+
 </script>
-<style lang="scss"></style>
+<style lang="scss" scoped>
+.demo-form-inline {
+  overflow:hidden;
+  display:flex;
+  .el-row {
+    width:100%;
+    .el-form-item {
+      width: 100% !important;
+    }
+  }
+}
+</style>

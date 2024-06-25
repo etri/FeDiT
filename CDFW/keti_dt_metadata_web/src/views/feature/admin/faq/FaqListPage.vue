@@ -1,14 +1,10 @@
 <template>
   <div>
     <div class="cntSec">
-      <div class="boxLayout">
-        <div class="boxTit">
-          <h3>FAQ 검색</h3>
-        </div>
-        <div class="boxCnt">
-          <FaqSearchForm @searchFaq="searchFaq" />
-        </div>
-      </div>
+      
+      <!-- FAQ 검색 -->
+      <FaqSearchForm @searchFaq="searchFaq" />
+
       <div class="boxLayout">
         <div class="boxTit">
           <h3>FAQ 목록</h3>

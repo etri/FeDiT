@@ -4,9 +4,7 @@
       <h3>메타데이터 코드 관리</h3>
       <div class="btnSec taR">
         <el-button type="default" @click="refresh">초기화</el-button>
-        <el-button type="primary" @click="getMetaCodeGroupList(1)"
-          >검색</el-button
-        >
+        <el-button type="primary" @click="getMetaCodeGroupList(1)">검색</el-button>
       </div>
     </div>
     <div class="boxCnt">
@@ -17,64 +15,50 @@
           class="demo-form-inline"
           label-width="120px"
         >
-          <el-form-item label="코드그룹 ID">
-            <el-row :gutter="20">
-              <el-col :span="24">
+          <el-row :gutter="20">
+            <!-- <el-col :span="12"> -->
+              <el-form-item label="코드그룹 ID">            
                 <el-input
                   class="w-50 m-2"
                   v-model="pageInfo.mtcdGrpId"
                   placeholder=""
                   @keydown.enter.prevent="getMetaCodeGroupList(1)"
                 />
-              </el-col>
-            </el-row>
-          </el-form-item>
-
-          <el-form-item label="코드">
-            <el-row :gutter="20">
-              <el-col :span="24">
+              </el-form-item>
+            <!-- </el-col>
+            <el-col :span="12"> -->
+              <el-form-item label="코드">
                 <el-input
-                  class="w-50 m-2"
-                  v-model="pageInfo.mtcd"
-                  placeholder=""
-                  @keydown.enter.prevent="getMetaCodeGroupList(1)"
-                />
-              </el-col>
-            </el-row>
-          </el-form-item>
-        </el-form>
-
-        <el-form label-position="left"
-          :inline="true"
-          :model="pageInfo"
-          class="demo-form-inline"
-          label-width="120px"
-        >
-          <el-form-item label="코드그룹 명">
-            <el-row :gutter="20">
-              <el-col :span="24">
+                    class="w-50 m-2"
+                    v-model="pageInfo.mtcd"
+                    placeholder=""
+                    @keydown.enter.prevent="getMetaCodeGroupList(1)"
+                  />
+              </el-form-item>
+            <!-- </el-col> -->
+          </el-row>          
+          <el-row :gutter="20">
+            <!-- <el-col :span="12"> -->
+              <el-form-item label="코드그룹 명">
                 <el-input
                   class="w-50 m-2"
                   v-model="pageInfo.mtcdGrpNm"
                   placeholder=""
                   @keydown.enter.prevent="getMetaCodeGroupList(1)"
                 />
-              </el-col>
-            </el-row>
-          </el-form-item>
-
-          <el-form-item label="코드 명">
-            <el-row :gutter="20">
-              <el-col :span="24">
+              </el-form-item>
+            <!-- </el-col>
+            <el-col :span="12"> -->
+              <el-form-item label="코드 명">
                 <el-input
                   class="w-50 m-2"
                   v-model="pageInfo.mtcdNm"
                   placeholder=""
                   @keydown.enter.prevent="getMetaCodeGroupList(1)"
                 />
-              </el-col>
-            </el-row>
-          </el-form-item>
+              </el-form-item>
+            <!-- </el-col> -->
+          </el-row>
         </el-form>
       </div>
     </div>

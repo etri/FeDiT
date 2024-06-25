@@ -14,12 +14,12 @@
 
 						<el-dialog v-model="dialogVisibleEditDt" title="디지털트윈 등록">
 							<DigitalTwinDialogEdit :model="state.selectedModel" @cancelDialog="cancelDialogDt"
-								@editMetadataSetInfo="editMetadataSetInfo" />
+								@editMetadataSetInfo="editMetadataSetInfo" :countryCodeList="countryCodeList" :idSchmDtList="idSchmDtList" />
 						</el-dialog>
 
 						<el-dialog v-model="dialogVisibleEditSet" title="메타데이터 셋 등록">
 							<MetadataSetDialogEdit :model="state.selectedModel" @cancelDialog="cancelDialogSet"
-								@editMetadataSetInfo="editMetadataSetInfo2" />
+								@editMetadataSetInfo="editMetadataSetInfo2" :countryCodeList="countryCodeList" :idSchmObjectList="idSchmObjectList" />
 						</el-dialog>
 
 						<!-- tree list -->
@@ -95,6 +95,9 @@ const dialogVisibleEditDt = ref(false);
 const dialogVisibleEditSet = ref(false);
 
 const dataStatusList = ref([]);
+const countryCodeList = ref([]);
+const idSchmDtList = ref([]);
+const idSchmObjectList = ref([]);
 const typeModelList = ref([]);
 const user = getUser();
 
@@ -125,6 +128,9 @@ const state = reactive({
 
 onMounted(() => {
 	getMetaCodeList();
+	getCountryCodeList();
+	getIdSchmDtList();
+	getIdSchmObjectList();
 	getMetadataSetList();
 	getMetadataModelItemList();
 	getTypeModelList();
@@ -142,6 +148,54 @@ const getMetaCodeList = async () => {
 
 	const List = store.getters["MetaStore/getStoreMetaCodeList"]("MCG00001");
 	dataStatusList.value = List;
+};
+
+const getCountryCodeList = async () => {
+  await store.dispatch("MetaStore/getCountryCodeList", {
+    axios: $axios,
+    apiUrls: $apiUrls,
+  });
+
+  const CountryCodeList = store.getters["MetaStore/getStoreCountryCodeList"];
+  countryCodeList.value = CountryCodeList;
+};
+
+const getIdSchmDtList = async () => {
+
+	await store.dispatch("MetaStore/getMetaCodeList", {
+		axios: $axios,
+		apiUrls: $apiUrls,
+		params: {
+			mtcdGrpIdList: ["MCG00029"],
+		},
+	});
+
+	const List = store.getters["MetaStore/getStoreMetaCodeList"]("MCG00029");
+	idSchmDtList.value = [];
+	for(var i=0; i < List.length; i++) {
+		if(List[i].upMtcd === "id_schm_dt") {
+			idSchmDtList.value.push(List[i]);
+		}
+	}
+};
+
+const getIdSchmObjectList = async () => {
+
+	await store.dispatch("MetaStore/getMetaCodeList", {
+		axios: $axios,
+		apiUrls: $apiUrls,
+		params: {
+			mtcdGrpIdList: ["MCG00029"],
+		},
+	});
+
+	const List = store.getters["MetaStore/getStoreMetaCodeList"]("MCG00029");
+	idSchmObjectList.value = [];
+	for(var i=0; i < List.length; i++) {
+		if(List[i].upMtcd === "id_schm_object") {
+			idSchmObjectList.value.push(List[i]);
+		}
+	}
 };
 
 const getTypeModelList = () => {

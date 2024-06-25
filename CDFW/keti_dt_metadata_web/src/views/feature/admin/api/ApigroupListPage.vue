@@ -1,42 +1,33 @@
 <template>
-  <div>
-    <div class="cntSec">
-      <div class="boxLayout">
-        <div class="boxTit">
-          <h3>API그룹 검색</h3>
-        </div>
-        <div class="boxCnt">
-          <ApigroupSearchForm @searchApigroup="searchApigroup" />
+  <div class="cntSec">
+    <ApigroupSearchForm @searchApigroup="searchApigroup" />
+    <div class="boxLayout">
+      <div class="boxTit">
+        <h3>API그룹 목록</h3>
+      </div>
+      <div class="boxCnt">
+        <div style="overflow-x: hidden; overflow-y: auto">
+          <ApigroupList
+            :apiList="state.apiList"
+            :totalPage="state.pageInfo.totalListSize"
+            :curPage="state.pageInfo.curPage"
+            @pageMove="pageMove"
+            @detailApi="detailApi"
+          />
         </div>
       </div>
-      <div class="boxLayout">
-        <div class="boxTit">
-          <h3>API그룹 목록</h3>
-        </div>
-        <div class="boxCnt">
-          <div style="overflow-x: hidden; overflow-y: auto">
-            <ApigroupList
-              :apiList="state.apiList"
-              :totalPage="state.pageInfo.totalListSize"
-              :curPage="state.pageInfo.curPage"
-              @pageMove="pageMove"
-              @detailApi="detailApi"
-            />
-          </div>
-        </div>
-      </div>
-      <ul class="btnSec taR mt10">
-        <li>
-          <el-button
-            v-if="isWriteYn(route.meta.auth)"
-            type="primary"
-            size="large"
-            @click="registerApigroup"
-            >등록</el-button
-          >
-        </li>
-      </ul>
     </div>
+    <ul class="btnSec taR mt10">
+      <li>
+        <el-button
+          v-if="isWriteYn(route.meta.auth)"
+          type="primary"
+          size="large"
+          @click="registerApigroup"
+          >등록</el-button
+        >
+      </li>
+    </ul>
   </div>
 </template>
 <script setup>
@@ -61,10 +52,8 @@ const state = reactive({
   apiList: [],
   pageInfo: {
     curPage: 1,
-    fromDate: "",
-    toDate: "",
-    searchWord: "",
-    searchType: "0",
+    pltfrmId: "",
+    grpName: "",
     totalListSize: 0,
     pageListSize: 10,
     blockSize: 5,
@@ -83,12 +72,8 @@ const getApigroupList = () => {
     .get($apiUrls.admin.api.getApigroupListPaging, {
       params: {
         curPage: state.pageInfo.curPage,
-        grpName:
-          state.pageInfo.searchType == 1 ? state.pageInfo.searchWord : null,
-        pltfrmId:
-          state.pageInfo.searchType == 2 ? state.pageInfo.searchWord : null,
-        searchWord:
-          state.pageInfo.searchType == 0 ? state.pageInfo.searchWord : "",
+        pltfrmId : state.pageInfo.pltfrmId,
+        grpName : state.pageInfo.grpName,
         useYn:
           state.pageInfo.searchUseYn == 0
             ? null
@@ -120,8 +105,10 @@ const pageMove = (payload) => {
 
 const searchApigroup = (payload) => {
   state.pageInfo.curPage = payload.curPage;
-  state.pageInfo.searchType = payload.pageInfo.value.searchType;
-  state.pageInfo.searchWord = payload.pageInfo.value.searchWord;
+  state.pageInfo.pltfrmId =
+    payload.pltfrmId == "" ? "" : payload.pageInfo.value.pltfrmId;
+  state.pageInfo.grpName =
+    payload.grpName == "" ? "" : payload.pageInfo.value.grpName;
   state.pageInfo.searchUseYn = payload.pageInfo.value.searchUseYn;
   getApigroupList();
 };

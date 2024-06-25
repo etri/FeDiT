@@ -421,10 +421,155 @@
         </div>
       </div>
     </div>
+
+
+
+
+
+
+
+
+
+    <div class="boxLayout">
+      <div class="boxTit">
+        <h3>ElasticSearch</h3>
+      </div>
+      <div class="boxCnt">
+        <div class="ly-table">
+          <el-form label-position="right"
+            label-width="220px"
+            class="demo-ruleForm"
+          >
+            <el-row>
+              <el-col :span="24">
+                <el-form-item label="Kibana 서버">
+                  <el-button type="primary" class="mt10 mb10" @click="handleClickElastic"
+                    >새 창 열기</el-button
+                  >
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row>
+              <el-col :span="24">
+                <el-form-item label="특정 메타데이터셋 등록 (upsert)"  >
+                  <div class="inline-area mt10 mb10">
+                    <el-input
+                      style="width: 230px"
+                      v-model="state.elasticEditInfo.medataSetId"
+                      placeholder=""
+                      disabled
+                    >
+                    </el-input>
+                    <el-input class="ml10"
+                      style="width: 230px"
+                      v-model="state.elasticEditInfo.medataSetNm"
+                      placeholder=""
+                      disabled
+                    >
+                    </el-input>
+                    <el-button type="default" class="ml10"
+                      @click="handleClickElastcMetaDataSetPopup(true)"
+                    >
+                      <el-icon  class="icon icon-search"></el-icon>
+                    </el-button>
+                    <el-button  type="delete" @click="handleClickElasticDeleteMetaDataSet(true)"
+                      ><el-icon  class="icon icon-refresh"></el-icon
+                    ></el-button>
+                    <el-button type="primary"
+                      @click="saveToElastic()"
+                      v-show="isAmdYn(route.meta.auth)"
+                      >ElasticSearch에 저장</el-button
+                    >
+                  </div>
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row>
+              <el-col :span="24">
+                <el-form-item label="특정 메타데이터셋 삭제">
+                  <div class="inline-area mt10 mb10">
+                    <el-input
+                      style="width: 230px"
+                      v-model="state.elasticDeleteInfo.medataSetId"
+                      placeholder=""
+                      disabled
+                    >
+                    </el-input>
+                    <el-input class="ml10"
+                      style="width: 230px"
+                      v-model="state.elasticDeleteInfo.medataSetNm"
+                      placeholder=""
+                      disabled
+                    >
+                    </el-input>
+                    <el-button type="default" class="ml10" @click="handleClickElastcMetaDataSetPopup(false)"
+                      ><el-icon class="icon icon-search"></el-icon
+                    ></el-button>
+                    <el-button type="delete" @click="handleClickElasticDeleteMetaDataSet(false)"
+                    >
+                      <el-icon class="icon icon-refresh"></el-icon>
+                    </el-button>
+                    <el-button type="primary"
+                      @click="deleteFromElastic()"
+                      v-show="isDelYn(route.meta.auth)"
+                      >ElasticSearch에서 삭제</el-button
+                    >
+                  </div>
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row>
+              <el-col :span="24">
+                <el-form-item label="ElasticSearch 초기화">
+                  <div class="inline-area mt10 mb10">
+                    <el-button type="danger"
+                      @click="resetElastic"
+                      v-show="isDelYn(route.meta.auth)"
+                      >초기화</el-button
+                    >
+                    <span class="ml15"
+                      >※ ElasticSearch를 초기화합니다. 전체 내용을 삭제 후, "사용" 상태인 메타데이터 셋 들의 정보를 등록합니다.
+                      <br/>(데이터가 많을수록 시간이 오래 걸릴 수 있습니다.)</span
+                    >
+                  </div>
+                  <div class="inline-area mt10 mb10">
+                    <div class="mr10">초기화 결과:</div>
+                    <div v-if="state.elasticInitResult == true">성공</div>
+                    <div v-else-if="state.elasticInitResult == false">
+                      실패<br />
+                      {{ state.elasticInitResultErrMsg }}
+                    </div>
+                    <div v-else-if="state.elasticInitResult == 'ING'">
+                      처리 중
+                    </div>
+                  </div>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-form>
+        </div>
+      </div>
+    </div>
+
+
+
+
+
+
+
+
+
+
+
   </div>
   <el-dialog v-model="dialogVisibleMetaDataSet" title="메타데이터 셋 검색">
     <div class="dialog-area">
       <MetadataSetDialogSearch @selectedRow="selectedRow" />
+    </div>
+  </el-dialog>
+  <el-dialog v-model="dialogVisibleMetaDataSetForElastic" title="메타데이터 셋 검색">
+    <div class="dialog-area">
+      <MetadataSetDialogSearch @selectedRow="selectedRowForElastic" />
     </div>
   </el-dialog>
 </template>
@@ -457,6 +602,7 @@ const $apiUrls = getGlobalProperties().$apiUrls;
 const route = useRoute();
 
 const dialogVisibleMetaDataSet = ref(false);
+const dialogVisibleMetaDataSetForElastic = ref(false);
 
 const state = reactive({
   virtusoEditInfo: {
@@ -489,8 +635,19 @@ const state = reactive({
     medataSetNm: "",
     medataSetSttusMtcdNm: "",
   },
+  elasticEditInfo: {
+    medataSetId: "",
+    medataSetNm: "",
+    medataSetSttusMtcdNm: "",
+  },
+  elasticDeleteInfo: {
+    medataSetId: "",
+    medataSetNm: "",
+    medataSetSttusMtcdNm: "",
+  },
   virtuosoYn: null,
   editYn: null,
+  elasticEditYn: null,
   virtuosoGraphInitResult: null,
   virtuosoGraphInitResultErrMsg: "",
   virtuosoNsGraphInitResult: null,
@@ -501,6 +658,8 @@ const state = reactive({
   neo4jGraphInitResultErrMsg: "",
   neo4jRdbGraphInitResult: null,
   neo4jRdbGraphInitResultErrMsg: "",
+  elasticInitResult: null,
+  elasticInitResultErrMsg: "",
 });
 
 const handleClickVirtuoso = () => {
@@ -536,6 +695,18 @@ const handleClickNeo4j = () => {
     });
 };
 
+const handleClickElastic = () => {
+  $axios
+    .get(util.format($apiUrls.meta.rdf.elastic.getKibanaUrl))
+    .then((res) => {
+      console.log(res.data);
+      window.open(res.data.url);
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+};
+
 const handleClickMetaDataSetPopup = (virtuosoYn, editYn) => {
   state.virtuosoYn = virtuosoYn;
   state.editYn = editYn;
@@ -548,6 +719,11 @@ const handleClickRdbMetaDataSetPopup = (virtuosoYn, editYn) => {
   state.editYn = editYn;
   state.rdbYn = true;
   dialogVisibleMetaDataSet.value = true;
+};
+
+const handleClickElastcMetaDataSetPopup = (editYn) => {
+  state.elasticEditYn = editYn;
+  dialogVisibleMetaDataSetForElastic.value = true;
 };
 
 const handleClickDeleteMetaDataSet = (virtuosoYn, editYn) => {
@@ -585,6 +761,21 @@ const handleClickRdbDeleteMetaDataSet = (editYn) => {
     state.neo4jRdbDeleteInfo.medataSetId = "";
     state.neo4jRdbDeleteInfo.medataSetNm = "";
     state.neo4jRdbDeleteInfo.medataSetSttusMtcdNm = "";
+    return;
+  }
+};
+
+const handleClickElasticDeleteMetaDataSet = (editYn) => {
+  if (editYn) {
+    state.elasticEditInfo.medataSetId = "";
+    state.elasticEditInfo.medataSetNm = "";
+    state.elasticEditInfo.medataSetSttusMtcdNm = "";
+    return;
+  }
+  else {
+    state.elasticDeleteInfo.medataSetId = "";
+    state.elasticDeleteInfo.medataSetNm = "";
+    state.elasticDeleteInfo.medataSetSttusMtcdNm = "";
     return;
   }
 };
@@ -704,6 +895,45 @@ const saveToRdbGraph = () => {
     });
 };
 
+const saveToElastic = () => {
+
+if (
+  state.elasticEditInfo.medataSetId == null ||
+  state.elasticEditInfo.medataSetId == ""
+) {
+  alert("등록할 메타데이터 셋을 선택해주세요.");
+  return;
+}
+if (
+  confirm(
+    state.elasticEditInfo.medataSetNm +
+      "(상태:" +
+      state.elasticEditInfo.medataSetSttusMtcdNm +
+      ") 을 ElasticSearch에 저장하시겠습니까?"
+  ) == false
+) {
+  return;
+}
+$axios
+  .put(
+    util.format(
+      $apiUrls.meta.rdf.elastic.createElasticData,
+      state.elasticEditInfo.medataSetId
+    )
+  )
+  .then((res) => {
+    alert("저장 성공했습니다.");
+
+    state.elasticEditInfo.medataSetId = "";
+    state.elasticEditInfo.medataSetNm = "";
+    state.elasticEditInfo.medataSetSttusMtcdNm = "";
+  })
+  .catch((err) => {
+    console.log(err);
+    alert("저장 실패했습니다.");
+  });
+};
+
 const deleteFromGraph = (virtuosoYn) => {
   if (virtuosoYn) {
     if (
@@ -787,6 +1017,34 @@ const deleteFromRdbGraph = () => {
     });
 };
 
+const deleteFromElastic = () => {
+
+if (
+  state.elasticDeleteInfo.medataSetId == null ||
+  state.elasticDeleteInfo.medataSetId == ""
+) {
+  alert("삭제할 메타데이터 셋을 선택해주세요.");
+  return;
+}
+$axios
+  .delete(
+    util.format(
+      $apiUrls.meta.rdf.elastic.deleteElasticData,
+      state.elasticDeleteInfo.medataSetId
+    )
+  )
+  .then((res) => {
+    alert("삭제 성공했습니다.");
+    state.elasticDeleteInfo.medataSetId = "";
+    state.elasticDeleteInfo.medataSetNm = "";
+    state.elasticDeleteInfo.medataSetSttusMtcdNm = "";
+  })
+  .catch((err) => {
+    console.log(err);
+    alert("삭제 실패했습니다.");
+  });
+};
+
 const selectedRow = (data) => {
   if (state.virtuosoYn == true) {
     if (state.editYn) {
@@ -820,6 +1078,37 @@ const selectedRow = (data) => {
       return;
     }
   }
+};
+
+const selectedRowForElastic = (data) => {
+  if (state.elasticEditYn) {
+    state.elasticEditInfo = JSON.parse(JSON.stringify(data.rowData));
+    dialogVisibleMetaDataSetForElastic.value = false;
+    return;
+  }
+  state.elasticDeleteInfo = JSON.parse(JSON.stringify(data.rowData));
+  dialogVisibleMetaDataSetForElastic.value = false;
+  return;
+};
+
+const resetElastic = () => {
+  if (!confirm("ElasticSearch를 초기화하시겠습니까?")) {
+    return;
+  }
+  state.elasticInitResult = "ING";
+  $axios
+    .put(util.format($apiUrls.meta.rdf.elastic.initializeElastic))
+    .then((res) => {
+      console.log(res.data);
+      alert("ElasticSearch를 초기화 성공했습니다.");
+      state.elasticInitResult = true;
+    })
+    .catch((err) => {
+      console.log(err);
+      alert("ElasticSearch를 초기화 실패했습니다.");
+      state.elasticInitResult = false;
+      state.elasticInitResultErrMsg = err.message;
+    });
 };
 
 const resetNeo4jGraph = () => {
