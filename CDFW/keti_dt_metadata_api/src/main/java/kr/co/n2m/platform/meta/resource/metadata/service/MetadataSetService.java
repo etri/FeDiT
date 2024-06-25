@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+
 import org.apache.commons.collections4.map.ListOrderedMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
@@ -28,6 +29,8 @@ import kr.co.n2m.platform.meta.architecture.exception.ResBadRequestException;
 import kr.co.n2m.platform.meta.architecture.exception.ResBaseRuntimeException;
 import kr.co.n2m.platform.meta.architecture.exception.ResBizInfoException;
 import kr.co.n2m.platform.meta.architecture.exception.ResNotFoundException;
+import kr.co.n2m.platform.meta.architecture.kafka.KafkaConst;
+import kr.co.n2m.platform.meta.architecture.kafka.MyKafkaProducer;
 import kr.co.n2m.platform.meta.architecture.property.DtmetaProperty;
 import kr.co.n2m.platform.meta.architecture.util.AuthUtil;
 import kr.co.n2m.platform.meta.architecture.util.DateUtil;
@@ -53,6 +56,7 @@ import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSetDto;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSetSaveDto;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSetVo;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataVo;
+import kr.co.n2m.platform.meta.resource.metadata.mapper.MetadataApiMapper;
 import kr.co.n2m.platform.meta.resource.metadata.mapper.MetadataChgHstMapper;
 import kr.co.n2m.platform.meta.resource.metadata.mapper.MetadataMapper;
 import kr.co.n2m.platform.meta.resource.metadata.mapper.MetadataSetMapper;
@@ -60,6 +64,7 @@ import kr.co.n2m.platform.meta.schema.model.domain.ModelInfoDto;
 import kr.co.n2m.platform.meta.schema.model.domain.ModelVo;
 import kr.co.n2m.platform.meta.schema.model.service.ModelService;
 import kr.co.n2m.platform.meta.schema.modelproperty.domain.ModelPropertyInfoDto;
+import kr.co.n2m.platform.meta.search.elasticsearch.service.ElasticSearchService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -97,6 +102,15 @@ public class MetadataSetService {
 	@Autowired
 	private Executor neo4jExecutor;
 	
+	@Autowired
+	private Executor elasticSearchExecutor;
+	
+	@Autowired
+	private MyKafkaProducer myKafkaProducer;
+	
+	@Autowired
+	private MetadataApiMapper metadataApiMapper;
+	
 	private VirtuosoService virtuosoService; // 순환참조 오류 방지
 	
 	public void setVirtuosoService(VirtuosoService virtuosoService) { // 순환참조 오류 방지
@@ -107,6 +121,12 @@ public class MetadataSetService {
 	
 	public void setNeo4jService (Neo4jService neo4jService) { // 순환참조 오류 방지
 		this.neo4jService = neo4jService;
+	}
+	
+	private ElasticSearchService elasticSearchService; // 순환참조 오류 방지
+	
+	public void setElasticSearchService (ElasticSearchService elasticSearchService) { // 순환참조 오류 방지
+		this.elasticSearchService = elasticSearchService;
 	}
 
 	/**
@@ -315,6 +335,9 @@ public class MetadataSetService {
 				}
 			}
 			
+			// 4. 카프카 전송
+			this.sendMetadataViaKafka(KafkaConst.ACTION_CREATE, medataSetId, null, null);
+			
 		} catch (ResBadRequestException | ResBizInfoException e) {
 			log.info("[메타데이터 셋 등록 (from setVo)] 실패/오류 (정보성) : {}", e.getMessage());
 			throw e;			
@@ -391,6 +414,9 @@ public class MetadataSetService {
 					throw new ResBadRequestException("연결 메타데이터 셋과 연결 프라퍼티 정보가 모두 필요합니다.");					
 				}
 			}
+			
+			// 4. 카프카 전송
+			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, medataSetId, null, null);		
 			
 		} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 			log.info("[메타데이터 셋 수정 (from setVo)] 실패/오류 (정보성) : {}", e.getMessage());
@@ -490,6 +516,9 @@ public class MetadataSetService {
 				this.saveMetadataSaveDtoList(modelInfoDto, prevSetDto, cntPrptySaveDtoList, true, false);
 			}
 			
+			// 4. 카프카 전송
+			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, metadataConnectDto.getMedataSetId(), null, null);
+			
 		} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 			log.info("[메타데이터 셋 과 셋의 연결(관계) 메타데이터 등록] 실패/오류 (정보성) : {}", e.getMessage());
 			throw e;			
@@ -534,7 +563,14 @@ public class MetadataSetService {
 				}
 	    	}
 	    	
-	    	// 연결(상위) 메타데이터 셋 체크 (나를 하위에 가지고 있고 상태가 [사용]인 메타데이터 셋 조회)
+	    	// 2. 삭제 전 데이터 조회 (카프카 전송용)
+	    	ListOrderedMap<String, Object> delDataMap = this.getMetadataForKafka(medataSetId);
+	    	MetadataSearchVo metadataSearchVo = new MetadataSearchVo();
+			metadataSearchVo.setIsPaging(false);
+			metadataSearchVo.setMedataSetId(medataSetId);
+			List<CamelCaseMap> delUpSetList = metadataSetMapper.selectMetadataSetDtwListBySubSetId(metadataSearchVo);
+	    		    	
+	    	// 3-1. 연결(상위) 메타데이터 셋 체크 (나를 하위에 가지고 있고 상태가 [사용]인 메타데이터 셋 조회)
 	    	MetadataSearchVo paramVo = new MetadataSearchVo();
 	    	paramVo.setExceptForMetadataSetYn("Y");
 	    	paramVo.setMedataSetSttusMtcd(Constant.SET_STATUS_USE);
@@ -542,7 +578,7 @@ public class MetadataSetService {
 	    	int superCnt = metadataSetMapper.selectMetadataSetCount(paramVo);
 	    	if (superCnt > 0) throw new ResBizInfoException("연결된 메타데이터 셋(" + superCnt + "건) 이 사용 상태입니다. 삭제할 수 없습니다.");
 	    	
-	    	// 2. 연결(상위) 메타데이터 셋에서 현재 메타데이터를 삭제
+	    	// 3-2. 연결(상위) 메타데이터 셋에서 현재 메타데이터를 삭제
 	    	MetadataSearchVo paramVo2 = new MetadataSearchVo();
 	    	paramVo2.setIsPaging(false);
 	    	paramVo2.setExceptForMetadataSetYn("Y");
@@ -555,13 +591,16 @@ public class MetadataSetService {
 	    		}
 	    	}
 
-	    	// 3. 메타데이터 셋 ID로 메타데이터 전체 삭제
+	    	// 4. 메타데이터 셋 ID로 메타데이터 전체 삭제
 	    	metadataMapper.deleteMetadataAllBySetId(medataSetId);
 
-			// 4. 메타데이터 셋 삭제
+			// 5. 메타데이터 셋 삭제
 	    	MetadataSetVo delParamVo = new MetadataSetVo();
 	    	delParamVo.setMedataSetId(medataSetId);
 			cnt = metadataSetMapper.deleteMetadataSet(delParamVo);
+			
+			// 6. 카프카 전송
+			this.sendMetadataViaKafka(KafkaConst.ACTION_DELETE, medataSetId, delDataMap, delUpSetList);
 	
 		} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 			log.info("[메타데이터셋 과 메타데이터 삭제] 실패/오류 (정보성) : {}", e.getMessage());
@@ -660,6 +699,20 @@ public class MetadataSetService {
 							}
 						}, neo4jExecutor);
 					}
+					
+					// ElasticSearch에 메타데이터 셋 정보 저장 (오류나도 SKIP)
+					for (String changedId : outChangedIdList) {
+						// 비동기 처리
+						CompletableFuture.runAsync(() -> {						
+							try {
+								elasticSearchService.saveElasticData(changedId);
+							} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
+								log.error("[메타데이터 셋 상태 변경] ElasticSearch에 메타데이터 셋 정보 저장 저장 실패/오류 (SKIP) : {} - {}", changedId, e.getReason());
+							} catch (Exception e) {
+								log.error("[메타데이터 셋 상태 변경] ElasticSearch에 메타데이터 셋 정보 저장 실패/오류 (SKIP) - {}", changedId, e);
+							}
+						}, elasticSearchExecutor);
+					}
 				} else {
 					// 등록, 미사용 상태인지 체크
 					throw new ResBizInfoException("[" + prevSetDto.getMedataSetNm() + "] 처리할 수 없는 데이터입니다. (상태: " + prevSetDto.getMedataSetSttusMtcdNm() + ")");
@@ -690,6 +743,9 @@ public class MetadataSetService {
 				throw new ResBizInfoException("해당 상태로는 변경이 안됩니다.");
 				
 			}
+			
+			// 3. 카프카 전송
+			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, medataSetId, null, null);			
 	
 		} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 			log.info("[메타데이터 셋 상태 변경] 실패/오류 (정보성) : {}", e.getMessage());
@@ -708,20 +764,26 @@ public class MetadataSetService {
 	 * @Author      : heenim
 	 * @Date        : 2023. 05. 24.
 	 * @param modelInfoDto
-	 * @param metadataSetVo
+	 * @param metadataSetSaveDto
 	 * @return
 	 */
-	private String createMetadataSetAndMetadataForSet(ModelInfoDto modelInfoDto, MetadataSetVo metadataSetVo) {
+	private String createMetadataSetAndMetadataForSet(ModelInfoDto modelInfoDto, MetadataSetSaveDto metadataSetSaveDto) {
+		
+		// ID 생성 로직 - 디지털트윈 식별체계 정보가 있을 경우 설정
+		if(StringUtils.equals("Y", metadataSetSaveDto.getIdSchmUseYn())){			
+			this.setIdSchmPrefix(modelInfoDto.getTypeModelId(), metadataSetSaveDto);
+		}
+		
 		// 1. 메타데이터 셋 DB 등록
-		String medataSetId = this.createMetadataSet(metadataSetVo, null);
+		String medataSetId = this.createMetadataSet(metadataSetSaveDto, null);
 		
 		// 2. 셋 용 메타데이터 들 등록
 		this.saveMetadataListForSet(modelInfoDto, medataSetId, null, false, null);
 		
 		// 3. 개수 프라퍼티 저장
-		List<MetadataSaveDto> cntPrptySaveDtoList = this.getCntPrptySaveDtoList(modelInfoDto, metadataSetVo);
+		List<MetadataSaveDto> cntPrptySaveDtoList = this.getCntPrptySaveDtoList(modelInfoDto, metadataSetSaveDto);
 		if (cntPrptySaveDtoList != null && cntPrptySaveDtoList.size() > 0) {
-			this.saveMetadataSaveDtoList(modelInfoDto, metadataSetVo, cntPrptySaveDtoList, false, false);
+			this.saveMetadataSaveDtoList(modelInfoDto, metadataSetSaveDto, cntPrptySaveDtoList, false, false);
 		}
 
 		return medataSetId;
@@ -880,6 +942,76 @@ public class MetadataSetService {
     	}			
 	}
 	
+	/** 
+	 * 디지털트윈 연합 식별체계 의 ID prefix 설정
+	 * @Author      : heenim
+	 * @Date        : 2024. 02. 19.
+	 * @param typeModelId
+	 * @param metadataSetVo
+	 */
+	private void setIdSchmPrefix(String typeModelId, MetadataSetSaveDto metadataSetSaveDto) {
+		
+		String applyDtModelId  = dtmetaProperty.getIdSchmDigitalTwin();
+		String applyObjModelId = dtmetaProperty.getIdSchmDigitalTwinObject();
+		
+		if (StringUtils.equals(applyDtModelId, typeModelId)) {
+			/*
+			 * 디지털트윈 식별체계 (21자리) -------------------------------------
+			 * 국가코드 (2자리) : ISO 3166-1 alpha-2 표준을 활용하며 알파벳 두 자리로 구성. ex) 대한민국=KR
+			 * 분류체계 종류 코드 (2자리) : 01 표준산업분류체계 / 02 공공자원분류체계
+			 * 분류체계 코드 (6자리) : 
+			 * - 표준산업분류체계 : 대분류 (1자리) + 세세분류 (5자리)
+			 * - 공공자원분류체계 : 대분류 (1자리) + 중분류 (5자리) 
+			 * 생성연도 (4자리)
+			 * 일련번호 (4자리)
+			 * 
+			 * ex) KR-01-A10000-20240001
+			 */			
+			StringBuilder sb = new StringBuilder();
+			
+			if (StringUtils.isBlank(metadataSetSaveDto.getIdSchmCntryCd())) { sb.append("디지털트윈 식별체계 국가코드").append(ValueUtil.required()).append("\n"); }
+			if (StringUtils.isBlank(metadataSetSaveDto.getIdSchmType())) { sb.append("디지털트윈 식별체계 분류코드 종류").append(ValueUtil.required()).append("\n"); }
+			if (StringUtils.isBlank(metadataSetSaveDto.getIdSchmCd())) { sb.append("디지털트윈 식별체계 코드").append(ValueUtil.required()).append("\n"); }
+			
+			// TODO 위 세 값이 옯은 값인지 체크
+			
+	    	if (sb.length() > 0) throw new ResBadRequestException(sb.toString());
+			
+			String prefix = metadataSetSaveDto.getIdSchmCntryCd() + "-" + metadataSetSaveDto.getIdSchmType() + "-" + metadataSetSaveDto.getIdSchmCd() + "-";
+			log.debug("디지털트윈 식별체계 prefix : {} {}", prefix, prefix.length() == 13 ? "OK" : "Not 13 lengths");
+			metadataSetSaveDto.setIdSchmPrefix(prefix);
+			metadataSetSaveDto.setIdSchmYearUseYn("Y");
+						
+		} else if (StringUtils.equals(applyObjModelId, typeModelId)) {
+		
+			/*
+			 * 디지털트윈 객체 식별체계 (14자리) -------------------------------------
+			 * 국가코드 (2자리) : ISO 3166-1 alpha-2 표준을 활용하며 알파벳 두 자리로 구성. ex) 대한민국=KR
+			 * 분류체계 코드 대분류 (1자리) : 1 물품 / 2 시설
+			 * 분류체계 코드 중분류 (5자리)
+			 * 일련번호 (4자리) // TODO 이슈!!! 4자리로 충분한가?!!!!!
+			 * 
+			 * ex) KR-101010-0001
+			 */			
+			StringBuilder sb = new StringBuilder();
+			
+			if (StringUtils.isBlank(metadataSetSaveDto.getIdSchmCntryCd())) { sb.append("디지털트윈 객체 식별체계 국가코드").append(ValueUtil.required()).append("\n"); }
+			if (StringUtils.isBlank(metadataSetSaveDto.getIdSchmType())) { sb.append("디지털트윈 객체 식별체계 분류코드 대분류").append(ValueUtil.required()).append("\n"); }
+			if (StringUtils.isBlank(metadataSetSaveDto.getIdSchmCd())) { sb.append("디지털트윈 객체 식별체계 분류코드 중분류").append(ValueUtil.required()).append("\n"); }
+			
+			// TODO 위 세 값이 옯은 값인지 체크
+			
+	    	if (sb.length() > 0) throw new ResBadRequestException(sb.toString());
+			
+			String prefix = metadataSetSaveDto.getIdSchmCntryCd() + "-" + metadataSetSaveDto.getIdSchmType() + metadataSetSaveDto.getIdSchmCd() + "-";
+			log.debug("디지털트윈 객체 식별체계 prefix : {} {}", prefix, prefix.length() == 10 ? "OK" : "Not 10 lengths");
+			metadataSetSaveDto.setIdSchmPrefix(prefix);
+			metadataSetSaveDto.setIdSchmYearUseYn("N");			
+			
+		}
+		
+	}
+	
 	/**
 	 * 메타데이터 셋 등록
 	 * @Author      : heenim
@@ -917,15 +1049,21 @@ public class MetadataSetService {
 		}
 		metadataSetVo.setMedataSetRegrId(loginUserVo.getUserId());
 		metadataSetVo.setMedataSetRegrNm(loginUserVo.getUserNm());
+		
+		if (StringUtils.isNotBlank(metadataSetVo.getIdSchmPrefix())) {
+			// 디지털트윈 연합 식별체계로 ID 생성 및 메타데이터 셋 등록
+			metadataSetMapper.insertMetadataSetAutoKey(metadataSetVo);
+			
+		} else {
+			// random ID 생성
+			String medataSetId = SecurityUtil.generateRandomHyphenId(); // 25자 random Unique ID (거의 중복 확률 없다고 함)
+			metadataSetVo.setMedataSetId(medataSetId);
 
-		// ID 생성
-		String medataSetId = SecurityUtil.generateRandomHyphenId(); // 25자 random Unique ID (거의 중복 확률 없다고 함)
-		metadataSetVo.setMedataSetId(medataSetId);
-
-		// 등록
-		metadataSetMapper.insertMetadataSet(metadataSetVo);
+			// 등록
+			metadataSetMapper.insertMetadataSet(metadataSetVo);
+		}
 	
-		return medataSetId;
+		return metadataSetVo.getMedataSetId();
 	}
 	
 	/**
@@ -1428,6 +1566,9 @@ public class MetadataSetService {
 			if (cntPrptySaveDtoList != null && cntPrptySaveDtoList.size() > 0) {
 				this.saveMetadataSaveDtoList(modelInfoDto, prevSetDto, cntPrptySaveDtoList, true, false);
 			}
+			
+			// 4. 카프카 전송
+			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, medataSetId, null, null);
     	
     		log.debug("[메타데이터 셋의 메타데이터 저장 (Multi)] 총 {}건 중 저장 성공 : {}건", dataDtoList.size(), cnt);
 		
@@ -1986,6 +2127,9 @@ public class MetadataSetService {
 					this.saveMetadataSaveDtoList(modelInfoDto, prevSetDto, cntPrptySaveDtoList, true, false);
 				}
 	    	}
+	    	
+			// 4. 카프카 전송
+			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, medataSetId, null, null);	    	
 	
 		} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 			log.info("[메타데이터 삭제] 실패/오류 (정보성) : {}", e.getMessage());
@@ -2040,6 +2184,9 @@ public class MetadataSetService {
 			// 메타데이터 셋 설정
 			MetadataSetSaveDto metadataSetSaveDto = this.getMetadataSetSaveDtoFromMetadata(modelInfoDto, dataMap);
 			if (metadataSetSaveDto == null) throw new ResBadRequestException("메타데이터 셋에 필요한 정보가 없습니다.");
+			
+			// ID 생성 로직 - 디지털트윈 식별체계 정보가 있을 경우 설정
+			this.setIdSchmPrefix(modelInfoDto.getTypeModelId(), metadataSetSaveDto);
 				
 			// 2. 메타데이터 셋 등록
 			medataSetId = this.createMetadataSet(metadataSetSaveDto, asyncUserVo);
@@ -2063,6 +2210,9 @@ public class MetadataSetService {
 			if (cntPrptySaveDtoList != null && cntPrptySaveDtoList.size() > 0) {
 				this.saveMetadataSaveDtoList(modelInfoDto, metadataSetDto, cntPrptySaveDtoList, false, false);
 			}
+			
+			// 5. 카프카 전송
+			this.sendMetadataViaKafka(KafkaConst.ACTION_CREATE, medataSetId, null, null);
 
 			log.debug("[메타데이터 셋 등록 (from dataMap)] 등록 성공");		
 			
@@ -2138,6 +2288,9 @@ public class MetadataSetService {
 			if (cntPrptySaveDtoList != null && cntPrptySaveDtoList.size() > 0) {
 				this.saveMetadataSaveDtoList(modelInfoDto, metadataSetDto, cntPrptySaveDtoList, true, false);
 			}
+			
+			// 5. 카프카 전송
+			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, medataSetId, null, null);
 			
 		} catch (ResBadRequestException | ResBizInfoException e) {
 			log.info("[메타데이터 셋 수정 (from dataMap)] 실패/오류 (정보성) : {}", e.getMessage());
@@ -2311,6 +2464,9 @@ public class MetadataSetService {
 				this.modifyToIncreaseMetadataSetNwstRvsn(modelInfoDto, prevSetDto);
 	    	
 			}
+						
+			// 5. 카프카 전송
+			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, medataSetId, null, null);
 		
 		} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 			log.info("[메타데이터 프라퍼티 명의 메타데이터 저장 (Multi) (with ValueList)] 실패/오류 (정보성) : {}", e.getMessage());
@@ -2397,6 +2553,9 @@ public class MetadataSetService {
 	    	
 	    	// 4. 메타데이터 셋 리비전 증가
 	    	this.modifyToIncreaseMetadataSetNwstRvsn(modelInfoDto, prevSetDto);
+	    	
+			// 5. 카프카 전송
+			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, medataSetId, null, null);
     	
 		} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 			log.info("[메타데이터 프라퍼티 명의 메타데이터 삭제] 실패/오류 (정보성) : {}", e.getMessage());
@@ -3227,5 +3386,84 @@ public class MetadataSetService {
 		return false;
 	}
 	
+	/**
+	 * 카프카 전송을 위한 메타데이터 셋 조회
+	 * @Author      : heenim
+	 * @Date        : 2024. 03. 20.
+	 * @param medataSetId
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")	
+	private ListOrderedMap<String, Object> getMetadataForKafka(String medataSetId) {
+		ListOrderedMap<String, Object> dataMap = null;		
+		try {
+			MetadataSetDto paramVo = new MetadataSetDto();
+			paramVo.setMedataSetId(medataSetId);
+			paramVo.setArrayDataLimitYn("N");
+			
+			dataMap = metadataApiMapper.selectMetadataToJsonStrBySetId(paramVo);
+		} catch (Exception e) {
+			log.error("[카프카 전송용 메타데이터 셋 조회] 실패/오류", e);
+			throw new ResBaseRuntimeException(e);
+		}
+		return dataMap;
+	}
+	
+	/**
+	 * 메타데이터 변경시 카프카 전송
+	 * @Author      : heenim
+	 * @Date        : 2024. 03. 19.
+	 * @param action
+	 * @param medataSetId
+	 * @param delData
+	 */
+	private void sendMetadataViaKafka(String action, String medataSetId, ListOrderedMap<String, Object> delDataMap, List<CamelCaseMap> delUpSetList) {
+		log.debug("[메타데이터 변경시 카프카 전송] action: {}", action);
+		ListOrderedMap<String, Object> dataMap = null;
+		List<CamelCaseMap> upSetList = null;
+		
+		if (KafkaConst.ACTION_DELETE.equals(action)) {
+			dataMap = delDataMap;
+			upSetList = delUpSetList;
+			
+		} else {
+			dataMap = this.getMetadataForKafka(medataSetId);
+			MetadataSearchVo metadataSearchVo = new MetadataSearchVo();
+			metadataSearchVo.setIsPaging(false);
+			metadataSearchVo.setMedataSetId(medataSetId);
+			upSetList = metadataSetMapper.selectMetadataSetDtwListBySubSetId(metadataSearchVo);
+		}
+		
+		Map<String, Object> sendData = new HashMap<>();
+		sendData.put("action", action);
+		sendData.put("key", medataSetId);
+		sendData.put("metadata", dataMap);
+		sendData.put("upSetList", upSetList);
+		
+		myKafkaProducer.send(KafkaConst.TOPIC_DT_META_CHANGELOG, sendData); // async 보내고 끝
 
+		//elasticSearch 저장/삭제
+		CompletableFuture.runAsync(() -> { // TODO 비동기 처리	
+			try {
+				
+				if (KafkaConst.ACTION_DELETE.equals(action)) {
+					elasticSearchService.deleteElasticData(medataSetId);
+				}
+				else {
+					MetadataSetDto setDto = new MetadataSetDto();
+					setDto.setMedataSetId(medataSetId);
+					setDto.setArrayDataLimitYn("N");
+					ListOrderedMap<String, Object> medataSetMap = metadataApiMapper.selectMetadataToJsonStrBySetIdAsText(setDto);
+					elasticSearchService.saveElasticKafkaData(medataSetId, medataSetMap);
+				}
+				
+			} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
+				log.error("[메타데이터 변경시 카프카 전송] ElasticSearch에 메타데이터 셋 정보 저장/삭제 실패/오류 (SKIP) : {} - {}", medataSetId, e.getReason());
+			} catch (Exception e) {
+				log.error("[메타데이터 변경시 카프카 전송] ElasticSearch에 메타데이터 셋 정보 저장 실패/오류 (SKIP) - {}", medataSetId, e);
+			}
+		}, elasticSearchExecutor);
+		
+	}
+	
 }

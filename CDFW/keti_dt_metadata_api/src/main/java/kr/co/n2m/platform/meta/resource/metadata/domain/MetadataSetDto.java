@@ -25,13 +25,16 @@ public class MetadataSetDto extends MetadataSetVo {
 	
 	private String medataSetSttusMtcdNm;
 	
+	private String idSchmCntryNm;
+	private String idSchmTypeNm;
+	
 	private int retvNum; // TODO : 추후 수정 혹은 삭제 필요
 	
 	@Schema(description="배열 데이터 조회 제한 여부", defaultValue="Y")
 	private String arrayDataLimitYn = "Y";
 	
-	@Schema(description="배열 데이터 조회 제한 건수", defaultValue="10")
-	private int arrayDataLimit = 10;
+	@Schema(description="배열 데이터 조회 제한 건수", defaultValue="50")
+	private int arrayDataLimit = 50;
 	
 	public void setArrayDataLimitYn(String limitYn) {
 		if (limitYn != null && !limitYn.isBlank()) {

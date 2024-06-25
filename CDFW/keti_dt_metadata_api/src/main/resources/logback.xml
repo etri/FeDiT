@@ -42,6 +42,8 @@
         <discardingThreshold>0</discardingThreshold>
         <appender-ref ref="ERROR_FILE_APPENDER" />
     </appender>
+
+    <logger name="org.apache.kafka" level="error"/>
     
     <springProfile name="default | local">
         <logger name="kr.co.n2m.platform" level="DEBUG" />

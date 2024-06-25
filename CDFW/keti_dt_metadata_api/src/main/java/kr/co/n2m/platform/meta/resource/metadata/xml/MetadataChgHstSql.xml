@@ -192,7 +192,7 @@
 	                     , t4.prpty_id                 AS set_prpty_id
 	                     , t4.range_model_id           AS set_val_model_id
 	                     , t2.medata_set_nwst_rvsn     AS set_rvsn
-	                     , CASE WHEN t1.mtcd = 'idString'          THEN t2.medata_set_id 
+	                     , CASE WHEN t1.mtcd = 'idString'          THEN t2.medata_set_id
 	                            WHEN t1.mtcd = 'nameString'        THEN t2.medata_set_nm
 	                            WHEN t1.mtcd = 'logicNameStringKo' THEN t2.medata_set_desc
 	                            WHEN t1.mtcd = 'descStringKo'      THEN t2.medata_set_nm
@@ -204,6 +204,9 @@
 	                            WHEN t1.mtcd = 'updateUserId'      THEN t2.medata_set_amdr_id
 	                            WHEN t1.mtcd = 'updateUserName'    THEN t2.medata_set_amdr_nm
 	                            WHEN t1.mtcd = 'updateDateTime'    THEN TO_CHAR(t2.medata_set_amd_dt, #{sqlDateFormat})
+	                            WHEN t1.mtcd = 'idSchmCountryCode' THEN t2.id_schm_cntry_cd
+	                            WHEN t1.mtcd = 'idSchmType'        THEN t2.id_schm_type 
+	                            WHEN t1.mtcd = 'idSchmCode'        THEN t2.id_schm_cd 
 	                            ELSE NULL
 	                       END  AS set_medata_val
                          , CASE WHEN t1.mtcd = 'logicNameStringKo' THEN 'ko'
@@ -242,6 +245,22 @@
 	           )  m2  ON m1.set_mtcd = m2.data_type_mtcd
 	     ORDER BY m1.set_mtcd_sort_odrg
     </select>
+    
+	<select id="selectMetadataDelHstListBySetId" parameterType="String" resultType="String">
+        SELECT /* SQL_ID: MetadataChgHstMapper.selectMetadataDelHstListBySetId */
+               DISTINCT chg_aftr_val
+		  FROM dtmeta.tb_meta_datachghst
+		 WHERE medata_set_id = #{medataSetId} 
+		   AND chg_hst_div_mtcd = 'del'
+	</select>
+    
+   	<select id="selectMetadataRecentStatusBySetId" resultType="String">
+        SELECT /* SQL_ID: MetadataChgHstMapper.selectMetadataRecentStatusBySetId */
+		       chg_hst_div_mtcd
+		  FROM dtmeta.tb_meta_datachghst
+		 WHERE medata_set_id = #{medataSetId} AND chg_aftr_val = #{chgAftrVal}
+		 ORDER BY chg_hst_reg_dt DESC LIMIT 1
+	</select>
     
 </mapper>
 

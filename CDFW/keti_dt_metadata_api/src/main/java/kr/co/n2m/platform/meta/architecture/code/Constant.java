@@ -48,5 +48,12 @@ public class Constant {
 	
 	/** 수집 비동기 처리시 로그인 사용자 정보용 */
 	public final static String LOGIN_USER_VO = "__LOGIN_USER_VO__";
-	
+		
+	/** 디지털트윈 연합 식별체계 */
+	public static final String ID_SCHM_DT                 = "id_schm_dt";
+	public static final String ID_SCHM_OBJECT             = "id_schm_object";
+	public static final String ID_SCHM_TYPE_KSIC          = "01"; // (한국)표준산업분류체계
+	public static final String ID_SCHM_TYPE_PBRC          = "02"; // 공공자원분류체계
+	public static final String ID_SCHM_TYPE_PRODUCT  	  = "1"; // 물품
+	public static final String ID_SCHM_TYPE_FACILITY      = "2"; // 시설
 }

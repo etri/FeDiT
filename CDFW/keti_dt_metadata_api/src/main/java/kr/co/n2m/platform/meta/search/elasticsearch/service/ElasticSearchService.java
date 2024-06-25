@@ -1,5 +1,8 @@
 package kr.co.n2m.platform.meta.search.elasticsearch.service;
 
+import java.util.List;
+
+import javax.annotation.PostConstruct;
 import javax.net.ssl.SSLContext;
 
 import org.apache.commons.collections4.map.ListOrderedMap;
@@ -24,10 +27,15 @@ import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.TransportUtils;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
+import kr.co.n2m.platform.meta.architecture.domain.CamelCaseMap;
+import kr.co.n2m.platform.meta.architecture.domain.SearchResultListVo;
 import kr.co.n2m.platform.meta.architecture.exception.ResBaseRuntimeException;
+import kr.co.n2m.platform.meta.architecture.exception.ResForbiddenException;
 import kr.co.n2m.platform.meta.architecture.exception.ResNotFoundException;
 import kr.co.n2m.platform.meta.architecture.property.ElasticProperty;
+import kr.co.n2m.platform.meta.architecture.util.AuthUtil;
 import kr.co.n2m.platform.meta.architecture.util.JsonUtil;
+import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSearchVo;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSetDto;
 import kr.co.n2m.platform.meta.resource.metadata.mapper.MetadataApiMapper;
 import kr.co.n2m.platform.meta.resource.metadata.service.MetadataSetService;
@@ -41,11 +49,17 @@ public class ElasticSearchService {
 	@Autowired
 	private ElasticProperty property;
 	
-	@Autowired
+    @Autowired
 	MetadataSetService metadataSetService;
+    
+	@PostConstruct
+	public void init() {
+		metadataSetService.setElasticSearchService(this); // 순환참조 오류 방지
+	}
 	
 	@Autowired
 	private MetadataApiMapper metadataApiMapper;
+	
 	
 	public RestClient restClient() {
 		SSLContext sslContext = TransportUtils.sslContextFromCaFingerprint(property.getFingerPrint());
@@ -64,6 +78,16 @@ public class ElasticSearchService {
 		    .build();
 		
 		return restClient;
+	}
+	
+	/**
+	 * Kibana URL
+	 * @Author      : tklee
+	 * @Date        : 2024. 04. 04.
+	 * @return
+	 */
+	public String getKibanaUrl() {
+		return property.getKibanaUrl();
 	}
 	
 	/**
@@ -90,7 +114,7 @@ public class ElasticSearchService {
 			log.error("[셋 ID 로 ElasticSearch에 저장된 메타데이터 셋 조회] 실패/오류", e);
 			throw new ResBaseRuntimeException(e);
 		}
-        log.debug("셋 ID 로 ElasticSearch에 저장된 메타데이터 셋 조회] 서비스 종료");
+        log.debug("[셋 ID 로 ElasticSearch에 저장된 메타데이터 셋 조회] 서비스 종료");
         
 		return elasticRes;
 	}
@@ -110,7 +134,7 @@ public class ElasticSearchService {
 			if (setDto == null) throw new ResNotFoundException("메타데이터 셋 데이터가 존재하지 않습니다.");   
     		
 			setDto.setArrayDataLimitYn("N");
-			ListOrderedMap<String, Object> medataSetMap = metadataApiMapper.selectMetadataToJsonStrBySetId(setDto);
+			ListOrderedMap<String, Object> medataSetMap = metadataApiMapper.selectMetadataToJsonStrBySetIdAsText(setDto);
     		String json = JsonUtil.toJson(medataSetMap);
 
             StringEntity entity = new StringEntity(json, ContentType.APPLICATION_JSON);
@@ -127,7 +151,7 @@ public class ElasticSearchService {
 			log.error("[셋 ID 로 ElasticSearch에 메타데이터 셋 정보 등록/수정] 실패/오류", e);
 			throw new ResBaseRuntimeException(e);
 		}
-        log.debug("셋 ID 로 ElasticSearch에 메타데이터 셋 정보 등록/수정] 서비스 종료");
+        log.debug("[셋 ID 로 ElasticSearch에 메타데이터 셋 정보 등록/수정] 서비스 종료");
 	}
 	
 	/**
@@ -151,7 +175,7 @@ public class ElasticSearchService {
 			log.error("[셋 ID 로 ElasticSearch에 저장된 메타데이터 셋 삭제] 실패/오류", e);
 			throw new ResBaseRuntimeException(e);
 		}
-        log.debug("셋 ID 로 ElasticSearch에 저장된 메타데이터 셋 삭제] 서비스 종료");
+        log.debug("[셋 ID 로 ElasticSearch에 저장된 메타데이터 셋 삭제] 서비스 종료");
 	}
 	
 	/**
@@ -195,7 +219,7 @@ public class ElasticSearchService {
 			log.error("[ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (내용, 날짜만 검색)] 실패/오류", e);
 			throw new ResBaseRuntimeException(e);
 		}
-        log.debug("ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (내용, 날짜만 검색)] 서비스 종료");
+        log.debug("[ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (내용, 날짜만 검색)] 서비스 종료");
         
 		return elasticRes;
 	}
@@ -226,9 +250,117 @@ public class ElasticSearchService {
 			log.error("[ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (JSON 직접 검색)] 실패/오류", e);
 			throw new ResBaseRuntimeException(e);
 		}
-        log.debug("ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (JSON 직접 검색)] 서비스 종료");
+        log.debug("[ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (JSON 직접 검색)] 서비스 종료");
         
 		return elasticRes;
+	}
+	
+    /**
+     * ElasticSearch 초기화 후 재등록 (설정한 인덱스 전체 삭제 후 재등록)
+	 * @Author      : tklee
+	 * @Date        : 2024. 04. 04.
+     */
+    public void initElasticAndAddDataAll() {
+        log.debug("[ElasticSearch 초기화 후 재등록 (설정한 인덱스 전체 삭제 후 재등록)] 서비스 시작");
+        
+		try {
+			if (!AuthUtil.isSystemAdmin()) {
+				throw new ResForbiddenException("ElasticSearch 초기화 후 재등록에 대한 권한이 없습니다.");
+			}        
+        
+	    	this.initElastic();
+	    	
+	    	this.saveMetadataSetListAll();
+	    	
+		} catch (ResBaseRuntimeException e) {
+			log.info("[ElasticSearch 초기화 후 재등록 (설정한 인덱스 전체 삭제 후 재등록)] 실패/오류 (정보성) : {}", e.getMessage());
+			throw e;
+		} catch (Exception e) {
+			log.error("[ElasticSearch 초기화 후 재등록 (설정한 인덱스 전체 삭제 후 재등록)] 실패/오류", e);
+			throw new ResBaseRuntimeException(e);
+		}
+        log.debug("[ElasticSearch 초기화 후 재등록 (설정한 인덱스 전체 삭제 후 재등록)] 서비스 종료");
+    }
+    
+	/**
+	 * Elastic 전체 내용 삭제 (인덱스 삭제)
+	 * @Author      : tklee
+	 * @Date        : 2024. 04. 04.
+	 * @return
+	 */	
+	public void initElastic() {
+		log.debug("[Elastic 전체 내용 삭제 (인덱스 삭제)] 서비스 시작");
+		
+		try (RestClient restClient = restClient()) {
+            Request request = new Request("DELETE", property.getIndexName());
+
+            restClient.performRequest(request);
+
+		} catch (ResBaseRuntimeException e) {
+			log.info("[Elastic 전체 내용 삭제 (인덱스 삭제)] 실패/오류 (정보성) : {}", e.getMessage());
+			throw e;
+		} catch (Exception e) {
+			log.error("[Elastic 전체 내용 삭제 (인덱스 삭제)] 실패/오류", e);
+			throw new ResBaseRuntimeException(e);
+		}
+        log.debug("[Elastic 전체 내용 삭제 (인덱스 삭제)] 서비스 종료");
+	}
+	
+    /**
+     * Elastic 검색 메타데이터셋 전체 저장
+	 * @Author      : tklee
+	 * @Date        : 2024. 04. 04.
+     * @param metadataSearchVo
+     */
+    @SuppressWarnings("unchecked")
+	public void saveMetadataSetListAll() {
+        log.debug("[Elastic 검색 메타데이터셋 전체 저장] 서비스 시작");    	
+    	
+		if (!AuthUtil.isSystemAdmin()) {
+			throw new ResForbiddenException("Elastic 전체 데이터 저장 권한이 없습니다.");
+		}
+		
+    	MetadataSearchVo metadataSearchVo = new MetadataSearchVo();
+    	metadataSearchVo.setIsPaging(false); // TODO 모든 데이터를 조회시 LIMIT_LIST_SIZE 보다 데이터 건수가 더 많다면 처리시 페이징해서 처리해야 함
+    	metadataSearchVo.setMedataSetSttusMtcd("use");
+    	
+    	SearchResultListVo listVo = metadataSetService.getMetadataSetList(metadataSearchVo);
+    	if (listVo != null && listVo.getList() != null && listVo.getList().size() > 0) {
+    		List<CamelCaseMap> list = (List<CamelCaseMap>) listVo.getList();
+    		for (CamelCaseMap tMap : list) {
+	    		this.saveElasticData(String.valueOf(tMap.get("medataSetId")));
+    		}
+    	}
+        log.debug("[Elastic 검색 메타데이터셋 전체 저장] 서비스 시작");    	
+    }
+    
+	/**
+	 * ElasticSearch에 카프카 전송된 메타데이터 셋 정보 등록/수정
+	 * @Author      : tklee
+	 * @Date        : 2024. 04. 29.
+	 * @return
+	 */	
+	public void saveElasticKafkaData(String medataSetId, ListOrderedMap<String, Object> dataMap) {
+		log.debug("[ElasticSearch에 카프카 전송된 메타데이터 셋 정보 등록/수정] 서비스 시작");
+        
+		try (RestClient restClient = restClient()) {
+    		String json = JsonUtil.toJson(dataMap);
+
+            StringEntity entity = new StringEntity(json, ContentType.APPLICATION_JSON);
+
+            Request request = new Request("PUT", "/" + property.getIndexName() + "/_doc/" + medataSetId);
+            request.setEntity(entity); 
+
+            restClient.performRequest(request);
+    		
+		} catch (ResBaseRuntimeException e) {
+			log.info("[ElasticSearch에 카프카 전송된 메타데이터 셋 정보 등록/수정] 실패/오류 (정보성) : {}", e.getMessage());
+			throw e;
+		} catch (Exception e) {
+			log.error("[EElasticSearch에 카프카 전송된 메타데이터 셋 정보 등록/수정] 실패/오류", e);
+			throw new ResBaseRuntimeException(e);
+		}
+        log.debug("[ElasticSearch에 카프카 전송된 메타데이터 셋 정보 등록/수정] 서비스 종료");
 	}
 	
 }

@@ -23,6 +23,9 @@ public class MetadataSetSaveDto extends MetadataSetVo {
 	@Schema(description="연결 프라퍼티 ID (상위)", accessMode=AccessMode.WRITE_ONLY)	
 	private String cnctPrptyId;
 	
+	@Schema(description="식별체계 사용 여부")
+	private String idSchmUseYn;
+	
     @Override
     public String toString() {
         return ReflectionToStringBuilder.toString(this, ToStringStyle.SHORT_PREFIX_STYLE, true, true);

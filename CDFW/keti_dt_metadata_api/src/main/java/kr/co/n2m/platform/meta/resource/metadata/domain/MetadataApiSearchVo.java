@@ -54,6 +54,9 @@ public class MetadataApiSearchVo extends PageVo implements Serializable {
 	@Schema(description="메타데이터 셋 등록자 ID")
 	private String medataSetRegrId;
 	
+	@Schema(description="디지털트윈 ID")
+	private String digitalTwinId;
+	
 	@Schema(description="metaTypeModel 을 조회할지 여부")
 	private String metaTypeNodelShowYn = "N";
 	

@@ -24,6 +24,8 @@ import kr.co.n2m.platform.meta.architecture.util.AuthUtil;
 import kr.co.n2m.platform.meta.portal.notifc.domain.NotifcMySearchVo;
 import kr.co.n2m.platform.meta.portal.notifc.domain.NotifcSettingVo;
 import kr.co.n2m.platform.meta.portal.notifc.service.NotifcService;
+import kr.co.n2m.platform.meta.portal.pat.domain.PatSearchVo;
+import kr.co.n2m.platform.meta.portal.pat.service.PatService;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSearchVo;
 import kr.co.n2m.platform.meta.resource.metadata.service.MetadataSetService;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +38,9 @@ public class MyPageController extends ResponseComponent {
 	@Autowired
 	MetadataSetService metadataSetService;
 	
+	@Autowired
+	PatService patService;
+	
 	@Autowired	
 	NotifcService notifcService;
 
@@ -47,6 +52,16 @@ public class MyPageController extends ResponseComponent {
 		metadataSearchVo.setMedataSetRegrId(loginUserId);
 		
 		return makeResponseEntity(metadataSetService.getMetadataSetList(metadataSearchVo));
+	}
+	
+	@Operation(summary="내 PAT 목록")
+	@GetMapping("/api/v1/portal/mypage/pats")
+	public ResponseEntity<Object> getPatList(PatSearchVo patSearchVo) {
+		String loginUserId = AuthUtil.getLoginUserId();
+		if (StringUtils.isBlank(loginUserId)) throw new ResUnauthorizedException();
+		patSearchVo.setPatkRegrId(loginUserId);
+		
+		return makeResponseEntity(patService.getPatList(patSearchVo));
 	}
 	
 	@Operation(summary="내 알림 목록")

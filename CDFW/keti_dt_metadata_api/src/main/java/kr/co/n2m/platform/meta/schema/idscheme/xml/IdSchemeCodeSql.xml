@@ -1,0 +1,690 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.n2m.platform.meta.schema.idscheme.mapper.IdSchemeCodeMapper">
+
+    <sql id="limitPage">
+        <if test="isPaging">    
+        OFFSET #{startIndex} LIMIT #{pageListSize}
+        </if>
+        <if test="!isPaging">    
+        OFFSET 0 LIMIT #{limitListSize}
+        </if>        
+    </sql>
+    
+    
+    <sql id="whereByIdScheme">		
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(lctgExtrCd)">
+			AND t1.lctg_extr_cd         = #{lctgExtrCd} 
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(idSchmCd)">
+			AND t1.id_schm_cd        	ILIKE CONCAT('%', #{idSchmCd}, '%') 
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(idSchmCdNm)">
+			AND t1.id_schm_cd_nm        ILIKE CONCAT('%', #{idSchmCdNm}, '%')
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(idSchmCd)">
+			AND t1.id_schm_cd        	= #{idSchmCd}
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(lctgExtrCd)">
+			AND t1.lctg_extr_cd        	= #{lctgExtrCd}
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(idfyUseYn)">
+			AND t1.idfy_use_yn        	= #{idfyUseYn}
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(useYn)">
+			AND t1.use_yn        	= #{useYn}
+		</if>
+	</sql>
+    
+    <sql id="orderByIdScheme">
+		ORDER BY t1.id_schm_cd ASC
+	</sql>
+    
+    <select id="selectIdSchemeStdIndCount" resultType="int">
+		SELECT /* SQL_ID: IdSchemeCodeMapper.selectIdSchemeStdIndCount */
+			COUNT(*) 
+	    FROM dtmeta.tb_meta_idschmstdind t1
+		WHERE 1=1
+		<include refid="whereByIdScheme"/>
+	</select>
+	
+	<select id="selectIdSchemeStdIndList" resultType="idSchemeCodeDto">
+		SELECT /* SQL_ID: IdSchemeCodeMapper.selectIdSchemeStdIndList */
+			cd2.mtcd_nm 			AS id_schm_type_nm,
+			cd2.mtcd 				AS id_schm_type,
+			cd3.mtcd 				AS id_schm_div,
+			t1.id_schm_cd, 
+			t1.id_schm_cd_nm, 
+			t1.id_schm_cd_eng_nm, 
+			t1.cd_size_div_mtcd, 
+			cd1.mtcd_nm as cd_size_div_mtcd_nm, 
+			t1.lctg_extr_cd, 
+			t1.origin_extr_cd, 
+			t1.idfy_use_yn, 
+			t1.use_yn, 
+			t1.id_schm_cd_desc, 
+			t1.id_schm_cd_regr_id, 
+			t1.id_schm_cd_regr_nm, 
+			to_char(t1.id_schm_cd_reg_dt, #{sqlDateFormat})  AS id_schm_cd_reg_dt, 
+			t1.id_schm_cd_amdr_id, 
+			t1.id_schm_cd_amdr_nm, 
+			to_char(t1.id_schm_cd_amd_dt, #{sqlDateFormat})  AS id_schm_cd_amd_dt
+		FROM dtmeta.tb_meta_idschmstdind t1
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd1 ON cd1.mtcd = t1.cd_size_div_mtcd AND cd1.mtcd_grp_id = 'MCG00027'
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd2 ON cd2.mtcd = '01' AND cd2.mtcd_grp_id = 'MCG00029'
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd3 ON cd3.mtcd = 'id_schm_dt' AND cd3.mtcd_grp_id = 'MCG00028'
+		WHERE 1=1
+		<include refid="whereByIdScheme"/>
+		<include refid="orderByIdScheme"/>
+		<include refid="limitPage"/>
+	</select>
+	
+	<select id="selectIdSchemeStdIndLctgCodeList" resultType="idSchemeCodeDto">
+		SELECT /* SQL_ID: IdSchemeCodeMapper.selectIdSchemeStdIndLctgCodeList */
+			t1.lctg_extr_cd,
+			t1.id_schm_cd_nm
+		FROM dtmeta.tb_meta_idschmstdind t1
+		WHERE t1.cd_size_div_mtcd = 'l'
+		ORDER BY lctg_extr_cd ASC
+	</select>
+	
+	<select id="selectIdSchemeStdInd" resultType="idSchemeCodeDto">
+		SELECT /* SQL_ID: IdSchemeCodeMapper.selectIdSchemeStdInd */
+			cd2.mtcd_nm 			AS id_schm_type_nm
+			, cd2.mtcd 				AS id_schm_type
+			, cd3.mtcd 				AS id_schm_div
+			, t1.id_schm_cd
+			, t1.id_schm_cd_nm
+			, t1.id_schm_cd_eng_nm
+			, t1.cd_size_div_mtcd
+			, cd1.mtcd_nm 			AS cd_size_div_mtcd_nm
+			, t1.lctg_extr_cd
+			, t1.origin_extr_cd
+			, t1.idfy_use_yn
+			, t1.use_yn
+			, t1.id_schm_cd_desc
+			, t1.id_schm_cd_regr_id
+			, t1.id_schm_cd_regr_nm
+			, to_char(t1.id_schm_cd_reg_dt, #{sqlDateFormat})  AS id_schm_cd_reg_dt
+			, t1.id_schm_cd_amdr_id
+			, t1.id_schm_cd_amdr_nm
+			, to_char(t1.id_schm_cd_amd_dt, #{sqlDateFormat})  AS id_schm_cd_amd_dt
+		FROM dtmeta.tb_meta_idschmstdind t1
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd1 ON cd1.mtcd = t1.cd_size_div_mtcd AND cd1.mtcd_grp_id = 'MCG00027'
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd2 ON cd2.mtcd = '01' AND cd2.mtcd_grp_id = 'MCG00029'
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd3 ON cd3.mtcd = 'id_schm_dt' AND cd3.mtcd_grp_id = 'MCG00028'
+		WHERE t1.id_schm_cd = #{idSchmCd}
+	</select>
+	
+	<insert id="insertIdSchemeStdInd" parameterType="idSchemeCodeVo">
+		INSERT /* SQL_ID: IdSchemeCodeMapper.insertIdSchemeStdInd */
+		       INTO dtmeta.tb_meta_idschmstdind
+			 ( id_schm_cd
+			 , id_schm_cd_nm
+			 , id_schm_cd_eng_nm
+			 , cd_size_div_mtcd
+			 , lctg_extr_cd
+			 , origin_extr_cd
+			 , idfy_use_yn
+			 , use_yn
+			 , id_schm_cd_desc
+			 , id_schm_cd_regr_id
+			 , id_schm_cd_regr_nm
+			 , id_schm_cd_reg_dt
+			 , id_schm_cd_amdr_id
+			 , id_schm_cd_amdr_nm
+			 , id_schm_cd_amd_dt			
+			 ) VALUES 
+			 ( 
+			   #{idSchmCd}			 			 
+			 , #{idSchmCdNm}
+			 , #{idSchmCdEngNm}
+			 , #{cdSizeDivMtcd}
+			 , #{lctgExtrCd}
+			 , #{originExtrCd}
+			 , #{idfyUseYn}
+			 , #{useYn}
+			 , #{idSchmCdDesc}
+			 , #{idSchmCdRegrId}
+			 , #{idSchmCdRegrNm}
+			 , current_timestamp
+			 , #{idSchmCdAmdrId}
+			 , #{idSchmCdAmdrNm}
+			 , current_timestamp			 
+			 )
+	</insert>
+	
+	<update id="updateIdSchemeStdInd" parameterType="idSchemeCodeVo">
+		UPDATE /* SQL_ID: IdSchemeCodeMapper.updateIdSchemeStdInd */
+               dtmeta.tb_meta_idschmstdind
+		   SET id_schm_cd_nm          = #{idSchmCdNm}
+             , id_schm_cd_eng_nm      = #{idSchmCdEngNm}
+             , id_schm_cd_desc 		  = #{idSchmCdDesc}
+             , use_yn                 = #{useYn}
+             , id_schm_cd_amdr_id     = #{idSchmCdAmdrId}
+             , id_schm_cd_amdr_nm     = #{idSchmCdAmdrNm}
+             , id_schm_cd_amd_dt      = current_timestamp            
+		 WHERE id_schm_cd 	    = #{idSchmCd}
+	</update>
+
+  
+    
+    <select id="selectIdSchemePubRiCount" resultType="int">
+		SELECT /* SQL_ID: IdSchemeCodeMapper.selectIdSchemePubRiCount */
+			COUNT(*) 
+	    FROM dtmeta.tb_meta_idschmpubri t1
+		WHERE 1=1
+		<include refid="whereByIdScheme"/>
+	</select>
+	
+	<select id="selectIdSchemePubRiList" resultType="idSchemeCodeDto">
+		SELECT /* SQL_ID: IdSchemeCodeMapper.selectIdSchemePubRiList */
+			cd2.mtcd_nm 			AS id_schm_type_nm,
+			cd2.mtcd 				AS id_schm_type,
+			cd3.mtcd 				AS id_schm_div,
+			t1.id_schm_cd, 
+			t1.id_schm_cd_nm, 
+			t1.id_schm_cd_eng_nm, 
+			t1.cd_size_div_mtcd, 
+			cd1.mtcd_nm as cd_size_div_mtcd_nm, 
+			t1.lctg_extr_cd, 
+			t1.origin_extr_cd, 
+			t1.idfy_use_yn, 
+			t1.use_yn, 
+			t1.id_schm_cd_desc, 
+			t1.id_schm_cd_regr_id, 
+			t1.id_schm_cd_regr_nm, 
+			to_char(t1.id_schm_cd_reg_dt, #{sqlDateFormat})  AS id_schm_cd_reg_dt, 
+			t1.id_schm_cd_amdr_id, 
+			t1.id_schm_cd_amdr_nm, 
+			to_char(t1.id_schm_cd_amd_dt, #{sqlDateFormat})  AS id_schm_cd_amd_dt
+		FROM dtmeta.tb_meta_idschmpubri t1
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd1 ON cd1.mtcd = t1.cd_size_div_mtcd AND cd1.mtcd_grp_id = 'MCG00027'
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd2 ON cd2.mtcd = '02' AND cd2.mtcd_grp_id = 'MCG00029'
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd3 ON cd3.mtcd = 'id_schm_dt' AND cd3.mtcd_grp_id = 'MCG00028'
+		WHERE 1=1
+		<include refid="whereByIdScheme"/>
+		<include refid="orderByIdScheme"/>
+		<include refid="limitPage"/>
+	</select>
+	
+	<select id="selectIdSchemePubRiLctgCodeList" resultType="idSchemeCodeDto">
+		SELECT /* SQL_ID: IdSchemeCodeMapper.selectIdSchemePubRiLctgCodeList */
+			t1.lctg_extr_cd,
+			t1.id_schm_cd_nm
+		FROM dtmeta.tb_meta_idschmpubri t1
+		WHERE t1.cd_size_div_mtcd = 'l'
+		ORDER BY lctg_extr_cd ASC
+	</select>
+	
+	<select id="selectIdSchemePubRi" resultType="idSchemeCodeDto">
+		SELECT /* SQL_ID: IdSchemeCodeMapper.selectIdSchemePubRi */
+			cd2.mtcd_nm 			AS id_schm_type_nm
+			, cd2.mtcd 				AS id_schm_type
+			, cd3.mtcd 				AS id_schm_div
+			, t1.id_schm_cd
+			, t1.id_schm_cd_nm
+			, t1.id_schm_cd_eng_nm
+			, t1.cd_size_div_mtcd
+			, cd1.mtcd_nm 			AS cd_size_div_mtcd_nm
+			, t1.lctg_extr_cd
+			, t1.origin_extr_cd
+			, t1.idfy_use_yn
+			, t1.use_yn
+			, t1.id_schm_cd_desc
+			, t1.id_schm_cd_regr_id
+			, t1.id_schm_cd_regr_nm
+			, to_char(t1.id_schm_cd_reg_dt, #{sqlDateFormat})  AS id_schm_cd_reg_dt
+			, t1.id_schm_cd_amdr_id
+			, t1.id_schm_cd_amdr_nm
+			, to_char(t1.id_schm_cd_amd_dt, #{sqlDateFormat})  AS id_schm_cd_amd_dt
+		FROM dtmeta.tb_meta_idschmpubri t1
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd1 ON cd1.mtcd = t1.cd_size_div_mtcd AND cd1.mtcd_grp_id = 'MCG00027'
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd2 ON cd2.mtcd = '02' AND cd2.mtcd_grp_id = 'MCG00029'
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd3 ON cd3.mtcd = 'id_schm_dt' AND cd3.mtcd_grp_id = 'MCG00028'
+		WHERE t1.id_schm_cd = #{idSchmCd}
+	</select>
+	
+	<insert id="insertIdSchemePubRi" parameterType="idSchemeCodeVo">
+		INSERT /* SQL_ID: IdSchemeCodeMapper.insertIdSchemePubRi */
+		       INTO dtmeta.tb_meta_idschmpubri
+			 ( id_schm_cd
+			 , id_schm_cd_nm
+			 , id_schm_cd_eng_nm
+			 , cd_size_div_mtcd
+			 , lctg_extr_cd
+			 , origin_extr_cd
+			 , idfy_use_yn
+			 , use_yn
+			 , id_schm_cd_desc
+			 , id_schm_cd_regr_id
+			 , id_schm_cd_regr_nm
+			 , id_schm_cd_reg_dt
+			 , id_schm_cd_amdr_id
+			 , id_schm_cd_amdr_nm
+			 , id_schm_cd_amd_dt			
+			 ) VALUES 
+			 ( 
+			   #{idSchmCd}			 			 
+			 , #{idSchmCdNm}
+			 , #{idSchmCdEngNm}
+			 , #{cdSizeDivMtcd}
+			 , #{lctgExtrCd}
+			 , #{originExtrCd}
+			 , #{idfyUseYn}
+			 , #{useYn}
+			 , #{idSchmCdDesc}
+			 , #{idSchmCdRegrId}
+			 , #{idSchmCdRegrNm}
+			 , current_timestamp
+			 , #{idSchmCdAmdrId}
+			 , #{idSchmCdAmdrNm}
+			 , current_timestamp			 
+			 )
+	</insert>
+	
+	<update id="updateIdSchemePubRi" parameterType="idSchemeCodeVo">
+		UPDATE /* SQL_ID: IdSchemeCodeMapper.updateIdSchemePubRi */
+               dtmeta.tb_meta_idschmpubri
+		   SET id_schm_cd_nm          = #{idSchmCdNm}
+             , id_schm_cd_eng_nm      = #{idSchmCdEngNm}
+             , id_schm_cd_desc 		  = #{idSchmCdDesc}
+             , use_yn                 = #{useYn}
+             , id_schm_cd_amdr_id     = #{idSchmCdAmdrId}
+             , id_schm_cd_amdr_nm     = #{idSchmCdAmdrNm}
+             , id_schm_cd_amd_dt      = current_timestamp            
+		 WHERE id_schm_cd 	    = #{idSchmCd}
+	</update>
+	
+	
+	
+	
+    <select id="selectIdSchemeProductCount" resultType="int">
+		SELECT /* SQL_ID: IdSchemeCodeMapper.selectIdSchemeProductCount */
+			COUNT(*) 
+	    FROM dtmeta.tb_meta_idschmproduct t1
+		WHERE 1=1
+		<include refid="whereByIdScheme"/>
+	</select>
+	
+	<select id="selectIdSchemeProductList" resultType="idSchemeCodeDto">
+		SELECT /* SQL_ID: IdSchemeCodeMapper.selectIdSchemeProductList */
+			cd2.mtcd_nm 			AS id_schm_type_nm,
+			cd2.mtcd 				AS id_schm_type,
+			cd3.mtcd 				AS id_schm_div,
+			t1.id_schm_cd, 
+			t1.id_schm_cd_nm, 
+			t1.id_schm_cd_eng_nm, 
+			t1.cd_size_div_mtcd, 
+			cd1.mtcd_nm as cd_size_div_mtcd_nm, 
+			t1.lctg_extr_cd, 
+			t1.origin_extr_cd, 
+			t1.idfy_use_yn, 
+			t1.use_yn, 
+			t1.id_schm_cd_desc, 
+			t1.id_schm_cd_regr_id, 
+			t1.id_schm_cd_regr_nm, 
+			to_char(t1.id_schm_cd_reg_dt, #{sqlDateFormat})  AS id_schm_cd_reg_dt, 
+			t1.id_schm_cd_amdr_id, 
+			t1.id_schm_cd_amdr_nm, 
+			to_char(t1.id_schm_cd_amd_dt, #{sqlDateFormat})  AS id_schm_cd_amd_dt
+		FROM dtmeta.tb_meta_idschmproduct t1
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd1 ON cd1.mtcd = t1.cd_size_div_mtcd AND cd1.mtcd_grp_id = 'MCG00027'
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd2 ON cd2.mtcd = '1' AND cd2.mtcd_grp_id = 'MCG00029'
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd3 ON cd3.mtcd = 'id_schm_object' AND cd3.mtcd_grp_id = 'MCG00028'
+		WHERE 1=1
+		<include refid="whereByIdScheme"/>
+		<include refid="orderByIdScheme"/>
+		<include refid="limitPage"/>
+	</select>
+	
+	<select id="selectIdSchemeProduct" resultType="idSchemeCodeDto">
+		SELECT /* SQL_ID: IdSchemeCodeMapper.selectIdSchemeProduct */
+			cd2.mtcd_nm 			AS id_schm_type_nm
+			, cd2.mtcd 				AS id_schm_type
+			, cd3.mtcd 				AS id_schm_div
+			, t1.id_schm_cd
+			, t1.id_schm_cd_nm
+			, t1.id_schm_cd_eng_nm
+			, t1.cd_size_div_mtcd
+			, cd1.mtcd_nm 			AS cd_size_div_mtcd_nm
+			, t1.lctg_extr_cd
+			, t1.origin_extr_cd
+			, t1.idfy_use_yn
+			, t1.use_yn
+			, t1.id_schm_cd_desc
+			, t1.id_schm_cd_regr_id
+			, t1.id_schm_cd_regr_nm
+			, to_char(t1.id_schm_cd_reg_dt, #{sqlDateFormat})  AS id_schm_cd_reg_dt
+			, t1.id_schm_cd_amdr_id
+			, t1.id_schm_cd_amdr_nm
+			, to_char(t1.id_schm_cd_amd_dt, #{sqlDateFormat})  AS id_schm_cd_amd_dt
+		FROM dtmeta.tb_meta_idschmproduct t1
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd1 ON cd1.mtcd = t1.cd_size_div_mtcd AND cd1.mtcd_grp_id = 'MCG00027'
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd2 ON cd2.mtcd = '1' AND cd2.mtcd_grp_id = 'MCG00029'
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd3 ON cd3.mtcd = 'id_schm_object' AND cd3.mtcd_grp_id = 'MCG00028'
+		WHERE t1.id_schm_cd = #{idSchmCd}
+	</select>
+	
+	<insert id="insertIdSchemeProduct" parameterType="idSchemeCodeVo">
+		INSERT /* SQL_ID: IdSchemeCodeMapper.insertIdSchemeProduct */
+		       INTO dtmeta.tb_meta_idschmproduct
+			 ( id_schm_cd
+			 , id_schm_cd_nm
+			 , id_schm_cd_eng_nm
+			 , cd_size_div_mtcd
+			 , lctg_extr_cd
+			 , origin_extr_cd
+			 , idfy_use_yn
+			 , use_yn
+			 , id_schm_cd_desc
+			 , id_schm_cd_regr_id
+			 , id_schm_cd_regr_nm
+			 , id_schm_cd_reg_dt
+			 , id_schm_cd_amdr_id
+			 , id_schm_cd_amdr_nm
+			 , id_schm_cd_amd_dt			
+			 ) VALUES 
+			 ( 
+			   #{idSchmCd}			 			 
+			 , #{idSchmCdNm}
+			 , #{idSchmCdEngNm}
+			 , 'm'
+			 , '1'
+			 , #{originExtrCd}
+			 , #{idfyUseYn}
+			 , #{useYn}
+			 , #{idSchmCdDesc}
+			 , #{idSchmCdRegrId}
+			 , #{idSchmCdRegrNm}
+			 , current_timestamp
+			 , #{idSchmCdAmdrId}
+			 , #{idSchmCdAmdrNm}
+			 , current_timestamp			 
+			 )
+	</insert>
+	
+	<update id="updateIdSchemeProduct" parameterType="idSchemeCodeVo">
+		UPDATE /* SQL_ID: IdSchemeCodeMapper.updateIdSchemeProduct */
+               dtmeta.tb_meta_idschmproduct
+		   SET id_schm_cd_nm          = #{idSchmCdNm}
+             , id_schm_cd_eng_nm      = #{idSchmCdEngNm}
+             , id_schm_cd_desc 		  = #{idSchmCdDesc}
+             , use_yn                 = #{useYn}
+             , id_schm_cd_amdr_id     = #{idSchmCdAmdrId}
+             , id_schm_cd_amdr_nm     = #{idSchmCdAmdrNm}
+             , id_schm_cd_amd_dt      = current_timestamp            
+		 WHERE id_schm_cd 	    = #{idSchmCd}
+	</update>
+	
+	
+    <select id="selectIdSchemeFacilityCount" resultType="int">
+		SELECT /* SQL_ID: IdSchemeCodeMapper.selectIdSchemeFacilityCount */
+			COUNT(*) 
+	    FROM dtmeta.tb_meta_idschmfacility t1
+		WHERE 1=1
+		<include refid="whereByIdScheme"/>
+	</select>
+	
+	<select id="selectIdSchemeFacilityList" resultType="idSchemeCodeDto">
+		SELECT /* SQL_ID: IdSchemeCodeMapper.selectIdSchemeFacilityList */
+			cd2.mtcd_nm 			AS id_schm_type_nm,
+			cd2.mtcd 				AS id_schm_type,
+			cd3.mtcd 				AS id_schm_div,
+			t1.id_schm_cd, 
+			t1.id_schm_cd_nm, 
+			t1.id_schm_cd_eng_nm, 
+			t1.cd_size_div_mtcd, 
+			cd1.mtcd_nm as cd_size_div_mtcd_nm, 
+			t1.lctg_extr_cd, 
+			t1.origin_extr_cd, 
+			t1.idfy_use_yn, 
+			t1.use_yn, 
+			t1.id_schm_cd_desc, 
+			t1.id_schm_cd_regr_id, 
+			t1.id_schm_cd_regr_nm, 
+			to_char(t1.id_schm_cd_reg_dt, #{sqlDateFormat})  AS id_schm_cd_reg_dt, 
+			t1.id_schm_cd_amdr_id, 
+			t1.id_schm_cd_amdr_nm, 
+			to_char(t1.id_schm_cd_amd_dt, #{sqlDateFormat})  AS id_schm_cd_amd_dt
+		FROM dtmeta.tb_meta_idschmfacility t1
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd1 ON cd1.mtcd = t1.cd_size_div_mtcd AND cd1.mtcd_grp_id = 'MCG00027'
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd2 ON cd2.mtcd = '2' AND cd2.mtcd_grp_id = 'MCG00029'
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd3 ON cd3.mtcd = 'id_schm_object' AND cd3.mtcd_grp_id = 'MCG00028'
+		WHERE 1=1
+		<include refid="whereByIdScheme"/>
+		<include refid="orderByIdScheme"/>
+		<include refid="limitPage"/>
+	</select>
+	
+	<select id="selectIdSchemeFacility" resultType="idSchemeCodeDto">
+		SELECT /* SQL_ID: IdSchemeCodeMapper.selectIdSchemeFacility */
+			cd2.mtcd_nm 			AS id_schm_type_nm
+			, cd2.mtcd 				AS id_schm_type
+			, cd3.mtcd 				AS id_schm_div
+			, t1.id_schm_cd
+			, t1.id_schm_cd_nm
+			, t1.id_schm_cd_eng_nm
+			, t1.cd_size_div_mtcd
+			, cd1.mtcd_nm 			AS cd_size_div_mtcd_nm
+			, t1.lctg_extr_cd
+			, t1.origin_extr_cd
+			, t1.idfy_use_yn
+			, t1.use_yn
+			, t1.id_schm_cd_desc
+			, t1.id_schm_cd_regr_id
+			, t1.id_schm_cd_regr_nm
+			, to_char(t1.id_schm_cd_reg_dt, #{sqlDateFormat})  AS id_schm_cd_reg_dt
+			, t1.id_schm_cd_amdr_id
+			, t1.id_schm_cd_amdr_nm
+			, to_char(t1.id_schm_cd_amd_dt, #{sqlDateFormat})  AS id_schm_cd_amd_dt
+		FROM dtmeta.tb_meta_idschmfacility t1
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd1 ON cd1.mtcd = t1.cd_size_div_mtcd AND cd1.mtcd_grp_id = 'MCG00027'
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd2 ON cd2.mtcd = '2' AND cd2.mtcd_grp_id = 'MCG00029'
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd3 ON cd3.mtcd = 'id_schm_object' AND cd3.mtcd_grp_id = 'MCG00028'
+		WHERE t1.id_schm_cd = #{idSchmCd}
+	</select>
+	
+	<insert id="insertIdSchemeFacility" parameterType="idSchemeCodeVo">
+		INSERT /* SQL_ID: IdSchemeCodeMapper.insertIdSchemeFacility */
+		       INTO dtmeta.tb_meta_idschmfacility
+			 ( id_schm_cd
+			 , id_schm_cd_nm
+			 , id_schm_cd_eng_nm
+			 , cd_size_div_mtcd
+			 , lctg_extr_cd
+			 , origin_extr_cd
+			 , idfy_use_yn
+			 , use_yn
+			 , id_schm_cd_desc
+			 , id_schm_cd_regr_id
+			 , id_schm_cd_regr_nm
+			 , id_schm_cd_reg_dt
+			 , id_schm_cd_amdr_id
+			 , id_schm_cd_amdr_nm
+			 , id_schm_cd_amd_dt			
+			 ) VALUES 
+			 ( 
+			   #{idSchmCd}			 			 
+			 , #{idSchmCdNm}
+			 , #{idSchmCdEngNm}
+			 , 'm'
+			 , '2'
+			 , #{originExtrCd}
+			 , #{idfyUseYn}
+			 , #{useYn}
+			 , #{idSchmCdDesc}
+			 , #{idSchmCdRegrId}
+			 , #{idSchmCdRegrNm}
+			 , current_timestamp
+			 , #{idSchmCdAmdrId}
+			 , #{idSchmCdAmdrNm}
+			 , current_timestamp			 
+			 )
+	</insert>
+	
+	<update id="updateIdSchemeFacility" parameterType="idSchemeCodeVo">
+		UPDATE /* SQL_ID: IdSchemeCodeMapper.updateIdSchemeFacility */
+               dtmeta.tb_meta_idschmfacility
+		   SET id_schm_cd_nm          = #{idSchmCdNm}
+             , id_schm_cd_eng_nm      = #{idSchmCdEngNm}
+             , id_schm_cd_desc 		  = #{idSchmCdDesc}
+             , use_yn                 = #{useYn}
+             , id_schm_cd_amdr_id     = #{idSchmCdAmdrId}
+             , id_schm_cd_amdr_nm     = #{idSchmCdAmdrNm}
+             , id_schm_cd_amd_dt      = current_timestamp            
+		 WHERE id_schm_cd 	    = #{idSchmCd}
+	</update>
+    
+    
+    <!-- 
+    <sql id="whereByIdScheme">
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(srchStartDd)">
+			<![CDATA[  
+			AND t1.agnt_amd_dt >= TO_TIMESTAMP(#{srchStartDd} ||  ' 00:00:00', 'YYYY-MM-DD HH24:MI:SS')
+			]]>
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(srchEndDd)">
+			<![CDATA[ 
+			AND t1.agnt_amd_dt < TO_TIMESTAMP(#{srchEndDd} || ' 00:00:00', 'YYYY-MM-DD HH24:MI:SS') + INTERVAL '1 day' 
+			]]>
+		</if>		
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(agntNm)">
+			AND t1.agnt_nm        				ILIKE CONCAT('%', #{agntNm}, '%')
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(medataSetSttusMtcd)">
+			AND t1.medata_set_sttus_mtcd        = #{medataSetSttusMtcd} 
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(agntModelId)">
+			AND t1.agnt_model_id        		= #{agntModelId}
+		</if>
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(agntModelNm)">
+            AND md1.model_nm                    ILIKE CONCAT('%', #{agntModelNm}, '%')
+        </if>		
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(agntId)">
+			AND t1.agnt_id        		= #{agntId}
+		</if>		
+	</sql>
+    
+    <sql id="orderByIdScheme">
+		ORDER BY t1.agnt_id DESC
+	</sql>
+    
+    <select id="selectIdSchemeCount" resultType="int">
+		SELECT /* SQL_ID: IdSchemeCodeMapper.selectIdSchemeCount */
+			COUNT(*) 
+	    FROM dtmeta.tb_meta_idScheme t1
+		LEFT OUTER JOIN dtmeta.tb_meta_model md1  ON t1.agnt_model_id = md1.model_id
+		WHERE 1=1
+		<include refid="whereByIdScheme"/>
+	</select>
+	
+	<select id="selectIdSchemeList" resultType="idSchemeCodeDto">
+		SELECT /* SQL_ID: IdSchemeCodeMapper.selectIdSchemeList */
+			t1.agnt_id	
+			, t1.agnt_nm	
+			, t1.agnt_model_id	
+			, md1.model_nm  AS agnt_model_nm
+			, t1.medata_set_sttus_mtcd
+			, cd1.mtcd_nm AS medata_set_sttus_mtcd_nm
+			, t1.agnt_desc	
+			, t1.agnt_eng_nm	
+			, t1.agnt_eng_desc	
+			, t1.agnt_tel_no	
+			, t1.agnt_hpage	
+			, t1.agnt_regr_id	
+			, t1.agnt_regr_nm	
+			, to_char(t1.agnt_reg_dt, #{sqlDateFormat})  AS agnt_reg_dt
+			, t1.agnt_amdr_id	
+			, t1.agnt_amdr_nm	
+			, to_char(t1.agnt_amd_dt, #{sqlDateFormat})  AS agnt_amd_dt
+		FROM dtmeta.tb_meta_idScheme t1
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd1
+		ON cd1.mtcd = t1.medata_set_sttus_mtcd AND cd1.mtcd_grp_id = 'MCG00001'	
+		LEFT OUTER JOIN dtmeta.tb_meta_model md1  ON t1.agnt_model_id = md1.model_id
+		WHERE 1=1
+		<include refid="whereByIdScheme"/>
+		<include refid="orderByIdScheme"/>
+		<include refid="limitPage"/>
+	</select>
+	
+	<select id="selectIdScheme" resultType="idSchemeCodeDto">
+		SELECT /* SQL_ID: IdSchemeCodeMapper.selectIdScheme */
+			t1.agnt_id	
+			, t1.agnt_nm	
+			, t1.agnt_model_id	
+            , md1.model_nm  AS agnt_model_nm			
+			, t1.medata_set_sttus_mtcd	
+			, t1.agnt_desc	
+			, t1.agnt_eng_nm	
+			, t1.agnt_eng_desc	
+			, t1.agnt_tel_no	
+			, t1.agnt_hpage	
+			, t1.agnt_regr_id	
+			, t1.agnt_regr_nm	
+			, to_char(t1.agnt_reg_dt, #{sqlDateFormat})  AS agnt_reg_dt
+			, t1.agnt_amdr_id	
+			, t1.agnt_amdr_nm	
+			, to_char(t1.agnt_amd_dt, #{sqlDateFormat})  AS agnt_amd_dt
+		FROM dtmeta.tb_meta_idScheme t1
+		LEFT OUTER JOIN dtmeta.tb_meta_model md1  ON t1.agnt_model_id = md1.model_id
+		WHERE t1.agnt_id = #{agntId}
+	</select>
+	
+	<insert id="insertIdScheme" parameterType="idSchemeCodeVo">
+		INSERT /* SQL_ID: IdSchemeCodeMapper.insertIdScheme */
+		       INTO dtmeta.tb_meta_idScheme
+			 ( agnt_id	
+			, agnt_nm	
+			, agnt_model_id	
+			, medata_set_sttus_mtcd	
+			, agnt_desc	
+			, agnt_eng_nm	
+			, agnt_eng_desc	
+			, agnt_tel_no	
+			, agnt_hpage	
+			, agnt_regr_id	
+			, agnt_regr_nm	
+			, agnt_reg_dt	
+			, agnt_amdr_id	
+			, agnt_amdr_nm	
+			, agnt_amd_dt			
+			
+			 ) VALUES 
+			 ( 
+			   #{agntId}			 			 
+			 , #{agntNm}
+			 , #{agntModelId}
+			 , #{medataSetSttusMtcd}
+			 , #{agntDesc}
+			 , #{agntEngNm}
+			 , #{agntEngDesc}
+			 , #{agntTelNo}
+			 , #{agntHpage}
+			 , #{agntRegrId}
+			 , #{agntRegrNm}
+			 , current_timestamp
+			 , #{agntAmdrId}
+			 , #{agntAmdrNm}
+			 , current_timestamp			 
+			 )
+	</insert>
+	
+	<update id="updateIdSchemeStdInd" parameterType="idSchemeCodeVo">
+		UPDATE /* SQL_ID: IdSchemeCodeMapper.updateIdScheme */
+               dtmeta.tb_meta_idschmstdind
+		   SET id_schm_cd_nm          = #{agntModelId}
+             , id_schm_cd_eng_nm      = #{medataSetSttusMtcd}
+             , cd_size_div_mtcd       = #{agntDesc}
+             , idfy_use_yn            = #{agntTelNo}
+             , use_yn                 = #{agntHpage}
+             , id_schm_cd_amdr_id     = #{agntAmdrId}
+             , id_schm_cd_amdr_nm     = #{agntAmdrNm}
+             , id_schm_cd_amd_dt      = current_timestamp            
+		 WHERE id_schm_cd 	    = #{agntId}
+	</update>
+
+	-->
+	
+</mapper>
+

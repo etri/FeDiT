@@ -35,4 +35,7 @@ public class ElasticProperty {
 	@Value("${elastic.index-name}")
 	private String indexName;
 	
+	@Value("${elastic.kibana-url}")
+	private String kibanaUrl;
+	
 }

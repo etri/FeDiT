@@ -89,7 +89,7 @@ public class MetadataSearchVo extends SearchVo implements Serializable {
 	@Override
 	public String toString() {
 		return ReflectionToStringBuilder.toString(this, ToStringStyle.SHORT_PREFIX_STYLE, true, true);
-	}	
+	}
 
 	@Schema(hidden=true, accessMode=AccessMode.READ_ONLY)
 	public boolean getIsDataAllSearch() {

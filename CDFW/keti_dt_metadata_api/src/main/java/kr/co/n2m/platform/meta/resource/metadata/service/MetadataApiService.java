@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
 import kr.co.n2m.platform.meta.architecture.code.Constant;
+import kr.co.n2m.platform.meta.architecture.domain.CamelCaseMap;
 import kr.co.n2m.platform.meta.architecture.domain.PageVo;
 import kr.co.n2m.platform.meta.architecture.domain.SearchResultListVo;
 import kr.co.n2m.platform.meta.architecture.exception.ResBadRequestException;
@@ -21,10 +22,13 @@ import kr.co.n2m.platform.meta.architecture.property.DtmetaProperty;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataApiInnerSearchVo;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataApiSearchVo;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataApiSetPropertySearchVo;
+import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataDto;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataJsonMap;
+import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSearchVo;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSetDto;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSetVo;
 import kr.co.n2m.platform.meta.resource.metadata.mapper.MetadataApiMapper;
+import kr.co.n2m.platform.meta.resource.metadata.mapper.MetadataMapper;
 import kr.co.n2m.platform.meta.schema.model.domain.ModelInfoDto;
 import kr.co.n2m.platform.meta.schema.model.domain.ModelVo;
 import kr.co.n2m.platform.meta.schema.model.service.ModelCacheService;
@@ -49,6 +53,9 @@ public class MetadataApiService {
 	
 	@Autowired
 	private ApiQueryParser apiQueryParser;
+	
+	@Autowired
+	private MetadataMapper metadataMapper;
 	
 	
 	/**
@@ -185,7 +192,7 @@ public class MetadataApiService {
 
 			// 비정형모델		
 			dataMap = this.getDataMapFromMetadataSet(medataSetId, typeModelVo, true, arrayDataLimitYn, arrayDataLimit);
-		
+			
 		} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 			log.info("[유형 모델별 메타데이터 셋 조회] 실패/오류 (정보성) : {}", e.getMessage());
 			throw e;			
@@ -195,6 +202,51 @@ public class MetadataApiService {
 		}
 		 
 		log.debug("[유형 모델별 메타데이터 셋 조회] 서비스 종료 - {}", dataUri);
+		return dataMap;
+	}
+	
+	/**
+	 * 유형 모델별 메타데이터 셋 조회 (full objects data)
+	 * @Author      : tklee
+	 * @Date        : 2024. 04. 26.
+	 * @param dataUri
+	 * @param medataSetId
+	 * @param arrayDataLimitYn
+	 * @param arrayDataLimit
+	 * @return
+	 */
+	public ListOrderedMap<String, Object> getFullDataMapByDataUri(String dataUri, String medataSetId, String arrayDataLimitYn, Integer arrayDataLimit) {
+		log.debug("[유형 모델별 메타데이터 셋 조회 (full objects data)] 서비스 시작 - {}", medataSetId);
+		ListOrderedMap<String, Object> dataMap = null;
+		
+		try {
+			dataMap = this.getDataMapByDataUri(dataUri, medataSetId, arrayDataLimitYn, arrayDataLimit);
+			
+			String objectdata = "objectdata"; // 프라퍼티ID 하드코딩
+			
+			if(!((dataMap.get(objectdata)) == null)) { 
+				ListOrderedMap<String, Object> objectFulldataMap = new ListOrderedMap<String, Object>();
+				MetadataSearchVo metadataSearchVo = new MetadataSearchVo();
+				metadataSearchVo.setMedataSetId((String) dataMap.get(objectdata));
+				List<CamelCaseMap> list = metadataMapper.selectMetadataList(metadataSearchVo);
+				for(int i=0; i<list.size(); i++) {
+					objectFulldataMap.put((String) list.get(i).get("prptyId"), list.get(i).get("medataVal"));
+				}
+				
+				if(!objectFulldataMap.isEmpty()) {
+					dataMap.replace(objectdata, dataMap.get(objectdata), objectFulldataMap);
+				}
+			};
+			
+		} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
+			log.info("[유형 모델별 메타데이터 셋 조회 (full objects data)] 실패/오류 (정보성) : {}", e.getMessage());
+			throw e;			
+		} catch (Exception e) {
+			log.error("[유형 모델별 메타데이터 셋 조회 (full objects data)] 실패/오류", e);
+			throw new ResBaseRuntimeException(e);
+		}
+		 
+		log.debug("[유형 모델별 메타데이터 셋 조회 (full objects data)] 서비스 종료 - {}", dataUri);
 		return dataMap;
 	}
 	

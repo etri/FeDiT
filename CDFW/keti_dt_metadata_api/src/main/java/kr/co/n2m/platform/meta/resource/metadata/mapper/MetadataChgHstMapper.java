@@ -57,5 +57,23 @@ public interface MetadataChgHstMapper {
 	 * @return
 	 */
 	public List<MetadataChgHstSaveDto> selectSelValueListBySetIdForChgHst(MetadataSetVo metadataSetVo);
+	
+	/**
+	 * 셋 ID 로 해당 셋의 삭제 이력이 있는 메타데이터 목록 조회
+	 * @Author      : tklee
+	 * @Date        : 2024. 04. 01.
+	 * @param medataSetId
+	 * @return
+	 */
+	public List<String> selectMetadataDelHstListBySetId(String medataSetId);
+	
+	/**
+	 * 셋 ID 와 변경 후 값으로 메타데이터의 최근 변경 상태 조회
+	 * @Author      : tklee
+	 * @Date        : 2024. 04. 01.
+	 * @param metadataChgHstVo
+	 * @return
+	 */
+	public String selectMetadataRecentStatusBySetId(MetadataChgHstVo metadataChgHstVo);
 
 }

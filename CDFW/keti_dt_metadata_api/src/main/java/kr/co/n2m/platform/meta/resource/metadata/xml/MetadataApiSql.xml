@@ -59,6 +59,34 @@
 		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(typeModelNm)">
             AND t5.type_model_id            = ( SELECT model_id FROM dtmeta.tb_meta_model w1 WHERE w1.model_nm = #{typeModelNm} ) 
         </if>
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(digitalTwinId)">
+        	AND EXISTS ( 
+      				SELECT e1.medata_set_id FROM 
+					     (WITH RECURSIVE hierarchy_vw AS (
+					        SELECT s2.medata_val                     AS medata_set_id
+                              	 , ARRAY [s2.medata_val::TEXT]       AS set_id_path
+			             		 , FALSE                             AS cycle     
+					          FROM dtmeta.tb_meta_dataset     s1
+					         INNER JOIN dtmeta.tb_meta_data   s2  ON s1.medata_set_id = s2.medata_set_id
+					         INNER JOIN dtmeta.tb_meta_model  s3  ON s2.val_model_id = s3.model_id
+					         WHERE s3.model_type_mtcd     = 'object_type'
+					           AND s1.medata_set_id     = #{digitalTwinId}
+					         UNION ALL
+					        SELECT s2.medata_val                     					AS medata_set_id   
+						         , ARRAY_APPEND(h.set_id_path, s2.medata_val::text)
+		                         , s2.medata_val = ANY(h.set_id_path)    
+					          FROM dtmeta.tb_meta_dataset     s1
+					         INNER JOIN dtmeta.tb_meta_data   s2  ON s1.medata_set_id = s2.medata_set_id
+					         INNER JOIN dtmeta.tb_meta_model  s3  ON s2.val_model_id = s3.model_id
+					         INNER JOIN hierarchy_vw h  ON h.medata_set_id = s1.medata_set_id              
+					         WHERE s3.model_type_mtcd     = 'object_type'
+				         	   AND NOT CYCLE 
+					    )
+					    SELECT *
+					      FROM hierarchy_vw) AS e1
+					     WHERE e1.medata_set_id = t4.medata_set_id
+        	)
+        </if>
 	</sql>
 	
     <sql id="whereByMetadataSetFilter">
@@ -558,6 +586,83 @@
               UNION ALL
              SELECT 'metaTypeModel'
                   , to_jsonb(t3.model_nm)
+                  , -1
+               FROM dtmeta.tb_meta_dataset     t1
+              INNER JOIN dtmeta.tb_meta_model  t2  ON t1.model_id = t2.model_id
+              INNER JOIN dtmeta.tb_meta_model  t3  ON t2.type_model_id = t3.model_id 
+              WHERE t1.medata_set_id = #{medataSetId}
+              ORDER BY sort_odrg
+           ) x1
+    </select>  
+    
+    <select id="selectMetadataToJsonStrBySetIdAsText" resultType="metadataElasticJsonMap">
+        SELECT /* SQL_ID: MetadataApiMapper.selectMetadataToJsonStrBySetIdAsText */
+               json_object_agg(prpty_nm, val) AS metaJsonStr    
+          FROM ( 
+                SELECT t3.prpty_nm
+                     , t4.val
+                     , ROW_NUMBER() OVER(ORDER BY t2.model_prpty_sort_odrg, t3.prpty_sort_odrg) AS sort_odrg
+                  FROM dtmeta.tb_meta_dataset            t1
+                 INNER JOIN dtmeta.tb_meta_modelproperty t2  ON t1.model_id = t2.model_id AND t2.model_prpty_del_yn = 'N'
+                 INNER JOIN dtmeta.tb_meta_property      t3  ON t2.prpty_id = t3.prpty_id AND t3.prpty_data_sttus_mtcd = 'use'
+                  LEFT OUTER JOIN (
+                        SELECT t1.model_prpty_id
+                             , t2.prpty_nm
+                             , CASE WHEN t3.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)::jsonb 
+                                    WHEN t3.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
+                                    WHEN t3.data_type_mtcd = 'json' THEN to_jsonb(t1.medata_val) 
+                                    ELSE to_jsonb(t1.medata_val)
+                               END  AS val                             
+                          FROM dtmeta.tb_meta_data t1
+                         INNER JOIN dtmeta.tb_meta_property t2  ON t1.prpty_id = t2.prpty_id AND t2.prpty_data_sttus_mtcd = 'use'
+                         INNER JOIN dtmeta.tb_meta_model    t3  ON t1.val_model_id = t3.model_id
+                         WHERE t1.medata_set_id = #{medataSetId}
+                           AND t2.data_array_yn = 'N'
+                         /* 배열 내용은 10건 이하만 */
+                         UNION ALL               
+                        SELECT MAX(t1.model_prpty_id) AS model_prpty_id
+                             , t2.prpty_nm
+                             , jsonb_agg(t4.val ORDER BY t4.medata_id) AS val
+                          FROM dtmeta.tb_meta_data t1
+                         INNER JOIN dtmeta.tb_meta_property t2  ON t1.prpty_id = t2.prpty_id AND t2.prpty_data_sttus_mtcd = 'use'
+                          LEFT JOIN (
+                                SELECT ROW_NUMBER() OVER(PARTITION BY t1.medata_set_id, t1.prpty_id ORDER BY t1.medata_id)  AS rn
+                                     , t1.medata_id
+                                     , t1.medata_set_id
+                                     , t1.prpty_id
+                                     , CASE WHEN t3.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)::jsonb 
+                                            WHEN t3.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
+                                            WHEN t3.data_type_mtcd = 'json' THEN to_jsonb(t1.medata_val) 
+                                            ELSE to_jsonb(t1.medata_val)
+                                       END  AS val
+                                  FROM dtmeta.tb_meta_data t1
+                                 INNER JOIN dtmeta.tb_meta_property t2  ON t1.prpty_id = t2.prpty_id
+                                 INNER JOIN dtmeta.tb_meta_model    t3  ON t1.val_model_id = t3.model_id
+                                 WHERE t1.medata_set_id = #{medataSetId}                
+                                   AND t2.data_array_yn = 'Y'   
+                              ) t4  ON t1.medata_id = t4.medata_id
+                        WHERE t1.medata_set_id = #{medataSetId}
+                          AND t2.data_array_yn = 'Y'
+                          <if test='@org.apache.commons.lang3.StringUtils@equals(arrayDataLimitYn, "Y")'>
+                          <![CDATA[
+                          AND t4.rn <= #{arrayDataLimit}
+                          ]]>
+                          </if>
+                        GROUP BY t1.medata_set_id, t2.prpty_nm               
+                       ) t4  ON t2.model_prpty_id = t4.model_prpty_id        
+                 WHERE t1.medata_set_id = #{medataSetId}
+              /* 메타 모델 */
+              UNION ALL
+             SELECT 'metaModel'
+                  , to_jsonb(t2.model_nm)::jsonb
+                  , 0
+               FROM dtmeta.tb_meta_dataset     t1
+              INNER JOIN dtmeta.tb_meta_model  t2  ON t1.model_id = t2.model_id 
+              WHERE t1.medata_set_id = #{medataSetId}
+              /* 메타 유형 모델 */
+              UNION ALL
+             SELECT 'metaTypeModel'
+                  , to_jsonb(t3.model_nm)::jsonb
                   , -1
                FROM dtmeta.tb_meta_dataset     t1
               INNER JOIN dtmeta.tb_meta_model  t2  ON t1.model_id = t2.model_id

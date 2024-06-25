@@ -9,10 +9,17 @@ spring:
       on-profile:
       - local
   datasource:
-    url: jdbc:postgresql://1.234.5.217:5432/dtmeta
+    url: jdbc:postgresql://220.124.222.86:5432/dtmeta
     username: meta_manager
     password: rhksflwk1!
     driver-class-name: org.postgresql.Driver    
+  kafka:
+    bootstrap-servers: 220.76.205.230:29092
+    client-id : DT_PRODUCER
+    auth:
+      user-id: 
+      user-pw: 
+    thread-sleep : 100  
     
 # Spring Doc Open Api    
 springdoc.swagger-ui.enabled: true
@@ -25,60 +32,67 @@ springdoc.swagger-ui.enabled: true
       
   
 # Security
+security:
+  secret-key: mk8sO0z3ORun6W/7aILNQrX+OUSp4PPX9ZxAn3JNgGY=
 
 oauth:
-  public-key: http://192.168.123.81:33000/security/publickey
-  access-token: http://192.168.123.81:33000/oauth2.0/token
+  public-key: http://220.124.222.86:33000/security/publickey
+  access-token: http://220.124.222.86:33000/oauth2.0/token
 authorization: 
   data : true
   default-auth:
     use-flag: true  
     list: AUT_META_DEFAULT
   
-platform.common.api.url: http://localhost:6998
+platform.common.api.url: http://220.124.222.86:6998
 
 # Virtuoso 
 virtuoso:
   datasource:
-    url: jdbc:virtuoso://203.245.28.195:1111/charset=UTF-8
+    url: jdbc:virtuoso://220.124.222.86:1111/charset=UTF-8
     username: meta_manager
     password: rhksflwk1!
   graph:
     dev: DEV_GRAPH_NM
     use: USE_GRAPH_NM
-  conductor-url: http://203.245.28.195:8890/conductor
+  conductor-url: http://220.124.222.86:8890/conductor
 
 # Metadata RDF URL (Namespace) 
 dtmeta:
   # TODO : 임시 정의, 추후 수정 필요
   resource:
-    base-url: http://1.234.5.217:8084/meta/resource/page/
-    data-url: http://1.234.5.217:8084/meta/api/v1/resource/data/
+    base-url: http://220.124.222.86:8084/meta/resource/page/
+    data-url: http://220.124.222.86:8084/meta/api/v1/resource/data/
   # TODO : 임시 정의, 추후 수정 필요
   rdf-schema:
-    base-url: http://1.234.5.217:8084/meta/ns/digitaltwin#
-    skos-url: http://1.234.5.217:8084/meta/skos/digitaltwin#
+    base-url: http://220.124.222.86:8084/meta/ns/digitaltwin#
+    skos-url: http://220.124.222.86:8084/meta/skos/digitaltwin#
+  # 디지털트윈 연합 식별체계 적용
+  id-scheme:
+    digital-twin: DigitalTwin
+    digital-twin-object: DigitalObject
     
 # NEO4J
 neo4j:
   authentication:
     username: neo4j
     password: rhksflwk1!
-  uri: bolt://203.245.28.195:7687
-  browser-url: http://203.245.28.195:7474/browser
+  uri: bolt://220.124.222.86:7687
+  browser-url: http://220.124.222.86:7474/browser
   
 # Elastic Search
 elastic:
   authentication:
     username: elastic
     password: es_admin1!
-  protocol: https
+  protocol: http
     # TODO : 임시 정의, 추후 수정 필요
-  server-ip: 1.234.5.217
+  server-ip: 220.124.222.86
   server-port: 9200
   kibana-port: 5601
   fingerprint: 4cd6a201122ff2ddad6545b074f7d9c38b8d431f4adf66bf7473a6449ab463d7
   index-name: test_meta
+  kibana-url: http://220.124.222.86:5601
   
 ---
 
@@ -88,69 +102,83 @@ spring:
       on-profile:
       - dev
   datasource:
-    url: jdbc:postgresql://1.234.5.217:5432/dtmeta
+    url: jdbc:postgresql://220.124.222.86:5432/dtmeta
     username: meta_manager
     password: rhksflwk1!
-    driver-class-name: org.postgresql.Driver      
+    driver-class-name: org.postgresql.Driver
+  kafka:
+    bootstrap-servers: 220.76.205.230:29092
+    client-id : DT_PRODUCER
+    auth:
+      user-id: 
+      user-pw: 
+    thread-sleep : 100     
 
 springdoc.swagger-ui.enabled: true
 
 
 # Security
+security:
+  secret-key: mk8sO0z3ORun6W/7aILNQrX+OUSp4PPX9ZxAn3JNgGY=
 
 oauth:
-  public-key: http://192.168.123.81:33000/security/publickey
-  access-token: http://192.168.123.81:33000/oauth2.0/token
+  public-key: http://220.124.222.86:33000/security/publickey
+  access-token: http://220.124.222.86:33000/oauth2.0/token
 authorization: 
   data : true
   default-auth:
     use-flag: true  
     list: AUT_META_DEFAULT
   
-platform.common.api.url: http://1.234.5.217:6998
+platform.common.api.url: http://220.124.222.86:6998
 
 # Virtuoso 
 virtuoso:
   datasource:
-    url: jdbc:virtuoso://203.245.28.195:1111/charset=UTF-8
+    url: jdbc:virtuoso://220.124.222.86:1111/charset=UTF-8
     username: meta_manager
     password: rhksflwk1!
   graph:
     dev: DEV_GRAPH_NM
     use: USE_GRAPH_NM
-  conductor-url: http://203.245.28.195:8890/conductor    
+  conductor-url: http://220.124.222.86:8890/conductor    
     
 # Metadata RDF URL (Namespace) 
 dtmeta:
   # TODO : 임시 정의, 추후 수정 필요
   resource:
-    base-url: http://1.234.5.217:8084/meta/resource/page/
-    data-url: http://1.234.5.217:8084/meta/api/v1/resource/data/
+    base-url: http://220.124.222.86:8084/meta/resource/page/
+    data-url: http://220.124.222.86:8084/meta/api/v1/resource/data/
   # TODO : 임시 정의, 추후 수정 필요
   rdf-schema:
-    base-url: http://1.234.5.217:8084/meta/ns/digitaltwin#
-    skos-url: http://1.234.5.217:8084/meta/skos/digitaltwin#
+    base-url: http://220.124.222.86:8084/meta/ns/digitaltwin#
+    skos-url: http://220.124.222.86:8084/meta/skos/digitaltwin#
+  # 디지털트윈 연합 식별체계 적용
+  id-scheme:
+    digital-twin: DigitalTwin
+    digital-twin-object: DigitalObject    
     
 # NEO4J
 neo4j:
   authentication:
     username: neo4j
     password: rhksflwk1!
-  uri: bolt://203.245.28.195:7687
-  browser-url: http://203.245.28.195:7474/browser
+  uri: bolt://220.124.222.86:7687
+  browser-url: http://220.124.222.86:7474/browser
   
 # Elastic Search
 elastic:
   authentication:
     username: elastic
     password: es_admin1!
-  protocol: https
+  protocol: http
     # TODO : 임시 정의, 추후 수정 필요
-  server-ip: 1.234.5.217
+  server-ip: 220.124.222.86
   server-port: 9200
   kibana-port: 5601
   fingerprint: 4cd6a201122ff2ddad6545b074f7d9c38b8d431f4adf66bf7473a6449ab463d7
   index-name: test_meta
+  kibana-url: http://220.124.222.86:5601
 
 ---
 
@@ -160,35 +188,45 @@ spring:
       on-profile:
       - prod
   datasource:
-    url: jdbc:postgresql://1.234.5.217:5432/dtmeta
+    url: jdbc:postgresql://220.124.222.86:5432/dtmeta
     username: meta_manager
     password: rhksflwk1!
-    driver-class-name: org.postgresql.Driver      
-
+    driver-class-name: org.postgresql.Driver
+  kafka:
+    bootstrap-servers: 220.76.205.230:29092
+    client-id : DT_PRODUCER
+    auth:
+      user-id: 
+      user-pw: 
+    thread-sleep : 100  
+    
 # Disabling the swagger-ui
 springdoc.swagger-ui.enabled: false
 
+security:
+  secret-key: mk8sO0z3ORun6W/7aILNQrX+OUSp4PPX9ZxAn3JNgGY=
+
 oauth:
-  public-key: http://192.168.123.81:33000/security/publickey
-  access-token: http://192.168.123.81:33000/oauth2.0/token
+  public-key: http://220.124.222.86:33000/security/publickey
+  access-token: http://220.124.222.86:33000/oauth2.0/token
 authorization: 
   data : true
   default-auth:
     use-flag: true  
     list: AUT_META_DEFAULT
 
-platform.common.api.url: http://1.234.5.217:6998
+platform.common.api.url: http://220.124.222.86:6998
 
 # Virtuoso 
 virtuoso:
   datasource:
-    url: jdbc:virtuoso://203.245.28.195:1111/charset=UTF-8
+    url: jdbc:virtuoso://220.124.222.86:1111/charset=UTF-8
     username: meta_manager
     password: rhksflwk1!
   graph:
     dev: DEV_GRAPH_NM
     use: USE_GRAPH_NM
-  conductor-url: http://203.245.28.195:8890/conductor    
+  conductor-url: http://220.124.222.86:8890/conductor    
 
 # Metadata RDF URL (Namespace) 
 dtmeta:
@@ -200,25 +238,30 @@ dtmeta:
   rdf-schema:
     base-url: http://vocab.keti.re.kr/meta/ns/digitaltwin#
     skos-url: http://vocab.keti.re.kr/meta/skos/digitaltwin#
+  # 디지털트윈 연합 식별체계 적용
+  id-scheme:
+    digital-twin: DigitalTwin
+    digital-twin-object: DigitalObject    
     
 # NEO4J
 neo4j:
   authentication:
     username: neo4j
     password: rhksflwk1!
-  uri: bolt://203.245.28.195:7687
-  browser-url: http://203.245.28.195:7474/browser 
+  uri: bolt://220.124.222.86:7687
+  browser-url: http://220.124.222.86:7474/browser 
 
 # Elastic Search
 elastic:
   authentication:
     username: elastic
     password: es_admin1!
-  protocol: https
+  protocol: http
     # TODO : 임시 정의, 추후 수정 필요
-  server-ip: 1.234.5.217
+  server-ip: 220.124.222.86
   server-port: 9200
   kibana-port: 5601
   fingerprint: 4cd6a201122ff2ddad6545b074f7d9c38b8d431f4adf66bf7473a6449ab463d7
   index-name: test_meta
+  kibana-url: http://220.124.222.86:5601
 

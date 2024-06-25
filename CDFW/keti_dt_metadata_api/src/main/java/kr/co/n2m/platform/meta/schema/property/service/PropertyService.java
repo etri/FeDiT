@@ -337,6 +337,7 @@ public class PropertyService {
 	public void clearAllPropertyCache() {
 		log.debug("[모든 프라퍼티 Cache 재조회를 위한 clear] 서비스 시작");
 		propertyCacheService.removePrptyDataTypeListAll();
+		propertyCacheService.removePrptyDataTypeListForMetadataJsonMapAll();
 		log.debug("[모든 프라퍼티 Cache 재조회를 위한 clear] 서비스 종료");
 	}	
 

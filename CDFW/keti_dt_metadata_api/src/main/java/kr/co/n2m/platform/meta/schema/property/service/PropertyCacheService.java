@@ -2,6 +2,7 @@ package kr.co.n2m.platform.meta.schema.property.service;
 
 import java.util.List;
 
+import org.apache.ibatis.session.SqlSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -19,6 +20,13 @@ public class PropertyCacheService {
 	@Autowired
 	private PropertyMapper propertyMapper;
 	
+	private static SqlSession sqlSession;
+
+    @Autowired
+    public void setSqlSession(SqlSession sqlSession) {
+        this.sqlSession = sqlSession;
+    }
+	
 	/**
 	 * 사용 상태인 전체 프라퍼티의 데이터 유형 목록을 Cache에서 조회
 	 * @Author      : heenim
@@ -27,8 +35,8 @@ public class PropertyCacheService {
 	 */
 	@Cacheable(cacheNames="prptyDataTypeList", unless="#result == null")
 	public List<PropertyDataTypeDto> getPrptyDataTypeList() {
-		long startMillis = System.currentTimeMillis();	
-		log.debug(">>>>>>>>>> Call prptyDataTypeList");
+//		long startMillis = System.currentTimeMillis();	
+//		log.debug(">>>>>>>>>> Call prptyDataTypeList");
 		List<PropertyDataTypeDto> list = null;
 		
 		try {
@@ -41,8 +49,8 @@ public class PropertyCacheService {
 			throw e;
 		}
 	
-		log.info(">>>>>>>>>> prptyDataTypeList");
-		log.info(">>>>>>>>>> Time : " + (System.currentTimeMillis() - startMillis)  + "ms");
+//		log.info(">>>>>>>>>> prptyDataTypeList");
+//		log.info(">>>>>>>>>> Time : " + (System.currentTimeMillis() - startMillis)  + "ms");
 		return list;
 	}
 	
@@ -55,5 +63,48 @@ public class PropertyCacheService {
 	public void removePrptyDataTypeListAll() {
 		log.info("Remove All Property DataType List.");
 	}	
+	
+	
+	
+	
+	
+	
+	/**
+	 * 사용 상태인 전체 프라퍼티의 데이터 유형 목록을 Cache에서 조회 (for MetadataJsonMap)
+	 * @Author      : tklee
+	 * @Date        : 2024. 02. 20.
+	 * @return
+	 */
+	@Cacheable(cacheNames="prptyDataTypeListForMetadataJsonMap", unless="#result == null")
+	public static List<PropertyDataTypeDto> getPrptyDataTypeListForMetadataJsonMap() {
+//		long startMillis = System.currentTimeMillis();	
+//		log.debug(">>>>>>>>>> Call prptyDataTypeListForMetadataJsonMap");
+		List<PropertyDataTypeDto> list = null;
+		
+		try {
+			PropertySearchVo searchVo = new PropertySearchVo();
+			searchVo.setIsPaging(false); // TODO: LIMIT_LIST_SIZE 보다 데이터 건수가 더 많다면 처리시 페이징해서 처리해야 함
+//			list = PropertyMapper.selectPropertyDataTypeList2(searchVo);	
+			list = sqlSession.selectList("kr.co.n2m.platform.meta.schema.property.mapper.PropertyMapper.selectPropertyDataTypeList", searchVo);	
+			
+		} catch (Exception e) {
+			log.error("prptyDataTypeListForMetadataJsonMap DB 조회 실패!", e);
+			throw e;
+		}
+	
+//		log.info(">>>>>>>>>> prptyDataTypeListForMetadataJsonMap");
+//		log.info(">>>>>>>>>> Time : " + (System.currentTimeMillis() - startMillis)  + "ms");
+		return list;
+	}
+	
+    /**
+     * Cache에 저장된 프라퍼티의 데이터 유형 목록 전체 삭제 (for MetadataJsonMap)
+	 * @Author      : tklee
+	 * @Date        : 2024. 02. 22.
+     */
+	@CacheEvict(cacheNames="prptyDataTypeListForMetadataJsonMap", beforeInvocation=false, allEntries=true)
+	public void removePrptyDataTypeListForMetadataJsonMapAll() {
+		log.info("Remove All Property DataType List. (for MetadataJsonMap)");
+	}
 
 }

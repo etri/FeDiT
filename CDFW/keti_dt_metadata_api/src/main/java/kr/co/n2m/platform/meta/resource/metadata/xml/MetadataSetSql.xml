@@ -213,10 +213,17 @@
              , t1.medata_set_amdr_id
              , t1.medata_set_amdr_nm
              , TO_CHAR(t1.medata_set_amd_dt, #{sqlDateFormat})  AS medata_set_amd_dt
+             , t1.id_schm_cntry_cd
+             , c2.cntry_nm		AS id_schm_cntry_nm
+             , t1.id_schm_type
+             , c3.mtcd_nm		AS id_schm_type_nm
+             , t1.id_schm_cd
           FROM dtmeta.tb_meta_dataset t1
           LEFT OUTER JOIN dtmeta.tb_meta_model  t2  ON t1.model_id = t2.model_id
           LEFT OUTER JOIN dtmeta.tb_meta_model  t4  ON t2.type_model_id = t4.model_id
           LEFT OUTER JOIN dtmeta.tb_portal_code c1  ON t1.medata_set_sttus_mtcd = c1.mtcd AND c1.mtcd_grp_id = 'MCG00001'
+          LEFT OUTER JOIN dtmeta.tb_portal_countrycode c2  ON t1.id_schm_cntry_cd = c2.cntry_cd
+          LEFT OUTER JOIN dtmeta.tb_portal_code c3  ON t1.id_schm_type = c3.mtcd AND c3.mtcd_grp_id = 'MCG00029'
 		 WHERE t1.medata_set_id   = #{medataSetId}
 	</select>
 	
@@ -226,7 +233,7 @@
                t1.medata_set_nm
           FROM dtmeta.tb_meta_dataset t1
          WHERE t1.medata_set_id   = #{medataSetId}
-    </select>	
+    </select>
 	
 	<insert id="insertMetadataSet" parameterType="metadataSetVo">
 		INSERT /* SQL_ID: MetadataSetMapper.insertMetadataSet */
@@ -245,6 +252,9 @@
              , medata_set_amdr_id
              , medata_set_amdr_nm
              , medata_set_amd_dt
+             , id_schm_cntry_cd
+             , id_schm_type
+             , id_schm_cd
 			 ) VALUES 
 			 ( 
 			   #{medataSetId}			 			 
@@ -260,9 +270,73 @@
 			 , current_timestamp
 			 , #{medataSetRegrId}
 			 , #{medataSetRegrNm}
-			 , current_timestamp			 
+			 , current_timestamp
+			 , #{idSchmCntryCd}
+			 , #{idSchmType}
+			 , #{idSchmCd}
 			 )
 	</insert>
+	
+    <insert id="insertMetadataSetAutoKey" parameterType="metadataSetVo">
+	    <selectKey keyProperty="medataSetId" keyColumn="medata_set_id" resultType="string" order="BEFORE">
+            <if test='@org.apache.commons.lang3.StringUtils@equals(idSchmYearUseYn, "Y")'>
+				SELECT CONCAT(#{idSchmPrefix}, yyyy, LPAD(CAST(COALESCE(new_val, 1) AS VARCHAR), 4, '0'))
+				  FROM (
+				        SELECT TO_CHAR(CURRENT_DATE, 'YYYY')  AS yyyy
+				             , MAX( SUBSTRING(medata_set_id, OCTET_LENGTH(#{idSchmPrefix} || TO_CHAR(CURRENT_DATE, 'YYYY')) + 1)::int ) + 1  AS new_val
+				          FROM dtmeta.tb_meta_dataset
+				         WHERE medata_set_id LIKE #{idSchmPrefix} || TO_CHAR(CURRENT_DATE, 'YYYY') || '%'
+				       ) key1
+			 </if>
+			 <if test='!@org.apache.commons.lang3.StringUtils@equals(idSchmYearUseYn, "Y")'>
+	            SELECT CONCAT(#{idSchmPrefix}, LPAD(CAST(COALESCE(new_val, 1) AS VARCHAR), 4, '0'))
+	              FROM (
+	                    SELECT MAX( SUBSTRING(medata_set_id, OCTET_LENGTH(#{idSchmPrefix}) + 1)::int ) + 1  AS new_val
+	                      FROM dtmeta.tb_meta_dataset
+	                     WHERE medata_set_id LIKE #{idSchmPrefix} || '%'
+	                   ) key2			 
+			 </if>
+	    </selectKey>    
+        INSERT /* SQL_ID: MetadataSetMapper.insertMetadataSet */
+               INTO dtmeta.tb_meta_dataset
+             ( medata_set_id
+             , model_id
+             , medata_set_nm
+             , medata_set_logic_nm
+             , medata_set_desc
+             , medata_set_sttus_mtcd
+             , medata_set_sttus_why
+             , medata_set_nwst_rvsn
+             , medata_set_regr_id
+             , medata_set_regr_nm
+             , medata_set_reg_dt
+             , medata_set_amdr_id
+             , medata_set_amdr_nm
+             , medata_set_amd_dt
+             , id_schm_cntry_cd
+             , id_schm_type
+             , id_schm_cd
+             ) VALUES 
+             ( 
+               #{medataSetId}                        
+             , #{modelId}
+             , #{medataSetNm}
+             , #{medataSetLogicNm}
+             , #{medataSetDesc}
+             , #{medataSetSttusMtcd}
+             , #{medataSetSttusWhy}
+             , #{medataSetNwstRvsn}
+             , #{medataSetRegrId}
+             , #{medataSetRegrNm}
+             , current_timestamp
+             , #{medataSetRegrId}
+             , #{medataSetRegrNm}
+             , current_timestamp
+             , #{idSchmCntryCd}
+             , #{idSchmType}
+             , #{idSchmCd}
+             )
+    </insert>	
 	
 	<update id="updateMetadataSet" parameterType="metadataSetVo">
 		UPDATE /* SQL_ID: MetadataSetMapper.updateMetadataSet */

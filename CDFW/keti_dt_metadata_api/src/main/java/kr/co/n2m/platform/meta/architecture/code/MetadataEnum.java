@@ -42,7 +42,10 @@ public interface MetadataEnum {
     	createDateTime     ("createDateTime"	, "생성일시"        		, false, "medataSetRegDt"		, PropertyRequired.readonly),
     	updateUserId       ("updateUserId"		, "수정자 사용자ID"     	, false, "medataSetAmdrId"		, PropertyRequired.readonly),
     	updateUserName     ("updateUserName"	, "수정자 명"        		, false, "medataSetAmdrNm"		, PropertyRequired.readonly),
-    	updateDateTime     ("updateDateTime"	, "수정일시"           	, false, "medataSetAmdDt"		, PropertyRequired.readonly)
+    	updateDateTime     ("updateDateTime"	, "수정일시"           	, false, "medataSetAmdDt"		, PropertyRequired.readonly),
+    	idSchmCountryCode  ("idSchmCountryCode" , "식별체계 국가코드"        , true , "idSchmCntryCd"        , PropertyRequired.readonly), // 식별체계가 사용되는 셋에만 필요. 등록시에만 필요.
+    	idSchmType         ("idSchmType"        , "식별체계 분류코드 종류"    , true , "idSchmType"           , PropertyRequired.readonly), // 식별체계가 사용되는 셋에만 필요. 등록시에만 필요.
+    	idSchmCode         ("idSchmCode"        , "식별체계 코드"           , true , "idSchmCd"             , PropertyRequired.readonly)  // 식별체계가 사용되는 셋에만 필요. 등록시에만 필요.
     	;
     	
     	private String code;
@@ -156,7 +159,10 @@ public interface MetadataEnum {
 		categoryId			("categoryId"			, "카테고리ID"),
 		categoryConcept     ("categoryConcept"      , "카테고리 개념명"),
 	    categoryName		("categoryName"			, "카테고리명"),
-	    refSetName          ("refSetName"           , "참조한 메타데이터 셋 명")
+	    refSetName          ("refSetName"           , "참조한 메타데이터 셋 명"),
+    	idSchmCountryCode   ("idSchmCountryCode"    , "식별체계 국가코드"),     // 식별체계가 사용되는 셋에만 필요. 등록시에만 필요.
+    	idSchmType          ("idSchmType"           , "식별체계 분류코드 종류"), // 식별체계가 사용되는 셋에만 필요. 등록시에만 필요.
+    	idSchmCode          ("idSchmCode"           , "식별체계 코드")         // 식별체계가 사용되는 셋에만 필요. 등록시에만 필요.
     	;
     	
     	private String code;

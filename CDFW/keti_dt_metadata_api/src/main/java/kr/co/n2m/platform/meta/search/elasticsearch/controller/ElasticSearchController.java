@@ -1,5 +1,9 @@
 package kr.co.n2m.platform.meta.search.elasticsearch.controller;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +27,14 @@ public class ElasticSearchController extends ResponseComponent {
 	
 	@Autowired
 	ElasticSearchService elasticSearchService;
+	
+	@Operation(summary = "ElasticSearch Kibana URL")
+    @GetMapping("/api/v1/search/elastic/kibana-url")
+    public ResponseEntity<Object> getKibanaUrl() {
+    	Map<String, String> resMap = new HashMap<>();
+    	resMap.put("url", StringUtils.defaultString(elasticSearchService.getKibanaUrl()));
+        return makeResponseEntity(resMap);
+    }
 	
 	@Operation(summary="셋 ID 로 ElasticSearch에 저장된 메타데이터 셋 조회")
 	@GetMapping("/api/v1/search/elastic/data/{medataSetId}")
@@ -54,6 +66,13 @@ public class ElasticSearchController extends ResponseComponent {
     @GetMapping("/api/v1/search/elastic/data/json")
     public ResponseEntity<Object> getElasticDataListWithJson(String query) {
     	return makeResponseEntity(elasticSearchService.getElasticDataListWithJson(query));
+    }
+    
+    @Operation(summary="ElasticSearch 초기화 후 재등록 (설정한 인덱스 전체 삭제 후 재등록)")
+    @PutMapping("/api/v1/search/elastic/data/init")
+    public ResponseEntity<Object> initElasticAndAddDataAll() {
+    	elasticSearchService.initElasticAndAddDataAll();
+    	return makeResponseEntity(null, HttpStatus.NO_CONTENT);
     }
 	
 }

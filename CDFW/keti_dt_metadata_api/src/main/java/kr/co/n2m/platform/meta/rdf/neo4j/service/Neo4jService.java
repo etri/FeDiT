@@ -17,14 +17,12 @@ import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.Result;
 import org.neo4j.driver.Session;
-import org.neo4j.driver.Value;
 import org.neo4j.driver.Values;
 import org.neo4j.driver.types.Node;
 import org.neo4j.driver.types.Path;
 import org.neo4j.driver.types.Relationship;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.Assert;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -35,6 +33,7 @@ import kr.co.n2m.platform.meta.architecture.domain.CamelCaseMap;
 import kr.co.n2m.platform.meta.architecture.domain.SearchResultListVo;
 import kr.co.n2m.platform.meta.architecture.exception.ResBadRequestException;
 import kr.co.n2m.platform.meta.architecture.exception.ResBaseRuntimeException;
+import kr.co.n2m.platform.meta.architecture.exception.ResBizInfoException;
 import kr.co.n2m.platform.meta.architecture.exception.ResForbiddenException;
 import kr.co.n2m.platform.meta.architecture.exception.ResNotFoundException;
 import kr.co.n2m.platform.meta.architecture.property.Neo4jProperty;
@@ -47,13 +46,14 @@ import kr.co.n2m.platform.meta.rdf.neo4j.domain.Neo4jSearchVo;
 import kr.co.n2m.platform.meta.rdf.virtuoso.domain.RdfModel.RdfModelMakeMode;
 import kr.co.n2m.platform.meta.rdf.virtuoso.domain.RdfModelReqVo;
 import kr.co.n2m.platform.meta.rdf.virtuoso.service.VirtuosoService;
+import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataChgHstVo;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSearchVo;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSetDto;
 import kr.co.n2m.platform.meta.resource.metadata.mapper.MetadataApiMapper;
+import kr.co.n2m.platform.meta.resource.metadata.mapper.MetadataChgHstMapper;
 import kr.co.n2m.platform.meta.resource.metadata.service.MetadataApiService;
 import kr.co.n2m.platform.meta.resource.metadata.service.MetadataSetService;
 import kr.co.n2m.platform.meta.schema.model.domain.ModelSearchVo;
-import kr.co.n2m.platform.meta.schema.model.domain.ModelVo;
 import kr.co.n2m.platform.meta.schema.modelproperty.domain.ModelPropertyInfoDto;
 import kr.co.n2m.platform.meta.schema.modelproperty.mapper.ModelPropertyMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -93,6 +93,9 @@ public class Neo4jService {
 	
 	@Autowired
 	private ModelPropertyMapper modelPropertyMapper;
+	
+	@Autowired
+	private MetadataChgHstMapper metadataChgHstMapper;
 	
 	/**
 	 * NEO4J Browser URL
@@ -488,8 +491,42 @@ public class Neo4jService {
 			MetadataSetDto setDto = metadataSetService.getMetadataSet(medataSetId);
 			if (setDto == null) throw new ResNotFoundException("메타데이터 셋 데이터가 존재하지 않습니다.");    
 			
-			RdfModelReqVo rdfModelReqVo = new RdfModelReqVo();
+			// =================================================================================================================================
+			// 개별 저장인 경우(=전체 저장이 아닌 경우) 셋에서 삭제된 이력이 있는 메타데이터의 관계를 재정의하기 위한 동작
+			// =================================================================================================================================
 			
+    		// 셋에서 삭제된 이력이 있는 메타데이터의 셋 ID 조회
+    		List<String> metadataDelHstList = metadataChgHstMapper.selectMetadataDelHstListBySetId(medataSetId);
+    		boolean isReg = false;
+    		for(int k=0; k<metadataDelHstList.size(); k++) {
+    			MetadataChgHstVo metadataChgHstVo = new MetadataChgHstVo();
+    			metadataChgHstVo.setMedataSetId(medataSetId);
+    			metadataChgHstVo.setChgAftrVal(metadataDelHstList.get(k));
+    			// 삭제된 이력이 있는 메타데이터의 최근 상태 조회
+    			String metadataRecentStatus = metadataChgHstMapper.selectMetadataRecentStatusBySetId(metadataChgHstVo);
+    			if("del".equals(metadataRecentStatus)) { // 최근 상태가 del(삭제)인 경우
+    				// 해당되는 node를 삭제 후 재생성해야 상위 node와의 관계가 끊어지므로, 삭제 - 재생성 동작을 진행
+    				this.deleteNeo4jMetadataSet(metadataDelHstList.get(k));
+    				try {
+    					this.saveNeo4jMetadataSet(metadataDelHstList.get(k));
+					} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
+						log.error("[RDF 정보를 NEO4J에 저장 (RDF)] 실패/오류 (정보성) (SKIP) : {} - {}", metadataDelHstList.get(k), e.getReason());
+					} catch (Exception e) {
+						log.error("[RDF 정보를 NEO4J에 저장 (RDF)] 실패/오류 (SKIP) - {}", metadataDelHstList.get(k), e);
+					}
+    			}
+    			if("reg".equals(metadataRecentStatus)) { // 최근 상태가 reg(등록)인 경우
+    				isReg = true;
+    			}
+    		}
+    		if(isReg) {
+    			// 삭제 이력이 있는 메타데이터의 최근 상태가 reg(등록)인 경우 상위 node를 삭제 후 재생성해야 관계가 다시 생성되므로 삭제 - 재생성 동작을 진행
+    			this.deleteNeo4jMetadataSet(medataSetId);
+    		}
+    		// =================================================================================================================================
+    		
+			
+			RdfModelReqVo rdfModelReqVo = new RdfModelReqVo();
 			rdfModelReqVo.setModelId(setDto.getModelId());
 			rdfModelReqVo.setRdfFormMtcd(Constant.RDF_FORM_MTCD_DEFAULT); // TODO 임시로 dcat 고정, 수정 필요
 			rdfModelReqVo.setRdfWriteLangMtcd(RdfWriteLangMtcd.RDF_XML.code()); // TODO 임시로 xml 고정, 수정 필요
@@ -563,7 +600,6 @@ public class Neo4jService {
 	    
 	    neo4jDriver = GraphDatabase.driver(uri, AuthTokens.basic(username, password));
 	    try {
-	    	
 			// NEO4J 네임스페이스 프리픽스 지정
 			RdfNamespaceSearchVo searchVo = new RdfNamespaceSearchVo();
 			searchVo.setIsPaging(false);
@@ -672,12 +708,12 @@ public class Neo4jService {
 	    	
 	    	for(int i=0; i<dataTypeArrayList.size(); i++) {
 	    		String prptyId = dataTypeArrayList.get(i).getPrptyId();
-	    		List<String> prptyList = new ArrayList<>();
-	    		prptyList = (List) dataMap.get(prptyId);
+	    		List<Object> prptyList = (List<Object>) dataMap.get(prptyId);
+	    		JSONArray jsonArray = new JSONArray(prptyList);
 	    		
 	    		for(int j=0; j<medataSetMap.size(); j++) {
 	    			if(prptyId.equals(medataSetMap.get(j))) {
-	    				medataSetMap.setValue(j, prptyList.toString());
+	    				medataSetMap.setValue(j, jsonArray.toString());
 	    			}
 	    		}
 	    	}
@@ -827,7 +863,7 @@ public class Neo4jService {
 			    			}
 			    		}
 			    		else if ("N".equals(dataArrayYn)) {
-			    			String prpty = (String) medataSetMap.get(prptyId);
+	    					String prpty = (String) medataSetMap.get(prptyId);
 			    			// 관계(relation) 추가 쿼리
 			    			relationImportQuery = "MATCH (a {medataSetId: \"" + medataSetId + "\"}), "
 									            +       "(b {medataSetId: \"" + prpty + "\"}) "
@@ -1253,7 +1289,44 @@ public class Neo4jService {
         log.debug("[셋 ID 로 NEO4J 그래프에 메타데이터 저장 (RDB)] 서비스 시작");
         
 		try {
+			MetadataSetDto setDto = metadataSetService.getMetadataSet(medataSetId);
+			if (setDto == null) throw new ResNotFoundException("메타데이터 셋 데이터가 존재하지 않습니다.");   
 			
+			// =================================================================================================================================
+			// 개별 저장인 경우(=전체 저장이 아닌 경우) 셋에서 삭제된 이력이 있는 메타데이터의 관계를 재정의하기 위한 동작
+			// =================================================================================================================================
+			
+    		// 셋에서 삭제된 이력이 있는 메타데이터의 셋 ID 조회
+    		List<String> metadataDelHstList = metadataChgHstMapper.selectMetadataDelHstListBySetId(medataSetId);
+    		boolean isReg = false;
+    		for(int k=0; k<metadataDelHstList.size(); k++) {
+    			MetadataChgHstVo metadataChgHstVo = new MetadataChgHstVo();
+    			metadataChgHstVo.setMedataSetId(medataSetId);
+    			metadataChgHstVo.setChgAftrVal(metadataDelHstList.get(k));
+    			// 삭제된 이력이 있는 메타데이터의 최근 상태 조회
+    			String metadataRecentStatus = metadataChgHstMapper.selectMetadataRecentStatusBySetId(metadataChgHstVo);
+    			if("del".equals(metadataRecentStatus)) { // 최근 상태가 del(삭제)인 경우
+    				// 해당되는 node를 삭제 후 재생성해야 상위 node와의 관계가 끊어지므로, 삭제 - 재생성 동작을 진행
+    				this.deleteNeo4jRdbMetadataSet(metadataDelHstList.get(k));
+    				try {
+    					this.saveNeo4jRdbMetadataSet(metadataDelHstList.get(k));
+					} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
+						log.error("[RDB 메타데이터 정보를 NEO4J에 저장 (RDB)] 실패/오류 (정보성) (SKIP) : {} - {}", metadataDelHstList.get(k), e.getReason());
+					} catch (Exception e) {
+						log.error("[RDB 메타데이터 정보를 NEO4J에 저장 (RDB)] 실패/오류 (SKIP) - {}", metadataDelHstList.get(k), e);
+					}
+    			}
+    			if("reg".equals(metadataRecentStatus)) { // 최근 상태가 reg(등록)인 경우
+    				isReg = true;
+    			}
+    		}
+    		if(isReg) { 
+    			// 삭제 이력이 있는 메타데이터의 최근 상태가 reg(등록)인 경우 상위 node를 삭제 후 재생성해야 관계가 다시 생성되므로 삭제 - 재생성 동작을 진행
+    			this.deleteNeo4jRdbMetadataSet(medataSetId);
+    		}
+    		// =================================================================================================================================
+			
+    		
 			this.saveToNeo4jByRdbMedataInfo(medataSetId);
 			
 		} catch (ResBaseRuntimeException e) {

@@ -64,7 +64,7 @@ public class MetadataApiController extends ResponseComponent {
 	@GetMapping("/api/v1/resource/{dataUri}/{medataSetId}")	
 	public ResponseEntity<Object> getDataMapFromMetadataSet(@PathVariable String dataUri, @PathVariable String medataSetId,
 			@RequestParam(name="arrayDataLimitYn", required=false) @Parameter(name = "arrayDataLimitYn", description="배열 데이터 조회 제한 여부", example="Y", required=false) String arrayDataLimitYn,
-			@RequestParam(name="arrayDataLimit", required=false) @Parameter(description="배열 데이터 조회 기본 건수", example="10", required=false) Integer arrayDataLimit) {
+			@RequestParam(name="arrayDataLimit", required=false) @Parameter(description="배열 데이터 조회 기본 건수", example="50", required=false) Integer arrayDataLimit) {
 		ListOrderedMap<String, Object> dataMap = metadataApiService.getDataMapByDataUri(dataUri, medataSetId, arrayDataLimitYn, arrayDataLimit);
 		if (dataMap == null) throw new ResNotFoundException();
 		return makeResponseEntity(dataMap);
@@ -208,7 +208,7 @@ public class MetadataApiController extends ResponseComponent {
 	@GetMapping("/api/v1/resource/data/{medataSetId}")	
 	public ResponseEntity<Object> getDataMapFromMetadataSet(@PathVariable String medataSetId,
 			@RequestParam(name="arrayDataLimitYn", required=false) @Parameter(name = "arrayDataLimitYn", description="배열 데이터 조회 제한 여부", example="Y", required=false) String arrayDataLimitYn,
-			@RequestParam(name="arrayDataLimit", required=false) @Parameter(description="배열 데이터 조회 기본 건수", example="10", required=false) Integer arrayDataLimit) {
+			@RequestParam(name="arrayDataLimit", required=false) @Parameter(description="배열 데이터 조회 기본 건수", example="50", required=false) Integer arrayDataLimit) {
 		ListOrderedMap<String, Object> dataMap = metadataApiService.getDataMapFromMetadataSet(medataSetId, null, false, arrayDataLimitYn, arrayDataLimit);
 		if (dataMap == null) throw new ResNotFoundException();
 		return makeResponseEntity(dataMap);

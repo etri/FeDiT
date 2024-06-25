@@ -56,6 +56,14 @@ public interface MetadataSetMapper {
 	 * @return
 	 */
 	public int insertMetadataSet(MetadataSetVo metadataSetVo);
+	
+	/**
+	 * 디지털트윈 연합 식별체계로 ID 생성 및 메타데이터 셋 등록
+	 * @Author      : heenim
+	 * @Date        : 2024. 02. 19.
+	 * @param metadataSetVo
+	 */
+	public int insertMetadataSetAutoKey(MetadataSetVo metadataSetVo);
 
 	/**
 	 * 메타데이터 셋 수정

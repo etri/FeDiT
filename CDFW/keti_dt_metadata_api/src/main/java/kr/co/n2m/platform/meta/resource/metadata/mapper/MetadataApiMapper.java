@@ -6,7 +6,9 @@ import org.apache.ibatis.annotations.Mapper;
 
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataApiInnerSearchVo;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataApiSetPropertySearchVo;
+import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataElasticJsonMap;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataJsonMap;
+import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSetDto;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSetVo;
 
 @Mapper
@@ -34,10 +36,19 @@ public interface MetadataApiMapper {
 	 * 메타데이터 셋 ID 로 메타데이터 조회 (배열은 건수와 10건 이하만) 하여 JSON to Map 으로 반환.
 	 * @Author      : heenim
 	 * @Date        : 2023. 05. 15.
-	 * @param metadataSetVo
+	 * @param metadataSetDto
 	 * @return 
 	 */
-	public MetadataJsonMap selectMetadataToJsonStrBySetId(MetadataSetVo metadataSetVo);
+	public MetadataJsonMap selectMetadataToJsonStrBySetId(MetadataSetDto metadataSetDto);
+	
+	/**
+	 * 메타데이터 셋 ID 로 메타데이터 조회 (배열은 건수와 10건 이하만) 하여 JSON to Map 으로 반환. 데이터 유형이 json인 경우 text로 출력
+	 * @Author      : tklee
+	 * @Date        : 2024. 06. 11.
+	 * @param metadataSetDto
+	 * @return 
+	 */
+	public MetadataElasticJsonMap selectMetadataToJsonStrBySetIdAsText(MetadataSetDto metadataSetDto);
 	
 	/**
 	 * 메타데이터 셋 ID 로 메타데이터 조회 (배열 제한 없이) 하여 JSON to Map 으로 반환.
@@ -74,5 +85,5 @@ public interface MetadataApiMapper {
 	 * @return
 	 */
 	public List<MetadataJsonMap> selectMetadataListBySetPropertyNm(MetadataApiSetPropertySearchVo metadataApiSetPropertySearchVo);
-
+	
 }

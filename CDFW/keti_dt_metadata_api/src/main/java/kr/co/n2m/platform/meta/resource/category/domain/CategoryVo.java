@@ -49,7 +49,7 @@ public class CategoryVo extends BaseVo {
 	private String ctgryMappgCd;	
 	@Schema(description="국가 코드")
 	private String cntryCd;
-	@Schema(description="카테고리 유형 메타코드")
+	@Schema(description="분류체계 종류 코드(카테고리 유형 메타코드)")
 	private String ctgryTypeMtcd;
 	@Schema(description="카테고리 등록자 ID", accessMode=AccessMode.READ_ONLY)
 	private String ctgryRegrId;

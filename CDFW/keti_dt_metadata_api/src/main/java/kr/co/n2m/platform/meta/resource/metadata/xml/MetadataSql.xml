@@ -283,6 +283,7 @@
                   LEFT OUTER JOIN dtmeta.tb_portal_code         c1 ON t1.model_prpty_mand_mtcd = c1.mtcd AND c1.mtcd_grp_id = 'MCG00004'
                   LEFT OUTER JOIN dtmeta.tb_portal_code         c2 ON t4.data_type_mtcd = c2.mtcd AND c2.mtcd_grp_id = 'MCG00013'                  
                  WHERE t1.model_id          = #{modelId}
+                   AND t1.model_prpty_del_yn = 'N'
                    AND t2.data_array_yn     = 'N'
                    AND ( t4.model_type_mtcd = 'object_type' OR t4.data_type_mtcd  NOT IN ( 'json', 'geoJson' ) )
                    <if test='@org.apache.commons.lang3.StringUtils@isNotEmpty(cntPrptyYn)'>
