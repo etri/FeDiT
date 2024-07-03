@@ -44,7 +44,10 @@ public class MetadataApiController extends ResponseComponent {
 	 * @param dataUri
 	 * @return
 	 */
-	@Operation(summary="유형 모델별 메타데이터 셋 목록 조회 - TODO GeoJson 검색 조건 정의 필요할 수 있음")
+	@Operation(summary="유형 모델별 메타데이터 셋 목록 조회 - TODO GeoJson 검색 조건 정의 필요할 수 있음"
+			, description="배열로 정의된 프라퍼티인 경우 값이 10건 이하로만 조회됨. " +
+			  "<br />해당 프라퍼티를 10건 이상 조회하고 싶은 경우. 다른 API 를 사용하여 조회해야 함. " +
+			  "<br />ex)/api/v1/resource//{dataUri}/{medataSetId}/properties/{prptyNm}")
 	@GetMapping("/api/v1/resource/{dataUri}")	
 	public ResponseEntity<Object> getDataMapListByDataUri(@PathVariable String dataUri, MetadataApiSearchVo metadataApiSearchVo) {
 		log.debug("{}", metadataApiSearchVo);

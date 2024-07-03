@@ -33,7 +33,10 @@ public class DigitalTwinApiController extends ResponseComponent {
 	 * @Date        : 2024. 03. 18.
 	 * @return
 	 */
-	@Operation(summary="디지털트윈 목록 조회")
+	@Operation(summary="디지털트윈 목록 조회."
+			, description="배열로 정의된 프라퍼티인 경우 값이 10건 이하로만 조회됨. " +
+			  "<br />해당 프라퍼티를 10건 이상 조회하고 싶은 경우. 다른 API 를 사용하여 조회해야 함. " +
+			  "<br />ex)/api/v1/resource/dts/{digitalTwinId}/properties/{prptyNm}")
 	@GetMapping("/api/v1/resource/dts")	
 	public ResponseEntity<Object> getDigitalTwinDataMapList(MetadataApiSearchVo metadataApiSearchVo) {
 		log.debug("{}", metadataApiSearchVo);
@@ -64,8 +67,11 @@ public class DigitalTwinApiController extends ResponseComponent {
 	 * @Date        : 2024. 03. 19.
 	 * @return
 	 */
-	@Operation(summary="디지털객체 목록 조회")
-	@GetMapping("/api/v1/resource/objects")	
+	@Operation(summary="디지털객체 목록 조회"
+			, description="배열로 정의된 프라퍼티인 경우 값이 10건 이하로만 조회됨. " +
+			  "<br />해당 프라퍼티를 10건 이상 조회하고 싶은 경우. 다른 API 를 사용하여 조회해야 함. " +
+			  "<br />ex)/api/v1/resource/objects/{digitalObjectId}/properties/{prptyNm}")
+	@GetMapping("/api/v1/resource/objects")
 	public ResponseEntity<Object> getDigitalObjectDataMapList(MetadataApiSearchVo metadataApiSearchVo) {
 		log.debug("{}", metadataApiSearchVo);
 		SearchResultListVo listVo = metadataApiService.getDataMapListByDataUri("objects", metadataApiSearchVo);
