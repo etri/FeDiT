@@ -54,6 +54,35 @@ module.exports = {
       });
     }
   },
+  hasOwnToken3 : ()=>{ // Is it in the DB
+    return async (req,res,next)=>{
+      try {
+        const user = jwt.decode(req.headers.authorization.split(' ')[1]);  
+        DB.getInfoByValue('USERS','USER_ID_PK',user.payload.userId,(err,value,cnt)=>{
+          console.log("hasChk ::::: " + JSON.stringify(user.payload.userId));
+          if(err){
+            console.log("500");
+            logger.error(`[hasOwnToken3][DB Error] Error ${msg.errormsg.dbError.description}`)
+            res.status(500).json();
+          }
+          else if(!cnt){
+            console.log("401");
+            logger.error(`[hasOwnToken3] Error ${msg.errormsg.unauthorized.description}`)
+            res.status(401).json();
+          }
+          else
+          {
+            console.log("done");
+            next();
+          }
+        });
+      }
+      catch (err) {
+        logger.error(`[hasOwnToken3] Error ${msg.errormsg.unauthorized.description}`)
+        res.status(401).json();
+      }
+    }
+  },
   sessionAuth : ()=>{
     return (req,res,next)=>{
       if(!req.user){
@@ -134,6 +163,24 @@ module.exports = {
           }
         })
       });
+    }
+  },
+  hasSystemAdminToken : ()=>{
+    return (req,res,next)=>{
+      try{
+        const user = jwt.decode(req.headers.authorization.split(' ')[1]);
+        
+        if(user.payload.role !='System_Admin'){
+          logger.error(`[hasSystemAdminToken] Error userRole Check`)
+          return res.status(403).send();
+        }
+        else next(); //필요시 여기서 추가적인 인증가능
+      }
+      catch(e) {
+        logger.error(`[hasSystemAdminToken] Error error/wrongAccess`)
+        // return res.status(401).render('error/wrongAccess');
+        return res.status(401).send();
+      }
     }
   },
   checkPwd : ()=>{

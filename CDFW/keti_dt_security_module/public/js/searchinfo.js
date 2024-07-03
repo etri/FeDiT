@@ -115,7 +115,7 @@ function loadImage() {
     else {
         $(".join__wrap").attr("style","filter: blur(4px);");
         $('body').append('<div id="loadImage" style="position:absolute; top:' + top + 'px; left:' + left + 'px; width:' + width + '%; height:' + height+
-        'px; background: rgb(61,61,61); opacity:0.6; z-index:100; margin:auto; padding:0; "><img src="http://localhost:30000/images/spinner.gif"'+
+        'px; background: rgb(61,61,61); opacity:0.6; z-index:100; margin:auto; padding:0; "><img src="http://220.76.205.230:13000/images/spinner.gif"'+
         ' style="width:75px; height:75px; display: block; margin: 300px auto"></div>');
     }
 }
@@ -142,7 +142,7 @@ function searchUserPwd(){
 
     if(!flag){
         $.ajax({
-            url:"/accounts/searchPwd",
+            url:"/accounts/_password",
             type:"POST",
             data : {
                 userId : $("#searchPwdIdInput").val(),
@@ -152,10 +152,22 @@ function searchUserPwd(){
                 loadImage();
             },
             statusCode : {
+                400 : ()=>{
+                    $("#searchPwdInput").hide();
+                    $("#searchPwdResultView").show();
+                    $("#searchPwdResult").text('잘못된 요청입니다.');
+                    $("#searchPwdConfirm").attr('onclick','self.close()');
+                },
                 404 : ()=>{
                     $("#searchPwdInput").hide();
                     $("#searchPwdResultView").show();
                     $("#searchPwdResult").text('해당 정보의 계정이 존재하지 않습니다.');
+                    $("#searchPwdConfirm").attr('onclick','self.close()');
+                },
+                409 : ()=>{
+                    $("#searchPwdInput").hide();
+                    $("#searchPwdResultView").show();
+                    $("#searchPwdResult").text('이미 전송된 메일이 있습니다.');
                     $("#searchPwdConfirm").attr('onclick','self.close()');
                 },
                 500 : ()=>{

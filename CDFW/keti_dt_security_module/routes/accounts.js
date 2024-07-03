@@ -147,11 +147,11 @@ router.route("/searchPwd").post((req, res, next) => {
   }
 });
 
-// router
-//   .route("/searchPwd")
-//   .get((req, res) => {
-//     return res.status(200).render("accounts/search/searchPwd");
-//   })
+router
+  .route("/searchPwd")
+  .get((req, res) => {
+    return res.status(200).render("accounts/search/searchPwd");
+  })
 
 //   .post((req, res, next) => {
 //     if (!req.body.userId || !req.body.userEmail) {
@@ -464,7 +464,7 @@ router.route("/Users").get(authMiddleware.sessionSystemAdminAuth(), (req, res, n
     DB.ByQuery(
       "SELECT * FROM USERS WHERE role = 'Marketplace_User' OR role = 'Analytics_User'",
       (err, result) => {
-        if (err) return res.status(500).json;
+        if (err) return res.status(500).send;
         else {
           return res.render('accounts/users',{users: result.rows, addBtnCtl: false, title: '일반사용자 계정 정보'});
           // return res.status(200).json({result});
@@ -483,10 +483,28 @@ router
       DB.ByQuery(
         "SELECT * FROM USERS WHERE role !='Marketplace_User' AND role != 'Analytics_User'",
         (err, result) => {
-          if (err) return res.status(500).json;
+          if (err) return res.status(500).send;
           else {
             return res.render('accounts/users',{users: result.rows, addBtnCtl: true, title: '관리자 계정 정보'});
             // return res.status(200).json({result});
+          }
+        }
+      );
+    } catch (e) {
+      return res.status(400).send();
+    }
+  });
+
+router
+  .route("/sysUsers/data")
+  .get(authMiddleware.hasSystemAdminToken(), (req, res, next) => {
+    try {
+      DB.ByQuery(
+        "SELECT * FROM USERS WHERE role !='Marketplace_User' AND role != 'Analytics_User'",
+        (err, result) => {
+          if (err) return res.status(500).send;
+          else {
+            return res.status(200).json({result});
           }
         }
       );
@@ -529,8 +547,10 @@ router.post("/_password", async (req, res, next) => {
     // 회원 정보 확인 및 vericode 유무 확인
     const check = await _password.checkPassword(req.body);
     if (!check) {
-      throw new Error("이미 전송된 메일이 있습니다.");
+      return res.status(409).send();
     }
+
+    const nickname = await _password.getNickname(req.body.userId);
 
     // 생성된 vericode가 없으면 vericode 생성
     const createVerify = await _password.createVerify();
@@ -540,7 +560,7 @@ router.post("/_password", async (req, res, next) => {
       userEmail: req.body.userEmail,
     };
 
-    await _password.sendMail(mailInfo);
+    await _password.sendMail(mailInfo, nickname);
 
     const veriInfo = {
       userId: req.body.userId,

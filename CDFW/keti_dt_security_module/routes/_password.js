@@ -68,6 +68,26 @@ module.exports = {
       throw error;
     }
   },
+  getNickname: async (userId) => {
+    try {
+      const query =
+        "SELECT NICKNAME FROM USERS WHERE USERS.USER_ID_PK=" +
+        "'" +
+        userId +
+        "'"
+      const res = await DB._ByQuery(query);
+      const { rows } = res;
+      if (rows.length === 0) {
+        throw new Error("일치하는 회원정보가 없습니다.");
+      }
+      const nickname = rows[0].nickname;
+
+    return nickname;
+
+    } catch (error) {
+      throw error;
+    }
+  },
   createVerify: async () => {
     const extendTime = 15; //15 minutes
 
@@ -78,7 +98,7 @@ module.exports = {
     return { verifyCode, codeExpireTime };
   },
 
-  sendMail: async (mailInfo) => {
+  sendMail: async (mailInfo, nickname) => {
     try {
       // send mail
       const { userEmail, verifyCode } = mailInfo;
@@ -87,15 +107,15 @@ module.exports = {
         from: serverInfo.emailAccountId,
         to: userEmail,
         subject:
-          "안녕하세요. 스마트시티 도시데이터허브 비밀번호 찾기 인증 메일입니다.",
+          "비밀번호 찾기 인증 메일입니다.",
         html:
-          "<h1>Hello SmartCity!</h1></p>" +
-          "<h3>안녕하세요. 스마트시티 도시데이터허브 서비스 비밀번호 찾기 인증용 메일입니다. 15분 내로 인증해주세요.</h3></p>" +
-          "<h3> 아래의 이미지를 클릭하여 비밀번호 찾기를 진행해주세요. 본인이 아닌 경우 메일을 삭제하시기 바랍니다.</h3>" +
+          "<h1>안녕하세요 [ " + 
+          nickname +
+          " ] 님!</h1>" +
+          "<h3>비밀번호 찾기 인증용 메일입니다. 15분 내로 인증해주세요.</h3>" +
+          "<h3>아래의 링크를 클릭하여 비밀번호 변경을 진행해주세요. 본인이 아닌 경우 메일을 삭제하시기 바랍니다.</h3>" +
           "<a href='http://" +
-          serverInfo.serverip +
-          ":" +
-          serverInfo.serverport +
+          serverInfo.emailSendIp +
           "/accounts/resetPwd?email=" +
           userEmail +
           "&verifyCode=" +

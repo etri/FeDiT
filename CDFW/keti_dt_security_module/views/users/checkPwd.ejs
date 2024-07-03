@@ -20,7 +20,7 @@
               <label class="label__lgoin"><span class="hidden">비밀번호</span><input id="userPwd" name="userPwd" class="input__login" type="password" autocapitalize="off" placeholder="비밀번호 입력" autocomplete="off" required></label>
               <div class="warning_msg" id="dsg" style="display:none"></div>
               <!-- <input style="text-align: center; cursor: pointer;" value="확인" type="button" class="button__login" onclick="passwordAuth('/user/myinfo');"> -->
-              <button class="button__login" type="submit">확인</button>
+              <a id="searchPwdConfirm" class="button button__primary" style="cursor: pointer;" onclick="searchUserPwd();">확인</a>
           </fieldset>
         </form>
         <div class="footer">

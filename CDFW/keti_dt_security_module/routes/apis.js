@@ -18,6 +18,8 @@ const isValidRole = require('../util/isValidRole');
 const isSystemAdmin = require('../util/isSystemAdmin');
 const {logger} = require("../util/logger");
 
+router.use(express.json());
+
 router.use(express.static(path.join(__dirname, '../public')));
 
 router.route('/applications')
@@ -415,6 +417,82 @@ router.route('/users/:userId')
           query+=",";
         query+="phone=\'"+req.body.phone+"\'";
       }
+      query+=" WHERE user_id_pk=\'"+req.params.userId+"\'";
+      DB.ByQuery(query,(err,result)=>{
+        if(err){
+          logger.error(`[/users/:userId][ByQuery] Method:patch 500 Error ${err.message}`)
+          return res.status(500).send();
+        }
+        else if(result.rowCount !==1){
+          logger.error(`[/users/:userId][ByQuery] Method:patch 400 Error ${msg.errormsg.updateUserId.description}`)
+          return res.status(400).send(msg.errormsg.updateUserId);
+        }else
+          return res.status(200).send();
+      })
+    }
+    catch(e){
+      logger.error(e)
+      return res.status(400).send();
+    }
+  })
+
+
+router.route('/data/users/:userId')
+  .get(authMiddleware.hasOwnToken3(), async (req,res,next)=>{ //retrieve  // --- SEC-10
+    let payload = jwt.decode(req.headers.authorization.split(' ')[1]);
+    payload= payload.payload;
+    DB.getUserInfo('USERS', 'USER_ID_PK',req.params.userId,(err, user)=>{
+      if(err){
+        logger.error(`[/users/:userId][getUserInfo] 500 Error ${msg.errormsg.dbError.description}`)
+        return res.status(500).json(msg.errormsg.dbError);
+      }
+      else if(!user){
+        logger.error(`[/users/:userId][getUserInfo] 404 Error ${msg.errormsg.notExistUser.description}`)
+        return res.status(404).json(msg.errormsg.notExistUser);
+      }
+      else{
+        // let respond = new Object;
+        // respond.userId = user.user_id_pk;
+        // respond.nickname = user.nickname;
+        // respond.name = user.name;
+        // respond.email = user.email;
+        // respond.phone = user.phone;
+        // respond.role = user.role;
+        // return res.status(200).json(respond);
+        return res.status(200).json({user});
+      }
+    });
+  })
+  .patch(authMiddleware.hasOwnToken3(),(req,res,next)=>{
+    try{
+      var concat = false;
+      let query = "UPDATE users SET";
+      if(req.body.nickname)
+      {
+        query+=" nickname=\'"+req.body.nickname+"\'";
+        concat = true;
+      }
+      if(req.body.email)
+      {
+        if(concat){
+          query+=",";
+        }
+        query+="email=\'"+req.body.email+"\'";
+        concat = true;
+      }
+      if(req.body.phone)
+      {
+        if(concat)
+          query+=",";
+        query+="phone=\'"+req.body.phone+"\'";
+        concat = true;
+      }
+      if(req.body.name)
+        {
+          if(concat)
+            query+=",";
+          query+="name=\'"+req.body.name+"\'";
+        }
       query+=" WHERE user_id_pk=\'"+req.params.userId+"\'";
       DB.ByQuery(query,(err,result)=>{
         if(err){

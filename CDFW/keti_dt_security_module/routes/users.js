@@ -63,6 +63,30 @@ router.route('/:userId')
   }
 })
 
+router.route('/data/:userId')
+  .get(authMiddleware.hasOwnToken3(),(req,res,next)=>{
+  try{
+    DB.getInfoByValue('USERS','USER_ID_PK',req.params.userId,(err,result)=>{
+      if(err)
+        return next(createError(500));
+      else{
+        // let user = new Object;
+        // user.userId = result.user_id_pk;
+        // user.nickname = result.nickname;
+        // user.userName = result.name;
+        // user.userEmail = result.email;
+        // user.userPhone = result.phone;
+        // user.userRole = result.role;
+        // return res.render('users/userInfo',{ isSystemAdmin : isSystemAdmin, userInfo: user});
+        return res.status(200).json({result});
+      }
+    });
+}
+  catch(e){
+    return next(createError(400));
+  }
+})
+
 router.route('/:userId/changePwd')
   .get(login.ensureLoggedIn(),(req,res,next)=>{
     try{
