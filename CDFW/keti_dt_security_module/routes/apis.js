@@ -368,6 +368,66 @@ router.route('/users')
     }
   });
 
+router.route('/data/changePwd/:userId')
+  .patch(authMiddleware.hasOwnToken3(),(req,res,next)=>{
+    let query = "UPDATE users SET ";
+    if(!regExp.userPwdReg.test(req.body.userPwd)){
+      logger.error(`[/changePwd/:userId][userPwd Check] 400 Error`)
+      return res.status(400).send();
+    }
+    else{
+      bcrypt.hash(req.body.userPwd, saltRounds,function(err,hash){
+      if(err){
+        logger.error(`[/changePwd/:userId][userPwd Check] 500 Error ${err.message}`)
+        return res.status(500).send();
+      }
+      else{
+        query+="PASSWORD = \'"+hash+"\'";
+        query+=" WHERE user_id_pk = \'"+req.params.userId+"\'";
+        DB.ByQuery(query,(err,result)=>{
+          if(err){
+            logger.error(`[/changePwd/:userId][ByQuery] Method:patch 500 Error ${err.message}`)
+            return res.status(500).send();
+          }
+          else{
+            return res.status(200).send();
+          }
+        })
+      }
+    })
+  }
+})
+  .put(authMiddleware.hasOwnToken3(),(req,res,next)=>{
+    let query = "UPDATE users SET ";
+    if(!regExp.userPwdReg.test(req.body.userPwd)){
+      logger.error(`[/changePwd/:userId][userPwd Check] 400 Error`)
+      return res.status(400).send();
+    }
+    else{
+      bcrypt.hash(req.body.userPwd, saltRounds,function(err,hash){
+      if(err){
+        logger.error(`[/changePwd/:userId][userPwd Check] 500 Error ${err.message}`)
+        return res.status(500).send();
+      }
+      else{
+        query+="PASSWORD = \'"+hash+"\'";
+        query+=" WHERE user_id_pk = \'"+req.params.userId+"\'";
+        DB.ByQuery(query,(err,result)=>{
+          if(err){
+            logger.error(`[/changePwd/:userId][ByQuery] Method:patch 500 Error ${err.message}`)
+            return res.status(500).send();
+          }
+          else{
+            return res.status(200).send();
+          }
+        })
+      }
+    })
+  }
+})
+
+
+
 router.route('/users/:userId')
   .get(authMiddleware.hasOwnToken2(), async (req,res,next)=>{ //retrieve  // --- SEC-10
     let payload = await jwt.decode(req.headers.authorization.split(' ')[1], req.cookies.userId);

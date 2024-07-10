@@ -272,32 +272,37 @@ function resetPwd(){
 }
 
 
-function loginClick(){
-    let expires=new Date()
-    expires.setDate(expires.getDate()+18);
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('login__form').addEventListener('submit', function(event) {
+        event.preventDefault();
 
-    let id = document.getElementById('loginId').value;
-    let pwd = document.getElementById('loginPwd').value;
-    
-    $.ajax({
-      type:'POST',
-      url:'/oauth2.0/token',
-      data:{
-        grant_type:'password',
-        username: id,
-        password: pwd
-      },
-      headers:{
-        Authorization:'Basic '+'M2VSb2Zocmw2d1BXYXVYMnUwR1Q6eUZ1OXN2amVKdkNZM1BMa2twRllGMUN2V283TWNMN0Y='
-        
-      },
-      success: function(result){
-        Cookies.set('chaut',result.access_token);
-        Cookies.set('userId',id);
-        Cookies.set('refresh',result.refresh_token);
-        
-        document.getElementById('login__form').submit();
-      }
-    })
-}
+        let id = document.getElementById('loginId').value;
+        let pwd = document.getElementById('loginPwd').value;
+
+        $.ajax({
+            type: 'POST',
+            url: '/oauth2.0/token',
+            data: {
+                grant_type: 'password',
+                username: id,
+                password: pwd
+            },
+            headers: {
+                Authorization: 'Basic M2VSb2Zocmw2d1BXYXVYMnUwR1Q6eUZ1OXN2amVKdkNZM1BMa2twRllGMUN2V283TWNMN0Y='
+            },
+            success: function(result) {
+                Cookies.set('chaut', result.access_token);
+                Cookies.set('userId', id);
+                Cookies.set('refresh', result.refresh_token);
+
+                document.getElementById('login__form').submit();
+            },
+            error: function(error) {
+                alert('일시적인 오류가 발생하였습니다. 나중에 다시 시도해주세요.');
+                console.error("로그인 실패", error);
+            }
+        });
+    });
+});
+
 

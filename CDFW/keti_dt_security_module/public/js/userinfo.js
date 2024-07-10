@@ -190,6 +190,11 @@ function changeUserInfo(){
     if(userPhoneFlag)
         info.phone = $('#userPhone').val();
 
+    if(!userNicknameFlag && !userEmailFlag && !userPhoneFlag) {
+        alert('수정된 정보가 없습니다.');
+        return;
+    }
+
     for (let i=0; i<userRoleList.length; i++) {
         if($('#role').val() === userRoleList[i].roleid) {
             info.role = userRoleList[i].rolename;
