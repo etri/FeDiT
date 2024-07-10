@@ -84,14 +84,14 @@ neo4j:
 elastic:
   authentication:
     username: elastic
-    password: es_admin1!
+    password: rhksflwk1!
   protocol: http
     # TODO : 임시 정의, 추후 수정 필요
   server-ip: 220.124.222.86
   server-port: 9200
   kibana-port: 5601
   fingerprint: 4cd6a201122ff2ddad6545b074f7d9c38b8d431f4adf66bf7473a6449ab463d7
-  index-name: test_meta
+  index-name: dtmeta
   kibana-url: http://220.124.222.86:5601
   
 ---
@@ -170,14 +170,14 @@ neo4j:
 elastic:
   authentication:
     username: elastic
-    password: es_admin1!
+    password: rhksflwk1!
   protocol: http
     # TODO : 임시 정의, 추후 수정 필요
   server-ip: 220.124.222.86
   server-port: 9200
   kibana-port: 5601
   fingerprint: 4cd6a201122ff2ddad6545b074f7d9c38b8d431f4adf66bf7473a6449ab463d7
-  index-name: test_meta
+  index-name: dtmeta
   kibana-url: http://220.124.222.86:5601
 
 ---
@@ -255,13 +255,13 @@ neo4j:
 elastic:
   authentication:
     username: elastic
-    password: es_admin1!
+    password: rhksflwk1!
   protocol: http
     # TODO : 임시 정의, 추후 수정 필요
   server-ip: 220.124.222.86
   server-port: 9200
   kibana-port: 5601
   fingerprint: 4cd6a201122ff2ddad6545b074f7d9c38b8d431f4adf66bf7473a6449ab463d7
-  index-name: test_meta
+  index-name: dtmeta
   kibana-url: http://220.124.222.86:5601
 
