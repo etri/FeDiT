@@ -288,9 +288,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 password: pwd
             },
             headers: {
-                Authorization: 'Basic M2VSb2Zocmw2d1BXYXVYMnUwR1Q6eUZ1OXN2amVKdkNZM1BMa2twRllGMUN2V283TWNMN0Y='
+                Authorization: 'Basic ZTRiWnhKQTNBNTJmM1p2SFVOWmk6bEJZQ0hER3c3NE9Yb0xRanZWbFhMSm5hUTFIM2FLMTE='
             },
             success: function(result) {
+
                 Cookies.set('chaut', result.access_token);
                 Cookies.set('userId', id);
                 Cookies.set('refresh', result.refresh_token);
@@ -298,7 +299,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('login__form').submit();
             },
             error: function(error) {
-                alert('일시적인 오류가 발생하였습니다. 나중에 다시 시도해주세요.');
+                if(error.status == 403){
+                    alert('로그인 정보가 잘못되었습니다.\n아이디/비밀번호를 확인해주세요.');
+                }
+                else {
+                    alert('일시적인 오류가 발생하였습니다. 나중에 다시 시도해주세요.');
+                }
                 console.error("로그인 실패", error);
             }
         });
