@@ -1,7 +1,7 @@
 <template>
 	<div class="cntSec">
 		<!-- 메타데이터 검색 -->
-		<ExSearchForm @exSearchList="exSearchList" />
+		<ExSearchForm @exSearchList="exSearchList" :pageInfo="route.query" />
 
 		<div class="boxLayout">
 			<div class="boxTit">
@@ -10,7 +10,7 @@
 			<div class="boxCnt">
 				<div style="overflow-x: hidden; overflow-y: auto">
 					<ExSearchList :metadataList="state.metadataList" :totalListSize="state.pageInfo.totalListSize"
-						:curPage="state.pageInfo.curPage" @pageMove="pageMove" />
+						:curPage="state.pageInfo.curPage" :pageInfo="state.pageInfo" @pageMove="pageMove" />
 				</div>
 			</div>
 		</div>
@@ -50,6 +50,9 @@ const state = reactive({
 });
 
 onMounted(() => {
+	if(typeof route.query.curPage !== "undefined" && route.query.curPage !== null) {
+		state.pageInfo = route.query;
+	}
 	getMetadataList();
 });
 

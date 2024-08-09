@@ -35,6 +35,10 @@ const props = defineProps({
 		type: Number,
 		required: true,
 	},
+	pageInfo: {
+		type: Object,
+		required: false,
+	}
 });
 
 const state = reactive({
@@ -71,7 +75,7 @@ const tableHeader = ref([
 ]);
 
 const goPage = (payload) => {
-	const query = {}; // TODO 검색조건
+	const query = props.pageInfo;
 	router.push({path: `/meta/exsearch/page/${payload.medataSetId}`, query: query});
 };
 

@@ -226,7 +226,7 @@ const propertyListSetByPrptNm = (medataSetId, propertyNm, generalProperty) => {
 };
 
 const goListPage = () => {
-	const query = {}; // TODO 받은 검색조건
+	const query = route.query;
 	router.push({path: '/meta/exsearch/list', query: query});
 };
 

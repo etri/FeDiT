@@ -92,17 +92,29 @@ const digitalTwinList = ref([]);
 const polygonSearch = ref(false);
 
 const pageInfo = reactive({
+	curPage: 1,
 	digitalTwinId: "",
-	typeModelId: "DigitalTwin", //유형모델ID
-	srchText: "", //메타데이터 셋 명
-	polygon: "", //공간값(다각형)
-	keywordType: "match", // 일라스틱서치 검색 유형
-	keyword: "", // 일라스틱서치 검색어
+	typeModelId: "DigitalTwin",
+	srchText: "",
+	keyword: "",
+	keywordType: "",
+	polygon: "",
+	totalListSize: 0,
+	pageListSize: 10,
+	blockSize: 5,
+});
+
+const props = defineProps({
+	pageInfo: {
+		type: Object,
+		required: false,
+	}
 });
 
 onMounted(() => {
 	getTypeModelList();
 	getMetadataList();
+	Object.assign(pageInfo, JSON.parse(JSON.stringify(props.pageInfo)));
 });
 
 const getTypeModelList = () => {
