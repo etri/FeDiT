@@ -1,4 +1,5 @@
 import util from "util";
+import { isAuthenticated } from '@/assets/js/auth.js' ;
 
 export const MetaStore = {
   namespaced: true,
@@ -121,9 +122,15 @@ export const MetaStore = {
   actions: {
     async getMetaCodeList({ commit }, { axios, apiUrls, params }) {
       try {
+        let getUrl = apiUrls.meta.portal.code.getCodeList;
+        const checkAuthenticated = await isAuthenticated();
+        if (!checkAuthenticated) {
+          getUrl = apiUrls.public.meta.portal.code.getCodeList;
+        }
+
         for (let mtcdGrpId of params.mtcdGrpIdList) {
           const res = await axios.get(
-            util.format(apiUrls.meta.portal.code.getCodeList, mtcdGrpId),
+            util.format(getUrl, mtcdGrpId),
             { params: { isPaging: false, mtcdUseYn: "Y" } } //페이징 x
           );
           commit("setMetaCodeList", {

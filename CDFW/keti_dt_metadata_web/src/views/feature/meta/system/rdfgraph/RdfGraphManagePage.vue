@@ -527,8 +527,12 @@
                       v-show="isDelYn(route.meta.auth)"
                       >초기화</el-button
                     >
-                    <span class="ml15"
+                    <!-- <span class="ml15"
                       >※ ElasticSearch를 초기화합니다. 전체 내용을 삭제 후, "사용" 상태인 메타데이터 셋 들의 정보를 등록합니다.
+                      <br/>(데이터가 많을수록 시간이 오래 걸릴 수 있습니다.)</span
+                    > -->
+                    <span class="ml15"
+                      >※ ElasticSearch를 초기화합니다. 전체 내용을 삭제 후, <span class="guide-text-red">전체</span> 메타데이터 셋 들의 정보를 등록합니다.
                       <br/>(데이터가 많을수록 시간이 오래 걸릴 수 있습니다.)</span
                     >
                   </div>

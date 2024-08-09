@@ -14,42 +14,42 @@
         class="demo-form-inline"
         label-width="200px"
       >
+        <el-row :gutter="20">
+          <el-form-item label="메타데이터 값">
+            <!-- <el-row :gutter="20">
+              <el-col :span="20"> -->
+                <el-input
+                  class="w-50 m-2"
+                  v-model="pageInfo.medataVal"
+                  placeholder="메타데이터 값을 입력하세요."
+                  @keydown.enter.prevent="getSearchingMetadataList(1)" />
+              <!-- </el-col>
+            </el-row> -->
+          </el-form-item>
 
-        <el-form-item label="메타데이터 값">
-          <el-row :gutter="20">
-            <el-col :span="20">
-              <el-input
-                class="w-50 m-2"
-                v-model="pageInfo.medataVal"
-                placeholder="메타데이터 값을 입력하세요."
-                @keydown.enter.prevent="getSearchingMetadataList(1)" /></el-col
-          ></el-row>
-        </el-form-item>
-
-        <el-form-item label="언어">
-          <el-row :gutter="20">
-            <el-col :span="17">
-              <el-select 
-                v-model="pageInfo.langMtcd" 
-                @change="changeCd"
-                placeholder="해당없음">
+          <el-form-item label="언어">
+            <!-- <el-row :gutter="20">
+              <el-col :span="17"> -->
+                <el-select v-model="pageInfo.langMtcd" @change="changeCd" placeholder="해당없음">
+                  <el-option label="해당없음" value="" />
                   <el-option v-for="item in langMtcdList" :key="item.mtcd" :label="`[${item.mtcd}] ${item.mtcdNm}`" :value="item.mtcd" />
-              </el-select>						
-            </el-col>
-          </el-row>
-        </el-form-item>
+                </el-select>						
+              <!-- </el-col>
+            </el-row> -->
+          </el-form-item>
 
-        <el-form-item label="정렬순서">
-          <el-row :gutter="20">
-            <el-col :span="15">
-              <el-select v-model="pageInfo.sortOrder" placeholder="선택">
-                <el-option label="내림차순" value="descending" />
-                <el-option label="오름차순" value="ascending" />
-              </el-select>
-            </el-col>
-          </el-row>
-        </el-form-item>  			
-
+          <el-form-item label="정렬순서">
+            <!-- <el-row :gutter="20">
+              <el-col :span="15"> -->
+                <el-select v-model="pageInfo.sortOrder" placeholder="선택">
+                  <el-option label="선택" value="" />
+                  <el-option label="내림차순" value="descending" />
+                  <el-option label="오름차순" value="ascending" />
+                </el-select>
+              <!-- </el-col>
+            </el-row> -->
+          </el-form-item>  			
+        </el-row>
       </el-form>
 		</div>
 	</div>

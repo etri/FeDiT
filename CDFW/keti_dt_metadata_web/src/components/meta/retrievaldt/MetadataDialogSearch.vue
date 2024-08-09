@@ -3,15 +3,9 @@
 		<!-- 페이징 필요한 property 목록 (data_type) -->
 		<div v-if="'data_type' === props.rangeModelTypeMtcd
 			&& 'geoJson' !== props.rangeDataTypeMtcd && 'json' !== props.rangeDataTypeMtcd">
-			<div class="boxLayout">
-				<div class="boxTit">
-					<h3>메타데이터 검색</h3>
-				</div>
-				<div class="boxCnt">
-					<MetadataDialogSearchForm :medataSetId="props.medataSetId" :prptyNm="props.prptyNm" :langMtcdList="langMtcdList"
-						@searchMetadataList="searchMetadataList" />
-				</div>
-			</div>
+			<!-- 메타데이터 검색 -->
+			<MetadataDialogSearchForm :medataSetId="props.medataSetId" :prptyNm="props.prptyNm" :langMtcdList="langMtcdList"
+				@searchMetadataList="searchMetadataList" />
 			<div class="boxLayout">
 				<div class="boxTit">
 					<h3>메타데이터 검색결과</h3>
@@ -26,15 +20,9 @@
 		</div>
 		<!-- 페이징 필요한 property 목록 (object_type) -->
 		<div v-if="'object_type' === props.rangeModelTypeMtcd">
-			<div class="boxLayout">
-				<div class="boxTit">
-					<h3>메타데이터 검색</h3>
-				</div>
-				<div class="boxCnt">
-					<MetadataObjectDialogSearchForm :medataSetId="props.medataSetId" :prptyNm="props.prptyNm"
-						@searchMetadataObjectList="searchMetadataObjectList" />
-				</div>
-			</div>
+			<!-- 메타데이터 검색 -->
+			<MetadataObjectDialogSearchForm :medataSetId="props.medataSetId" :prptyNm="props.prptyNm"
+				@searchMetadataObjectList="searchMetadataObjectList" />
 			<div class="boxLayout">
 				<div class="boxTit">
 					<h3>메타데이터 검색결과</h3>
@@ -85,10 +73,14 @@ const props = defineProps({
 		type: String,
 		required: false, //rangeModelTypeMtcd == object_type 의 경우, null 임.
 	},
-
 	backPageName: {
 		type: String,
 		required: false
+	},
+	isPublicApi: {
+		type: Boolean,
+		required: false,
+		default: false
 	}
 });
 
@@ -152,8 +144,11 @@ const searchMetadataObjectList = (payload) => {
 const getMetadataList = () => {
 	let medataSetId = props.medataSetId;
 	let propertyNm = props.prptyNm;
+	let getUrl = $apiUrls.meta.resource.metadatasets.getMetadataListBySetPropertyNm;
+	if (props.isPublicApi) getUrl = $apiUrls.publicpage.meta.resource.metadatasets.getMetadataListBySetPropertyNm;
+
 	$axios
-		.get(util.format($apiUrls.meta.resource.metadatasets.getMetadataListBySetPropertyNm, medataSetId, propertyNm), {
+		.get(util.format(getUrl, medataSetId, propertyNm), {
 			params: {
 				curPage: state.pageInfo.curPage,
 				medataSetId: medataSetId,
@@ -179,8 +174,11 @@ const getMetadataList = () => {
 const getMetadataObjectList = () => {
 	let medataSetId = props.medataSetId;
 	let propertyNm = props.prptyNm;
+	let getUrl = $apiUrls.meta.resource.metadatasets.getMetadataListBySetPropertyNm;
+	if (props.isPublicApi) getUrl = $apiUrls.publicpage.meta.resource.metadatasets.getMetadataListBySetPropertyNm;
+
 	$axios
-		.get(util.format($apiUrls.meta.resource.metadatasets.getMetadataListBySetPropertyNm, medataSetId, propertyNm), {
+		.get(util.format(getUrl, medataSetId, propertyNm), {
 			params: {
 				curPage: state.pageInfo.curPage,
 				medataSetId: medataSetId,

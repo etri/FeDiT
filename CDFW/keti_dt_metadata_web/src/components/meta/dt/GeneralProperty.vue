@@ -53,7 +53,7 @@
 				&& 'data_type' !== generalProperty.rangeModelTypeMtcd">
 				<comn-list :tableHeader="objTypePropertyTableHeader" :tableData="generalProperty.propertyList" :minHeight="100">
 					<template v-slot:medataVal="slotData">
-						<span @click="goToMetadataManagePage(slotData.row)" class="link-text">
+						<span @click="goToMetadataManagePage1(slotData.row)" class="link-text">
 							{{ slotData.row.medataVal }}
 						</span>
 					</template>
@@ -98,10 +98,7 @@ import ComnList from "@/components/common/ComnList";
 import MetadataArrayDialogModify from "@/components/meta/dt/MetadataArrayDialogModify.vue";
 
 import { defineProps, reactive, ref, onMounted, getCurrentInstance } from "vue";
-import { useRoute } from "vue-router";
-import { getGlobalProperties, isReadYn, getCookie, isEmpty, routerPush } from "@/assets/js/common.js";
-import { useStore } from "vuex";
-import util from "util";
+import metaCommon from "@/assets/js/metaCommon.js";
 
 const emits = defineEmits(["dataSaved"]);
 
@@ -184,22 +181,13 @@ const objTypePropertyTableHeader = ref([
 	}
 ]);
 
-const goToMetadataManagePage = (payload) => {
-
-	if (isEmpty(payload.medataVal)) return;
-
-	let platform = getCookie("pltfrmId");
-	let query = { medataSetId: payload.medataVal }; //메타데이터 셋 ID
-
-	let typeModelId = props.generalProperty.rangeTypeModelId; //model table내의 type_model_id 로 분기 처리
-	if ('DigitalTwin' === typeModelId) { //누른 메타데이터값 -> 메타데이터 셋 ID
-		//디지털트윈 관리 page로 이동
-		routerPush(platform, "DigitalTwinDetailManagePage", query);
-	} else {
-		//메타데이터관리 page로 이동
-		routerPush(platform, "MetadataDetailManagePage", query);
-	}
-};
+const goToMetadataManagePage1 = (payload) => {
+	metaCommon.goToMetadataManagePage({
+		medataSetId: payload.medataVal,
+		typeModelId: props.generalProperty.rangeTypeModelId,
+		backPageName: 'MetadataDetailManagePage'
+	});
+}
 
 const onBeforeCloseDialogModifyMetadata = (done) => {
 	if (dialogModifyMetadataRef.value.isDataSaved()) {

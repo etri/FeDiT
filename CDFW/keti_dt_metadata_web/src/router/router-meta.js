@@ -105,6 +105,9 @@ import PbrcCodeListPage from "@/views/feature/meta/stddata/pbrccode/PbrcCodeList
 import ProductCodeListPage from "@/views/feature/meta/stddata/productcode/ProductCodeListPage.vue";
 import FacilityCodeListPage from "@/views/feature/meta/stddata/facilitycode/FacilityCodeListPage.vue";
 
+import ExSearchListPage from "@/views/feature/meta/external/ExSearchListPage.vue";
+import ExMetadataPage from "@/views/feature/meta/external/ExMetadataPage.vue";
+
 const contenxtPath = "";
 const metaRootPath = "/meta";
 export const metaRoutes = {
@@ -157,6 +160,27 @@ export const metaRoutes = {
         },    
       ],
     }, 
+    // 디지털연합트윈 제공용 화면
+    {
+      path: "exsearch",
+      meta: { title: "디지털트윈 메타데이터 검색" },
+      component: () =>
+        import(
+          /* webpackChunkName "main" */ "@/views/layouts/ExternalPageLayout.vue"
+        ),      
+      children: [
+        {
+          path: "list",
+          name: "meta_ExSearchListPage",
+          components: { default: ExSearchListPage },
+        },  
+        {
+          path: "page/:medataSetId",
+          name: "meta_ExMetadataPage",
+          components: { default: ExMetadataPage },
+        },           
+      ],
+    },     
     // 메타데이터 설정
     {
       path: "setting",

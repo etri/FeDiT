@@ -3,13 +3,13 @@
 		<ComnList :tableHeader="tableHeader" :tableData="upperMetadataSetDtwListBySubSetId" :minHeight="80">
 
 			<template v-slot:dtwNm="slotData">
-				<span @click="goToDigitalTwinManagePage(slotData.row)" class="link-text">
+				<span @click="goToDigitalTwinManagePage1(slotData.row)" class="link-text">
 					{{ slotData.row.dtwNm }}
 				</span>
 			</template>
 
 			<template v-slot:upSetNm="slotData">
-				<span @click="goToMetadataManagePage(slotData.row)" class="link-text">
+				<span @click="goToMetadataManagePage1(slotData.row)" class="link-text">
 					{{ slotData.row.upSetNm }}
 				</span>
 			</template>
@@ -21,29 +21,7 @@
 import ComnList from "@/components/common/ComnList";
 
 import { ref, reactive, defineProps, getCurrentInstance } from "vue";
-import { useRouter, useRoute } from "vue-router";
-import { getUser, getLoginUserId } from "@/assets/js/auth.js";
-import {
-	getGlobalProperties,
-	isAmdYn,
-	isReadYn,
-	getCookie,
-	routerPush
-} from "@/assets/js/common.js";
-import util from "util";
-
-const route = useRoute();
-const router = useRouter();
-const $axios = getGlobalProperties().$axios;
-const $apiUrls = getGlobalProperties().$apiUrls;
-const $emitter =
-	getCurrentInstance().appContext.config.globalProperties.$emitter;
-
-//router에 등록한 페이지명
-// [managePageNameArr] 관리용 메뉴 (디지털트윈 관리 상세, 메타데이터 관리 상세)
-// [retrievalPageNameArr] 검색용 메뉴 (디지털트윈 검색, 메타데이터셋 검색, 메타데이터 검색)
-const managePageNameArr = ['DigitalTwinDetailManagePage', 'MetadataDetailManagePage'];
-const retrievalPageNameArr = ['RetrievalMetadataSetPage', 'RetrievalDigitalTwinDatasetPage', 'RetrievalMetadataPage'];
+import metaCommon from "@/assets/js/metaCommon.js";
 
 const props = defineProps({
 	upperMetadataSetDtwListBySubSetId: {
@@ -93,41 +71,19 @@ const tableHeader = ref([
 	},
 ]);
 
-const goToDigitalTwinManagePage = (payload) => {
-	let platform = getCookie("pltfrmId");
-	let query = { medataSetId: payload.dtwId };
-	let backPageName = props.backPageName;
+const goToDigitalTwinManagePage1 = (payload) => {
+	metaCommon.goToDigitalTwinManagePage({
+		medataSetId: payload.dtwId,
+		backPageName: props.backPageName
+	});
+}
 
-	if (managePageNameArr.includes(backPageName)) { //관리용 메뉴 (디지털트윈 관리 상세)
-		routerPush(platform, "DigitalTwinDetailManagePage", query);
-	} else if (retrievalPageNameArr.includes(backPageName)) { //검색용 메뉴 (디지털트윈 셋조회 상세)
-		routerPush(platform, "RetrievalDigitalTwinDatasetPage", query);
-	}
-};
-
-const goToMetadataManagePage = (payload) => {
-	let platform = getCookie("pltfrmId");
-	let query = { medataSetId: payload.upSetId };
-	let backPageName = props.backPageName;
-
-	let typeModelId = payload.upTypeModelId; //model table내의 type_model_id 로 분기 처리
-	if ('DigitalTwin' === typeModelId) {
-
-		if (managePageNameArr.includes(backPageName)) { //관리용 메뉴 (디지털트윈 관리 상세)
-			routerPush(platform, "DigitalTwinDetailManagePage", query);
-		} else if (retrievalPageNameArr.includes(backPageName)) { //검색용 메뉴 (디지털트윈 셋조회 상세)
-			routerPush(platform, "RetrievalDigitalTwinDatasetPage", query);
-		}
-
-	} else {
-
-		if (managePageNameArr.includes(backPageName)) { //관리용 메뉴 (메타데이터셋 관리 상세)
-			routerPush(platform, "MetadataDetailManagePage", query);
-		} else if (retrievalPageNameArr.includes(backPageName)) { //검색용 메뉴 (메타데이터셋 셋조회 상세)
-			routerPush(platform, "RetrievalMetadataSetPage", query);
-		}
-	}
-};
+const goToMetadataManagePage1 = (payload) => {
+	metaCommon.goToMetadataManagePage({
+		medataSetId: payload.upSetId,
+		typeModelId: payload.upTypeModelId,
+		backPageName: props.backPageName
+	});
+}
 
 </script>
-<style lang="scss"></style>

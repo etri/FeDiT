@@ -1,0 +1,64 @@
+@charset 'utf-8';
+
+/* header, nav */
+.lftMenu .el-menu .btnSet .el-button{background-color:transparent !important;}
+/* sub */
+/* 공통 */
+#container .rgtWrap{background:#FFF !important;}
+[type=text]:focus,
+[type=password]:focus,
+[type=number]:focus,
+textarea:focus,
+select:focus{border-color:#7da5d7 !important;}
+.el-form-item__label{color:#848484 !important;}
+.el-input__wrapper{border:1px solid #DDD !important;box-shadow: 0 0 1px 0px #DDD !important;}
+.el-input__wrapper.is-focus,
+.el-select .el-input.is-focus .el-input__wrapper,
+.el-select .el-input__wrapper.is-focus{border:1px solid #7da5d7 !important;box-shadow: 0 0 1.5px 0px #7da5d7 !important;}
+.el-select-dropdown__item.selected,
+.el-date-table td.today .el-date-table-cell__text,
+.el-date-table td.available:hover,
+.el-year-table td .cell:hover,
+.el-year-table td.current:not(.disabled) .cell,
+.el-month-table td.current:not(.disabled) .cell,
+.el-month-table td .cell:hover,
+.el-picker-panel__icon-btn:hover{color:#7da5d7 !important;}
+/* .el-input__wrapper .el-input.is-disabled {} */
+.el-pagination.is-background .btn-next.is-active,
+.el-pagination.is-background .btn-prev.is-active,
+.el-pagination.is-background .el-pager li.is-active{background-color:#7da5d7 !important;}
+
+/* 메타데이터셋 검색 */
+.boxSectionTit{border-top:2px solid #7da5d7 !important;background:#7da5d7 !important;}
+.boxSectionTit h3{color:#FFF !important;}
+.boxLayout{border:1px solid #d9dee6 !important;}
+.boxTit{background-color:#eaeef3 !important;}
+.boxTit h3{color:#4a4a4a !important;}
+.el-button--primary{background-color:#7da5d7 !important;}
+.btnSec .el-button, .el-button{background-color:#7da5d7 !important;}
+.el-button.el-button--primary.is-plain{background-color:#FFF !important;border-color:#7da5d7 !important;}
+.el-button.el-button--primary.is-plain span{color:#7da5d7 !important;}
+.el-button.el-button--default{background-color:#848484 !important;border:1px solid #848484 !important;}
+.el-button.el-button--delete{background-color:#DDD !important;border:1px solid #DDD !important;}
+.el-button.el-button--danger{background-color:#ff7043 !important; border:1px solid #ff7043 !important;}
+.el-button.el-button--danger:hover{opacity:.8;}
+.link-text{color:#7da5d7 !important;}
+/* table- input,select ..etc */
+/* .ly-table .el-form-item__content{background-color:#FFF !important} */
+
+.el-radio__inner, .el-checkbox__inner{width: 20px !important; height: 20px !important;}
+.el-radio__input.is-checked .el-radio__inner{width:20px; height:20px; color: #08A2B7 !important; border-color:#08A2B7; background-color:transparent !important;}
+.el-checkbox__input.is-checked .el-checkbox__inner{background-color:#7da5d7;border-color:#7da5d7;}
+.el-radio__inner:hover,
+.el-checkbox__inner:hover{border-color:#7da5d7 !important;}
+.el-radio__input.is-checked + .el-radio__label,
+.el-checkbox__input.is-checked + .el-checkbox__label{color:#7da5d7 !important;}
+.el-radio__inner::after{width:10px;height:10px;background-color:#7da5d7 !important;}
+.el-table__body tr.current-row>td.el-table__cell{background-color:#d5eaffb8 !important; }
+.el-table .descending .sort-caret.descending{border-top-color:#7da5d7;}
+.el-table .ascending .sort-caret.ascending{border-bottom-color:#7da5d7;}
+
+/* popup */
+.el-dialog__header{background-color:#4a4a4a !important;}
+.el-dialog__headerbtn:focus .el-dialog__close,
+.el-dialog__headerbtn:hover .el-dialog__close{color:#7da5d7 !important;}

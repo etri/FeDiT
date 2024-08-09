@@ -9,7 +9,7 @@
 		<div class="boxCnt">
 			<el-form :inline="true" :model="pageInfo" class="demo-form-inline" label-width="160px" label-position="left">
 				<el-row :gutter="20">
-					<el-col :span="24">
+					<!-- <el-col :span="24"> -->
 						<el-form-item label="메타데이터 값">
 							<el-input class="" v-model="pageInfo.medataVal" placeholder=""
 								@keydown.enter.prevent="getSearchingMetadataObjectList(1)" />
@@ -35,7 +35,7 @@
 							</el-select>
 
 						</el-form-item>
-					</el-col>
+					<!-- </el-col> -->
 				</el-row>
 
 			</el-form>

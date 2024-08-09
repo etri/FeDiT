@@ -2,7 +2,7 @@
 	<div>
 		<comn-list :tableHeader="tableHeader" :tableData="metadataObjectList" :height="440" @row-click="rowClick">
 			<template v-slot:medataVal="slotData">
-				<span @click="goToMetadataManagePage(slotData.row)" class="link-text">
+				<span @click="goToMetadataManagePage1(slotData.row)" class="link-text">
 					{{ slotData.row.medataVal }}
 				</span>
 			</template>
@@ -15,20 +15,7 @@ import ComnList from "@/components/common/ComnList";
 import ComnPagination from "@/components/common/ComnPagination.vue";
 
 import { ref, reactive, defineProps } from "vue";
-import { useRouter, useRoute } from "vue-router";
-import { getUser, getLoginUserId } from "@/assets/js/auth.js";
-import {
-	getGlobalProperties,
-	getCookie,
-	isEmpty,
-	routerPush
-} from "@/assets/js/common.js";
-import util from "util";
-
-const route = useRoute();
-const router = useRouter();
-const $axios = getGlobalProperties().$axios;
-const $apiUrls = getGlobalProperties().$apiUrls;
+import metaCommon from "@/assets/js/metaCommon.js";
 
 const emits = defineEmits(["objectPageMove", "chooseMetadataFromObjectType"]);
 const props = defineProps({
@@ -48,7 +35,6 @@ const props = defineProps({
 		type: String,
 		required: false,
 	},
-
 	backPageName: {
 		type: String,
 		required: false,
@@ -114,36 +100,12 @@ const rowClick = (node, column) => {
 	emits("chooseMetadataFromObjectType", { data: state.metadata });
 };
 
-const goToMetadataManagePage = (payload) => {
-	if (isEmpty(payload.medataVal)) return;
-
-	let platform = getCookie("pltfrmId");
-	let query = { medataSetId: payload.medataVal }; //메타데이터 셋 ID
-
-	//router에 등록한 페이지명
-	// [managePageNameArr] 관리용 메뉴 (디지털트윈 관리 상세, 메타데이터 관리 상세)
-	// [retrievalPageNameArr] 검색용 메뉴 (디지털트윈 검색, 메타데이터셋 검색, 메타데이터 검색)
-	let managePageNameArr = ['DigitalTwinDetailManagePage', 'MetadataDetailManagePage'];
-	let retrievalPageNameArr = ['RetrievalMetadataSetPage', 'RetrievalDigitalTwinDatasetPage', 'RetrievalMetadataPage'];
-
-	let backPageName = props.backPageName;
-	let typeModelId = props.rangeTypeModelId; //model table내의 type_model_id 로 분기 처리
-
-	if ('DigitalTwin' === typeModelId) { //누른 메타데이터값 -> 메타데이터 셋 ID
-		//디지털트윈관리 or 디지털트윈검색 page로 이동
-		if (managePageNameArr.includes(backPageName)) {
-			routerPush(platform, "DigitalTwinDetailManagePage", query);
-		} else if (retrievalPageNameArr.includes(backPageName)) {
-			routerPush(platform, "RetrievalDigitalTwinDatasetPage", query);
-		}
-	} else {
-		//메타데이터관리 or 메타데이터 검색 page로 이동
-		if (managePageNameArr.includes(backPageName)) {
-			routerPush(platform, "MetadataDetailManagePage", query);
-		} else if (retrievalPageNameArr.includes(backPageName)) {
-			routerPush(platform, "RetrievalMetadataSetPage", query);
-		}
-	}
-};
+const goToMetadataManagePage1 = (payload) => {
+	metaCommon.goToMetadataManagePage({
+		medataSetId: payload.medataVal,
+		typeModelId: props.rangeTypeModelId,
+		backPageName: props.backPageName
+	});
+}
 
 </script>

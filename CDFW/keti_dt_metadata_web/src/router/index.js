@@ -83,7 +83,9 @@ const names = [
   "meta_ResourceEmptyPage",    // 메타데이터 리소스 공개 페이지
   "meta_KetidtInfoPage",       // ketidt ttl 정보 공개 페이지
   "meta_KetidtskosInfoPage",   // ketidtskos ttl 정보 공개 페이지
-  "meta_SparqlQueryResultPage" // SPARQL 결과 페이지
+  "meta_SparqlQueryResultPage",// SPARQL 결과 페이지
+  "meta_ExSearchListPage",     // 검색. 디지털연합트윈 제공용 화면
+  "meta_ExMetadataPage",       // 검색데이터. 디지털연합트윈 제공용 화면
 ];
 
 router.beforeEach(async (to, from, next) => {

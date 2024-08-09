@@ -53,3 +53,6 @@ body.close #container #contents .lftWrap .lftMenu #snb li a span {display:none;}
 
 /* 2023-08-02 meta */
 #container.meta-resource-layout #contents .rgtWrap .cntSec{padding:0px; padding-right:0px;}
+/* 2024-08-06 meta */
+#container.meta-external-layout #contents .rgtWrap {background-color: #fff;}
+#container.meta-external-layout #contents .rgtWrap .cntSec{padding:0px; padding-right:0px; min-width: 820px;}
