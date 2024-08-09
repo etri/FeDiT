@@ -52,7 +52,7 @@
 			<div v-for="(item, index) in generalProperty.propertyList" :key="item">
 				<el-input type="textarea" v-model="item.geodataVal" disabled :autosize="{ minRows: 4, maxRows: 10}"></el-input>
 				<!-- 지도 -->
-				<div :id="`map_${generalProperty.prptyId}${index}`" class="mt5" style="width:100%;height:400px;border: var(--el-disabled-border-color) solid 1px;"></div>
+				<div v-if="kakaoMapShow" :id="`map_${generalProperty.prptyId}${index}`" class="mt5" style="width:100%;height:400px;border: var(--el-disabled-border-color) solid 1px;"></div>
 			</div>
 		</div>
 
@@ -76,6 +76,7 @@ import metaCommon from "@/assets/js/metaCommon.js";
 const dialogVisibleSearchMetadata = ref(false); //메타데이터 검색 modal 
 const dialogVisibleSingleInfoMetadata = ref(false); //메타데이터 단건 프라퍼티 정보 modal (test용)
 
+const kakaoMapShow = ref(false);
 const shapesMap = ref(new Map()); // Map
 
 const props = defineProps({
@@ -193,6 +194,7 @@ const initMap = () => {
 	if ('geoJson' != props.generalProperty.rangeDataTypeMtcd) return;
 
 	if (!metaCommon.existKakaoMapApi()) return;
+	if (kakaoMapShow.value === false) kakaoMapShow.value = true;
 
 	for (let idx in props.generalProperty.propertyList) {
 		// console.log(`initMap --------- idx: ${idx}`);

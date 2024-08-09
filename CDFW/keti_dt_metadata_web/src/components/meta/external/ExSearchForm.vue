@@ -52,26 +52,22 @@
 				<el-row :gutter="20">
 					<el-col :span="24">
 						<el-form-item label="공간">
-							<div style="display: flex;">
-								<el-button type="default" @click="clickSearchBtn" class="btn-label-color"><el-icon class="icon icon-edit" /></el-button>
+							<div class="spaceInner">
+								<el-button type="default" @click="clickSearchBtn" class="btn-label-color"><el-icon class="icon icon-down" /></el-button>
 								<el-button type="delete" @click="clickRefreshBtn" class="btn-label-color"><el-icon class="icon icon-refresh" /></el-button>
-							</div>
-							<el-input placeholder="" v-model="pageInfo.polygon" class="ml10" style="max-width: 90%;" disabled/>
-							<div v-if="polygonSearch">
-								<el-button type="default" @click="formatChk" class="mt10">형식 확인</el-button>
-								<br/>
-								<span>※ (다중)다각형의 좌표를 입력해 주세요. 경도(-180 ~ 180), 위도(-90 ~ 90)</span>
-								<br/>
-								<span>예) MULTIPOLYGON (((126.5 33.48, 126.53 33.53, 126.64 33.48, 126.53 33.48), (126.7, 33.49, 126.72 33.49, 126.72 33.48, 126.64 33.48))), ((126.53 33.48, 126.53 33.48, 126.53 33.48)))</span>
-								<el-input type="textarea" v-model="pageInfo.geoData" placeholder="" />
+								<el-input placeholder="" v-model="pageInfo.polygon" style="max-width:100%" disabled/>
+								<div v-if="polygonSearch" class="spaceChk">
+									<el-button type="default" @click="formatChk">형식 확인</el-button>
+									<span>※ (다중)다각형의 좌표를 입력해 주세요. 경도(-180 ~ 180), 위도(-90 ~ 90)</span>
+									<p>예) MULTIPOLYGON (((126.5 33.48, 126.53 33.53, 126.64 33.48, 126.53 33.48), (126.7, 33.49, 126.72 33.49, 126.72 33.48, 126.64 33.48))), ((126.53 33.48, 126.53 33.48, 126.53 33.48)))</p>
+									<el-input type="textarea" v-model="pageInfo.geoData" placeholder="" />
+								</div>
 							</div>
 						</el-form-item>
 					</el-col>
 				</el-row>
-
-
 			</el-form>
-
+ 
 
 		</div>
 
@@ -188,4 +184,35 @@ const formatChk = () => {
 };
 
 </script>
-<style lang="scss"></style>
+<style lang="scss" scoped>
+.spaceInner{
+	display:flex;
+	flex-wrap:wrap;
+	align-items: center;
+	width:100%;
+	> button.el-button{
+		flex:1;
+		max-width:35px;
+	}
+	> div.el-input{
+		flex:1;
+		margin-left:10px;
+		max-width:100% !important;
+	}
+	.spaceChk{
+		width:100%;
+		display:flex;
+		flex-wrap:wrap;
+		align-items: center;
+		margin-top:15px;
+		p{width:100%;}
+		button{
+			margin-right:10px;
+		}
+		textarea{
+			max-width:500px;
+		}
+	}
+}
+
+</style>

@@ -215,9 +215,9 @@ input[type="password"] {height: auto; line-height: normal; padding: .6em .4em; f
 .textType2:focus{background:#eee;}
 /* 230905 textarea style figma design 적용 */
 .el-form-item__content textarea{padding:10px 11px; background-color:#fff !important; border:1px solid #eaeaea !important; border-radius:3px; box-shadow: none;}
-.el-form-item__content textarea:focus-visible{outline:0; border: 1px solid #08A2B7 !important; box-shadow: 0 0 0 1px #08A2B7 !important; border-radius: 3px;}
+.el-form-item__content textarea:focus-visible{outline:0; border: 1px solid #08A2B7; box-shadow: 0 0 0 1px #08A2B7; border-radius: 3px;}
 /* .el-form-item__content textarea{box-shadow:none;} */
-.el-textarea__inner:focus{border: 1px solid #08A2B7 !important;box-shadow: 0 0 0 1px #08A2B7 !important;}
+.el-textarea__inner:focus{border: 1px solid #08A2B7;box-shadow: 0 0 0 1px #08A2B7;}
 /* 2024-08-08 텍스트 비활성화 커서 */
 .el-textarea.is-disabled .el-textarea__inner {cursor: default;}
 
@@ -422,6 +422,7 @@ input + label{cursor:pointer; vertical-align:middle; margin-left:5px;}
 /* .icon-refresh{width:16px; height:16px; background:url(../images/device/ico_refresh.png) no-repeat 0px 50%; } */
 .icon-refresh{width:15px;height:15px;background:url(../images/common/ico-del.png) no-repeat; background-size:100% auto;}
 .icon-edit{width:15px;height:16px;background:url(../images/common/ico_edit.svg) no-repeat;background-size:100% auto;filter:invert(100%);}
+.icon-down{width:15px;height:17px;background:url(../images/common/ico_down-solid.svg) no-repeat;background-size:100% auto;filter:invert(100%);}
 /* ================================================= 
 ==================================================== */
 

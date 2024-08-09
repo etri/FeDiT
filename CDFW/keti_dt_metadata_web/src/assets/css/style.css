@@ -27,6 +27,9 @@ select:focus{border-color:#7da5d7 !important;}
 .el-pagination.is-background .btn-next.is-active,
 .el-pagination.is-background .btn-prev.is-active,
 .el-pagination.is-background .el-pager li.is-active{background-color:#7da5d7 !important;}
+.el-textarea__inner:focus, 
+.el-form-item__content textarea:focus-visible{border:1px solid #7da5d7 !important;box-shadow: 0 0 1.5px 0px #7da5d7 !important;}
+
 
 /* 메타데이터셋 검색 */
 .boxSectionTit{border-top:2px solid #7da5d7 !important;background:#7da5d7 !important;}
