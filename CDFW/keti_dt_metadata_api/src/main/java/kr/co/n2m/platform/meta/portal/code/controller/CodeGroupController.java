@@ -78,7 +78,7 @@ public class CodeGroupController extends ResponseComponent {
 	
 	/** 코드목록 조회 */
 	@Operation(summary="코드 목록 조회")
-	@GetMapping("/api/v1/portal/codegroups/{mtcdGrpId}/codes")
+	@GetMapping({"/api/v1/portal/codegroups/{mtcdGrpId}/codes", "/api/v1/public/codegroups/{mtcdGrpId}/codes"})
 	public ResponseEntity<Object> getCodeList(
 			@Parameter(name="mtcdGrpId", description="메타코드그룹ID") @PathVariable String mtcdGrpId, CodeSearchVo searchVo) {
 		searchVo.setMtcdGrpId(mtcdGrpId);

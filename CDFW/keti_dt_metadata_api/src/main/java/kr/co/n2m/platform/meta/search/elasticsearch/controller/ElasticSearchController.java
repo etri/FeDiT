@@ -11,9 +11,8 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -70,8 +69,11 @@ public class ElasticSearchController extends ResponseComponent {
     
     @Operation(summary="ElasticSearch 초기화 후 재등록 (설정한 인덱스 전체 삭제 후 재등록)")
     @PutMapping("/api/v1/search/elastic/data/init")
-    public ResponseEntity<Object> initElasticAndAddDataAll() {
-    	elasticSearchService.initElasticAndAddDataAll();
+    public ResponseEntity<Object> initElasticAndAddDataAll(@RequestBody(required = false) Map<String, Object> params) {
+    	// onlyUseYn:Y 경우 사용 상태만 재등록
+    	String onlyUseYn = null;
+    	if (params != null) onlyUseYn = (String) params.get("onlyUseYn");
+    	elasticSearchService.initElasticAndAddDataAll(onlyUseYn);
     	return makeResponseEntity(null, HttpStatus.NO_CONTENT);
     }
 	

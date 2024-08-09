@@ -28,6 +28,7 @@ public class MetadataDto extends MetadataVo {
 	private String langEnableYn;
 	private String dataTypeMtcd;
 	private String rangeMtcdGrpId;
+	private String prptyScrnIndcYn;
 	
 	private String valModelNm;
 	private String valModelLogicNm;

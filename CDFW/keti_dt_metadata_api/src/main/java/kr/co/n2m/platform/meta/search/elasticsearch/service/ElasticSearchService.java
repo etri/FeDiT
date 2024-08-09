@@ -1,12 +1,14 @@
 package kr.co.n2m.platform.meta.search.elasticsearch.service;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.PostConstruct;
 import javax.net.ssl.SSLContext;
 
 import org.apache.commons.collections4.map.ListOrderedMap;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -19,6 +21,8 @@ import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.GetResponse;
@@ -225,10 +229,10 @@ public class ElasticSearchService {
 	}
 	
 	/**
-	 * ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (JSON 직접 검색)
+	 * ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (JSON 직접 검색) (String 반환)
 	 * @Author      : tklee
 	 * @Date        : 2023. 12. 06.
-	 * @return
+	 * @return String
 	 */	
 	public String getElasticDataListWithJson(String query) {
 		log.debug("[ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (JSON 직접 검색)] 서비스 시작");
@@ -255,12 +259,44 @@ public class ElasticSearchService {
 		return elasticRes;
 	}
 	
+	/**
+	 * ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (JSON 직접 검색) (List 반환)
+	 * @Author      : tklee
+	 * @Date        : 2024. 08. 07.
+	 * @return List<Map<String, Object>>
+	 */	
+	public List<Map<String, Object>> getElasticDataListWithJsonEntity(String query) {
+		log.debug("[ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (JSON 직접 검색)] 서비스 시작");
+		
+		List<Map<String, Object>> hits = null;
+		try (RestClient restClient = restClient()) {
+			Request request = new Request("GET", "/" + property.getIndexName() + "/_search");
+			request.setJsonEntity(query);
+			
+			Response response = restClient.performRequest(request);
+			
+			ObjectMapper objectMapper = new ObjectMapper();
+			Map<String, Object> resultMap = objectMapper.readValue(response.getEntity().getContent(), Map.class);
+			hits = (List<Map<String, Object>>) ((Map<String, Object>) resultMap.get("hits")).get("hits");
+			
+		} catch (ResBaseRuntimeException e) {
+			log.info("[ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (JSON 직접 검색)] 실패/오류 (정보성) : {}", e.getMessage());
+			throw e;
+		} catch (Exception e) {
+			log.error("[ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (JSON 직접 검색)] 실패/오류", e);
+			throw new ResBaseRuntimeException(e);
+		}
+        log.debug("[ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (JSON 직접 검색)] 서비스 종료");
+        
+		return hits;
+	}
+	
     /**
      * ElasticSearch 초기화 후 재등록 (설정한 인덱스 전체 삭제 후 재등록)
 	 * @Author      : tklee
 	 * @Date        : 2024. 04. 04.
      */
-    public void initElasticAndAddDataAll() {
+    public void initElasticAndAddDataAll(String onlyUseYn) {
         log.debug("[ElasticSearch 초기화 후 재등록 (설정한 인덱스 전체 삭제 후 재등록)] 서비스 시작");
         
 		try {
@@ -270,7 +306,7 @@ public class ElasticSearchService {
         
 	    	this.initElastic();
 	    	
-	    	this.saveMetadataSetListAll();
+	    	this.saveMetadataSetListAll(onlyUseYn);
 	    	
 		} catch (ResBaseRuntimeException e) {
 			log.info("[ElasticSearch 초기화 후 재등록 (설정한 인덱스 전체 삭제 후 재등록)] 실패/오류 (정보성) : {}", e.getMessage());
@@ -313,7 +349,7 @@ public class ElasticSearchService {
      * @param metadataSearchVo
      */
     @SuppressWarnings("unchecked")
-	public void saveMetadataSetListAll() {
+	public void saveMetadataSetListAll(String onlyUseYn) {
         log.debug("[Elastic 검색 메타데이터셋 전체 저장] 서비스 시작");    	
     	
 		if (!AuthUtil.isSystemAdmin()) {
@@ -322,7 +358,9 @@ public class ElasticSearchService {
 		
     	MetadataSearchVo metadataSearchVo = new MetadataSearchVo();
     	metadataSearchVo.setIsPaging(false); // TODO 모든 데이터를 조회시 LIMIT_LIST_SIZE 보다 데이터 건수가 더 많다면 처리시 페이징해서 처리해야 함
-    	metadataSearchVo.setMedataSetSttusMtcd("use");
+    	if (StringUtils.equals("Y", onlyUseYn)) {
+    		metadataSearchVo.setMedataSetSttusMtcd("use");
+    	}
     	
     	SearchResultListVo listVo = metadataSetService.getMetadataSetList(metadataSearchVo);
     	if (listVo != null && listVo.getList() != null && listVo.getList().size() > 0) {

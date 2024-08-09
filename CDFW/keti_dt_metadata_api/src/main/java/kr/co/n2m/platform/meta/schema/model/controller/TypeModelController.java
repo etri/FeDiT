@@ -30,7 +30,7 @@ public class TypeModelController extends ResponseComponent {
 	private TypeModelService typeModelService;
 	
 	@Operation(summary="유형 모델 목록 조회")
-	@GetMapping("/api/v1/schema/typemodels")
+	@GetMapping({"/api/v1/schema/typemodels", "/api/v1/public/schema/typemodels"})
 	public ResponseEntity<Object> getTypeList(ModelSearchVo searchVo) {
 		return makeResponseEntity(typeModelService.getModelListByType(searchVo));
 	}
@@ -62,4 +62,5 @@ public class TypeModelController extends ResponseComponent {
 		typeModelService.deleteTypeModel(modelId);
 		return makeResponseEntity(null, HttpStatus.NO_CONTENT);
 	}
+	
 }

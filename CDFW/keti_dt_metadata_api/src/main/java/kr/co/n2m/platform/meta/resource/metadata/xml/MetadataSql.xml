@@ -236,6 +236,7 @@
               , m1.prpty_nm
               , m1.prpty_logic_nm
               , m1.data_array_yn
+              , m1.prpty_scrn_indc_yn
               , m1.model_prpty_mand_mtcd 
               , m1.model_prpty_mand_mtcd_nm
               , m1.model_prpty_val_exam               
@@ -264,6 +265,7 @@
                      , t2.prpty_nm
                      , t2.prpty_logic_nm
                      , t2.data_array_yn
+                     , t2.prpty_scrn_indc_yn
                      , t1.model_prpty_mand_mtcd 
                      , c1.mtcd_nm         AS model_prpty_mand_mtcd_nm             
                      , t3.range_model_id  AS val_model_id
@@ -486,6 +488,7 @@
              , t5.prpty_nm
              , t5.prpty_logic_nm
              , t5.data_array_yn
+             , t5.prpty_scrn_indc_yn
              , t7.model_prpty_mand_mtcd 
              , c2.mtcd_nm         AS model_prpty_mand_mtcd_nm
              , t7.model_prpty_val_exam
