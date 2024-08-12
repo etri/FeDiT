@@ -198,11 +198,12 @@ spring:
     auth:
       user-id: 
       user-pw: 
-    thread-sleep : 100  
-    
-# Disabling the swagger-ui
-springdoc.swagger-ui.enabled: false
+    thread-sleep : 100     
 
+springdoc.swagger-ui.enabled: true
+
+
+# Security
 security:
   secret-key: mk8sO0z3ORun6W/7aILNQrX+OUSp4PPX9ZxAn3JNgGY=
 
@@ -214,7 +215,7 @@ authorization:
   default-auth:
     use-flag: true  
     list: AUT_META_DEFAULT
-
+  
 platform.common.api.url: http://220.124.222.86:6998
 
 # Virtuoso 
@@ -227,17 +228,17 @@ virtuoso:
     dev: DEV_GRAPH_NM
     use: USE_GRAPH_NM
   conductor-url: http://220.124.222.86:8890/conductor    
-
+    
 # Metadata RDF URL (Namespace) 
 dtmeta:
   # TODO : 임시 정의, 추후 수정 필요
   resource:
-    base-url: http://digitaltwin.keti.re.kr/meta/resource/page/
-    data-url: http://digitaltwin.keti.re.kr/meta/api/v1/resource/data/
+    base-url: http://220.124.222.86:8084/meta/resource/page/
+    data-url: http://220.124.222.86:8084/meta/api/v1/resource/data/
   # TODO : 임시 정의, 추후 수정 필요
   rdf-schema:
-    base-url: http://vocab.keti.re.kr/meta/ns/digitaltwin#
-    skos-url: http://vocab.keti.re.kr/meta/skos/digitaltwin#
+    base-url: http://220.124.222.86:8084/meta/ns/digitaltwin#
+    skos-url: http://220.124.222.86:8084/meta/skos/digitaltwin#
   # 디지털트윈 연합 식별체계 적용
   id-scheme:
     digital-twin: DigitalTwin
@@ -249,8 +250,8 @@ neo4j:
     username: neo4j
     password: rhksflwk1!
   uri: bolt://220.124.222.86:7687
-  browser-url: http://220.124.222.86:7474/browser 
-
+  browser-url: http://220.124.222.86:7474/browser
+  
 # Elastic Search
 elastic:
   authentication:

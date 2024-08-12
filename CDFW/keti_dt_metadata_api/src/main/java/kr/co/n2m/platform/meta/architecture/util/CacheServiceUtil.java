@@ -38,6 +38,8 @@ public class CacheServiceUtil {
 		key = key.replace("-----BEGIN PUBLIC KEY-----", "")
 	        .replace("-----END PUBLIC KEY-----", "")
 	        .replace("\r\n", "")
+	        .replace("\r", "")
+	        .replace("\n", "")
 	        .replace("/", "_").replace("+", "-");
 
 	    byte[] publicKeyBytes = Base64.getUrlDecoder().decode(key.getBytes());

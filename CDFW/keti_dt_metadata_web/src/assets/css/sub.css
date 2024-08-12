@@ -423,6 +423,7 @@ input + label{cursor:pointer; vertical-align:middle; margin-left:5px;}
 .icon-refresh{width:15px;height:15px;background:url(../images/common/ico-del.png) no-repeat; background-size:100% auto;}
 .icon-edit{width:15px;height:16px;background:url(../images/common/ico_edit.svg) no-repeat;background-size:100% auto;filter:invert(100%);}
 .icon-down{width:15px;height:17px;background:url(../images/common/ico_down-solid.svg) no-repeat;background-size:100% auto;filter:invert(100%);}
+.icon-up{width:15px;height:17px;background:url(../images/common/ico_up-solid.svg) no-repeat;background-size:100% auto;filter:invert(100%);}
 /* ================================================= 
 ==================================================== */
 

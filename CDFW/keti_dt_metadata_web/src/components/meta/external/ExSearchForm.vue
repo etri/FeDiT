@@ -53,13 +53,13 @@
 					<el-col :span="24">
 						<el-form-item label="공간">
 							<div class="spaceInner">
-								<el-button type="default" @click="clickSearchBtn" class="btn-label-color"><el-icon class="icon icon-down" /></el-button>
+								<el-button type="default" @click="clickSearchBtn" class="btn-label-color"><el-icon :class="`icon ${polygonSearchIcon}`" /></el-button>
 								<el-button type="delete" @click="clickRefreshBtn" class="btn-label-color"><el-icon class="icon icon-refresh" /></el-button>
 								<el-input placeholder="" v-model="pageInfo.polygon" style="max-width:100%" disabled/>
 								<div v-if="polygonSearch" class="spaceChk">
 									<el-button type="default" @click="formatChk">형식 확인</el-button>
 									<span>※ (다중)다각형의 좌표를 입력해 주세요. 경도(-180 ~ 180), 위도(-90 ~ 90)</span>
-									<p>예) MULTIPOLYGON (((126.5 33.48, 126.53 33.53, 126.64 33.48, 126.53 33.48), (126.7, 33.49, 126.72 33.49, 126.72 33.48, 126.64 33.48))), ((126.53 33.48, 126.53 33.48, 126.53 33.48)))</p>
+									<p>예) MULTIPOLYGON (((126.53 33.5, 126.53 33.58, 126.73 33.58, 126.73 33.5, 126.53 33.5), (126.61 33.544, 126.61 33.555, 126.73 33.555, 126.73 33.555, 126.61 33.544)), ((126.53 33.5, 126.53 33.44, 126.63 33.44, 126.53 33.5)))</p>
 									<el-input type="textarea" v-model="pageInfo.geoData" placeholder="" />
 								</div>
 							</div>
@@ -86,6 +86,7 @@ const $apiUrls = getGlobalProperties().$apiUrls;
 const typeModelList = ref([]);
 const digitalTwinList = ref([]);
 const polygonSearch = ref(false);
+const polygonSearchIcon = ref('icon-down');
 
 const pageInfo = reactive({
 	curPage: 1,
@@ -163,23 +164,37 @@ const changeTypeModelId = (data) => {
 const clickSearchBtn = () => {
 	if(polygonSearch.value) {
 		polygonSearch.value = false;
+		polygonSearchIcon.value = 'icon-down';
 	}
 	else {
 		polygonSearch.value = true;
+		polygonSearchIcon.value = 'icon-up';
 	}
 };
 
 const clickRefreshBtn = () => {
 	pageInfo.polygon = "";
+	pageInfo.geoData = "";
 };
 
 const formatChk = () => {
+	if (!pageInfo.geoData) {
+		alert('WKT(Well-Known Text) POLYGON 또는 MULTIPOLYGON 정보를 입력해주세요.');
+		return;
+	}
 	// TODO: 임시 WKT 포맷 체크, 개선 필요
-	const wktPattern = /^(POINT|LINESTRING|POLYGON|MULTIPOLYGON|MULTILINESTRING)\s*\((.*)\)$/i;
+	//const wktPattern = /^(POINT|LINESTRING|POLYGON|MULTIPOLYGON|MULTILINESTRING)\s*\((.*)\)$/i;
+	const wktPattern = /^(POLYGON|MULTIPOLYGON)\s*\((.*)\)$/i;
+	pageInfo.geoData = pageInfo.geoData.trim();
 	if (wktPattern.test(pageInfo.geoData)) {
+
+		// TODO POLYGON은 좌표 시작점과 끝점이 맞아야 함.
+
+
 		pageInfo.polygon = pageInfo.geoData;
+		clickSearchBtn();
 	} else {
-		alert("WKT 형식이 아닙니다.");
+		alert("WKT POLYGON 또는 MULTIPOLYGON 형식이 아닙니다.");
 	}
 };
 
