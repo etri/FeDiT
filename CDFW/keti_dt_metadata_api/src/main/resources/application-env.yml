@@ -14,7 +14,7 @@ spring:
     password: rhksflwk1!
     driver-class-name: org.postgresql.Driver    
   kafka:
-    bootstrap-servers: 220.76.205.230:29092
+    bootstrap-servers: 220.124.222.84:9092
     client-id : DT_PRODUCER
     auth:
       user-id: 
@@ -107,7 +107,7 @@ spring:
     password: rhksflwk1!
     driver-class-name: org.postgresql.Driver
   kafka:
-    bootstrap-servers: 220.76.205.230:29092
+    bootstrap-servers: 220.124.222.84:9092
     client-id : DT_PRODUCER
     auth:
       user-id: 
@@ -193,7 +193,7 @@ spring:
     password: rhksflwk1!
     driver-class-name: org.postgresql.Driver
   kafka:
-    bootstrap-servers: 220.76.205.230:29092
+    bootstrap-servers: 220.124.222.84:9092
     client-id : DT_PRODUCER
     auth:
       user-id: 
