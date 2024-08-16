@@ -207,7 +207,7 @@ const saveUserData = () => {
   let autOid = route.query.autOid;
   let result = confirm("등록 하시겠습니까?");
   if (result) {
-    deleteBeforeAuthUsers(autOid, state.savedUser);
+    replaceAuthUsers(autOid, state.savedUser);
   }
 };
 
@@ -225,6 +225,23 @@ const deleteBeforeAuthUsers = async (autOid, userList) => {
 const setAuthUsers = (autOid, userList) => {
   $axios
     .post(util.format($apiUrls.admin.auth.setAuthUsers, autOid), userList)
+    .then(() => {
+      alert("등록이 완료되었습니다.");
+
+      state.savedUser = userList;
+      state.userList = checkDuplicateUserList(
+        state.savedUser,
+        state.originUser
+      );
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+};
+
+const replaceAuthUsers = (autOid, userList) => {
+  $axios
+    .post(util.format($apiUrls.admin.auth.replaceAuthUsers, autOid), userList)
     .then(() => {
       alert("등록이 완료되었습니다.");
 

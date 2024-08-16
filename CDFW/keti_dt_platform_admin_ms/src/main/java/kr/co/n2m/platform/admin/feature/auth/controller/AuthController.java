@@ -194,6 +194,19 @@ public class AuthController {
 		authService.removeAuthUser(autOid, userid);
 		return new ResponseEntity<Object>(HttpStatus.NO_CONTENT);
 	}
+	
+	/** 권한 사용자 전체 삭제 후 사용자(멀티) 생성 */
+	@ApiOperation(value = "권한 사용자 멀티 생성", notes = "<strong>권한 사용자 삭제 후 사용자(멀티)들을 생성합니다.</strong>")
+	@ApiResponses({ @ApiResponse(code = 201, message = "요청 성공") })
+	@PostMapping(value = "/auth/{autOid}/users/replace", consumes = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<Object> replaceAuthUsers(@PathVariable(name = "autOid") String autOid, @RequestBody List<AuthUser> authuser) throws URISyntaxException {
+		authService.replaceAuthUsersList(autOid, authuser);
+
+		HttpHeaders responseHeaders = new HttpHeaders();
+		responseHeaders.setLocation(new URI("/auth/" + autOid + "/users/replace"));
+
+		return new ResponseEntity<Object>(HttpStatus.CREATED);
+	}
 
 	/**************************************
 	 * 권한 메뉴

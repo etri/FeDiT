@@ -41,6 +41,7 @@
       "getAuthUserList"         : "/api/admin/auth/%s/users",
       "setAuthUsers"            : "/api/admin/auth/%s/users",
       "deleteAuthUsers"         : "/api/admin/auth/%s/users",
+      "replaceAuthUsers"        : "/api/admin/auth/%s/users/replace",
       "getAuthMenuList"         : "/api/admin/auth/%s/menu",
       "setAuthMenus"            : "/api/admin/auth/%s/menus",
       "deleteAuthMenuList"      : "/api/admin/auth/%s/menu",

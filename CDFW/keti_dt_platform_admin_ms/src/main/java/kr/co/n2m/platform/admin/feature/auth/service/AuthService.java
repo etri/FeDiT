@@ -275,6 +275,15 @@ public class AuthService {
 	public void removeAuthUser(String autOid, String userid) {
 		authQuery.removeAuthUser(autOid, userid);
 	}
+	
+	/** 권한 사용자 전체 삭제 후 사용자(멀티) 생성 */
+	@Transactional 
+	public void replaceAuthUsersList(String autOid, List<AuthUser> authuser) {
+		authQuery.removeAuthUserList(autOid);
+		for(AuthUser authUser : authuser ) { 
+			createUserOid(autOid, authUser); 
+		}
+	}
 
 
 	
