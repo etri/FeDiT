@@ -155,8 +155,8 @@ dtmeta:
     skos-url: http://220.124.222.86:8084/meta/skos/digitaltwin#
   # 디지털트윈 연합 식별체계 적용
   id-scheme:
-    digital-twin: DigitalTwin
-    digital-twin-object: DigitalObject    
+    digital-twin: 
+    digital-twin-object: 
     
 # NEO4J
 neo4j:
@@ -241,8 +241,8 @@ dtmeta:
     skos-url: http://220.124.222.86:8084/meta/skos/digitaltwin#
   # 디지털트윈 연합 식별체계 적용
   id-scheme:
-    digital-twin: DigitalTwin
-    digital-twin-object: DigitalObject    
+    digital-twin: 
+    digital-twin-object: 
     
 # NEO4J
 neo4j:

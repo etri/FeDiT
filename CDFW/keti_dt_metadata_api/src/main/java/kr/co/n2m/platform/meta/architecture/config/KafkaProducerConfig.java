@@ -48,7 +48,7 @@ public class KafkaProducerConfig {
 	public Map<String, Object> producerProdConfigs() {
 		Map<String, Object> props =	new HashMap<String, Object>();
 		
-		// TODO 카프카 운영 설정 아직 모름.
+		// TODO 카프카 운영 설정 아직 모름. 아래 사항은 다른 곳의 운영 것을 복사한 것임... DT 에서는 알 수 없음!!
 		props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperty.getKafkaServers());
 		props.put(ProducerConfig.CLIENT_ID_CONFIG, kafkaProperty.getKafkaClientId());
 		props.put(ProducerConfig.ACKS_CONFIG, "1");
@@ -64,10 +64,11 @@ public class KafkaProducerConfig {
 	@Bean
 	KafkaProducer<String, Object> kafkaProducer() {
 		String active = kafkaProperty.getActiveProfile();
-		if ("prod".equals(active) || "meta_prod".equals(active)) {
-			log.debug("onload prod kafka-producer-config!!");
-			return new KafkaProducer<String, Object>(producerProdConfigs());	
-		}
+		// TODO 운영 설정이 달라야 하는 경우만 다시 설정할 것!
+//		if ("prod".equals(active) || "meta_prod".equals(active)) {
+//			log.debug("onload prod kafka-producer-config!!");
+//			return new KafkaProducer<String, Object>(producerProdConfigs());	
+//		}
 		log.debug("onload default kafka-producer-config!!");
 		return new KafkaProducer<String, Object>(producerDefaultConfigs());
 	}
