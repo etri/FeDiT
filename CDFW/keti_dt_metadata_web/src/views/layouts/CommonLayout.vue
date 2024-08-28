@@ -228,6 +228,9 @@ onMounted( () => {
 });
 
 const setPlatformList =  () => {
+  // TODO 임시 2024-08-21 기본 플랫폼 ID
+  const defaultPltfrmId = "meta";
+
   store
     .dispatch("PlatformStore/getPlatformList", {
       axios: $axios,
@@ -241,7 +244,13 @@ const setPlatformList =  () => {
       let cokiplatform = getCookie("pltfrmId");
 
       if(cokiplatform == null && platform.value.length > 0) {
-        setCookie("pltfrmId", platform.value ? platform.value[0].pltfrmId : "");
+        // TODO 임시 2024-08-21 기본 플랫폼 ID 가 있다면 우선 설정.
+        const foundPltfrm = platform.value.find((x) => x.pltfrmId === defaultPltfrmId);
+        if (foundPltfrm) {
+          setCookie("pltfrmId", foundPltfrm.pltfrmId);
+        } else {
+          setCookie("pltfrmId", platform.value ? platform.value[0].pltfrmId : "");
+        }
         cokiplatform = getCookie("pltfrmId");
       }
 
