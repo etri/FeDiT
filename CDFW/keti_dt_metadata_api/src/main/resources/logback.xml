@@ -56,7 +56,6 @@
         <logger name="kr.co.n2m.platform" level="DEBUG" />
         <root level="INFO">
             <appender-ref ref="ASYNC_FILE_APPENDER" />
-            <appender-ref ref="CONSOLE" />
         </root>
     </springProfile>
 
