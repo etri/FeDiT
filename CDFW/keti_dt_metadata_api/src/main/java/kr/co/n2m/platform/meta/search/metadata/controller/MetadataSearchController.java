@@ -32,4 +32,18 @@ public class MetadataSearchController extends ResponseComponent {
 		return makeResponseEntity(metadataSearchService.getMetadataList(metadataSearchVo));
 	}
 	
+	
+	/**
+	 * geometry 유효성 검사 
+	 * @Author      : tklee
+	 * @Date        : 2024. 08. 13.
+	 * @param metadataSearchVo
+	 * @return
+	 */
+	@Operation(summary="geometry 유효성 검사")
+	@GetMapping("/api/v1/public/search/metadata/geometry/validate")
+	public ResponseEntity<Object> geometryValidate(DataSearchVo metadataSearchVo) {
+		return makeResponseEntity(metadataSearchService.geometryValidate(metadataSearchVo));
+	}
+	
 }

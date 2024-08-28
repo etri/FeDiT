@@ -81,7 +81,7 @@ public class MetadataSearchService {
 						  + "}";
 				}
 				
-				hits = elasticSearchService.getElasticDataListWithJsonEntity(query);
+				hits = elasticSearchService.getElasticDataListWithJsonEntity(query, "_search");
 				
 				if(ids.size() > 0) {
 					List<String> newIds = new ArrayList<>();
@@ -128,5 +128,32 @@ public class MetadataSearchService {
 		
 		log.debug("[메타데이터 검색 목록 조회] 서비스 종료");
 		return listVo;
+	}
+
+
+	/**
+	 * geometry 유효성 검사 
+	 * @Author      : tklee
+	 * @Date        : 2024. 08. 13.
+	 * @param metadataSearchVo
+	 * @return
+	 */
+	public Boolean geometryValidate(DataSearchVo metadataSearchVo) {
+		log.debug("[geometry 유효성 검사] 서비스 시작");
+		
+		Boolean isGeom = false;
+		
+		try {
+			metadataSearchMapper.selectGeom(metadataSearchVo);
+			isGeom = true;
+			log.debug("[geometry 유효성 검사] 결과 : true");
+		}
+		catch (Exception e) {
+			isGeom = false;
+			log.debug("[geometry 유효성 검사] 결과 : false, " + e.getClass().getSimpleName());
+		}
+
+		log.debug("[geometry 유효성 검사] 서비스 종료");
+		return isGeom;
 	}	
 }

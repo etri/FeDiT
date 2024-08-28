@@ -10,11 +10,11 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- *  elastic 검색 parameter Vo
+ *  elasticsearch 검색 parameter Vo
  * 
  * @author  n2m
  */
-@Schema(description="elastic 검색 parameter Vo")
+@Schema(description="elasticsearch 검색 parameter Vo")
 @Getter
 @Setter
 public class ElasticSearchVo implements Serializable {

@@ -43,6 +43,7 @@ import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSearchVo;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSetDto;
 import kr.co.n2m.platform.meta.resource.metadata.mapper.MetadataApiMapper;
 import kr.co.n2m.platform.meta.resource.metadata.service.MetadataSetService;
+import kr.co.n2m.platform.meta.search.elasticsearch.domain.ElasticSearchQueryVo;
 import kr.co.n2m.platform.meta.search.elasticsearch.domain.ElasticSearchVo;
 import lombok.extern.slf4j.Slf4j;
 
@@ -265,12 +266,12 @@ public class ElasticSearchService {
 	 * @Date        : 2024. 08. 07.
 	 * @return List<Map<String, Object>>
 	 */	
-	public List<Map<String, Object>> getElasticDataListWithJsonEntity(String query) {
+	public List<Map<String, Object>> getElasticDataListWithJsonEntity(String query, String endPoint) {
 		log.debug("[ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (JSON 직접 검색)] 서비스 시작");
 		
 		List<Map<String, Object>> hits = null;
 		try (RestClient restClient = restClient()) {
-			Request request = new Request("GET", "/" + property.getIndexName() + "/_search");
+			Request request = new Request("GET", "/" + property.getIndexName() + "/" + endPoint);
 			request.setJsonEntity(query);
 			
 			Response response = restClient.performRequest(request);
@@ -287,6 +288,38 @@ public class ElasticSearchService {
 			throw new ResBaseRuntimeException(e);
 		}
         log.debug("[ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (JSON 직접 검색)] 서비스 종료");
+        
+		return hits;
+	}
+	
+	/**
+	 * ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (JSON 직접 검색) (화면 호출용)
+	 * @Author      : tklee
+	 * @Date        : 2024. 08. 07.
+	 * @return List<Map<String, Object>>
+	 */	
+	public List<Map<String, Object>> getElasticDataListWithJsonEntityForView(ElasticSearchQueryVo searchVo) {
+		log.debug("[ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (화면 호출용)] 서비스 시작");
+		
+		List<Map<String, Object>> hits = null;
+		try (RestClient restClient = restClient()) {
+			Request request = new Request(searchVo.getHttpMethod().toUpperCase(), searchVo.getIndexEndpoint());
+			request.setJsonEntity(searchVo.getQueryJson());
+			
+			Response response = restClient.performRequest(request);
+			
+			ObjectMapper objectMapper = new ObjectMapper();
+			Map<String, Object> resultMap = objectMapper.readValue(response.getEntity().getContent(), Map.class);
+			hits = (List<Map<String, Object>>) ((Map<String, Object>) resultMap.get("hits")).get("hits");
+			
+		} catch (ResBaseRuntimeException e) {
+			log.info("[ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (화면 호출용)] 실패/오류 (정보성) : {}", e.getMessage());
+			throw e;
+		} catch (Exception e) {
+			log.error("[ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (화면 호출용)] 실패/오류", e);
+			throw new ResBaseRuntimeException(e);
+		}
+        log.debug("[ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (화면 호출용)] 서비스 종료");
         
 		return hits;
 	}

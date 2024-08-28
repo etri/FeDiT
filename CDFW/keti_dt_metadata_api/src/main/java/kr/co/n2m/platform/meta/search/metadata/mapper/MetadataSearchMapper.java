@@ -36,5 +36,14 @@ public interface MetadataSearchMapper {
 	 * @return
 	 */
 	public List<String> selectDigitalTwinLowerList(DataSearchVo metadataSearchVo);
+	
+	/**
+	 * geometry 유효성 검사 
+	 * @Author      : tklee
+	 * @Date        : 2024. 08. 13.
+	 * @param metadataSearchVo
+	 * @return
+	 */
+	public int selectGeom(DataSearchVo metadataSearchVo);
 
 }

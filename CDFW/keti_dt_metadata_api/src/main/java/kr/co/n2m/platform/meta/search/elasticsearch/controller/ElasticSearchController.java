@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.co.n2m.platform.meta.architecture.component.ResponseComponent;
+import kr.co.n2m.platform.meta.search.elasticsearch.domain.ElasticSearchQueryVo;
 import kr.co.n2m.platform.meta.search.elasticsearch.domain.ElasticSearchVo;
 import kr.co.n2m.platform.meta.search.elasticsearch.service.ElasticSearchService;
 
@@ -61,10 +62,16 @@ public class ElasticSearchController extends ResponseComponent {
 		return makeResponseEntity(elasticSearchService.getElasticDataList(searchVo));
 	}
     
-    @Operation(summary="ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (JSON 직접 검색)")
+    @Operation(summary="ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (JSON 직접 검색) (String 반환)")
     @GetMapping("/api/v1/search/elastic/data/json")
     public ResponseEntity<Object> getElasticDataListWithJson(String query) {
     	return makeResponseEntity(elasticSearchService.getElasticDataListWithJson(query));
+    }
+    
+    @Operation(summary="ElasticSearch에 저장된 메타데이터 셋 목록(다건) 조회 (JSON 직접 검색) (화면 호출용)")
+    @GetMapping("/api/v1/search/elastic/data/json/enties")
+    public ResponseEntity<Object> getElasticDataListWithJsonEntityForView(ElasticSearchQueryVo searchVo) {
+    	return makeResponseEntity(elasticSearchService.getElasticDataListWithJsonEntityForView(searchVo));
     }
     
     @Operation(summary="ElasticSearch 초기화 후 재등록 (설정한 인덱스 전체 삭제 후 재등록)")

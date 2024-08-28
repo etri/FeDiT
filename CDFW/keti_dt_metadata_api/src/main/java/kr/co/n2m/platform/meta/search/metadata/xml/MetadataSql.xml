@@ -129,7 +129,6 @@
 		    LEFT OUTER JOIN dtmeta.tb_meta_model t2 ON t2.model_id = t1.model_id
 		    LEFT OUTER JOIN dtmeta.tb_meta_data t3 ON t3.medata_set_id = t1.medata_set_id
 		    WHERE t1.medata_set_id = #{digitalTwinId}
-		      AND t3.medata_val ~ '^(?!\d{2,4}-\d{3,4}-\d{4}$)([A-Za-z0-9~_]+-)+[A-Za-z0-9~_]+$'
 		    UNION ALL
 		    SELECT
 		        t1.medata_set_id,
@@ -147,11 +146,19 @@
 		    LEFT OUTER JOIN dtmeta.tb_meta_data t3 ON t3.medata_set_id = t1.medata_set_id
 		    INNER JOIN medata_hierarchy mh ON t1.medata_set_id = mh.medata_val
 		    WHERE mh.depth <![CDATA[ < ]]> 10
-		      AND t3.medata_val ~ '^(?!\d{2,4}-\d{3,4}-\d{4}$)([A-Za-z0-9~_]+-)+[A-Za-z0-9~_]+$'
 		)
 		SELECT distinct medata_val 
 		FROM medata_hierarchy
+		WHERE val_model_id = 'idString'
     </select>
+    
+    <select id="selectGeom" resultType="int">
+    	/* SQL_ID: MetadataSearchMapper.selectGeom */
+		SELECT 
+		    COUNT(*)
+		FROM 
+		    (VALUES (dtmeta.ST_GeomFromText(#{polygon}))) AS geom
+	</select>
     
     
     	
