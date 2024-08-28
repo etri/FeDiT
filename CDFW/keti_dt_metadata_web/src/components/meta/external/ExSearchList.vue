@@ -75,8 +75,15 @@ const tableHeader = ref([
 ]);
 
 const goPage = (payload) => {
+	const path = route.path;
 	const query = props.pageInfo;
-	router.push({path: `/meta/exsearch/page/${payload.medataSetId}`, query: query});
+
+	if(path.includes('exsearch')) {
+		router.push({path: `/meta/exsearch/page/${payload.medataSetId}`, query: query});
+	}
+	else {
+		router.push({path: `/meta/search/intgrdata/page/${payload.medataSetId}`, query: query});
+	}
 };
 
 const pagemove = (payload) => {

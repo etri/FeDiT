@@ -1,23 +1,21 @@
 <template>
-  <div class="cntSec">
-    <div class="boxLayout">
-      <div class="boxTit" v-if="searchMode === 'domain'"><h3>RDF 프라퍼티 목록 - {{ rdfInfo.nodeNm }}</h3></div>
-      <div class="boxTit" v-else><h3>RDF 프라퍼티 목록</h3></div>
-      <div class="boxCnt">
-        <div style="overflow-x: hidden; overflow-y: auto">
-          <div class="centered-table">
-            <ComnList
-              :tableHeader="tableHeader"
-              :tableData="rdfPropertyList"
-              :height="470"
-              @row-click="rowClick"
-            />
-            <ComnPagination
-              :totalPage="totalPage"
-              :curPage="curPage"
-              @pagemove="pagemove"
-            />
-          </div>
+  <div class="boxLayout">
+    <div class="boxTit" v-if="searchMode === 'domain'"><h3>RDF 프라퍼티 목록 - {{ rdfInfo.nodeNm }}</h3></div>
+    <div class="boxTit" v-else><h3>RDF 프라퍼티 목록</h3></div>
+    <div class="boxCnt">
+      <div style="overflow-x: hidden; overflow-y: auto">
+        <div class="centered-table">
+          <ComnList
+            :tableHeader="tableHeader"
+            :tableData="rdfPropertyList"
+            :height="470"
+            @row-click="rowClick"
+          />
+          <ComnPagination
+            :totalPage="totalPage"
+            :curPage="curPage"
+            @pagemove="pagemove"
+          />
         </div>
       </div>
     </div>

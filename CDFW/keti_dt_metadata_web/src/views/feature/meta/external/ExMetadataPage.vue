@@ -210,7 +210,7 @@ const propertySet = (medataSetId, propertyNmList, generalPropertyObj) => {
 };
 
 const propertyListSetByPrptNm = (medataSetId, propertyNm, generalProperty) => {
-
+	// TODO: 여기서 isPaging: false 를 하는 게 맞을까? 최초 10건만 나오게 하고 [메타데이터 상세 조회]에서 보게 해야 할까?
 	$axios
 		.get(util.format($apiUrls.publicpage.meta.resource.metadatasets.getMetadataListBySetPropertyNm, medataSetId, propertyNm), { params: { isPaging: false } })
 		.then((res) => {
@@ -226,8 +226,16 @@ const propertyListSetByPrptNm = (medataSetId, propertyNm, generalProperty) => {
 };
 
 const goListPage = () => {
-	const query = route.query;
-	router.push({path: '/meta/exsearch/list', query: query});
+	const path = route.path
+
+	if(path.includes('exsearch')) {
+		const query = route.query;
+		router.push({path: '/meta/exsearch/list', query: query});
+	}
+	else {
+		const query = route.query;
+		router.push({path: '/meta/search/intgrdata', query: query});
+	}
 };
 
 </script>

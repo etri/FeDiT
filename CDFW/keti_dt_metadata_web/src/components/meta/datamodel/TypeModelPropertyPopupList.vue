@@ -1,23 +1,21 @@
 <template>
-  <div class="cntSec">
-    <div class="boxLayout">
-      <div class="boxTit" v-if="searchMode === 'model'"><h3>메타데이터 모델 프라퍼티 목록 - {{ modelNm }}</h3></div>
-      <div class="boxTit" v-else><h3>메타데이터 모델 프라퍼티 목록</h3></div>
-      <div class="boxCnt">
-        <div style="overflow-x: hidden; overflow-y: auto">
-          <div class="centered-table">
-            <ComnList
-              :tableHeader="tableHeader"
-              :tableData="modelPropertyList"
-              :height="470"
-              @row-click="rowClick"
-            />
-            <ComnPagination
-              :totalPage="totalPage"
-              :curPage="curPage"
-              @pagemove="pagemove"
-            />
-          </div>
+  <div class="boxLayout">
+    <div class="boxTit" v-if="searchMode === 'model'"><h3>메타데이터 모델 프라퍼티 목록 - {{ modelNm }}</h3></div>
+    <div class="boxTit" v-else><h3>메타데이터 모델 프라퍼티 목록</h3></div>
+    <div class="boxCnt">
+      <div style="overflow-x: hidden; overflow-y: auto">
+        <div class="centered-table">
+          <ComnList
+            :tableHeader="tableHeader"
+            :tableData="modelPropertyList"
+            :height="470"
+            @row-click="rowClick"
+          />
+          <ComnPagination
+            :totalPage="totalPage"
+            :curPage="curPage"
+            @pagemove="pagemove"
+          />
         </div>
       </div>
     </div>

@@ -178,25 +178,45 @@ const clickRefreshBtn = () => {
 };
 
 const formatChk = () => {
-	if (!pageInfo.geoData) {
-		alert('WKT(Well-Known Text) POLYGON 또는 MULTIPOLYGON 정보를 입력해주세요.');
-		return;
-	}
-	// TODO: 임시 WKT 포맷 체크, 개선 필요
-	//const wktPattern = /^(POINT|LINESTRING|POLYGON|MULTIPOLYGON|MULTILINESTRING)\s*\((.*)\)$/i;
+    if (!pageInfo.geoData) {
+        alert('WKT(Well-Known Text) POLYGON 또는 MULTIPOLYGON 정보를 입력해주세요.');
+        return;
+    }
+
 	const wktPattern = /^(POLYGON|MULTIPOLYGON)\s*\((.*)\)$/i;
-	pageInfo.geoData = pageInfo.geoData.trim();
-	if (wktPattern.test(pageInfo.geoData)) {
+    let geoData = pageInfo.geoData.replace(/\s*(\r\n|\n|\r)\s*/gm, '').replace(/\s+/g, ' ').trim();
 
-		// TODO POLYGON은 좌표 시작점과 끝점이 맞아야 함.
-
-
-		pageInfo.polygon = pageInfo.geoData;
-		clickSearchBtn();
-	} else {
-		alert("WKT POLYGON 또는 MULTIPOLYGON 형식이 아닙니다.");
-	}
+    if (wktPattern.test(geoData)) {
+		isGeom(geoData);
+    } else {
+        alert("WKT POLYGON 또는 MULTIPOLYGON 형식이 잘못되었습니다.");
+    }
 };
+
+const isGeom = (geoData) => {
+	$axios
+		.get($apiUrls.publicpage.meta.search.metadata.geometryValidate, {
+			params: {
+				polygon: geoData
+			},
+		})
+		.then((res) => {
+			if(res.data) {
+				pageInfo.polygon = geoData;
+				clickSearchBtn();
+			}
+			else {
+				alert("WKT POLYGON 또는 MULTIPOLYGON 형식이 잘못되었습니다.");
+				return;
+			}
+		})
+		.catch((err) => {
+			console.log(err);
+			alert('형식 확인 중 오류가 발생했습니다.');
+			return;
+		});
+};
+
 
 </script>
 <style lang="scss" scoped>

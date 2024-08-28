@@ -85,6 +85,8 @@ import RetrievalMetadataPage from "@/views/feature/meta/search/data/RetrievalMet
 import ResourceTreeListPage from "@/views/feature/meta/search/resourcetree/ResourceTreeListPage.vue";
 import SparqlQueryPage from "@/views/feature/meta/search/sparql/SparqlQueryPage.vue";
 import SparqlQueryResultPage from "@/views/feature/meta/search/sparql/SparqlQueryResultPage.vue";
+import ElasticsearchQueryPage from "@/views/feature/meta/search/elasticsearch/ElasticsearchQueryPage.vue";
+import ElasticsearchQueryResultPage from "@/views/feature/meta/search/elasticsearch/ElasticsearchQueryResultPage.vue";
 
 import MetadataListPage from "@/views/feature/meta/manage/dataset/MetadataListPage.vue";
 import MetadataDetailManagePage from "@/views/feature/meta/manage/dataset/MetadataDetailManagePage.vue";
@@ -494,6 +496,23 @@ export const metaRoutes = {
 						}
 					]
 				},
+        {
+          path: "intgrdata",
+          name: "meta_IntegratedSearch",
+          meta: { title: "메타데이터 검색" }, // 임시 명칭     
+          children: [
+            {
+              path: ":",
+              name: "meta_IntegratedSearchListPage",
+              components: { default: ExSearchListPage },
+            },  
+            {
+              path: "page/:medataSetId",
+              name: "meta_IntegratedSearchPage",
+              components: { default: ExMetadataPage },
+            },           
+          ],
+        },
         // 디지털트윈 리소스 트리
 				{
 					path: "resourcetree",
@@ -519,7 +538,20 @@ export const metaRoutes = {
 							components: { default: SparqlQueryPage },
 						},
 					]
-				}
+				},
+        // Elasticsearch 쿼리
+        {
+          path: "elasticsearch",
+          name: "meta_Elastic",
+          meta: { title: "Elasticsearch query" },
+          children: [
+            {
+              path: ":",
+              name: "meta_ElasticQueryPage",
+              components: { default: ElasticsearchQueryPage },
+            },
+          ]
+        }
 			]
 		},
     // 새 창 검색 결과
@@ -538,6 +570,12 @@ export const metaRoutes = {
           name: "meta_SparqlQueryResultPage",
           components: { default: SparqlQueryResultPage },
         },     
+        // Elasticsearch 쿼리 결과
+        {
+          path: "elasticsearch",
+          name: "meta_ElasticsearchQueryResultPage",
+          components: { default: ElasticsearchQueryResultPage },
+        },
       ],
     },      
 		//메타데이터 관리

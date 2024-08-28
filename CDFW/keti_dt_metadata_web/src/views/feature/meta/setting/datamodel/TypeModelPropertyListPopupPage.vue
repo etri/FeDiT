@@ -1,29 +1,23 @@
 <template>
   <!-- <div class="boxLayout"> -->
   <div class="dialog-area">
-    <div class="cntSec">
-      <TypeModelPropertyPopupSearchForm
-        :searchMode="searchMode"
-        :searchModelDisabled="searchModelDisabled"
-        :modelId="modelId"
-        :modelNm="modelNm"
-        @searchModelProperty="searchModelProperty"
-      />
-    </div>
-    <div class="cntSec">
-      <div style="overflow-x: hidden; overflow-y: auto">
-        <TypeModelPropertyPopupList
-          :modelPropertyList="state.modelPropertyList"
-          :totalPage="state.pageInfo.totalListSize"
-          :curPage="state.pageInfo.curPage"
-          :searchMode="searchMode"
-          :modelId="modelId"
-          :modelNm="modelNm"
-          @selectedRow="selectedRow"
-          @pageMove="pageMove"
-        />
-      </div>
-    </div>
+    <TypeModelPropertyPopupSearchForm
+      :searchMode="searchMode"
+      :searchModelDisabled="searchModelDisabled"
+      :modelId="modelId"
+      :modelNm="modelNm"
+      @searchModelProperty="searchModelProperty"
+    />
+    <TypeModelPropertyPopupList
+      :modelPropertyList="state.modelPropertyList"
+      :totalPage="state.pageInfo.totalListSize"
+      :curPage="state.pageInfo.curPage"
+      :searchMode="searchMode"
+      :modelId="modelId"
+      :modelNm="modelNm"
+      @selectedRow="selectedRow"
+      @pageMove="pageMove"
+    />
   </div>
 </template>
 <script setup>

@@ -10,20 +10,18 @@
         @searchRdfClass="searchRdfClass"
       />
 
-      <div style="overflow-x: hidden; overflow-y: auto">
-        <RdfClassPopupList
-          :rdfClassList="state.rdfClassList"
-          :totalPage="state.pageInfo.totalListSize"
-          :curPage="state.pageInfo.curPage"
-          :rdfFormMtcdList="rdfFormMtcdList"
-          :rdfNmspList="rdfNamespaceList"
-          :searchMode="searchMode"
-          :searchTypeFix="searchTypeFix"
-          :rdfInfo="rdfInfo"
-          @selectedRow="selectedRow"
-          @pageMove="pageMove"
-        />
-      </div>
+      <RdfClassPopupList
+        :rdfClassList="state.rdfClassList"
+        :totalPage="state.pageInfo.totalListSize"
+        :curPage="state.pageInfo.curPage"
+        :rdfFormMtcdList="rdfFormMtcdList"
+        :rdfNmspList="rdfNamespaceList"
+        :searchMode="searchMode"
+        :searchTypeFix="searchTypeFix"
+        :rdfInfo="rdfInfo"
+        @selectedRow="selectedRow"
+        @pageMove="pageMove"
+      />
   </div>
 </template>
 <script setup>

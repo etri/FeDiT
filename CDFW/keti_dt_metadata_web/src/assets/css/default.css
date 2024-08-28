@@ -7,7 +7,7 @@
 @import url('sub.css');
 @import url('login.css');
 @import url('font-awesome.css');
-@import url('sub_datacore.css');
+/* meta에 필요없음. @import url('sub_datacore.css'); */
 
 /* 노토산스 폰트변경 */
 @font-face{

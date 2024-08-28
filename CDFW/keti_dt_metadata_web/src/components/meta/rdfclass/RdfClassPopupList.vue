@@ -3,21 +3,17 @@
     <div class="boxTit" v-if="searchMode === 'range'"><h3>RDF 클래스 목록 - {{ rdfInfo.nodeNm }}</h3></div>
     <div class="boxTit" v-else><h3>RDF 클래스 목록</h3></div>
     <div class="boxCnt">
-      <div style="overflow-x: hidden; overflow-y: auto">
-        <div class="centered-table">
-          <ComnList
-            :tableHeader="tableHeader"
-            :tableData="rdfClassList"
-            :height="470"
-            @row-click="rowClick"
-          />
-          <ComnPagination
-            :totalPage="totalPage"
-            :curPage="curPage"
-            @pagemove="pagemove"
-          />
-        </div>
-      </div>
+      <ComnList
+        :tableHeader="tableHeader"
+        :tableData="rdfClassList"
+        :height="470"
+        @row-click="rowClick"
+      />
+      <ComnPagination
+        :totalPage="totalPage"
+        :curPage="curPage"
+        @pagemove="pagemove"
+      />
     </div>
   </div>
 </template>

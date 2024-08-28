@@ -15,32 +15,26 @@
     <div class="boxCnt">
         <el-form label-position="left" 
           :model="searchInfo" :inline="true" 
-          class="demo-form-inline" l
-          abel-width="80px"
+          class="demo-form-inline search-form"
+          label-width="80px"
           style="margin-top: 20px;">
-          <el-form-item label="모델" style="margin-left: 21px;">
-            <el-row :gutter="20">
-              <el-col :span="24">
-                <el-input 
-                  style="width: 400px;" 
-                  v-model="state.modelNm" 
-                  disabled />
-              </el-col>
-            </el-row>
-          </el-form-item>
-          <el-form-item label="검색어" style="margin-left: 21px;">
-            <el-row :gutter="20">
-              <el-col :span="24">
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="모델" style="margin-left: 21px;">
+                <el-input v-model="state.modelNm" disabled class="" />              
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="검색어" style="margin-left: 21px;">
                 <div class="inline-area">
                   <el-input 
-                    style="width: 400px" 
                     v-model="searchInfo.searchName" 
                     placeholder="물리명 또는 논리명을 입력하세요."
                     @keydown.enter.prevent="getTypeModelPropertyList()" />
                 </div>
-              </el-col>
-            </el-row>
-          </el-form-item>
+              </el-form-item>
+            </el-col>
+          </el-row>
         </el-form>
     </div>
   </div>

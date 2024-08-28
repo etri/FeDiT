@@ -44,7 +44,8 @@
                 <el-input
                   class="w-auto m-2"
                   v-model="state.searchName"
-                  placeholder="검색어를 입력하세요."/>
+                  placeholder="검색어를 입력하세요."
+                  @keydown.enter.prevent="getTypePropertyList" />
               </el-form-item>
             </el-col>
             <el-col :span="6">

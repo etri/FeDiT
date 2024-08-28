@@ -643,6 +643,10 @@ input + label{cursor:pointer; vertical-align:middle; margin-left:5px;}
 .demo-date-picker .el-date-editor{width:200px !important; height:33px;}
 .search-form.el-form--inline .el-form-item .demo-date-picker .el-date-editor { width: 150px !important; }
 
+/* 2024-08-14 .el-dialog 넓이가 50% 로 변경됨. 기본값 늘림 */
+.el-dialog {
+  --el-dialog-width: 70%;
+}
 /* 2023-06-09 dialog 내용 스크롤 */
 .dialog-area {max-height: calc(100vh - 250px); min-height: 300px; overflow-y: auto; overflow-x: hidden; }/* calc값 144px>250px로 변경.ntomDI쪽 로그관리 팝업사이즈영향 */
 .el-dialog__body { padding-top: 20px; } /* el-dialog 원래 padding-top: 30px; */
