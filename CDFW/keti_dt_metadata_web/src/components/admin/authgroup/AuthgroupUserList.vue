@@ -1,5 +1,5 @@
 <template>
-  <div class="cntSec">
+  <div>
     <div class="boxLayout">
       <div class="boxTit">
         <h3>담당자/사용자 검색</h3>
@@ -20,7 +20,7 @@
           <el-button
             type="primary"
             @click="searchUserName"
-            style="position: relative; left;: 22px"
+            style="position: relative; left: 22px;"
             >검색</el-button
           >
         </el-form-item>
@@ -35,18 +35,18 @@
         <comn-list
           :tableHeader="tableHeader"
           :tableData="userList"
-          :height="200"
+          :height="250"
           @selectionChange="onSelectionChkbox"
         >
           <template v-slot:name="slotProps">
             <el-input v-model="slotProps.row.userID"> </el-input>
           </template>
         </comn-list>
+        <div class="mt10" style="float: right">
+          <el-button type="primary" @click="saveUser">선택</el-button>
+          <el-button plain type="primary" @click="cancelPopup">취소</el-button>
+        </div>
       </div>
-    </div>
-    <div style="float: right">
-      <el-button type="primary" @click="saveUser">선택</el-button>
-      <el-button plain type="primary" @click="cancelPopup">취소</el-button>
     </div>
   </div>
 </template>
