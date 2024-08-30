@@ -124,7 +124,14 @@ const goToResult =() => {
 };
 
 onMounted(async()  => {
-
+  let defaultJson = {
+    "size": 1000,
+    "query":{
+      "match_all":{ }
+    }
+  };
+  
+  state.searchInfo.queryJson = JSON.stringify(defaultJson, null, 2);
 })
 
 
