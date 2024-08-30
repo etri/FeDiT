@@ -165,8 +165,3 @@ const handleClickInfo = (index) =>{
 }
 
 </script>
-<style lang="scss">
-.dialog_jsonEditor_setting {
-  height: 400px;
-}
-</style>

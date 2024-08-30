@@ -646,6 +646,7 @@ input + label{cursor:pointer; vertical-align:middle; margin-left:5px;}
 /* 2024-08-14 .el-dialog 넓이가 50% 로 변경됨. 기본값 늘림 */
 .el-dialog {
   --el-dialog-width: 70%;
+  --el-dialog-margin-top: min(10vh, 200px);
 }
 /* 2023-06-09 dialog 내용 스크롤 */
 .dialog-area {max-height: calc(100vh - 250px); min-height: 300px; overflow-y: auto; overflow-x: hidden; }/* calc값 144px>250px로 변경.ntomDI쪽 로그관리 팝업사이즈영향 */
@@ -655,6 +656,8 @@ input + label{cursor:pointer; vertical-align:middle; margin-left:5px;}
 .dialog-area .dataCheckTable thead th{background-color: #e1ddef; color: #36363b;}
 .dialog-area .dataCheckTable tbody tr{border-bottom:1px solid #ddd}
 .dialog-area .dataCheckTable tbody tr td{padding:10px;box-sizing:border-box;}
+
+.dialog_jsonEditor_setting { min-height: 400px; height: 100%; }
 
 /* 2023-06-12 단 구분 제목 */
 .boxSectionTit { margin-top: 20px; border-top: #5F6679 solid 2px; background:rgba(8, 162, 183, 0.1); border-radius: 0px 0px 5px 5px; }
