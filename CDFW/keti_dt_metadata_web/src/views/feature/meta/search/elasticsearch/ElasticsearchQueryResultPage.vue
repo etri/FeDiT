@@ -10,7 +10,7 @@
 			<div class="boxCnt">
 				<div class="ly-table">
           <!-- <el-table :data="tableData" border style="width: 100%; height:calc(100vh - 250px);"> -->
-          <el-table :data="tableData" border stripe style="width: 100%;">
+          <el-table :data="tableData" border stripe style="width: 100%;" @row-click="rowClick">
             <el-table-column prop="rownum" label="번호" width="60" :fixed="true"></el-table-column>
             <template v-for="(item) in tableHeader" :key="item">
                 <el-table-column :prop="item.prop" :label="item.label" :min-width="item.width" :fixed="item.fixed">
@@ -24,6 +24,24 @@
 	  	</div>
   	</div>
 	</div>
+
+  <el-dialog v-model="dialogLogInfo" title="Elasticsearch Query 결과 정보">
+      <div class="dialog-area">
+        <div class="boxLayout">
+            <div class="boxTit"><h3>{{ selectedId }}</h3></div>
+            <div class="boxCnt">
+              <JsonEditorVue class="dialog_jsonEditor_setting" v-model="selectedInfo" v-bind="{
+                readOnly: true,
+                mode: 'text',
+                theme: 'light',
+                mainMenuBar: false,
+                navigationBar: false,
+                parser: undefined,
+              }" />
+            </div>
+          </div>
+      </div>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -40,6 +58,10 @@ const $axios = getGlobalProperties().$axios;
 const $apiUrls = getGlobalProperties().$apiUrls;
 const route = useRoute();
 const router = useRouter();
+
+const dialogLogInfo = ref(false);
+const selectedInfo = ref({});
+const selectedId = ref("");
 
 watch(
 	() => route.query,
@@ -107,6 +129,12 @@ const execute = () => {
 
 const goToBackPage = () => {
 	router.back();
+};
+
+const rowClick = (data) => {
+  dialogLogInfo.value = true;
+  selectedId.value = data._id;
+  selectedInfo.value = JSON.parse(data._source);
 };
 
 </script>
