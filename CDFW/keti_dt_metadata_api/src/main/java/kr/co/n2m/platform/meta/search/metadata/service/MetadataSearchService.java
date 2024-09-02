@@ -61,8 +61,10 @@ public class MetadataSearchService {
 			
 			if(StringUtils.isNotEmpty(metadataSearchVo.getKeyword())) {
 				String query = "";
+				int querySize = 100;
 				if("match".equals(metadataSearchVo.getKeywordType())) {
 					query = "{"
+					      + "\"size\": " + querySize + ","
 						  + "\"query\": {"
 						  + "\"query_string\": {"
 						  + "\"query\": \"" + metadataSearchVo.getKeyword() + "\","
@@ -73,6 +75,7 @@ public class MetadataSearchService {
 				}
 				if("include".equals(metadataSearchVo.getKeywordType())) {
 					query = "{"
+						  + "\"size\": " + querySize + ","
 						  + "\"query\":{"
 						  + "\"query_string\":{"
 						  + "\"query\": \"" + metadataSearchVo.getKeyword() + "\""
