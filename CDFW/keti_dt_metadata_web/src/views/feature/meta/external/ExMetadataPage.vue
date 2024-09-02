@@ -49,14 +49,14 @@
 		<template v-if="!isNotFound" v-for="prptyNm of state.geoJsonPropertyNmList" :key="prptyNm">
 			<div class="boxLayout" v-if="state.dataMap[prptyNm].prptyScrnIndcYn == 'Y'">
 				<RetrievalGeneralProperty :generalProperty="state.dataMap[prptyNm]" 
-					:medataSetId="state.medataSetId" 
-					:medataSet="state.medataSet" 
-					backPageName="ExMetadataPage"
-					:isPublicApi="true"
-					:minCntToDisplayButton="1" />
+				:medataSetId="state.medataSetId" 
+				:medataSet="state.medataSet" 
+				backPageName="ExMetadataPage"
+				:isPublicApi="true"
+				:minCntToDisplayButton="1" />
 			</div>
 		</template>
-
+		
 		<template v-if="!isNotFound" v-for="prptyNm of state.jsonEtcPropertyNmList" :key="prptyNm">
 			<div class="boxLayout" v-if="state.dataMap[prptyNm].prptyScrnIndcYn == 'Y'">
 				<RetrievalGeneralProperty :generalProperty="state.dataMap[prptyNm]" 
@@ -64,7 +64,8 @@
 					:medataSet="state.medataSet" 
 					backPageName="ExMetadataPage"
 					:isPublicApi="true"
-					:minCntToDisplayButton="1" />
+					:minCntToDisplayButton="1"
+					@selectedProperty="selectedProperty" />
 			</div>
 		</template>
 
@@ -80,6 +81,21 @@
 		</template>		
 
 	</div>
+
+	
+	<el-dialog v-model="dialogLogInfo" title="프라퍼티 정보">
+		<div class="dialog-area">
+			<JsonEditorVue class="dialog_jsonEditor_setting" v-model="selectedInfo" v-bind="{
+				readOnly: true,
+				mode: 'text',
+				theme: 'light',
+				mainMenuBar: false,
+				navigationBar: false,
+				parser: undefined,
+			}" />
+		</div>
+	</el-dialog>
+
 </template>
 <script setup>
 import UpperDigitalTwinList from "@/components/meta/dataset/UpperDigitalTwinList.vue";
@@ -98,6 +114,9 @@ const route = useRoute();
 const router = useRouter();
 
 const isNotFound = ref(false);
+const dialogLogInfo = ref(false);
+const selectedId = ref("");
+const selectedInfo = ref({});
 
 const state = reactive({
 	medataSetId: '',
@@ -236,6 +255,11 @@ const goListPage = () => {
 		const query = route.query;
 		router.push({path: '/meta/search/intgrdata', query: query});
 	}
+};
+
+const selectedProperty = (payload) => {
+	dialogLogInfo.value = true;
+	selectedInfo.value = payload;
 };
 
 </script>

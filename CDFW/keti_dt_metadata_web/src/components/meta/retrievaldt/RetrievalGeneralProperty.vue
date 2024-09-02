@@ -57,9 +57,19 @@
 		</div>
 
 		<!-- EtcJson type -->
-		<div class="boxCnt" v-if="'json' === generalProperty.rangeDataTypeMtcd">
-			<div v-for="item of generalProperty.propertyList" :key="item">
-				<el-input type="textarea" v-model="item.medataVal" disabled	:autosize="{ minRows: 4 , maxRows: 10}"></el-input>
+		<div class="boxCnt" v-if="'json' === generalProperty.rangeDataTypeMtcd" >
+			<div v-for="item of generalProperty.propertyList" :key="item" @dblclick="showJson(item.medataVal)">
+				<el-scrollbar style="max-height: 300px; overflow-y: auto;">
+					<div>
+						<el-input
+						type="textarea"
+						v-model="item.medataVal"
+						disabled
+						:autosize="{ minRows: 4 }"
+						style="pointer-events: none;">
+						</el-input>
+					</div>
+				</el-scrollbar>
 			</div>
 		</div>
 
@@ -78,6 +88,8 @@ const dialogVisibleSingleInfoMetadata = ref(false); //메타데이터 단건 프
 
 const kakaoMapShow = ref(false);
 const shapesMap = ref(new Map()); // Map
+
+const emits = defineEmits(["selectedProperty"]);
 
 const props = defineProps({
 	generalProperty: {
@@ -220,6 +232,10 @@ const initMap = () => {
 		});
 	}
 }
+
+const showJson = (json) => {
+	emits("selectedProperty", JSON.parse(json));
+};
 
 </script>
 <style lang="scss" scoped></style>
