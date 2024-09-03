@@ -58,6 +58,13 @@ const $apiUrls = getGlobalProperties().$apiUrls;
 const store = useStore();
 const ruleFormRef = ref(null);
 
+const defaultJson = {
+    "size": 1000,
+    "query":{
+      "match_all":{ }
+    }
+  };
+
 
 const state = reactive({
   searchInfo: {
@@ -124,12 +131,6 @@ const goToResult =() => {
 };
 
 onMounted(async()  => {
-  let defaultJson = {
-    "size": 1000,
-    "query":{
-      "match_all":{ }
-    }
-  };
   
   state.searchInfo.queryJson = JSON.stringify(defaultJson, null, 2);
 })
@@ -137,7 +138,7 @@ onMounted(async()  => {
 
 
 const setUpQuery = () => {
-  state.searchInfo.queryJson = "";
+  state.searchInfo.queryJson = JSON.stringify(defaultJson, null, 2);
   state.searchInfo.httpMethod = "GET";
   state.searchInfo.indexEndpoint = "/dtmeta/_search";
 }
