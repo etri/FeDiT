@@ -39,6 +39,7 @@
 					:medataSet="medataSet"
 					:generalPropertyMap="state.generalPropertyMap"
 					:refPropertyNmMap="state.refPropertyNmMap"
+					:backPageName="'MetadataDetailManagePage'"
 					@modifyMetadataListForSaveInfo="modifyMetadataListForSaveInfo"
 					@on-data-changed="onSingleDataChanged"
 				  />

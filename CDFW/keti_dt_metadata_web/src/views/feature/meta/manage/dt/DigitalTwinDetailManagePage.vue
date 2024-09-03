@@ -24,7 +24,8 @@
 				  :metadataListWithSetId="state.metadataListWithSetId"
 					:medataSet="medataSet"
 					:generalPropertyMap="state.generalPropertyMap"
-					:refPropertyNmMap="state.refPropertyNmMap"					
+					:refPropertyNmMap="state.refPropertyNmMap"
+					:backPageName="'DigitalTwinDetailManagePage'"
 					@modifyMetadataListForSaveInfo="modifyMetadataListForSaveInfo"
 					@on-data-changed="onSingleDataChanged"
 					/><!-- :totalPage="state.pageInfoForMetadataListWithSetId.totalListSize" -->

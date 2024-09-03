@@ -183,10 +183,11 @@ const objTypePropertyTableHeader = ref([
 ]);
 
 const goToMetadataManagePage1 = (payload) => {
+	// console.log(`props.backPageName : ${props.backPageName}`);
 	metaCommon.goToMetadataManagePage({
 		medataSetId: payload.medataVal,
 		typeModelId: props.generalProperty.rangeTypeModelId,
-		backPageName: props.dataEditableYn == 'Y' ? 'MetadataDetailManagePage' : 'RetrievalMetadataSetPage'
+		backPageName: props.backPageName ?? props.dataEditableYn == 'Y' ? 'MetadataDetailManagePage' : 'RetrievalMetadataSetPage'
 	});
 }
 

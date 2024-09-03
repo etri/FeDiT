@@ -145,6 +145,10 @@ const props = defineProps({
 		type: Object,
 		required: false,
 	},
+	backPageName: {
+		type: String,
+		required: false,
+	}	
 });
 
 const tableHeader = ref([
@@ -198,7 +202,7 @@ const state = reactive({
 	popModifyMetadataParam: {
 		title: '',
 		generalProperty: {},
-		backPageName: '',
+		backPageName: props.backPageName,
 	}
 });
 
@@ -379,7 +383,7 @@ const popModifyMetadata = (slotData) => {
 	state.popModifyMetadataParam = {
 		title: `메타데이터 값 ${props.dataEditableYn == 'Y' ? '편집' : '조회'} - [ ${slotData.prptyNm} ] 프라퍼티`,
 		generalProperty: props.generalPropertyMap[slotData.prptyNm],
-		backPageName: props.dataEditableYn == 'Y' ? 'MetadataDetailManagePage' : 'RetrievalMetadataSetPage',
+		backPageName: props.backPageName ?? props.dataEditableYn == 'Y' ? 'MetadataDetailManagePage' : 'RetrievalMetadataSetPage',
 	};
 
 	dialogVisibleModifyMetadata.value = true;
