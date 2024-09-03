@@ -1,5 +1,5 @@
 <template>
-	<div class="boxLayout">
+	<!-- <div class="boxLayout"> -->
 		<div class="boxTit">
 			<h3>
 				[ {{ generalProperty.prptyNm }} ] {{ generalProperty.prptyLogicNm }}
@@ -92,7 +92,7 @@
 			</div>
 
 		</div>
-	</div>
+	<!-- </div> -->
 </template>
 <script setup>
 import ComnList from "@/components/common/ComnList";
