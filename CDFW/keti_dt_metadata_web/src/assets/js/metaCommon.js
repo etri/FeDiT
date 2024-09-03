@@ -168,11 +168,9 @@ const goToMetadataManagePage = ({medataSetId, typeModelId, backPageName}) => {
       routerPush(platform, "DigitalTwinDetailManagePage", query);
     } else if (retrievalPageNameArr.includes(backPageName)) { //검색용 메뉴 (디지털트윈 셋조회 상세)
       routerPush(platform, "RetrievalDigitalTwinDatasetPage", query);
-//    } else if (externalPageNameArr.includes(backPageName)) { //외부제공용 메타데이터 통합 검색
-//      router.push({path: `/meta/exsearch/page/${medataSetId}`});
-//    } else if (intgrdataPageNameArr.includes(backPageName)) { //메타데이터 통합 검색
-//      router.push({path: `/meta/search/intgrdata/page/${medataSetId}`});
-    } else { // 메타데이터 통합 검색 (외부제공용, 메타데이터 통합 검색 상세)
+    } else if (intgrdataPageNameArr.includes(backPageName)) { //메타데이터 통합 검색
+     router.push({path: `/meta/search/intgrdata/page/${medataSetId}`});
+    } else { // 외부제공용
       router.push({ name: platform + "_" + backPageName, params: query });
     }
 
@@ -182,11 +180,9 @@ const goToMetadataManagePage = ({medataSetId, typeModelId, backPageName}) => {
       routerPush(platform, "MetadataDetailManagePage", query);
     } else if (retrievalPageNameArr.includes(backPageName)) { //검색용 메뉴 (메타데이터셋 셋조회 상세)
       routerPush(platform, "RetrievalMetadataSetPage", query);
-//    } else if (externalPageNameArr.includes(backPageName)) { //외부제공용 메타데이터 통합 검색
-//      router.push({path: `/meta/exsearch/page/${medataSetId}`});
-//    } else if (intgrdataPageNameArr.includes(backPageName)) { //메타데이터 통합 검색
-//       router.push({path: `/meta/search/intgrdata/page/${medataSetId}`});
-    } else { // 메타데이터 통합 검색 (외부제공용, 메타데이터 통합 검색 상세)
+    } else if (intgrdataPageNameArr.includes(backPageName)) { //메타데이터 통합 검색
+      router.push({path: `/meta/search/intgrdata/page/${medataSetId}`});
+    } else { // 외부제공용
       router.push({ name: platform + "_" + backPageName, params: query });
     }
 

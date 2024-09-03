@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="cntSec">
-      <div class="boxLayout">
+      <div class="boxLayout mb10">
         <div class="boxTit">
           <h3>RDF 시각 그래프 조회</h3>
           <div class="btnSec taR">
@@ -49,7 +49,7 @@
       <div class="neo4jd3-container">
         <el-container>
           <el-aside width="70%" style="margin-right: 10px;">
-            <div class="boxLayout"  >
+            <div class="boxLayout">
               <div class="boxTit">
                 <h3>시각 그래프 (총 {{ state.nodeCount }} 건)</h3>
               </div>

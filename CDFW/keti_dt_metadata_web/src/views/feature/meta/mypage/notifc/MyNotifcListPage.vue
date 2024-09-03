@@ -5,7 +5,7 @@
         >내 알림 설정</el-button
       >
     </div>
-    <div class="boxLayout">
+    <div class="">
       <div class="tab">
         <el-tabs
           type="card"

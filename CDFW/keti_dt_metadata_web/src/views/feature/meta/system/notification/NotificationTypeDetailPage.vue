@@ -407,7 +407,7 @@
           </el-form>
         </div>
       </div>
-      <div class="boxLayout">
+      <div class="boxLayout mt20">
         <div class="boxTit"><h3>알림 대상자</h3><span>※ 알림 대상 유형이 "요청자"인 경우, 프로그래밍한 해당 요청자에게 알림이 갑니다.</span></div>
         <div class="boxCnt">
           <div class="btnSec taR mb10">

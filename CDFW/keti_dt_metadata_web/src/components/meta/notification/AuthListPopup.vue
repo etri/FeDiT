@@ -29,7 +29,7 @@
         </el-form>
       </div>
     </div>
-    <div class="boxLayout">
+    <div class="boxLayout mt20">
       <div class="boxTit">
         <h3>권한 목록</h3>
       </div>
@@ -47,7 +47,7 @@
         </div>
       </div>
     </div>
-    <div class="btnSec taR">
+    <div class="btnSec taR mt20">
       <el-button type="default" @click="closeDialogAuth()">취소</el-button>
       <el-button type="primary" @click="addAuth()">선택</el-button>
     </div>
