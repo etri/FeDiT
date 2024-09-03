@@ -3,6 +3,7 @@
 		<div class="boxTit">
 			<h3>메타데이터 검색</h3>
 			<div class="btnSec taR">
+				<el-button type="default" @click="refresh()">초기화</el-button>
 				<el-button type="primary" @click="getExSearchList(1)">검색</el-button>
 			</div>
 		</div>
@@ -94,7 +95,7 @@ const pageInfo = reactive({
 	typeModelId: "DigitalTwin",
 	srchText: "",
 	keyword: "",
-	keywordType: "",
+	keywordType: "match",
 	polygon: "",
 	totalListSize: 0,
 	pageListSize: 10,
@@ -215,6 +216,17 @@ const isGeom = (geoData) => {
 			alert('형식 확인 중 오류가 발생했습니다.');
 			return;
 		});
+};
+
+const refresh = () => {
+	pageInfo.digitalTwinId = "";
+	pageInfo.typeModelId = "DigitalTwin";
+	pageInfo.srchText = "";
+	pageInfo.keyword = "";
+	pageInfo.keywordType = "match";
+	pageInfo.polygon = "";
+	pageInfo.geoData = "";
+	polygonSearch.value = false;
 };
 
 
