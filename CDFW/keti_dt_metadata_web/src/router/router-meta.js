@@ -499,16 +499,16 @@ export const metaRoutes = {
         {
           path: "intgrdata",
           name: "meta_IntegratedSearch",
-          meta: { title: "메타데이터 검색" }, // 임시 명칭     
+          meta: { title: "메타데이터 통합 검색" },   
           children: [
             {
               path: ":",
-              name: "meta_IntegratedSearchListPage",
+              name: "meta_IntgrdataListPage",
               components: { default: ExSearchListPage },
             },  
             {
               path: "page/:medataSetId",
-              name: "meta_IntegratedSearchPage",
+              name: "meta_IntgrdataPage",
               components: { default: ExMetadataPage },
             },           
           ],

@@ -11,7 +11,7 @@
 			</div>
 			<div class="boxCnt">
 				<div> <!-- style="overflow-x: hidden; overflow-y: auto" -->
-					<UpperDigitalTwinList :upperMetadataSetDtwListBySubSetId="state.upperMetadataSetDtwListBySubSetId" backPageName="ExMetadataPage" />
+					<UpperDigitalTwinList :upperMetadataSetDtwListBySubSetId="state.upperMetadataSetDtwListBySubSetId" :backPageName="backPageName" />
 				</div>
 			</div>
 		</div>
@@ -41,7 +41,7 @@
 			</div>
 			<div class="boxCnt">
 				<div class="ly-table">					
-					<MetadataNameValueList :metadataInfoList="state.metadataInfoList" backPageName="ExMetadataPage" />
+					<MetadataNameValueList :metadataInfoList="state.metadataInfoList" :backPageName="backPageName" />
 				</div>
 			</div>
 		</div>
@@ -51,7 +51,7 @@
 				<RetrievalGeneralProperty :generalProperty="state.dataMap[prptyNm]" 
 				:medataSetId="state.medataSetId" 
 				:medataSet="state.medataSet" 
-				backPageName="ExMetadataPage"
+				:backPageName="backPageName"
 				:isPublicApi="true"
 				:minCntToDisplayButton="1" />
 			</div>
@@ -62,7 +62,7 @@
 				<RetrievalGeneralProperty :generalProperty="state.dataMap[prptyNm]" 
 					:medataSetId="state.medataSetId" 
 					:medataSet="state.medataSet" 
-					backPageName="ExMetadataPage"
+					:backPageName="backPageName"
 					:isPublicApi="true"
 					:minCntToDisplayButton="1"
 					@selectedProperty="selectedProperty" />
@@ -74,7 +74,7 @@
 				<RetrievalGeneralProperty :generalProperty="state.dataMap[prptyNm]" 
 					:medataSetId="state.medataSetId" 
 					:medataSet="state.medataSet" 
-					backPageName="ExMetadataPage"
+					:backPageName="backPageName"
 					:isPublicApi="true"
 					:minCntToDisplayButton="1" />
 			</div>
@@ -117,6 +117,7 @@ const isNotFound = ref(false);
 const dialogLogInfo = ref(false);
 const selectedId = ref("");
 const selectedInfo = ref({});
+const backPageName = ref("ExMetadataPage");
 
 const state = reactive({
 	medataSetId: '',
@@ -149,6 +150,14 @@ onMounted(() => {
 const initInfo = () => {
 	state.medataSetId = route.params.medataSetId;
 	getMetadataSetInfo(state.medataSetId);
+	const path = route.path
+	if(path.includes('exsearch')) {
+		backPageName.value = "ExMetadataPage"
+	}
+	else {
+		backPageName.value = "IntgrdataPage"
+	}
+	console.log(backPageName.value);
 };
 
 const clearInfo = (cmd) => {

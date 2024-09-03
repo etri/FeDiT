@@ -115,9 +115,12 @@ const Buttons = {
 //router에 등록한 페이지명
 // [managePageNameArr] 관리용 메뉴 (디지털트윈 관리 상세, 메타데이터 관리 상세)
 // [retrievalPageNameArr] 검색용 메뉴 (디지털트윈 검색, 메타데이터셋 검색, 메타데이터 검색)
+// [externalPageNameArr] 외부제공용 메타데이터 통합 검색
+// [intgrdataPageNameArr] 메타데이터 통합 검색
 const managePageNameArr = ['DigitalTwinDetailManagePage', 'MetadataDetailManagePage'];
 const retrievalPageNameArr = ['RetrievalMetadataSetPage', 'RetrievalDigitalTwinDatasetPage', 'RetrievalMetadataPage'];
-const externalPageNameArr =  ['ExSearchListPage', 'ExMetadataPage']; // 외부제공용 검색
+const externalPageNameArr =  ['ExSearchListPage', 'ExMetadataPage'];
+const intgrdataPageNameArr =  ['IntgrdataListPage', 'IntgrdataPage'];
 
 /**
  * 디지털 트윈 상세 (관리/조회) 페이지로 이동
@@ -165,7 +168,11 @@ const goToMetadataManagePage = ({medataSetId, typeModelId, backPageName}) => {
       routerPush(platform, "DigitalTwinDetailManagePage", query);
     } else if (retrievalPageNameArr.includes(backPageName)) { //검색용 메뉴 (디지털트윈 셋조회 상세)
       routerPush(platform, "RetrievalDigitalTwinDatasetPage", query);
-    } else { // 외부제공용 검색
+//    } else if (externalPageNameArr.includes(backPageName)) { //외부제공용 메타데이터 통합 검색
+//      router.push({path: `/meta/exsearch/page/${medataSetId}`});
+//    } else if (intgrdataPageNameArr.includes(backPageName)) { //메타데이터 통합 검색
+//      router.push({path: `/meta/search/intgrdata/page/${medataSetId}`});
+    } else { // 메타데이터 통합 검색 (외부제공용, 메타데이터 통합 검색 상세)
       router.push({ name: platform + "_" + backPageName, params: query });
     }
 
@@ -175,7 +182,11 @@ const goToMetadataManagePage = ({medataSetId, typeModelId, backPageName}) => {
       routerPush(platform, "MetadataDetailManagePage", query);
     } else if (retrievalPageNameArr.includes(backPageName)) { //검색용 메뉴 (메타데이터셋 셋조회 상세)
       routerPush(platform, "RetrievalMetadataSetPage", query);
-    } else { // 외부제공용 검색
+//    } else if (externalPageNameArr.includes(backPageName)) { //외부제공용 메타데이터 통합 검색
+//      router.push({path: `/meta/exsearch/page/${medataSetId}`});
+//    } else if (intgrdataPageNameArr.includes(backPageName)) { //메타데이터 통합 검색
+//       router.push({path: `/meta/search/intgrdata/page/${medataSetId}`});
+    } else { // 메타데이터 통합 검색 (외부제공용, 메타데이터 통합 검색 상세)
       router.push({ name: platform + "_" + backPageName, params: query });
     }
 

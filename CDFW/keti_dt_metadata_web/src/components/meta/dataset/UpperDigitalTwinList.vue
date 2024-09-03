@@ -72,6 +72,7 @@ const tableHeader = ref([
 ]);
 
 const goToDigitalTwinManagePage1 = (payload) => {
+	console.log(props.backPageName);
 	metaCommon.goToDigitalTwinManagePage({
 		medataSetId: payload.dtwId,
 		backPageName: props.backPageName
@@ -79,6 +80,7 @@ const goToDigitalTwinManagePage1 = (payload) => {
 }
 
 const goToMetadataManagePage1 = (payload) => {
+	console.log(props.backPageName);
 	metaCommon.goToMetadataManagePage({
 		medataSetId: payload.upSetId,
 		typeModelId: payload.upTypeModelId,
