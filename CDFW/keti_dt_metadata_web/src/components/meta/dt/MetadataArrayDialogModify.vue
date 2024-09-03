@@ -55,7 +55,8 @@
 							:rangeModelTypeMtcd="props.generalProperty.rangeModelTypeMtcd"
 							:rangeDataTypeMtcd="props.generalProperty.rangeDataTypeMtcd"
 							@pageMove="pageMove" 
-							@chooseMetadataFromEtcJson="chooseMetadataFromEtcJson" />
+							@chooseMetadataFromEtcJson="chooseMetadataFromEtcJson"
+							@goToDetailPage="goToDetailPage"  />
 					</div>
 				</div>
 
@@ -248,7 +249,8 @@
 							:rangeTypeModelId="props.generalProperty.rangeTypeModelId"
 							:backPageName="props.backPageName"
 							@chooseMetadataFromObjectType="chooseMetadataFromObjectType"
-							@objectPageMove="objectPageMove" />
+							@objectPageMove="objectPageMove" 
+							@goToDetailPage="goToDetailPage" />
 					</div>
 				</div>
 			</div>
@@ -264,7 +266,7 @@ import MetadataObjectDialogSearchList from "@/components/meta/retrievaldt/Metada
 import MetadataSetDialogEdit from "@/components/meta/dataset/MetadataSetDialogEdit.vue";
 import MetadataSetDialogSearch from "@/components/meta/dt/MetadataSetDialogSearch.vue";
 
-import { reactive, onMounted, defineProps, ref, getCurrentInstance, defineExpose } from "vue";
+import { reactive, onMounted, defineProps, ref, getCurrentInstance, defineExpose, defineEmits } from "vue";
 import { useStore } from "vuex";
 import { getGlobalProperties, isEmpty } from "@/assets/js/common.js";
 import util from "util";
@@ -282,6 +284,7 @@ const idSchmObjectList = ref([]);
 const dialogVisibleEdit = ref(false); //메타데이터 셋 편집 modal(object type 신규 등록)
 const dialogVisibleSearchMetadataSet = ref(false); //메타데이터 셋 검색 modal (object type 선택 등록)
 
+const emits = defineEmits(["goToDetailPage"]);
 const props = defineProps({
 	dataEditableYn: {
 		type: String,
@@ -340,6 +343,10 @@ onMounted(() => {
 		getMetadataObjectList();
 	}
 });
+
+const goToDetailPage = () => {
+	emits("goToDetailPage");
+}
 
 const getMetaCodeList = async () => {
 	await store.dispatch("MetaStore/getMetaCodeList", {

@@ -8,8 +8,11 @@
 			<div v-if="generalProperty.propertyListCnt >= props.minCntToDisplayButton
 				&& 'geoJson' !== generalProperty.rangeDataTypeMtcd
 				&& 'json' !== generalProperty.rangeDataTypeMtcd" class="btnSec taR">
-				<el-button type="primary" @click="dialogVisibleSearchMetadata = true" >메타데이터 상세 조회</el-button>
-			</div>			
+				<el-button type="primary" @click="dialogVisibleSearchMetadata = true">메타데이터 상세 조회</el-button>
+			</div>
+			<div v-if="'json' === generalProperty.rangeDataTypeMtcd && generalProperty.propertyListCnt > 0">
+				<el-button type="primary" @click="showJson(generalProperty.propertyList[0].medataVal)">JSON 보기</el-button>				
+			</div>
 		</div>
 		<!-- 프라퍼티 목록 상세 조회 modal -->
 		<el-dialog v-model="dialogVisibleSearchMetadata" :title="`메타데이터 검색 - [ ${generalProperty.prptyNm} ] 프라퍼티`" width="80%" top="7vh">
@@ -58,18 +61,8 @@
 
 		<!-- EtcJson type -->
 		<div class="boxCnt" v-if="'json' === generalProperty.rangeDataTypeMtcd" >
-			<div v-for="item of generalProperty.propertyList" :key="item" @dblclick="showJson(item.medataVal)">
-				<el-scrollbar style="max-height: 300px; overflow-y: auto;">
-					<div>
-						<el-input
-						type="textarea"
-						v-model="item.medataVal"
-						disabled
-						:autosize="{ minRows: 4 }"
-						style="pointer-events: none;">
-						</el-input>
-					</div>
-				</el-scrollbar>
+			<div v-for="item of generalProperty.propertyList" :key="item">
+				<el-input	type="textarea"	v-model="item.medataVal" disabled :autosize="{ minRows: 4, maxRows: 10 }"></el-input>
 			</div>
 		</div>
 

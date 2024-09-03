@@ -18,7 +18,8 @@
 				:before-close="onBeforeCloseDialogModifyMetadata">
 				<MetadataArrayDialogModify ref="dialogModifyMetadataRef" :dataEditableYn="dataEditableYn"
 					:medataSetId="medataSetId" :medataSet="medataSet" :generalProperty="generalProperty"
-					:backPageName="backPageName" />
+					:backPageName="backPageName" 
+					@goToDetailPage="dialogVisibleModifyMetadata = false;" />
 			</el-dialog>
 
 			<div class="ly-table">
@@ -185,7 +186,7 @@ const goToMetadataManagePage1 = (payload) => {
 	metaCommon.goToMetadataManagePage({
 		medataSetId: payload.medataVal,
 		typeModelId: props.generalProperty.rangeTypeModelId,
-		backPageName: 'MetadataDetailManagePage'
+		backPageName: props.dataEditableYn == 'Y' ? 'MetadataDetailManagePage' : 'RetrievalMetadataSetPage'
 	});
 }
 

@@ -76,7 +76,8 @@
 				:medataSetId="medataSet.medataSetId" 
 				:medataSet="medataSet"
 				:generalProperty="state.popModifyMetadataParam.generalProperty"
-				:backPageName="state.popModifyMetadataParam.backPageName" />
+				:backPageName="state.popModifyMetadataParam.backPageName" 
+				@goToDetailPage="dialogVisibleModifyMetadata = false;" />
 		</el-dialog>		
 
 	</div>
@@ -378,7 +379,7 @@ const popModifyMetadata = (slotData) => {
 	state.popModifyMetadataParam = {
 		title: `메타데이터 값 ${props.dataEditableYn == 'Y' ? '편집' : '조회'} - [ ${slotData.prptyNm} ] 프라퍼티`,
 		generalProperty: props.generalPropertyMap[slotData.prptyNm],
-		backPageName: '',
+		backPageName: props.dataEditableYn == 'Y' ? 'MetadataDetailManagePage' : 'RetrievalMetadataSetPage',
 	};
 
 	dialogVisibleModifyMetadata.value = true;

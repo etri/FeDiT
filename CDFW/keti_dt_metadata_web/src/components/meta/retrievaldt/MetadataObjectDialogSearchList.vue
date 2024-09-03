@@ -17,7 +17,7 @@ import ComnPagination from "@/components/common/ComnPagination.vue";
 import { ref, reactive, defineProps } from "vue";
 import metaCommon from "@/assets/js/metaCommon.js";
 
-const emits = defineEmits(["objectPageMove", "chooseMetadataFromObjectType"]);
+const emits = defineEmits(["objectPageMove", "chooseMetadataFromObjectType", "goToDetailPage"]);
 const props = defineProps({
 	metadataObjectList: {
 		type: Array,
@@ -101,6 +101,7 @@ const rowClick = (node, column) => {
 };
 
 const goToMetadataManagePage1 = (payload) => {
+	emits("goToDetailPage");
 	metaCommon.goToMetadataManagePage({
 		medataSetId: payload.medataVal,
 		typeModelId: props.rangeTypeModelId,
