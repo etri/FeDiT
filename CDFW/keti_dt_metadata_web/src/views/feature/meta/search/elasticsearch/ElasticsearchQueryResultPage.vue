@@ -101,7 +101,7 @@ const tableHeader = ref([
 ]);
 const tableData = ref([]);
 
-const executeSparqlQuery = () => {
+const executeQuery = () => {
   let param = Object.assign({}, state.searchInfo);
   $axios
     .get($apiUrls.meta.rdf.elastic.searchElasticsearch, {
@@ -124,7 +124,7 @@ const execute = () => {
   state.searchInfo.queryJson = route.query.queryJson;
   state.searchInfo.httpMethod = route.query.httpMethod;
   state.searchInfo.indexEndpoint = route.query.indexEndpoint;
-  executeSparqlQuery();
+  executeQuery();
 }
 
 const goToBackPage = () => {

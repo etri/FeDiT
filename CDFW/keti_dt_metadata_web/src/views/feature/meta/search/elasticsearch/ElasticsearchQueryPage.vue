@@ -59,9 +59,9 @@ const store = useStore();
 const ruleFormRef = ref(null);
 
 const defaultJson = {
-    "size": 1000,
+    "size": 100,
     "query":{
-      "match_all":{ }
+      "match_all": { }
     }
   };
 

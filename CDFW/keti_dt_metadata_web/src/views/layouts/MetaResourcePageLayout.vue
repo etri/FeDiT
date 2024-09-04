@@ -23,8 +23,27 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, reactive } from "vue";
+import { getGlobalProperties } from "@/assets/js/common.js";
+import { ElLoading } from "element-plus";
+
 import ContentFooter from "@/components/layouts/ContentFooter.vue";
 
 const logo = ref("Digital Twin Metadata");
+
+const $emitter = getGlobalProperties().$emitter;
+
+let loading = reactive({});
+$emitter.on("loading", (flag) => {
+  if (flag) {
+    loading = ElLoading.service({
+      lock: true,
+      text: "Loading",
+      background: "rgba(0, 0, 0, 0.7)",
+    });
+  } else {
+    if (loading) loading.close();
+  }
+});
+
 </script>
