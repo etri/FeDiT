@@ -14,7 +14,7 @@
     <div class="sidebar-body">
         <ul class="nav" th:with="menu=${session.ss_admin.authMenu}">
             <th:block th:each="item : ${menu}">
-                <li class="nav-item" th:if="${item.up_menu_cd == 'TOP'}">
+                <li class="nav-item topMenu" th:if="${item.up_menu_cd == 'TOP'}">
                     <th:block th:if="${#strings.isEmpty(item.menu_url)}">
                         <a th:href="|#${item.menu_cd}|" class="nav-link" data-toggle="collapse" role="button" aria-expanded="false" th:aria-controls="${item.menu_cd}">
                             <i class="link-icon" th:data-feather="${item.menu_icon}"></i>
@@ -42,5 +42,4 @@
         </ul>
     </div>
 </nav>
-
 </html>

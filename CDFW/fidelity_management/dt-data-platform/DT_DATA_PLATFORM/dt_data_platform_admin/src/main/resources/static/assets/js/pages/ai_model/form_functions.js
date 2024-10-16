@@ -633,7 +633,7 @@ function makePreprocStatistics(data, header_data) {
 	var strHTML = '';
 	strHTML += '			<label class="label-a">Statistics</label>';
 		strHTML += '			<select class="w-40 select-a preproc_statistics"  id="preproc_statistics" style="display: inline-block;margin: auto;">';
-		strHTML += '						<option value="">선택</option>';
+		strHTML += '						<option value="0">선택</option>';
 			for (var i = 0; i < header_data.length; i++) {
 					if (header_data[i].replace(/\"/gi, "") != indexTrgtCol) {
 						if (i == 1) {
@@ -672,7 +672,7 @@ function makePreprocHistogram(data, header_data) {
 	var strHTML = '';
 	strHTML += '		<label class="label-a">Histogram</label>';
 	strHTML += '		<select class="w-40 select-a preproc_histogram" id="preproc_histogram">';
-		strHTML += '						<option value="">선택</option>';
+		strHTML += '						<option value="0">선택</option>';
 	    //$.each(header_data, function(i, item) {
 		for (var i = 0; i < header_data.length; i++) {
 			if (header_data[i].replace(/\"/gi, "") != indexTrgtCol) {
@@ -1086,8 +1086,7 @@ function makePreprocNanFinishDataValid(filepath, modelSeq, indexTrgtCol) {
 	            var missingJsonString = JSON.stringify(result.missingValueNode);
 	            var missingEncodedData = encodeURIComponent(missingJsonString);
 	            $("#missingValueNode").val(missingEncodedData);                 	
-            	
-	            
+
 	            $('#preProcDataRange').html(makePreprocData(result.infoNode, result.infoTopHeaderList));
 	            
             	//$('#tab_missing_table_range_valid_object').html(makePreprocMissingValueValidObject(result.dtypeValueNode, result.validHeaderList));

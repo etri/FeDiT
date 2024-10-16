@@ -93,4 +93,12 @@
 		   WHERE VRFC_SEQ     = #{vrfcSeq}		     
 	</update>
 	
+	<select id="getVerifyOption" parameterType="int" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : VerifyMapper.xml, id : getVerifyOption */
+		SELECT VRFC_TP,VRFC_NM,RULE_VALUE_1,RULE_VALUE_2,RULE_VALUE_3,RULE_VALUE_4
+		  FROM TB_DATA_VRFC A
+		 WHERE A.DEL_YN = 'N'
+		   AND A.VRFC_SEQ = #{vrfcSeq}
+	</select>	
+	
 </mapper>

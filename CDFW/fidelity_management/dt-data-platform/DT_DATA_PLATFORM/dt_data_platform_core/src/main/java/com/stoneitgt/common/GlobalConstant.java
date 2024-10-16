@@ -32,8 +32,10 @@ public class GlobalConstant {
 	public static final class API_STATUS {
 		public static final int SUCCESS = 200;
 		public static final int FAIL = -100;
+		public static final int FAIL_MAPPING = -111;
 		public static final int AUTH_DENY = -999;
 		public static final int NO_AUTH = -900;
+		public static final int INTERNAL_SERVER_ERROR = 500;
 	}
 
 	public static final class CRUD_TYPE {
@@ -58,6 +60,8 @@ public class GlobalConstant {
 		public static final String CORRELATION = "correlation";
 		public static final String UNIT = "unit";
 		public static final String AUGMENT = "augment";
+		public static final String ONETIME = "onetime";
+		public static final String CYCLE = "cycle";
 	}
 
 

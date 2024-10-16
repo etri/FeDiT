@@ -7,11 +7,6 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface MakeModelSchedulerMapper {
-
-	List<Map<String, Object>> getMakeModelTarget(Map<String, Object> targetParams);
-
-	int updateMakeModelTarget(Map<String, Object> seqListParam);
-
 	List<Map<String, Object>> getMakeModelDoingList(Map<String, Object> targetParams);
 
 	List<Map<String, Object>> setMakeModelOutputColumns(Map<String, Object> checkParams);

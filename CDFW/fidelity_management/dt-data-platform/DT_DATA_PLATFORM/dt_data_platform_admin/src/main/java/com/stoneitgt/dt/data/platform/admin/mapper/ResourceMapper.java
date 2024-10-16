@@ -8,6 +8,7 @@ import com.stoneitgt.dt.data.platform.domain.Resource;
 @Mapper
 public interface ResourceMapper {
 
-	int insertResource(Resource resource);
-	int updateResource(Resource resource);
+    int insertResource(Resource resource);
+
+    int updateResource(Resource resource);
 }

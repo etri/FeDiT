@@ -502,6 +502,8 @@ function preprocResampleView(resample_file_path, modelSeq) {
 
 //히스토그램 차트
 function histogramView(itemName, data) {
+	console.log("histogramView====")
+	 console.log(data);
     var histogramChart = {
     	"title": "",
     	"subtitle": "",
@@ -517,8 +519,11 @@ function histogramView(itemName, data) {
     
     //json 변환 컬럼 데이터 추출
     jsonVal = JSON.parse(data);
+   
     var itemVal = jsonVal.filter(function (obj) {
     	item = JSON.parse(obj);
+    	console.log("====item====")
+    	console.log(jsonVal)
     	if (typeof item[itemName] !== undefined) {
     		return item[itemName];
     	} 	            	

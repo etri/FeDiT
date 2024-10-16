@@ -26,7 +26,7 @@ public class Paging {
 	@Builder.Default
 	private int subPage = 1; // 페이지 번호
 	@Builder.Default
-	private int subSize = 5; // 게시글 수
+	private int subSize = 10; // 게시글 수
 	
 	private int first; // 첫 번째 페이지 번호
 	private int last; // 마지막 페이지 번호

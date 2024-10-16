@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<th:block th:fragment="tab_validate">
+    <!-- 데이터 전처리  하단 Validate-->
+    <div class="col-md-12 grid-margin  stretch-card bottom-tab" id="tab_validate_range" style="height: 60%">
+        <div class="card" style="height: 60%">
+            <div class="card-body">
+                <div class="form-group row">
+                    <div class="col-md-6">
+                        <div id="valid_table_range"></div>
+                        <div id="tab_missing_table_range_valid"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <div style="display: inline-block" id="preProcValidTargetCol">
+                            </div>
+                        </div>
+                        <div class="form-group" id="validate_option">
+                            <label>변환유형</label>
+                            <div class="select-with-text">
+                                <select class="w-40 valid-select-box" id="select_valid_mater_tp">
+                                    <option value="0">검증안함</option>
+                                    <option th:each="item : ${valid_mater_list}" th:value="${item.dtl_cd}"
+                                            th:text="${item.dtl_cd_nm}"></option>
+                                </select>
+                                <span class="text-next-to-select">1단계 : 검증 방법을 선택합니다.검증안함 선택시 바로 다음단계로 이동합니다.</span>
+                            </div>
+                            <div class="select-with-text">
+                                <select class="w-40 valid-select-box" id="select_valid_detail_tp">
+                                    <option value="0">선택</option>
+                                </select>
+                                <span class="text-next-to-select">2단계 : 검증에 사용할 형식을 지정합니다.</span>
+                            </div>
+                            <div id="select_valid_range_type" class="row" style="display: none;">
+                                <div class="col">
+                                    <div class="form-group row">
+                                        <label for="valid-range-min" class="col-md-4 col-12 col-form-label text-nowrap">최소값</label>
+                                        <div class="col-md-8 col-12">
+                                            <input type="text" id="valid-range-min"
+                                                   class="form-control range-input number_only"
+                                                   placeholder="최소값을 입력해주세요."
+                                                   name="min" value="0">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-group row">
+                                        <label for="valid-range-max" class="col-md-4 col-12 col-form-label text-nowrap">최대값</label>
+                                        <div class="col-md-8 col-12">
+                                            <input type="text" id="valid-range-max"
+                                                   class="form-control range-input number_only"
+                                                   placeholder="최대값을 입력해주세요."
+                                                   name="max" value="10">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-group row">
+                                        <label for="float-valid-range-min" class="col-md-4 col-12 col-form-label text-nowrap">최소값</label>
+                                        <div class="col-md-8 col-12">
+                                            <input type="text" id="float-valid-range-min"
+                                                   class="form-control range-input double_only"
+                                                   placeholder="최소값을 입력해주세요."
+                                                   name="min" value="0">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-group row">
+                                        <label for="float-valid-range-max" class="col-md-4 col-12 col-form-label text-nowrap">최대값</label>
+                                        <div class="col-md-8 col-12">
+                                            <input type="text" id="float-valid-range-max"
+                                                   class="form-control range-input double_only"
+                                                   placeholder="최대값을 입력해주세요."
+                                                   name="max" value="10">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="select-with-text" id="select_valid_clear_tp" style="display: none;">
+                                <select class="w-30 valid-select-box">
+                                    <option value="0">선택</option>
+                                    <option value="I">지정값</option>
+                                    <option value="O">지정외값</option>
+                                </select>
+                                <span class="text-next-to-select">3단계 : <br/>[지정값]2단계 형식과 일치하는 값을 삭제(빈값) <br/> [지정외값]:2단계 형식과 일치하지 않는 값을 삭제(빈값)</span>
+                            </div>
+                            <input class="btn btn-success btn-view-valid-info" type="button" value="상태확인">
+                            <input class="btn btn-primary btn-make-valid" id="btn_make_valid" type="button" value="변환"
+                                   style="display: none;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 업로드 테이블-->
+    <th:block th:if="${formType == 'I'}">
+        <div id="preprocTableExcludeRangeValidate" style="width: 100%; display: none;">
+        </div>
+        <div id="preprocTableRangeValidate" style="width: 100%;"></div>
+    </th:block>
+    <div id="next_button_valiate_range" style="display: none;">
+        <div class="col-sm-12">
+            <button type="button" class="btn btn-primary mr-2 btn-icon-text next-preproc-outlier-step float-right">
+                다음(outlier)<i data-feather="arrow-right"></i>
+            </button>
+            <button type="button" class="btn btn-primary mr-2 btn-icon-text prev-column-info-step float-right">
+                <i data-feather="arrow-left"></i>이전
+            </button>
+        </div>
+    </div>
+</th:block>
+</html>

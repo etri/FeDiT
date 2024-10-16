@@ -771,7 +771,7 @@ function viewLine(val, index, isZoom, isComma, isTool) {
 	
 	//챠트표시
 	viewContainer = document.getElementById('view' + index);
-	console.log(viewContainer)
+	//console.log(viewContainer)
 	view = echarts.init(viewContainer);
 	view.setOption(option);
 	

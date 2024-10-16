@@ -3,30 +3,14 @@ package com.stoneitgt.dt.data.platform.admin.controller;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
 
-import javax.servlet.http.HttpServletRequest;
-
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,27 +19,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
 
 import lombok.extern.slf4j.Slf4j;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stoneitgt.common.GlobalConstant;
-import com.stoneitgt.common.GlobalConstant.FILE_REF_TYPE;
-import com.stoneitgt.dt.data.platform.admin.config.WebConfig;
 import com.stoneitgt.dt.data.platform.admin.service.AIModelService2;
 import com.stoneitgt.dt.data.platform.admin.service.FilesService;
 import com.stoneitgt.dt.data.platform.domain.BaseParameter;
-import com.stoneitgt.dt.data.platform.domain.Files;
-import com.stoneitgt.dt.data.platform.domain.Paging;
 import com.stoneitgt.dt.data.platform.properties.BaseSystemProperties;
-import com.stoneitgt.dt.data.platform.util.FileUtil;
-import com.stoneitgt.dt.data.platform.util.StoneUtil;
 
 @Slf4j
 @Controller
@@ -73,7 +43,6 @@ public class AIModelController2 extends BaseController {
 	
 	@GetMapping("/result")
 	public String getResult(@ModelAttribute BaseParameter params, Model model) throws IOException {
-		//int modelSeq = Integer.parseInt(params.get("model_seq").toString());
 		int modelSeq = 9999;
 		
 		model.addAttribute("list_loss", aiModelService.getModelLossList(modelSeq));
@@ -157,7 +126,6 @@ public class AIModelController2 extends BaseController {
 	public void getTestData(String filePath, List<Map<String, Object>> dataList, String type, ArrayList<String> columns, int count) throws IOException {
 		ArrayList<HashMap<String, Object>> alData = new ArrayList<HashMap<String,Object>>();
 		ArrayList<List<Map<String, Object>>> alResultList = new ArrayList<List<Map<String,Object>>>();
-		//String[] columns = {};
 		ArrayList<Integer> columns_no = new ArrayList<Integer>();
 		
 		BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(new File(filePath))));
@@ -199,7 +167,6 @@ public class AIModelController2 extends BaseController {
 					}					
 				}
 			} else {
-				//log.info(row);
 				String[] temp = row.split(",");
 				
 				if ("P".equals(type)) {
@@ -237,7 +204,6 @@ public class AIModelController2 extends BaseController {
 			Map<String, Object> data = alData.get(i);
 			List<Map<String, Object>> resultList = alResultList.get(i);			
 			data.put("data", resultList);
-			
 			dataList.add(data);
 		}		
 	}
@@ -265,13 +231,10 @@ public class AIModelController2 extends BaseController {
 				}
 				resultList.add(item);
 			}
-			
 			if (n==count)
 				break;
-			
 			n++;			
 		}
-		
 		return resultList;
 	}
 }

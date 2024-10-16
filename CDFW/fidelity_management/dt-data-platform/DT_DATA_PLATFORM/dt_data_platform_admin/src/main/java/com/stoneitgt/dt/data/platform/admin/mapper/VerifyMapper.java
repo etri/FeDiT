@@ -21,4 +21,6 @@ public interface VerifyMapper {
 	int saveVerifyDetail(Verify verify);
 
 	int deleteVerifyDetail(Verify verify);
+
+	Map<String, Object> getVerifyOption(int parseInt);
 }

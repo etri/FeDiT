@@ -46,33 +46,37 @@ div.tagsinput span.tag {
 }
 
 .label-a {
- 	display: inline-block;margin-top: 8px;margin-right: 5px;
+    display: inline-block;
+    margin-top: 8px;
+    margin-right: 5px;
 }
 
-.select-a{
-	display: inline-block;margin: auto;
+.select-a {
+    display: inline-block;
+    margin: auto;
 }
 
 .span-outline {
-	font-size: 11px; border-bottom: 0px solid black; width: 100px;padding-left: 10px;line-height: 2;
+    font-size: 11px;
+    border-bottom: 0px solid black;
+    width: 100px;
+    padding-left: 10px;
+    line-height: 2;
 }
-		
+
 .table-responsive {
-  max-height: 448px;
-  overflow-y: auto;
+    max-height: 448px;
+    overflow-y: auto;
 }
 
 
 .table-responsive2 {
-  max-height: 800px !important;
-  overflow-y: auto;
+    max-height: 800px !important;
+    overflow-y: auto;
 }
 
 code {
-    padding-left: px;
-    padding-right: 11px;
-    padding-top: 8px;
-    padding-bottom: 7px;
+    padding: 8px 11px 7px 0px;
     font-family: "Overpass", sans-serif;
     font-weight: 400;
     font-size: 0.875rem;
@@ -80,21 +84,21 @@ code {
 }
 
 .unit-select-box {
-	width: 147px !important;
+    width: 147px !important;
 }
 
-canvas.parent() {
-  width: 100%;
+canvas {
+    width: 100%;
 }
 
 .scrolltable {
-  max-height: 400px;
-  overflow-y: auto;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 .bottom-tab {
-	height : 600px;
-	overflow-y: auto;
+    height: 600px;
+    overflow-y: auto;
 }
 
 .select-with-text {
@@ -119,3 +123,19 @@ canvas.parent() {
       text-align: right;
 }
 */
+
+.background-image {
+    width: 100%;
+    padding-top: 56.25%;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.table-text-nowrap td,
+.table-text-nowrap td a {
+    white-space: nowrap; /* 줄바꿈 없이 한 줄로 표시 */
+    overflow: hidden; /* 넘치는 텍스트를 숨김 */
+    text-overflow: ellipsis; /* 텍스트가 넘치면 ... 처리 */
+    max-width: 200px; /* 각 셀의 최대 너비 설정 (필요시 조정 가능) */
+}

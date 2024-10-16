@@ -38,5 +38,9 @@ public class VerifyService {
 
 	public int deleteVerifyDetail(Verify verify) {
 		return verifyMapper.deleteVerifyDetail(verify);
+	}
+
+	public Map<String, Object> getVerifyOption(int parseInt) {
+		return verifyMapper.getVerifyOption(parseInt);
 	}	
 }

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<th:block th:fragment="tab_missing">
+    <!-- 데이터 전처리  하단 Missing Value-->
+    <div class="col-md-12 grid-margin stretch-card bottom-tab" id="tab_missing_range" style="height: auto;">
+        <div class="card" style="height: auto;">
+            <div class="card-body">
+                <div class="form-group row">
+                    <div class="col-md-6">
+                        <div id="tab_missing_table_range_interpolate"></div>
+                    </div>
+                    <div class="col-md-6" id="tab_missing_select_range">
+                        <h6 class="card-title">보간 옵션</h6>
+                        <div class="form-group d-flex">
+                            <select class="w-40" id="select_interpolate">
+                                <option value="0">처리안함</option>
+                                <option th:each="item : ${interp_type_list}" th:value="${item.dtl_cd}"
+                                        th:text="${item.dtl_cd_nm}"></option>
+                            </select>
+                            <input class="btn btn-primary btn-make-interpolate" type="button" value="변환">
+                        </div>
+                        <div id="rfcomment" class="form-group" style="color: red; display: none;">
+                        </div>
+
+                        <!-- 보간 처리 뷰 확인 -->
+                        <div class="col-sd-2">
+                            <div id="tab_nan_table_range"></div>
+                            <div id="tab_nan_table_complete_range"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 업로드 테이블-->
+    <th:block th:if="${formType == 'I'}">
+        <div id="preprocTableExcludeRangeMissing" style="width: 100%; display: none;"></div>
+        <div id="preprocTableRangeMissing" style="width: 100%; display: none;"></div>
+    </th:block>
+
+    <div id="next_button_interpolate_range" style="display: none;">
+        <div class="col-sm-12">
+            <button type="button" class="btn btn-primary mr-2 btn-icon-text next-preproc-resample-step float-right">
+                다음(resample)<i data-feather="arrow-right"></i>
+            </button>
+            <button type="button" class="btn btn-primary mr-2 btn-icon-text prev-preproc-outlier-step float-right">
+                <i data-feather="arrow-left"></i>이전
+            </button>
+        </div>
+    </div>
+</th:block>
+</html>

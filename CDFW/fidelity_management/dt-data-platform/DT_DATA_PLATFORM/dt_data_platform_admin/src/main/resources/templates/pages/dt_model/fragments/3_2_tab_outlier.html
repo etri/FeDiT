@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<th:block th:fragment="tab_outlier">
+    <!-- 데이터 전처리  하단 Outlier-->
+    <div class="col-md-12 grid-margin stretch-card bottom-tab d-flex flex-column" style="height: auto;"
+         id="tab_outlier_range">
+        <div class="card">
+            <div class="card-body" id="dynamic-card-body">
+                <div class="form-group row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <h6 class="card-title">이상치 검증 유형 및 컬럼 지정:</h6>
+                            검증 유형: <select class="select" id="select_outlier_option">
+                            <option value="0">검증안함</option>
+                            <option value="standard">STANDARD</option>
+                            <option value="kmean">KMEAN</option>
+                            <option value="dbscan">DBSCAN</option>
+                        </select>
+                        </div>
+                        <!-- <h6 class="card-title">지정한 컬럼의 차트를 확인 가능합니다.</h6> -->
+                        <div class="form-group" id="outlier_column_range">
+                            <div id="preProcOutlierTargetCol"></div>
+                        </div>
+                        <th:block th:if="${formType == 'I'}">
+                            <input class="btn btn-primary btn-make-outlier" id="btn_make_outlier" type="button"
+                                   value="변환">
+                        </th:block>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="card-title">이상치 파라미터:</h6>
+                        <div class="form-group" id="outlier_standard_range">
+                            샘플링 길이:<input class="form-control number_only" id="freq" type="text" value="10"
+                                          style="width: 70%;">
+                            <br/>
+                            정규분포 경계:<input class="form-control double_only" id="p_value" type="text" value="0.02"
+                                           style="width: 70%;">
+                            <input class="btn btn-success mt-3" id="btn_change_standard" type="button"
+                                   value="수치변경">
+                        </div>
+                        <div class="form-group" id="outlier_dbscan_range" style="display: none;">
+                            샘플링 길이:<input class="form-control number_only" id="freq" type="text" value="10"
+                                          style="width: 70%;">
+                            <br/>
+                            eps:<input class="form-control double_only" id="eps" type="text" value="0.1"
+                                       style="width: 70%;">
+                            <br/>
+                            min_samples:<input class="form-control number_only" id="min_samples" type="text" value="2"
+                                               style="width: 70%;">
+                            <input class="btn btn-success mt-3" id="btn_change_dbscan" type="button"
+                                   value="수치변경">
+                        </div>
+                        <div class="form-group" id="outlier_kmean_range" style="display: none;">
+                            샘플링 길이:<input class="form-control number_only" id="freq" type="text" value="10"
+                                          style="width: 70%;">
+                            <br/>
+                            클러스터 수:
+                            <div style="display: flex; align-items: center;">
+                                <input class="form-control number_only" data-event-validate-max="10" value="10"
+                                       id="n_clusters" type="text" style="width: 50%;"
+                                       placeholder="10">
+                            </div>
+                            <br/>
+                            클러스터의 제한되는 데이터 개수:
+                            <div style="display: flex; align-items: center;">
+                                <input class="form-control number_only" name="n_count" id="n_count" type="text"
+                                       style="width: 50%;"
+                                       placeholder="제한되는 데이터의 개수를 입력해주세요." value="10">
+                            </div>
+                            <input class="btn btn-success mt-3" id="btn_change_kmean" type="button"
+                                   value="수치변경">
+                        </div>
+                        <div class="form-group" id="outlier_etc_range" style="display: none;">
+                            window_size:<input class="form-control number_only" id="window_size" type="text"
+                                               style="width: 70%;">
+                            <br/>
+                            threshold:<input class="form-control double_only" id="threshold" type="text" value="1.5"
+                                             style="width: 70%;">
+                            <input class="btn btn-success mt-3 btn-change-threshold" id="btn_change_threshold"
+                                   type="button"
+                                   value="수치변경">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group row" id="outlier_standard_chart_range_form_group" style="display: none;">
+                    <div class="col-md-12" id="outlier_standard_chart_range" style="display: none;">
+                        <div id="view5"
+                             style="width:100%; height:auto; border-style:solid; border-width:1px; border-color:#eee;"></div>
+                    </div>
+                </div>
+                <div class="form-group row" id="outlier_kmean_chart_range_form_group" style="display: none;">
+                    <div class="col-md-12" id="outlier_kmean_chart_range" style="display: none;">
+                        <div id="view6"
+                             style="width:100%; height:auto; border-style:solid; border-width:1px; border-color:#eee;"></div>
+                    </div>
+                </div>
+                <div class="form-group row" id="outlier_dbscan_chart_range_form_group" style="display: none;">
+                    <div class="col-md-12" id="outlier_dbscan_chart_range" style="display: none;">
+                        <div id="view7"
+                             style="width:100%; height:auto; border-style:solid; border-width:1px; border-color:#eee;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 업로드 테이블-->
+    <th:block th:if="${formType == 'I'}">
+        <div id="preprocTableExcludeRangeOutlier" style="width: 100%; display: none;"></div>
+        <div id="preprocTableRangeOutlier" style="width: 100%; display: none;"></div>
+    </th:block>
+
+    <div id="next_button_outlier_range" style="display: none;">
+        <div class="col-sm-12">
+            <button type="button" class="btn btn-primary mr-2 btn-icon-text next-preproc-interpolate-step float-right">
+                다음(interpolate)<i data-feather="arrow-right"></i>
+            </button>
+            <button type="button" class="btn btn-primary mr-2 btn-icon-text prev-preproc-validate-step float-right">
+                <i data-feather="arrow-left"></i>이전
+            </button>
+        </div>
+    </div>
+</th:block>
+</html>

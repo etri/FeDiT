@@ -7,17 +7,13 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.collections4.map.HashedMap;
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -33,22 +29,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stoneitgt.common.GlobalConstant;
-import com.stoneitgt.common.GlobalConstant.FILE_REF_TYPE;
 import com.stoneitgt.dt.data.platform.admin.config.WebConfig;
 import com.stoneitgt.dt.data.platform.admin.service.AIModelService;
 import com.stoneitgt.dt.data.platform.admin.service.DjangoApiService;
 import com.stoneitgt.dt.data.platform.admin.service.SimulationService;
-import com.stoneitgt.dt.data.platform.domain.AugmentModel;
 import com.stoneitgt.dt.data.platform.domain.BaseParameter;
-import com.stoneitgt.dt.data.platform.domain.Files;
 import com.stoneitgt.dt.data.platform.domain.Paging;
 import com.stoneitgt.dt.data.platform.domain.SimulationModel;
 import com.stoneitgt.dt.data.platform.properties.BaseSystemProperties;
@@ -74,9 +64,6 @@ public class SimulationController extends BaseController {
 	@Autowired
 	private AIModelService aiModelService;
 	
-	
-	
-	
 	@GetMapping("/list")
 	public String getPredictList(@ModelAttribute BaseParameter params, Model model, HttpServletRequest request, HttpServletResponse response) {
 		
@@ -96,7 +83,6 @@ public class SimulationController extends BaseController {
 		}
 		model.addAttribute("list", list);
 		model.addAttribute("paging", StoneUtil.setTotalPaging(list, paging));
-		//log.info("paging::::" + StoneUtil.setTotalPaging(list, paging));
 		model.addAttribute("params", params);
 		
 		
@@ -109,15 +95,12 @@ public class SimulationController extends BaseController {
 		List<Map<String, Object>> share_list = simulationService.getPredictionSharedList(subParamsMap, subPaging);
 		model.addAttribute("share_list", share_list);
 		model.addAttribute("subPaging", StoneUtil.setTotalPaging(share_list, subPaging));
-		//log.info("subPaging::::" + StoneUtil.setTotalPaging(share_list, subPaging));
 		model.addAttribute("subParams", params);
 		
 
 		model.addAttribute("pageParams", getBaseParameterString(params));
 		model.addAttribute("breadcrumb", getBreadcrumb(params.getMenuCd()));
-		
-		//deleteCookie(request, response, "sub_tab");
-		//deleteCookie(request, response, "main_tab");
+
 		return "pages/simulation/list";
 	}	
 	
@@ -144,7 +127,7 @@ public class SimulationController extends BaseController {
 	@PostMapping("/form")
 	public String updateForm(@RequestParam(required = false) String menuCd,
 			@ModelAttribute BaseParameter params, @ModelAttribute SimulationModel simulationModel, BindingResult bindingResult, Model model,
-			RedirectAttributes rttr) {
+			RedirectAttributes redirectAttributes) {
 
 		String returnUrl = "redirect:/simulation/" + simulationModel.getAugmentSeq() + "?";
 		returnUrl += getBaseParameterString(params);
@@ -154,15 +137,12 @@ public class SimulationController extends BaseController {
 		simulationService.updateSimulationInfo(simulationModel);
 		
 		return returnUrl;
-		
 	}	
-	
-	
+
 	@GetMapping("/{augmentSeq}")
 	public String modelView(@PathVariable int augmentSeq, @ModelAttribute BaseParameter params, Model model) {
 		SimulationModel simulationModel = new SimulationModel();
-		
-		
+
 		if (authenticationFacade.getAuth().equals("AU00")) {
 			simulationModel = simulationService.getSimulation(augmentSeq);
 		} else {
@@ -176,9 +156,7 @@ public class SimulationController extends BaseController {
 		model.addAttribute("menuCd", params.getMenuCd());
 		model.addAttribute("breadcrumb", getBreadcrumb(params.getMenuCd()));
 		model.addAttribute("pageParams", getBaseParameterString(params));
-		
-		
-		//List<Map<String, Object>> artist_list = projectService.getPopupArtistUpdateList(projectSeq);
+
 		List<Map<String, Object>> model_list = simulationService.getPopupModelList();
 		model.addAttribute("modal_model_list", model_list);		
 		
@@ -189,9 +167,7 @@ public class SimulationController extends BaseController {
 		
 		return "pages/simulation/form";
 	}	
-	
-	
-	
+
 	@PostMapping(value="/insertSimulationInfo")
 	@ResponseBody
 	public Map<String, Object> insertSimulationInfo(@ModelAttribute SimulationModel simulationModel, HttpServletRequest request) throws IOException, ParseException {
