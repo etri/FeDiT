@@ -19,12 +19,15 @@ import com.stoneitgt.dt.data.platform.admin.config.DatabaseConfig;
 @Service
 public class ErrorService {
 
-	@Autowired
-	private ErrorMapper errorMapper;
-	
-	public int saveErrorLog(ErrorLog errorLog) {
-		return errorMapper.saveErrorLog(errorLog);
-	}
+    @Autowired
+    private ErrorMapper errorMapper;
 
-	
+    public int saveErrorLog(ErrorLog errorLog) {
+        return errorMapper.saveErrorLog(errorLog);
+    }
+
+
+    public ErrorLog getErrorLog(int etcModelSeq, String ERROR_LCT) {
+        return errorMapper.getErrorLog(etcModelSeq, ERROR_LCT);
+    }
 }

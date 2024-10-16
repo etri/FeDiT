@@ -1,14 +1,11 @@
 package com.stoneitgt.dt.data.platform.admin.controller;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
 import org.passay.RuleResult;
@@ -45,7 +42,6 @@ import com.stoneitgt.dt.data.platform.domain.Menu;
 import com.stoneitgt.dt.data.platform.domain.MenuAuth;
 import com.stoneitgt.dt.data.platform.domain.Paging;
 import com.stoneitgt.dt.data.platform.domain.User;
-import com.stoneitgt.dt.data.platform.util.FileUtil;
 import com.stoneitgt.dt.data.platform.util.StoneUtil;
 import com.stoneitgt.dt.data.platform.util.StringUtil;
 
@@ -69,12 +65,9 @@ public class SettingController extends BaseController {
 	
 	@Autowired
 	private VerifyService verifyService;
-	
-	/*******************메뉴관리 시작********************/
+
 	@GetMapping("/menu")
 	public String menuList(@ModelAttribute BaseParameter params, Model model) {
-
-
 		Map<String, Object> paramsMap = StoneUtil.convertObjectToMap(params);
 
 		List<Map<String, Object>> list = menuService.getMenuList(paramsMap);
@@ -123,7 +116,6 @@ public class SettingController extends BaseController {
 	@PostMapping("/menu/parent")
 	@ResponseBody
 	public Map<String, Object> getParentMenuList(@RequestBody Map<String, Object> params) {
-
 		List<Map<String, Object>> list = menuService.getParentMenuList(params);
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("code", "TOP");
@@ -135,10 +127,6 @@ public class SettingController extends BaseController {
 		return result;
 	}
 
-	/*******************메뉴관리 끝********************/
-	
-	
-	/*******************권한관리 시작********************/
 	@GetMapping("/auth")
 	public String authList(@ModelAttribute BaseParameter params, @RequestParam(required = false) String auth,
 			Model model) {
@@ -193,9 +181,7 @@ public class SettingController extends BaseController {
 		}
 		return children;
 	}
-	/*******************권한관리 끝********************/
-	
-	/*******************코드관리 시작********************/
+
 	@GetMapping("/code")
 	public String codeList(@ModelAttribute BaseParameter params, @RequestParam(required = false) String grpCd,
 			Model model) {
@@ -285,9 +271,7 @@ public class SettingController extends BaseController {
 		result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
 		return result;
 	}
-	/*******************코드관리 끝********************/
-	
-	/*******************사용자관리 시작********************/
+
 	@GetMapping("/user")
 	public String userList(@ModelAttribute BaseParameter params, Model model) {
 
@@ -405,16 +389,11 @@ public class SettingController extends BaseController {
 		
 		return returnUrl;
 	}
-	/*******************사용자관리 끝********************/
-	
-		
-	/*******************단위관리 시작********************/
+
 	@GetMapping("/unit")
 	public String unitList(@ModelAttribute BaseParameter params, @RequestParam(required = false) String dtlCd,
 			Model model) {
 		Map<String, Object> paramsMap = StoneUtil.convertObjectToMap(params);
-		
-		log.info("----------------" + paramsMap);
 		List<Map<String, Object>> masterList = unitService.getUnitMasterList(paramsMap);
 
 		if (StringUtil.isNotBlank(dtlCd)) {
@@ -487,15 +466,11 @@ public class SettingController extends BaseController {
 		result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
 		return result;
 	}
-	/*******************단위관리 끝********************/
-	
-	/*******************데이터검증관리 시작********************/
+
 	@GetMapping("/vrfc")
 	public String verifyList(@ModelAttribute BaseParameter params, @RequestParam(required = false) String dtlCd,
 			Model model) {
 		Map<String, Object> paramsMap = StoneUtil.convertObjectToMap(params);
-		
-		log.info("----------------" + paramsMap);
 		List<Map<String, Object>> masterList = verifyService.getVerifyMasterList(paramsMap);
 
 		if (StringUtil.isNotBlank(dtlCd)) {
@@ -508,7 +483,6 @@ public class SettingController extends BaseController {
 		model.addAttribute("detailList", detailList);
 		model.addAttribute("params", params);
 		model.addAttribute("dtlCd", dtlCd);
-		//model.addAttribute("unitList", getCodeList(dtlCd, false));			
 		model.addAttribute("breadcrumb", getBreadcrumb(params.getMenuCd()));
 		return "pages/setting/verify_list";
 	}
@@ -568,5 +542,4 @@ public class SettingController extends BaseController {
 		result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
 		return result;
 	}
-	/*******************데이터검증관리 끝********************/
 }

@@ -20,6 +20,15 @@
 		   AND REF_TP = #{refTp}
 		   AND MODEL_SEQ  = #{refSeq}
 	</select>
+
+	<select id="getDtMetaFileList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : FilesMapper.xml, id : getDtMetaFileList */
+		SELECT *
+		  FROM TB_META_MODEL_FILES
+		 WHERE DEL_YN = 'N'
+		   AND REF_TP = #{refTp}
+		   AND MODEL_SEQ  = #{refSeq}
+	</select>	
 	
 	<select id="getFile" parameterType="int" resultType="com.stoneitgt.dt.data.platform.domain.Files">
 		/* file : FilesMapper.xml, id : getFile */
@@ -109,7 +118,35 @@
 				SELECT LAST_INSERT_ID()
 			</selectKey>
 	</insert>
-	
+
+	<!--int insertBoardFile(Files files);-->
+	<insert id="insertBoardFile" parameterType="com.stoneitgt.dt.data.platform.domain.Files"  useGeneratedKeys="true" keyProperty="fileSeq">
+        /* file : FilesMapper.xml, id : insertFile */
+        INSERT
+        INTO TB_BOARD_FILES ( REF_TP
+                      , REF_SEQ
+                      , FILE_TP
+                      , FILE_NM
+                      , FILE_TITLE
+                      , FILE_PATH
+                      , FILE_EXTN
+                      , FILE_SZ
+                      , FILE_CONTS_TP
+                      , REG_USER_SEQ
+                      , REG_IP)
+        VALUES ( #{refTp}
+               , #{refSeq}
+               , #{fileTp}
+               , #{fileNm}
+               , #{fileTitle}
+               , #{filePath}
+               , #{fileExtn}
+               , #{fileSz}
+               , #{fileContsTp}
+               , #{loginUserSeq}
+               , #{loginUserIp})
+    </insert>
+
 	<update id="updateFile" parameterType="com.stoneitgt.dt.data.platform.domain.Files">
 		/* file : FilesMapper.xml, id : updateFile */
 		UPDATE TB_FILES
@@ -120,6 +157,19 @@
 			 , THUMB_M    = #{thumbM}
 			 , THUMB_L    = #{thumbL}
 		 WHERE FILE_SEQ          = #{fileSeq}
+	</update>
+
+	<!--int updateBoardFile(Files files);-->
+	<update id="updateBoardFile" parameterType="com.stoneitgt.dt.data.platform.domain.Files">
+		/* file : FilesMapper.xml, id : updateFile */
+		UPDATE TB_BOARD_FILES
+		SET FILE_PATH         = #{filePath}
+		  , FILE_CONTS_TP = #{fileContsTp}
+		  , STRG_FILE_NM	 = #{strgFileNm}
+		  , THUMB_S    = #{thumbS}
+		  , THUMB_M    = #{thumbM}
+		  , THUMB_L    = #{thumbL}
+		WHERE FILE_SEQ          = #{fileSeq}
 	</update>
 
 	<update id="updateDtFile" parameterType="com.stoneitgt.dt.data.platform.domain.Files">
@@ -216,5 +266,125 @@
 			</selectKey>
 	</insert>	
 	
+	<insert id="insertMetaDtFile" parameterType="com.stoneitgt.dt.data.platform.domain.Files">
+		/* file : FilesMapper.xml, id : insertMetaDtFile */
+		INSERT
+		  INTO TB_META_MODEL_FILES (
+		              FILE_SEQ
+		            , MODEL_SEQ
+		            , REF_TP
+		            , FILE_NM
+		            , FILE_PATH
+		            , FILE_EXTN
+		            , FILE_SZ
+		            , FILE_CONTS_TP
+		            , REG_USER_SEQ
+		            , REG_IP
+		            )
+		       VALUES (
+		             #{fileSeq}
+		            , #{refSeq}
+		            , #{refTp}
+		            , #{fileNm}
+		            , #{filePath}
+		            , #{fileExtn}
+		            , #{fileSz}
+		            , #{fileContsTp}
+		            , #{loginUserSeq}
+		            , #{loginUserIp}
+		            )
+			<selectKey resultType="int" keyProperty="fileSeq" order="AFTER">
+				SELECT LAST_INSERT_ID()
+			</selectKey>
+	</insert>
 	
+	<insert id="insertEtcMetaDtFile" parameterType="com.stoneitgt.dt.data.platform.domain.Files">
+		/* file : FilesMapper.xml, id : insertMetaDtFile */
+		INSERT
+		  INTO TB_META_ETC_MODEL_FILES (
+		              FILE_SEQ
+		            , ETC_MODEL_SEQ
+		            , REF_TP
+		            , FILE_NM
+		            , FILE_PATH
+		            , FILE_EXTN
+		            , FILE_SZ
+		            , FILE_CONTS_TP
+		            , REG_USER_SEQ
+		            , REG_IP
+		            )
+		       VALUES (
+		             #{fileSeq}
+		            , #{refSeq}
+		            , #{refTp}
+		            , #{fileNm}
+		            , #{filePath}
+		            , #{fileExtn}
+		            , #{fileSz}
+		            , #{fileContsTp}
+		            , #{loginUserSeq}
+		            , #{loginUserIp}
+		            )
+			<selectKey resultType="int" keyProperty="fileSeq" order="AFTER">
+				SELECT LAST_INSERT_ID()
+			</selectKey>
+	</insert>	
+	
+	<insert id="insertMetaAugmentFile" parameterType="com.stoneitgt.dt.data.platform.domain.Files">
+		/* file : FilesMapper.xml, id : insertMetaAugmentFile */
+		INSERT
+		  INTO TB_META_AUGMENT_FILES (
+		              FILE_SEQ
+		            , AUGMENT_SEQ
+		            , REF_TP
+		            , FILE_NM
+		            , FILE_PATH
+		            , FILE_EXTN
+		            , FILE_SZ
+		            , FILE_CONTS_TP
+		            , REG_USER_SEQ
+		            , REG_IP
+		            )
+		       VALUES (
+		             #{fileSeq}
+		            , #{refSeq}
+		            , #{refTp}
+		            , #{fileNm}
+		            , #{filePath}
+		            , #{fileExtn}
+		            , #{fileSz}
+		            , #{fileContsTp}
+		            , #{loginUserSeq}
+		            , #{loginUserIp}
+		            )
+			<selectKey resultType="int" keyProperty="fileSeq" order="AFTER">
+				SELECT LAST_INSERT_ID()
+			</selectKey>
+	</insert>	
+	
+	<select id="getDtMetaAugmentFile" parameterType="int" resultType="com.stoneitgt.dt.data.platform.domain.Files">
+		/* file : FilesMapper.xml, id : getDtMetaAugmentFile */
+		SELECT *
+		  FROM TB_META_AUGMENT_FILES
+		 WHERE DEL_YN = 'N'
+		   AND FILE_SEQ = #{file_seq}
+	</select>	
+
+	<!--Files getBoardFile(int boardSeq);-->
+	<select id="getBoardFile" parameterType="int" resultType="com.stoneitgt.dt.data.platform.domain.Files">
+        SELECT *
+        FROM TB_BOARD_FILES
+        WHERE DEL_YN = 'N'
+          AND REF_SEQ = #{boardSeq}
+    </select>
+
+	<!--void deleteBoardFiles(int boardSeq);-->
+	<update id="deleteBoardFiles" parameterType="com.stoneitgt.dt.data.platform.domain.Files">
+        UPDATE TB_BOARD_FILES
+        SET DEL_YN       = #{delYn},
+            DEL_IP=#{delIp},
+            DEL_USER_SEQ = #{delUserSeq},
+            DEL_DT       = NOW()
+        WHERE FILE_SEQ = #{fileSeq}
+    </update>
 </mapper>

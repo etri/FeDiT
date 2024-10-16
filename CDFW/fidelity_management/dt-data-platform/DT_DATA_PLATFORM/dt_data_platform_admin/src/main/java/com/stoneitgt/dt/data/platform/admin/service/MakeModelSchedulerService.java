@@ -7,27 +7,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.stoneitgt.dt.data.platform.admin.mapper.MakeModelSchedulerMapper;
-import com.stoneitgt.dt.data.platform.admin.properties.SystemProperties;
 
 @Service
 public class MakeModelSchedulerService {
-
-	@Autowired
-	private SystemProperties systemproperties;
-	
 	@Autowired
 	private MakeModelSchedulerMapper makeModelSchedulerMapper;
-
-	
-	
-	public List<Map<String, Object>> getMakeModelTarget(Map<String, Object> targetParams) {
-		// TODO Auto-generated method stub
-		return makeModelSchedulerMapper.getMakeModelTarget(targetParams);
-	}
-
-	public int updateMakeModelTarget(Map<String, Object> seqListParam) {
-		return makeModelSchedulerMapper.updateMakeModelTarget(seqListParam);
-	}
 
 	public List<Map<String, Object>> getMakeModelDoingList(Map<String, Object> targetParams) {
 		return makeModelSchedulerMapper.getMakeModelDoingList(targetParams);

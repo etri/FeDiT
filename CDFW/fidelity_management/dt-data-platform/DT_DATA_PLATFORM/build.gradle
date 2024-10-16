@@ -1,13 +1,13 @@
 buildscript {
 
-      repositories {
-          mavenCentral()
-      }
+    repositories {
+        mavenCentral()
+    }
 
-      dependencies {
-          classpath("org.springframework.boot:spring-boot-gradle-plugin:2.1.13.RELEASE")
-          classpath("io.spring.gradle:dependency-management-plugin:1.0.10.RELEASE")
-      }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:2.1.13.RELEASE")
+        classpath("io.spring.gradle:dependency-management-plugin:1.0.10.RELEASE")
+    }
 }
 
 
@@ -25,35 +25,35 @@ subprojects {
 
     sourceCompatibility = 1.8
 
-	ext['log4j2.version'] = '2.17.0'
-	ext['logback.version'] = '1.2.9'
+    ext['log4j2.version'] = '2.17.0'
+    ext['logback.version'] = '1.2.9'
 
     configurations {
         developmentOnly
         runtimeClasspath {
-          extendsFrom developmentOnly
+            extendsFrom developmentOnly
         }
         compileOnly {
-          extendsFrom annotationProcessor
+            extendsFrom annotationProcessor
         }
-  }
+    }
 
     repositories {
         mavenCentral()
     }
 
     task initSourceFolders {
-          sourceSets*.java.srcDirs*.each {
-              if( !it.exists() ) {
-                  it.mkdirs()
-              }
-          }
-          sourceSets*.resources.srcDirs*.each {
-              if( !it.exists() ) {
-                  it.mkdirs()
-              }
-          }
-      }
+        sourceSets*.java.srcDirs*.each {
+            if( !it.exists() ) {
+                it.mkdirs()
+            }
+        }
+        sourceSets*.resources.srcDirs*.each {
+            if( !it.exists() ) {
+                it.mkdirs()
+            }
+        }
+    }
 
     dependencies {
         //implementation 'org.springframework.boot:spring-boot-starter-validation'
@@ -67,13 +67,14 @@ subprojects {
         testAnnotationProcessor 'org.projectlombok:lombok'
         testCompileOnly 'org.projectlombok:lombok'
         testImplementation('org.springframework.boot:spring-boot-starter-test') {
-          exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+            exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
         }
         testImplementation 'org.springframework.security:spring-security-test'
         testImplementation 'junit:junit:4.12'
         testCompile group: 'org.assertj', name: 'assertj-core', version: '3.15.0'
         compile group: 'org.mybatis.spring.boot', name: 'mybatis-spring-boot-starter', version: '2.1.4'
-        compile group: 'org.bgee.log4jdbc-log4j2', name: 'log4jdbc-log4j2-jdbc4.1', version: '1.16'        
+        compile group: 'org.bgee.log4jdbc-log4j2', name: 'log4jdbc-log4j2-jdbc4.1', version: '1.16'
+        implementation 'com.opencsv:opencsv:5.5'
     }
 }
 
@@ -104,9 +105,10 @@ project(':dt_data_platform_core') {
         compile group: 'com.github.ua-parser', name: 'uap-java', version: '1.5.0'
         compile group: 'com.atlassian.commonmark', name: 'commonmark', version: '0.15.2'
         compile group: 'com.github.dfabulich', name: 'sitemapgen4j', version: '1.1.2'
-        
+
         runtimeOnly 'org.postgresql:postgresql'
-        
+
+        // resin일 경우 이건 별도로 추가하여 war 배포 전에 넣어준다
         //compile group: 'javax.el', name: 'javax.el-api', version: '3.0.0'
         // https://mvnrepository.com/artifact/javax.el/javax.el-api
         //implementation group: 'javax.el', name: 'javax.el-api', version: '3.0.0'
@@ -131,15 +133,16 @@ project(':dt_data_platform_admin') {
         implementation 'org.springframework.boot:spring-boot-starter-actuator'
         compile group: 'nz.net.ultraq.thymeleaf', name: 'thymeleaf-layout-dialect', version: '2.5.2'
         compile group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: '2.5.4'
-		implementation group: 'net.coobird', name: 'thumbnailator', version: '0.4.14'
-		
-		// https://mvnrepository.com/artifact/com.twelvemonkeys.imageio/imageio-jpeg
-		implementation group: 'com.twelvemonkeys.imageio', name: 'imageio-jpeg', version: '3.4.1'
-		implementation group: 'com.twelvemonkeys.imageio', name: 'imageio-core', version: '3.4.1'
-		implementation group: 'com.twelvemonkeys.imageio', name: 'imageio-bmp', version: '3.4.1'
+        compile group: 'com.mashape.unirest', name: 'unirest-java', version: '1.4.9'
+        implementation group: 'net.coobird', name: 'thumbnailator', version: '0.4.14'
+
+        // https://mvnrepository.com/artifact/com.twelvemonkeys.imageio/imageio-jpeg
+        implementation group: 'com.twelvemonkeys.imageio', name: 'imageio-jpeg', version: '3.4.1'
+        implementation group: 'com.twelvemonkeys.imageio', name: 'imageio-core', version: '3.4.1'
+        implementation group: 'com.twelvemonkeys.imageio', name: 'imageio-bmp', version: '3.4.1'
 
         // 디렉토리
-        compile fileTree(dir:'libs', include:['*.jar'])        
+        compile fileTree(dir:'libs', include:['*.jar'])
     }
 }
 

@@ -42,12 +42,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	@Autowired
 	private AuthSuccessHandler authSuccessHandler;
 
-//	@Autowired
-//	private DataSource dataSource;
-//
-//	@Autowired
-//	private UserService userService;
-
 	@Override
 	public void configure(AuthenticationManagerBuilder auth) throws Exception {
 		auth.authenticationProvider(authProvider);
@@ -77,32 +71,23 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
 		http.authorizeRequests().antMatchers("/actuator/**").hasRole("ADMIN");
 
-		http.authorizeRequests()//
-				.antMatchers("/**").hasAnyRole("ADMIN", "USER")//
-				.anyRequest().denyAll()//
-				.and()//
-					.formLogin()//
-					.loginPage("/login")//
-					.usernameParameter("id")//
-					.passwordParameter("password")//
-					.successHandler(authSuccessHandler)//
-					.failureHandler(authFailureHandler)//
-				.and()//
-					.logout()//
-					.logoutRequestMatcher(new AntPathRequestMatcher("/logout"))//
-					.deleteCookies("DT_DATA_TWIN_JSESSIONID")//
-					.clearAuthentication(true)//
-					.invalidateHttpSession(true)//
+		http.authorizeRequests()
+				.antMatchers("/**").hasAnyRole("ADMIN", "USER")
+				.anyRequest().denyAll()
+				.and()
+					.formLogin()
+					.loginPage("/login")
+					.usernameParameter("id")
+					.passwordParameter("password")
+					.successHandler(authSuccessHandler)
+					.failureHandler(authFailureHandler)
+				.and()
+					.logout()
+					.logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
+					.deleteCookies("DT_DATA_TWIN_JSESSIONID")
+					.clearAuthentication(true)
+					.invalidateHttpSession(true)
 					.logoutSuccessUrl("/login");
-//				.and()//
-//					.rememberMe()//
-//					.rememberMeParameter("artntech-remember-me")//
-//					.rememberMeCookieName("artntech-remember-me")//
-//					.key("atesSecurity")//
-//					.userDetailsService(userService)//
-//					.authenticationSuccessHandler(authSuccessHandler)//
-//					.tokenRepository(persistentTokenRepository())//
-//					.tokenValiditySeconds(24 * 60 * 60);
 	}
 
 	@Bean
@@ -127,20 +112,4 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	public ServletListenerRegistrationBean<HttpSessionEventPublisher> httpSessionEventPublisher() {
 		return new ServletListenerRegistrationBean<HttpSessionEventPublisher>(new HttpSessionEventPublisher());
 	}
-//
-//	@Bean
-//	public RememberMeServices rememberMeServices(PersistentTokenRepository ptr) {
-//		PersistentTokenBasedRememberMeServices rememberMeServices = new PersistentTokenBasedRememberMeServices(
-//				"atesSecurity", userService, ptr);
-//		rememberMeServices.setParameter("ates-remember-me");
-//		rememberMeServices.setCookieName("ates-remember-me");
-//		return rememberMeServices;
-//	}
-//
-//	@Bean
-//	public PersistentTokenRepository persistentTokenRepository() {
-//		JdbcTokenRepositoryImpl tokenREpository = new JdbcTokenRepositoryImpl();
-//		tokenREpository.setDataSource(dataSource);
-//		return tokenREpository;
-//	}
 }

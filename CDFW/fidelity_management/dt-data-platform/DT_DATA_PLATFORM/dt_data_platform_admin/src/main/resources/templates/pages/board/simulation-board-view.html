@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/layout}">
+
+<head>
+    <title th:text="${breadcrumb.menu_nm}">게시판</title>
+    <!--임시css-->
+    <!-- <link rel="stylesheet" href="../../../assets/css/temp.css"> -->
+
+    <style>
+        .table-responsive-meta {
+            max-height: 400px;
+            /* overflow-y: auto; */
+        }
+
+        #dynamic-card-body {
+            height: auto; /* 고정된 높이를 제거합니다. */
+            min-height: 100px; /* 필요한 경우 최소 높이를 설정합니다. */
+        }
+
+        .table-responsive {
+            max-height: fit-content !important;
+        }
+
+        .custom-file-label::after {
+            display: none;
+        }
+    </style>
+</head>
+<div layout:fragment="content">
+    <div id="loading" style="margin-left: 0px;display: none;">
+        <img th:src="@{/assets/images/ajax-loading.gif}">
+    </div>
+    <nav th:replace="fragments/page_breadcrumb"></nav>
+    <div class="row">
+        <div class="col-12">
+            <div class="card stretch-card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <h4 class="card-title">게시판 정보</h4>
+                            <p class="d-block">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Assumenda
+                                commodi cum, est,
+                                facere illo in libero nam provident quisquam sapiente vel voluptate. Ad deserunt eos
+                                expedita pariatur praesentium quasi voluptatem?</p>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-group row">
+                                <div class="col-lg-2 col-md-4 col-sm-12">
+                                    <label class="col-form-label">게시판 제목</label>
+                                </div>
+                                <div class="col-lg-10 col-md-8 col-sm-12">
+                                    <div th:text="${board.board_nm}"></div>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <div class="col-lg-2 col-md-4 col-sm-12">
+                                    <label class="col-form-label">게시판 내용</label>
+                                </div>
+                                <div class="col-lg-10 col-md-8 col-sm-12">
+                                    <div th:text="${board.board_derpn}"></div>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <div class="col-lg-2 col-md-4 col-sm-12">
+                                    <label for="fileDownload" class="col-form-label">게시판 파일</label>
+                                </div>
+                                <div class="col-lg-10 col-md-8 col-sm-12">
+                                    <div class="input-group" th:if="${board.files != null}">
+                                        <div class="custom-file">
+                                            <a id="fileDownload" th:href="@{|/file/download/board/${board.board_seq}|}"
+                                               class="file-download" th:text="${board.files.fileNm}">업로드
+                                                파일</a>
+                                        </div>
+                                    </div>
+                                    <div class="input-group" th:unless="${board.files != null}">
+                                        <div class="custom-file">
+                                            업로드 파일 없음
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <div class="col-lg-2 col-md-4 col-sm-12">
+                                    <label class="col-form-label">공개여부</label><br>
+                                </div>
+                                <div class="col-lg-10 col-md-8 col-sm-12">
+                                    <div class="form-check form-check-inline">
+                                        <label class="form-check-label">
+                                            <input type="radio" class="form-check-input" name="rlsYn" value="N"
+                                                   disabled="disabled"
+                                                   th:checked="*{board.rls_yn == 'N' or board.rls_yn == null}"
+                                                   data-label="비공개" checked="checked">비공개
+                                            <i class="input-frame"></i>
+                                            <i class="input-frame"></i></label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <label class="form-check-label">
+                                            <input type="radio" class="form-check-input" name="rlsYn" value="Y"
+                                                   disabled="disabled"
+                                                   th:checked="*{board.rls_yn == 'Y'}"
+                                                   data-label="공개">공개
+                                            <i class="input-frame"></i>
+                                            <i class="input-frame"></i></label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-sm-12">
+                                    <a class="btn btn-primary btn-icon-text"
+                                       th:href="|/dt/board/simulation/list?menuCd=${menuCd}|">목록</a>
+                                    <th:block th:if="${is_update == true}">
+                                        <a th:href="|/dt/board/simulation/${board.board_seq}/update?menuCd=${menuCd}|"
+                                           class="btn btn-primary btn-icon-text">수정
+                                        </a>
+                                    </th:block>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<th:block layout:fragment="custom_css">
+    <link rel="stylesheet" th:href="@{/assets/css/codemirror.css}"/>
+    <link rel="stylesheet" th:href="@{/assets/vendors/datatables.net-bs4/dataTables.bootstrap4.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/custom.css}">
+</th:block>
+<th:block layout:fragment="custom_js">
+    <script th:src="@{/assets/js/file-upload.js}"></script>
+    <script th:src="@{/assets/js/pages/dt_etc_model/common/progress.js}"></script>
+    <script th:src="@{/assets/js/browser_event.js}"></script>
+    <script th:src="@{/assets/js/pages/board/board-view.js}"></script>
+</th:block>
+</html>

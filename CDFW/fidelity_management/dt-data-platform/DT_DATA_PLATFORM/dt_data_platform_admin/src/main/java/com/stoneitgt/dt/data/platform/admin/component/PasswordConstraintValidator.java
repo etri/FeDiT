@@ -59,12 +59,6 @@ public class PasswordConstraintValidator implements ConstraintValidator<ValidPas
 
 	private PasswordValidator getPasswordVAlidator() {
 		MessageResolver resolver = new SpringMessageResolver(messageSource);
-//		PasswordValidator validator = new PasswordValidator(resolver,
-//				new LengthRule(this.min, this.max),
-//				new CharacterRule(EnglishCharacterData.Alphabetical, 1),
-//				new CharacterRule(EnglishCharacterData.Digit, 1),
-//				new CharacterRule(EnglishCharacterData.Special, 1),
-//				new WhitespaceRule());
 
 		List<Rule> rules = new ArrayList<>();
 		rules.add(new LengthRule(this.min, this.max));

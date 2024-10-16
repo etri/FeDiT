@@ -18,8 +18,6 @@ public interface UserMapper {
 
 	int updateLastLoginDate(int userSeq);
 
-	List<Map<String, Object>> getUserMenuList(String auth);
-
 	List<Map<String, Object>> getUserList(Map<String, Object> params);
 
 	List<Map<String, Object>> getUserList(Map<String, Object> params, RowBounds rowBounds);

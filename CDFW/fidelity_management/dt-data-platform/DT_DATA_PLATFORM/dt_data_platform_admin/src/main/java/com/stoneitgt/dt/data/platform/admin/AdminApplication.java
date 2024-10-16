@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @SpringBootApplication
-//@EnableScheduling
+@EnableScheduling
 public class AdminApplication extends SpringBootServletInitializer {
 
 	@Override

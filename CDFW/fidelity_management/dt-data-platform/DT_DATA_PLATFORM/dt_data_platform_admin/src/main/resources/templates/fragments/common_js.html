@@ -25,4 +25,14 @@
 <th:block th:with="ver=${@environment.getProperty('system.version')}">
     <script th:src="@{/assets/js/common-alert.js(ver=${ver})}"></script>
     <script th:src="@{/assets/js/common.js(ver=${ver})}"></script>
+    <script th:src="@{/assets/js/pages/dt_model/common/common-dt-chart.js(ver=${ver})}"></script>
+    <script th:src="@{/assets/js/pages/dt_model/common/common-dt-make-json.js(ver=${ver})}"></script>
+    <script th:src="@{/assets/js/pages/dt_model/common/common-dt-make-table.js(ver=${ver})}"></script>
+    <script th:src="@{/assets/js/pages/dt_model/common/common-dt-tab-control.js(ver=${ver})}"></script>
+    <script th:src="@{/assets/js/pages/dt_model/common/common-dt-hidden-encoding.js(ver=${ver})}"></script>
+    
+    <script th:src="@{/assets/js/pages/dt_model/common/common-dt-property-html.js(ver=${ver})}"></script>
+    <!-- <script th:src="@{/assets/js/pages/dt_model/common/common-dt-tab-control-view.js}"></script> -->
+    
+    
 </th:block>

@@ -35,10 +35,7 @@ public class WebConfig implements WebMvcConfigurer {
 	private SystemProperties systemProperties;
 
 	@Override
-	public void addInterceptors(InterceptorRegistry registry) {
-		//registry.addInterceptor(ipHandlerInterceptor).addPathPatterns("/**").excludePathPatterns("/", "/application/**",
-		//		"/static/**");
-	}
+	public void addInterceptors(InterceptorRegistry registry) {}
 
 	@Override
 	public void addResourceHandlers(ResourceHandlerRegistry registry) {
@@ -46,7 +43,8 @@ public class WebConfig implements WebMvcConfigurer {
 		registry.addResourceHandler("/assets/**", "/static/**", "/echarts532/**", "/streaming/**", "/upload/**", "/**", "/files/**")//
 				.addResourceLocations("classpath:/static/assets/",
 						"classpath:/static/echarts532/",
-						"file:///" + systemProperties.getDtFilePath() + "/")
+						"file:///" + systemProperties.getDtFilePath() + "/",
+						"file:///" + systemProperties.getDtMetaFilePath() + "/")
 				.resourceChain(false);
 	}
 

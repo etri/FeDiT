@@ -119,6 +119,6 @@ public class SimulationModel {
 
     private String dataCrtBgngDt;
     private String dataCrtLastDt;
-    
+    private int dataMaxLimitCnt;
     
 }

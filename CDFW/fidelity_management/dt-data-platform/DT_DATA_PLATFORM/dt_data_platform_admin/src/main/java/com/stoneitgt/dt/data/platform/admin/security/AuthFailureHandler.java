@@ -14,27 +14,27 @@ import org.springframework.stereotype.Component;
  * 로그인 실패 핸들러
  *
  * @author yh.kim
- *
  */
 @Component
 public class AuthFailureHandler extends SimpleUrlAuthenticationFailureHandler {
 
-	private String defaultFailureUrl;
+    private String defaultFailureUrl;
 
-	public AuthFailureHandler() {
-		this.defaultFailureUrl = "/login";
-	}
+    public AuthFailureHandler() {
+        this.defaultFailureUrl = "/login";
+    }
 
-	@Override
-	public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
-			AuthenticationException exception) throws IOException, ServletException {
+    @Override
+    public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
+                                        AuthenticationException exception) throws IOException, ServletException {
 
-		String username = request.getParameter("id");
+        String username = request.getParameter("id");
+        //request.setAttribute("status", false);
+        request.setAttribute("id", username);
+        exception.printStackTrace();
+        //request.setAttribute("error", exception.getMessage());
 
-		request.setAttribute("id", username);
-		//request.setAttribute("error", exception.getMessage());
+        request.getRequestDispatcher(defaultFailureUrl).forward(request, response);
 
-		request.getRequestDispatcher(defaultFailureUrl).forward(request, response);
-
-	}
+    }
 }

@@ -11,7 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.stoneitgt.dt.data.platform.admin.mapper.ResourceMapper;
 import com.stoneitgt.dt.data.platform.admin.properties.SystemProperties;
 import com.stoneitgt.dt.data.platform.domain.Resource;
-import com.stoneitgt.dt.data.platform.util.FileUtil;
+import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 
 import lombok.extern.slf4j.Slf4j;
 

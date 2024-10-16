@@ -9,192 +9,160 @@ import org.apache.ibatis.session.RowBounds;
 import com.stoneitgt.dt.data.platform.domain.AugmentModel;
 import com.stoneitgt.dt.data.platform.domain.AugmentModelColumn;
 import com.stoneitgt.dt.data.platform.domain.AugmentModelParams;
-import com.stoneitgt.dt.data.platform.domain.Menu;
-import com.stoneitgt.dt.data.platform.domain.MenuAuth;
 
 @Mapper
 public interface AIModelMapper {
 
-	List<Map<String, Object>> getAugmentModelList(Map<String, Object> params, RowBounds paging);
+    List<Map<String, Object>> getAugmentModelList(Map<String, Object> params, RowBounds paging);
 
-	int saveModelOriginData(AugmentModel augmentModel);
+    int saveModelOriginData(AugmentModel augmentModel);
 
-	Map<String, Object> getOriginFileInfo(int modelSeq);
+    int insertIterpolatefile(Map<String, Object> interpolateParam);
 
-	int insertIterpolatefile(Map<String, Object> interpolateParam);
-	int updateAugmentModel(Map<String, Object> interpolateParam);
+    int updateAugmentModel(Map<String, Object> interpolateParam);
 
-	Map<String, Object> getInterpolateFileInfo(int modelSeq);
 
-	void insertResamplefile(Map<String, Object> resampleParam);
-	int updateResampleAugmentModel(Map<String, Object> resampleParam);
+    void insertResamplefile(Map<String, Object> resampleParam);
 
-	int getCountResampleFileInfo(Map<String, Object> resampleParam);
+    int updateResampleAugmentModel(Map<String, Object> resampleParam);
 
-	int updateResampleFileInfo(Map<String, Object> resampleParam);
+    int getCountResampleFileInfo(Map<String, Object> resampleParam);
 
-	int getCountInterpolateFileInfo(Map<String, Object> interpolateParam);
+    int updateResampleFileInfo(Map<String, Object> resampleParam);
 
-	int updateInterpolateFileInfo(Map<String, Object> interpolateParam);
+    int getCountInterpolateFileInfo(Map<String, Object> interpolateParam);
 
-	List<Map<String, Object>> getAlgolithmList();
+    int updateInterpolateFileInfo(Map<String, Object> interpolateParam);
 
-	List<Map<String, Object>> getAlgolithmItemList(String string);
+    List<Map<String, Object>> getAlgolithmList();
 
-	List<Map<String, Object>> getAlgolithmCodeList(String code);
+    List<Map<String, Object>> getAlgolithmItemList(String string);
 
-	List<Map<String, Object>> getModelAlgorithmItem(int parseInt);
+    List<Map<String, Object>> getAlgolithmCodeList(String code);
 
-	int saveAlgorithmModelParams(AugmentModelParams augmentModelParams);
+    List<Map<String, Object>> getModelAlgorithmItem(int parseInt);
 
-	int getAlgorithmModelParamsCount(AugmentModelParams augmentModelParams);
+    int saveAlgorithmModelParams(AugmentModelParams augmentModelParams);
 
-	int deleteAlgorithmModelParams(AugmentModelParams augmentModelParams);
+    int getAlgorithmModelParamsCount(AugmentModelParams augmentModelParams);
 
-	int deleteAlgorithmModelColumn(AugmentModelParams augmentModelParams);
+    int deleteAlgorithmModelParams(AugmentModelParams augmentModelParams);
 
-	int saveAlgorithmModelColumn(AugmentModelParams augmentModelParams);
+    int deleteAlgorithmModelColumn(AugmentModelParams augmentModelParams);
 
-	int saveAlgorithmModelColumn(AugmentModelColumn augmentModelColumn);
+    int saveAlgorithmModelColumn(AugmentModelParams augmentModelParams);
 
-	AugmentModel getAugmentModel(int modelSeq);
+    int saveAlgorithmModelColumn(AugmentModelColumn augmentModelColumn);
 
-	List<Map<String, Object>> getAugmentModelColumn(int modelSeq);
+    AugmentModel getAugmentModel(int modelSeq);
 
-	List<Map<String, Object>> getAugmentModelFID(int modelSeq);
+    List<Map<String, Object>> getAugmentModelColumn(int modelSeq);
 
-	List<Map<String, Object>> getAugmentModelLoss(int modelSeq);
+    List<Map<String, Object>> getAugmentModelFID(int modelSeq);
 
-	List<Map<String, Object>> getAugmentModelParams(int modelSeq);
+    List<Map<String, Object>> getAugmentModelLoss(int modelSeq);
 
-	List<Map<String, Object>> getModelAlgorithmParamsList(Map<String, Object> map);
+    List<Map<String, Object>> getAugmentModelParams(int modelSeq);
 
-	int updateAlgorithmSeq(Map<String, Object> requestBody);
+    List<Map<String, Object>> getModelAlgorithmParamsList(Map<String, Object> map);
 
-	String getModelFileDir(int modelSeq);
+    int updateAlgorithmSeq(Map<String, Object> requestBody);
 
-	int deleteModelFile(int modelSeq);
+    String getModelFileDir(int modelSeq);
 
-	int deleteModelColumn(int modelSeq);
+    int deleteModelFile(int modelSeq);
 
-	int deleteModelFid(int modelSeq);
+    int deleteModelColumn(int modelSeq);
 
-	int deleteModelLoss(int modelSeq);
+    int deleteModelFid(int modelSeq);
 
-	int deleteModelParams(int modelSeq);
+    int deleteModelLoss(int modelSeq);
 
-	int updateModelOriginData(AugmentModel augmentModel);
+    int deleteModelParams(int modelSeq);
 
-	int insertTestFileInfo(Map<String, Object> testParam);
+    int updateModelOriginData(AugmentModel augmentModel);
 
-	int getCountTestFileInfo(Map<String, Object> testParam);
+    int insertTestFileInfo(Map<String, Object> testParam);
 
-	int updateTestFileInfo(Map<String, Object> testParam);
+    int getCountTestFileInfo(Map<String, Object> testParam);
 
-	int insertPredFileInfo(Map<String, Object> predParam);
+    int updateTestFileInfo(Map<String, Object> testParam);
 
-	int getCountPredFileInfo(Map<String, Object> predParam);
+    int insertPredFileInfo(Map<String, Object> predParam);
 
-	int updatePredFileInfo(Map<String, Object> predParam);
+    int getCountPredFileInfo(Map<String, Object> predParam);
 
-	List<Map<String, Object>> getResampleFileInfo(int modelSeq);
+    int updatePredFileInfo(Map<String, Object> predParam);
 
-	int getCorrelationFileCnt(int modelSeq);
+    List<Map<String, Object>> getResampleFileInfo(int modelSeq);
 
-	int upCorrelationFileInfo(Map<String, Object> correlationParam);
+    int getCorrelationFileCnt(int modelSeq);
 
-	int insertCorrelationFileInfo(Map<String, Object> correlationParam);
+    int upCorrelationFileInfo(Map<String, Object> correlationParam);
 
-	List<String> getTargetColumnInfo(int modelSeq);
+    int insertCorrelationFileInfo(Map<String, Object> correlationParam);
 
-	List<Map<String, Object>> resetFileList(int modelSeq);
+    List<String> getTargetColumnInfo(int modelSeq);
 
-	int deleteResetFileList(Map<String, Object> tmp);
+    List<Map<String, Object>> resetFileList(int modelSeq);
 
-	List<Map<String, Object>> getUnitCodeList();
+    int deleteResetFileList(Map<String, Object> tmp);
 
-	String getUnitFormula(Map<String, Object> params);
- 
-	List<Map<String, Object>> getModelLoss(int modelSeq);
-	List<Map<String, Object>> getModelFID(int modelSeq);
+    List<Map<String, Object>> getUnitCodeList();
 
-	int updateModelInfo(AugmentModel augmentModel);
+    String getUnitFormula(Map<String, Object> params);
 
-	List<Map<String, Object>> resetProcTargetFileList(Map<String, Object> params);
+    List<Map<String, Object>> getModelLoss(int modelSeq);
 
-	List<Map<String, Object>> getUnitTpList(String unit);
+    List<Map<String, Object>> getModelFID(int modelSeq);
 
-	int getCountModelUnitParams(Map<String, Object> unitParam);
+    int updateModelInfo(AugmentModel augmentModel);
 
-	int updateModelUnitParams(Map<String, Object> unitParam);
+    List<Map<String, Object>> resetProcTargetFileList(Map<String, Object> params);
 
-	int insertModelUnitParams(Map<String, Object> unitParam);
+    List<Map<String, Object>> getUnitTpList(String unit);
 
-	List<Map<String, Object>> getUnitParamList(int modelSeq);
+    int getCountModelUnitParams(Map<String, Object> unitParam);
 
-	int deleteUnitParamList(int model_seq);
+    int updateModelUnitParams(Map<String, Object> unitParam);
 
-	int getCountModelFileInfo(Map<String, Object> modelParam);
+    int insertModelUnitParams(Map<String, Object> unitParam);
 
-	int updateModelFileInfo(Map<String, Object> modelParam);
+    List<Map<String, Object>> getUnitParamList(int modelSeq);
 
-	int insertModelFileInfo(Map<String, Object> modelParam);
+    int deleteUnitParamList(int model_seq);
 
-	int deleteModel(AugmentModel augmentModel);
+    int getCountModelFileInfo(Map<String, Object> modelParam);
 
-	List<Map<String, Object>> getAugmentModelListSetUserSeq(Map<String, Object> params, RowBounds paging);
+    int updateModelFileInfo(Map<String, Object> modelParam);
 
-	AugmentModel getAugmentModelSetUserSeq(AugmentModel augmentModel);
+    int insertModelFileInfo(Map<String, Object> modelParam);
 
-	List<Map<String, Object>> getAugmentModelSharedList(Map<String, Object> subParamsMap, RowBounds paging);
+    int deleteModel(AugmentModel augmentModel);
 
-	Map<String, Object> getVerifyOption(int vrfcSeq);
+    List<Map<String, Object>> getAugmentModelListSetUserSeq(Map<String, Object> params, RowBounds paging);
 
-	int getCountModelValidateParams(Map<String, Object> validParam);
-	int updateModelValidateParams(Map<String, Object> validParam);
-	int insertModelValidateParams(Map<String, Object> validParam);
+    AugmentModel getAugmentModelSetUserSeq(AugmentModel augmentModel);
 
-	List<Map<String, Object>> getValidateParamList(int modelSeq);
+    List<Map<String, Object>> getAugmentModelSharedList(Map<String, Object> subParamsMap, RowBounds paging);
 
-	int updateNullResmpltOptionDateTerm(AugmentModel augmentModel);
+    Map<String, Object> getVerifyOption(int vrfcSeq);
 
-	int insertOutlierfile(Map<String, Object> outlierParam);
+    int getCountModelValidateParams(Map<String, Object> validParam);
 
-	int getCountOutlierFileInfo(Map<String, Object> outlierParam);
+    int updateModelValidateParams(Map<String, Object> validParam);
 
-	int updateOutlierFileInfo(Map<String, Object> outlierParam);
+    int insertModelValidateParams(Map<String, Object> validParam);
 
-	int updateTargetCollist(Map<String, Object> params);
+    List<Map<String, Object>> getValidateParamList(int modelSeq);
 
-	Map<String, Object> selectColList(int modelSeq);
+    int updateNullResmpltOptionDateTerm(AugmentModel augmentModel);
 
-	
+    int insertOutlierfile(Map<String, Object> outlierParam);
 
-	/*
-	List<Map<String, Object>> getUserMenuList(String auth);
+    int getCountOutlierFileInfo(Map<String, Object> outlierParam);
 
-	Map<String, Object> getBreadcrumb(String menuCode);
+    int updateOutlierFileInfo(Map<String, Object> outlierParam);
 
-	List<Map<String, Object>> getMenuList(Map<String, Object> params);
-
-	List<Map<String, Object>> getMenuList(Map<String, Object> params, RowBounds rowBounds);
-
-	List<Map<String, Object>> getAuthMenuList(String auth);
-
-	int deleteAuthMenu(MenuAuth menuAuth);
-
-	int saveAuthMenu(MenuAuth menuAuth);
-
-	List<String> getAuthMenuParent(String auth);
-
-	List<Map<String, Object>> getParentMenuList(Map<String, Object> params);
-
-	int saveMenu(Menu menu);
-
-	int deleteMenu(Menu menu);
-
-	int deleteMenuParent(Menu menu);
-
-	Map<String, Object> getMenu(String menuCode);\
-	*/
+    int updateTargetCollist(Map<String, Object> params);
 }

@@ -15,7 +15,7 @@ public class SchedulerConfig implements SchedulingConfigurer {
 		ThreadPoolTaskScheduler threadPoolTaskScheduler = new ThreadPoolTaskScheduler();
 
 		threadPoolTaskScheduler.setPoolSize(POOL_SIZE);
-		threadPoolTaskScheduler.setThreadNamePrefix("artntech-task-pool-");
+		threadPoolTaskScheduler.setThreadNamePrefix("twin-task-pool-");
 		threadPoolTaskScheduler.initialize();
 
 		scheduledTaskRegistrar.setTaskScheduler(threadPoolTaskScheduler);

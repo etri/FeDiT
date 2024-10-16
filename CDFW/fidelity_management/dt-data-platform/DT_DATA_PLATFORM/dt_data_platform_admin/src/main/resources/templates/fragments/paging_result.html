@@ -46,7 +46,7 @@
                 <span th:text="${#numbers.formatInteger(paging.total,0,'COMMA')}">100</span>
             </div>
             <th:block th:if="${paging.page > 1}">
-                <button type="button" class="btn btn-icon page-link" aria-label="previous page" th:data-page="${paging.prev}">
+                <button type="button" class="btn btn-icon page-link" aria-label="previous page" th:data-page="${paging.prev}" th:data-sub-page="${subPaging.page}" th:data-page-range="main_range">
                     <i data-feather="chevron-left"></i>
                 </button>
             </th:block>
@@ -56,7 +56,7 @@
                 </button>
             </th:block>
             <th:block th:if="${paging.page < paging.last}">
-                <button type="button" class="btn btn-icon page-link" aria-label="next page" th:data-page="${paging.next}">
+                <button type="button" class="btn btn-icon page-link" aria-label="next page" th:data-page="${paging.next}" th:data-sub-page="${subPaging.page}" th:data-page-range="main_range">
                     <i data-feather="chevron-right"></i>
                 </button>
             </th:block>

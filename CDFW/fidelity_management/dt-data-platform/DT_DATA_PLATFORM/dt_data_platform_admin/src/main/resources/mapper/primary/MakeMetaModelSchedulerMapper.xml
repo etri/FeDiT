@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.stoneitgt.dt.data.platform.admin.mapper.MakeMetaModelSchedulerMapper">
+	
+	<select id="getMakeModelTarget" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : MakeMetaModelSchedulerMapper.xml, id : getMakeModelTarget */
+		SELECT *
+		  FROM TB_META_MODEL A
+		 WHERE MODEL_ALGRM_SEQ IS NOT NULL
+		   AND INDEX_TRGT_COL IS NOT NULL
+		   AND MODEL_STATUS = 'WAIT'
+		   AND DEL_YN = 'N' AND USE_YN = 'Y'
+		 ORDER BY MDFCN_DT ASC, MODEL_SEQ ASC LIMIT #{limitCnt}
+	</select>
+		
+	<update id="updateMakeModelTarget" parameterType="com.stoneitgt.common.LowerKeyMap">
+		/* file : MakeMetaModelSchedulerMapper.xml, id : updateMakeModelTarget */
+		UPDATE TB_META_MODEL
+		     SET MODEL_STATUS = 'DOING'
+		 WHERE 1 = 1
+		   AND DEL_YN = 'N' AND USE_YN = 'Y'
+        <choose>
+            <when test="modelSeqList.size > 0">
+                AND MODEL_SEQ IN 
+                <foreach collection="modelSeqList" item="item" index="index" separator="," open="(" close=")">
+                    #{item}
+                </foreach>
+            </when>
+        </choose>
+	</update>		
+
+
+	<select id="getMakeModelDoingList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+        SELECT U.*, ALGRM.MODEL_ALGRM, B.USER_PPRCS_FULL_STNG_VALUE
+        FROM TB_META_MODEL U
+                 INNER JOIN TB_META_MODEL_ALGRM AS ALGRM ON ALGRM.MODEL_ALGRM_SEQ = U.MODEL_ALGRM_SEQ
+                 LEFT OUTER JOIN TB_META_USER_ITEM B
+                                 ON U.MODEL_SEQ = B.MODEL_SEQ
+        WHERE U.USE_YN = 'Y'
+          AND U.DEL_YN = 'N'
+          AND U.MODEL_STATUS = 'WAIT'
+        ORDER BY MDFCN_DT ASC, U.MODEL_SEQ ASC
+        LIMIT #{limitCnt}
+    </select>
+
+
+
+	<select id="setMakeModelOutputColumns" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : MakeMetaModelSchedulerMapper.xml, id : setMakeModelOutputColumns */
+		SELECT *
+		  FROM TB_META_MODEL_COLUMN
+		  WHERE MODEL_SEQ = #{model_seq}
+		    AND DEL_YN = 'N' AND USE_YN = 'Y'
+		    AND MODEL_COL_TP = 'OC'
+	</select>
+
+	<select id="setMakeModelFeatureColumns" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : MakeMetaModelSchedulerMapper.xml, id : setMakeModelFeatureColumns */
+		SELECT *
+		  FROM TB_META_MODEL_COLUMN
+		  WHERE MODEL_SEQ = #{model_seq}
+		    AND DEL_YN = 'N' AND USE_YN = 'Y'
+		    AND MODEL_COL_TP = 'FC'
+	</select>
+
+	<select id="setMakeModelParams" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : MakeMetaModelSchedulerMapper.xml, id : setMakeModelParams */
+	SELECT *,
+	       (SELECT T.MODEL_ALGRM  FROM TB_META_MODEL_ALGRM T WHERE T.MODEL_ALGRM_SEQ = A.MODEL_ALGRM_SEQ AND T.USE_YN = 'Y' AND T.DEL_YN = 'N') MODEL_ALGRM
+	       ,(SELECT T.MODEL_PARAMS_ITEM  FROM TB_MODEL_META_ITEM T WHERE T.MODEL_PARAMS_ITEM_SEQ = A.MODEL_PARAMS_ITEM_SEQ AND T.USE_YN = 'Y' AND T.DEL_YN = 'N') MODEL_PARAMS_ITEM
+	       ,(SELECT T.MODEL_PARAMS_ITEM_TP  FROM TB_MODEL_META_ITEM T WHERE T.MODEL_PARAMS_ITEM_SEQ = A.MODEL_PARAMS_ITEM_SEQ AND T.USE_YN = 'Y' AND T.DEL_YN = 'N') MODEL_PARAMS_ITEM_TP
+	  FROM TB_META_MODEL_PARAMS A
+	  WHERE A.MODEL_SEQ = #{model_seq}
+	    AND A.DEL_YN = 'N' AND A.USE_YN = 'Y'
+	</select>
+
+	<!--
+	<select id="setMakeModelFiles" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : MakeMetaModelSchedulerMapper.xml, id : setMakeModelFiles */
+		SELECT *
+		  FROM TB_META_MODEL_FILES
+		  WHERE MODEL_SEQ = #{model_seq}
+		    AND DEL_YN = 'N' AND USE_YN = 'Y'
+		    AND REF_TP = #{ref_tp}
+	</select>
+
+	<select id="getOriginFiles" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : MakeMetaModelSchedulerMapper.xml, id : getOriginFiles */
+		SELECT *
+		  FROM TB_META_MODEL_FILES
+		  WHERE MODEL_SEQ = #{model_seq}
+		    AND DEL_YN = 'N' AND USE_YN = 'Y'
+		    AND REF_TP = 'ORIGIN'
+	</select>
+	-->
+
+	<select id="setMakeModelFiles" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : MakeMetaModelSchedulerMapper.xml, id : setMakeModelFiles */
+		SELECT *
+		  FROM TB_META_MODEL_FILES
+		  WHERE MODEL_SEQ = #{model_seq}
+		    AND DEL_YN = 'N' AND USE_YN = 'Y'
+		    AND REF_TP = 'DATA'
+	</select>
+
+	<select id="getOriginFiles" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : MakeMetaModelSchedulerMapper.xml, id : getOriginFiles */
+		SELECT *
+		  FROM TB_META_MODEL_FILES
+		  WHERE MODEL_SEQ = #{model_seq}
+		    AND DEL_YN = 'N' AND USE_YN = 'Y'
+		    AND REF_TP = 'DATA'
+	</select>
+	
+	<update id="finishMakeModel" parameterType="com.stoneitgt.common.LowerKeyMap">
+		/* file : MakeMetaModelSchedulerMapper.xml, id : finishMakeModel */
+		UPDATE TB_META_MODEL
+		     SET MODEL_STATUS = #{model_status}
+		 WHERE MODEL_SEQ = #{model_seq}
+	</update>	
+
+
+
+	<delete id="deleteMakeModelFile" parameterType="int" >
+		/* file : MatchingMapper.xml, id : deleteMakeModelFile */
+		  DELETE FROM TB_META_MODEL_FILES
+		   WHERE MODEL_SEQ = #{model_seq}
+		    AND REF_TP IN ('TEST','PREDICTION')
+	</delete>	
+	
+	<delete id="deleteMakeModelFid" parameterType="int" >
+		/* file : MatchingMapper.xml, id : deleteMakeModelFid */
+		  DELETE FROM TB_META_MODEL_FID
+		   WHERE MODEL_SEQ = #{model_seq}
+	</delete>	
+	
+	<delete id="deleteMakeModelLoss" parameterType="int" >
+		/* file : MatchingMapper.xml, id : deleteMakeModelLoss */
+		  DELETE FROM TB_META_MODEL_LOSS
+		   WHERE MODEL_SEQ = #{model_seq}
+	</delete>	
+	
+
+	<update id="updateLearningBgngDt" parameterType="map">
+		/* file : MakeMetaModelSchedulerMapper.xml, id : updateLearningBgngDt */
+		UPDATE TB_META_MODEL
+		     SET LEARNING_BGNG_DT = CURRENT_TIMESTAMP
+		 WHERE MODEL_SEQ = #{model_seq}
+	</update>	
+	
+	<update id="updateLearningDndDt" parameterType="map">
+		/* file : MakeMetaModelSchedulerMapper.xml, id : updateLearningDndDt */
+		UPDATE TB_META_MODEL
+		     SET LEARNING_END_DT = CURRENT_TIMESTAMP
+		 WHERE MODEL_SEQ = #{model_seq}
+	</update>
+
+	<select id="checkStatus" resultType="boolean">
+		SELECT CASE
+				   WHEN COUNT(*) > 0 THEN true
+				   ELSE false
+				   END AS result
+		FROM TB_META_MODEL
+		WHERE MODEL_SEQ = #{model_seq}
+		  AND MODEL_STATUS = #{model_status};
+	</select>
+
+</mapper>

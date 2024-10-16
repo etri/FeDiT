@@ -1,6 +1,5 @@
 package com.stoneitgt.dt.data.platform.admin.service;
 
-import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -10,15 +9,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.collections4.map.HashedMap;
-import org.apache.commons.io.FileUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stoneitgt.common.GlobalConstant;
 import com.stoneitgt.dt.data.platform.admin.config.DatabaseConfig;
 import com.stoneitgt.dt.data.platform.admin.mapper.SimulationMapper;
@@ -58,22 +53,6 @@ public class SimulationService {
 	
 	public List<Map<String, Object>> getPopupModelList() {
 		return simulationMapper.getPopupModelList();
-	}
-
-	public Map<String, Object> getModelInfo(int modelSeq) {
-		return simulationMapper.getModelInfo(modelSeq);
-	}
-
-	public List<Map<String, Object>> getModelParams(Map<String, Object> paramsModelParams) {
-		return simulationMapper.getModelParams(paramsModelParams);
-	}
-
-	public List<Map<String, Object>> getModelFiles(int modelSeq) {
-		return simulationMapper.getModelFiles(modelSeq);
-	}
-
-	public List<Map<String, Object>> getModelColumns(int modelSeq) {
-		return simulationMapper.getModelColumns(modelSeq);
 	}
 
 	@Transactional(DatabaseConfig.PRIMARY_TRANSACTION_MANAGER)
@@ -119,24 +98,18 @@ public class SimulationService {
 			String file_name = modelFiles.get(mf).get("file_nm").toString();
 			
 			if ("MODEL".equals(modelFiles.get(mf).get("ref_tp"))) {
-				
 				simulationModel.setModelFilePath(systemproperties.getDtFilePath() + modelFiles.get(mf).get("file_path").toString());
 				simulationModel.setModelFileName(file_name);
-			}			
+			}
 			
 			if (simulationModel.getPrcsLevel().equals(modelFiles.get(mf).get("ref_tp"))) {
 				simulationModel.setModelUseFilePath(systemproperties.getDtFilePath() + modelFiles.get(mf).get("file_path").toString());
 				simulationModel.setModelUseFileName(modelFiles.get(mf).get("file_nm").toString());
-				
 				String test_file_path = systemproperties.getDtFilePath().replace("\\", "/") + basePath + "/";
 				simulationModel.setTestFilePath(test_file_path);
-				
 				simulationModel.setTestFileName(file_name.substring(0, file_name.lastIndexOf(".")) + "_simulation_target" + file_name.substring(file_name.lastIndexOf(".")));
-				
 				simulationModel.setOutputFileName(file_name.substring(0, file_name.lastIndexOf(".")) + "_augment" + file_name.substring(file_name.lastIndexOf(".")));
-				
 			}
-			
 		}
 		
 		List<Map<String, Object>> modelColumns = simulationMapper.getModelColumns(simulationModel.getModelSeq());
@@ -282,45 +255,5 @@ public class SimulationService {
 
 	public List<Map<String, Object>> getModelDataTerm() {
 		return simulationMapper.getModelDataTerm();
-	}	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-
+	}
 }
