@@ -1,0 +1,12 @@
+[
+  {
+    "id": "core-schema.json",
+    "attributes": ["observedAt","unitCode","location"],
+    "isReadOnly" : true
+  },
+  {
+    "id": "common-schema.json",
+    "attributes": ["email","dayOfWeek"],
+    "isReadOnly" : true
+  }
+]

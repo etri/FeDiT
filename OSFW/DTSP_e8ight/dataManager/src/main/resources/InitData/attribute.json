@@ -1,0 +1,46 @@
+[
+  {
+    "id": "observedAt",
+    "title": "When was the measurement taken",
+    "description": "Property. DateTime a well-defined temporal property expressed in UTC, using the ISO 8601 format.",
+    "attributeType" : "Property",
+    "valueType": "String",
+    "format": "DateTime",
+    "type": "ngsi-ld"
+  },
+  {
+    "id": "unitCode",
+    "title": "The Units of measurement",
+    "description": "Property. specified from a common list such as the UN/CEFACT List of measurement codes.",
+    "attributeType" : "Property",
+    "valueType": "String",
+    "format" : "UN/CEFACT",
+    "type": "ngsi-ld"
+  },
+  {
+    "id": "location",
+    "title": "location GeoJSON",
+    "description": "GeoProperty. Geojson reference to the item.",
+    "attributeType" : "GeoProperty",
+    "valueType": "Object",
+    "format":"GeoJSON",
+    "type": "ngsi-ld"
+  },
+  {
+    "id": "email",
+    "title": "Common definitions for  Harmonized Data Models.",
+    "description": "Property. Email address of owner.",
+    "attributeType" : "Property",
+    "valueType": "String",
+    "format":"idn-email",
+    "type": "common"
+  },
+  {
+    "id": "dayOfWeek",
+    "title": "Common definitions for  Harmonized Data Models.",
+    "description": "Property. The day of the week for which these opening hours are valid.",
+    "attributeType" : "Property",
+    "valueType": "String",
+    "type": "common"
+  }
+]
