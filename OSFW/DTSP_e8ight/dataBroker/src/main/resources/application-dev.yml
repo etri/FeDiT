@@ -1,0 +1,64 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: DATABROKER-SERVICE
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/
+#      uri: mongodb://ndxpro:ndxpro123!@172.16.28.218:57017/
+#      uri: mongodb://ndxpro:ndxpro123!@172.16.28.220:57017/
+#      uri: mongodb://ndxpro:ndxpro123!@175.106.98.248:57017/
+#      uri: mongodb://ndxpro:ndxpro123!@172.16.28.221:57017/
+      #      uri: mongodb://ndxpro:ndxpro123!@13.209.73.228:27017/
+      databaseName: "ndxpro"
+
+  kafka:
+    bootstrap-servers: 172.16.28.220:19092,172.16.28.220:29092,172.16.28.220:39092,172.16.28.220:49092,172.16.28.220:59092
+    topic:
+#      entity: dev.pintel.vissim.vehicle.json
+      entity: dongeun.entity
+      #      observedAt: dev.datetime.json
+      #      entity: lji.dev.pintel.simul.new.vehicle.json
+#      observedAt: dev.pintel.simul.new.vehicle.datetime
+      observedAt: dongeun.observedat
+    consumer:
+      group: e8ight-group_record
+
+  cache:
+    type: redis
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password: ndxpro123!
+
+  sleuth:
+    sampler:
+      probability: 1.0
+  zipkin:
+    base-url: http://localhost:9411
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+datamanager:
+  url: "http://172.16.28.218:54008"
+  #  url: "http://localhost:8080"
+  api-path:
+    data-models: "/ndxpro/v1/manager/data-models"
+    attributes: "/ndxpro/v1/manager/attributes"
+
+logging:
+  level:
+    org:
+      springframework:
+        data:
+          mongodb:
+            core:
+              MongoTemplate: DEBUG
+        cache: TRACE
+  logstash:
+    url: localhost:50000
