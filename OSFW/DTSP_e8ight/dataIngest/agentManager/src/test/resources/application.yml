@@ -1,0 +1,47 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+  jpa:
+    generate-ddl: 'true'
+    database: h2
+    hibernate:
+      ddl-auto: update
+  datasource:
+    driver-class-name: org.h2.Driver
+    username: user
+    password:
+    url: jdbc:h2:mem:test;MODE=PostgreSQL;INIT=CREATE SCHEMA IF NOT EXISTS AGENT_MANAGER
+
+agent-manager:
+  kafka-url: 172.16.28.217:9092
+  inspector:
+    inspect-delay: 10000
+    threshold: 60000
+
+flume:
+  home: /opt/flume
+  conf-dir: ${flume.home}/conf/
+  log-dir: /opt/logs/
+
+logging:
+  file:
+    name: agentManager
+    path: /opt/logs
+  pattern:
+    console: "[%d{yyyy-MM-dd HH:mm:ss}] %-5level %logger{36} - %msg%n"
+    file: "[%d{yyyy-MM-dd HH:mm:ss}] %-5level %logger{36} - %msg%n"
+  logback:
+    rollingpolicy:
+      file-name-pattern: ${LOG_PATH}/${LOG_FILE}.%d{yyyy-MM-dd}
+      max-file-size: 100MB
+      max-history: 10
+  logstash:
+    url: localhost:50000
+
+translator-manager:
+  url: http://localhost:54002/ndxpro/v1/translator
+data-manager:
+  url: http://localhost:54002/ndxpro/v1/manager
+auth:
+  url: http://localhost:54002/ndxpro/v1/auth

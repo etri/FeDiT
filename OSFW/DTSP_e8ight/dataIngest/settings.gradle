@@ -1,0 +1,4 @@
+rootProject.name = 'dataIngest'
+include 'agentManager'
+include 'dataAdapter'
+
