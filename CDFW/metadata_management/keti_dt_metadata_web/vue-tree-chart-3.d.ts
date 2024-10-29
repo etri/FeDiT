@@ -1,1 +1,0 @@
-declare module 'vue-tree-chart-3';
