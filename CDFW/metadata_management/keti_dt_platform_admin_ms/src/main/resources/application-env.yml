@@ -1,0 +1,132 @@
+#common
+server:
+  port: 6998
+        
+# Spring Properties Setting
+spring:
+  profiles: local
+  jpa:
+    properties:
+      hibernate:
+        default_schema: common
+  datasource:
+    url: jdbc:postgresql://{server ip}:5432/dtmeta
+    username: meta_manager
+    password: rhksflwk1!
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 4
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+# Platform 관련 설정은 이곳에...
+platform:
+  common:
+    list_max_row_count: 10000
+    file:
+      upload-dir: /usr/local/application/attach/dtmeta
+      upload-url: http://{server ip}:6998/admin/downloadFile/
+      
+oauth:
+  public-key: http://{server ip}:33000/security/publickey
+  access-token: http://{server ip}:33000/oauth2.0/token
+authorization: 
+  data : true
+  default-auth:
+    use-flag: true  
+    list: AUT_META_DEFAULT
+
+super: 
+  admin: n2m_iot
+
+---
+#common
+server:
+  port: 6998
+  
+spring:
+  profiles: dev
+  jpa:
+    properties:
+      hibernate:
+        default_schema: common
+  datasource:
+    url: jdbc:postgresql://{server ip}:5432/dtmeta
+    username: meta_manager
+    password: rhksflwk1!
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 4
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+# Platform 관련 설정은 이곳에...
+platform:
+  common:
+    list_max_row_count: 10000
+    file:
+      upload-dir: /usr/local/application/attach/dtmeta
+      upload-url: http://{server ip}:6998/admin/downloadFile/
+
+oauth:
+  public-key: http://{server ip}:33000/security/publickey
+  access-token: http://{server ip}:33000/oauth2.0/token
+authorization: 
+  data : true
+  default-auth:
+    use-flag: true  
+    list: AUT_META_DEFAULT
+      
+super: 
+  admin: n2m_iot  
+  
+---
+#common
+server:
+  port: 6998
+  
+spring:
+  profiles: etri
+  jpa:
+    properties:
+      hibernate:
+        default_schema: common
+  datasource:
+    url: jdbc:postgresql://{server ip}:5432/dtmeta
+    username: meta_manager
+    password: rhksflwk1!
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 4
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+# Platform 관련 설정은 이곳에...
+platform:
+  common:
+    list_max_row_count: 10000
+    file:
+      upload-dir: /usr/local/application/attach/dtmeta
+      upload-url: http://{server ip}:6998/admin/downloadFile/
+
+oauth:
+  public-key: http://{server ip}:33000/security/publickey
+  access-token: http://{server ip}:33000/oauth2.0/token
+authorization: 
+  data : true
+  default-auth:
+    use-flag: true  
+    list: AUT_META_DEFAULT
+      
+super: 
+  admin: n2m_iot
+  
