@@ -10,7 +10,7 @@ spring:
       hibernate:
         default_schema: common
   datasource:
-    url: jdbc:postgresql://220.124.222.86:5432/dtmeta
+    url: jdbc:postgresql://{server ip}:5432/dtmeta
     username: meta_manager
     password: rhksflwk1!
     driver-class-name: org.postgresql.Driver
@@ -28,11 +28,11 @@ platform:
     list_max_row_count: 10000
     file:
       upload-dir: /usr/local/application/attach/dtmeta
-      upload-url: http://220.124.222.86:6998/admin/downloadFile/
+      upload-url: http://{server ip}:6998/admin/downloadFile/
       
 oauth:
-  public-key: http://220.124.222.86:33000/security/publickey
-  access-token: http://220.124.222.86:33000/oauth2.0/token
+  public-key: http://{server ip}:33000/security/publickey
+  access-token: http://{server ip}:33000/oauth2.0/token
 authorization: 
   data : true
   default-auth:
@@ -54,7 +54,7 @@ spring:
       hibernate:
         default_schema: common
   datasource:
-    url: jdbc:postgresql://220.124.222.86:5432/dtmeta
+    url: jdbc:postgresql://{server ip}:5432/dtmeta
     username: meta_manager
     password: rhksflwk1!
     driver-class-name: org.postgresql.Driver
@@ -72,11 +72,11 @@ platform:
     list_max_row_count: 10000
     file:
       upload-dir: /usr/local/application/attach/dtmeta
-      upload-url: http://220.124.222.86:6998/admin/downloadFile/
+      upload-url: http://{server ip}:6998/admin/downloadFile/
 
 oauth:
-  public-key: http://220.124.222.86:33000/security/publickey
-  access-token: http://220.124.222.86:33000/oauth2.0/token
+  public-key: http://{server ip}:33000/security/publickey
+  access-token: http://{server ip}:33000/oauth2.0/token
 authorization: 
   data : true
   default-auth:
@@ -98,7 +98,7 @@ spring:
       hibernate:
         default_schema: common
   datasource:
-    url: jdbc:postgresql://220.124.222.86:5432/dtmeta
+    url: jdbc:postgresql://{server ip}:5432/dtmeta
     username: meta_manager
     password: rhksflwk1!
     driver-class-name: org.postgresql.Driver
@@ -116,11 +116,11 @@ platform:
     list_max_row_count: 10000
     file:
       upload-dir: /usr/local/application/attach/dtmeta
-      upload-url: http://220.124.222.86:6998/admin/downloadFile/
+      upload-url: http://{server ip}:6998/admin/downloadFile/
 
 oauth:
-  public-key: http://220.124.222.86:33000/security/publickey
-  access-token: http://220.124.222.86:33000/oauth2.0/token
+  public-key: http://{server ip}:33000/security/publickey
+  access-token: http://{server ip}:33000/oauth2.0/token
 authorization: 
   data : true
   default-auth:
