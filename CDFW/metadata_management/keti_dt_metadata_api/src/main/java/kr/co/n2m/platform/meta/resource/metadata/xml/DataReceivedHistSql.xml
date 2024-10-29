@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.n2m.platform.meta.resource.metadata.mapper.DataReceivedHistMapper">
+	
+    <insert id="insertIfLog" parameterType="ifLogVo" >
+        INSERT /*+ SQL_ID: kr.co.n2m.platform.meta.resource.metadata.mapper.DataReceivedHistMapper.insertIfLog */
+          INTO dtmeta.tb_portal_iflog
+        ( if_log_id
+        , if_log_dt
+        , if_type
+        , if_key
+        , if_msg
+        , if_reslt
+        )
+        VALUES
+        ( #{ifLogId}
+        , current_timestamp
+        , #{ifLogType}
+        , #{ifLogKey}
+        , #{ifLogMsg}
+        , #{ifLogResult}
+        )
+    </insert>    
+    
+    <update id="updateIfLog" parameterType="ifLogVo">
+        UPDATE /*+ SQL_ID: kr.co.n2m.platform.meta.resource.metadata.mapper.DataReceivedHistMapper.updateIfLog */
+               dtmeta.tb_portal_iflog
+        SET    if_reslt 	 = #{ifLogResult}
+        WHERE  if_log_id     = #{ifLogId}
+    </update>    
+    	
+</mapper>

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.n2m.platform.meta.portal.pat.mapper.PatMapper">
+
+    <sql id="limitPage">
+        <if test="isPaging">    
+        OFFSET #{startIndex} LIMIT #{pageListSize}
+        </if>
+        <if test="!isPaging">    
+        OFFSET 0 LIMIT #{limitListSize}
+        </if>        
+    </sql>
+
+    <select id="selectPatCount" resultType="int">
+		SELECT /* SQL_ID: PatMapper.selectPatCount */
+			   COUNT(*) 
+          FROM dtmeta.tb_portal_pat 			t1
+         WHERE 1=1
+         	AND t1.patk_regr_id = #{patkRegrId}
+	</select>
+
+    <select id="selectPatList" resultType="camelCaseMap">
+        SELECT /* SQL_ID: PatMapper.selectPatList */
+        	t1.patk_id,
+        	t1.tokn_nm, 
+        	t1.tokn_val, 
+        	t1.tokn_exp_date, 
+        	t1.patk_regr_id, 
+        	t1.patk_regr_nm, 
+        	t1.patk_reg_dt
+          FROM dtmeta.tb_portal_pat             t1
+         WHERE 1=1
+         	AND t1.patk_regr_id = #{patkRegrId}
+         ORDER BY
+         	t1.patk_id DESC
+        <include refid="limitPage"/>
+    </select>	
+    
+    <select id="selectPat" resultType="patVo">
+        SELECT /* SQL_ID: PatMapper.selectPat */
+        	t1.patk_id,
+        	t1.tokn_nm, 
+        	t1.tokn_val, 
+        	t1.tokn_exp_date, 
+        	t1.patk_regr_id, 
+        	t1.patk_regr_nm, 
+        	t1.patk_reg_dt
+          FROM dtmeta.tb_portal_pat             t1
+         WHERE 1=1
+         	AND t1.patk_id = #{patkId}
+    </select>	
+    
+   	<delete id="deletePat" parameterType="patVo">
+        DELETE /* SQL_ID: PatMapper.deletePat */
+          FROM dtmeta.tb_portal_pat
+         WHERE 1=1
+         	AND patk_id      = #{patkId}  
+	</delete>
+	
+	<select id="selectPatKey" resultType="string">
+        SELECT 
+        	CONCAT('PAT', EXTRACT(EPOCH FROM now())::int, LPAD(CAST(NEXTVAL('dtmeta.seq_tb_portal_common') AS varchar), 6, '0'))
+	</select>
+	
+	<insert id="insertPat" parameterType="patVo">
+		INSERT /* SQL_ID: PatMapper.insertPat */
+		       INTO dtmeta.tb_portal_pat
+			 ( patk_id
+			 , tokn_nm
+			 , tokn_val
+			 , tokn_exp_date
+			 , patk_regr_id
+			 , patk_regr_nm
+			 , patk_reg_dt
+			 ) VALUES 
+			 ( 
+			   #{patkId}
+			 , #{toknNm}
+			 , #{toknVal}
+			 , TO_DATE(#{toknExpDate}, 'YYYY-MM-DD')
+			 , #{patkRegrId}
+			 , #{patkRegrNm}
+			 , current_timestamp
+			 )
+	</insert>
+	   
+</mapper>
+
