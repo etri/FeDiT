@@ -523,15 +523,14 @@ class Manager:
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
         
         #GPU 설정
-        """
-        physical_devices = tf.config.list_physical_devices('GPU')
-        if physical_devices:
-            try:
-                tf.config.experimental.set_visible_devices(physical_devices[0], 'GPU')
-                tf.config.experimental.set_memory_growth(physical_devices[0], True)
-            except Exception as e:
-                raise e
-        """
+        '''
+        try:
+            gpus = tf.config.list_physical_devices('gpu')
+            for i in range(len(gpus)):
+                tf.config.experimental.set_memory_growths(gpus[i], True)
+        except Exception as e :
+            raise e
+        '''
 
         # gpu 이름
         gpus = tf.config.experimental.list_logical_devices('GPU')
@@ -553,7 +552,7 @@ class Manager:
             os.makedirs(history)
 
         #생성파일 목록
-        modelCKFile = os.path.join(temp, self.filename + '_ckeckpointer.ckpt')
+        modelCKFile = os.path.join(temp, self.filename + '_ckeckpointer.ckpt.weights.h5')
         fitHistoryFile = os.path.join(self.filepath, self.filename + '_fit_history.png')
         fidHistoryFile = os.path.join(self.filepath, self.filename + '_fid_history.png')
         fidHistoryPath = history
@@ -674,7 +673,7 @@ class Manager:
                 #earlystopping은 10번 epoch 동안 val_loss 개선이 없다면 학습을 멈춤
                 cb_earlystopping = EarlyStopping(monitor='val_loss', patience=self.patience)
                 #val_loss 기준 bast 체크포인터 생성
-                #cp_filename = os.path.join(self.filepath, 'tmp', self.filename + '_ckeckpointer.ckpt')
+                #cp_filename = os.path.join(self.filepath, 'tmp', self.filename + '_ckeckpointer.ckpt.weights.h5')
                 cb_checkpoint = ModelCheckpoint(modelCKFile, save_weights_only=True, save_best_only=True, monitor='val_loss', verbose=1)
                 #checkpoint_model = ModelCheckpoint(filepath=self.MODEL_FILE_PATH + 'tmp\\model\\' + 'model_{epoch:02d}.h5')
                 #중간값 추론
@@ -760,6 +759,8 @@ class Manager:
             result['y_pred_unscaled'] = unscaled_pred_df[self.output_cols]
             result['fid'] = cb_fid.fid_scores
             result['fit'] = hist.history
+            print('히스토리', hist.history)
+
             result['evaluate_loss'] = mse[0]
             result['evaluate_acc'] = mse[1]
         except Exception as e:
@@ -1114,22 +1115,3 @@ class Manager:
         except Exception as e:
             raise e            
         return result    
-    
-
-
-    def modelTrainning_ARIMA(self):
-
-                # ARIMA 모델 학습
-        order = (5, 1, 0)  # (p, d, q) 값 설정
-        model = ARIMA(data, order=order)
-        model_fit = model.fit()
-
-        print(model_fit.summary())
-
-        # 예측
-        forecast = model_fit.forecast(steps=10)
-        print("Forecast:", forecast)
-
-        result = {'result': False, 'resultMessage':None}
-
-        return result
