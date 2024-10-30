@@ -8,6 +8,8 @@ build/
 **/logs
 **/prod_logs
 
+lib/mobileOKManager-jdk1.8_1.0.1.jar
+
 /src/main/resources/config/notCommit.properties
 /src/main/resources/static/
 **/node_modules
