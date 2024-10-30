@@ -1,59 +1,5 @@
 version: "3.7"
 services:
-  tw-repository-db-poc1-mariadb:
-    build:
-      context: ./
-      dockerfile: ./docker-excluded/db/Dockerfile
-    volumes:
-      # - ./docker-bind/init-data/db/config/conf.d:/etc/mysql/conf.d:ro
-      - ./docker-bind/generated-data/db/mysql:/var/lib/mysql
-      - ./docker-bind/init-data/db/dump_repository_init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "${MARIADB_PORT}:3306"
-    restart: always
-    environment:
-      ALLOW_EMPTY_PASSWORD: no
-      TZ: "Asia/Seoul"
-      MARIADB_DATABASE: poc1
-      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
-      MARIADB_USER: ${MARIADB_USER}
-      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
-    hostname: tw-repository-db-poc1-mariadb
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MARIADB_ROOT_PASSWORD"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 40s
-
-  tw-repository:
-    container_name: tw-repository
-    image: tomcat:8.5.78-jre8-openjdk
-    ports:
-      - "8088:8080"
-    environment:
-      - "JAVA_OPTS=-Dspring.profiles.active=prod"
-    #      spring.profiles.active: prod
-    #      TZ: "Asia/Seoul"
-    volumes:
-      - type: bind
-        source: ./docker-bind/init-data/${TW_REPOSITORY__APP_NAME}/svc/webapps
-        target: /usr/local/tomcat/webapps
-      - type: bind
-        source: ./docker-bind/generated-data/logs/${TW_REPOSITORY__APP_NAME}
-        target: /usr/local/tomcat/prod_logs
-      - type: bind
-        source: ./docker-bind/init-data/${TW_REPOSITORY__APP_NAME}/svc/secrets
-        target: /jw/secrets
-      - type: bind
-        source: ./docker-bind/init-data/${TW_REPOSITORY__APP_NAME}/svc/static
-        target: /jw/static
-    #      - /build/libs/tw-repository-web-1.0-SNAPSHOT.war:/usr/local/tomcat/webapps/ROOT.war
-    restart: "always"
-    #    command: tail -f /dev/null
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
   tw-minio:
     image: minio/minio
     entrypoint: [""]
