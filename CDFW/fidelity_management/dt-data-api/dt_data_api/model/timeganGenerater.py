@@ -68,33 +68,45 @@ class Manager:
         self.data = data
     
     def modelTrainninSynthetic(self, fileName, item):
-        gpus = tf.config.experimental.list_physical_devices('GPU')
-        tf.config.experimental.set_memory_growth(gpus, True)
+        #gpus = tf.config.experimental.list_physical_devices('GPU')
+        #tf.config.experimental.set_memory_growth(gpus, True)
+
+        # gpu 이름
+        gpus = tf.config.experimental.list_logical_devices('GPU')
+
+        # gpu가 2개 이상이면, MirroredStrategy 인스턴스 생성
+        if len(gpus) > 1: 
+            strategy = tf.distribute.MirroredStrategy([gpu.name for gpu in gpus])
+
+        # gpu가 1개 이하면, 디폴트 전략 설정
+        else:
+            strategy = tf.distribute.get_strategy() # default strategy that works on CPU and single GPU
 
         self.data = self.data[item]
         real_data = real_data_loading(self.data.values, seq_len=self.seq_len)
         print(len(real_data), real_data[0].shape)
         #print(stock_data[:2])
 
-        if path.exists(self.MODEL_FILE_PATH + fileName):
-            synth = TimeGAN.load(self.MODEL_FILE_PATH + fileName)
-        else:
-            synth = TimeGAN(model_parameters=self.gan_args, hidden_dim=self.hidden_dim, seq_len=self.seq_len, n_seq=self.n_seq, gamma=self.gamma)
-            synth.train(real_data, train_steps=self.train_steps)
-            synth.save(self.MODEL_FILE_PATH + fileName)
+        with strategy.scope():
+            if path.exists(self.MODEL_FILE_PATH + fileName):
+                synth = TimeGAN.load(self.MODEL_FILE_PATH + fileName)
+            else:
+                synth = TimeGAN(model_parameters=self.gan_args, hidden_dim=self.hidden_dim, seq_len=self.seq_len, n_seq=self.n_seq, gamma=self.gamma)
+                synth.train(real_data, train_steps=self.train_steps)
+                synth.save(self.MODEL_FILE_PATH + fileName)
 
-        synth_data = synth.sample(n_samples=len(real_data))
-        print(synth_data.shape)        
-        print(len(synth_data), synth_data[0].shape)
-        
-        #GAN 데이터 평가
-        self.evaluationSyntheticData(real_data, synth_data)
+            synth_data = synth.sample(n_samples=len(real_data))
+            print(synth_data.shape)        
+            print(len(synth_data), synth_data[0].shape)
+            
+            #GAN 데이터 평가
+            self.evaluationSyntheticData(real_data, synth_data)
 
-        #GAN 평가
-        self.evaluationSynthetic(real_data, synth_data)
+            #GAN 평가
+            self.evaluationSynthetic(real_data, synth_data)
 
-        #예측모델
-        self.modelTrainning(real_data, synth_data, fileName)
+            #예측모델
+            self.modelTrainning(real_data, synth_data, fileName)
         
     
     def evaluationSyntheticData(self, real_data, synth_data):
@@ -200,7 +212,7 @@ class Manager:
         #earlystopping은 10번 epoch 동안 val_loss 개선이 없다면 학습을 멈춤
         early_stopping = EarlyStopping(monitor='val_loss', patience=10)
         #val_loss 기준 체크포인터 생성
-        #filename = os.path.join(self.MODEL_FILE_PATH + 'tmp\\', fileName + '_ckeckpointer.ckpt')
+        #filename = os.path.join(self.MODEL_FILE_PATH + 'tmp\\', fileName + '_ckeckpointer.ckpt.weights.h5')
         #checkpoint = ModelCheckpoint(filename, save_weights_only=True, save_best_only=True, monitor='val_loss', verbose=1)
         
         ts_real = self.setModel(self.units, self.n_seq)        

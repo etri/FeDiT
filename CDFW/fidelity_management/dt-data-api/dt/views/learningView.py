@@ -173,6 +173,7 @@ class learningViewSet(viewsets.ViewSet):
         req_indexColumn = request.data.get('indexColumn')
         req_dataSize = request.data.get('dataSize')
         
+        req_targetColList = request.data.get('trgt_col_list')
         '''
         print(req_filePath)
         print(req_fileName)
@@ -217,11 +218,13 @@ class learningViewSet(viewsets.ViewSet):
         modelID = (9999 if req_modelID==None else req_modelID)
         indexColumn = (0 if req_indexColumn==None else req_indexColumn)
         dataSize = (100 if req_dataSize==None else req_dataSize)
-        
+        targetColList = ([] if req_features==None else req_targetColList)
+
+
         data = self.service.createModelGenerater(
             filePath=filePath, fileName=fileName, targetFileName=targetFileName, modelFilePath=modelFilePath, modelFileName=modelFileName, outputs=outputs, features=features, modelType=modelType, 
             windowSize=windowSize, batchSize=batchSize, testSize=testSize, epochs=epochs, loss=loss, meterics=meterics, optimizer=optimizer, optimizerLr=optimizerLr,
-            modelID=modelID, indexColumn=indexColumn, dataSize=dataSize
+            modelID=modelID, indexColumn=indexColumn, dataSize=dataSize, targetColList=targetColList
         )
         if data['result']:
             rd = responseData(code=status.HTTP_200_OK, message='OK', data=data['resultMessage'])            

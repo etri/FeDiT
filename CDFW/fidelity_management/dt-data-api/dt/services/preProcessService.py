@@ -6,6 +6,7 @@ from dt.sql.preProcessSql import preProcessQuery
 import json
 from datetime import datetime, timedelta
 import numpy as np
+import csv
 import logging
 logging = logging.getLogger('dt')
 
@@ -1282,12 +1283,13 @@ class preProcessService(object):
             n_clusters = paramData['n_clusters']
             n_clusters_lable = paramData['n_clusters_lable']
             is_create =  paramData['isCreate']
+            n_count =  paramData['n_count']
 
             df.info()
             oul = outlier.Manager(df)
             oul.setData(df)
             
-            df_outlier = oul.kMeans(features=features, freq=freq, n_clusters=n_clusters, n_clusters_lable=n_clusters_lable,is_create=is_create)
+            df_outlier = oul.kMeans(features=features, freq=freq, n_clusters=n_clusters, n_clusters_lable=n_clusters_lable,is_create=is_create,n_count=n_count)
             #df = df.reset_index()
             #print(df)
             
@@ -1430,3 +1432,101 @@ class preProcessService(object):
             result['result'] = False
             result['resultMessage'] = errorMsg              
         return result
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    """
+    def processorMakefirstColumnSetData(self, paramData=None, pageParam=None):
+        '''
+        데이터셋 데이터정보
+        Args:
+            filepath(any): 데이터파일 경로
+            filename(any): 데이터파일 명
+            indexColumn(any): index 항목
+        Returns: 결과여부, 데이터 값
+            {'result': False, 'resultMessage':None}
+        '''
+        result = {'result': False, 'resultMessage':None}
+        errorMsg = ''
+        search = None
+        sort = None
+
+        try:            
+            #if paramData['field']:
+                #search = str.format("AND {0} LIKE '%{1}%'", paramData['field'], paramData['keyword'])
+            search = str.format("AND DATE_FORMAT(yyyymmdd, '%Y%m%d') BETWEEN {0} AND {1}", paramData['target_start_date'], paramData['target_end_date'])
+
+            #if paramData['sort_field']:
+            sort = str.format('ORDER BY {0} {1}', 'yyyymmdd', 'asc')
+
+            data = self.sql.metaTestListQuery(pageParam=pageParam, search=search, sort=sort)
+
+            '''
+            if not os.path.exists(paramData['file_path']):
+                os.makedirs(paramData['file_path'])
+
+            df = pd.DataFrame(data)
+    
+            # 파일 경로 생성
+            file_path = os.path.join(paramData['file_path'], paramData['file_name'])
+            
+            import csv
+            df.to_csv(file_path, index=False, quoting=csv.QUOTE_ALL)
+            '''
+
+            paramData['base_dir'] = os.path.basename(paramData['file_path'])
+
+            result['result'] = True
+            result['resultMessage'] = paramData
+
+            #return False
+            #df = pd.read_csv(dataFile, header=0, index_col=paramData['index_trgt_col'], parse_dates=True)
+            #info = self.dataInfo.info(df)
+
+            #result['result'] = True
+            #result['resultMessage'] = info
+        except Exception as e:
+            # for m in e.args:
+            #     errorMsg += str(m) + '-'
+            # logging.error(errorMsg[:-1])
+
+            errorMsg = exceptionMessage(e, ERROR_CODE.PRE_PROCESS.value, 'processorMakeOriginFileSet')
+            result['result'] = False
+            result['resultMessage'] = errorMsg  
+
+        return result
+    """

@@ -504,6 +504,7 @@ class exampleViewSet(viewsets.ViewSet):
         '''
         Auto Encoder 기준 이상치 탐지 모델 생성
         '''
+        #data = self.service.createAELearningModel()
         data = self.service.createAELearningModel()
         if data['result']:
             rd = responseData(code=status.HTTP_200_OK, message='OK', data=data['resultMessage'])            
@@ -526,6 +527,40 @@ class exampleViewSet(viewsets.ViewSet):
             rd = responseData(code=status.HTTP_400_BAD_REQUEST, message='BAD_REQUEST', detail=data['resultMessage'])
         return Response(rd.getJson()) 
     
+
+    @action(detail=False, methods=['POST', 'GET'])
+    def outlier_createAELearningModel_New(self, request):
+        '''
+        Auto Encoder 기준 이상치 탐지 모델 생성
+        '''
+        data = self.service.createAELearningModel_New()
+
+        if data['result']:
+            rd = responseData(code=status.HTTP_200_OK, message='OK', data=data['resultMessage'])            
+        else:
+            rd = responseData(code=status.HTTP_400_BAD_REQUEST, message='BAD_REQUEST', detail=data['resultMessage'])
+        return Response(rd.getJson()) 
+    
+    @action(detail=False, methods=['POST', 'GET'])
+    def outlier_dataAEGenerater_New(self, request):
+        '''
+        Auto Encoder 기준 이상치 탐지
+        '''
+        fileName = ('ID_LM_AE_TEST_NEW.h5' if request.data.get('filename')==None else request.data.get('filename'))        
+        outputs_cols = (['RAIN5'] if request.data.get('outputs')==None else request.data.get('outputs'))
+        features_cols = ([] if request.data.get('features')==None else request.data.get('features'))
+
+        data = self.service.dataAEGenerater_New(fileName=fileName, output_cols=outputs_cols, feature_cols=features_cols)
+        if data['result']:
+            rd = responseData(code=status.HTTP_200_OK, message='OK', data=data['resultMessage'])            
+        else:
+            rd = responseData(code=status.HTTP_400_BAD_REQUEST, message='BAD_REQUEST', detail=data['resultMessage'])
+        return Response(rd.getJson()) 
+
+
+
+
+
     @action(detail=False, methods=['POST', 'GET'])
     def arima_modelGenerater(self, request):
         '''
@@ -540,17 +575,276 @@ class exampleViewSet(viewsets.ViewSet):
         else:
             rd = responseData(code=status.HTTP_400_BAD_REQUEST, message='BAD_REQUEST', detail=data['resultMessage'])
         return Response(rd.getJson()) 
-    
+
+
+
     @action(detail=False, methods=['POST', 'GET'])
-    def vector_dataGenerater(self, request):
+    def outlier_anomalyDetection(self, request):
         '''
-        Vector 생성
+        ETRI 이상 탐지 모듈
         '''
-        text = '아빠가 방에 들어가신다.'
-        data = self.service.vectorDataGenerater(text=text)
+        
+        """
+        fileName = ('ID_LM_AE_TEST.h5' if request.data.get('filename')==None else request.data.get('filename'))        
+        outputs_cols = (['ondo'] if request.data.get('outputs')==None else request.data.get('outputs'))
+        features_cols = ([] if request.data.get('features')==None else request.data.get('features'))
+        data = self.service.dataAEGenerater(fileName=fileName, output_cols=outputs_cols, feature_cols=features_cols)        
+        """
+
+        data = self.service.loadAndInfer()
+        #data = self.service.etri_model_train_and_save()
+
         if data['result']:
             rd = responseData(code=status.HTTP_200_OK, message='OK', data=data['resultMessage'])            
         else:
             rd = responseData(code=status.HTTP_400_BAD_REQUEST, message='BAD_REQUEST', detail=data['resultMessage'])
         return Response(rd.getJson()) 
+
+    @action(detail=False, methods=['POST', 'GET'])
+    def processorDecisionTree(self, request):
+        '''
+        결정트리 분류
+        '''
+        paramData = request.data
+
+        #테스트용
+        if not paramData:
+            paramData = {
+                "file_path": 'D:\\PythonProject\\dt-data-api\\dt_data_api\\data\\',
+                "file_name": 'ae_train_test.csv',
+                "target_file_name": 'ae_train_test_target.csv',
+                "model_path": "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\tmp\\model\\admin1723536407958.pkl",
+                "index_column": "DATE",
+                "outputs":['RAIN5', 'RAIN6', 'RAIN7'],
+                "feature": 'LEVEL32',
+                "set_order":1,
+                "isCreate": "Y"
+            }
+
+        data = self.service.decisionTree(paramData=paramData)
+       
+        if data['result']:
+            rd = responseData(code=200, message='OK', data=data)            
+        else:
+            rd = responseData(code=status.HTTP_400_BAD_REQUEST, message='BAD_REQUEST', detail=data['resultMessage'])
+        return Response(rd.getJson())     
+    
+
+    @action(detail=False, methods=['POST', 'GET'])
+    def processorDecisionTree_model(self, request):
+        '''
+        결정트리 분류
+        '''
+        paramData = request.data
+
+        #테스트용
+        if not paramData:
+            paramData = {
+                "file_path": 'D:\\PythonProject\\dt-data-api\\dt_data_api\\data\\',
+                "file_name": 'ae_train_test.csv',
+                "target_file_name": 'ae_train_test_target.csv',
+                "model_path": "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\tmp\\model\\admin1723536407958.pkl",
+                "index_column": "DATE",
+                "outputs":['RAIN5', 'RAIN6', 'RAIN7'],
+                "feature": 'LEVEL32',
+                "set_order":1,
+                "isCreate": "Y"
+            }
+
+        data = self.service.decisionTree_useSavedModel(paramData=paramData)
+       
+        if data['result']:
+            rd = responseData(code=200, message='OK', data=data)            
+        else:
+            rd = responseData(code=status.HTTP_400_BAD_REQUEST, message='BAD_REQUEST', detail=data['resultMessage'])
+        return Response(rd.getJson())     
+
+    @action(detail=False, methods=['POST', 'GET'])
+    def data_fid(self, request):
+        '''
+        FID Secore 원본/생성 데이터 비교
+        '''
+        data = self.service.GetDataFID()
+        if data['result']:
+            rd = responseData(code=status.HTTP_200_OK, message='OK', data=data['resultMessage'])            
+        else:
+            rd = responseData(code=status.HTTP_400_BAD_REQUEST, message='BAD_REQUEST', detail=data['resultMessage'])
+        return Response(rd.getJson())     
+    
+
+    @action(detail=False, methods=['POST', 'GET'])
+    def outlier_createNAOMILearningModel_New(self, request):
+        '''
+        Auto Encoder 기준 이상치 탐지 모델 생성
+        '''
+        data = self.service.createNAOMILearningModel_New()
+
+        if data['result']:
+            rd = responseData(code=status.HTTP_200_OK, message='OK', data=data['resultMessage'])            
+        else:
+            rd = responseData(code=status.HTTP_400_BAD_REQUEST, message='BAD_REQUEST', detail=data['resultMessage'])
+        return Response(rd.getJson()) 
+    
+    @action(detail=False, methods=['POST', 'GET'])
+    def outlier_dataNAOMIGenerater_New(self, request):
+        '''
+        Auto Encoder 기준 이상치 탐지
+        '''
+        fileName = ('ID_LM_AE_TEST_NEW.h5' if request.data.get('filename')==None else request.data.get('filename'))        
+        outputs_cols = (['RAIN5'] if request.data.get('outputs')==None else request.data.get('outputs'))
+        features_cols = ([] if request.data.get('features')==None else request.data.get('features'))
+
+        data = self.service.dataNAOMIGenerater_New(fileName=fileName, output_cols=outputs_cols, feature_cols=features_cols)
+        if data['result']:
+            rd = responseData(code=status.HTTP_200_OK, message='OK', data=data['resultMessage'])            
+        else:
+            rd = responseData(code=status.HTTP_400_BAD_REQUEST, message='BAD_REQUEST', detail=data['resultMessage'])
+        return Response(rd.getJson()) 
+
+
+    @action(detail=False, methods=['POST', 'GET'])
+    def createModelGenerater_brits(self, request):
+        '''
+        brits 학습모델 생성
+        '''
+        req_filePath = request.data.get('filePath')
+        req_fileName = request.data.get('fileName')
+        req_targetFileName = request.data.get('targetFileName')
+        req_modelFilePath = request.data.get('modelFilePath')
+        req_modelFileName = request.data.get('modelFileName')
+        req_outputs = request.data.get('outputs')
+        #req_features = request.data.get('features')
+        req_modelType = request.data.get('modelType')
+        req_timeSteps = request.data.get('timeSteps')
+        req_batchSize = request.data.get('batchSize')
+        req_testSize = request.data.get('testSize')
+        req_epochs = request.data.get('epochs')
+        req_loss = request.data.get('loss')
+        req_meterics = request.data.get('meterics')
+        req_optimizer = request.data.get('optimizer')
+        req_optimizerLr = request.data.get('optimizerLr')
+        req_modelID = request.data.get('modelID')
+        req_indexColumn = request.data.get('indexColumn')
+        req_dataSize = request.data.get('dataSize')
         
+        req_targetColList = request.data.get('trgt_col_list')
+        '''
+        print(req_filePath)
+        print(req_fileName)
+        print(req_modelFilePath)
+        print(req_modelFileName)
+        print(req_outputs)
+        print(req_features)
+        print(req_modelType)
+        print(req_windowSize)
+        print(req_batchSize)
+        print(req_testSize)
+        print(req_epochs)
+        print(req_loss)
+        print(req_meterics)
+        print(req_optimizer)
+        print(req_modelID)
+        print(req_indexColumn)
+        '''
+
+        filePath = req_filePath
+        #filename = ('201901_201912유동인구.csv' if req_filename==None else req_filename)
+        fileName = ('test_data_201901_201902_imputer.csv' if req_fileName==None else req_fileName)        
+        targetFileName = ('test_data_201901_201902.csv' if req_targetFileName==None else req_targetFileName)
+        modelFilePath = req_modelFilePath
+        modelFileName = ('ID_2023.h5' if req_modelFileName==None else req_modelFileName)
+        outputs = (['w60'] if req_outputs==None else req_outputs)
+        #outputs = (['LRAIN'] if req_outputs==None else req_outputs)
+        #features = (['w20'] if req_features==None else req_features)
+        #features = ([] if req_features==None else req_features)
+        modelType = ('lstm' if req_modelType==None else req_modelType)
+        timeSteps = (100 if req_timeSteps==None else req_timeSteps)
+        batchSize = (16 if req_batchSize==None else req_batchSize)
+        testSize = (0.2 if req_testSize==None else req_testSize)
+        epochs = (50 if req_epochs==None else req_epochs)
+        loss = ('hub' if req_loss==None else req_loss)
+        #loss = ('mse' if req_loss==None else req_loss)
+        #meterics = ('mse' if req_meterics==None else req_meterics)
+        meterics = ('mae' if req_meterics==None else req_meterics)
+        optimizer = ('adam' if req_optimizer==None else req_optimizer)
+        #optimizer = ('sgd' if req_optimizer==None else req_optimizer)
+        optimizerLr = (0.0005 if req_optimizerLr==None else req_optimizerLr)
+        modelID = (9999 if req_modelID==None else req_modelID)
+        indexColumn = (0 if req_indexColumn==None else req_indexColumn)
+        dataSize = (100 if req_dataSize==None else req_dataSize)
+        targetColList = ([] if req_targetColList==None else req_targetColList)
+
+
+        data = self.service.createImputationBrits_New(
+            filePath=filePath, fileName=fileName, targetFileName=targetFileName, modelFilePath=modelFilePath, modelFileName=modelFileName, outputs=outputs, modelType=modelType, 
+            batchSize=batchSize, testSize=testSize, epochs=epochs, timesteps=timeSteps, loss=loss, meterics=meterics, optimizer=optimizer, optimizerLr=optimizerLr,
+            modelID=modelID, indexColumn=indexColumn, dataSize=dataSize, targetColList=targetColList
+        )
+        if data['result']:
+            rd = responseData(code=status.HTTP_200_OK, message='OK', data=data['resultMessage'])            
+        else:
+            rd = responseData(code=status.HTTP_400_BAD_REQUEST, message='BAD_REQUEST', detail=data['resultMessage'])
+        return Response(rd.getJson())
+    
+    @action(detail=False, methods=['POST', 'GET'])
+    def augmentCreate_brits(self, request):
+        '''
+        brits 학습모델 활용 데이터 추론 생성
+        '''
+        paramData = request.data        
+
+        #테스트용
+        if not paramData:
+            '''
+            paramData = {
+                "model_file_path": None,
+                "model_file_name": "ID_2023.h5",
+                "test_file_path": None,
+                "test_file_name": "254_RAIN015003_202305171245_ex1.csv",
+                "outputs": ['LRAIN'],
+                "features": [],
+                "window_size": 8,
+                "batch_size": 16,
+                "model_id": 9999,
+                "index_column": 0,
+            }
+            '''
+            '''
+            #사용자, 입력:전체, 실시간:X
+            paramData = {
+                "model_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "model_file_name": "origin_sample_7d_w12.h5",
+                "test_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "test_file_name": "origin_sample_3d.csv",
+                "outputs": ["ondo","m10","m60","m30","w30","w20"],
+                "features": [],
+                "window_size": 12,
+                "batch_size": 16,
+                "model_id": 9999,
+                "index_column": "date"
+            }
+            '''
+
+            #모델, 입력:기간지정, 실시간:X
+            paramData = {
+                "model_file_path" : "D:\\PythonProject\\dt-data-api\\dt_data_api\\data\\",
+                "model_file_name" : "MODEL_RF_20240904154156966.plk",        
+                "model_use_file_path" : "D:\\PythonProject\\dt-data-api\\dt_data_api\\data\\",
+                "model_use_file_name" : "24_2차입식_데이터합본_수정_0612_4.csv",    
+                "output_file" : "D:\\PythonProject\\dt-data-api\\dt_data_api\\data\\24_2차입식_데이터합본_수정_0612_4_interval_augment.csv",
+                "output_file_name" : "24_2차입식_데이터합본_수정_0612_4_augment.csv",
+                "outputs" : ["MET"],
+                "features" : ["temp","RH","CO2","AMM","Temp_Out","RH_Out","Solar"],
+                "model_id" : 153,
+                "index_column" : "time",
+                "trgt_col_list" : ""
+            }
+
+            
+        data = self.service.augmentCreate_brits(paramData=paramData)
+
+        if data['result']:
+            rd = responseData(code=status.HTTP_200_OK, message='OK', data=data['resultMessage'])            
+        else:
+            rd = responseData(code=status.HTTP_400_BAD_REQUEST, message='BAD_REQUEST', detail=data['resultMessage'])
+        return Response(rd.getJson())    

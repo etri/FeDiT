@@ -7,6 +7,7 @@ from statsmodels.tsa.seasonal import seasonal_decompose
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans, DBSCAN
 from dt_data_api.common.settings import DATA_PATH
+import json
 
 class Manager:
     '''
@@ -63,7 +64,7 @@ class Manager:
         df = pd.DataFrame(self.data)
         df.replace("", np.nan, inplace=True)
         df2 = df.dropna(axis='rows')
-
+    
         r = seasonal_decompose(df2[feature], model='additive', period=freq, extrapolate_trend=freq)
         trend[feature] = r.trend
         seasonal[feature] = r.seasonal
@@ -104,7 +105,7 @@ class Manager:
         
         return trend, seasonal, resid
     
-    def standardDeviation(self, resid, is_create):
+    def standardDeviation(self, resid, is_create, p_value = 1):
         '''
         표준편차 기준 이상치 탐지
         Args:
@@ -125,16 +126,18 @@ class Manager:
         mu, std = resid.mean(), resid.std()
         print("평균:", mu)
         print("표준편차:", std)
-        print("이상치 갯수:", len(resid[(resid>mu+3*std)|(resid<mu-3*std)].dropna()))
+        #print("이상치 갯수:", len(resid[(resid>mu+3*std)|(resid<mu-3*std)].dropna()))
+        print("이상치 갯수:", len(resid[(resid>mu+p_value*std)|(resid<mu-p_value*std)].dropna()))
+        print("값:", mu+p_value*std)
 
-        index = resid[(resid>mu+3*std)|(resid<mu-3*std)].dropna().index
+        #index = resid[(resid>mu+3*std)|(resid<mu-3*std)].dropna().index
+        index = resid[(resid>mu+p_value*std)|(resid<mu-p_value*std)].dropna().index
         #result = self.data.loc[index]
-
+        print("인덱스:", index)
         if is_create=='N':
             result = {'hist': None, 'info': None}
             info_df = self.data.loc[index]
             info_df = info_df.reset_index(drop=False)
-
             result['hist'] = range
             result['info'] = info_df
 
@@ -143,7 +146,7 @@ class Manager:
 
         return result
     
-    def kMeans(self, features, freq=50, n_clusters=20, n_clusters_lable=4, is_create='Y'):
+    def kMeans(self, features, freq=50, n_clusters=20, n_clusters_lable=4, is_create='Y', n_count=10):
         '''
         k-means 기준 이상치 탐지
         Args:
@@ -177,16 +180,63 @@ class Manager:
         print(cnt)
         print(['group:{}-count:{}'.format(group, count) for group, count in zip(lbl, cnt)])
 
-        #df = self.data[(kmeans.labels_==n_clusters_lable)]
-        df = self_data_processed[(kmeans.labels_==n_clusters_lable)]
+        
+        ### 입력 갯수보다 작은 cluster 추출
+        #n_count = 10
+        labels = kmeans.labels_
+        label_counts = pd.Series(labels).value_counts()
+        #가장 많은 갯수 추출
+        max_cluster = label_counts.idxmax()
+        #입력값 보다 작은수 추출
+        small_clusters = label_counts[label_counts <= n_count].index.tolist()
+
+        #print(most_common_cluster)
+        #print(small_clusters)
+
+        json_df = {}
+        for i in small_clusters:
+            label_df = self_data_processed[labels == i]
+            label_df = label_df.reset_index(drop=False)
+            json_df['group'+str(i)] = label_df.to_dict(orient='records')                                            
+        label_df = self_data_processed[labels == max_cluster]
+        label_df = label_df.reset_index(drop=False)
+        json_df['max'] = label_df.to_dict(orient='records')
+        #print(json_df)
+        
+
+        '''
+        ###### 클러스터 시각화
+        plt.figure(figsize=(10, 2))
+        #for i in range(n_clusters):
+        for i in small_clusters:
+            #cluster_data = self_data_processed(kmeans.labels_==i)
+            #plt.scatter(np.arange(len(cluster_data)), cluster_data, label=f'Cluster {i}', s=1)
+            plt.scatter(np.arange(len(self_data_processed))[labels == i], self_data_processed[labels == i], label=f'Cluster {i}', s=1)
+        plt.scatter(np.arange(len(self_data_processed))[labels == max_cluster], self_data_processed[labels == max_cluster], label=f'Cluster {max_cluster}', s=1)
+        plt.title('KMeans Clustering Results (1D)')
+        plt.xlabel('Sample Index')
+        plt.ylabel('Feature Value')
+        plt.legend()
+        plt.savefig('kmeans.jpg')        
+        ######
+        '''
+
+        #df = self_data_processed[(kmeans.labels_==n_clusters_lable)]
+        #10개보다 작은값 목록 더하기
+        df = [self_data_processed[labels==i] for i in small_clusters]
+        if df:
+            df = pd.concat(df)
+        else:
+            df = pd.DataFrame()
 
         if is_create=='N':
-            df = df.reset_index(drop=False)
+            #df = df.reset_index(drop=False)
             result = {'hist': None, 'info': None}
-            result['info'] = df
+            #result['info'] = df
+            result['info'] = json_df
         else:
             result = df
-
+        
         return result
  
     def dbScan(self, features, freq=50, eps=0.1, min_samples=2, is_create='Y'):
@@ -221,15 +271,45 @@ class Manager:
         lbl, cnt = np.unique(clustering.labels_,return_counts=True)
         print(['group:{}-count:{}'.format(group, count) for group, count in zip(lbl, cnt)])
 
+        ### cluster 추출
+        labels = clustering.labels_
+        label_counts = pd.Series(labels).value_counts()
+        #가장 많은 갯수 추출
+        #max_cluster = label_counts.idxmax()
+        
+        json_df = {}
+        label_df = self_data_processed[labels == -1]
+        label_df = label_df.reset_index(drop=False)
+        json_df['group-1'] = label_df.to_dict(orient='records')                    
+
+        # label_df = self_data_processed[labels == max_cluster]
+        # label_df = label_df.reset_index(drop=False)
+        # json_df['max'] = label_df.to_dict(orient='records')
+        # print(json_df)
+        
+        '''
+        ###### 클러스터 시각화            
+        plt.figure(figsize=(10, 2))        
+        plt.scatter(np.arange(len(self_data_processed))[(clustering.labels_==-1)], self_data_processed[(clustering.labels_==-1)], label=f'Cluster -1', s=1)        
+        plt.scatter(np.arange(len(self_data_processed))[labels == max_cluster], self_data_processed[labels == max_cluster], label=f'Cluster {max_cluster}', s=1)
+        plt.title('DBSCAN Clustering Results (1D)')
+        plt.xlabel('Sample Index')
+        plt.ylabel('Feature Value')
+        plt.legend()
+        plt.savefig('dbscan.jpg')        
+        ######
+        '''
+
         #df = self.data[(clustering.labels_==-1)]
         df = self_data_processed[(clustering.labels_==-1)]
         #print(df.describe())
         #result = df
-
+        
         if is_create=='N':
-            df = df.reset_index(drop=False)
+            #df = df.reset_index(drop=False)
             result = {'hist': None, 'info': None}
-            result['info'] = df
+            #result['info'] = df
+            result['info'] = json_df
         else:
             result = df
 
@@ -249,12 +329,26 @@ class Manager:
 
 
         #GPU 설정
+        """
         physical_devices = tf.config.list_physical_devices('GPU')
         try:
             tf.config.experimental.set_memory_growth(physical_devices[0], True)
         except Exception as e:
             raise e
-        
+        """
+
+        # gpu 이름
+        gpus = tf.config.experimental.list_logical_devices('GPU')
+
+        # gpu가 2개 이상이면, MirroredStrategy 인스턴스 생성
+        if len(gpus) > 1: 
+            strategy = tf.distribute.MirroredStrategy([gpu.name for gpu in gpus])
+
+        # gpu가 1개 이하면, 디폴트 전략 설정
+        else:
+            strategy = tf.distribute.get_strategy() # default strategy that works on CPU and single GPU
+
+
 
         # 모델 재현성을 위해 난수 시드설정
         tf.random.set_seed(777)
@@ -310,41 +404,43 @@ class Manager:
         print(train_gen[0][0].shape)  # (32, 10, 5)
         print(train_gen[0][1].shape)  # (32, 5)
 
+
         # 모델만들기
         # 2개 층의 LSTM으로 인코더 만듬
         # RepeatVector는 input을 window_size만큼 복사해줌
-        model = Sequential([
-            # >> 인코더 시작
-            LSTM(64, activation='relu', return_sequences=True, input_shape=(window_size, n_features)),
-            LSTM(16, activation='relu', return_sequences=False),
-            ## << 인코더 끝
-            ## >> Bottleneck
-            RepeatVector(window_size),
-            ## << Bottleneck
-            ## >> 디코더 시작
-            LSTM(16, activation='relu', return_sequences=True),
-            LSTM(64, activation='relu', return_sequences=False),
-            Dense(n_features)
-            ## << 디코더 끝
-        ])
+        with strategy.scope():
+            model = Sequential([
+                # >> 인코더 시작
+                LSTM(64, activation='relu', return_sequences=True, input_shape=(window_size, n_features)),
+                LSTM(16, activation='relu', return_sequences=False),
+                ## << 인코더 끝
+                ## >> Bottleneck
+                RepeatVector(window_size),
+                ## << Bottleneck
+                ## >> 디코더 시작
+                LSTM(16, activation='relu', return_sequences=True),
+                LSTM(64, activation='relu', return_sequences=False),
+                Dense(n_features)
+                ## << 디코더 끝
+            ])
 
-        # 체크포인트
-        # 학습을 진행하며 validation 결과가 가장 좋은 모델을 저장해둠       
-        modelCKFile = os.path.join('dt_data_api/data/temp/', 'mymodel.ckpt')
-        cb_checkpoint = ModelCheckpoint(modelCKFile, save_weights_only=True, save_best_only=True, monitor='val_loss', verbose=1)
+            # 체크포인트
+            # 학습을 진행하며 validation 결과가 가장 좋은 모델을 저장해둠       
+            modelCKFile = os.path.join('dt_data_api/data/temp/', 'mymodel.ckpt')
+            cb_checkpoint = ModelCheckpoint(modelCKFile, save_weights_only=True, save_best_only=True, monitor='val_loss', verbose=1)
 
-        # 얼리스탑
-        # 학습을 진행하며 validation 결과가 나빠지면 스톱. patience 횟수만큼은 참고 지켜본다
-        early_stop = EarlyStopping(monitor='val_loss', patience=5)
+            # 얼리스탑
+            # 학습을 진행하며 validation 결과가 나빠지면 스톱. patience 횟수만큼은 참고 지켜본다
+            early_stop = EarlyStopping(monitor='val_loss', patience=5)
 
-        model.compile(loss='mae', optimizer='adam',metrics=["mae"])
+            model.compile(loss='mae', optimizer='adam',metrics=["mae"])
 
-        hist = model.fit(train_gen, 
-            validation_data=valid_gen,
-            steps_per_epoch=len(train_gen),
-            validation_steps=len(valid_gen),
-            epochs=50, 
-            callbacks=[cb_checkpoint, early_stop])
+            hist = model.fit(train_gen, 
+                validation_data=valid_gen,
+                steps_per_epoch=len(train_gen),
+                validation_steps=len(valid_gen),
+                epochs=50, 
+                callbacks=[cb_checkpoint, early_stop])
 
         model.load_weights(modelCKFile)
 
