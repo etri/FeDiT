@@ -1,0 +1,23 @@
+.tooltip-container {
+    position: fixed;
+    font-size: 14px;
+    line-height: 20px;
+    background-color: #2c3a43;
+    color: white;
+    padding: 16px;
+    margin: 0;
+}
+
+.tooltip-container::before {
+    content: "";
+    position: absolute;
+    top: -12px;
+    /*left: 70%;*/
+    left: var(--pointer-position, 50%);
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 16px solid transparent;
+    border-right: 16px solid transparent;
+    border-bottom: 18px solid #2c3a43;
+}

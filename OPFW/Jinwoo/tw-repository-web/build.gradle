@@ -1,0 +1,164 @@
+plugins {
+    id 'java'
+    id 'war'
+}
+
+group = 'net.jw'
+version = '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+// dependency versions
+project.ext.version = new Properties()
+
+project.ext.version.spring_security = '5.8.6'
+project.ext.version.spring = '5.3.29'
+project.ext.version.tiles = '3.0.5'
+project.ext.version.hikariCP = '4.0.3'
+project.ext.version.mybatis = '3.5.9'
+project.ext.version.mybatis_spring = '2.1.1'
+project.ext.version.mysql_connector = '8.0.28'
+project.ext.version.jdbc_mariadb = '3.4.1'
+project.ext.version.jackson_databind = '2.7.3'
+project.ext.version.jackson_datatype_jsr310 = '2.15.1';
+project.ext.version.logback = '1.3.7'
+project.ext.version.slf4j_api = '2.0.7'
+project.ext.version.javax_servlet_api = '4.0.1'
+project.ext.version.javax_servlet_jsp_api = '2.3.3'
+project.ext.version.javax_annotation_api = '1.3.2'
+//project.ext.version.lombok = '1.18.4'
+project.ext.version.lombok = '+'
+project.ext.version.common_io = '2.5'
+project.ext.version.commons_fileupload = '1.3.1'
+project.ext.version.jstl = '1.2'
+project.ext.version.janino = '2.7.7'
+project.ext.version.javax_mail_api = '1.5.5'
+project.ext.version.javax_mail = '1.4.7'
+project.ext.version.yaml_resource_bundle = '2.9.1'
+project.ext.version.gson = '2.10.1'
+project.ext.version.commons_text = '1.10.0'
+project.ext.version.jjwt = '0.12.3'
+
+// custom variable
+project.ext.achiveFileName = "ROOT.war"
+
+repositories {
+    mavenCentral()
+    flatDir {
+        dirs "${projectDir}/../libs"
+    }
+}
+
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
+dependencies {
+    implementation "org.springframework.security:spring-security-core:${project.ext.version.spring_security}"
+    implementation "org.springframework.security:spring-security-config:${project.ext.version.spring_security}"
+    implementation "org.springframework.security:spring-security-web:${project.ext.version.spring_security}"
+
+    implementation "org.springframework:spring-webmvc:${project.ext.version.spring}"
+    implementation "org.springframework:spring-context-support:${project.ext.version.spring}"
+    implementation "org.springframework:spring-jdbc:${project.ext.version.spring}"
+    implementation "org.springframework:spring-aop:${project.ext.version.spring}"
+
+    implementation 'org.aspectj:aspectjweaver:1.9.5'
+
+    implementation 'org.hibernate.validator:hibernate-validator:6.1.7.Final'
+    implementation 'javax.validation:validation-api:2.0.1.Final'
+    implementation 'org.glassfish:javax.el:3.0.0'
+
+    implementation 'org.modelmapper:modelmapper:3.2.1'
+
+
+    testImplementation "org.springframework:spring-test:${project.ext.version.spring}"
+
+
+    implementation ("org.apache.tiles:tiles-jsp:${project.ext.version.tiles}")
+    implementation ("com.zaxxer:HikariCP:${project.ext.version.hikariCP}")
+
+    implementation ("org.mybatis:mybatis:${project.ext.version.mybatis}")
+    implementation ("org.mybatis:mybatis-spring:${project.ext.version.mybatis_spring}")
+    implementation ("org.mariadb.jdbc:mariadb-java-client:${project.ext.version.jdbc_mariadb}")
+
+    implementation ("com.fasterxml.jackson.core:jackson-databind:${project.ext.version.jackson_databind}")
+    implementation ("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${project.ext.version.jackson_datatype_jsr310}")
+
+    implementation ("javax.servlet:javax.servlet-api:${project.ext.version.javax_servlet_api}")
+    compileOnly ("javax.servlet.jsp:javax.servlet.jsp-api:${project.ext.version.javax_servlet_jsp_api}")
+    implementation ("javax.annotation:javax.annotation-api:${project.ext.version.javax_annotation_api}")
+    implementation ("javax.servlet:jstl:${project.ext.version.jstl}")
+
+    implementation "io.jsonwebtoken:jjwt-api:${project.ext.version.jjwt}"
+    runtimeOnly "io.jsonwebtoken:jjwt-gson:${project.ext.version.jjwt}"
+    runtimeOnly "io.jsonwebtoken:jjwt-impl:${project.ext.version.jjwt}"
+
+    implementation ("commons-io:commons-io:${project.ext.version.common_io}")
+    implementation ("commons-fileupload:commons-fileupload:${project.ext.version.commons_fileupload}")
+
+    implementation ("ch.qos.logback:logback-core:${project.ext.version.logback}")
+    implementation ("ch.qos.logback:logback-classic:${project.ext.version.logback}")
+    implementation ("org.slf4j:slf4j-api:${project.ext.version.slf4j_api}")
+
+    implementation ("org.codehaus.janino:janino:${project.ext.version.janino}")
+
+    implementation ("javax.mail:javax.mail-api:${project.ext.version.javax_mail_api }")
+    implementation ("javax.mail:mail:${project.ext.version.javax_mail }")
+
+    // resource yml load
+    implementation ("dev.akkinoc.util:yaml-resource-bundle:${project.ext.version.yaml_resource_bundle}")
+
+    // json
+    implementation ("com.google.code.gson:gson:${project.ext.version.gson}")
+
+    // https://mvnrepository.com/artifact/org.apache.commons/commons-text
+    implementation ("org.apache.commons:commons-text:${project.ext.version.commons_text}")
+
+
+    implementation 'net.jw:jcms-base-java8:1.0-SNAPSHOT'
+    implementation 'net.jw:twin-repository-db-java8:1.0-SNAPSHOT'
+
+    implementation 'com.google.code.gson:gson:2.10.1'
+
+    implementation files('lib/mobileOKManager-jdk1.8_1.0.1.jar')
+
+    compileOnly ("org.projectlombok:lombok:${project.ext.version.lombok}")
+    annotationProcessor ("org.projectlombok:lombok:${project.ext.version.lombok}")
+
+    testImplementation platform('org.junit:junit-bom:5.9.1')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+war {
+    archiveFileName = "${project.ext.achiveFileName}"
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+def deleteSpecificResources = tasks.register('deleteSpecificResources', Delete) {
+    // 삭제할 파일들을 지정
+    delete {
+        fileTree(layout.buildDirectory.dir("resources/main")) {
+            include "**/globals-build.properties"
+        }
+    }
+}
+
+processResources  {
+    dependsOn deleteSpecificResources
+
+    filesMatching('**/globals-build.properties'){
+        def date = new Date().format('yyyyMMddHHmmss')
+        filter(org.apache.tools.ant.filters.ReplaceTokens, tokens:[
+                BUILD_DATE: date
+        ])
+    }
+}

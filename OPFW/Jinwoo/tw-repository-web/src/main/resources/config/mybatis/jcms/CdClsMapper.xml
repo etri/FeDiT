@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="net.jcms.framework.cd.mapper.CdClsMapper">
+
+	<select id="select" parameterType="cdCls" resultType="cdCls">
+		select
+			CD_CLS_ID, CD_CLS_NM, CD_CLS_DESC, REC_ST, REG_ID, REG_DT, UPD_ID, UPD_DT
+		from
+			JCMS_CD_CLS
+		where
+			CD_CLS_ID = #{cdClsId} and
+			DEL_DT IS NULL
+	</select>
+
+	<select id="selectList" parameterType="cdCls" resultType="cdCls">
+		select
+			CD_CLS_ID, CD_CLS_NM, CD_CLS_DESC,
+			REC_ST
+		from
+			JCMS_CD_CLS
+		where
+			DEL_DT IS NULL
+		<if test="!empty(recSt)"> and REC_ST = #{recSt} </if>
+	</select>
+	
+	<select id="count" parameterType="cdCls" resultType="java.lang.Integer">
+		select
+			COUNT(CD_CLS_ID)
+		from
+			JCMS_CD_CLS
+		where
+			DEL_DT IS NULL
+		<if test="!empty(recSt)"> and REC_ST = #{recSt} </if>
+		<if test="!empty(cdClsId)"> and CD_CLS_ID = #{cdClsId} </if>
+	</select>
+	
+	<select id="existCount" parameterType="cdCls" resultType="java.lang.Integer">
+		select
+			COUNT(CD_CLS_ID)
+		from
+			JCMS_CD_CLS
+		where
+			DEL_DT IS NULL and
+			(CD_CLS_ID = #{cdClsId} OR CD_CLS_NM = #{cdClsNm})
+	</select>
+
+	<insert id="insert" parameterType="cdCls">
+		insert into JCMS_CD_CLS (
+			CD_CLS_ID,
+			CD_CLS_NM,
+			CD_CLS_DESC,
+			REC_ST,
+			REG_ID,
+			REG_DT
+		) values (
+			#{cdClsId},
+			#{cdClsNm},
+			#{cdClsDesc},
+			#{recSt},
+			#{regId},
+			SYSDATE()
+		)
+	</insert>
+	
+	<update id="update" parameterType="cdCls">
+		update JCMS_CD_CLS set
+			CD_CLS_NM = #{cdClsNm},
+			CD_CLS_DESC = #{cdClsDesc},
+			REC_ST = #{recSt},
+			UPD_ID = #{updId},
+			UPD_DT = SYSDATE()
+		where
+			CD_CLS_ID = #{cdClsId} and
+			DEL_DT IS NULL
+	</update>
+</mapper>

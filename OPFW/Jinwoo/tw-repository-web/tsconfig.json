@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "esnext",
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./project_front/src/*"],
+      "@images/*": ["./project_front/assets/images/*"],
+      "@scss/*": ["./project_front/scss/*"],
+      "@i18n/*": ["./src/main/resources/i18n/*"]
+    },
+    "moduleResolution":"node",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true
+  },
+  "include": [
+    "./project_front/**/*",
+    "/src/main/resources/i18n/**/*",
+    "yaml-module.d.ts"
+  ]
+}

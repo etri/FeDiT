@@ -1,0 +1,44 @@
+.react-horizontal-scrolling-menu--item  {
+  border-bottom-color: rgb(227, 227, 227);
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+  border-image-slice: 100%;
+  border-image-source: none;
+  border-image-width: 1;
+  border-left-color: rgb(227, 227, 227);
+  border-left-style: solid;
+  border-left-width: 1px;
+  border-right-color: rgb(227, 227, 227);
+  border-right-style: solid;
+  border-right-width: 1px;
+  border-top-color: rgb(227, 227, 227);
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  margin-bottom: 10px;
+  margin-left: 24px;
+  margin-right: 0px;
+  margin-top: 10px;
+  padding-bottom: 10px;
+  padding-left: 0px;
+  padding-right: 0px;
+  padding-top: 30px;
+
+  &:hover {
+    background: var(--color-deco-icon);
+    border-color: var(--color-deco-icon-boarder);
+    transition: background ease-in-out .15s, border-color ease-in-out .15s;
+    box-shadow: 1px 3px 13px 0px rgba(0,0,0,0.14);
+    -webkit-box-shadow: 1px 3px 13px 0px rgba(0,0,0,0.14);
+    -moz-box-shadow: 1px 3px 13px 0px rgba(0,0,0,0.14);
+  }
+
+  &:hover .deco-icon{
+    background:#fffef9;transition: background ease-in-out .15s;
+  }
+}

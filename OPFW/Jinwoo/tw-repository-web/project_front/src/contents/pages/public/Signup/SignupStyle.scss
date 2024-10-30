@@ -1,0 +1,16 @@
+
+.custom-checkbox:checked {
+    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+}
+
+.table tr :is(th,td):nth-child(1) {
+    width: 150px !important;
+}
+
+.table tr :is(th,td):nth-child(2) {
+    width: 150px !important;;
+}
+
+.table tr :is(th,td):nth-child(3) {
+    width: 50px !important;;
+}

@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="net.jcms.framework.security.mapper.UserRoleMapper">
+
+	<select id="selectList" parameterType="userRole" resultType="userRole">
+			select
+				USER_ID, ROLE_AUTH
+			from
+				JCMS_USER_ROLE
+			where
+				1 = 1		
+		<if test="!empty(userId)" > and USER_ID = #{userId} </if>
+		<if test="!empty(roleAuth)" > and ROLE_AUTH = #{roleAuth} </if>
+	</select>
+	
+	<select id="select" parameterType="userRole" resultType="userRole">
+			select
+				USER_ID, ROLE_AUTH
+			from
+				JCMS_USER_ROLE
+			where
+				1 = 1	
+		<if test="!empty(userId)" > and USER_ID = #{userId} </if>
+		<if test="!empty(roleAuth)" > and ROLE_AUTH = #{roleAuth} </if>
+	</select>
+
+	<select id="selectListWithUserInfo" parameterType="userRole" resultType="user">
+		select
+		u.USER_ID, u.USER_LOGIN_ID, u.USER_PWD, u.USER_NM, u.GENDER, u.BIRTH, u.MOBILE, u.ADDR, u.EMAIL, u.USER_ST, u.REG_DT, u.FAIL_CNT, u.USER_OUT_RSN
+		from
+		JCMS_USER_ROLE AS r
+		join JCMS_USER AS u
+		where
+		r.USER_ID = u.USER_ID
+		<if test="!empty(userId)" > and r.USER_ID = #{userId} </if>
+		<if test="!empty(userIdLike)" > and r.USER_ID LIKE CONCAT('%', #{userIdLike}, '%') </if>
+		<if test="!empty(roleAuth)" > and r.ROLE_AUTH = #{roleAuth} </if>
+		<if test="limitYn == true" >
+			limit #{length}
+		</if>
+	</select>
+
+	<select id="selectWithUserInfo" parameterType="userRole" resultType="user">
+		select
+		u.USER_ID, u.USER_LOGIN_ID, u.USER_PWD, u.USER_NM, u.GENDER, u.BIRTH, u.MOBILE, u.ADDR, u.EMAIL, u.USER_ST, u.REG_DT, u.FAIL_CNT, u.USER_OUT_RSN
+		from
+		JCMS_USER_ROLE AS r
+		join JCMS_USER AS u
+		where
+		r.USER_ID = u.USER_ID
+		<if test="!empty(userId)" > and r.USER_ID = #{userId} </if>
+		<if test="!empty(roleAuth)" > and r.ROLE_AUTH = #{roleAuth} </if>
+	</select>
+
+	<select id="selectRoleList" parameterType="userRole" resultType="userRole">
+			select 
+				ROLE.ROLE_AUTH
+				,ROLE.ROLE_NM
+				,ROLE.ROLE_DESC
+		  		,AUTH.USER_ID
+			from
+				JCMS_ROLE ROLE
+				left join (
+					select *
+					from
+						JCMS_USER_ROLE
+					where
+						1 = 1
+						<if test="!empty(userId)" > and USER_ID = #{userId} </if>
+					) AUTH
+			on 
+				ROLE.ROLE_AUTH = AUTH.ROLE_AUTH				
+		<if test="!empty(sort) and !empty(sortOrd)"> order by ${sort} ${sortOrd} </if>
+	    <if test="pagingYn == true" > limit #{start}, #{length} </if>
+	</select>
+	
+	<select id="count" parameterType="userRole" resultType="java.lang.Integer">
+		select
+			COUNT(ROLE_AUTH)
+		from
+			JCMS_ROLE
+	</select>
+	
+	<select id="existCount" parameterType="userRole" resultType="java.lang.Integer">
+		select
+			COUNT(ROLE_AUTH)
+		from
+			JCMS_ROLE
+		where
+			(ROLE_AUTH = #{roleAuth} OR ROLE_NM = #{roleNm})
+	</select>
+	
+	<insert id="insert" parameterType="userRole">
+		insert into JCMS_USER_ROLE(
+			USER_ID,
+			ROLE_AUTH
+		) values(
+			#{userId},
+			#{roleAuth}
+		)
+	</insert>
+	
+	<update id="update" parameterType="userRole">
+		update JCMS_USER_ROLE set
+			USER_ID = #{userId},
+			ROLE_AUTH = #{roleAuth}
+		where 
+			USER_ID = #{userId} 
+	</update>
+	
+	<delete id="delete" parameterType="userRole">
+		delete from JCMS_USER_ROLE
+		where USER_ID = #{userId}
+	</delete>
+</mapper>

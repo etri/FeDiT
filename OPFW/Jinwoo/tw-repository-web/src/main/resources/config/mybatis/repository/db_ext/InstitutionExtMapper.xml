@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="net.jw.twin.repository.client.dbExt.institutionExt.mapper.InstitutionMapperExt">
+    <sql id="sort">
+        <if test="null != sort and null != sortOrd"> order by ${sort} ${sortOrd}, id ${sortOrd} </if>
+    </sql>
+
+    <sql id="paging">
+        <if test="null != pagingYn and pagingYn == true" >
+            limit #{start}, #{length}
+        </if>
+    </sql>
+
+    <select id="selectListWithManagerName" parameterType="institutionSearch" resultType="CamelHashMap">
+        select
+        TI.*, TU.USER_NM as manager_user_name
+        from
+        (
+            select* from  institution
+                <where>
+                    DEL_DT IS NULL
+                    <if test="null != id">                            and id = #{id}                                    </if>
+                    <if test="null != name" >                         and name like CONCAT('%', #{name}, '%')           </if>
+                    <if test="null != managerUserId" >                and manager_user_id = #{managerUserId}            </if>
+                    <if test="null != regId" >                        and REG_ID = #{regId}                             </if>
+                    <if test="null != startRegDt" >                   and REG_DT <![CDATA[ >= ]]> #{startRegDt}         </if>
+                    <if test="null != endRegDt" >                     and REG_DT <![CDATA[ < ]]> #{endRegDt}            </if>
+                </where>
+        ) as TI
+        left join JCMS_USER as TU on TI.manager_user_id = TU.USER_ID
+        <include refid = "sort"/>
+        <include refid = "paging"/>
+    </select>
+
+</mapper>

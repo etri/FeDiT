@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="net.jcms.framework.security.mapper.LoginLogMapper">
+
+	<resultMap id="loginLogUser" type="loginLog">
+		<constructor />
+		<id property="loginLogId" column="LOGIN_LOG_ID" />
+		<result property="userId" column="USER_ID" />
+		<result property="loginIp" column="LOGIN_IP" />
+		<result property="loginDt" column="LOGIN_DT" />
+		<result property="logoutDt" column="LOGOUT_DT" />
+		<association property="user" javaType="userSearch">
+			<id property="userId" column="USER_ID"  />
+			<result property="userLoginId" column="USER_LOGIN_ID"  />
+			<result property="userNm" column="USER_NM"  />
+		</association>
+	</resultMap>
+	
+	<select id="selectList" parameterType="loginLogSearch" resultMap="loginLogUser">
+		select	
+			A.*,
+			B.USER_LOGIN_ID,
+			B.USER_NM
+		from		
+			JCMS_LOGIN_LOG A
+		left join
+			JCMS_USER B
+		on
+			A.USER_ID = B.USER_ID
+		where
+			1=1
+			<if test="!empty(user.userId)" > and A.USER_ID = #{user.userId} </if>
+			<if test="!empty(userLoginIdLike)" > and B.USER_LOGIN_ID LIKE CONCAT('%', #{userLoginIdLike}, '%') </if>
+			<if test="!empty(userNmLike)" > and B.USER_NM LIKE CONCAT('%', #{userNmLike}, '%') </if>
+			<if test="!empty(loginIpLike)" > and A.LOGIN_IP LIKE CONCAT('%', #{loginIpLike}, '%') </if>
+		<if test="!empty(sort) and !empty(sortOrd)"> order by ${sort} ${sortOrd} </if>
+	    <if test="pagingYn == true" > limit #{start}, #{length} </if>
+	</select>
+	
+	<select id="count" parameterType="loginLogSearch" resultType="java.lang.Integer">
+		select	
+			COUNT(*)
+		from		
+			JCMS_LOGIN_LOG A
+		left join
+			JCMS_USER B
+		on
+			A.USER_ID = B.USER_ID
+		where
+			1=1
+		<if test="!empty(user.userId)" > and A.USER_ID = #{user.userId}</if>
+		<if test="!empty(userLoginIdLike)" > and B.USER_LOGIN_ID LIKE CONCAT('%', #{userLoginIdLike}, '%') </if>
+		<if test="!empty(userNmLike)" > and B.USER_NM LIKE CONCAT('%', #{userNmLike}, '%') </if>
+		<if test="!empty(loginIpLike)" > and A.LOGIN_IP LIKE CONCAT('%', #{loginIpLike}, '%') </if>
+	</select>
+	
+	<insert id="insert" parameterType="loginLog" useGeneratedKeys="true" keyProperty="loginLogId" keyColumn="LOGIN_LOG_ID">
+			insert into JCMS_LOGIN_LOG (
+				USER_ID,
+				LOGIN_IP,
+				LOGIN_DT
+			) values (
+				#{user.userId},
+				#{loginIp},
+				SYSDATE()
+			)		
+	</insert>
+	
+	<update id="update" parameterType="loginLog">
+		update JCMS_LOGIN_LOG set
+			LOGOUT_DT = NOW()
+		where
+			LOGIN_LOG_ID = #{loginLogId}
+	</update>
+
+	<select id="countByDate"  parameterType="loginLogSearch" resultType="loginLogSearch">
+		select
+			COUNT(USER_ID) as LOGIN_COUNT,
+			DATE_FORMAT(LOGIN_DT,'%Y-%m-%d') AS SEARCH_DATE
+		from
+			JCMS_LOGIN_LOG
+		where
+			1=1
+			<if test="!empty(user.userId)" > and USER_ID = #{user.userId}</if>
+			<if test="startSearchDt != null" >
+				<![CDATA[
+				and LOGIN_DT >= STR_TO_DATE(CONCAT(#{startSearchDt}, ' 00:00:00'), '%Y-%m-%d %H:%i:%s')
+			]]>
+			</if>
+			<if test="endSearchDt != null" >
+				<![CDATA[
+				and LOGIN_DT <= STR_TO_DATE(CONCAT(#{endSearchDt}, ' 23:59:59'), '%Y-%m-%d %H:%i:%s')
+			]]>
+			</if>
+			GROUP BY
+			DATE_FORMAT(LOGIN_DT,'%Y-%m-%d')
+			order by
+			DATE_FORMAT(LOGIN_DT,'%Y-%m-%d') DESC
+	</select>
+</mapper>
