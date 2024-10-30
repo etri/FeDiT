@@ -1,0 +1,356 @@
+/* 나눔고딕 */
+@import url('//fonts.googleapis.com/earlyaccess/nanumgothic.css');
+
+/*body{*/
+/*	font-size: 0.8rem !important;*/
+/*}*/
+
+/**
+ * TEMPLATE
+ * 
+ */
+.container-in{}
+.gis{box-sizing:border-box;}
+.m-right{padding:2px; min-width: 450px;}
+.info{height:180px; /* border:1px solid black;  */box-sizing:border-box;}
+#chgrTotInfo{height: 56px; box-sizing:border-box; margin-bottom: 2px;}
+.status{ box-sizing:border-box; }
+.statistics{box-sizing:border-box; }
+.error{box-sizing:border-box; height: 185px; }
+#footer {display: none;}
+
+/**
+ * map
+ * 
+ */
+#mapwrap{position:relative;overflow:hidden;}
+.category_wrap{position:absolute;overflow:hidden;bottom:20px;left:10px;height:60px;z-index:10;}
+.category, .category *{margin:0;padding:0;color:#000;}   
+.category {font-size:12px;text-align:center;background-color:#fff;opacity:0.7;border-radius:10px;display: inline-block; margin-right: 10px;}
+.category .menu_selected {background:#FF5F4A;color:#fff;border-left:1px solid #915B2F;border-right:1px solid #915B2F;margin:0 -1px;} 
+.category li{list-style:none;float:left;width:70px;height:60px;padding-top:5px;cursor:pointer;}
+.carcategory {left:10px;}
+.marker-active{/* background-color:#FF5F4A;color:white; border-right:1px solid white;*/} 
+.marker-active label{color:white;}
+.marker-inactive{background-color:white;color:black;/* border-right:1px solid black; */}
+.marker-inactive label{color:black;}
+.marker-label{font-weight: bold;}
+.marker-img{width:25px;height:25px;}
+.r-marker-img{width:25px;height:20px;}
+.hideSearchPanel {position:absolute;top:0px;left:10px;width:300px;height:20px;overflow:hidden;background-color:white;opacity:0.8;  z-index:10;}
+#searchDiv {position:absolute;overflow:hidden;top:21px;left:10px;width:300px;/* height:300px; */background-color:#fff;opacity:0.8;padding:5px; border-radius:0; z-index: 3500;}
+.chgrControlButton {position: absolute; top: 305px; left: 10px; width: 300px; height: 60px;overflow: hidden; background-color: #fff; opacity: 0.8; z-index: 10;font-size: 1.25rem;line-height: 1.5;border-radius: 0rem; border: none;}
+.fa-custom { transform: scale(3,1); }
+
+/* 충전기명 인포 */
+.speech-bubble {
+	position: relative;
+	background: #464646;
+	border-radius: .4em;
+	transform: translate(-40%, -270%);
+}
+
+.speech-bubble:after {
+	content: '';
+	position: absolute;
+	bottom: 0;
+	left: 50%;
+	width: 0;
+	height: 0;
+	border: 10px solid transparent;
+	border-top-color: #464646;
+	border-bottom: 0;
+	border-left: 0;
+	margin-left: -10px;
+	margin-bottom: -9px;
+	transform: translate(-50%, 0);
+}
+
+.speech-bubble-inner {
+	font-size:0.9em;
+	padding:8px 13px;
+	color:white;
+}
+
+.popup-tip-anchor {
+	height: 0;
+	position: absolute;
+	/* The max width of the info window. */
+	/*width: 200px;*/
+}
+
+.nav-link{
+	cursor: pointer;
+}
+
+.nodisplay{
+	display: none;
+}
+/* 충전기 오버레이 */
+.chgroverlaybox {position:relative;width:270px;max-height:320px;background:url('http://t1.daumcdn.net/localimg/localimages/07/mapapidoc/box_movie.png') no-repeat;padding:15px 10px;}
+.chgroverlaybox div,.chgroverlaybox ul {overflow:hidden;margin:0;padding:0;}
+.chgroverlaybox .box_wrap{ max-height: 250px; overflow-y: auto;}
+.chgroverlaybox li {list-style: none;}
+.chgroverlaybox .boxtitle {color:#fff;font-size:16px;font-weight:bold; cursor: pointer;background: url('/elec/com/images/gis/cancel.png') no-repeat right center/20px 20px;margin-bottom:8px;}
+/* .chgroverlaybox ul {width:247px;}padding-right:10px; */
+.chgroverlaybox li {position:relative;margin-bottom:2px;background:#2b2d36;padding:5px 10px;color:#aaabaf;line-height: 1; cursor: pointer;}
+.chgroverlaybox li span {display:inline-block;}
+.chgroverlaybox li .number {font-size:16px;font-weight:bold;}
+.chgroverlaybox li .title {font-size:13px; text-overflow:ellipsis; display: inline-block; width: 200px;}
+.chgroverlaybox li:hover {color:#fff;background:#d24545;}
+.boxtitle_st {text-overflow:ellipsis; width: 95%;}
+
+/* 차량정보 오버레이 */
+.overlaybox {position:relative;width:280px;height:350px;background:#3a3e4a;padding:15px 10px; border-radius: .4em;transform: translate(-40%, -120%);}
+.overlaybox div, ul {overflow:hidden;margin:0;padding:0;}
+.overlaybox li {list-style: none;}
+.overlaybox .boxtitle {color:#fff;font-size:16px;font-weight:bold;background: url('/elec/com/images/gis/cancel.png') no-repeat right center/20px 20px; cursor: pointer; margin-bottom:8px; height: 30px; line-height: 30px;}
+.overlaybox li {position:relative;margin-bottom:2px;background:#242527;/* padding:10px 15px; */height:35px;color:#fff;line-height: 35px;}
+.overlaybox li span {display:inline-block;}
+.overlaybox li .number {font-size:15px;font-weight:bold;}
+.overlaybox li .title {font-size:13px;}
+.overlaybox:after {
+	content: '';
+	position: absolute;
+	bottom: 0;
+	left: 50%;
+	width: 0;
+	height: 0;
+	border: 20px solid transparent;
+	border-top-color: #3a3e4a;
+	border-bottom: 0;
+	border-left: 0;
+	margin-left: -5px;
+	margin-bottom: -19px;
+	transform: translate(-50%, 0);
+}
+
+/* 충전사업자 체크박스 속성 */
+.check-custom {
+    padding-left: 2.25rem;
+    width: 100%;
+    margin-bottom: 2px;
+    display: flex;
+}
+
+/* 충전기 조회-체크박스 속성 */
+.check-chgrCd, .chkEvcar {
+    padding: 4px 10px;
+}
+
+/**
+ * info
+ *
+ **/
+ 
+.info-table tr{height:40px;}
+.info-table th,.info-table td {vertical-align:middle;}
+
+/* .nav-link{color:#99a2ad;font-size:0.9em; padding:.7rem 1rem;} */
+.nowrap{ white-space: nowrap;}
+.nav-link.active{color:#fff !important; background-color: #0277d4 !important; border-radius:0 !important;}
+.chgrTable { border: 1px solid #000;}
+.chgrTable th,.chgrTable td{ border: 1px solid #000;}
+.tab_chgr,.tab_error, .tab_car{    background-color: #242527;    border: 1px solid #000;    margin-bottom: 2px;}
+.tab_chgr a , .tab_car a{
+    color: #fff;
+}
+
+.tab_chgr a:hover, .tab_error a:hover, .tab_car a:hover {
+    color: #fff !important;
+}
+
+
+.sel-type-b{
+	height: calc(1.73rem + 2px);
+}
+
+
+@media(max-width:1400px){
+	#myTabContent{
+		max-width: 91%;
+	}	
+}
+/*  
+ * chartInfo
+ */
+.hideStatPanel{
+	
+    text-align: center;
+    font-size: 25px;
+    position: absolute;
+    top: 45%;
+    right: 0px;
+    z-index: 500;
+    height: 50px;
+    width: 20px;
+    padding: 13px 0;
+	cursor: pointer;
+}
+.bold {
+    font-weight: bold;
+    font-size: large;
+} 
+ 
+.statbox{background: #242527; border: 1px solid #000; text-align: center; vertical-align: middle;padding: 5px; margin-left: 2px;}
+
+.statChartHeader{
+	/* background:url('../images/gis/gis_title_bg box.png') no-repeat; */
+	background:#242527;
+	border: 1px solid #000;
+	height: 36px;
+	margin:2px 0;
+	position:relative;
+}
+
+.statHeader{
+	line-height: 2rem;
+	font-size: 1rem;
+	font-weight: bold;
+	/* left: 60px; */
+	position: absolute;
+	padding: 0 10px 0 0;
+}
+
+.gisStat_background{
+	background: #242527;
+}
+
+#statChart2, #statChart1{
+	position: relative;
+}
+
+.noGridData {
+    position: absolute;
+    top: 0px;
+    z-index: 1000;
+}
+
+.y_label {
+    color: #f8f8f8;
+    position: absolute;
+    top: 10px;
+    z-index: 200;
+    font-size: 12px;
+}
+
+.y_power{
+	left: 40px;
+}
+
+.y_count{
+	right: 50px;
+}
+
+/* button */
+.btn_basic{
+	border: 1px solid; 
+	padding:10px 15px; 
+	cursor: pointer; 
+	margin-right: 5px;
+}
+
+.btn_basic_s{
+	border: 1px solid; 
+	padding:5px 10px; 
+	cursor: pointer; 
+	margin-right: 5px;
+	background-color: white;
+}
+
+@CHARSET "UTF-8";
+
+
+ #cur_loc {
+    border-bottom: 1px solid #e1e1e1;
+    font-weight: bold;
+    margin-bottom: 30px;
+}
+
+#cur_loc_align {
+    float: right;
+    font-weight: bold;
+    
+}
+
+#cur_loc ul {
+    list-style-type: none;
+    letter-spacing: -1px;
+    padding-top: 5px;
+    margin: 5px 0 5px 0 !important;
+ }
+ 
+ #cur_loc li {
+    display: inline;
+    font-size: 80%;
+    color: #343f4b;
+    padding-right: 1px;
+    font-weight: bold !important;
+    }
+    
+  .backGround_tr{
+  	background-color: #D2DAFF;
+  }  
+  
+  .nodisplay{
+  	display:none;
+  }
+  
+  .input-date {
+    flex: 0 0 38%;
+    max-width: 38%;
+}
+
+.ctrlPopBack{
+	display:none; 
+	background-color: #000; 
+	bottom: 0; 
+	left: 0; 
+	opacity: 0.5; 
+	filter: alpha(opacity = 50); 
+	position: fixed;  
+	right: 0;  
+	top: 0;  
+	z-index: 20000;
+}
+
+.ctrlPopup{
+	top: 3%; 
+	left: 50%;  
+	position:absolute;
+	box-shadow: 0px 1px 20px #333;
+	z-index: 20023;
+	margin-left: -20%;
+	display: none;
+	margin:0 auto;
+	background:#fff; 
+	border:1px solid #a2a2a2;
+}
+
+#hourly{width: 600px;height: 700px;}
+
+#ctrlChangeMode{width: 300px;height: 250px;}
+
+.ctrlPopup .head_area{position:relative;height:45px;background:#d7d7d7; font-weight: bold;}
+.ctrlPopup .head_area h5{text-align:center;line-height:40px;}
+.ctrlPopup .head_area p{position:absolute;right:13px;top:7px; width: 35px; height: 35px;}
+.ctrlPopup .head_area p a img {width: 35px; height: 35px;}
+#hourly .body_area { overflow-y: scroll; margin: 0 20px; height:600px; overflow-x: hidden;}
+.body_area >.content { margin: 0 20px;}
+
+
+.remarkInfo
+{
+	width : 250px; height: 150px; background: rgba(255,255,255,0.7); right : 30px; bottom: 30px; position: absolute; z-index: 3600; padding:5px; font-weight: bold;
+}
+.remark_wrap
+{
+    display: flex;
+    flex-direction: column;
+}
+
+.remark_wrap span{
+    width: 100%;
+    max-height: 100px;
+    overflow-y: auto;
+}

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BaseSql">
+
+	<sql id="BaseWhere">		
+		<!-- REC_ST 상태값  Y:정상, R:임시, D:삭제 -->
+		<if test="empty(recSt)">and REC_ST = 'Y'</if>
+		<if test="!empty(recSt)">
+			<if test="recSt == '*'"> and REC_ST != 'D'</if>
+			<if test="recSt != '*'"> and REC_ST = #{recSt} </if>
+		</if>
+	</sql>
+
+	<sql id="InRecStPrm">, REC_ST </sql>
+	<sql id="InRecStVal">
+		<if test="empty(recSt)">, 'Y'</if>
+		<if test="!empty(recSt)">, #{recSt}</if>
+	</sql>
+
+	<sql id="InRegPrm"> , REG_ID, REG_DT </sql>
+	<sql id="InRegVal">, #{regId}, SYSDATE() </sql>
+
+	<sql id="InRegRecStPrm"> , REG_ID, REG_DT <include refid="BaseSql.InRecStPrm"/> </sql>
+	<sql id="InRegRecStVal">, #{regId}, SYSDATE() <include refid="BaseSql.InRecStVal"/> </sql>
+
+	<sql id="Update">
+		, UPD_ID = #{updId}
+		, UPD_DT = SYSDATE()		
+	</sql>
+	
+	<sql id="Delete">
+		DEL_ID = #{delId}
+		, DEL_DT = SYSDATE()
+		, REC_ST = 'D'
+	</sql>
+</mapper>
+ 

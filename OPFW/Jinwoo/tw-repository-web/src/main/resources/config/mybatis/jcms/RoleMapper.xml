@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="net.jcms.framework.security.mapper.RoleMapper">
+
+<select id="selectList" parameterType="role" resultType="role">
+	select 
+		ROLE_AUTH,
+		ROLE_NM,
+		ROLE_DESC
+	from
+		JCMS_ROLE
+	<if test="!empty(sort) and !empty(sortOrd)"> order by ${sort} ${sortOrd} </if>
+</select>
+
+<select id="count" parameterType="role" resultType="java.lang.Integer">
+	select
+		COUNT(ROLE_AUTH)
+	from
+		JCMS_ROLE
+</select>
+
+<select id="existCount" parameterType="role" resultType="java.lang.Integer">
+	select
+		COUNT(ROLE_AUTH)
+	from
+		JCMS_ROLE
+	where
+		(ROLE_AUTH = #{roleAuth} OR ROLE_NM = #{roleNm})
+</select>
+
+<insert id="insert" parameterType="role">
+	insert into JCMS_ROLE(
+		ROLE_AUTH,
+		ROLE_NM,
+		ROLE_DESC,
+		REG_ID,
+		REG_DT
+	) values(
+		#{roleAuth},
+		#{roleNm},
+		#{roleDesc},
+		#{regId},
+		SYSDATE()
+	)
+</insert>
+
+<update id="update" parameterType="role">
+	update JCMS_ROLE set
+		ROLE_NM = #{roleNm},
+		ROLE_DESC = #{roleDesc},
+		UPD_ID = #{updId},
+		UPD_DT = SYSDATE()
+	where 
+		ROLE_AUTH = #{roleAuth}
+</update>
+
+<delete id="delete" parameterType="role">
+	delete from JCMS_ROLE
+	where
+		ROLE_AUTH = #{roleAuth}
+		and ROLE_NM =#{roleNm}
+</delete>
+</mapper>

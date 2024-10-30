@@ -1,0 +1,14 @@
+# exception_ko.yml
+exception:
+  unknown:
+    msg: "unknown error."
+  db:
+    notFound:
+      msg: "DB 에 {0} 정보가 없습니다."
+    nullData:
+      msg: "해당 DB 개체에 {0} 필드 정보가 없습니다."
+    fail:
+      msg: "DB operation 실패하였습니다."
+  receivedParam:
+    nullData:
+      msg: "parameter 에 {0} 정보가 없습니다."

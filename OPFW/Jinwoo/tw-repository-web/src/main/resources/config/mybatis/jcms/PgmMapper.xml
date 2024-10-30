@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="net.jcms.framework.pgm.mapper.PgmMapper">
+
+	<select id="select" parameterType="pgmSearch" resultType="pgm">
+		select	
+			PGM_ID ,PGM_NM ,PGM_DESC ,PGM_URL ,REC_ST ,REG_ID ,REG_DT ,UPD_ID ,UPD_DT
+		from		
+			JCMS_PGM
+		where
+			DEL_DT IS NULL
+		<if test="pgmId != null" > and PGM_ID = #{pgmId} </if>
+	</select>
+	
+	<select id="selectList" parameterType="pgmSearch" resultType="pgm">
+		select	
+			PGM_ID
+			,PGM_NM
+			,PGM_DESC
+			,PGM_URL
+			,REC_ST
+			,REG_ID
+			,REG_DT
+			,UPD_ID
+			,UPD_DT
+		from		
+			JCMS_PGM
+		where
+			DEL_DT IS NULL
+			<if test="recSt != null" > and REC_ST = #{recSt} </if>
+			<if test="!empty(pgmNmLike)" > and PGM_NM LIKE CONCAT('%', #{pgmNmLike}, '%') </if>
+			<if test="!empty(pgmUrlLike)" > and PGM_URL LIKE CONCAT('%', #{pgmUrlLike}, '%') </if>
+		<if test="!empty(sort) and !empty(sortOrd)"> order by ${sort} ${sortOrd} </if>
+	    <if test="pagingYn == true" > limit #{start}, #{length} </if>
+	</select>
+	
+	<select id="count" parameterType="pgmSearch" resultType="java.lang.Integer">
+		select 
+			COUNT(PGM_ID)
+		from
+			JCMS_PGM
+		where
+	   		DEL_DT IS NULL
+		<if test="!empty(pgmNmLike)" > and PGM_NM LIKE CONCAT('%', #{pgmNmLike}, '%') </if>
+		<if test="!empty(pgmUrlLike)" > and PGM_URL LIKE CONCAT('%', #{pgmUrlLike}, '%') </if>
+	</select>
+
+	<insert id="insert" parameterType="pgm">
+		insert into JCMS_PGM (
+			PGM_NM
+			,PGM_DESC
+			,PGM_URL
+			,REC_ST
+			,REG_ID
+			,REG_DT
+		) values (
+			#{pgmNm}
+			, #{pgmDesc}
+			, #{pgmUrl}
+			, #{recSt}
+			, #{regId}
+			, SYSDATE()
+		)
+	</insert>
+	
+	<update id="update" parameterType="pgm">
+		update JCMS_PGM set 
+			PGM_NM = #{pgmNm}
+			,PGM_DESC = #{pgmDesc}
+			,PGM_URL = #{pgmUrl}
+			,REC_ST = #{recSt}
+			,UPD_ID = #{updId}
+			,UPD_DT = SYSDATE()
+		where 
+			PGM_ID = #{pgmId}
+	</update>
+	
+	<update id="delete" parameterType="pgm">
+		update JCMS_PGM set 
+			DEL_ID = #{delId}
+			,DEL_DT = SYSDATE()
+		where 
+			PGM_ID = #{pgmId}
+	</update>
+</mapper>

@@ -1,0 +1,1 @@
+import './MyPageTableStyle.scss'

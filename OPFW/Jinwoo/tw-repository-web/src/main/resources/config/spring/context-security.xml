@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<b:beans xmlns="http://www.springframework.org/schema/security"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:b="http://www.springframework.org/schema/beans"
+             xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+		            http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+
+    <http pattern="/static/**" request-matcher="ant" security="none"/>
+
+    <http pattern="/css/**" request-matcher="ant" security="none"/>
+    <http pattern="/images/**" request-matcher="ant" security="none"/>
+    <http pattern="/js/**" request-matcher="ant" security="none"/>
+
+    <http pattern="/public/**" request-matcher="ant" auto-config="false">
+
+        <csrf disabled="true"/>
+
+        <form-login
+                default-target-url="/index.mng"
+                login-page="/loginForm.mng"
+                login-processing-url="/public/login.mng"
+
+                username-parameter="userLoginId"
+                password-parameter="userPwd"
+
+                authentication-success-handler-ref="customAuthenticationSuccessHandler2"
+                authentication-failure-handler-ref="customAuthenticationFailureHandler2"/>
+
+        <http-basic />
+        <anonymous granted-authority="ROLE_UNAUTHENTICATED" />
+        <custom-filter position="LOGOUT_FILTER" ref="logoutFilterPublic" />
+        <custom-filter before="FILTER_SECURITY_INTERCEPTOR" ref="filterSecurityInterceptor"/>
+        <custom-filter after="EXCEPTION_TRANSLATION_FILTER" ref="ajaxSessionTimeoutFilter"/>
+    </http>
+
+
+    <b:bean id="logoutFilterPublic" class="org.springframework.security.web.authentication.logout.LogoutFilter">
+        <b:constructor-arg name="logoutSuccessUrl" value="/"/>
+        <b:constructor-arg name="handlers">
+            <b:list>
+                <b:bean class="net.jcms.framework.security.handler.CustomLogoutHandler"/>
+                <b:bean class="org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler">
+                    <b:property name="invalidateHttpSession" value="true" />
+                    <b:property name="clearAuthentication" value="true" />
+                </b:bean>
+                <b:bean class="org.springframework.security.web.authentication.logout.CookieClearingLogoutHandler">
+                    <b:constructor-arg name="cookiesToClear">
+                        <b:array>
+                            <b:value>JSESSIONID</b:value>
+                        </b:array>
+                    </b:constructor-arg>
+                </b:bean>
+            </b:list>
+        </b:constructor-arg>
+        <b:property name="filterProcessesUrl" value="/public/logout.mng"/>
+    </b:bean>
+
+    <b:bean id="customAuthenticationSuccessHandler2" class="net.jcms.framework.security.handler.LoginSucessHandler">
+        <b:property name="defaultUrl" value="/index.mng"/>
+    </b:bean>
+    <b:bean id="customAuthenticationFailureHandler2" class="net.jcms.framework.security.handler.LoginFailureHandler">
+        <b:constructor-arg name="redirectUrl" value="/loginForm.mng"/>
+    </b:bean>
+
+    <http request-matcher="ant" auto-config="false">
+
+        <csrf disabled="true"/>
+
+        <form-login
+                default-target-url="/system/index.mng"
+                login-page="/login/loginForm.mng"
+                login-processing-url="/login/login.mng"
+
+                username-parameter="userLoginId"
+                password-parameter="userPwd"
+
+                authentication-success-handler-ref="customAuthenticationSuccessHandler"
+                authentication-failure-handler-ref="customAuthenticationFailureHandler"/>
+
+        <http-basic />
+
+        <anonymous granted-authority="ROLE_UNAUTHENTICATED" />
+
+        <custom-filter position="LOGOUT_FILTER" ref="logoutFilterPrivate" />
+        <custom-filter before="FILTER_SECURITY_INTERCEPTOR" ref="filterSecurityInterceptor"/>
+        <custom-filter after="EXCEPTION_TRANSLATION_FILTER" ref="ajaxSessionTimeoutFilter"/>
+    </http>
+
+
+    <b:bean id="logoutFilterPrivate" class="org.springframework.security.web.authentication.logout.LogoutFilter">
+        <b:constructor-arg name="logoutSuccessUrl" value="/login/loginForm.mng"/>
+        <b:constructor-arg name="handlers">
+            <b:list>
+                <b:bean class="net.jcms.framework.security.handler.CustomLogoutHandler"/>
+                <b:bean class="org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler">
+                    <b:property name="invalidateHttpSession" value="true" />
+                    <b:property name="clearAuthentication" value="true" />
+                </b:bean>
+                <b:bean class="org.springframework.security.web.authentication.logout.CookieClearingLogoutHandler">
+                    <b:constructor-arg name="cookiesToClear">
+                        <b:array>
+                            <b:value>JSESSIONID</b:value>
+                        </b:array>
+                    </b:constructor-arg>
+                </b:bean>
+            </b:list>
+        </b:constructor-arg>
+        <b:property name="filterProcessesUrl" value="/logout.mng"/>
+    </b:bean>
+
+<!--    <b:bean id="passwordEncoder" class="org.springframework.security.crypto.password.NoOpPasswordEncoder" factory-method="getInstance"/>-->
+    <b:bean id="passwordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"/>
+
+    <b:bean id="customAuthenticationSuccessHandler" class="net.jcms.framework.security.handler.LoginSucessHandler">
+        <b:property name="defaultUrl" value="/system/index.mng"/>
+    </b:bean>
+    <b:bean id="customAuthenticationFailureHandler" class="net.jcms.framework.security.handler.LoginFailureHandler">
+        <b:constructor-arg name="redirectUrl" value="/login/loginForm.mng"/>
+    </b:bean>
+
+    <authentication-manager alias="authenticationManager">
+        <authentication-provider user-service-ref="jdbcUserService">
+            <password-encoder ref="passwordEncoder" />
+        </authentication-provider>
+    </authentication-manager>
+
+    <b:bean id="jdbcUserService" class="net.jcms.framework.security.springExt.CustomJdbcDaoImpl">
+        <b:property name="dataSource" ref="dataSource-repository"/>
+        <b:property name="rolePrefix" value=""/>
+        <b:property name="usersByUsernameQuery"
+                        value="SELECT USER_ID, USER_LOGIN_ID, INSTITUTION_ID, USER_PWD, REC_ST, USER_NM FROM JCMS_USER WHERE USER_LOGIN_ID = ? AND USER_ST='1' AND DEL_DT IS NULL"/>
+        <b:property name="authoritiesByUsernameQuery"
+                        value="SELECT B.USER_LOGIN_ID, ROLE_AUTH FROM JCMS_USER_ROLE A, JCMS_USER B WHERE B.USER_LOGIN_ID = ? AND A.USER_ID = B.USER_ID AND USER_ST='1' AND DEL_DT IS NULL"/>
+        <b:property name="enableGroups" value="false"/>
+    </b:bean>
+
+    <b:bean id="ajaxSessionTimeoutFilter" class="net.jcms.framework.security.filter.SpringSecurityAjaxFilter">
+        <b:property name="ajaxHeader" value="AJAX"/>
+        <b:property name="excludedUrls">
+            <b:list>
+                <b:value>/system/user/insert</b:value>
+                <b:value>/login/</b:value>
+            </b:list>
+        </b:property>
+    </b:bean>
+
+    <b:bean id="filterSecurityInterceptor" class="org.springframework.security.web.access.intercept.FilterSecurityInterceptor">
+        <b:property name="authenticationManager" ref="authenticationManager" />
+        <b:property name="accessDecisionManager" ref="accessDecisionManager" />
+        <b:property name="securityMetadataSource" ref="reloadableExpressionFilterInvocationSecurityMetadataSource" />
+    </b:bean>
+
+    <b:bean id="reloadableExpressionFilterInvocationSecurityMetadataSource" class="net.jcms.framework.security.springExt.ReloadableExpressionFilterInvocationSecurityMetadataSource">
+        <b:constructor-arg ref="requestMap" />
+        <b:constructor-arg ref="webExpressionHandler" />
+        <b:property name="securedObjectService" ref="securedObjectService" />
+    </b:bean>
+
+    <b:bean id="requestMap" class="net.jcms.framework.security.springExt.UrlResourcesMapFactoryBean" init-method="init">
+        <b:property name="securedObjectService" ref="securedObjectService" />
+    </b:bean>
+
+    <b:bean id="securedObjectService" class="net.jcms.framework.security.springExt.SecuredObjectServiceImpl">
+        <b:property name="secureObjectDao" ref="securedObjectDao" />
+    </b:bean>
+
+    <b:bean id="securedObjectDao" class="net.jcms.framework.security.springExt.SecuredObjectDao">
+        <b:property name="dataSource" ref="dataSource-repository" />
+        <b:property name="sqlRolesAndUrl" value="
+                    SELECT a.RSC_PATN url, b.ROLE_AUTH authority
+                        FROM JCMS_SCUR_RSC a, JCMS_SCUR_RSC_ROLE b
+                        WHERE a.RSC_ID = b.RSC_ID AND a.RSC_TP = 'url'
+                        ORDER BY a.sort_ord" />
+    </b:bean>
+
+    <b:bean id="accessDecisionManager" class="org.springframework.security.access.vote.AffirmativeBased">
+        <b:constructor-arg>
+            <b:list>
+                <b:bean class="org.springframework.security.web.access.expression.WebExpressionVoter">
+                    <b:property name="expressionHandler" ref="webExpressionHandler"/>
+                </b:bean>
+            </b:list>
+        </b:constructor-arg>
+        <b:property name="allowIfAllAbstainDecisions" value="false" />
+    </b:bean>
+
+    <b:bean id="webExpressionHandler" class="org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler">
+        <b:property name="defaultRolePrefix" value=""/>
+        <b:property name="roleHierarchy" ref="roleHierarchy"/>
+    </b:bean>
+
+    <b:bean id="roleHierarchyVoter" class="org.springframework.security.access.vote.RoleHierarchyVoter">
+        <b:constructor-arg ref="roleHierarchy"/>
+    </b:bean>
+
+
+    <b:bean id="roleHierarchy" class="org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl">
+        <b:property name="hierarchy">
+            <b:value>
+                ROLE_SYSTEM > ROLE_MANAGER
+                ROLE_MANAGER > ROLE_MEMBER_ADMIN
+                ROLE_MEMBER_ADMIN > ROLE_MEMBER
+                ROLE_MEMBER > ROLE_USER
+                ROLE_USER > ROLE_UNAUTHENTICATED
+<!--                ROLE_SYSTEM > ROLE_USER-->
+<!--                ROLE_USER > ROLE_UNAUTHENTICATED-->
+            </b:value>
+        </b:property>
+    </b:bean>
+</b:beans>

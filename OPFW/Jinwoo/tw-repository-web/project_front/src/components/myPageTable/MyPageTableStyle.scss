@@ -1,0 +1,61 @@
+/* Example CSS for a simple table */
+.table {
+  table-layout: fixed;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+.table th, .table td {
+  border: 1px solid #ddd;
+  padding: 6px;
+  text-align: left;
+}
+
+.table thead {
+  background-color: #f2f2f2;
+}
+
+.table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.table tr th,td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100px;
+}
+
+.table tr :is(th,td):nth-child(1) {
+  width: 120px;
+}
+
+.table tr :is(th,td):nth-child(2) {
+  width: 80px;
+}
+
+.table tr :is(th,td):nth-child(3) {
+  width: 300px;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+.table tr :is(th,td):nth-child(4) {
+  width: 120px;
+}
+
+.pagination {clear:both; position:relative; margin:30px auto 40px 0; padding:0; text-align:center;}
+.pagination:last-child {padding-bottom:0;}
+.pagination button,
+.pagination a,
+.pagination strong,
+.pagination .control {overflow:hidden; display:inline-block; position:relative; min-width:32px; height:32px; margin:0 2px; padding:0 2px; line-height:31px; border:1px solid #fff; text-decoration:none; color:#666; font-weight:400; vertical-align:middle; border-radius:0;}
+.pagination .active {color:#2775c4; border-color:#3671c8;}
+.pagination a:hover {border-color:#2775c4;}
+.pagination button:hover {border-color:#2775c4;}
+.pagination .control {overflow:hidden; width:32px; height:32px; min-width:0; padding:0; border:1px solid #ccc; line-height:0; }
+.pagination .control.disabled {cursor:default;}
+.pagination .control.first {margin:0; background-position:0 0;}
+.pagination .control.prev {margin:0 6px 0 0; background-position:-30px 0;}
+.pagination .control.next {margin:0 0 0 6px; background-position:-60px 0;}
+.pagination .control.last {margin:0; background-position:-90px 0;}

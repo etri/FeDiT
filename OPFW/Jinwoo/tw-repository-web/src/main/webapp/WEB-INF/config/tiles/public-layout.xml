@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tiles-definitions PUBLIC
+        "-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN"
+        "http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+<tiles-definitions>
+    <definition name="public-layout" template="/WEB-INF/view/tilesLayout/onePage/layout.jsp">
+        <put-attribute name="content"   value="" />
+    </definition>
+
+    <definition name="public/*" extends="public-layout">
+        <put-attribute name="content"   value="/WEB-INF/view/public/{1}.jsp" />
+    </definition>
+    <definition name="public/*/*" extends="public-layout">
+        <put-attribute name="content"   value="/WEB-INF/view/public/{1}/{2}.jsp" />
+    </definition>
+    <definition name="public/*/*/*" extends="public-layout">
+        <put-attribute name="content"   value="/WEB-INF/view/public/{1}/{2}/{3}.jsp" />
+    </definition>
+    <definition name="public/*/*/*/*" extends="public-layout">
+        <put-attribute name="content"   value="/WEB-INF/view/public/{1}/{2}/{3}/{4}.jsp" />
+    </definition>
+    
+<!--    <definition name="system/repository/DataList" extends="onePage-layout">-->
+<!--        <put-attribute name="content"   value="/WEB-INF/view/public/repository/DataList.jsp" />-->
+<!--    </definition>-->
+
+<!--    <definition name="system/repository/DataDetail" extends="onePage-layout">-->
+<!--        <put-attribute name="content"   value="/WEB-INF/view/system/repository/DataDetail.jsp" />-->
+<!--    </definition>-->
+</tiles-definitions>
