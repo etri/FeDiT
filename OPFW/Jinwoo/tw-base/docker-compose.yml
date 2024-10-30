@@ -1,0 +1,147 @@
+version: "3.7"
+services:
+  tw-repository-db-poc1-mariadb:
+    build:
+      context: ./
+      dockerfile: ./docker-excluded/db/Dockerfile
+    volumes:
+      # - ./docker-bind/init-data/db/config/conf.d:/etc/mysql/conf.d:ro
+      - ./docker-bind/generated-data/db/mysql:/var/lib/mysql
+      - ./docker-bind/init-data/db/dump_repository_init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "${MARIADB_PORT}:3306"
+    restart: always
+    environment:
+      ALLOW_EMPTY_PASSWORD: no
+      TZ: "Asia/Seoul"
+      MARIADB_DATABASE: poc1
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+    hostname: tw-repository-db-poc1-mariadb
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MARIADB_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  tw-repository:
+    container_name: tw-repository
+    image: tomcat:8.5.78-jre8-openjdk
+    ports:
+      - "8088:8080"
+    environment:
+      - "JAVA_OPTS=-Dspring.profiles.active=prod"
+    #      spring.profiles.active: prod
+    #      TZ: "Asia/Seoul"
+    volumes:
+      - type: bind
+        source: ./docker-bind/init-data/${TW_REPOSITORY__APP_NAME}/svc/webapps
+        target: /usr/local/tomcat/webapps
+      - type: bind
+        source: ./docker-bind/generated-data/logs/${TW_REPOSITORY__APP_NAME}
+        target: /usr/local/tomcat/prod_logs
+      - type: bind
+        source: ./docker-bind/init-data/${TW_REPOSITORY__APP_NAME}/svc/secrets
+        target: /jw/secrets
+      - type: bind
+        source: ./docker-bind/init-data/${TW_REPOSITORY__APP_NAME}/svc/static
+        target: /jw/static
+    #      - /build/libs/tw-repository-web-1.0-SNAPSHOT.war:/usr/local/tomcat/webapps/ROOT.war
+    restart: "always"
+    #    command: tail -f /dev/null
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  tw-minio:
+    image: minio/minio
+    entrypoint: [""]
+    command: ["sh", "-c", "mkdir -p /data/mimir && minio server --quiet /data"]
+    environment:
+      - MINIO_ROOT_USER=mimir
+      - MINIO_ROOT_PASSWORD=supersecret
+    volumes:
+      - ./docker-bind/generated-data/mimir-grafana/minio-data:/data
+    hostname: minio
+
+  tw-grafana:
+    image: grafana/grafana:latest
+    pull_policy: always
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_USERS_DEFAULT_THEME=light
+      - GF_LOG_MODE=console
+      - GF_LOG_LEVEL=critical
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+    volumes:
+      - ./docker-bind/generated-data/mimir-grafana/grafana-data:/var/lib/grafana
+      - ./docker-bind/init-data/mimir-grafana/config/grafana-provisioning-dashboards.yaml:/etc/grafana/provisioning/dashboards/provisioning-dashboards.yaml:ro
+      - ./docker-bind/init-data/mimir-grafana/config/grafana-provisioning-datasources.yaml:/etc/grafana/provisioning/datasources/provisioning-datasources.yaml:ro
+    ports:
+      - ${GRAFANA__SERVICE_PORT}:3000
+
+  tw-load-balancer:
+    image: nginx:latest
+    hostname: tw-mimir
+    volumes:
+      - ./docker-bind/init-data/mimir-grafana/config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker-bind/generated-data/logs/nginx:/var/log/nginx
+    depends_on:
+      - "tw-mimir-1"
+      - "tw-mimir-2"
+      - "tw-mimir-3"
+    ports:
+      - ${MIMIR__SERVICE_PORT}:9009
+
+  tw-mimir-1:
+    image: grafana/mimir:latest
+    command: ["-config.file=/etc/mimir.yaml"]
+    hostname: mimir-1
+    depends_on:
+      - tw-minio
+    volumes:
+      - ./docker-bind/init-data/mimir-grafana/config/mimir.yaml:/etc/mimir.yaml
+      - ./docker-bind/init-data/mimir-grafana/config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
+      - ./docker-bind/generated-data/mimir-grafana/mimir-1-data:/data
+
+  tw-mimir-2:
+    image: grafana/mimir:latest
+    command: ["-config.file=/etc/mimir.yaml"]
+    hostname: mimir-2
+    depends_on:
+      - tw-minio
+    volumes:
+      - ./docker-bind/init-data/mimir-grafana/config/mimir.yaml:/etc/mimir.yaml
+      - ./docker-bind/init-data/mimir-grafana/config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
+      - ./docker-bind/generated-data/mimir-grafana/mimir-2-data:/data
+
+  tw-mimir-3:
+    image: grafana/mimir:latest
+    command: ["-config.file=/etc/mimir.yaml"]
+    hostname: mimir-3
+    depends_on:
+      - tw-minio
+    volumes:
+      - ./docker-bind/init-data/mimir-grafana/config/mimir.yaml:/etc/mimir.yaml
+      - ./docker-bind/init-data/mimir-grafana/config/alertmanager-fallback-config.yaml:/etc/alertmanager-fallback-config.yaml
+      - ./docker-bind/generated-data/mimir-grafana/mimir-3-data:/data
+
+  tw-opentelemetry-collector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    volumes:
+      - ./docker-bind/init-data/otel-collector/config/config.yml/:/etc/opentelemetry-collector.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - "--config=/etc/opentelemetry-collector.yml"
+    hostname: tw-opentelemetry-collector
+    ports:
+      - 4317:4317
+      - 13133:13133
+      - 8889:8889
+      
+networks:
+  default:
+    name: network-tw-base
+    external: true
