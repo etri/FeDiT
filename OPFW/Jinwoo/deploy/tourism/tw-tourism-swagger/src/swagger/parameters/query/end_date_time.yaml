@@ -1,0 +1,8 @@
+name: end_date_time
+in: query
+required: true
+description: end_date_time(yyyy-MM-dd HH:mm:ss)
+schema:
+  type: string
+operator: '$lte'
+dbfield: 'date_time'

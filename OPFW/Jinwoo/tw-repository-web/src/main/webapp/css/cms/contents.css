@@ -1,0 +1,42 @@
+/* CSS Document */
+
+@import "site.css";
+
+#contentsContainer .page-title { margin-top:0; font-size:30px; color:#333; font-weight:bold;}
+#contentsContainer .contents-wrapper { margin: 20px 0 0; /*width:734px;*/}
+
+#contentsContainer {font-size:14px; color:#555; word-break: break-all;}
+
+#contentsContainer .contents-wrapper h3 {clear:both; background:url(../images/common/TopLine-h3.gif) no-repeat top left; height:40px; line-height:40px; margin:0 0 15px 0; font-size:20px; font-weight:bold; color:#333;}
+
+
+#contentsContainer  .contents-wrapper ul.list-unstyled li {background:none; padding-left:12px;}
+#contentsContainer  .contents-wrapper p {padding:0 0 15px 0; margin:0;}
+#contentsContainer  .contents-wrapper p.in {padding:0 0 15px 15px;}
+
+#contentsContainer  .contents-wrapper table.table a { color:#333}
+#contentsContainer  .contents-wrapper table.table.table-data,
+#contentsContainer  .contents-wrapper table.table.table-list,
+#contentsContainer  .contents-wrapper table.table.table-view,
+#contentsContainer  .contents-wrapper table.table.table-form {border-top:2px solid #6471ba; border-bottom:1px solid #555; }
+#contentsContainer  .contents-wrapper table.no-caption caption {display:none;}
+#contentsContainer  .contents-wrapper table.caption-bottom-center caption {caption-side: bottom; text-align: center;}
+
+#contentsContainer  .contents-wrapper table.table.table-data thead th,
+#contentsContainer  .contents-wrapper table.table.table-list thead th,
+#contentsContainer  .contents-wrapper table.table.table-form th,
+#contentsContainer  .contents-wrapper table.table.table-view th {padding:8px 5px; font-weight:bold; background:#f7f9ff; color:#6471ba; border-left:1px solid #6d79be; border-bottom:1px solid #6d79be; text-align:center; white-space: nowrap;}
+#contentsContainer  .contents-wrapper table.table.table-data tbody td,
+#contentsContainer  .contents-wrapper table.table.table-list tbody td {padding:8px 10px; border-left:1px solid #ddd; vertical-align:middle; text-align: center;}
+#contentsContainer  .contents-wrapper table.table.table-data tbody td.contents,
+#contentsContainer  .contents-wrapper table.table.table-list tbody td.contents,
+#contentsContainer  .contents-wrapper table.table.table-data tbody td.title,
+#contentsContainer  .contents-wrapper table.table.table-list tbody td.title {text-align: left;}
+
+#contentsContainer .contents-wrapper ul.nav { margin: 0;}
+#contentsContainer .contents-wrapper ul.nav li {list-style: none; margin: 0; padding: 0; background: none;} 
+
+table.table.table-data { border-top:1px solid #555;} 
+
+
+

@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  app:
+    container_name: ${APP_NAME}
+    build:
+      context: .
+      args:
+      - WORKDIR=${WORKDIR}
+    ports:
+      - "${SERVICE_PORT}:${SERVICE_PORT}"
+    volumes:
+      - "./docker-bind/generated-data/${LOGDIR}:${WORKDIR}/${LOGDIR}"
+    environment:
+      - TZ = "Asia/Seoul"
+      - NODE_ENV=${NODE_ENV}
+    networks:
+      - tw-environment-base_default
+      - tw-base_default
+
+    # entrypoint: ["/bin/bash"]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        ${WORKDIR}/entrypoint.sh
+    tty: true
+
+networks:
+  tw-environment-base_default:
+    external: true
+  tw-base_default:
+    external: true

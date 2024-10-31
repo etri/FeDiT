@@ -1,0 +1,23 @@
+type: object
+properties:
+  date_time:
+    type: string
+    dbDataType: timestamp
+  measure_position_id:
+    type: integer
+  temperature:
+    type: number
+  precipitation_one_hour:
+    type: string
+  humidity:
+    type: integer
+  rain_type:
+    type: integer
+  wind_direction:
+    type: integer
+  wind_speed:
+    type: number
+  wind_uuu:
+    type: number
+  wind_vvv:
+    type: number

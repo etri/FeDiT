@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="net.jw.twin.repository.db.restKey.mapper.RestKeyMapper">
+
+	<!--	 common 	-->
+    <sql id="sort">
+      <if test="null != sort and null != sortOrd"> order by ${sort} ${sortOrd}, id ${sortOrd} </if>
+    </sql>
+
+    <sql id="paging">
+      <if test="null != pagingYn and pagingYn == true" >
+        limit #{start}, #{length}
+      </if>
+    </sql>
+
+	<!--	 selectList 	-->
+	<select id="selectList" parameterType="restKeySearch" resultType="restKey">
+		select
+			*
+		from
+			rest_key
+		<!--<where>-->
+			<!--<if test="null != id" >                       and id = #{id}                                     </if>-->
+			<!--<if test="null != userId" >                   and user_id = #{userId}                            </if>-->
+			<!--<if test="null != token" >                    and token = #{token}                               </if>-->
+			<!--<if test="null != status" >                   and status = #{status}                             </if>-->
+			<!--<if test="null != issueTime" >                and issue_time = #{issueTime}                      </if>-->
+			<!--<if test="null != expireTime" >               and expire_time = #{expireTime}                    </if>-->
+		<!--</where>-->
+		<where>
+			<if test="null != id" >                           and id = #{id}                                    </if>
+			<if test="null != userId" >                       and user_id = #{userId}                           </if>
+			<if test="null != token" >                        and token = #{token}                              </if>
+			<if test="null != status" >                       and status = #{status}                            </if>
+			<if test="null != startIssueTime" >               and issue_time <![CDATA[ >= ]]> #{startIssueTime} </if>
+			<if test="null != endIssueTime" >                 and issue_time <![CDATA[ < ]]> #{endIssueTime}    </if>
+			<if test="null != startExpireTime" >              and expire_time <![CDATA[ >= ]]> #{startExpireTime}</if>
+			<if test="null != endExpireTime" >                and expire_time <![CDATA[ < ]]> #{endExpireTime}  </if>
+		</where>
+		<!--		where	-->
+		<!--		DEL_ID IS NULL	-->
+		<include refid = "sort"/>
+		<include refid = "paging"/>
+	</select>
+
+	<!--	 selectListNullCheck 	-->
+	<select id="selectListNullCheck" parameterType="restKeySearch" resultType="restKey">
+		select
+			*
+		from
+			rest_key
+		where
+			1
+			<foreach collection="isNotNull" item="value"
+					open="and (" separator="and " close=")">
+				${value} is not null
+			</foreach>
+			<foreach collection="isNull" item="value"
+					open="and (" separator="and " close=")">
+				${value} is null
+			</foreach>
+			<if test="null != id" >                           and id = #{id}                                    </if>
+			<if test="null != userId" >                       and user_id = #{userId}                           </if>
+			<if test="null != token" >                        and token = #{token}                              </if>
+			<if test="null != status" >                       and status = #{status}                            </if>
+			<if test="null != startIssueTime" >               and issue_time <![CDATA[ >= ]]> #{startIssueTime} </if>
+			<if test="null != endIssueTime" >                 and issue_time <![CDATA[ < ]]> #{endIssueTime}    </if>
+			<if test="null != startExpireTime" >              and expire_time <![CDATA[ >= ]]> #{startExpireTime}</if>
+			<if test="null != endExpireTime" >                and expire_time <![CDATA[ < ]]> #{endExpireTime}  </if>
+		<!--		where	-->
+		<!--		DEL_ID IS NULL	-->
+		<include refid = "sort"/>
+		<include refid = "paging"/>
+	</select>
+
+	<!--	 select 	-->
+	<select id="select" parameterType="restKeySearch" resultType="restKey">
+		select
+			*
+		from
+			rest_key
+		<where>
+			<if test="null != id" >                           and id = #{id}                                    </if>
+			<if test="null != userId" >                       and user_id = #{userId}                           </if>
+			<if test="null != token" >                        and token = #{token}                              </if>
+			<if test="null != status" >                       and status = #{status}                            </if>
+			<if test="null != startIssueTime" >               and issue_time <![CDATA[ >= ]]> #{startIssueTime} </if>
+			<if test="null != endIssueTime" >                 and issue_time <![CDATA[ < ]]> #{endIssueTime}    </if>
+			<if test="null != startExpireTime" >              and expire_time <![CDATA[ >= ]]> #{startExpireTime}</if>
+			<if test="null != endExpireTime" >                and expire_time <![CDATA[ < ]]> #{endExpireTime}  </if>
+		</where>
+	</select>
+
+	<!--	 selectBy 	-->
+
+	<!--	 count 	-->
+	<select id="count" parameterType="restKeySearch" resultType="java.lang.Integer">
+		select
+			COUNT( * )
+		from (
+				select 1 from rest_key
+				<where>
+					<if test="null != id" >                           and id = #{id}                                    </if>
+					<if test="null != userId" >                       and user_id = #{userId}                           </if>
+					<if test="null != token" >                        and token = #{token}                              </if>
+					<if test="null != status" >                       and status = #{status}                            </if>
+					<if test="null != startIssueTime" >               and issue_time <![CDATA[ >= ]]> #{startIssueTime} </if>
+					<if test="null != endIssueTime" >                 and issue_time <![CDATA[ < ]]> #{endIssueTime}    </if>
+					<if test="null != startExpireTime" >              and expire_time <![CDATA[ >= ]]> #{startExpireTime}</if>
+					<if test="null != endExpireTime" >                and expire_time <![CDATA[ < ]]> #{endExpireTime}  </if>
+				</where>
+				<include refid = "sort"/>
+				<include refid = "paging"/>
+		) t
+	</select>
+
+	<!--	 countNullCheck 	-->
+	<select id="countNullCheck" parameterType="restKeySearch" resultType="java.lang.Integer">
+		select
+			COUNT( * )
+		from (
+				select 1 from rest_key
+				where
+					1
+					<foreach collection="isNotNull" item="value"
+							open="and (" separator="and " close=")">
+						${value} is not null
+					</foreach>
+					<foreach collection="isNull" item="value"
+							open="and (" separator="and " close=")">
+						${value} is null
+					</foreach>
+					<if test="null != id" >                           and id = #{id}                                    </if>
+					<if test="null != userId" >                       and user_id = #{userId}                           </if>
+					<if test="null != token" >                        and token = #{token}                              </if>
+					<if test="null != status" >                       and status = #{status}                            </if>
+					<if test="null != startIssueTime" >               and issue_time <![CDATA[ >= ]]> #{startIssueTime} </if>
+					<if test="null != endIssueTime" >                 and issue_time <![CDATA[ < ]]> #{endIssueTime}    </if>
+					<if test="null != startExpireTime" >              and expire_time <![CDATA[ >= ]]> #{startExpireTime}</if>
+					<if test="null != endExpireTime" >                and expire_time <![CDATA[ < ]]> #{endExpireTime}  </if>
+				<include refid = "sort"/>
+				<include refid = "paging"/>
+		) t
+	</select>
+
+	<!--	 insert 	-->
+	<insert id="insert" parameterType="restKey" useGeneratedKeys="true" keyProperty="id">
+		insert rest_key
+		<set>
+			<if test="null != id" >                      id = #{id},                                   </if>
+			<if test="null != userId" >                  user_id = #{userId},                          </if>
+			<if test="null != token" >                   token = #{token},                             </if>
+			<if test="null != status" >                  status = #{status},                           </if>
+			<if test="null != issueTime" >               issue_time = #{issueTime},                    </if>
+			<if test="null != expireTime" >              expire_time = #{expireTime},                  </if>
+		</set>
+	</insert>
+
+	<!--	 update 	-->
+	<update id="update" parameterType="restKey">
+		update rest_key
+		<set>
+			<if test="null != userId" >                  user_id = #{userId},                         </if>
+			<if test="null != token" >                   token = #{token},                            </if>
+			<if test="null != status" >                  status = #{status},                          </if>
+			<if test="null != issueTime" >               issue_time = #{issueTime},                   </if>
+			<if test="null != expireTime" >              expire_time = #{expireTime},                 </if>
+		</set>
+		<where>
+			<if test="null != id" >                           and id = #{id}                                    </if>
+		</where>
+	</update>
+
+	<!--	 delete 	-->
+	<update id="delete" parameterType="restKey">
+		delete from rest_key
+		<where>
+			<if test="null != id" >                           and id = #{id}                                    </if>
+		</where>
+	</update>
+
+	<!--	 etc 	-->
+	<insert id="insertList" parameterType="restKey">
+		insert into rest_key
+		(
+			id,
+			user_id,
+			token,
+			status,
+			issue_time,
+			expire_time)
+		values
+		<foreach collection="list" item="item" separator=",">
+		(
+			#{item.id},
+			#{item.userId},
+			#{item.token},
+			#{item.status},
+			#{item.issueTime},
+			#{item.expireTime})
+		</foreach>
+		on duplicate key update
+			id=values(id),
+			user_id=values(user_id),
+			token=values(token),
+			status=values(status),
+			issue_time=values(issue_time),
+			expire_time=values(expire_time)
+	</insert>
+</mapper>

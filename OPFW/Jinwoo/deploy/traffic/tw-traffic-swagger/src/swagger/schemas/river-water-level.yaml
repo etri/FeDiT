@@ -1,0 +1,23 @@
+type: object
+properties:
+  measurement_id:
+    type: integer
+  device_id:
+    type: integer
+  measurement_date:
+    type: string
+    dbDataType: timestamp
+  min_adjustment:
+    type: integer
+  primary_value:
+    type: string
+    dbDataType: decimal
+  secondary_value:
+    type: string
+    dbDataType: decimal
+  third_value:
+    type: string
+    dbDataType: decimal
+  quarternary_value:
+    type: string
+    dbDataType: decimal

@@ -1,0 +1,16 @@
+[Unit]
+Description=tw-data-interface
+After=syslog.target network.target
+
+[Service]
+Type=simple
+Environment="JAVA_OPTIONS=\
+ -Dserver-port=8084\
+ -Dprod-jdbc-socket-address=tw-tourism-db-poc1-mariadb:3306\
+ -Dspring.profiles.active=prod\
+ -XX:NativeMemoryTracking=summary"
+WorkingDirectory=/home/tw-data-interface
+ExecStart=/bin/bash -c "exec java ${JAVA_OPTIONS} -jar /home/tw-data-interface/svc/tw-data-interface.jar"
+
+[Install]
+WantedBy=default.target

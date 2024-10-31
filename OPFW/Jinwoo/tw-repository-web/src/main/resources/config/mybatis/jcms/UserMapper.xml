@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="net.jcms.framework.security.mapper.UserMapper">
+
+	<select id="selectList" parameterType="userSearch" resultType="user">
+		select	
+			*
+		from		
+			JCMS_USER 
+		<where>
+			<if test="!empty(userId)" > and USER_ID LIKE #{userId} </if>
+			<if test="!empty(institutionId)" > and INSTITUTION_ID = #{institutionId} </if>
+			<if test="!empty(userLoginIdLike)" > and USER_LOGIN_ID LIKE CONCAT('%', #{userLoginIdLike}, '%') </if>
+			<if test="!empty(userNmLike)" > and USER_NM LIKE CONCAT('%', #{userNmLike}, '%') </if>
+			<if test="!empty(userSt)" > and USER_ST = #{userSt} </if>
+		</where>
+		<if test="!empty(sort) and !empty(sortOrd)"> order by ${sort} ${sortOrd} </if>
+		<if test="pagingYn == true" >
+			limit #{start}, #{length}
+		</if>
+	</select>
+	
+	<select id="checkIdDuplicate" parameterType="userSearch" resultType="java.lang.Integer">
+		select
+			COUNT(USER_ID)
+		from
+			JCMS_USER
+		where
+			USER_LOGIN_ID = #{userLoginId}
+	</select>
+	
+	<select id="login" parameterType="user" resultType="user">
+		select	
+			USER_ID, USER_LOGIN_ID, INSTITUTION_ID, USER_PWD, USER_NM, USER_ST, FAIL_CNT
+		from		
+			JCMS_USER
+		where	
+			USER_LOGIN_ID = #{userLoginId} and
+			USER_ST = '1'
+	</select>
+	
+	<select id="select" parameterType="userSearch" resultType="user">
+		select	
+			*
+		from		
+			JCMS_USER
+		<where>	
+			<if test="!empty(userLoginId)" > USER_LOGIN_ID = #{userLoginId} </if>
+			<if test="!empty(institutionId)" > and INSTITUTION_ID = #{institutionId} </if>
+			<if test="!empty(userId)" > and USER_ID = #{userId} </if>
+			<if test="!empty(userNm)" > and USER_NM = #{userNm} </if>
+			<if test="!empty(email)" > and EMAIL = #{email} </if>
+		</where>			
+	</select>
+	
+	<select id="count" parameterType="userSearch" resultType="java.lang.Integer">
+		select 
+			COUNT(USER_ID)
+		from
+			JCMS_USER
+		<where>
+			<if test="!empty(userId)" > and USER_ID LIKE #{userId} </if>
+			<if test="!empty(institutionId)" > and INSTITUTION_ID = #{institutionId} </if>
+			<if test="!empty(userLoginIdLike)" > and USER_LOGIN_ID LIKE CONCAT('%', #{userLoginIdLike}, '%') </if>
+			<if test="!empty(userNmLike)" > and USER_NM LIKE CONCAT('%', #{userNmLike}, '%') </if>
+			<if test="!empty(userSt)" > and USER_ST = #{userSt} </if>
+		</where>
+	</select>
+	
+	<select id="userPwdCheck" parameterType="userSearch" resultType="java.lang.Integer">
+		select
+			COUNT(USER_ID)
+		from
+			JCMS_USER
+		where
+			USER_ID = #{userId} and
+			USER_PWD = #{userPwd}
+	</select>
+	
+	<insert id="insert" parameterType="user" useGeneratedKeys="true" keyProperty="userId" keyColumn="USER_ID">
+		insert into JCMS_USER (USER_LOGIN_ID, INSTITUTION_ID, USER_NM, USER_PWD, USER_DI, BIRTH, GENDER, ADULT_YN, EMAIL, ADDR, MOBILE, FAIL_CNT,
+  							   USER_ST, USER_OUT_RSN, REG_ID, REG_DT, UPD_ID, UPD_DT, DEL_ID, DEL_DT, REC_ST )
+  		               values (#{userLoginId}, #{institutionId}, #{userNm}, #{userPwd}, #{userDi}, #{birth}, #{gender}, #{adultYn}, #{email}, #{addr}, #{mobile}, 0,
+  		                       1, #{userOutRsn}, #{regId}, SYSDATE(), #{updId}, #{updDt}, #{delId}, #{delDt}, 'Y' )
+	</insert>
+	
+	<update id="update" parameterType="user">
+		update JCMS_USER set
+			UPD_ID = #{updId}
+			,UPD_DT = SYSDATE()
+			<if test="!empty(institutionId)" > ,INSTITUTION_ID = #{institutionId} </if>
+			<if test="!empty(userPwd)" > ,USER_PWD = #{userPwd} </if>
+			<if test="!empty(userNm)" > ,USER_NM = #{userNm} </if>
+			<if test="!empty(gender)" > ,GENDER = #{gender} </if>
+			<if test="!empty(birth)" > ,BIRTH = #{birth} </if>
+			<if test="!empty(mobile)" > ,MOBILE = #{mobile} </if>
+			<if test="!empty(addr)" > ,ADDR = #{addr} </if>
+			<if test="!empty(email)" > , EMAIL = #{email} </if>
+			<if test="!empty(userSt)" > , USER_ST = #{userSt} </if>
+			<if test="!empty(userOutRsn)" > , USER_OUT_RSN = #{userOutRsn} </if>
+		where
+			USER_ID = #{userId}
+	</update>
+	
+	<update id="delete" parameterType="user">
+		update JCMS_USER set
+			DEL_ID = #{delId},
+			DEL_DT = SYSDATE()
+		where
+			USER_ID = #{userId} 
+	</update>
+	
+	<update id="updateUserLoginFail" parameterType="user">
+		update JCMS_USER set
+			FAIL_CNT = #{failCnt}
+		where
+			USER_ID = #{userId} 
+	</update>
+	
+	<update id="updateInitUserLoginFailCnt" parameterType="user">
+		update JCMS_USER set
+			FAIL_CNT = 0
+		where
+			USER_ID = #{userId} 
+	</update>
+	
+	<update id="updatePwd" parameterType="user">
+		update JCMS_USER set
+			USER_PWD = #{userPwd}
+		where
+			USER_ID = #{userId}
+	</update>
+	
+	<select id="thisWeekInUserCount" resultType="java.lang.Integer">
+		select
+			COUNT(USER_ID)
+		from
+			JCMS_USER
+		where REG_DT  > SYSDATE() - 7
+	</select>
+	
+	<select id="thisWeekOutUserCount" resultType="java.lang.Integer">
+		select
+			COUNT(USER_ID)
+		from
+			JCMS_USER
+		where 
+			USER_ST = '9'
+		and UPD_DT > SYSDATE() - 7
+	</select>
+	
+	<select id="thisWeekInUser" resultType="user">	
+		select
+			USER_ID, USER_LOGIN_ID, INSTITUTION_ID, USER_NM, USER_ST, REG_DT
+		from
+			JCMS_USER
+		where 
+			DEL_DT IS NULL
+		and REG_DT > SYSDATE() - 7 
+		order by REG_DT DESC
+	</select>
+	
+	<select id="thisWeekOutUser" resultType="java.lang.Integer">
+		select
+			COUNT(USER_ID)
+		from
+			JCMS_USER
+		where 
+			USER_ST = '9'
+		and UPD_DT > SYSDATE() - 7
+	</select>
+	
+	<select id="userTotalOutCount" resultType="java.lang.Integer">
+		select
+			COUNT(USER_ID)
+		from
+			JCMS_USER
+		where 
+			USER_ST = '9'
+	</select>
+
+	<select id="getAutoIncNumber" parameterType="userSearch" resultType="java.lang.Long">
+		SELECT `AUTO_INCREMENT`
+		FROM  INFORMATION_SCHEMA.TABLES
+		WHERE TABLE_SCHEMA = 'dev_cim'
+		  AND   TABLE_NAME   = 'jcms_user';
+	</select>
+
+	<select id="selectWithRole" parameterType="userSearch" resultType="user">
+		select TU.*
+		from (select * from JCMS_USER_ROLE
+						where 1=1
+						<if test="roleAuthList != null and roleAuthList.size() > 0">
+							AND ROLE_AUTH IN
+							<foreach collection="roleAuthList" item="value"
+									 open="(" separator=", " close=")">
+								#{value}
+							</foreach>
+						</if>
+		) as TR
+		join (select * from JCMS_USER
+		               where DEL_ID is null
+						<if test="!empty(userId)" > and USER_ID LIKE #{userId} </if>
+						<if test="!empty(institutionId)" > and INSTITUTION_ID = #{institutionId} </if>
+						<if test="!empty(userLoginIdLike)" > and USER_LOGIN_ID LIKE CONCAT('%', #{userLoginIdLike}, '%') </if>
+						<if test="!empty(userNmLike)" > and USER_NM LIKE CONCAT('%', #{userNmLike}, '%') </if>
+						<if test="!empty(userSt)" > and USER_ST = #{userSt} </if>
+	   	) as TU
+		on TU.USER_ID = TR.USER_ID
+		<if test="!empty(sort) and !empty(sortOrd)">order by ${sort} ${sortOrd}</if>
+		<if test="pagingYn == true">
+			limit #{start}, #{length}
+		</if>
+	</select>
+
+	<select id="countWithRole" parameterType="userSearch" resultType="java.lang.Integer">
+        select COUNT(1)
+        from (select * from JCMS_USER_ROLE
+						where 1=1
+						<if test="roleAuthList != null and roleAuthList.size() > 0">
+							AND ROLE_AUTH IN
+							<foreach collection="roleAuthList" item="value"
+									 open="(" separator=", " close=")">
+								#{value}
+							</foreach>
+						</if>
+		) as TR
+		join (select * from JCMS_USER
+						where DEL_ID is null
+						<if test="!empty(userId)" > and USER_ID LIKE #{userId} </if>
+						<if test="!empty(institutionId)" > and INSTITUTION_ID = #{institutionId} </if>
+						<if test="!empty(userLoginIdLike)" > and USER_LOGIN_ID LIKE CONCAT('%', #{userLoginIdLike}, '%') </if>
+						<if test="!empty(userNmLike)" > and USER_NM LIKE CONCAT('%', #{userNmLike}, '%') </if>
+						<if test="!empty(userSt)" > and USER_ST = #{userSt} </if>
+		) as TU
+		on TU.USER_ID = TR.USER_ID
+    </select>
+</mapper>

@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="net.jw.twin.repository.db.dataUse.mapper.DataUseMapper">
+
+	<!--	 common 	-->
+    <sql id="sort">
+      <if test="null != sort and null != sortOrd"> order by ${sort} ${sortOrd}, id ${sortOrd} </if>
+    </sql>
+
+    <sql id="paging">
+      <if test="null != pagingYn and pagingYn == true" >
+        limit #{start}, #{length}
+      </if>
+    </sql>
+
+	<!--	 selectList 	-->
+	<select id="selectList" parameterType="dataUseSearch" resultType="dataUse">
+		select
+			*
+		from
+			data_use
+		<!--<where>-->
+			<!--<if test="null != id" >                       and id = #{id}                                     </if>-->
+			<!--<if test="null != dataId" >                   and data_id = #{dataId}                            </if>-->
+			<!--<if test="null != purpose" >                  and purpose = #{purpose}                           </if>-->
+			<!--<if test="null != status" >                   and status = #{status}                             </if>-->
+			<!--<if test="null != approvalTime" >             and approval_time = #{approvalTime}                </if>-->
+			<!--<if test="null != denialTime" >               and denial_time = #{denialTime}                    </if>-->
+			<!--<if test="null != expireTime" >               and expire_time = #{expireTime}                    </if>-->
+			<!--<if test="null != currentCallCount" >         and current_call_count = #{currentCallCount}       </if>-->
+			<!--<if test="null != maxCallCount" >             and max_call_count = #{maxCallCount}               </if>-->
+			<!--<if test="null != regId" >                    and REG_ID = #{regId}                              </if>-->
+			<!--<if test="null != regDt" >                    and REG_DT = #{regDt}                              </if>-->
+			<!--<if test="null != delId" >                    and DEL_ID = #{delId}                              </if>-->
+			<!--<if test="null != delDt" >                    and DEL_DT = #{delDt}                              </if>-->
+		<!--</where>-->
+		<where>
+			DEL_DT IS NULL
+			<if test="null != id" >                           and id = #{id}                                    </if>
+			<if test="null != dataId" >                       and data_id = #{dataId}                           </if>
+			<if test="null != status" >                       and status = #{status}                            </if>
+			<if test="null != startExpireTime" >              and expire_time <![CDATA[ >= ]]> #{startExpireTime}</if>
+			<if test="null != endExpireTime" >                and expire_time <![CDATA[ < ]]> #{endExpireTime}  </if>
+			<if test="null != regId" >                        and REG_ID = #{regId}                             </if>
+			<if test="null != startRegDt" >                   and REG_DT <![CDATA[ >= ]]> #{startRegDt}         </if>
+			<if test="null != endRegDt" >                     and REG_DT <![CDATA[ < ]]> #{endRegDt}            </if>
+		</where>
+		<!--		where	-->
+		<!--		DEL_ID IS NULL	-->
+		<include refid = "sort"/>
+		<include refid = "paging"/>
+	</select>
+
+	<!--	 selectListNullCheck 	-->
+	<select id="selectListNullCheck" parameterType="dataUseSearch" resultType="dataUse">
+		select
+			*
+		from
+			data_use
+		where
+			DEL_DT IS NULL
+			<foreach collection="isNotNull" item="value"
+					open="and (" separator="and " close=")">
+				${value} is not null
+			</foreach>
+			<foreach collection="isNull" item="value"
+					open="and (" separator="and " close=")">
+				${value} is null
+			</foreach>
+			<if test="null != id" >                           and id = #{id}                                    </if>
+			<if test="null != dataId" >                       and data_id = #{dataId}                           </if>
+			<if test="null != status" >                       and status = #{status}                            </if>
+			<if test="null != startExpireTime" >              and expire_time <![CDATA[ >= ]]> #{startExpireTime}</if>
+			<if test="null != endExpireTime" >                and expire_time <![CDATA[ < ]]> #{endExpireTime}  </if>
+			<if test="null != regId" >                        and REG_ID = #{regId}                             </if>
+			<if test="null != startRegDt" >                   and REG_DT <![CDATA[ >= ]]> #{startRegDt}         </if>
+			<if test="null != endRegDt" >                     and REG_DT <![CDATA[ < ]]> #{endRegDt}            </if>
+		<!--		where	-->
+		<!--		DEL_ID IS NULL	-->
+		<include refid = "sort"/>
+		<include refid = "paging"/>
+	</select>
+
+	<!--	 select 	-->
+	<select id="select" parameterType="dataUseSearch" resultType="dataUse">
+		select
+			*
+		from
+			data_use
+		<where>
+			DEL_DT IS NULL
+			<if test="null != id" >                           and id = #{id}                                    </if>
+			<if test="null != dataId" >                       and data_id = #{dataId}                           </if>
+			<if test="null != status" >                       and status = #{status}                            </if>
+			<if test="null != startExpireTime" >              and expire_time <![CDATA[ >= ]]> #{startExpireTime}</if>
+			<if test="null != endExpireTime" >                and expire_time <![CDATA[ < ]]> #{endExpireTime}  </if>
+			<if test="null != regId" >                        and REG_ID = #{regId}                             </if>
+			<if test="null != startRegDt" >                   and REG_DT <![CDATA[ >= ]]> #{startRegDt}         </if>
+			<if test="null != endRegDt" >                     and REG_DT <![CDATA[ < ]]> #{endRegDt}            </if>
+		</where>
+	</select>
+
+	<!--	 selectBy 	-->
+
+	<!--	 count 	-->
+	<select id="count" parameterType="dataUseSearch" resultType="java.lang.Integer">
+		select
+			COUNT( * )
+		from (
+				select 1 from data_use
+				<where>
+					DEL_DT IS NULL
+					<if test="null != id" >                           and id = #{id}                                    </if>
+					<if test="null != dataId" >                       and data_id = #{dataId}                           </if>
+					<if test="null != status" >                       and status = #{status}                            </if>
+					<if test="null != startExpireTime" >              and expire_time <![CDATA[ >= ]]> #{startExpireTime}</if>
+					<if test="null != endExpireTime" >                and expire_time <![CDATA[ < ]]> #{endExpireTime}  </if>
+					<if test="null != regId" >                        and REG_ID = #{regId}                             </if>
+					<if test="null != startRegDt" >                   and REG_DT <![CDATA[ >= ]]> #{startRegDt}         </if>
+					<if test="null != endRegDt" >                     and REG_DT <![CDATA[ < ]]> #{endRegDt}            </if>
+				</where>
+				<include refid = "sort"/>
+				<include refid = "paging"/>
+		) t
+	</select>
+
+	<!--	 countNullCheck 	-->
+	<select id="countNullCheck" parameterType="dataUseSearch" resultType="java.lang.Integer">
+		select
+			COUNT( * )
+		from (
+				select 1 from data_use
+				where
+					DEL_DT IS NULL
+					<foreach collection="isNotNull" item="value"
+							open="and (" separator="and " close=")">
+						${value} is not null
+					</foreach>
+					<foreach collection="isNull" item="value"
+							open="and (" separator="and " close=")">
+						${value} is null
+					</foreach>
+					<if test="null != id" >                           and id = #{id}                                    </if>
+					<if test="null != dataId" >                       and data_id = #{dataId}                           </if>
+					<if test="null != status" >                       and status = #{status}                            </if>
+					<if test="null != startExpireTime" >              and expire_time <![CDATA[ >= ]]> #{startExpireTime}</if>
+					<if test="null != endExpireTime" >                and expire_time <![CDATA[ < ]]> #{endExpireTime}  </if>
+					<if test="null != regId" >                        and REG_ID = #{regId}                             </if>
+					<if test="null != startRegDt" >                   and REG_DT <![CDATA[ >= ]]> #{startRegDt}         </if>
+					<if test="null != endRegDt" >                     and REG_DT <![CDATA[ < ]]> #{endRegDt}            </if>
+				<include refid = "sort"/>
+				<include refid = "paging"/>
+		) t
+	</select>
+
+	<!--	 insert 	-->
+	<insert id="insert" parameterType="dataUse" useGeneratedKeys="true" keyProperty="id">
+		insert data_use
+		<set>
+			REG_ID = #{regId},
+			REG_DT = SYSDATE(),
+			<if test="null != id" >                      id = #{id},                                   </if>
+			<if test="null != dataId" >                  data_id = #{dataId},                          </if>
+			<if test="null != purpose" >                 purpose = #{purpose},                         </if>
+			<if test="null != status" >                  status = #{status},                           </if>
+			<if test="null != approvalTime" >            approval_time = #{approvalTime},              </if>
+			<if test="null != denialTime" >              denial_time = #{denialTime},                  </if>
+			<if test="null != expireTime" >              expire_time = #{expireTime},                  </if>
+			<if test="null != currentCallCount" >        current_call_count = #{currentCallCount},     </if>
+			<if test="null != maxCallCount" >            max_call_count = #{maxCallCount},             </if>
+		</set>
+	</insert>
+
+	<!--	 update 	-->
+	<update id="update" parameterType="dataUse">
+		update data_use
+		<set>
+			<if test="null != dataId" >                  data_id = #{dataId},                         </if>
+			<if test="null != purpose" >                 purpose = #{purpose},                        </if>
+			<if test="null != status" >                  status = #{status},                          </if>
+			<if test="null != approvalTime" >            approval_time = #{approvalTime},             </if>
+			<if test="null != denialTime" >              denial_time = #{denialTime},                 </if>
+			<if test="null != expireTime" >              expire_time = #{expireTime},                 </if>
+			<if test="null != currentCallCount" >        current_call_count = #{currentCallCount},    </if>
+			<if test="null != maxCallCount" >            max_call_count = #{maxCallCount},            </if>
+			<if test="null != regDt" >                   REG_DT = #{regDt},                           </if>
+		</set>
+		<where>
+			<if test="null != id" >                           and id = #{id}                                    </if>
+		</where>
+	</update>
+
+	<!--	 delete 	-->
+	<update id="delete" parameterType="dataUse">
+		delete from data_use
+		<where>
+			<if test="null != id" >                           and id = #{id}                                    </if>
+			<if test="null != regId" >                        and REG_ID = #{regId}                             </if>
+		</where>
+	</update>
+
+	<!--	 deleteSoft 	-->
+	<update id="deleteSoft" parameterType="dataUse">
+		update data_use set 
+			DEL_ID = #{delId},
+			DEL_DT = SYSDATE()
+		<where>
+			<if test="null != id" >                           and id = #{id}                                    </if>
+			<if test="null != regId" >                        and REG_ID = #{regId}                             </if>
+		</where>
+	</update>
+
+	<!--	 etc 	-->
+	<insert id="insertList" parameterType="dataUse">
+		insert into data_use
+		(
+			id,
+			data_id,
+			purpose,
+			status,
+			approval_time,
+			denial_time,
+			expire_time,
+			current_call_count,
+			max_call_count,
+			REG_ID,
+			REG_DT,
+			DEL_ID,
+			DEL_DT)
+		values
+		<foreach collection="list" item="item" separator=",">
+		(
+			#{item.id},
+			#{item.dataId},
+			#{item.purpose},
+			#{item.status},
+			#{item.approvalTime},
+			#{item.denialTime},
+			#{item.expireTime},
+			#{item.currentCallCount},
+			#{item.maxCallCount},
+			#{item.regId},
+			#{item.regDt},
+			#{item.delId},
+			#{item.delDt})
+		</foreach>
+		on duplicate key update
+			id=values(id),
+			data_id=values(data_id),
+			purpose=values(purpose),
+			status=values(status),
+			approval_time=values(approval_time),
+			denial_time=values(denial_time),
+			expire_time=values(expire_time),
+			current_call_count=values(current_call_count),
+			max_call_count=values(max_call_count),
+			REG_ID=values(REG_ID),
+			REG_DT=values(REG_DT),
+			DEL_ID=values(DEL_ID),
+			DEL_DT=values(DEL_DT)
+	</insert>
+</mapper>
