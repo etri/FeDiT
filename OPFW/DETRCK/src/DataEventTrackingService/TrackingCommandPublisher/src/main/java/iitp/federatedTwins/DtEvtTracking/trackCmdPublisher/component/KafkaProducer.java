@@ -58,8 +58,7 @@ public class KafkaProducer {
 
 				try {
 					log.info("Success to send message.");
-					log.info("Sent message=[" + map.get("payload") + "] with offset=["
-							+ result.getRecordMetadata().offset() + "]");
+					log.info("Sent message=[" + map.get("payload") + "] with offset=[" + result.getRecordMetadata().offset() + "]");
 
 					trackingCmdPrdService.updateProcessAndInsertTopic(map);
 					sendRabbitMqMsg(map);
@@ -95,8 +94,8 @@ public class KafkaProducer {
 
 			if (map.get("mode") != null && map.get("mode").equals("C")) {
 
-				if(Constant.TRCK_CMD_TYPE_DATA.equals(map.get("trckTp"))) {
-					trackingCmdPrdService.insertTopic(map);					
+				if (Constant.TRCK_CMD_TYPE_DATA.equals(map.get("trckTp"))) {
+					trackingCmdPrdService.insertTopic(map);
 				}
 
 				json.put("mode", map.get("mode"));
@@ -108,7 +107,6 @@ public class KafkaProducer {
 				json.put("trackingProcessId", map.get("trackingProcessId"));
 				routingKey = RabbitMQConstant.RABBITMQ_ROUTING_KEY_SUB_KAFKA_LSTN_CREATE;
 
-				// 트래킹 프로세스 상태정보 변경 : 생성/등록-> 준비 상태
 				pMap.put("trackingStatus", Constant.TRCK_PROC_STATUS_WAIT);
 				pMap.put("trackingProcessId", map.get("trackingProcessId"));
 				pMap.put("statusResultMsg", "Tracking Process STATUS WAIT Update Success");
@@ -126,7 +124,6 @@ public class KafkaProducer {
 
 				routingKey = RabbitMQConstant.RABBITMQ_ROUTING_KEY_SUB_KAFKA_LSTN_DELETE;
 
-				// 최종 상태를 완료 상태로 변경처리 => 에러, 오류, 강제종료 상태 => 완료상태로 변경, 이력은 오류상태 후 정상처리 두가지의 로그가 남음. 
 				pMap.put("trackingStatus", Constant.TRCK_PROC_STATUS_COMPLETE);
 				pMap.put("reqTrckCmdStatus", Constant.TRCK_CMD_STATUS_COMPLETE);
 				pMap.put("trackingProcessId", map.get("trackingProcessId"));
@@ -138,7 +135,6 @@ public class KafkaProducer {
 			rabbitMQComponent.sendMessage(json, routingKey);
 
 		} catch (Exception e) {
-//			e.printStackTrace();
 			log.error("sendRabbitMqMsg Error Message : {}", e);
 			pMap.put("trackingStatus", Constant.TRCK_PROC_STATUS_ERROR);
 			pMap.put("reqTrckCmdStatus", Constant.TRCK_CMD_STATUS_ERROR);

@@ -104,8 +104,7 @@ public class TrackingDataSubscriberServiceImpl implements TrackingDataSubscriber
 			// startId 셋팅
 			if (detectInfo != null) {
 				// 마지막 정보의 실행정보 셋팅
-				startProcId = detectInfo.getDetectRecordEndId();
-				System.out.println("***  TrackingDetectorProcInfo RecordEndId *** " + startProcId);
+				startProcId = detectInfo.getDetectRecordEndId();				
 			} else {
 				// 첫번째 레코드 정보 조회
 				map.clear();
@@ -142,7 +141,7 @@ public class TrackingDataSubscriberServiceImpl implements TrackingDataSubscriber
 			map.put("startProcId", startProcId);			
 
 			int cnt = trackingResponseRecordMapper.getResponseRecordCnt(map);
-			System.out.println("***********   getResponseRecordCnt   =========> "+cnt);
+
 			if (cnt >= trackingProcessInfo.getBufferSize()) {
 				map.put("limitBufferSize", trackingProcessInfo.getBufferSize());
 			} else {
@@ -154,15 +153,11 @@ public class TrackingDataSubscriberServiceImpl implements TrackingDataSubscriber
 			if (responseInfo != null) {
 				trackingProcessInfo.setDetectRecordStartId(startProcId);
 				trackingProcessInfo.setDetectRecordEndId(responseInfo.getTrackingResponseId());
-
-				System.out.println("***********   if (responseInfo != null) { setDetectRecordEndId   =========> "+responseInfo.getTrackingResponseId());
 			} else {
 				// 정보가 없으면 실행시키지 않는다.
 				endProcId = startProcId;
 
 				trackingProcessInfo.setDetectRecordEndId(endProcId);
-
-				System.out.println("***********   if (responseInfo == null) { setDetectRecordEndId   =========> "+endProcId);
 			}
 		}
 
@@ -216,8 +211,7 @@ public class TrackingDataSubscriberServiceImpl implements TrackingDataSubscriber
 					map.clear();
 					map.put("orderByDesc", "orderByDesc");
 					map.put("limitBufferSize", 1);
-					List<TrackingResponseRecord> responseMaxRecordInfo = trackingResponseRecordMapper
-							.getResponseRecord(map);
+					List<TrackingResponseRecord> responseMaxRecordInfo = trackingResponseRecordMapper.getResponseRecord(map);
 
 					if (responseMaxRecordInfo != null && responseMaxRecordInfo.size() > 0) {
 						startProcId = responseMaxRecordInfo.get(0).getTrackingResponseId();
@@ -256,8 +250,7 @@ public class TrackingDataSubscriberServiceImpl implements TrackingDataSubscriber
 				map.put("orderByDesc", "orderByDesc");
 				map.put("limitBufferSize", 1);
 
-				List<TrackingResponseRecord> responseMaxRecordInfo = trackingResponseRecordMapper
-						.getResponseRecord(map);
+				List<TrackingResponseRecord> responseMaxRecordInfo = trackingResponseRecordMapper.getResponseRecord(map);
 
 				if (responseMaxRecordInfo != null && responseMaxRecordInfo.size() > 0) {
 					endProcId = responseMaxRecordInfo.get(0).getTrackingResponseId();
@@ -298,8 +291,7 @@ public class TrackingDataSubscriberServiceImpl implements TrackingDataSubscriber
 			// 변경된 시퀀스 정보의 이력을 남기는 쿼리
 			this.trackingTaskInfoMapper.insertTrackingProcChangeHisMultiList(map);
 			// 최종 결과값 저장
-			if (map.get("trackingStatus").equals(Constant.TRCK_PROC_STATUS_COMPLETE)
-					|| map.get("trackingStatus").equals(Constant.TRCK_PROC_STATUS_ERROR)) {
+			if (map.get("trackingStatus").equals(Constant.TRCK_PROC_STATUS_COMPLETE) || map.get("trackingStatus").equals(Constant.TRCK_PROC_STATUS_ERROR)) {
 				HashMap<String, Object> paramId = new HashMap<>();
 				HashMap<String, Object> paramStatus = new HashMap<>();
 
@@ -323,18 +315,15 @@ public class TrackingDataSubscriberServiceImpl implements TrackingDataSubscriber
 	public int updateWithHisAndTrackingReqInfo(HashMap<String, Object> map) throws Exception {
 
 		DataEventTrackingRequestInfo dataEventTrackingRequestInfo = new DataEventTrackingRequestInfo();
-		dataEventTrackingRequestInfo
-		.setRequestTrackingId(Integer.parseInt(String.valueOf(map.get("requestTrackingId"))));
+		dataEventTrackingRequestInfo.setRequestTrackingId(Integer.parseInt(String.valueOf(map.get("requestTrackingId"))));
 		dataEventTrackingRequestInfo.setReqTrckCmdStatus(map.get("reqTrckCmdStatus").toString());
 		int recCnt = dataEventTrackingRequestInfoMapper.updateDataEventTrackingRequest(dataEventTrackingRequestInfo);
 
 		map.put("changeStatus", map.get("reqTrckCmdStatus").toString());
-		TrackingStatusChangeRecord trackStsChangeRecInfo = trackingStatusChangeRecordMapper
-				.getTrackingStatusChangeHistoryInfo(map);
+		TrackingStatusChangeRecord trackStsChangeRecInfo = trackingStatusChangeRecordMapper.getTrackingStatusChangeHistoryInfo(map);
 		if (recCnt > 0 && trackStsChangeRecInfo == null) {
 			TrackingStatusChangeRecord trackingStatusChangeRecord = new TrackingStatusChangeRecord();
-			trackingStatusChangeRecord
-			.setRequestTrackingId(Integer.parseInt(String.valueOf(map.get("requestTrackingId"))));
+			trackingStatusChangeRecord.setRequestTrackingId(Integer.parseInt(String.valueOf(map.get("requestTrackingId"))));
 			trackingStatusChangeRecord.setChangeStatus(map.get("reqTrckCmdStatus").toString());
 			trackingStatusChangeRecord.setStatusResultMsg(map.get("statusResultMsg").toString());
 			trackingStatusChangeRecordMapper.insertTrackingStatusChangeHistory(trackingStatusChangeRecord);

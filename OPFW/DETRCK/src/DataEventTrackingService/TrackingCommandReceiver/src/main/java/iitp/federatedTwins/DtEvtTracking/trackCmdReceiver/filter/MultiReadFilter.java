@@ -12,7 +12,6 @@ import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-//@Component
 public class MultiReadFilter implements Filter {
 	 
 	private final Logger logger = LoggerFactory.getLogger(MultiReadFilter.class);

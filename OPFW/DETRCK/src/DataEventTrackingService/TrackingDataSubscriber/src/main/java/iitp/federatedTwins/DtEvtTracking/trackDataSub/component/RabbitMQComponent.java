@@ -122,13 +122,13 @@ public class RabbitMQComponent {
 	 */
 	@RabbitListener(queues = "#{kafkaListenerCreateQueue.getName()}")
 	public void listenCreateTopic(JSONObject jsonObject, @Headers Map<String, Object> headers) throws Exception {
-		System.out.println("Received message: " + jsonObject.toString());
-		System.out.println("Received headers: " + headers.toString());
-
 		HashMap<String, Object> pMap = new HashMap<>();
 
-		if (jsonObject.get("requestTrackingId") == null || "".equals(jsonObject.get("requestTrackingId"))
-				|| jsonObject.get("trackingProcessId") == null || "".equals(jsonObject.get("trackingProcessId"))) {
+		if (jsonObject.get("requestTrackingId") == null 
+				|| "".equals(jsonObject.get("requestTrackingId"))
+				|| jsonObject.get("trackingProcessId") == null 
+				|| "".equals(jsonObject.get("trackingProcessId"))
+				) {
 			return;
 		}
 
@@ -142,6 +142,7 @@ public class RabbitMQComponent {
 			TrackingProcessInfo trackingProcessInfo = trackingProcessInfoMapper.getTrackingProcessInfo(map);
 
 			if (trackingProcessInfo != null) {
+
 				// 데이터 트래킹일 경우 카프카 리스너를 생성하여 데이터를 수신처리하는 타스크를 생성한다.
 				if (Constant.TRCK_CMD_TYPE_DATA.equals(trackingProcessInfo.getTrackingProcessType())) {
 					String topics = jsonObject.get("topic").toString();
@@ -163,9 +164,15 @@ public class RabbitMQComponent {
 
 					// 같으면 못만들게 함.
 					if (!check) {
-						KafkaConsumer consumer = (KafkaConsumer) ctx.getBean(KafkaConsumer.class, csmId, topics,
-								"tracking", resId, proId, trackingProcessInfo.getDigitalTwinId(),
-								trackingProcessInfo.getTrackingValueInfo());
+						KafkaConsumer consumer = (KafkaConsumer) ctx.getBean(KafkaConsumer.class, 
+								csmId, 
+								topics,
+								"tracking", 
+								resId, 
+								proId, 
+								trackingProcessInfo.getDigitalTwinId(),
+								trackingProcessInfo.getTrackingValueInfo()
+								);
 						kafkaConsumerinfo.put(csmId, consumer);
 					} else {
 						System.out.println("***  KafkaConsumer is already running using Topic  ***");
@@ -173,22 +180,20 @@ public class RabbitMQComponent {
 
 					if (trackingProcessInfo.getEventDelay() > 0) {
 						// 데이터트래킹일 경우 트래킹 딜레이 시간을 기준으로 데이터타스크를 실행(스케줄 쓰레드 풀) mode : ED(event delay)
+
 						if (dataScheduledFutureInfo.get(resId + proId) == null) {
-
-							System.out
-									.println("***  dataScheduledFutureInfo add Runnalble *** " + resId + " : " + proId);
-
-							DataTrackingTaskProcess evtTrckProc = ctx.getBean(DataTrackingTaskProcess.class, resId,
-									proId, 0, 0, "ED");
-							ScheduledFuture schFuture = schdledTrckExecutor.scheduleWithFixedDelay(evtTrckProc,
-									trackingProcessInfo.getEventDelay(), trackingProcessInfo.getEventDelay(),
-									TimeUnit.MILLISECONDS);
+							DataTrackingTaskProcess evtTrckProc = ctx.getBean(DataTrackingTaskProcess.class, resId, proId, 0, 0, "ED");
+							ScheduledFuture schFuture = schdledTrckExecutor.scheduleWithFixedDelay(evtTrckProc, 
+									trackingProcessInfo.getEventDelay(), 
+									trackingProcessInfo.getEventDelay(), 
+									TimeUnit.MILLISECONDS
+									);
 
 							dataScheduledFutureInfo.put(resId + proId, schFuture);
 						}
 					}
 
-					// evntEndDt 설정 체크 {"INTERVAL":"SECOND","VALUE":60}
+					// evntEndDt 설정 체크 ==> {"INTERVAL":"SECOND","VALUE":60}
 					if (trackingProcessInfo.getEventEndDate() != null
 							&& !"".equals(trackingProcessInfo.getEventEndDate())) {
 						try {
@@ -196,8 +201,10 @@ public class RabbitMQComponent {
 							JSONObject eventDt = (JSONObject) parser.parse(trackingProcessInfo.getEventEndDate());
 
 							if (eventDt != null && eventDt.get("INTERVAL") != null
-									&& !"".equals(eventDt.get("INTERVAL")) && eventDt.get("VALUE") != null
-									&& !"".equals(eventDt.get("VALUE"))) {
+									&& !"".equals(eventDt.get("INTERVAL")) 
+									&& eventDt.get("VALUE") != null
+									&& !"".equals(eventDt.get("VALUE"))
+									) {
 								String interval = (String) eventDt.get("INTERVAL");
 								int value = Integer.parseInt(String.valueOf(eventDt.get("VALUE")));
 
@@ -216,8 +223,7 @@ public class RabbitMQComponent {
 
 								DataEndDateScheduleProcess endDtTaskProc = ctx.getBean(DataEndDateScheduleProcess.class,
 										resId, proId);
-								ScheduledFuture schFuture = schdledEndDtExecutor.scheduleWithFixedDelay(endDtTaskProc,
-										value, value, unit);
+								ScheduledFuture schFuture = schdledEndDtExecutor.scheduleWithFixedDelay(endDtTaskProc, value, value, unit);
 
 								dataEndDateScheduledFutureInfo.put(resId + proId, schFuture);
 							}
@@ -265,10 +271,8 @@ public class RabbitMQComponent {
 								else if ("DAYS".equals(interval))
 									unit = TimeUnit.DAYS;
 
-								EventEndDateScheduleProcess endDtTaskProc = ctx
-										.getBean(EventEndDateScheduleProcess.class, resId, proId);
-								ScheduledFuture schFuture = schdledEndDtExecutor.scheduleWithFixedDelay(endDtTaskProc,
-										value, value, unit);
+								EventEndDateScheduleProcess endDtTaskProc = ctx.getBean(EventEndDateScheduleProcess.class, resId, proId);
+								ScheduledFuture schFuture = schdledEndDtExecutor.scheduleWithFixedDelay(endDtTaskProc, value, value, unit);
 
 								eventEndDateScheduledFutureInfo.put(resId + proId, schFuture);
 							}
@@ -312,9 +316,6 @@ public class RabbitMQComponent {
 
 	@RabbitListener(queues = "#{kafkaListenerDeleteQueue.getName()}")
 	public void listenDelTopic(JSONObject jsonObject, @Headers Map<String, Object> headers) throws Exception {
-		System.out.println("Received message: " + jsonObject.toString());
-		System.out.println("Received headers: " + headers.toString());
-
 		HashMap<String, Object> pMap = new HashMap<>();
 
 		int requestTrackingId = (int) jsonObject.get("requestTrackingId");
@@ -337,7 +338,8 @@ public class RabbitMQComponent {
 			if (consumerList != null && !consumerList.isEmpty()) {
 				for (KafkaConsumer consumer : consumerList) {
 					// 생성되어 있는 리스너 정보를 확인하여 기존 생성된 정보가 있으면 리스너 삭제
-					if (consumer.topic.equals(topics) && consumer.resId.equals(String.valueOf(requestTrackingId))
+					if (consumer.topic.equals(topics) 
+							&& consumer.resId.equals(String.valueOf(requestTrackingId))
 							&& consumer.proId.equals(String.valueOf(trackingProcessId))) {
 						kafkaListenerAutomation.deleteListener(consumer.consumerId);
 						break;

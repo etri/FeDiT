@@ -61,10 +61,7 @@ public class TrackCmdStsCheckerServiceImpl implements TrackCmdStsCheckerService 
 					for (int k = 0; k < trackProcList.size(); k++) {
 						if (trackProcList.get(k).getTrackingStatus().equals(Constant.TRCK_PROC_STATUS_RUNNING)) {
 							JSONObject json = new JSONObject();
-							json.put("topic",
-									trackProcList.get(k).getTrackingKafkaTopic() != null
-											? trackProcList.get(k).getTrackingKafkaTopic()
-											: trackProcList.get(k).getFederatedDigitalObjectId());
+							json.put("topic", trackProcList.get(k).getTrackingKafkaTopic() != null ? trackProcList.get(k).getTrackingKafkaTopic() : trackProcList.get(k).getFederatedDigitalObjectId());
 							json.put("requestTrackingId", trackProcList.get(k).getRequestTrackingId());
 							json.put("trackingProcessId", trackProcList.get(k).getTrackingProcessId());
 							rabbitMQComponent.sendMessage(json, RabbitMQConstant.RABBITMQ_ROUTING_KEY_PUB_TOPIC_DELETE);
@@ -102,9 +99,7 @@ public class TrackCmdStsCheckerServiceImpl implements TrackCmdStsCheckerService 
 		List<TrackingProcessInfo> trackProcList = trackingProcessInfoMapper.getTrackingProcessList(map);
 		for (int j = 0; j < trackProcList.size(); j++) {
 			JSONObject json = new JSONObject();
-			json.put("topic",
-					trackProcList.get(j).getTrackingKafkaTopic() != null ? trackProcList.get(j).getTrackingKafkaTopic()
-							: trackProcList.get(j).getFederatedDigitalObjectId());
+			json.put("topic", trackProcList.get(j).getTrackingKafkaTopic() != null ? trackProcList.get(j).getTrackingKafkaTopic() : trackProcList.get(j).getFederatedDigitalObjectId());
 			json.put("requestTrackingId", trackProcList.get(j).getRequestTrackingId());
 			json.put("trackingProcessId", trackProcList.get(j).getTrackingProcessId());
 
@@ -114,10 +109,8 @@ public class TrackCmdStsCheckerServiceImpl implements TrackCmdStsCheckerService 
 
 	public void forceProcessKilled() throws Exception {
 		logger.info("checkTopicErrStatus Start...");
-		// requestInfo status 01,02 가져오기
 
 		HashMap<String, Object> map = new HashMap<>();
-		// topicCheck 파라메터로 넣지 않는 이유는 Event Tracking에는 Topic이 없다.
 
 		ArrayList<String> trackingStatusList = new ArrayList<String>();
 		trackingStatusList.add(Constant.TRCK_PROC_STATUS_TASKKILL);
@@ -127,9 +120,7 @@ public class TrackCmdStsCheckerServiceImpl implements TrackCmdStsCheckerService 
 		List<TrackingProcessInfo> trackProcList = trackingProcessInfoMapper.getTrackingProcessList(map);
 		for (int j = 0; j < trackProcList.size(); j++) {
 			JSONObject json = new JSONObject();
-			json.put("topic",
-					trackProcList.get(j).getTrackingKafkaTopic() != null ? trackProcList.get(j).getTrackingKafkaTopic()
-							: trackProcList.get(j).getFederatedDigitalObjectId());
+			json.put("topic", trackProcList.get(j).getTrackingKafkaTopic() != null ? trackProcList.get(j).getTrackingKafkaTopic(): trackProcList.get(j).getFederatedDigitalObjectId());
 			json.put("requestTrackingId", trackProcList.get(j).getRequestTrackingId());
 			json.put("trackingProcessId", trackProcList.get(j).getTrackingProcessId());
 
@@ -204,10 +195,7 @@ public class TrackCmdStsCheckerServiceImpl implements TrackCmdStsCheckerService 
 					if (curTime > procTime) {
 						// timeout 시 토픽 삭제(리스너 종료)
 						JSONObject json = new JSONObject();
-						json.put("topic",
-								trackProcList.get(j).getTrackingKafkaTopic() != null
-										? trackProcList.get(j).getTrackingKafkaTopic()
-										: trackProcList.get(j).getFederatedDigitalObjectId());
+						json.put("topic", trackProcList.get(j).getTrackingKafkaTopic() != null ? trackProcList.get(j).getTrackingKafkaTopic() : trackProcList.get(j).getFederatedDigitalObjectId());
 						json.put("requestTrackingId", trackProcList.get(j).getRequestTrackingId());
 						json.put("trackingProcessId", trackProcList.get(j).getTrackingProcessId());
 
@@ -231,7 +219,6 @@ public class TrackCmdStsCheckerServiceImpl implements TrackCmdStsCheckerService 
 
 		trackingProcessInfoMapper.updateTrackingProcessByParam(map);
 
-		// 프로세스 상태는 timeout으로 변경처리
 		TrackingProcessStatusChangeRecord trcksh = new TrackingProcessStatusChangeRecord();
 		Integer ii = Integer.valueOf(0);
 

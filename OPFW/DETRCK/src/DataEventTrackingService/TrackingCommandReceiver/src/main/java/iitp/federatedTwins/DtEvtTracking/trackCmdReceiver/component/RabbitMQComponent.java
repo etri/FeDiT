@@ -27,6 +27,7 @@ public class RabbitMQComponent {
 
 	@Autowired
 	public RabbitTemplate rabbitTemplate;
+
 	/**
 	 * Queue로 메시지를 발행
 	 *
@@ -50,6 +51,5 @@ public class RabbitMQComponent {
 	public void trackingCommandCreate(JSONObject jsonObject, @Headers Map<String, Object> headers) throws Exception {
 		System.out.println("Received message: "+jsonObject.toString());	  
 		System.out.println("Received headers: "+headers.toString());
-
 	}
 }

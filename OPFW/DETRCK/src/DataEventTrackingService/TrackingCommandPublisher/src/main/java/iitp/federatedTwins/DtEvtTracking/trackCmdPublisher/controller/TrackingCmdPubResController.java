@@ -112,31 +112,25 @@ public class TrackingCmdPubResController {
 	}
 
 	@PostMapping("/kafkaSend")
-	public ResponseEntity<JSONObject> getKafkaSend(HttpServletRequest request, @RequestBody String body)
-			throws Exception {
+	public ResponseEntity<JSONObject> getKafkaSend(HttpServletRequest request,
+			@RequestBody String body) throws Exception {
 
 		HttpHeaders httpHeaders = new HttpHeaders();
 		httpHeaders.add("Content-Type", request.getHeader("Content-Type"));
 
 		HttpStatus resultSts = Constant.HTTP_CREATE_STAT;
-
-		logger.info("================ Publisher kafkaSend ==============");
-		System.out.println(body);
-
+		logger.info("================ Publisher kafkaSend ==============");		
 		HashMap<String, Object> map = new HashMap<>();
+		
 		try {
-			logger.info("================ getKafkaSend ================");
-
 			JSONParser parser = new JSONParser();
 			JSONObject jsonObject = (JSONObject) parser.parse(body);
-
-			System.out.println(jsonObject);
-
+			
 			map.put("topic", jsonObject.get("topic"));
 			map.put("group", jsonObject.get("group"));
 			map.put("payload", jsonObject.get("payload"));
 
-			String sendRoutingKey = (String) jsonObject.get("sendRoutingKey");
+			String sendRoutingKey = (String)jsonObject.get("sendRoutingKey");
 
 			RabbitMQComponent rabbitMQ = ctx.getBean(RabbitMQComponent.class);
 			rabbitMQ.sendMessage(jsonObject, sendRoutingKey);
@@ -151,7 +145,7 @@ public class TrackingCmdPubResController {
 	}
 
 	@GetMapping(value = "/deleteTopic")
-	public ResponseEntity<JSONObject> deleteTopic(HttpServletRequest request, String topic) {
+	public ResponseEntity<JSONObject>  deleteTopic(HttpServletRequest request, String topic) {
 
 		HttpHeaders httpHeaders = new HttpHeaders();
 		httpHeaders.add("Content-Type", request.getHeader("Content-Type"));

@@ -46,19 +46,16 @@ public class RabbitMQConfig {
 	 */
 	@Bean
 	public Queue queue() {
-//	  return new Queue(controlQueueName, true, true, true);
 		return new Queue(queueName, true, true, true);
 	}
 
 	@Bean
 	public Queue kafkaListenerCreateQueue() {
-//	  return new Queue(controlQueueName, true, true, true);
 		return new Queue(RabbitMQConstant.RABBITMQ_QUEUE_SUB_KAFKA_LSTN_CREATE, true, true, true);
 	}
 
 	@Bean
 	public Queue kafkaListenerDeleteQueue() {
-//	  return new Queue(controlQueueName, true, true, true);
 		return new Queue(RabbitMQConstant.RABBITMQ_QUEUE_SUB_KAFKA_LSTN_DELETE, true, true, true);
 	}
 

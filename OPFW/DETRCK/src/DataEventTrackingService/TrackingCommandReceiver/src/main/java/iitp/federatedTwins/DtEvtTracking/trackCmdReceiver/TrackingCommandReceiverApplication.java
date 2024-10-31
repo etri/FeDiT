@@ -20,23 +20,25 @@ public class TrackingCommandReceiverApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(TrackingCommandReceiverApplication.class, args);
 	}
-	
-	
-	  @PostConstruct 
-	  public void init() { 
-		  System.out.println("초기화 콜백"); 
-		  connect();
-	  }
-	  
-	  @PreDestroy 
-	  public void close() { 
-		  System.out.println("종료 전 콜백");
-		  disconnect(); 
-	  }
-	  
-	  public void connect() { System.out.println("연결 완료 - message : "); }
-	  
-	  public void disconnect() { System.out.println("연결 종료"); }
-	 
+
+
+	@PostConstruct 
+	public void init() { 
+		System.out.println("초기화 콜백"); 
+		connect();
+	}
+
+	@PreDestroy 
+	public void close() { 
+		System.out.println("종료 전 콜백");
+		disconnect(); 
+	}
+
+	public void connect() { 
+		System.out.println("연결 완료 - message : "); 
+	}
+
+	public void disconnect() { System.out.println("연결 종료"); }
+
 
 }

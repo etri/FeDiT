@@ -32,22 +32,16 @@ public class KafkaConsumerConfig {
 		props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest"); // offset이 없는경우는 가장 마지막의 오프셋값으로 설정
 		props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 1); // max.poll.records 설정
 		props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-//        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 		props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
 
-		// error handling deserializer
 		props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 		props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
 
-		// delegate 하는 deserializer
 		props.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, StringDeserializer.class);
 		props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, StringDeserializer.class);
 
-		// 들어오는 record 를 객체로 받기 위한 deserializer
 		JsonDeserializer<Object> jsonDeserializer = new JsonDeserializer<>(Object.class, false);
 
-//        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), deserializer);
-//        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(),jsonDeserializer);
 		return new DefaultKafkaConsumerFactory<>(props);
 	}
 
@@ -58,13 +52,11 @@ public class KafkaConsumerConfig {
 		return factory;
 	}
 
-// 수신하는 consumer 에서 record를 필터링할 수 있습니다. 
 	@Bean
 	public ConcurrentKafkaListenerContainerFactory<String, Object> filterListenerContainerFactory() {
 		ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
 		factory.setConsumerFactory(consumerFactory());
 		factory.setBatchListener(true);
-//        factory.setRecordFilterStrategy(record -> Integer.parseInt(record.value().getAge()) > 30);
 		return factory;
 	}
 
