@@ -1,0 +1,3 @@
+/docker-bind/generated-data/
+/docker-bind/init-data/tw-repository/svc/webapps/
+.env
