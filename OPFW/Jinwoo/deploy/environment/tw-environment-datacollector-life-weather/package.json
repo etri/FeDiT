@@ -1,0 +1,44 @@
+{
+  "name": "openapi-scheduler-test",
+  "version": "1.0.0",
+  "description": "* 실행\r   * env file 설정\r     * /dist/env 폴더의 .env.ref 파일을 참조하여 빌드환경에 맞는 .env 파일을 만든다.\r       * DATAINTERFACE_IPADDRESS : data interface의 ip address\r         * DATAINTERFACE_IPADDRESS = 'http://192.168.62.152:9131/v1/avro' \r           * -> 개발서버에서 동작중인 data-interface 서비스\r           * -> 공공 openapi에서 데이터 수집후 data-interface 서비스로 데이터 전송하고 모두 성공적으로 동작하면 192.168.62.152:33161 mysql db의 parking_lot_status 테이블에 insert 된다.\r       * OPENAPIKEY_JEJUCITS : 제주자치경찰단 cits openapi key\r   * 실행하기\r     * local - dev\r       1. typescript build \r          * npm run build\r       2. run process\r          * npm run dev\r     * local - prod\r       1. typescript build \r          * npm run build\r       2. run process\r          * npm run prod\r     * local - prod.pm\r       1. pm2 설치\r          * npm i -g pm2 \r       2. typescript build \r          * npm run build\r       3. run process\r          * npm run prod.pm2\r     * docker\r       * up\r         * docker-compose --env-file ./dist/env/.env.production up -d --build\r       * down\r         * docker-compose --env-file ./dist/env/.env.production down",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc && tsc-alias",
+    "prod": "cross-env NODE_ENV=production node ./dist/src/app.js",
+    "prod.pm2": "cross-env NODE_ENV=production pm2 start ecosystem.config.js --env production",
+    "prod.pm2.docker": "pm2-runtime start ecosystem.config.js --env production",
+    "dev": "cross-env NODE_ENV=development node ./dist/src/app.js",
+    "dev.watch": "cross-env NODE_ENV=development tsc-watch --onSuccess \"node ./dist/src/app.js\"",
+    "install.pm2": "pm2 install pm2-logrotate",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@opentelemetry/api": "^1.8.0",
+    "@opentelemetry/exporter-metrics-otlp-grpc": "^0.49.1",
+    "@opentelemetry/resources": "^1.22.0",
+    "@opentelemetry/sdk-metrics": "^1.22.0",
+    "@opentelemetry/semantic-conventions": "^1.22.0",
+    "avsc": "^5.7.7",
+    "axios": "^1.6.7",
+    "cron": "^3.1.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2",
+    "reflect-metadata": "^0.2.1",
+    "typedi": "^0.10.0",
+    "winston": "^3.12.0",
+    "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/dotenv": "^8.2.0",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.24",
+    "cross-env": "^7.0.3",
+    "tsc-alias": "^1.8.8",
+    "tsc-watch": "^6.0.4",
+    "typescript": "^5.3.3"
+  }
+}

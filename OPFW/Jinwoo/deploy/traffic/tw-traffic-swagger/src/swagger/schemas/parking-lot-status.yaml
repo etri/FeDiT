@@ -1,0 +1,21 @@
+type: object
+properties:
+  date_time:
+    type: string
+    dbDataType: timestamp
+    id:
+       type: integer
+    gnrl:
+       type: integer
+    lgvh:
+       type: integer
+    hvvh:
+       type: integer
+    emvh:
+       type: integer
+    hndc:
+       type: integer
+    wmon:
+       type: integer
+    etc:
+       type: integer

@@ -1,0 +1,9 @@
+node_modules/
+logs/
+build/
+/docker-bind/generated-data
+dist/src/
+undefined/
+dist/env/*.*
+!dist/env/.env.ref
+dist/ssh/

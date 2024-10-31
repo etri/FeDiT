@@ -1,0 +1,26 @@
+{
+  "presets": [
+      ["@babel/preset-react", { "runtime": "automatic" }],
+      [
+        "@babel/preset-env",
+        {
+          "modules": false,
+          "useBuiltIns": "usage",
+          "corejs": 3
+        }
+      ],
+      "@babel/preset-typescript"
+    ],
+  "plugins": [
+    ["module-resolver", {
+      "root": ["./project_front"],
+      "extensions": [".jsx", ".js", ".ts", ".tsx"],
+      "alias": {
+        "@": "./project_front/src",
+        "@images": "./project_front/assets/images",
+        "@scss": "./project_front/scss",
+        "@i18n": "./src/main/resources/i18n"
+      }
+    }]
+  ]
+}

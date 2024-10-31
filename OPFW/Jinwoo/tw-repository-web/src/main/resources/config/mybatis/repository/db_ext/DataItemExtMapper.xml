@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="net.jw.twin.repository.client.dbExt.dataItemExt.mapper.DataItemMapperExt">
+    <select id="selectDataDetail" parameterType="dataItemSearch" resultType="CamelHashMap">
+        select JU.USER_NM as registrant_name, JU.MOBILE as registrant_phone_number, DI.*
+        from (select * from data_item
+            where
+            DEL_ID is null
+                <if test="null != id" >                           and id = #{id}                                    </if>
+                <if test="null != type" >                         and type = #{type}                                </if>
+                <if test="null != name" >                         and name like CONCAT('%', #{name}, '%')           </if>
+                <if test="null != category" >                     and category = #{category}                        </if>
+                <if test="null != dataCode" >                     and data_code = #{dataCode}                       </if>
+                <if test="null != serviceId" >                    and service_id = #{serviceId}                     </if>
+                <if test="null != status" >                       and status = #{status}                            </if>
+                <if test="null != provider" >                     and provider like CONCAT('%', #{provider}, '%')   </if>
+                <if test="null != institutionId" >                and institution_id = #{institutionId}             </if>
+                <if test="null != manager" >                      and manager like CONCAT('%', #{manager}, '%')     </if>
+                <if test="null != startDeprecatedTime" >          and deprecated_time <![CDATA[ >= ]]> #{startDeprecatedTime}</if>
+                <if test="null != endDeprecatedTime" >            and deprecated_time <![CDATA[ < ]]> #{endDeprecatedTime}</if>
+                <if test="null != regId" >                        and REG_ID = #{regId}                             </if>
+                <if test="null != startRegDt" >                   and REG_DT <![CDATA[ >= ]]> #{startRegDt}         </if>
+                <if test="null != endRegDt" >                     and REG_DT <![CDATA[ < ]]> #{endRegDt}            </if>
+        ) as DI
+        left join JCMS_USER as JU on DI.REG_ID=JU.USER_ID
+    </select>
+
+    <select id="selectListDataDetail" parameterType="dataItemSearch" resultType="CamelHashMap">
+        select JU.USER_NM as registrant_name, JU.MOBILE as registrant_phone_number, DI.*
+        from (select * from data_item
+            where
+                DEL_ID is null
+                <if test="null != id" >                           and id = #{id}                                    </if>
+                <if test="null != type" >                         and type = #{type}                                </if>
+                <if test="null != name" >                         and name like CONCAT('%', #{name}, '%')           </if>
+                <if test="null != category" >                     and category = #{category}                        </if>
+                <if test="null != dataCode" >                     and data_code = #{dataCode}                       </if>
+                <if test="null != serviceId" >                    and service_id = #{serviceId}                     </if>
+                <if test="null != status" >                       and status = #{status}                            </if>
+                <if test="null != provider" >                     and provider like CONCAT('%', #{provider}, '%')   </if>
+                <if test="null != institutionId" >                and institution_id = #{institutionId}             </if>
+                <if test="null != manager" >                      and manager like CONCAT('%', #{manager}, '%')     </if>
+                <if test="null != startDeprecatedTime" >          and deprecated_time <![CDATA[ >= ]]> #{startDeprecatedTime}</if>
+                <if test="null != endDeprecatedTime" >            and deprecated_time <![CDATA[ < ]]> #{endDeprecatedTime}</if>
+                <if test="null != regId" >                        and REG_ID = #{regId}                             </if>
+                <if test="null != startRegDt" >                   and REG_DT <![CDATA[ >= ]]> #{startRegDt}         </if>
+                <if test="null != endRegDt" >                     and REG_DT <![CDATA[ < ]]> #{endRegDt}            </if>
+        ) as DI
+        left join JCMS_USER as JU on DI.REG_ID=JU.USER_ID
+        <include refid = "net.jw.twin.repository.db.dataItem.mapper.DataItemMapper.sort"/>
+        <include refid = "net.jw.twin.repository.db.dataItem.mapper.DataItemMapper.paging"/>
+    </select>
+
+    <select id="countDataDetail" parameterType="dataItemSearch" resultType="java.lang.Integer">
+        select COUNT( * )
+        from (select * from data_item
+            where
+                DEL_ID is null
+                <if test="null != id" >                           and id = #{id}                                    </if>
+                <if test="null != type" >                         and type = #{type}                                </if>
+                <if test="null != name" >                         and name like CONCAT('%', #{name}, '%')           </if>
+                <if test="null != category" >                     and category = #{category}                        </if>
+                <if test="null != dataCode" >                     and data_code = #{dataCode}                       </if>
+                <if test="null != serviceId" >                    and service_id = #{serviceId}                     </if>
+                <if test="null != status" >                       and status = #{status}                            </if>
+                <if test="null != provider" >                     and provider like CONCAT('%', #{provider}, '%')   </if>
+                <if test="null != institutionId" >                and institution_id = #{institutionId}             </if>
+                <if test="null != manager" >                      and manager like CONCAT('%', #{manager}, '%')     </if>
+                <if test="null != startDeprecatedTime" >          and deprecated_time <![CDATA[ >= ]]> #{startDeprecatedTime}</if>
+                <if test="null != endDeprecatedTime" >            and deprecated_time <![CDATA[ < ]]> #{endDeprecatedTime}</if>
+                <if test="null != regId" >                        and REG_ID = #{regId}                             </if>
+                <if test="null != startRegDt" >                   and REG_DT <![CDATA[ >= ]]> #{startRegDt}         </if>
+                <if test="null != endRegDt" >                     and REG_DT <![CDATA[ < ]]> #{endRegDt}            </if>
+        ) as DI
+        left join JCMS_USER as JU on DI.REG_ID=JU.USER_ID
+    </select>
+</mapper>

@@ -1,0 +1,6 @@
+name: label
+in: query
+required: false
+description: label
+schema:
+  type: string

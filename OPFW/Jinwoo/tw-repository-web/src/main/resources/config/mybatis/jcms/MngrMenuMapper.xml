@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="net.jcms.framework.menu.mapper.MenuMapper">
+
+	<select id="select" parameterType="menuSearch" resultType="menu">
+		select MENU_ID, ONLY_SYSTEM, MENU_NM, UPPER_MENU_ID, PGM_ID, MENU_DESC, MENU_ORD, ICON,
+		       REG_ID, REG_DT, UPD_ID, UPD_DT, DEL_ID, DEL_DT
+		from		
+			JCMS_MNGR_MENU
+		where
+			DEL_DT IS NULL
+		<if test="!empty(menuId)" > and MENU_ID = #{menuId} </if>
+	</select>
+	
+	<select id="selectList" parameterType="menuSearch" resultType="menu">
+		select MENU_ID, ONLY_SYSTEM, MENU_NM, UPPER_MENU_ID, PGM_ID, MENU_DESC, MENU_ORD, ICON,
+		       REG_ID, REG_DT, UPD_ID, UPD_DT, DEL_ID, DEL_DT
+		from		
+			JCMS_MNGR_MENU
+		where
+			DEL_DT IS NULL
+			<choose>
+				<when test="empty(upperMenuId)"> and UPPER_MENU_ID IS NULL </when>
+				<otherwise>	and UPPER_MENU_ID = #{upperMenuId} </otherwise>
+			</choose>
+		<if test="!empty(sort) and !empty(sortOrd)" > order by ${sort} ${sortOrd} </if>
+		<if test="pagingYn == true" > LIMIT #{start}, #{length} </if>
+	</select>
+	
+	<select id="selectRoleMenuList" parameterType="menuSearch" resultType="menu">
+		select B.MENU_ID, B.ONLY_SYSTEM, B.MENU_NM, B.UPPER_MENU_ID, B.MENU_DESC, B.MENU_ORD, B.ICON, B.PGM_ID,
+		       B.REG_ID, B.REG_DT, B.UPD_ID, B.UPD_DT, B.DEL_ID, B.DEL_DT, A.ROLE_AUTH
+		from 
+			JCMS_MNGR_MENU_ROLE A, JCMS_MNGR_MENU B
+		where 
+			A.ROLE_AUTH in (<foreach collection="roleAuth" item="item" separator="," >#{item}</foreach>)
+			and A.MENU_ID = B.MENU_ID 
+			and B.DEL_DT IS NULL
+			<choose>
+				<when test="empty(upperMenuId)"> and B.UPPER_MENU_ID IS NULL </when>
+				<otherwise> and B.UPPER_MENU_ID = #{upperMenuId} </otherwise>
+			</choose>
+		<if test="!empty(sort) and !empty(sortOrd)" > order by ${sort} ${sortOrd} </if>
+	</select>
+	
+	<select id="count" parameterType="menuSearch" resultType="java.lang.Integer">
+		select 
+			COUNT(MENU_ID)
+		from
+			JCMS_MNGR_MENU
+		where
+	   		DEL_DT IS NULL
+		<choose>
+			<when test="empty(upperMenuId)"> and UPPER_MENU_ID IS NULL </when>
+			<otherwise> and UPPER_MENU_ID = #{upperMenuId}  </otherwise>
+		</choose>
+	</select>
+
+	<insert id="insert" parameterType="menu">
+		insert into JCMS_MNGR_MENU (
+			ONLY_SYSTEM,
+			MENU_NM,
+			UPPER_MENU_ID,
+			PGM_ID,
+			MENU_DESC,
+			MENU_ORD,
+			ICON,
+			REG_ID,
+			REG_DT
+		) values (
+			#{onlySystem}
+		    , #{menuNm}
+			, #{upperMenuId}
+			, #{pgmId}
+			, #{menuDesc}
+			, #{menuOrd}
+			, #{icon}
+			, #{regId}
+			, SYSDATE()
+		)
+	</insert>
+
+	<update id="update" parameterType="menu">
+		update JCMS_MNGR_MENU set
+			ONLY_SYSTEM = #{onlySystem}
+			,MENU_NM = #{menuNm}
+			,PGM_ID = #{pgmId}
+			,MENU_DESC = #{menuDesc,jdbcType=VARCHAR}
+			,ICON = #{icon}
+			,UPD_ID = #{updId}
+			,UPD_DT = SYSDATE()
+		where 
+			MENU_ID = #{menuId}
+	</update>
+	
+	<update id="updateOrder" parameterType="menu">
+		update JCMS_MNGR_MENU set 
+			UPPER_MENU_ID = #{upperMenuId,jdbcType=NUMERIC}
+			,MENU_ORD = #{menuOrd}
+		where 
+			MENU_ID = #{menuId}
+	</update>
+
+	<update id="delete" parameterType="menu">
+		update JCMS_MNGR_MENU set 
+			DEL_ID = #{delId}
+			,DEL_DT = SYSDATE()
+		where 
+			MENU_ID = #{menuId}
+	</update>
+	
+	<select id="selectMaxMenuOrder" parameterType="menuSearch" resultType="java.lang.Integer" >
+  		select 
+  			IFNULL(MAX(MENU_ORD),0)+1
+		from 
+			JCMS_MNGR_MENU
+		where 
+			DEL_DT IS NULL
+		<choose>
+			<when test="empty(upperMenuId)"> and UPPER_MENU_ID IS NULL </when>
+			<otherwise> and UPPER_MENU_ID = #{upperMenuId} </otherwise>
+		</choose>
+  	</select>
+</mapper>

@@ -1,0 +1,15 @@
+type: object
+properties:
+  date_time:
+    type: string
+    dbDataType: timestamp
+  measure_position_id:
+    type: integer
+  oak_pollen_index:
+    type: integer
+  pine_pollen_index:
+    type: integer
+  weeds_pollen_index:
+    type: integer
+  detail_code:
+    type: string

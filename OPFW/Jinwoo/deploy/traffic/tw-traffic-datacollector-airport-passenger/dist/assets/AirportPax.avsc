@@ -1,0 +1,54 @@
+{
+  "type" : "record",
+  "name" : "AirportPax",
+  "namespace" : "net.jw.twin.db",
+  "fields" : [ {
+    "name" : "date_time",
+    "type" : [ "null", {
+      "type" : "long",
+      "logicalType" : "timestamp-millis"
+    } ]
+  }, {
+    "name" : "measure_position_id",
+    "type" : [ "null", {
+      "type" : "long",
+      "java-class" : "java.lang.Long"
+    } ]
+  }, {
+    "name" : "loc_out_pax",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "loc_in_pax",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "itn_out_pax",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "itn_in_pax",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "out_pax",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "in_pax",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  } ]
+}
