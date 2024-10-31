@@ -15,7 +15,6 @@ import net.jw.twin.repository.db.restKey.service.RestKeyService;
 import net.jw.twin.repository.exception.CustomException;
 import net.jw.twin.repository.exception.ErrorStatus;
 import net.jw.twin.repository.global.CodeValue;
-import net.jw.twin.repository.util.JwtUtil;
 import net.jw.twin.repository.util.ShaUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.MailException;
@@ -49,9 +48,6 @@ public class UserServiceImpl extends BaseServiceAbst<User, UserSearch, UserMappe
 
 	@Autowired
 	private RestKeyService restKeyService;
-
-	@Autowired
-	private JwtUtil jwtUtil;
 
 	@Autowired
 	private ShaUtil shaUtil;
