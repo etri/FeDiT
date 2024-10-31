@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.DtEvtTracking.common.mapper.TrackingProcessStatusChangeRecordMapper">
+  	
+  	<select id="getProcessStatusChangeHistoryList" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingProcessStatusChangeRecord">
+  		SELECT
+		   process_status_change_id,
+		   tracking_process_id,
+		   request_tracking_id,
+		   change_status,
+		   status_update_time,
+		   status_result_msg,
+		   tracking_response_id
+		FROM 
+		   tracking_process_status_change_record
+		   where 1=1 
+		 <if test='changeStatus != null'>
+			 and process_status_change_id = #{changeStatus}
+		</if>
+			  <if test='trackingProcessId != null'>
+			 and tracking_process_id = #{trackingProcessId}
+		</if>
+		order by process_status_change_id desc
+  		</select>
+  	
+  	 <insert id="insertProcessStatusChangeHistory" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingProcessStatusChangeRecord">	 
+			INSERT INTO tracking_process_status_change_record
+			(
+			   tracking_process_id,
+			   request_tracking_id,
+			   change_status,
+			   status_update_time,
+			   status_result_msg			   
+		   )
+			VALUES
+			(
+			#{trackingProcessId},
+			#{requestTrackingId},
+			#{changeStatus},
+			Now(3),
+			#{statusResultMsg}
+			
+		   )
+	  </insert>
+	  
+	  <insert id="insertTrackingProcChangeHisMultiList" parameterType="HashMap">
+  		insert into tracking_process_status_change_record
+		(tracking_process_id, request_tracking_id, change_status, status_update_time, status_result_msg)
+		SELECT tracking_process_id,  request_tracking_id, tracking_status, NOW(3), #{statusResultMsg} status_result_msg
+		FROM tracking_process_info
+		WHERE 1=1
+			<if test="tracingStatus != null">
+	  			and tracking_status = #{trackingStatus}
+	  		</if>	
+			<choose>
+				<when test="trackingProcessIdList != null">
+					and tracking_process_id in 
+					<foreach collection="trackingProcessIdList" item="item" index="index" separator="," open="(" close=")">
+						#{item}
+					</foreach>
+				</when>
+				<otherwise>
+					and tracking_process_id = #{trackingProcessId} 
+				</otherwise>
+			</choose> 
+  	</insert>
+	  
+	  <update id="updateProcessStatusChangeHistory" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingProcessStatusChangeRecord">
+	  UPDATE tracking_process_status_change_record
+		SET	   
+		<if test='changeStatus != null'>
+		change_status = #{changeStatus},
+		</if>
+		<if test='trackingResponseId != null'>
+		tracking_response_id = #{trackingResponseId},
+		</if>
+		<if test="statusResultMsg != null">
+		status_result_msg = #{statusResultMsg},
+		</if>
+		status_update_time = NOW(3)
+		WHERE
+		  tracking_process_id = #{trackingProcessId}
+		  AND request_tracking_id = #{requestTrackingId}
+	  </update>
+	  
+	  <delete id="deleteProcessStatusChangeHistory" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingProcessStatusChangeRecord">
+	  	DELETE 
+	  	  FROM 
+	  	   tracking_process_status_change_record
+		WHERE
+		  tracking_process_id = #{trackingProcessId}
+		  AND request_tracking_id = #{requestTrackingId}
+	   </delete>
+	
+  	
+
+
+	
+  	
+</mapper>
