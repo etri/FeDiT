@@ -1,0 +1,430 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: 관광 트윈 api docs
+  description: 관광 트윈 api
+servers:
+- url: http://tw-tourism-rest:8080/v1
+  # - url: 'http://192.168.62.152:8302/v1'
+  # - url: 'http://localhost:8302/v1'
+paths:
+  /measure-position:
+    get:
+      tags:
+        - measure-position
+      summary: measure-position 정보 가져오기
+      parameters:
+        - $ref: '#/components/parameters/type'
+        - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/number_of_rows'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        type:
+                          type: string
+                        name:
+                          type: string
+                        latitude:
+                          type: integer
+                        longitude:
+                          type: integer
+                        district_code:
+                          type: string
+                        grid_x:
+                          type: integer
+                        grid_y:
+                          type: integer
+                        standard_link:
+                          type: integer
+        '500':
+          description: ERROR
+  /measure-position/type:
+    dbTableName: data_info
+    get:
+      tags:
+        - measure-position
+      summary: measure-position-type 정보 가져오기
+      parameters:
+        - $ref: '#/components/parameters/dataName'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/number_of_rows'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                        measure_position_id:
+                          type: string
+        '500':
+          description: ERROR
+  /visitor:
+    get:
+      tags:
+        - visitor
+      summary: visitor 정보 가져오기
+      parameters:
+        - $ref: '#/components/parameters/start_date_time'
+        - $ref: '#/components/parameters/end_date_time'
+        - name: visitjeju_id
+          in: query
+          required: false
+          description: visitjeju_id
+          schema:
+            type: string
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/number_of_rows'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date_time:
+                          type: string
+                          dbDataType: timestamp
+                        visitjeju_id:
+                          type: string
+                        s2graph:
+                          type: object
+                          dbDataType: string
+        '500':
+          description: ERROR
+  /visitjeju:
+    skipAutogen: true
+    get:
+      tags:
+        - visitjeju
+      summary: visitjeju 정보 가져오기
+      parameters:
+        - $ref: '#/components/parameters/measure_position_id'
+        - name: title
+          in: query
+          required: false
+          description: title
+          schema:
+            type: string
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/number_of_rows'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        near_bus_stop_list:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                              direction:
+                                type: string
+                              walk_time:
+                                type: integer
+                              bus_number:
+                                type: string
+                        contentsid:
+                          type: string
+                        contentscd:
+                          type: string
+                        measure_position_id:
+                          type: integer
+                        title:
+                          type: string
+                        address:
+                          type: string
+                        roadaddress:
+                          type: string
+                        tag:
+                          type: string
+                        introduction:
+                          type: string
+                        latitude:
+                          type: number
+                        longitude:
+                          type: number
+                        postcode:
+                          type: integer
+                        phoneno:
+                          type: string
+                        url:
+                          type: string
+                        fee:
+                          type: string
+                        parking:
+                          type: string
+                        use_time:
+                          type: string
+                        kakao_code:
+                          type: string
+                        has_visitor_data:
+                          type: string
+        '500':
+          description: ERROR
+  /visitjeju/gps-list:
+    skipAutogen: true
+    post:
+      tags:
+        - visitjeju
+      summary: visitjeju gps 정보 조회
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                measure_position_id_list:
+                  type: array
+                  items:
+                    type: integer
+              example:
+                measure_position_id_list:
+                  - 112018
+                  - 112021
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    measure_position_id:
+                      type: integer
+                    latitude:
+                      type: number
+                    longitude:
+                      type: number
+        '500':
+          description: ERROR
+  /visitjeju-image:
+    skipAutogen: true
+    get:
+      tags:
+        - visitjeju-image
+      summary: visitjeju-image 정보 가져오기
+      parameters:
+        - $ref: '#/components/parameters/id'
+        - name: label
+          in: query
+          required: false
+          description: label
+          schema:
+            type: string
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/number_of_rows'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        file_item_id:
+                          type: integer
+                        license:
+                          type: string
+                        width:
+                          type: integer
+                        height:
+                          type: integer
+                        size:
+                          type: integer
+                        label:
+                          type: string
+        '500':
+          description: ERROR
+  /visitjeju-image/data:
+    skipAutogen: true
+    get:
+      tags:
+        - visitjeju-image
+      summary: visitjeju-image data 정보 가져오기
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+        '500':
+          description: ERROR
+components:
+  parameters:
+    start_date_time:
+      name: start_date_time
+      in: query
+      required: true
+      description: 'start_date_time(yyyy-MM-dd HH:mm:ss)'
+      schema:
+        type: string
+      operator: $gte
+      dbfield: date_time
+    end_date_time:
+      name: end_date_time
+      in: query
+      required: true
+      description: 'end_date_time(yyyy-MM-dd HH:mm:ss)'
+      schema:
+        type: string
+      operator: $lte
+      dbfield: date_time
+    measure_position_id:
+      name: measure_position_id
+      in: query
+      required: false
+      description: measure_position_id
+      schema:
+        type: string
+    page_number:
+      name: page_number
+      in: query
+      required: false
+      description: page_number
+      schema:
+        type: integer
+        default: 1
+    number_of_rows:
+      name: number_of_rows
+      in: query
+      required: false
+      description: number_of_rows
+      schema:
+        type: integer
+        default: 10
+    type:
+      name: type
+      in: query
+      required: false
+      description: type
+      schema:
+        type: string
+    id:
+      name: id
+      in: query
+      required: false
+      description: id
+      schema:
+        type: string
+    dataName:
+      name: dataName
+      in: query
+      required: false
+      description: dataName
+      schema:
+        type: string
+      dbfield: name

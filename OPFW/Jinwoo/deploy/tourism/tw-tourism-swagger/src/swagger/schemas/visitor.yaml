@@ -1,0 +1,10 @@
+type: object
+properties:
+  date_time:
+    type: string
+    dbDataType: timestamp
+  visitjeju_id:
+    type: string
+  s2graph:
+    type: object
+    dbDataType: string
