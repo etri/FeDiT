@@ -28,7 +28,7 @@ class learningService(object):
     def createModelGenerater(self, 
             filePath=None, fileName=None, targetFileName=None, modelFilePath=None, modelFileName=None, outputs=None, features=None, 
             modelType=None, windowSize=None, batchSize=None, testSize=None, epochs=None, loss=None, meterics=None, optimizer=None, optimizerLr=None,
-            modelID=None, indexColumn=None, dataSize=None
+            modelID=None, indexColumn=None, dataSize=None, targetColList=None
         ):
         '''
         RNN 학습모델 생성
@@ -74,7 +74,7 @@ class learningService(object):
         #modelFilepath = 'dt_data_api\\storage\\model\\2023\\04\\0000\\'
 
         df=pd.read_csv(dataFile, header=0, index_col=indexColumn, parse_dates=True)
-        
+
         if features:
             is_indpds = True
         else:
@@ -123,13 +123,14 @@ class learningService(object):
             metrics = "mean_squared_error"
 
         modelArgs = ModelParameters(model_type=modelType, window_size=windowSize, batch_size=batchSize, units=32, test_size=testSize, epochs=epochs, patience=10, loss=loss, meterics=metrics, optimizer=optimizer, optimizer_lr=optimizerLr, data_size=dataSize)
-        inputArgs = InputParameters(filepath=modelFilePath, filename=modelFileName, output_cols=outputs, feature_cols=features, is_indpds=is_indpds)
+        inputArgs = InputParameters(filepath=modelFilePath, filename=modelFileName, output_cols=outputs, feature_cols=features, is_indpds=is_indpds, trgt_col_list=targetColList)
         
         try:
             #if modelType=='lstm':
             m = rnnGenerater.Manager(data=df, modelArgs=modelArgs, inputArgs=inputArgs)
+
             r = m.modelTrainning()
-            
+
             #모델평가
             print(r['evaluate_loss'])
             print(r['evaluate_acc'])

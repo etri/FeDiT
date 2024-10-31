@@ -105,16 +105,21 @@ class DataInfo:
             duplicate = {'index':'duplicate'}
             dtype = {'index':'dtype'}
             columns = []
-            range = [] 
+            range = []
+            col_values = []
+
             for column in df.columns:
                 unique[column] = len(df[column].unique())
                 nan[column] = df[column].isnull().sum()
                 duplicate[column] = df[column].duplicated().sum()
                 dtype[column] = str(df[column].dtype)
+                
                 columns.append(column)
                 #데이터값 그룹
                 range.append(pd.DataFrame(df.groupby(column).size(), columns=[column]).to_json())
                 #range[column] = pd.DataFrame(df.groupby(column).size(), columns=[column]).to_json()
+
+
 
             '''
             print('---')
@@ -141,6 +146,8 @@ class DataInfo:
             result['columns'] = columns
             result['info'] = info #result_df.to_json()
             result['range'] = range
+            #print(result)
+
         except Exception as e:
             raise e
 
@@ -273,7 +280,7 @@ class DataInfo:
                 #     print(rule1)
             elif verifyType == MD_VFY_TYPE.DF:
                 message = '전체 {0}건의 데이터 중에 {1}형 형식이 {2}건 있습니다'
-                data_count = df_column.astype(str).apply(lambda x: self.get_data_format(rule1, rule2, x)).sum()
+                data_count = df_column.astype(str).apply(lambda x: self.get_data_format(rule1, rule2, x)).sum()                
                 message = message.format(df_column.size, rule1, data_count)                
             elif verifyType == MD_VFY_TYPE.RG:
                 message = '전체 {0}건의 데이터 중에 {1}형 범위 값이 {2}건 있습니다'
@@ -319,6 +326,68 @@ class DataInfo:
         
         return df_verify
     
+
+    def dataVerifyInfo2(self, df=None, verifyType=None, verifyColumn=None, rule1=None, rule2=None, rule3=None, rule4=None):
+        try:
+            #aaa = eval(unitFormula.format(50))
+            #print(aaa)
+            
+            df_column = df[verifyColumn]
+            if verifyType == MD_VFY_TYPE.DT.value:
+                data_count = df_column.astype(str).apply(lambda x: self.get_data_type(rule1, x)).sum()
+            elif verifyType == MD_VFY_TYPE.DF.value:
+                data_count = df_column.astype(str).apply(lambda x: self.get_data_format(rule1, rule2, x)).sum()
+            elif verifyType == MD_VFY_TYPE.RG.value:
+                data_count = df_column.astype(str).apply(lambda x: self.get_data_range(rule1, rule2, rule3, x)).sum()
+            else:
+                print(verifyType)
+        except Exception as e:
+            raise e        
+        
+        return data_count
+
+    def dataVerify2(self, df=None, df_verify=None, verifyType=None, verifyColumn=None, clearType=None, rule1=None, rule2=None, rule3=None, rule4=None):
+        '''
+        MD_VFY_TYPE.DT.value로 해줘야 비교가 됨. 파이썬 새로 세팅 후 문제가 생겼는데 우선진행
+        데이터검증
+        Args:
+            df(any): 데이터 정보  
+            df_verify(any): 검증 데이터
+            verifyType(any): 검증 유형
+            verifyColumn(any): 검증 항목
+            clearType(any): 지우기 유형
+            rule1(any): 규칙1
+            rule2(any): 규칙2
+            rule3(any): 규칙3
+            rule4(any): 규칙4
+        Returns: 검증 데이터 정보
+            message
+        '''
+        try:
+            print(f'verifyType={verifyType} verifyColumn={verifyColumn} clearType={clearType} rule1={rule1} rule2={rule2} rule3={rule3}')
+            
+            df_column = df[verifyColumn]
+            print(df_column.isnull().sum())            
+            if verifyType == MD_VFY_TYPE.DT.value:
+                df_temp = df_column.astype(str).apply(lambda x: self.set_data_type(clearType, rule1, x))                  
+                validate_df = df[df_column.astype(str).apply(lambda x: self.get_data_type(rule1, x))]
+            elif verifyType == MD_VFY_TYPE.DF.value:
+                df_temp = df_column.astype(str).apply(lambda x: self.set_data_format(clearType, rule1, rule2, x))                
+                validate_df = df[df_column.astype(str).apply(lambda x: self.get_data_format(rule1, rule2, x))]                
+            elif verifyType == MD_VFY_TYPE.RG.value:
+                df_temp = df_column.astype(str).apply(lambda x: self.set_data_range(clearType, rule1, rule2, rule3, x))                
+                validate_df = df[df_column.astype(str).apply(lambda x: self.get_data_range(rule1, rule2, rule3, x))]                
+            else:
+                print(verifyType)
+
+            print(validate_df)
+            df_verify[verifyColumn] = df_temp
+        except Exception as e:
+            raise e        
+        
+        return df_verify, validate_df
+
+
     def get_data_type(self, rule, value):
         '''
         데이터 유형 체크
@@ -329,6 +398,9 @@ class DataInfo:
             Bool
         '''
         #print(rule)
+        if pd.isna(value) or value == '' or str.lower(value) == 'nan':
+            return False
+        
         if str(rule).lower() == "int":
             if re.match(r'^-?\d+\.?\d*$', value):
                 return False if "." in value else True
@@ -356,7 +428,10 @@ class DataInfo:
             value
         '''
         #print(rule)
-        if str(rule).lower() == "int":
+        if pd.isna(value) or value == '' or str.lower(value) == 'nan':
+            return ''
+        
+        if str(rule).lower() == "int":            
             if clearType == "I":
                 if re.match(r'^-?\d+\.?\d*$', value):
                     return value if "." in value else ''
@@ -421,6 +496,9 @@ class DataInfo:
         Returns: 데이터 값 변경
             value
         '''
+        if pd.isna(value) or value == '' or str.lower(value) == 'nan':
+            return ''
+        
         if str(rule).lower() == "date":
             if clearType=="I":
                 if re.match(rule1, value):
@@ -458,7 +536,7 @@ class DataInfo:
         elif str(rule).lower() == "float":
             if re.match(r'^-?\d+\.?\d*$', value):
                 if "." in value:
-                    if int(rule1) < int(value) and int(rule2) < int(value):
+                    if float(rule1) < float(value) and float(rule2) < float(value):
                         return True
                     else:
                         return False
@@ -480,6 +558,9 @@ class DataInfo:
         Returns: 데이터 값 변경
             value
         '''
+        if pd.isna(value) or value == '' or str.lower(value) == 'nan':
+            return ''
+        
         if str(rule).lower() == "int":
             if clearType=="I":
                 if re.match(r'^-?\d+\.?\d*$', value):

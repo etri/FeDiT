@@ -11,16 +11,30 @@ from sklearn.model_selection import train_test_split
 
 from tensorflow import keras
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, LSTM, Conv1D, Lambda, GRU, Dropout, Flatten, Reshape, BatchNormalization, RepeatVector
+from tensorflow.keras.layers import Dense, LSTM, Conv1D, Lambda, GRU, Dropout, Flatten, Reshape, BatchNormalization, RepeatVector, TimeDistributed
 from tensorflow.keras.losses import Huber, MeanSquaredError, MeanAbsoluteError, MeanAbsolutePercentageError
 from tensorflow.keras.optimizers import Adam, SGD, Adagrad, RMSprop
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from tensorflow.keras.preprocessing.sequence import TimeseriesGenerator
 
+
+
+import pickle
+from keras.models import Model
+
 from dt_data_api.model import fid
 from dt_data_api.common.settings import MODEL_PATH
 from dt_data_api.common.enum import MD_IP_METHOD, MD_FILL_TYPE, MD_TYPE, MD_LOSS, MD_OTMZ, MD_METRICS
 from .utils import ModelParameters, InputParameters
+from dt_data_api.util.utils import Utils
+
+from .estimate_hyper_parameter import Estimater
+
+"""
+from dt_data_api.module.src.estimate_hyper_parameter import Estimater
+from dt_data_api.module.src.auto_encoder_init import Autoencoder
+from alive_progress import alive_bar
+"""
 
 class Manager:
     '''
@@ -58,6 +72,7 @@ class Manager:
     use_model_yn:None  #모델데이터 사용여부
     real_time_yn:None   #실시간 사용 여부    
     output_file:None   #최종 저장파일 
+    trgt_col_list:None #알고리즘 선택 리스트
 
     def __init__(self, data=None, modelArgs=None, inputArgs=None) -> None:
         self.data = data
@@ -89,6 +104,7 @@ class Manager:
         self.resmpl_intvl_tp = inputArgs.resmpl_intvl_tp
         self.resmpl_intvl_value = inputArgs.resmpl_intvl_value
         self.index_column = inputArgs.index_column
+        self.trgt_col_list = inputArgs.trgt_col_list
         
 
 
@@ -112,9 +128,30 @@ class Manager:
             ds.batch(batch_size).prefetch(1)
         '''
         try:
+            '''
+            tf.expand_dims
+            차원 늘리기.
+            [1,2,...9]의 배열형태를 [[1], [2], [3],...,[9]]의 형태로 차원을 하나 더 늘려준다
+            '''
             series = tf.expand_dims(series, axis=-1)
+
+            '''
+            tf.data.Dataset.from_tensor_slices
+            tensor dataset으로 변환
+            tensor type을 tendor dataset type으로 변환시킨다.
+            '''
             ds = tf.data.Dataset.from_tensor_slices(series)
+            '''
+            WindowDataset 생성
+            window_size : 그룹화할 window의 크기(갯수)
+            shift : 다음 window 시작할 때 얼마나 띄우고 시작할지 정한다.
+            stride : 하나의 wiondow 내에서 각각의 data 사이의 간격을 말한다.
+            drop_remainder=True는 window를 만들다 보면 window size보다 작은 window가 만들어질 수도 있는데 이때 이러한 window를 포함할지 말지를 정한다. default는 False이다.
+            '''
             ds = ds.window(window_size + 1, shift=1, drop_remainder=True)
+            '''
+            
+            '''
             ds = ds.flat_map(lambda w: w.batch(window_size + 1))
             if shuffle:
                 ds = ds.shuffle(1000)
@@ -224,7 +261,7 @@ class Manager:
     #         #earlystopping은 10번 epoch 동안 val_loss 개선이 없다면 학습을 멈춤
     #         cb_earlystopping = EarlyStopping(monitor='val_loss', patience=self.patience)
     #         #val_loss 기준 bast 체크포인터 생성
-    #         cp_filename = os.path.join(self.MODEL_FILE_PATH + 'tmp\\', self.filename + '_ckeckpointer.ckpt')
+    #         cp_filename = os.path.join(self.MODEL_FILE_PATH + 'tmp\\', self.filename + '_ckeckpointer.ckpt.weights.h5')
     #         cb_checkpoint = ModelCheckpoint(cp_filename, save_weights_only=True, save_best_only=True, monitor='val_loss', verbose=1)
     #         #checkpoint_model = ModelCheckpoint(filepath=self.MODEL_FILE_PATH + 'tmp\\model\\' + 'model_{epoch:02d}.h5')
     #         #중간값 추론
@@ -287,12 +324,32 @@ class Manager:
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
         
         #GPU 설정
-        physical_devices = tf.config.list_physical_devices('GPU')
         try:
-            tf.config.experimental.set_memory_growth(physical_devices[0], True)
-        except Exception as e:
-            raise e
+            gpus = tf.config.list_physical_devices('gpu')
+            for i in range(len(gpus)):
+                tf.config.experimental.set_memory_growth(gpus[i], True)
+        except Exception as e :
+            raise e        
+        """
+        physical_devices = tf.config.list_physical_devices('GPU')
+        if physical_devices:
+            try:
+                tf.config.experimental.set_visible_devices(physical_devices[0], 'GPU')
+                tf.config.experimental.set_memory_growth(physical_devices[0], True)
+            except Exception as e:
+                raise e
+        """
 
+        # gpu 이름
+        gpus = tf.config.experimental.list_logical_devices('GPU')
+
+        # gpu가 2개 이상이면, MirroredStrategy 인스턴스 생성
+        if len(gpus) > 1: 
+            strategy = tf.distribute.MirroredStrategy([gpu.name for gpu in gpus])
+
+        # gpu가 1개 이하면, 디폴트 전략 설정
+        else:
+            strategy = tf.distribute.get_strategy() # default strategy that works on CPU and single GPU
 
         #폴더확인        
         temp = os.path.join(self.filepath, 'temp')
@@ -303,19 +360,29 @@ class Manager:
             os.makedirs(history)
 
         #생성파일 목록
-        modelCKFile = os.path.join(temp, self.filename + '_ckeckpointer.ckpt')
+        modelCKFile = os.path.join(temp, self.filename + '_ckeckpointer.ckpt.weights.h5')
         fitHistoryFile = os.path.join(self.filepath, self.filename + '_fit_history.png')
         fidHistoryFile = os.path.join(self.filepath, self.filename + '_fid_history.png')
         fidHistoryPath = history
         modelFile = os.path.join(self.filepath, self.filename)
-        
+
         try:
             print('------------------A')
             #컬럼생성
             scale_cols = []
-            for c in self.data.columns:
-                scale_cols.append(c)
+            
+            if self.trgt_col_list == None:
+                for c in self.data.columns:
+                #for c in self.trgt_col_list:
+                    scale_cols.append(c)
+            else:
+                #for c in self.data.columns:
+                for c in self.trgt_col_list:
+                    scale_cols.append(c)            
+            
+            print(self.data.columns)
             print(scale_cols)
+            print(self.trgt_col_list)
 
             print('------------------B')
             #정규화(0~1변환)
@@ -340,53 +407,55 @@ class Manager:
             print(x_test)
             print(y_test)
             
-            print('------------------E')
-            #모델적용 데이터셋 생성
-            if self.is_indpds:
-                #독립변수 데이터 생성
-                train_data = self.windowed_dataset2((x_train, y_train), self.window_size, self.batch_size, True)
-                test_data = self.windowed_dataset2((x_test, y_test), self.window_size, self.batch_size, False)
-            else:
-                #종속변수로 데이터 생성 (setModel-input_shape = 1 고정)
-                train_data = self.windowed_dataset(y_train, self.window_size, self.batch_size, True)
-                test_data = self.windowed_dataset(y_test, self.window_size, self.batch_size, False)
-            
-            print(train_data)
-            print(test_data)
 
-            print('------------------F')            
-            #모델설정
-            if self.is_indpds:
-                #독립변수 모델생성
-                model = self.setModel(len(self.feature_cols), len(self.output_cols), self.window_size, self.units)
-                #model = self.setModel2(len(self.feature_cols), len(self.output_cols), self.window_size, self.units, output_size=self.output_size)
-            else:
-                #종속변수로 모델생성 (입출력값은 동일해야함)
-                model = self.setModel(len(self.output_cols), len(self.output_cols), self.window_size, self.units)
-                #model = self.setModel2(len(self.output_cols), len(self.output_cols), self.window_size, self.units, output_size=self.output_size)
-            
-            print(len(self.feature_cols), len(self.output_cols))
-            
-            # print('------------------G')
-            # #성능옵션
-            # model.compile(optimizer=Adam(0.0005), loss=Huber(), metrics=['mse'])
-            # #model.compile(optimizer=Adam(0.0005), loss=Huber(), metrics=['accuracy'])
-            # print(model.summary())
+            with strategy.scope():
+                print('------------------E')
+                #모델적용 데이터셋 생성
+                if self.is_indpds:
+                    #독립변수 데이터 생성
+                    train_data = self.windowed_dataset2((x_train, y_train), self.window_size, self.batch_size, True)
+                    test_data = self.windowed_dataset2((x_test, y_test), self.window_size, self.batch_size, False)
+                else:
+                    #종속변수로 데이터 생성 (setModel-input_shape = 1 고정)
+                    train_data = self.windowed_dataset(y_train, self.window_size, self.batch_size, True)
+                    test_data = self.windowed_dataset(y_test, self.window_size, self.batch_size, False)
+                
+                print(train_data)
+                print(test_data)
 
-            print('------------------G')
-            #earlystopping은 10번 epoch 동안 val_loss 개선이 없다면 학습을 멈춤
-            cb_earlystopping = EarlyStopping(monitor='val_loss', patience=self.patience)
-            #val_loss 기준 bast 체크포인터 생성
-            #cp_filename = os.path.join(self.filepath, 'tmp', self.filename + '_ckeckpointer.ckpt')
-            cb_checkpoint = ModelCheckpoint(modelCKFile, save_weights_only=True, save_best_only=True, monitor='val_loss', verbose=1)
-            #checkpoint_model = ModelCheckpoint(filepath=self.MODEL_FILE_PATH + 'tmp\\model\\' + 'model_{epoch:02d}.h5')
-            #중간값 추론
-            cb_fid = fid.FIDCallback(generator=model, epochs_to_fid=1, window_size=self.window_size, real_data=y_test, test_data=test_data, output_cols=self.output_cols, filepath=fidHistoryPath, data_size=self.data_size)
-            #rlr = ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=self.patience, verbose=1)
-            
-            #모델학습
-            hist = model.fit(train_data, validation_data=(test_data), epochs=self.epochs, callbacks=[cb_checkpoint, cb_fid, cb_earlystopping])
-            
+                print('------------------F')            
+                #모델설정
+                if self.is_indpds:
+                    #독립변수 모델생성
+                    model = self.setModel(len(self.feature_cols), len(self.output_cols), self.window_size, self.units)
+                    #model = self.setModel2(len(self.feature_cols), len(self.output_cols), self.window_size, self.units, output_size=self.output_size)
+                else:
+                    #종속변수로 모델생성 (입출력값은 동일해야함)
+                    model = self.setModel(len(self.output_cols), len(self.output_cols), self.window_size, self.units)
+                    #model = self.setModel2(len(self.output_cols), len(self.output_cols), self.window_size, self.units, output_size=self.output_size)
+                
+                print(len(self.feature_cols), len(self.output_cols))
+                
+                # print('------------------G')
+                # #성능옵션
+                # model.compile(optimizer=Adam(0.0005), loss=Huber(), metrics=['mse'])
+                # #model.compile(optimizer=Adam(0.0005), loss=Huber(), metrics=['accuracy'])
+                # print(model.summary())
+
+                print('------------------G')
+                #earlystopping은 10번 epoch 동안 val_loss 개선이 없다면 학습을 멈춤
+                cb_earlystopping = EarlyStopping(monitor='val_loss', patience=self.patience)
+                #val_loss 기준 bast 체크포인터 생성
+                #cp_filename = os.path.join(self.filepath, 'tmp', self.filename + '_ckeckpointer.ckpt.weights.h5')
+                cb_checkpoint = ModelCheckpoint(modelCKFile, save_weights_only=True, save_best_only=True, monitor='val_loss', verbose=1)
+                #checkpoint_model = ModelCheckpoint(filepath=self.MODEL_FILE_PATH + 'tmp\\model\\' + 'model_{epoch:02d}.h5')
+                #중간값 추론
+                cb_fid = fid.FIDCallback(generator=model, epochs_to_fid=1, window_size=self.window_size, real_data=y_test, test_data=test_data, output_cols=self.output_cols, filepath=fidHistoryPath, data_size=self.data_size)
+                #rlr = ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=self.patience, verbose=1)
+                
+                #모델학습
+                hist = model.fit(train_data, validation_data=(test_data), epochs=self.epochs, callbacks=[cb_checkpoint, cb_fid, cb_earlystopping])
+                
             print('------------------H')  
             #모델검증
             mse = model.evaluate(test_data)
@@ -405,14 +474,42 @@ class Manager:
             print('------------------I')
             #모델저장
             model.save(modelFile)
+
+            scalerFile = os.path.join(self.filepath, self.filename.split('.')[0] + '_scaler.pkl')
+            with open(scalerFile, 'wb') as f:
+                pickle.dump(scaler, f)     
+            
+
             pred = model.predict(test_data)
             #print(test_data)
             print('pred : ', pred)
+
+            utils = Utils()
+            # 테스트 데이터 복원
+            extend_x_df = utils.add_dataframe_columns(x_test, scale_cols)
+            x_unscaled = scaler.inverse_transform(extend_x_df)
+            unscaled_x_df = pd.DataFrame(x_unscaled, columns=scale_cols)
+
+            extend_y_df = utils.add_dataframe_columns(y_test, scale_cols)
+            y_unscaled = scaler.inverse_transform(extend_y_df)
+            unscaled_y_df = pd.DataFrame(y_unscaled, columns=scale_cols)
+
+            #예측 데이터 복원
+            pred_df = pd.DataFrame(pred, columns=self.output_cols)
+            print('예측 결과', pred_df)
+            extend_pred_df = utils.add_dataframe_columns(pred_df, scale_cols)
+            print('예측 결과 확장', extend_pred_df)
+            pred_unscaled = scaler.inverse_transform(extend_pred_df)
+            unscaled_pred_df = pd.DataFrame(pred_unscaled, columns=scale_cols)
+            print('예측 결과 복원', unscaled_pred_df)
 
             result = {'fid': None, 'fit':None}            
             result['x_test'] = x_test
             result['y_test'] = y_test
             result['y_pred'] = pred
+            result['x_test_unscaled'] = unscaled_x_df[self.feature_cols]
+            result['y_test_unscaled'] = unscaled_y_df[self.output_cols]
+            result['y_pred_unscaled'] = unscaled_pred_df[self.output_cols]            
             result['fid'] = cb_fid.fid_scores
             result['fit'] = hist.history
             result['evaluate_loss'] = mse[0]
@@ -657,32 +754,50 @@ class Manager:
             print("--------A")
             #모델로드
             #model = keras.models.load_model(self.MODEL_FILE_PATH + self.filename)        
-            print(self.filename)
+            #print(self.filename)
             model = keras.models.load_model(self.filename)
-            print(model.summary())
-            print(self.data)
-
+            #print(model.summary())
+            #print(self.data)
+            print(self.trgt_col_list)
             print("--------B")
             #컬럼추출
             scale_cols = []
             cols_blank = []
             cols_nos = []
             no = 0
-            for c in self.data.columns:
-                cols_blank.append(0)
-                scale_cols.append(c)
-                for col in self.output_cols:
-                    if c==col:
-                        cols_nos.append(no)
-                no = no + 1
+
+            if (self.trgt_col_list == ''):
+                for c in self.data.columns:
+                    cols_blank.append(0)
+                    scale_cols.append(c)
+                    for col in self.output_cols:
+                        if c==col:
+                            cols_nos.append(no)
+                    no = no + 1
+            else:
+                for c in self.trgt_col_list:
+                    cols_blank.append(0)
+                    scale_cols.append(c)
+                    for col in self.output_cols:
+                        if c==col:
+                            cols_nos.append(no)
+                    no = no + 1
 
             print(scale_cols)
             print(cols_nos)
 
             print("--------C")
             #정규화(0~1변환)
-            scaler = MinMaxScaler()
-            scaled = scaler.fit_transform(self.data[scale_cols])
+            #scaler = MinMaxScaler()
+            #scaled = scaler.fit_transform(self.data[scale_cols])
+            scalerFile = os.path.join(self.filepath, self.filename.split('.')[0] + '_scaler.pkl')
+            if os.path.exists(scalerFile):
+                with open(scalerFile, 'rb') as f:
+                    scaler: MinMaxScaler = pickle.load(f)            
+                scaled = scaler.transform(self.data[scale_cols])
+            else:
+                scaler = MinMaxScaler()
+                scaled = scaler.fit_transform(self.data[scale_cols])                 
             df = pd.DataFrame(scaled, columns=scale_cols)
             print(df[self.output_cols])
             
@@ -1101,11 +1216,17 @@ class Manager:
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
         
         #GPU 설정
-        physical_devices = tf.config.list_physical_devices('GPU')
         try:
-            tf.config.experimental.set_memory_growth(physical_devices[0], True)
-        except Exception as e:
-            raise e
+            gpus = tf.config.list_physical_devices('gpu')
+            for i in range(len(gpus)):
+                tf.config.experimental.set_memory_growth(gpus[i], True)
+        except Exception as e :
+            raise e        
+        #physical_devices = tf.config.list_physical_devices('GPU')
+        #try:
+        #    tf.config.experimental.set_memory_growth(physical_devices[0], True)
+        #except Exception as e:
+        #    raise e
         
         #폴더확인        
         temp = os.path.join(self.filepath, 'temp')
@@ -1116,7 +1237,7 @@ class Manager:
             os.makedirs(history)
 
         #생성파일 목록
-        modelCKFile = os.path.join(temp, self.filename + '_ae_ckeckpointer.ckpt')
+        modelCKFile = os.path.join(temp, self.filename + '_ae_ckeckpointer.ckpt.weights.h5')
         fitHistoryFile = os.path.join(self.filepath, self.filename + '_ae_fit_history.png')
         modelFile = os.path.join(self.filepath, self.filename)
         
@@ -1265,6 +1386,262 @@ class Manager:
             raise e            
         return result
 
+    def modelAETrainning_New(self, layer_size = 3):
+        '''
+        Auto Encoder 이상치 탐지 학습모델
+        Returns: 이상치 학습모델 학습결과
+            result
+        '''
+#--------------------------------------------------------------------------------------------------------
+#추가
+        #layer_size 2 이상
+        assert layer_size >= 2, "layer_size should be at least 2"
+
+        # 16 부터 2의 배수로 감소하는 layer_units 생성. ex) [~, 128, 64, 32, 16]
+        start_units = 16 * (2 ** (layer_size - 1))
+        layer_units = [start_units // (2 ** i) for i in range(layer_size - 1)] + [16] #[64, 32, 16]
+#--------------------------------------------------------------------------------------------------------
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+        
+        #GPU 설정
+        try:
+            gpus = tf.config.list_physical_devices('gpu')
+            for i in range(len(gpus)):
+                tf.config.experimental.set_memory_growth(gpus[i], True)
+        except Exception as e :
+            raise e                
+        #physical_devices = tf.config.list_physical_devices('GPU')
+        #try:
+        #    tf.config.experimental.set_memory_growth(physical_devices[0], True)
+        #except Exception as e:
+        #    raise e
+
+        #폴더확인        
+        temp = os.path.join(self.filepath, 'temp')
+        history = os.path.join(self.filepath, 'history')
+        if not os.path.exists(temp):
+            os.makedirs(temp)
+        if not os.path.exists(history):
+            os.makedirs(history)
+
+        #생성파일 목록
+        modelCKFile = os.path.join(temp, self.filename + '_ae_ckeckpointer.ckpt.weights.h5')
+        fitHistoryFile = os.path.join(self.filepath, self.filename + '_ae_fit_history.png')
+        modelFile = os.path.join(self.filepath, self.filename)
+        
+        #설정
+        train_size = int(len(self.data) * (1-self.test_size))
+        features = len(self.output_cols)
+        
+        print(self.data, self.test_size)
+
+        try:
+
+
+            print('------------------A')
+            #정규화(0~1변환)
+            scaler = StandardScaler()
+            
+            print(self.data.loc[:, self.output_cols])
+
+            #scaler = scaler.fit(self.data.loc[:train_size, self.output_cols])
+
+            
+            #scaler = scaler.fit(self.data.loc[:, self.output_cols])
+            #scaled = scaler.transform(self.data[self.output_cols])
+            scaled = scaler.fit_transform(self.data[self.output_cols])
+
+            print('------------------B', scaled.shape)
+            #데이터셋 생성
+
+            '''
+            train_data = TimeseriesGenerator(
+                data=scaled, targets=scaled, length=self.window_size, stride=1, sampling_rate=1, batch_size=self.batch_size, shuffle=False, start_index=0, end_index=None
+            )
+            test_data = TimeseriesGenerator(
+                data=scaled, targets=scaled, length=self.window_size, stride=1, sampling_rate=1, batch_size=self.batch_size, shuffle=False, start_index=train_size, end_index=None
+            )
+            '''
+
+            train_data, test_data = train_test_split(scaled, test_size=self.test_size)
+
+            train_data = self.make_rolling_windows(self.window_size, scaled)
+            test_data = self.make_rolling_windows(self.window_size, test_data)
+            
+            print(train_data)
+            print(test_data)
+
+            print('------------------C')            
+
+            #모델 생성
+            model = tf.keras.Sequential()
+            #인코더 시작 
+            #unit 16의 2의 배수 크기 순서대로 레이어를 추가
+            #  layer_size가 3일경우는 64, 32 
+            for units in layer_units[:-1]:
+                model.add(LSTM(units, activation="tanh", return_sequences=True))
+            #맨 마지막 16은 여기서 추가
+            model.add(LSTM(layer_units[-1], activation="tanh", return_sequences=False))
+            #인코더 끝
+            # 병목 구간 (Bottleneck)
+            model.add(RepeatVector(self.window_size))
+            # 병목 구간 (Bottleneck)
+
+            # 디코더 시작
+            # 인코더의 반대 순으로 레이어 추가
+            model.add(LSTM(layer_units[-1], activation="tanh", return_sequences=True))
+            for units in layer_units[-2::-1]:
+                model.add(LSTM(units, activation="tanh", return_sequences=True))
+            model.add(TimeDistributed(Dense(features)))
+            # 디코더 끝
+  
+            #model = Autoencoder(layer_size, self.window_size, features)
+
+            #성능옵션
+            model.compile(loss='mae', optimizer='adam', metrics=["mae"])
+            input_shape = (None, self.window_size, features)
+            model.build(input_shape)
+
+            print(model.summary())
+
+            print('------------------D')
+            #earlystopping은 self.patience번 epoch 동안 val_loss 개선이 없다면 학습을 멈춤
+            cb_earlystopping = EarlyStopping(monitor='val_loss', patience=self.patience)
+            #val_loss 기준 bast 체크포인터 생성
+            cb_checkpoint = ModelCheckpoint(modelCKFile, save_weights_only=True, save_best_only=True, monitor='val_loss', verbose=1)
+            
+            '''
+            배치사이즈 얻어오기
+            '''
+            print('------------------D1')
+            self.estimater = Estimater()
+            batch_size = self.estimater.get_batch_size(model, train_data, self.batch_size)
+
+            print('------------------D2')
+            #모델학습
+            hist = model.fit(train_data, train_data, epochs=self.epochs, batch_size=batch_size, validation_split=0.1, callbacks=[cb_checkpoint, cb_earlystopping])
+            #hist = model.fit(train_data, validation_data=test_data, steps_per_epoch=len(train_data), validation_steps=len(test_data), epochs=self.epochs, callbacks=[cb_checkpoint, cb_earlystopping])
+
+            print('------------------E')  
+            #모델검증
+            mse = model.evaluate(test_data)
+            print("mse : ", mse)
+            
+            #학습 히스토리
+            print('fit : ', hist)
+            self.fitHistory(hist, fitHistoryFile)
+
+            print('------------------F')
+            #모델저
+            model.save(modelFile)
+            pred = model.predict(test_data)
+            print('pred : ', pred)
+
+            result = {'fit':None}            
+            #result['train_data'] = train_data
+            #result['test_data'] = test_data
+            result['y_pred'] = pred
+            result['fit'] = hist.history
+            result['evaluate_loss'] = mse[0]
+            result['evaluate_acc'] = mse[1]
+            print('hist', hist.history["loss"], hist.history["val_loss"])
+
+        except Exception as e:
+            raise e
+        return result
+
+    def make_rolling_windows(self, window_size, data):
+        result = []
+        for i in range(window_size, len(data)):# + 1):
+            # 현재 위치에서 window_size 만큼 앞으로 가서 데이터를 가져옴
+            window = data[i-window_size:i]  
+            #print('index', i, window)
+            result.append(window)
+        return np.array(result)
+     
+
+    def dataAEGenerater_New(self, threshold=None):
+        '''
+        Auto Encoder 이상치 탐지
+        Args:
+            threshold(int): 이상치 탐지 경계 기준
+        Returns: 학습모델을 통해 생성한 데이터
+            result
+        '''
+        #설정
+        train_size = int(len(self.data) * (1-self.test_size))              
+        try:
+            print('------------------A')
+            #모델로드
+            print(self.filename)
+            model = keras.models.load_model(self.filename)
+            print(model.summary())
+            print(self.data)
+
+            print('------------------B')
+            #정규화(0~1변환)
+            scaler = StandardScaler()
+            #scaler = scaler.fit(self.data.loc[:train_size, self.output_cols])
+            #scaler = scaler.fit(self.data.loc[:, self.output_cols])
+            #scaled = scaler.transform(self.data[self.output_cols])
+            scaled = scaler.transform(self.data[self.output_cols])
+            print('------------------C')
+            #데이터셋 생성
+            '''
+            train_data = TimeseriesGenerator(
+                data=scaled, targets=scaled, length=self.window_size, stride=1, sampling_rate=1, batch_size=self.batch_size, shuffle=False, start_index=0, end_index=None
+            )
+            test_data = TimeseriesGenerator(
+                data=scaled, targets=scaled, length=self.window_size, stride=1, sampling_rate=1, batch_size=self.batch_size, shuffle=False, start_index=train_size, end_index=None
+            )
+            '''
+            print(scaled)
+            train_data_ori, test_data_ori = train_test_split(scaled, test_size=self.test_size)
+
+            train_data = self.make_rolling_windows(self.window_size, scaled)
+            test_data = self.make_rolling_windows(self.window_size, test_data_ori)
+            
+            print(train_data)
+            #print(test_data)
+
+            print('------------------D')
+            # 실제 데이터와 예측 데이터 loss 계산
+            pred = model.predict(train_data)
+            real = train_data#scaled[self.window_size:]
+            print(real.shape, scaled.shape)
+            mae_loss = np.mean(np.abs(pred-real), axis=1)
+            print(mae_loss)
+
+            # loss 차트 확인
+            matplotlib.use('TkAgg')
+            plt.subplots(figsize=(9,6))
+            plt.hist(mae_loss, 100, density=True, alpha=0.75, log=True)
+            plt.show()
+
+            print('------------------E')
+            # 실제데이터에 loss 적용
+            
+            mae_list = tf.keras.losses.mean_absolute_error(train_data.reshape(-1), pred.reshape(-1))
+
+            print('***', mae_list.numpy().mean())
+            #print('*1', train_data.reshape(-1))
+            #print('*2', pred.reshape(-1))
+
+            test_df = copy.deepcopy(self.data.loc[self.window_size:]).reset_index(drop=True)
+            test_df['Loss'] = mae_loss
+            print(test_df)
+
+            print('------------------F')
+            # 이상치 경계 기준보다 큰 값 추출
+            output_df = test_df.loc[test_df['Loss']>threshold]
+            print(output_df)
+            
+            result = output_df            
+        except Exception as e:
+            raise e            
+        return result
+
+
     def arimaModelGenerater(self, threshold=None):
         '''
         ARIMA 모델 생성
@@ -1330,3 +1707,140 @@ class Manager:
         except Exception as e:
             raise e            
         return result
+    
+
+    def autoTrain(self, threshold=None):
+        '''
+        '''
+        #설정
+        #train_size = int(len(self.data) * (1-self.test_size))              
+        try:
+            print('------------------A')
+            #모델로드
+            model: Model = tf.saved_model.load(self.filepath)
+            input_shape = model.signatures['serving_default'].inputs[0].shape
+            print(f"input_shape: {input_shape}")
+
+            # 스케일러 불러오기
+            #with open(self.scaler_path, 'rb') as f:
+            #    scaler: MinMaxScaler = pickle.load(f)
+            print('------------------B')
+            with open(os.path.join(self.filename), 'rb') as f:
+                scaler: MinMaxScaler = pickle.load(f)
+
+            # 입력 데이터 전처리
+            print('------------------c')
+            scaled_data = scaler.transform(self.data)
+            input_data = self.make_rolling_windows(input_shape[1], scaled_data)
+            
+            #62968
+            #62959
+            # 모델 추론
+            print('------------------d1')
+            print(scaled_data)            
+            print('------------------d2')
+            print(input_data)
+
+            predicted = model.serve(input_data)
+
+            # 실제 입력 데이터와 예측 값 사이의 MAE 계산
+            print('------------------e')
+            mae_list = tf.keras.losses.mean_absolute_error(input_data.reshape(-1), predicted.numpy().reshape(-1))
+
+            result = mae_list.numpy().mean()
+        except Exception as e:
+            raise e            
+        return result
+    
+
+
+    def dataGenerater_Test(self):
+        '''
+        예측 데이터 추출
+        Returns: 학습모델을 통해 생성한 데이터
+            result
+        '''
+        try:
+            print("--------A")
+            #모델로드
+            #model = keras.models.load_model(self.MODEL_FILE_PATH + self.filename)        
+            #print(self.filename)
+            model = keras.models.load_model(self.filename)
+            #print(model.summary())
+            #print(self.data)
+            print(self.trgt_col_list)
+            print("--------B")
+            #컬럼추출
+            scale_cols = []
+            cols_blank = []
+            cols_nos = []
+            no = 0
+
+            if (self.trgt_col_list == ''):
+                for c in self.data.columns:
+                    cols_blank.append(0)
+                    scale_cols.append(c)
+                    for col in self.output_cols:
+                        if c==col:
+                            cols_nos.append(no)
+                    no = no + 1
+            else:
+                for c in self.trgt_col_list:
+                    cols_blank.append(0)
+                    scale_cols.append(c)
+                    for col in self.output_cols:
+                        if c==col:
+                            cols_nos.append(no)
+                    no = no + 1
+
+            print(scale_cols)
+            print(cols_nos)
+
+            print("--------C")
+            #정규화(0~1변환)
+            scaler = MinMaxScaler()
+            scaled = scaler.fit_transform(self.data[scale_cols])
+            df = pd.DataFrame(scaled, columns=scale_cols)
+            print(df[self.output_cols])
+            
+            print("--------D")
+            #모델적용 데이터셋 생성
+            if self.is_indpds:
+                #독립변수 데이터 생성
+                test_dt = self.windowed_dataset2((df[self.feature_cols], df[self.output_cols]), self.window_size, self.batch_size, False)
+            else:
+                #종속변수 데이터 생성
+                test_dt = self.windowed_dataset(df[self.output_cols], self.window_size, self.batch_size, False)
+            
+            print(test_dt)
+
+            print("--------E")
+            #예측 데이터 추출
+            pred = model.predict(test_dt)
+            print(pred)
+            #print(pred[:,1].reshape(-1,1))
+            
+            #예측값 월래 값 변환 (테스트 필요)
+            output_df = pd.DataFrame(columns=self.output_cols)            
+            for i in range(len(self.output_cols)):
+                scr = copy.deepcopy(scaler)
+                scr.min_, scr.scale_ = scr.min_[cols_nos[i]], scr.scale_[cols_nos[i]]                
+                output_df[self.output_cols[i]] = self.predictInverse(scr, cols_blank, pred[:,i].reshape(-1,1))
+            
+            #결과값 갯수만큼 마지막 날짜 이후 데이터 생성
+            print("--------F")
+            if self.use_model_yn == 'Y':
+                if self.real_time_yn == 'N':
+                    output_df = self.useModelTimeSeries(self.data, output_df, self.output_cols, self.window_size, self.resmpl_intvl_tp, self.resmpl_intvl_value, self.target_start_date, self.target_last_date, self.index_column)
+                else:
+                    output_df = self.addTimeSeries(self.data, output_df, self.output_cols)
+            else:
+                output_df = self.addTimeSeries(self.data, output_df, self.output_cols)
+
+
+            result = output_df            
+
+        except Exception as e:
+            raise e            
+        return result
+

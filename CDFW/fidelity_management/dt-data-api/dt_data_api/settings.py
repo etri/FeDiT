@@ -85,7 +85,6 @@ DATABASES = {
     #    "NAME": BASE_DIR / "db.sqlite3",
     #},
 
-    #django 기본 DB 설정
     "default": {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': '',
@@ -94,8 +93,7 @@ DATABASES = {
         'HOST': '',
         'PORT': '',
     },
-    
-    #데이터 저장 DB 설정
+
     'dt_data_platform': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': '',
@@ -193,8 +191,12 @@ LOGGING = {
 }
 
 # 환경변수
-MAIN_PATH = 'Z:\\DT\\storage'
-MODEL_PATH = 'Z:\\DT\\storage\\model\\'
-DATA_PATH = 'Z:\\DT\\storage\\data\\'
-UPLOAD_PATH = 'Z:\\DT\\storage\\upload\\'
+MAIN_PATH = '~PATH\\DT_FILE\\files\\storage'
+MODEL_PATH = '~PATH\\DT_FILE\\files\\storage\\model\\'
+DATA_PATH = '~PATH\\DT_FILE\\files\\storage\\data\\'
+UPLOAD_PATH = '~PATH\\DT_FILE\\files\\storage\\upload\\'
 
+MAIN_PATH_META = '~PATH\\DT_META_FILE\\files\\storage'
+MODEL_PATH_META = '~PATH\\DT_META_FILE\\files\\storage\\model\\'
+DATA_PATH_META = '~PATH\\DT_META_FILE\\files\\storage\\data\\'
+UPLOAD_PATH_META = '~PATH\\DT_META_FILE\\files\\storage\\upload\\'

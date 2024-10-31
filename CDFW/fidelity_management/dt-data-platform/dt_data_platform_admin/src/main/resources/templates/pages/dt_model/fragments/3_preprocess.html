@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<th:block th:fragment="preprocess">
+    <div class="row">
+        <div class="col-md-8 border-right">
+            <div id="tab_preproc_bottom_range" style="display: none;">
+                <div class="card-header">
+                    <th:block th:if="${formType == 'I'}">
+                        <ul class="nav nav-tabs card-header-tabs">
+                            <li class="nav-item"><a class="nav-link active" id="tab_validate"
+                                                    th:href="@{|#|}">Validate</a></li>
+                            <li class="nav-item"><a class="nav-link" id="tab_outlier" th:href="@{|#|}">Outlier</a></li>
+                            <li class="nav-item"><a class="nav-link" id="tab_missing" th:href="@{|#|}">Missing Value</a>
+                            </li>
+                            <li class="nav-item"><a class="nav-link" id="tab_interval" th:href="@{|#|}">Interval
+                                Conversion</a></li>
+                            <li class="nav-item"><a class="nav-link" id="tab_unit" th:href="@{|#|}">Unit Conversion</a>
+                            </li>
+                        </ul>
+                    </th:block>
+                    <th:block th:unless="${formType == 'I'}">
+                        <ul class="nav nav-tabs card-header-tabs">
+                            <li class="nav-item"><a class="nav-link active" id="tab_validate1"
+                                                    th:href="@{|#|}">Validate</a></li>
+                            <li class="nav-item"><a class="nav-link" id="tab_outlier1" th:href="@{|#|}">Outlier</a></li>
+                            <li class="nav-item"><a class="nav-link" id="tab_missing1" th:href="@{|#|}">Missing
+                                Value</a></li>
+                            <li class="nav-item"><a class="nav-link" id="tab_interval1" th:href="@{|#|}">Interval
+                                Conversion</a></li>
+                            <li class="nav-item"><a class="nav-link" id="tab_unit1" th:href="@{|#|}">Unit Conversion</a>
+                            </li>
+                        </ul>
+                    </th:block>
+                </div>
+
+                <th:block th:if="${formType == 'I'}">
+                    <!--유효성  -->
+                    <div id="inc_tab_validate" style="display: none;">
+                        <th:block th:include="pages/dt_model/fragments/3_1_tab_validate:: tab_validate"></th:block>
+                    </div>
+
+                    <!--이상치  -->
+                    <div id="inc_tab_outlier" style="display: none;">
+                        <th:block th:include="pages/dt_model/fragments/3_2_tab_outlier:: tab_outlier"></th:block>
+                    </div>
+
+                    <!--결측치  -->
+                    <div id="inc_tab_missing" style="display: none;">
+                        <th:block th:include="pages/dt_model/fragments/3_3_tab_missing:: tab_missing"></th:block>
+                    </div>
+
+                    <!--샘플링  -->
+                    <div id="inc_tab_interval" style="display: none;">
+                        <th:block th:include="pages/dt_model/fragments/3_4_tab_interval:: tab_interval"></th:block>
+                    </div>
+
+                    <!--단위  -->
+                    <div id="inc_tab_unit" style="display: none;">
+                        <th:block th:include="pages/dt_model/fragments/3_5_tab_unit:: tab_unit"></th:block>
+                    </div>
+                </th:block>
+
+                <th:block th:unless="${formType == 'I'}">
+                    <div id="preprocOptionRangeView" style="width: 100%; overflow-y: hidden;"></div>
+                    <div id="preprocTableRangeView" style="width: 100%; overflow-y: hidden;"></div>
+                </th:block>
+            </div>
+        </div>
+        <div class="col-md-4 border-left">
+            <div class="card-header">
+            </div>
+            <div id="property_range"></div>
+        </div>
+    </div>
+</th:block>
+</html>

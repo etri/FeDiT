@@ -10,7 +10,7 @@ from dt_data_api.common.lib import (
     MD_FILL_METHOD, MD_FILL_TYPE, MD_IP_METHOD, DB_NAME, MD_IP_SI, MD_TYPE, MD_LOSS, MD_OTMZ, MD_METRICS, ERROR_CODE,
     DATA_PATH, MODEL_PATH, 
     ModelParameters, InputParameters,
-    fillna, interpolate, resample, regression, fid, rnnGenerater, timeganGenerater, imputerganGenerater, imputerGenerater,
+    fillna, interpolate, resample, regression, fid, rnnGenerater, timeganGenerater, imputerganGenerater, imputerGenerater, randomForestGenerater,
     infoMessage, debugMessage, errorMessage, exceptionMessage
 )
 
@@ -410,3 +410,4 @@ class augmentModelService(object):
             result['resultMessage'] = errorMsg  
 
         return result
+    

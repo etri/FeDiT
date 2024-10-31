@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<th:block th:fragment="tab_interval">
+
+
+    <!-- 데이터 전처리  하단 interval Value-->
+    <div class="col-md-12 grid-margin  stretch-card bottom-tab" id="tab_interval_range" style="height:60%;">
+        <div class="card" style="height:60%;">
+            <div class="card-body">
+                <div class="form-group row">
+                    <div class="col-md-10">
+                        <h6 class="card-title">날짜 컬럼의 간격을 변환할 수 있습니다. </h6>
+                        <div class="form-group d-flex">
+                            <label class="label-a">데이터 간격 :</label>
+                            <code style="font-size: 11px;width: 200px;"><span class="span-outline"
+                                                                              id="select_origin_term"></span></code>
+                        </div>
+                        <div class="form-group d-flex">
+                            <label class="label-a">데이터 간격 변환 :</label>
+                            <select id="select_resample" style="width: 35%;">
+                                <!-- <option value="O">처리안함</option> -->
+                                <option th:each="item : ${resamp_type_list}" th:value="${item.dtl_cd}"
+                                        th:text="${item.dtl_cd_nm}"></option>
+                                <!-- th:selected="${item.dtl_cd == augmentModel.resmplIntvlTp}" -->
+                            </select>
+                        </div>
+
+                        <div id="intvl_term" style="display: none;">
+                            <div class="form-group d-flex">
+                                <label class="label-a">데이터 간격 수치 :</label>
+                                <!-- <input  type="number" class="form-control number_only resmpl_intvl_value" name="resmplIntvlValue" th:value="${augmentModel.resmplIntvlValue}" style="width: 35%;"> -->
+                                <input type="number" class="form-control number_only resmpl_intvl_value"
+                                       style="width: 35%;">
+                            </div>
+                        </div>
+
+                        <div class="form-group d-flex" style="margin-left: 50px;">
+                            <input class="btn btn-success btn-make-resample" type="button" value="변환">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 업로드 테이블-->
+    <th:block th:if="${formType == 'I'}">
+        <div id="preprocTableExcludeAddedRangeResample" style="width: 100%; display: none;"></div>
+        <div id="preprocTableExcludeRemovedRangeResample" style="width: 100%; display: none;"></div>
+        <div id="preprocTableRangeResample" style="width: 100%; display: none;"></div>
+    </th:block>
+
+    <div id="next_button_resample_range" style="display: none;">
+        <div class="col-sm-12">
+            <button type="button" class="btn btn-primary mr-2 btn-icon-text next-preproc-unit-step float-right">
+                다음(unit)<i data-feather="arrow-right"></i>
+            </button>
+            <button type="button" class="btn btn-primary mr-2 btn-icon-text prev-preproc-interpolate-step float-right">
+                <i data-feather="arrow-left"></i>이전
+            </button>
+        </div>
+    </div>
+</th:block>
+</html>
