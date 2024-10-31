@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<th:block th:fragment="paging_sub">
+    <nav th:if="${subPaging.total > 0}" aria-label="pagination" class="d-flex justify-content-center mt-4">
+        <ul class="pagination">
+            <li class="page-item" th:classappend="${subPaging.page == 1} ? 'disabled' : ''">
+                <a class="page-link" href="#" aria-label="Go to first page"  th:data-page="${paging.page}" th:data-sub-page="${subPaging.first}" th:data-page-range="sub_range">
+                    <!-- <i data-feather="chevrons-left"></i> --><<
+                </a>
+            </li>
+            <li class="page-item" th:classappend="${subPaging.page == 1} ? 'disabled' : ''">
+                <a class="page-link" href="#" aria-label="Go to previous page"  th:data-page="${paging.page}" th:data-sub-page="${subPaging.prev}" th:data-page-range="sub_range">
+                    <!-- <i data-feather="chevron-left"></i> --><
+                </a>
+            </li>
+            <th:block th:each="subPage : ${#numbers.sequence(subPaging.begin, subPaging.end)}">
+                <li class="page-item" th:classappend="${subPage == subPaging.page} ? 'active' : ''">
+                    <a href="#" class="page-link" th:classappend="${subPage == subPaging.page} ? 'active' : ''" th:title="${subPage}" th:text="${subPage}" th:data-page="${paging.page}" th:data-sub-page="${subPage}" th:data-page-range="sub_range">1</a>
+                </li>
+            </th:block>
+            <li class="page-item" th:classappend="${subPaging.page == subPaging.last} ? 'disabled' : ''">
+                <a class="page-link" href="#" aria-label="Go to next page"  th:data-page="${paging.page}" th:data-sub-page="${subPaging.next}" th:data-page-range="sub_range">
+                    <!-- <i data-feather="chevron-right"></i> -->>
+                </a>
+            </li>
+            <li class="page-item" th:classappend="${subPaging.page == subPaging.last} ? 'disabled' : ''">
+                <a class="page-link" href="#" aria-label="Go to last page"  th:data-page="${paging.page}" th:data-sub-page="${subPaging.last}" th:data-page-range="sub_range">
+                    <!-- <i data-feather="chevrons-right"></i> -->>>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</th:block>
+
+</html>

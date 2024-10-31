@@ -76,7 +76,7 @@ class TemporalDecay(tf.keras.layers.Layer):
 
 class RITS(tf.keras.layers.Layer):
     
-    def __init__(self, units):
+    def __init__(self, units, **kwargs):
         
         '''
         RITS layer, see Section 4.3 of the BRITS paper.
@@ -92,7 +92,7 @@ class RITS(tf.keras.layers.Layer):
         self.hist_reg = None
         self.feat_reg = None
         self.weight_combine = None
-        super(RITS, self).__init__()
+        super(RITS, self).__init__(**kwargs)
         
     def build(self, input_shape):
         
@@ -195,3 +195,10 @@ class RITS(tf.keras.layers.Layer):
         loss /= (3 * inputs.shape[1])
         
         return outputs, loss
+    
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'units': self.units
+        })
+        return config

@@ -1,0 +1,209 @@
+spring:
+  profiles:
+    active: local
+
+  main:
+    allow-bean-definition-overriding: true
+
+  jackson:
+    serialization:
+      fail-on-empty-beans: false
+
+  http:
+    encoding:
+      force: true
+      force-request: true
+      force-response: true
+
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 60MB
+
+  thymeleaf:
+    cache: false
+
+server:
+  servlet:
+    session:
+      timeout: 120m
+      persistent: true
+      cookie:
+        name: { COOKIE_NAME }
+        http-only: true
+  tomcat:
+    uri-encoding: UTF-8
+  error:
+    whitelabel:
+      enabled: false
+    include-stacktrace: on-trace-param
+
+---
+
+spring:
+  profiles: local
+  output:
+    ansi:
+      enabled: detect
+  http:
+    log-request-details: true
+  servlet:
+    multipart:
+      location: { PATH }\temp
+
+  primary:
+    datasource:
+      driver-class-name: org.mariadb.jdbc.Driver
+      jdbc-url: { JDBC_URL }
+      username: { USERNAME }
+      password: { PASSWORD }
+  second:
+    datasource:
+      driver-class-name: org.mariadb.jdbc.Driver
+      jdbc-url: { JDBC_URL }
+      username: { USERNAME }
+      password: { PASSWORD }
+
+
+server:
+  port: { PORT }
+
+system:
+  upload-file-path: { PATH }\files
+  upload-file-url: /resource
+  limit-csv-row-count: 10000
+  dt-file-path: { PATH }\files\storage
+  dt-meta-file-path: { PATH }\files\storage
+  dt-etc-meta-file-path: { PATH }\files\storage
+  dt-api-url: { URL }
+  tmp-sample-data: { PATH }\files\TEST_FILE.csv
+  dt-meta-api-url: { URL }
+  dt-keti-api-url: { URL }
+  dt-api-key: { KEY }
+  dt-n2m-key: { KEY }
+  limit-make-model-cnt: 4
+
+logging:
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
+    file: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
+  #    file: "%d %-5level [%thread] %logger : %msg%n"
+  level:
+    root: info
+    jdbc: off
+    jdbc.sqlonly: debug
+    jdbc.sqltiming: off
+    jdbc.resultset: off
+    jdbc.resultsettable: off
+    jdbc.connection: off
+    log4jdbc: off
+    log4jdbc.sql: off
+
+---
+
+spring:
+  profiles: dev
+  servlet:
+    multipart:
+      location: { PATH }\temp
+
+  primary:
+    datasource:
+      driver-class-name: org.mariadb.jdbc.Driver
+      jdbc-url: { JDBC_URL }
+      username: { USERNAME }
+      password: { PASSWORD }
+  second:
+    datasource:
+      driver-class-name: org.mariadb.jdbc.Driver
+      jdbc-url: { JDBC_URL }
+      username: { USERNAME }
+      password: { PASSWORD }
+
+server:
+  port: { PORT }
+
+system:
+  upload-file-path: { PATH }\files
+  upload-file-url: /resource
+  limit-csv-row-count: 10000
+  dt-file-path: { PATH }\files\storage
+  dt-meta-file-path: { PATH }\files\storage
+  dt-etc-meta-file-path: { PATH }\files\storage
+  dt-api-url: { URL }
+  tmp-sample-data: { PATH }\files\TEST_FILE.csv
+  dt-meta-api-url: { URL }
+  dt-keti-api-url: { URL }
+  dt-api-key: { KEY }
+  dt-n2m-key: { KEY }
+  limit-make-model-cnt: 4
+
+logging:
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
+    file: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
+  #    file: "%d %-5level [%thread] %logger : %msg%n"
+  level:
+    root: info
+    jdbc: off
+    jdbc.sqlonly: debug
+    jdbc.sqltiming: off
+    jdbc.resultset: off
+    jdbc.resultsettable: off
+    jdbc.connection: off
+    log4jdbc: off
+    log4jdbc.sql: off
+---
+
+spring:
+  profiles: prod
+  servlet:
+    multipart:
+      location: { PATH }\temp
+
+  primary:
+    datasource:
+      driver-class-name: org.mariadb.jdbc.Driver
+      jdbc-url: { JDBC_URL }
+      username: { USERNAME }
+      password: { PASSWORD }
+  second:
+    datasource:
+      driver-class-name: org.mariadb.jdbc.Driver
+      jdbc-url: { JDBC_URL }
+      username: { USERNAME }
+      password: { PASSWORD }
+
+server:
+  port: { PORT }
+
+system:
+  upload-file-path: { PATH }\files
+  upload-file-url: /resource
+  limit-csv-row-count: 10000
+  dt-file-path: { PATH }\files\storage
+  dt-meta-file-path: { PATH }\files\storage
+  dt-etc-meta-file-path: { PATH }\files\storage
+  dt-api-url: { URL }
+  tmp-sample-data: { PATH }\files\TEST_FILE.csv
+  dt-meta-api-url: { URL }
+  dt-keti-api-url: { URL }
+  dt-api-key: { KEY }
+  dt-n2m-key: { KEY }
+  limit-make-model-cnt: 4
+
+logging:
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
+    file: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
+  #    file: "%d %-5level [%thread] %logger : %msg%n"
+  level:
+    root: info
+    jdbc: off
+    jdbc.sqlonly: debug
+    jdbc.sqltiming: off
+    jdbc.resultset: off
+    jdbc.resultsettable: off
+    jdbc.connection: off
+    log4jdbc: off
+    log4jdbc.sql: off

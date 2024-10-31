@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.stoneitgt.dt.data.platform.admin.mapper.ErrorMapper">
+	<insert id="saveErrorLog" parameterType="com.stoneitgt.dt.data.platform.domain.ErrorLog">
+		/* file : ErrorMapper.xml, id : saveErrorLog */
+		INSERT
+		  INTO TB_ERROR_LOG (
+		              MODEL_SEQ
+		            , AUGMENT_SEQ
+		            , ERR_TP
+		            , ERR_LCT
+		            , ERR_CN
+		            , ERR_NM
+		            , ERR_CD
+		            , REG_USER_SEQ
+		            , REG_IP
+		            )
+		       VALUES (
+		              #{modelSeq}
+		            , #{augmentSeq}
+		            , #{errTp}
+		            , #{errLct}
+		            , #{errCn}
+		            , #{errNm}
+		            , #{errCd}
+		            , #{loginUserSeq}
+		            , #{loginUserIp}
+		            )
+	</insert>
+	<select id="getErrorLog" resultType="com.stoneitgt.dt.data.platform.domain.ErrorLog">
+        SELECT *
+        FROM TB_ERROR_LOG
+        WHERE MODEL_SEQ = #{etcModelSeq}
+          AND ERR_LCT = #{ERROR_LCT}
+        ORDER BY REG_DT DESC
+        LIMIT 1
+    </select>
+</mapper>

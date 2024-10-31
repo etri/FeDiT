@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<th:block th:fragment="select_data">
+        <div class="row">
+			<div class="col-md-12 grid-margin stretch-card">
+				<div class="card">
+					<div class="card-body">
+						<th:block th:if="${formType == 'I'}">
+							<div class="form-group mb-0 row">
+								<div class="col-md-2">
+									<label class="col-form-label">데이터유형선택</label><br/>
+								</div>
+								<div class="col-md-10">
+		                            <div class="form-check form-check-inline">
+		                                <label class="form-check-label">
+		                                    <input type="radio" class="form-check-input" name="dataUseTp" value="F" data-label="공개" th:checked="*{dataUseTp == 'Y' or dataUseTp == null}">파일업로드
+		                                    <i class="input-frame"></i>
+		                                </label>
+		                            </div>								
+		                            <div class="form-check form-check-inline">
+		                                <label class="form-check-label">
+		                                <!--  th:checked="*{rlsYn == 'N' or rlsYn == null}" -->
+		                                    <input type="radio" class="form-check-input" name="dataUseTp" value="M" data-label="비공개" th:checked="*{dataUseTp == 'N'}">메타연계
+		                                    <i class="input-frame"></i>
+		                                </label>
+		                            </div>
+								</div>
+							</div>
+						</th:block>
+					</div>
+				</div>
+			</div>
+			
+			
+			<div class="col-md-12 grid-margin stretch-card">
+				<div class="card file-upload-data">
+					<div class="card-body">
+						<div class="form-group mb-0 row">
+							<div class="col-md-2">
+								<label class="col-form-label">사용자데이터</label>
+							</div>
+                                    <div class="col-md-10">
+                                        <th:block th:if="${not #lists.isEmpty(dataFileList)}" th:each="item : ${dataFileList}">
+                                            <div class="pt-2 attach-file">
+                                                <div class="input-group">
+                                                    <a th:href="@{|/file/download/dt/${item.file_seq}|}" class="file-download mt-1 mr-2" th:text="${item.strg_file_nm}">파일명</a>
+                                                    
+                                                    <span class="input-group-append">
+                                                        <!-- <button type="button" class="btn btn-danger btn-delete-file" th:data-file-seq="${item.file_seq}">삭제</button> -->
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </th:block>
+                                    
+                                        <div class="attach-file-group">
+                                            <!-- <div class="pt-2 attach-file" th:if="${#lists.isEmpty(fileList) || #lists.size(fileList) < 5}"> -->
+                                            <div class="pt-2 attach-file" th:if="${#lists.isEmpty(fileList)}">
+                                                <input type="file" name="attachFilesCsv" id="attachFilesCsv" class="file-upload-default">
+
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control file-upload-title" disabled="disabled" placeholder="">
+                                                    <span class="input-group-append">
+                                                        <button type="button" class="file-upload-browse btn btn-primary">파일선택</button>
+                                                        <!-- <button type="button" class="btn btn-danger btn-delete-upload ml-3">삭제</button> -->
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="text-danger mt-2">
+                                            <!-- 첨부파일은 한 파일당 100MB, 총 300MB까지 업로드 가능합니다. -->
+                                        </div>
+                                    </div>
+						</div>						
+					</div>
+					
+				</div>
+				
+				<div class="card meta-data">
+					<div class="card-body">
+						<div class="form-group mb-0 row">
+									<div class="col-md-2">
+										<label class="col-form-label">디지털트윈 목록 조회</label>
+									</div>
+                                    <div class="col-md-10">
+                                        <div class="form-group row">
+		                                    <!--
+		                                    <div class="col-md-2">
+		                                        <select class="form-control">
+		                                            <option value="model_nm">임시</option>
+		                                        </select>
+		                                    </div>
+		                                    -->
+		                                    <div class="col-md-10">
+		                                        <input type="text" id="meta_model_name" value="트윈" class="form-control" placeholder="검색어를 입력하세요">
+		                                    </div>
+		                                    <div class="col-md-2">
+				                                <button type="button" class="btn btn-primary mr-2 btn-icon-text btn-meta-search">
+				                                    <i class="btn-icon-prepend" data-feather="search"></i>조회
+				                                </button>
+		                                    </div>                                    
+                                        </div>
+                                       
+                                    </div>
+                                    
+                                   
+                                    <!--
+		                                <tr th:each="item, rows : ${list}" th:unless="${#lists.isEmpty(list)}">
+		                                    <td th:text="${total - rows.index}"></td>
+		                                    <td>
+		                                     	<a th:href="@{|/meta/${item.origin_meta_seq}?${pageParams}|}" class="btn-pop-artist" th:text="${item.sdt_nm}">제목</a>
+		                                     	<a th:text="${item.sdt_nm}">제목</a>
+		                                    </td>
+		                                    <td th:text="${item.sdt_data_url}"></td>
+		                                    <td><button type="button" class="btn btn-primary btn-icon btn-pop-api-view ml-1" th:data-meta-seq="${item.meta_seq}" style="width: 100px">상세보기</button></td>
+		                                </tr>                                    
+                                    -->
+						</div>						
+					</div>					
+					
+				</div>				
+			</div>				
+					
+		</div>
+							
+					
+		
+		
+</th:block>
+
+</html>

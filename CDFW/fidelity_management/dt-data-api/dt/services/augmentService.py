@@ -215,7 +215,7 @@ class augmentService(object):
             is_indpds = False
         
         modelArgs = ModelParameters(window_size=paramData['window_size'], batch_size=paramData['batch_size'], units=16, patience=10)
-        inputArgs = InputParameters(filepath=modelPath, filename=modelFile, output_cols=paramData['outputs'], feature_cols=paramData['features'], is_indpds=is_indpds, use_model_yn=paramData['use_model_yn'], real_time_yn=paramData['real_time_yn'], output_file=paramData['output_file'], target_start_date=paramData['target_start_date'], target_last_date=paramData['target_last_date'], resmpl_intvl_tp=paramData['resmpl_intvl_tp'], resmpl_intvl_value=paramData['resmpl_intvl_value'], index_column=paramData['index_column'])
+        inputArgs = InputParameters(filepath=modelPath, filename=modelFile, output_cols=paramData['outputs'], feature_cols=paramData['features'], is_indpds=is_indpds, use_model_yn=paramData['use_model_yn'], real_time_yn=paramData['real_time_yn'], output_file=paramData['output_file'], target_start_date=paramData['target_start_date'], target_last_date=paramData['target_last_date'], resmpl_intvl_tp=paramData['resmpl_intvl_tp'], resmpl_intvl_value=paramData['resmpl_intvl_value'], index_column=paramData['index_column'], trgt_col_list=paramData['trgt_col_list'])
     
         try:
             df=pd.read_csv(dataFile, header=0, index_col=paramData['index_column'], parse_dates=True)

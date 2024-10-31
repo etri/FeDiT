@@ -14,9 +14,14 @@ model_parameters = [
     'meterics',     #결과분석 유형
     'optimizer',    #성능옵션 
     'optimizer_lr', #성능옵션 lr
-    'data_size'     #FID 평가 데이터 수    
+    'data_size',     #FID 평가 데이터 수    
+    'n_estimator',     #생성할 트리의 개수(int, default=100)
+    'min_samples_leaf',       #노드를 분할하기 위해 리프 노드가 가져야 할 최소한의 샘플 개수(int or float, default=1)
+    'min_samples_split',      #노드를 분할하기 위해 필요한 최소한의 샘플 개수 (int or float, default=2)
+    'max_features',            #노드를 분할할 때 고려할 특성의 무작위 하위 집합의 크기. 회귀: {“sqrt”, “log2”, None}, int or float, default=1.0 분류: {“sqrt”, “log2”, None}, int or float, default="sqrt"
+    'max_depth',              #트리의 최대 깊이(int, default=None)
     ]
-model_parameters_value = [MD_TYPE.LSTM, 10, 32, 16, 0.2, 100, 10, MD_LOSS.MSE, MD_METRICS.MAE, MD_OTMZ.ADAM, 0.0005, 100]
+model_parameters_value = [MD_TYPE.LSTM, 10, 32, 16, 0.2, 100, 10, MD_LOSS.MSE, MD_METRICS.MAE, MD_OTMZ.ADAM, 0.0005, 100, 100, 1, 2, 1, None]
 ModelParameters = namedtuple('ModelParameters', model_parameters, defaults=model_parameters_value)
 
 #입력파라메터
@@ -34,7 +39,8 @@ input_parameters = [
     'target_last_date',
     'resmpl_intvl_tp',
     'resmpl_intvl_value',
-    'index_column'
+    'index_column',
+    'trgt_col_list'
     ]
-input_parameters_value = ['', '', [], [], False, 1, None, None, None, None, None, None, None, None]
+input_parameters_value = ['', '', [], [], False, 1, None, None, None, None, None, None, None, None, None]
 InputParameters = namedtuple('InputParameters', input_parameters, defaults=input_parameters_value)

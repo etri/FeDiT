@@ -1388,4 +1388,60 @@ class preProcessQuery():
             #소스디렉토리 삭제
             os.rmdir(os.path.dirname(source_path))
         except Exception as e:
-            print(f"파일 이동 및 이름 변경 실패: {e}")        
+            print(f"파일 이동 및 이름 변경 실패: {e}")
+
+
+
+    def metaTestListQuery(self, pageParam=None, search=None, sort=None):
+        '''
+        검증 값 설정 정보목록
+        '''
+        result = None
+
+        try:
+            queryData = '''
+                        SELECT 
+                            DATE_FORMAT(yyyymmdd, '%Y-%m-%d %H:%i:%s') yyyymmdd,
+                            m00,m10,m20,m30,m40,m50,m60,w00,w10,w20,w30,w40,w50,w60
+                        FROM TB_TWIN_001
+                       WHERE 1=1
+            '''            
+
+            #queryData = str.format(queryData, ('' if search==None else search), ('' if sort==None else sort))            
+            #pageData = Page.paging(pageParam)
+            #queryData = Page.makeQuery(queryData, pageData)
+
+            print(queryData)
+            result = self.query.select(queryData)
+        except Exception as e:
+            raise e  
+        
+        return result  
+    
+    def firstColumnSetDataQuery(self, pageParam=None, search=None, sort=None):
+        '''
+        사용자가 선택한 인덱스컬럼과 기간값으로 파일생성
+        '''
+        result = None
+
+        try:
+            queryData = '''
+                        SELECT 
+                            DATE_FORMAT(yyyymmdd, '%Y-%m-%d %H:%i:%s') yyyymmdd,
+                            m00,m10,m20,m30,m40,m50,m60,w00,w10,w20,w30,w40,w50,w60
+                        FROM TB_TWIN_001
+                       WHERE 1=1
+                         {0}
+                         {1}
+            '''            
+
+            queryData = str.format(queryData, ('' if search==None else search), ('' if sort==None else sort))            
+            #pageData = Page.paging(pageParam)
+            #queryData = Page.makeQuery(queryData, pageData)
+
+            print(queryData)
+            result = self.query.select(queryData)
+        except Exception as e:
+            raise e  
+        
+        return result            

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.stoneitgt.dt.data.platform.admin.mapper.VerifyMapper">
+
+	<select id="getVerifyMasterList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : VerifyMapper.xml, id : getVerifyMasterList */
+		  SELECT A.*
+		       , DATE_FORMAT(A.REG_DT, '%Y-%m-%d') AS REG_DT
+		    FROM TB_CODE_DTL A
+		   WHERE A.DEL_YN = 'N'
+		     AND A.GRP_CD='VERIFY_TYPE'		
+		ORDER BY ORDBY
+	/*||ORDER BY GRP_CD||*/
+	</select>
+
+	<select id="getVerifyMaster" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : VerifyMapper.xml, id : getVerifyMaster */
+		  SELECT A.*
+		    FROM TB_CODE_MST A
+		   WHERE A.DEL_YN = 'N'
+		     AND A.GRP_CD = #{grpCd}
+	</select>
+
+	<select id="getVerifyDetailList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : VerifyMapper.xml, id : getVerifyDetailList */
+		  SELECT A.*
+		       , DATE_FORMAT(A.REG_DT, '%Y-%m-%d') AS REG_DT
+		    FROM TB_DATA_VRFC A
+		   WHERE A.DEL_YN = 'N'
+		     AND A.VRFC_TP = #{dtlCd}
+		ORDER BY ORDBY
+	/*||ORDER BY ORDBY||*/
+	</select>
+
+	<select id="getVerifyDetail" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : VerifyMapper.xml, id : getVerifyDetail */
+		  SELECT A.*
+		    FROM TB_DATA_VRFC A
+		   WHERE A.DEL_YN = 'N'
+		     AND A.VRFC_SEQ = #{vrfcSeq}		     
+	</select>
+
+	<insert id="saveVerifyDetail" parameterType="com.stoneitgt.dt.data.platform.domain.Verify">
+		/* file : VerifyMapper.xml, id : saveVerifyDetail */
+		INSERT
+		  INTO TB_DATA_VRFC (
+		              VRFC_SEQ
+		            , VRFC_TP
+		            , VRFC_NM
+		            , RULE_VALUE_1
+		            , RULE_VALUE_2
+		            , RULE_VALUE_3
+		            , RULE_VALUE_4
+		            , ORDBY
+		            , USE_YN
+		            , REG_USER_SEQ
+		            , REG_IP)
+		       VALUES (
+		              #{vrfcSeq}
+		            , #{vrfcTp}
+		            , #{vrfcNm}
+		            , #{ruleValue1}
+		            , #{ruleValue2}
+		            , #{ruleValue3}
+		            , #{ruleValue4}
+		            , #{ordby}
+		            , #{useYn}
+		            , #{loginUserSeq}
+		            , #{loginUserIp})
+		     ON DUPLICATE KEY UPDATE VRFC_SEQ = #{vrfcSeq}
+		     , VRFC_TP						= #{vrfcTp}
+		     , VRFC_NM						= #{vrfcNm}
+		     , RULE_VALUE_1					= #{ruleValue1}
+		     , RULE_VALUE_2					= #{ruleValue2}
+		     , RULE_VALUE_3					= #{ruleValue3}
+		     , RULE_VALUE_4					= #{ruleValue4}		     
+		     , ORDBY                        = #{ordby}
+		     , USE_YN                       = #{useYn}
+		     , DEL_YN                       = 'N'
+		     , MDFCN_USER_SEQ               = #{loginUserSeq}
+		     , MDFCN_DT                     = CURRENT_TIMESTAMP
+		     , MDFCN_IP                     = #{loginUserIp}
+	</insert>
+
+	<update id="deleteVerifyDetail" parameterType="com.stoneitgt.dt.data.platform.domain.Verify" >
+		/* file : VerifyMapper.xml, id : deleteVerifyDetail */
+		  UPDATE TB_DATA_VRFC
+		     SET DEL_YN     = 'Y'
+		       , DEL_USER_SEQ = #{loginUserSeq}
+		       , DEL_DT     = CURRENT_TIMESTAMP
+		       , DEL_IP       = #{loginUserIp}
+		   WHERE VRFC_SEQ     = #{vrfcSeq}		     
+	</update>
+	
+	<select id="getVerifyOption" parameterType="int" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : VerifyMapper.xml, id : getVerifyOption */
+		SELECT VRFC_TP,VRFC_NM,RULE_VALUE_1,RULE_VALUE_2,RULE_VALUE_3,RULE_VALUE_4
+		  FROM TB_DATA_VRFC A
+		 WHERE A.DEL_YN = 'N'
+		   AND A.VRFC_SEQ = #{vrfcSeq}
+	</select>	
+	
+</mapper>
