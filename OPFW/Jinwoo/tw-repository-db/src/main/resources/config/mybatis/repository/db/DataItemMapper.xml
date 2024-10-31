@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="net.jw.twin.repository.db.dataItem.mapper.DataItemMapper">
+
+	<!--	 common 	-->
+    <sql id="sort">
+      <if test="null != sort and null != sortOrd"> order by ${sort} ${sortOrd}, id ${sortOrd} </if>
+    </sql>
+
+    <sql id="paging">
+      <if test="null != pagingYn and pagingYn == true" >
+        limit #{start}, #{length}
+      </if>
+    </sql>
+
+	<!--	 selectList 	-->
+	<select id="selectList" parameterType="dataItemSearch" resultType="dataItem">
+		select
+			*
+		from
+			data_item
+		<!--<where>-->
+			<!--<if test="null != id" >                       and id = #{id}                                     </if>-->
+			<!--<if test="null != type" >                     and type = #{type}                                 </if>-->
+			<!--<if test="null != name" >                     and name = #{name}                                 </if>-->
+			<!--<if test="null != category" >                 and category = #{category}                         </if>-->
+			<!--<if test="null != dataCode" >                 and data_code = #{dataCode}                        </if>-->
+			<!--<if test="null != status" >                   and status = #{status}                             </if>-->
+			<!--<if test="null != swaggerTagList" >           and swagger_tag_list = #{swaggerTagList}           </if>-->
+			<!--<if test="null != apiType" >                  and api_type = #{apiType}                          </if>-->
+			<!--<if test="null != dataFormat" >               and data_format = #{dataFormat}                    </if>-->
+			<!--<if test="null != serviceId" >                and service_id = #{serviceId}                      </if>-->
+			<!--<if test="null != externalUrl" >              and external_url = #{externalUrl}                  </if>-->
+			<!--<if test="null != restUrl" >                  and rest_url = #{restUrl}                          </if>-->
+			<!--<if test="null != restIp" >                   and rest_ip = #{restIp}                            </if>-->
+			<!--<if test="null != restPort" >                 and rest_port = #{restPort}                        </if>-->
+			<!--<if test="null != swaggerUrl" >               and swagger_url = #{swaggerUrl}                    </if>-->
+			<!--<if test="null != swaggerHomepath" >          and swagger_homepath = #{swaggerHomepath}          </if>-->
+			<!--<if test="null != provider" >                 and provider = #{provider}                         </if>-->
+			<!--<if test="null != institutionId" >            and institution_id = #{institutionId}              </if>-->
+			<!--<if test="null != manager" >                  and manager = #{manager}                           </if>-->
+			<!--<if test="null != managerPhoneNumber" >       and manager_phone_number = #{managerPhoneNumber}   </if>-->
+			<!--<if test="null != description" >              and description = #{description}                   </if>-->
+			<!--<if test="null != approvalTime" >             and approval_time = #{approvalTime}                </if>-->
+			<!--<if test="null != denialTime" >               and denial_time = #{denialTime}                    </if>-->
+			<!--<if test="null != deprecatedTime" >           and deprecated_time = #{deprecatedTime}            </if>-->
+			<!--<if test="null != currentCallCount" >         and current_call_count = #{currentCallCount}       </if>-->
+			<!--<if test="null != maxCallCount" >             and max_call_count = #{maxCallCount}               </if>-->
+			<!--<if test="null != regId" >                    and REG_ID = #{regId}                              </if>-->
+			<!--<if test="null != regDt" >                    and REG_DT = #{regDt}                              </if>-->
+			<!--<if test="null != delId" >                    and DEL_ID = #{delId}                              </if>-->
+			<!--<if test="null != delDt" >                    and DEL_DT = #{delDt}                              </if>-->
+		<!--</where>-->
+		<where>
+			DEL_DT IS NULL
+			<if test="null != id" >                           and id = #{id}                                    </if>
+			<if test="null != type" >                         and type = #{type}                                </if>
+			<if test="null != name" >                         and name like CONCAT('%', #{name}, '%')           </if>
+			<if test="null != category" >                     and category = #{category}                        </if>
+			<if test="null != dataCode" >                     and data_code = #{dataCode}                       </if>
+			<if test="null != status" >                       and status = #{status}                            </if>
+			<if test="null != serviceId" >                    and service_id = #{serviceId}                     </if>
+			<if test="null != provider" >                     and provider like CONCAT('%', #{provider}, '%')   </if>
+			<if test="null != institutionId" >                and institution_id = #{institutionId}             </if>
+			<if test="null != manager" >                      and manager like CONCAT('%', #{manager}, '%')     </if>
+			<if test="null != startDeprecatedTime" >          and deprecated_time <![CDATA[ >= ]]> #{startDeprecatedTime}</if>
+			<if test="null != endDeprecatedTime" >            and deprecated_time <![CDATA[ < ]]> #{endDeprecatedTime}</if>
+			<if test="null != regId" >                        and REG_ID = #{regId}                             </if>
+			<if test="null != startRegDt" >                   and REG_DT <![CDATA[ >= ]]> #{startRegDt}         </if>
+			<if test="null != endRegDt" >                     and REG_DT <![CDATA[ < ]]> #{endRegDt}            </if>
+		</where>
+		<!--		where	-->
+		<!--		DEL_ID IS NULL	-->
+		<include refid = "sort"/>
+		<include refid = "paging"/>
+	</select>
+
+	<!--	 selectListNullCheck 	-->
+	<select id="selectListNullCheck" parameterType="dataItemSearch" resultType="dataItem">
+		select
+			*
+		from
+			data_item
+		where
+			DEL_DT IS NULL
+			<foreach collection="isNotNull" item="value"
+					open="and (" separator="and " close=")">
+				${value} is not null
+			</foreach>
+			<foreach collection="isNull" item="value"
+					open="and (" separator="and " close=")">
+				${value} is null
+			</foreach>
+			<if test="null != id" >                           and id = #{id}                                    </if>
+			<if test="null != type" >                         and type = #{type}                                </if>
+			<if test="null != name" >                         and name like CONCAT('%', #{name}, '%')           </if>
+			<if test="null != category" >                     and category = #{category}                        </if>
+			<if test="null != dataCode" >                     and data_code = #{dataCode}                       </if>
+			<if test="null != status" >                       and status = #{status}                            </if>
+			<if test="null != serviceId" >                    and service_id = #{serviceId}                     </if>
+			<if test="null != provider" >                     and provider like CONCAT('%', #{provider}, '%')   </if>
+			<if test="null != institutionId" >                and institution_id = #{institutionId}             </if>
+			<if test="null != manager" >                      and manager like CONCAT('%', #{manager}, '%')     </if>
+			<if test="null != startDeprecatedTime" >          and deprecated_time <![CDATA[ >= ]]> #{startDeprecatedTime}</if>
+			<if test="null != endDeprecatedTime" >            and deprecated_time <![CDATA[ < ]]> #{endDeprecatedTime}</if>
+			<if test="null != regId" >                        and REG_ID = #{regId}                             </if>
+			<if test="null != startRegDt" >                   and REG_DT <![CDATA[ >= ]]> #{startRegDt}         </if>
+			<if test="null != endRegDt" >                     and REG_DT <![CDATA[ < ]]> #{endRegDt}            </if>
+		<!--		where	-->
+		<!--		DEL_ID IS NULL	-->
+		<include refid = "sort"/>
+		<include refid = "paging"/>
+	</select>
+
+	<!--	 select 	-->
+	<select id="select" parameterType="dataItemSearch" resultType="dataItem">
+		select
+			*
+		from
+			data_item
+		<where>
+			DEL_DT IS NULL
+			<if test="null != id" >                           and id = #{id}                                    </if>
+			<if test="null != type" >                         and type = #{type}                                </if>
+			<if test="null != name" >                         and name like CONCAT('%', #{name}, '%')           </if>
+			<if test="null != category" >                     and category = #{category}                        </if>
+			<if test="null != dataCode" >                     and data_code = #{dataCode}                       </if>
+			<if test="null != status" >                       and status = #{status}                            </if>
+			<if test="null != serviceId" >                    and service_id = #{serviceId}                     </if>
+			<if test="null != provider" >                     and provider like CONCAT('%', #{provider}, '%')   </if>
+			<if test="null != institutionId" >                and institution_id = #{institutionId}             </if>
+			<if test="null != manager" >                      and manager like CONCAT('%', #{manager}, '%')     </if>
+			<if test="null != startDeprecatedTime" >          and deprecated_time <![CDATA[ >= ]]> #{startDeprecatedTime}</if>
+			<if test="null != endDeprecatedTime" >            and deprecated_time <![CDATA[ < ]]> #{endDeprecatedTime}</if>
+			<if test="null != regId" >                        and REG_ID = #{regId}                             </if>
+			<if test="null != startRegDt" >                   and REG_DT <![CDATA[ >= ]]> #{startRegDt}         </if>
+			<if test="null != endRegDt" >                     and REG_DT <![CDATA[ < ]]> #{endRegDt}            </if>
+		</where>
+	</select>
+
+	<!--	 selectBy 	-->
+
+	<!--	 count 	-->
+	<select id="count" parameterType="dataItemSearch" resultType="java.lang.Integer">
+		select
+			COUNT( * )
+		from (
+				select 1 from data_item
+				<where>
+					DEL_DT IS NULL
+					<if test="null != id" >                           and id = #{id}                                    </if>
+					<if test="null != type" >                         and type = #{type}                                </if>
+					<if test="null != name" >                         and name like CONCAT('%', #{name}, '%')           </if>
+					<if test="null != category" >                     and category = #{category}                        </if>
+					<if test="null != dataCode" >                     and data_code = #{dataCode}                       </if>
+					<if test="null != status" >                       and status = #{status}                            </if>
+					<if test="null != serviceId" >                    and service_id = #{serviceId}                     </if>
+					<if test="null != provider" >                     and provider like CONCAT('%', #{provider}, '%')   </if>
+					<if test="null != institutionId" >                and institution_id = #{institutionId}             </if>
+					<if test="null != manager" >                      and manager like CONCAT('%', #{manager}, '%')     </if>
+					<if test="null != startDeprecatedTime" >          and deprecated_time <![CDATA[ >= ]]> #{startDeprecatedTime}</if>
+					<if test="null != endDeprecatedTime" >            and deprecated_time <![CDATA[ < ]]> #{endDeprecatedTime}</if>
+					<if test="null != regId" >                        and REG_ID = #{regId}                             </if>
+					<if test="null != startRegDt" >                   and REG_DT <![CDATA[ >= ]]> #{startRegDt}         </if>
+					<if test="null != endRegDt" >                     and REG_DT <![CDATA[ < ]]> #{endRegDt}            </if>
+				</where>
+				<include refid = "sort"/>
+				<include refid = "paging"/>
+		) t
+	</select>
+
+	<!--	 countNullCheck 	-->
+	<select id="countNullCheck" parameterType="dataItemSearch" resultType="java.lang.Integer">
+		select
+			COUNT( * )
+		from (
+				select 1 from data_item
+				where
+					DEL_DT IS NULL
+					<foreach collection="isNotNull" item="value"
+							open="and (" separator="and " close=")">
+						${value} is not null
+					</foreach>
+					<foreach collection="isNull" item="value"
+							open="and (" separator="and " close=")">
+						${value} is null
+					</foreach>
+					<if test="null != id" >                           and id = #{id}                                    </if>
+					<if test="null != type" >                         and type = #{type}                                </if>
+					<if test="null != name" >                         and name like CONCAT('%', #{name}, '%')           </if>
+					<if test="null != category" >                     and category = #{category}                        </if>
+					<if test="null != dataCode" >                     and data_code = #{dataCode}                       </if>
+					<if test="null != status" >                       and status = #{status}                            </if>
+					<if test="null != serviceId" >                    and service_id = #{serviceId}                     </if>
+					<if test="null != provider" >                     and provider like CONCAT('%', #{provider}, '%')   </if>
+					<if test="null != institutionId" >                and institution_id = #{institutionId}             </if>
+					<if test="null != manager" >                      and manager like CONCAT('%', #{manager}, '%')     </if>
+					<if test="null != startDeprecatedTime" >          and deprecated_time <![CDATA[ >= ]]> #{startDeprecatedTime}</if>
+					<if test="null != endDeprecatedTime" >            and deprecated_time <![CDATA[ < ]]> #{endDeprecatedTime}</if>
+					<if test="null != regId" >                        and REG_ID = #{regId}                             </if>
+					<if test="null != startRegDt" >                   and REG_DT <![CDATA[ >= ]]> #{startRegDt}         </if>
+					<if test="null != endRegDt" >                     and REG_DT <![CDATA[ < ]]> #{endRegDt}            </if>
+				<include refid = "sort"/>
+				<include refid = "paging"/>
+		) t
+	</select>
+
+	<!--	 insert 	-->
+	<insert id="insert" parameterType="dataItem" useGeneratedKeys="true" keyProperty="id">
+		insert data_item
+		<set>
+			REG_ID = #{regId},
+			REG_DT = SYSDATE(),
+			<if test="null != id" >                      id = #{id},                                   </if>
+			<if test="null != type" >                    type = #{type},                               </if>
+			<if test="null != name" >                    name = #{name},                               </if>
+			<if test="null != category" >                category = #{category},                       </if>
+			<if test="null != dataCode" >                data_code = #{dataCode},                      </if>
+			<if test="null != status" >                  status = #{status},                           </if>
+			<if test="null != swaggerTagList" >          swagger_tag_list = #{swaggerTagList},         </if>
+			<if test="null != apiType" >                 api_type = #{apiType},                        </if>
+			<if test="null != dataFormat" >              data_format = #{dataFormat},                  </if>
+			<if test="null != serviceId" >               service_id = #{serviceId},                    </if>
+			<if test="null != externalUrl" >             external_url = #{externalUrl},                </if>
+			<if test="null != restUrl" >                 rest_url = #{restUrl},                        </if>
+			<if test="null != restIp" >                  rest_ip = #{restIp},                          </if>
+			<if test="null != restPort" >                rest_port = #{restPort},                      </if>
+			<if test="null != swaggerUrl" >              swagger_url = #{swaggerUrl},                  </if>
+			<if test="null != swaggerHomepath" >         swagger_homepath = #{swaggerHomepath},        </if>
+			<if test="null != provider" >                provider = #{provider},                       </if>
+			<if test="null != institutionId" >           institution_id = #{institutionId},            </if>
+			<if test="null != manager" >                 manager = #{manager},                         </if>
+			<if test="null != managerPhoneNumber" >      manager_phone_number = #{managerPhoneNumber}, </if>
+			<if test="null != description" >             description = #{description},                 </if>
+			<if test="null != approvalTime" >            approval_time = #{approvalTime},              </if>
+			<if test="null != denialTime" >              denial_time = #{denialTime},                  </if>
+			<if test="null != deprecatedTime" >          deprecated_time = #{deprecatedTime},          </if>
+			<if test="null != currentCallCount" >        current_call_count = #{currentCallCount},     </if>
+			<if test="null != maxCallCount" >            max_call_count = #{maxCallCount},             </if>
+		</set>
+	</insert>
+
+	<!--	 update 	-->
+	<update id="update" parameterType="dataItem">
+		update data_item
+		<set>
+			<if test="null != type" >                    type = #{type},                              </if>
+			<if test="null != name" >                    name = #{name},                              </if>
+			<if test="null != category" >                category = #{category},                      </if>
+			<if test="null != dataCode" >                data_code = #{dataCode},                     </if>
+			<if test="null != status" >                  status = #{status},                          </if>
+			<if test="null != swaggerTagList" >          swagger_tag_list = #{swaggerTagList},        </if>
+			<if test="null != apiType" >                 api_type = #{apiType},                       </if>
+			<if test="null != dataFormat" >              data_format = #{dataFormat},                 </if>
+			<if test="null != serviceId" >               service_id = #{serviceId},                   </if>
+			<if test="null != externalUrl" >             external_url = #{externalUrl},               </if>
+			<if test="null != restUrl" >                 rest_url = #{restUrl},                       </if>
+			<if test="null != restIp" >                  rest_ip = #{restIp},                         </if>
+			<if test="null != restPort" >                rest_port = #{restPort},                     </if>
+			<if test="null != swaggerUrl" >              swagger_url = #{swaggerUrl},                 </if>
+			<if test="null != swaggerHomepath" >         swagger_homepath = #{swaggerHomepath},       </if>
+			<if test="null != provider" >                provider = #{provider},                      </if>
+			<if test="null != institutionId" >           institution_id = #{institutionId},           </if>
+			<if test="null != manager" >                 manager = #{manager},                        </if>
+			<if test="null != managerPhoneNumber" >      manager_phone_number = #{managerPhoneNumber},</if>
+			<if test="null != description" >             description = #{description},                </if>
+			<if test="null != approvalTime" >            approval_time = #{approvalTime},             </if>
+			<if test="null != denialTime" >              denial_time = #{denialTime},                 </if>
+			<if test="null != deprecatedTime" >          deprecated_time = #{deprecatedTime},         </if>
+			<if test="null != currentCallCount" >        current_call_count = #{currentCallCount},    </if>
+			<if test="null != maxCallCount" >            max_call_count = #{maxCallCount},            </if>
+			<if test="null != regDt" >                   REG_DT = #{regDt},                           </if>
+		</set>
+		<where>
+			<if test="null != id" >                           and id = #{id}                                    </if>
+		</where>
+	</update>
+
+	<!--	 delete 	-->
+	<update id="delete" parameterType="dataItem">
+		delete from data_item
+		<where>
+			<if test="null != id" >                           and id = #{id}                                    </if>
+		</where>
+	</update>
+
+	<!--	 deleteSoft 	-->
+	<update id="deleteSoft" parameterType="dataItem">
+		update data_item set 
+			DEL_ID = #{delId},
+			DEL_DT = SYSDATE()
+		<where>
+			<if test="null != id" >                           and id = #{id}                                    </if>
+		</where>
+	</update>
+
+	<!--	 etc 	-->
+	<insert id="insertList" parameterType="dataItem">
+		insert into data_item
+		(
+			id,
+			type,
+			name,
+			category,
+			data_code,
+			status,
+			swagger_tag_list,
+			api_type,
+			data_format,
+			service_id,
+			external_url,
+			rest_url,
+			rest_ip,
+			rest_port,
+			swagger_url,
+			swagger_homepath,
+			provider,
+			institution_id,
+			manager,
+			manager_phone_number,
+			description,
+			approval_time,
+			denial_time,
+			deprecated_time,
+			current_call_count,
+			max_call_count,
+			REG_ID,
+			REG_DT,
+			DEL_ID,
+			DEL_DT)
+		values
+		<foreach collection="list" item="item" separator=",">
+		(
+			#{item.id},
+			#{item.type},
+			#{item.name},
+			#{item.category},
+			#{item.dataCode},
+			#{item.status},
+			#{item.swaggerTagList},
+			#{item.apiType},
+			#{item.dataFormat},
+			#{item.serviceId},
+			#{item.externalUrl},
+			#{item.restUrl},
+			#{item.restIp},
+			#{item.restPort},
+			#{item.swaggerUrl},
+			#{item.swaggerHomepath},
+			#{item.provider},
+			#{item.institutionId},
+			#{item.manager},
+			#{item.managerPhoneNumber},
+			#{item.description},
+			#{item.approvalTime},
+			#{item.denialTime},
+			#{item.deprecatedTime},
+			#{item.currentCallCount},
+			#{item.maxCallCount},
+			#{item.regId},
+			#{item.regDt},
+			#{item.delId},
+			#{item.delDt})
+		</foreach>
+		on duplicate key update
+			id=values(id),
+			type=values(type),
+			name=values(name),
+			category=values(category),
+			data_code=values(data_code),
+			status=values(status),
+			swagger_tag_list=values(swagger_tag_list),
+			api_type=values(api_type),
+			data_format=values(data_format),
+			service_id=values(service_id),
+			external_url=values(external_url),
+			rest_url=values(rest_url),
+			rest_ip=values(rest_ip),
+			rest_port=values(rest_port),
+			swagger_url=values(swagger_url),
+			swagger_homepath=values(swagger_homepath),
+			provider=values(provider),
+			institution_id=values(institution_id),
+			manager=values(manager),
+			manager_phone_number=values(manager_phone_number),
+			description=values(description),
+			approval_time=values(approval_time),
+			denial_time=values(denial_time),
+			deprecated_time=values(deprecated_time),
+			current_call_count=values(current_call_count),
+			max_call_count=values(max_call_count),
+			REG_ID=values(REG_ID),
+			REG_DT=values(REG_DT),
+			DEL_ID=values(DEL_ID),
+			DEL_DT=values(DEL_DT)
+	</insert>
+</mapper>
