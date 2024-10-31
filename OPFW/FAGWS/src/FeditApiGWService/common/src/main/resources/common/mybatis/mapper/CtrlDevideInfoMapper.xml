@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.fedit.apiGateway.common.mapper.CtrlDeviceInfoMapper">
+  	
+ <select id="getCtrlDeviceInfoList" parameterType="Map" resultType="iitp.fedit.apiGateway.common.dto.CtrlDeviceInfo">
+	  	SELECT ctrl_device_id,
+			device_identifier,
+			device_type,
+			digital_twin_id,
+			digital_object_id,
+			protocol_type,
+			ipAddr,
+			port
+		FROM ctrl_device_info
+  		WHERE 1=1 AND device_status = 'Y'	
+  		 <if test="ctrlDeviceId != null">
+  			 AND ctrl_device_id = #{ctrlDeviceId}
+  		 </if>  		 
+  		 <if test="deviceIdentifier != null">
+  		 	AND device_identifier = #{deviceIdentifier}
+  		 </if>  
+  		 <if test="deviceType != null">
+  			 AND device_type = #{deviceType}
+  		 </if>		
+  		 <if test="digitalTwinId != null">
+  			 AND digital_twin_id = #{digitalTwinId}
+  		 </if>	 
+  		 <if test="digitalObjectId != null">
+  			 AND digital_object_id = #{digitalObjectId}
+  		 </if>	
+  		 <if test="protocolType != null">
+  			 AND protocol_type = #{protocolType}
+  		 </if>
+  		 <if test="ipAddr != null">
+  			 AND ipAddr = #{ipAddr}
+  		 </if>	
+  		ORDER BY ctrl_device_id
+  		 <if test="start != null">
+  		 	LIMIT #{start},#{end} 
+  		 </if>
+  	</select>
+  	
+  	<select id="getCtrlDeviceInfo" parameterType="Map" resultType="iitp.fedit.apiGateway.common.dto.CtrlDeviceInfo">  	
+	  	SELECT ctrl_device_id,
+			device_identifier,
+			device_type,
+			device_status,
+			digital_twin_id,
+			digital_object_id,
+			protocol_type,
+			ipAddr,
+			port
+		FROM ctrl_device_info
+  		WHERE 1=1 AND device_status = 'Y'	
+  		 <if test="ctrlDeviceId != null">
+  			 AND ctrl_device_id = #{ctrlDeviceId}
+  		 </if>  		 
+  		 <if test="deviceIdentifier != null">
+  		 	AND device_identifier = #{deviceIdentifier}
+  		 </if>  
+  		 <if test="deviceType != null">
+  			 AND device_type = #{deviceType}
+  		 </if>		
+  		 <if test="digitalTwinId != null">
+  			 AND digital_twin_id = #{digitalTwinId}
+  		 </if>	 
+  		 <if test="digitalObjectId != null">
+  			 AND digital_object_id = #{digitalObjectId}
+  		 </if>	
+  		 <if test="protocolType != null">
+  			 AND protocol_type = #{protocolType}
+  		 </if>
+  		 <if test="ipAddr != null">
+  			 AND ipAddr = #{ipAddr}
+  		 </if>
+  	</select>
+  	
+  	<insert id="insertCtrlDeviceInfo" parameterType="iitp.fedit.apiGateway.common.dto.CtrlDeviceInfo"
+  		useGeneratedKeys="true" keyColumn="ctrl_device_id" keyProperty="ctrlDeviceId">
+  		INSERT INTO ctrl_device_info
+			(			
+			device_identifier,
+			device_type,			
+	 		
+	 		<if test="digitalTwinId != null">
+		    	digital_twin_id,
+	 		</if>
+	 		<if test="digitalObjectId != null">
+		    	digital_object_id,
+	 		</if>		
+	 			
+			protocol_type,
+			ipAddr,
+			port,
+			updateDate    
+		   )
+			VALUES
+			(				
+				#{deviceIdentifier},
+				#{deviceType},
+				
+				<if test="digitalTwinId != null">
+			    	#{digitalTwinId},
+		 		</if>
+		 		<if test="digitalObjectId != null">
+			    	#{digitalObjectId},
+		 		</if>		
+				
+				#{protocolType},
+				#{ipAddr},
+				#{port},
+				NOW()
+		   )
+  	</insert>
+  	
+  	  <insert id="insertCtrlDeviceList" parameterType="iitp.fedit.apiGateway.common.dto.CtrlDeviceCmdExecReqResp"	 
+		useGeneratedKeys="true" keyColumn="ctrl_device_id" keyProperty="ctrlDeviceId">
+		<foreach collection="ctrlDeviceList" index="index" item="data" separator=";">
+   		INSERT INTO ctrl_device_info
+			(			
+			device_identifier,
+			device_type,			
+	 		<if test="data.digitalTwinId != null">
+		    	digital_twin_id,
+	 		</if>
+	 		<if test="data.digitalObjectId != null">
+		    	digital_object_id,
+	 		</if>		
+			protocol_type,
+			ipAddr,
+			port,
+			updateDate    
+		   )
+		VALUES 
+			(				
+			#{data.deviceIdentifier},
+			#{data.deviceType},
+			<if test="data.digitalTwinId != null">
+		    	#{data.digitalTwinId},
+	 		</if>
+	 		<if test="data.digitalObjectId != null">
+		    	#{data.digitalObjectId},
+	 		</if>		
+			#{data.protocolType},
+			#{data.ipAddr},
+			#{data.port},
+			NOW()
+	   		)
+		</foreach>
+	</insert>
+  	  	
+  	<update id="updateCtrlDeviceInfo" parameterType="iitp.fedit.apiGateway.common.dto.CtrlDeviceInfo">
+  		UPDATE ctrl_device_info
+			SET
+			<if test="deviceType != null">
+				device_type = #{deviceType},
+			</if>
+			<if test="digitalTwinId != null">
+				digital_twin_id = #{digitalTwinId},
+			</if>
+			<if test="digitalObjectId != null">
+				digital_object_id = #{digitalObjectId},
+			</if>
+			<if test="protocolType != null">
+				protocol_type = #{protocolType},
+			</if>
+			<if test="ipAddr != null">
+				ipAddr = #{ipAddr},
+			</if>
+			<if test="port != null">
+				port = #{port},
+			</if>
+			<if test="deviceStatus != null">
+				device_status = #{deviceStatus},
+			</if>				
+			updateDate = NOW()
+		WHERE
+		<choose>
+			<when test="ctrlDeviceId != null and deviceIdentifier == null">
+				ctrl_device_id = #{ctrlDeviceId}
+			</when>
+			<otherwise>
+				device_identifier = #{deviceIdentifier}
+			</otherwise>
+		</choose>			
+  	</update>
+  	
+  	<update id="updateCtrlDeviceInfoByParam" parameterType="map">
+  		UPDATE ctrl_device_info
+			SET
+			<if test="deviceType != null">
+				device_type = #{deviceType},
+			</if>
+			<if test="digitalTwinId != null">
+				digital_twin_id = #{digitalTwinId},
+			</if>
+			<if test="digitalObjectId != null">
+				digital_object_id = #{digitalObjectId},
+			</if>
+			<if test="protocolType != null">
+				protocol_type = #{protocolType},
+			</if>
+			<if test="ipAddr != null">
+				ipAddr = #{ipAddr},
+			</if>
+			<if test="port != null">
+				port = #{port},
+			</if>
+			<if test="deviceStatus != null">
+				device_status = #{deviceStatus},
+			</if>				
+			updateDate = NOW()
+		WHERE
+		<choose>
+			<when test="ctrlDeviceId != null and deviceIdentifier == null">
+				ctrl_device_id = #{ctrlDeviceId}
+			</when>
+			<otherwise>
+				device_identifier = #{deviceIdentifier}
+			</otherwise>
+		</choose>					
+  	</update>
+  	
+  	<delete id="deleteCtrlDeviceInfo" parameterType="iitp.fedit.apiGateway.common.dto.CtrlDeviceInfo">
+  		DELETE FROM ctrl_device_info
+		WHERE 
+			<choose>
+			<when test="ctrlDeviceId != null and deviceIdentifier == null">
+				ctrl_device_id = #{ctrlDeviceId}
+			</when>
+			<otherwise>
+				device_identifier = #{deviceIdentifier}
+			</otherwise>
+		</choose>			
+  	</delete>
+</mapper>
