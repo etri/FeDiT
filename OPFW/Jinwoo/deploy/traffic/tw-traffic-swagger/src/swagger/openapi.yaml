@@ -1,0 +1,43 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: 교통 트윈 api docs
+  description: 교통 트윈 api
+servers:
+  # - url: http://121.188.206.14:62002/v1
+  - url: http://192.168.62.152:8202/v1
+  # - url: http://localhost:8202/v1
+
+#/v1/road-operation-status
+#Paths api 경로 지정
+paths:
+  /measure-position:
+    $ref: './resources/measure-position.yaml'
+  /measure-position/type:
+    dbTableName: data_info
+    $ref: './resources/measure-position-type.yaml'
+  /measure-position/nodelinks/within-radius:
+    skipAutogen: true
+    $ref: './resources/measure-position-nodelinks-within-radius.yaml'
+  /airport-pax:
+    $ref: './resources/airport-pax.yaml'
+  /parking-lot:
+    $ref: './resources/parking-lot.yaml'
+  /parking_lot_status:
+    $ref: './resources/parking-lot-status.yaml'
+  /road-condition:
+    $ref: './resources/road-condition.yaml'
+  /road-operation-status:
+    $ref: './resources/road-operation-status.yaml'
+  /traffic:
+    $ref: './resources/traffic.yaml'
+  /vvms:
+    $ref: './resources/vvms.yaml'
+  /river-water-level-device:
+    $ref: './resources/river-water-level-device.yaml'
+  /river-water-level:
+    $ref: './resources/river-water-level.yaml'
+
+components:
+  parameters:
+    $ref: './parameters/_index.yaml'

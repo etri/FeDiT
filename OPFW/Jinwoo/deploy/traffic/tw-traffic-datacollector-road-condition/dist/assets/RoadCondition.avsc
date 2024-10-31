@@ -1,0 +1,66 @@
+{
+  "type" : "record",
+  "name" : "RoadCondition",
+  "namespace" : "net.jw.twin.db",
+  "fields" : [ {
+    "name" : "date_time",
+    "type" : [ "null", {
+      "type" : "long",
+      "logicalType" : "timestamp-millis"
+    } ],
+    "default": null
+  }, {
+    "name" : "measure_position_id",
+    "type" : [ "null", {
+      "type" : "long",
+      "java-class" : "java.lang.Long"
+    } ],
+    "default": null
+  }, {
+    "name" : "link_id",
+    "type" : [ "null", {
+      "type" : "long",
+      "java-class" : "java.lang.Long"
+    } ],
+    "default": null
+  }, {
+    "name" : "visibility",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ],
+    "default": null
+  }, {
+    "name" : "snow",
+    "type" : [ "null", {
+      "type" : "float",
+      "java-class" : "java.lang.Float"
+    } ],
+    "default": null
+  }, {
+    "name" : "road_temp",
+    "type" : [ "null", {
+      "type" : "float",
+      "java-class" : "java.lang.Float"
+    } ],
+    "default": null
+  }, {
+    "name" : "water_film",
+    "type" : [ "null", {
+      "type" : "float",
+      "java-class" : "java.lang.Float"
+    } ],
+    "default": null
+  }, {
+    "name" : "friction",
+    "type" : [ "null", {
+      "type" : "string",
+      "java-class" : "java.math.BigDecimal"
+    } ],
+    "default": null
+  }, {
+    "name" : "code",
+    "type" : [ "null", "string" ],
+    "default": null
+  } ]
+}

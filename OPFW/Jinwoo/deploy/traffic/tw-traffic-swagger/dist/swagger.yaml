@@ -1,0 +1,805 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: 교통 트윈 api docs
+  description: 교통 트윈 api
+servers:
+  # - url: 'http://192.168.62.152:8202/v1'
+    - url: 'http://localhost:8202/v1'
+paths:
+  /measure-position:
+    get:
+      tags:
+        - measure-position
+      summary: measure-position 정보 가져오기
+      parameters:
+        - $ref: '#/components/parameters/type'
+        - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/number_of_rows'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        type:
+                          type: string
+                        name:
+                          type: string
+                        latitude:
+                          type: integer
+                        longitude:
+                          type: integer
+                        district_code:
+                          type: string
+                        grid_x:
+                          type: integer
+                        grid_y:
+                          type: integer
+                        standard_link:
+                          type: integer
+        '500':
+          description: ERROR
+  /measure-position/type:
+    dbTableName: data_info
+    get:
+      tags:
+        - measure-position
+      summary: measure-position-type 정보 가져오기
+      parameters:
+        - $ref: '#/components/parameters/dataName'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/number_of_rows'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                        measure_position_id:
+                          type: string
+        '500':
+          description: ERROR
+  /measure-position/nodelinks/within-radius:
+    skipAutogen: true
+    get:
+      tags:
+        - measure-position
+      summary: '임의의 GPS 좌표의 점을 중심으로 반경(radius:meter단위)내의 nodelink 조회'
+      parameters:
+        - name: longitude
+          in: query
+          required: true
+          description: longitude
+          schema:
+            type: number
+        - name: latitude
+          in: query
+          required: true
+          description: latitude
+          schema:
+            type: number
+        - name: radius
+          in: query
+          required: true
+          description: 검색반경(meter)
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: integer
+        '500':
+          description: ERROR
+  /airport-pax:
+    get:
+      tags:
+        - airport-pax
+      summary: airport-pax 정보 가져오기
+      parameters:
+        - $ref: '#/components/parameters/start_date_time'
+        - $ref: '#/components/parameters/end_date_time'
+        - $ref: '#/components/parameters/measure_position_id'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/number_of_rows'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date_time:
+                          type: string
+                          dbDataType: timestamp
+                        measure_position_id:
+                          type: integer
+                        loc_out_pax:
+                          type: integer
+                        loc_in_pax:
+                          type: integer
+                        itn_out_pax:
+                          type: integer
+                        itn_in_pax:
+                          type: integer
+                        out_pax:
+                          type: integer
+                        in_pax:
+                          type: integer
+        '500':
+          description: ERROR
+  /parking-lot:
+    get:
+      tags:
+        - parking-lot
+      summary: parking-lot 정보 가져오기
+      parameters:
+        - name: parking_lot_id
+          in: query
+          required: false
+          description: parking_lot_id
+          schema:
+            type: string
+          dbfield: id
+        - name: name
+          in: query
+          required: false
+          description: name
+          schema:
+            type: string
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/number_of_rows'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                        addr:
+                          type: string
+                        x_crdn:
+                          type: float
+                          dbDataType: string
+                        y_crdn:
+                          type: float
+                          dbDataType: string
+                        park_day:
+                          type: string
+                        wkdy_start:
+                          type: string
+                        wkdy_end:
+                          type: string
+                        lhdy_start:
+                          type: string
+                        lhdy_end:
+                          type: string
+                        basic_time:
+                          type: integer
+                        basic_fare:
+                          type: integer
+                        add_time:
+                          type: integer
+                        add_fare:
+                          type: integer
+                        whol_npls:
+                          type: integer
+        '500':
+          description: ERROR
+  /parking_lot_status:
+    get:
+      tags:
+        - parking-lot-status
+      summary: parking-lot-status 정보 가져오기
+      parameters:
+        - $ref: '#/components/parameters/start_date_time'
+        - $ref: '#/components/parameters/end_date_time'
+        - $ref: '#/paths/~1parking-lot/get/parameters/0'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/number_of_rows'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date_time:
+                          type: string
+                          dbDataType: timestamp
+                          id:
+                            type: integer
+                          gnrl:
+                            type: integer
+                          lgvh:
+                            type: integer
+                          hvvh:
+                            type: integer
+                          emvh:
+                            type: integer
+                          hndc:
+                            type: integer
+                          wmon:
+                            type: integer
+                          etc:
+                            type: integer
+        '500':
+          description: ERROR
+  /road-condition:
+    get:
+      tags:
+        - road-condition
+      summary: road-condition 정보 가져오기
+      parameters:
+        - $ref: '#/components/parameters/start_date_time'
+        - $ref: '#/components/parameters/end_date_time'
+        - $ref: '#/components/parameters/measure_position_id'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/number_of_rows'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date_time:
+                          type: string
+                          dbDataType: timestamp
+                        measure_position_id:
+                          type: integer
+                        link_id:
+                          type: integer
+                        visibility:
+                          type: integer
+                        snow:
+                          type: float
+                        road_temp:
+                          type: float
+                        water_film:
+                          type: float
+                        friction:
+                          type: float
+                          dbDataType: string
+                        code:
+                          type: string
+        '500':
+          description: ERROR
+  /road-operation-status:
+    get:
+      tags:
+        - road-operation-status
+      summary: road-operation-status 정보 가져오기
+      parameters:
+        - $ref: '#/components/parameters/start_date_time'
+        - $ref: '#/components/parameters/end_date_time'
+        - $ref: '#/components/parameters/measure_position_id'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/number_of_rows'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date_time:
+                          type: string
+                          dbDataType: timestamp
+                        measure_position_id:
+                          type: integer
+                        event_id:
+                          type: string
+                        info_type:
+                          type: string
+                        latitude:
+                          type: float
+                          dbDataType: string
+                        longitude:
+                          type: float
+                          dbDataType: string
+                        direction:
+                          type: integer
+                        link_id:
+                          type: integer
+                        code:
+                          type: integer
+                        whole_lane:
+                          type: integer
+                        block_lane:
+                          type: string
+                        text:
+                          type: string
+        '500':
+          description: ERROR
+  /traffic:
+    get:
+      tags:
+        - traffic
+      summary: traffic 정보 가져오기
+      parameters:
+        - $ref: '#/components/parameters/start_date_time'
+        - $ref: '#/components/parameters/end_date_time'
+        - $ref: '#/components/parameters/measure_position_id'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/number_of_rows'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date_time:
+                          type: string
+                          dbDataType: timestamp
+                        measure_position_id:
+                          type: integer
+                        link_id:
+                          type: integer
+                        tfvl:
+                          type: integer
+                        trvl_hh:
+                          type: integer
+                        speed:
+                          type: integer
+        '500':
+          description: ERROR
+  /vvms:
+    get:
+      tags:
+        - vvms
+      summary: vvms 정보 가져오기
+      parameters:
+        - $ref: '#/components/parameters/start_date_time'
+        - $ref: '#/components/parameters/end_date_time'
+        - $ref: '#/components/parameters/measure_position_id'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/number_of_rows'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date_time:
+                          type: string
+                          dbDataType: timestamp
+                        measure_position_id:
+                          type: integer
+                        latitude:
+                          type: float
+                          dbDataType: string
+                        longitude:
+                          type: float
+                          dbDataType: string
+                        direction:
+                          type: integer
+                        link_id:
+                          type: integer
+                        intersection_type:
+                          type: string
+                        interscetion_shape:
+                          type: integer
+                        info:
+                          type: string
+        '500':
+          description: ERROR
+  /river-water-level-device:
+    get:
+      tags:
+        - river-water-level-device
+      summary: river-water-level-device 정보 가져오기
+      parameters:
+        - $ref: '#/paths/~1river-water-level/get/parameters/2'
+        - name: device_name
+          in: query
+          required: false
+          description: device_name
+          schema:
+            type: string
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/number_of_rows'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        device_id:
+                          type: integer
+                        device_name:
+                          type: string
+                        ip_addr:
+                          type: string
+                        port:
+                          type: integer
+                        address:
+                          type: string
+                        longtitude:
+                          type: string
+                          dbDataType: decimal
+                        latitude:
+                          type: string
+                          dbDataType: decimal
+                        lsysid:
+                          type: integer
+                        lrtuid:
+                          type: integer
+                        lgroupno:
+                          type: integer
+                        max_adjustment:
+                          type: integer
+                        min_adjustment:
+                          type: integer
+                        status:
+                          type: integer
+                        created_at:
+                          type: string
+                          dbDataType: timestamp
+                        updated_at:
+                          type: string
+                          dbDataType: timestamp
+                        deleted_at:
+                          type: string
+                          dbDataType: timestamp
+        '500':
+          description: ERROR
+  /river-water-level:
+    get:
+      tags:
+        - river-water-level
+      summary: river-water-level 정보 가져오기
+      parameters:
+        - name: start_measurement_date
+          in: query
+          required: true
+          description: 'start_measurement_date(yyyy-MM-dd HH:mm:ss)'
+          schema:
+            type: string
+          operator: $gte
+          dbfield: measurement_date
+        - name: end_measurement_date
+          in: query
+          required: true
+          description: 'end_measurement_date(yyyy-MM-dd HH:mm:ss)'
+          schema:
+            type: string
+          operator: $lte
+          dbfield: measurement_date
+        - name: device_id
+          in: query
+          required: false
+          description: device_id
+          schema:
+            type: string
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/number_of_rows'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        measurement_id:
+                          type: integer
+                        device_id:
+                          type: integer
+                        measurement_date:
+                          type: string
+                          dbDataType: timestamp
+                        min_adjustment:
+                          type: integer
+                        primary_value:
+                          type: string
+                          dbDataType: decimal
+                        secondary_value:
+                          type: string
+                          dbDataType: decimal
+                        third_value:
+                          type: string
+                          dbDataType: decimal
+                        quarternary_value:
+                          type: string
+                          dbDataType: decimal
+        '500':
+          description: ERROR
+components:
+  parameters:
+    start_date_time:
+      name: start_date_time
+      in: query
+      required: true
+      description: 'start_date_time(yyyy-MM-dd HH:mm:ss)'
+      schema:
+        type: string
+      operator: $gte
+      dbfield: date_time
+    end_date_time:
+      name: end_date_time
+      in: query
+      required: true
+      description: 'end_date_time(yyyy-MM-dd HH:mm:ss)'
+      schema:
+        type: string
+      operator: $lte
+      dbfield: date_time
+    measure_position_id:
+      name: measure_position_id
+      in: query
+      required: false
+      description: measure_position_id
+      schema:
+        type: string
+    page_number:
+      name: page_number
+      in: query
+      required: false
+      description: page_number
+      schema:
+        type: integer
+        default: 1
+    number_of_rows:
+      name: number_of_rows
+      in: query
+      required: false
+      description: number_of_rows
+      schema:
+        type: integer
+        default: 10
+    type:
+      name: type
+      in: query
+      required: false
+      description: type
+      schema:
+        type: string
+    id:
+      name: id
+      in: query
+      required: false
+      description: id
+      schema:
+        type: string
+    dataName:
+      name: dataName
+      in: query
+      required: false
+      description: dataName
+      schema:
+        type: string
+      dbfield: name

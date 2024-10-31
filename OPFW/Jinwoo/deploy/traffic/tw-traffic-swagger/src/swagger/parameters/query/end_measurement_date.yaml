@@ -1,0 +1,8 @@
+name: end_measurement_date
+in: query
+required: true
+description: end_measurement_date(yyyy-MM-dd HH:mm:ss)
+schema:
+  type: string
+operator: '$lte'
+dbfield: 'measurement_date'
