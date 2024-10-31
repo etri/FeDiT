@@ -1,0 +1,71 @@
+get:
+  tags: 
+    - air-quality
+  summary: air-quality 정보 가져오기
+  parameters:
+    - $ref: '../parameters/query/start_date_time.yaml'
+    - $ref: '../parameters/query/end_date_time.yaml'
+    - $ref: '../parameters/query/measure_position_id.yaml'
+    - $ref: '../parameters/query/page_number.yaml'
+    - $ref: '../parameters/query/number_of_rows.yaml'
+
+  responses:
+    200:
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              code:
+                type: integer
+              msg:
+                type: string
+              pageNumber:
+                type: integer
+              numberOfRows:
+                type: integer
+              totalCount:
+                type: integer
+              list:
+                type: array
+                items: 
+                  $ref: '../schemas/air-quality.yaml'
+
+          example:
+            {
+              "success": true,
+              "code": 0,
+              "msg": "성공하였습니다",
+              "total_count": 22,
+              "number_of_rows": 10,
+              "page_number": 1,
+              "list":
+                [
+                  {
+                    "date_time": "2024-04-17 00:00:00",
+                    "measure_position_id": 1,
+                    "so2_value": 0.002,
+                    "co_value": 0.3,
+                    "o3_value": 0.047,
+                    "no2_value": 0.011,
+                    "pm10_value": 105,
+                    "pm10_expected_value": 102,
+                    "pm25_value": 26,
+                    "pm25_expected_value": 28,
+                    "integrated_value": 146,
+                    "integrated_grade": 3,
+                    "so2_grade": 1,
+                    "co_grade": 1,
+                    "o3_grade": 2,
+                    "no2_grade": 1,
+                    "pm10_day_grade": 3,
+                    "pm25_day_grade": 2,
+                    "pm10_hour_grade": 3,
+                  },
+                ],
+            }
+    500:
+      description: ERROR

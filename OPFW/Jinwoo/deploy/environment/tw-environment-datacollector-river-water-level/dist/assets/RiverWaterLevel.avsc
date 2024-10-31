@@ -1,0 +1,54 @@
+{
+  "type" : "record",
+  "name" : "RiverWaterLevel",
+  "namespace" : "net.jw.twin.db",
+  "fields" : [ {
+    "name" : "measurement_id",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "device_id",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "measurement_date",
+    "type" : [ "null", {
+      "type" : "long",
+      "logicalType" : "timestamp-millis"
+    } ]
+  }, {
+    "name" : "min_adjustment",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "primary_value",
+    "type" : [ "null", {
+      "type" : "string",
+      "java-class" : "java.math.BigDecimal"
+    } ]
+  }, {
+    "name" : "secondary_value",
+    "type" : [ "null", {
+      "type" : "string",
+      "java-class" : "java.math.BigDecimal"
+    } ]
+  }, {
+    "name" : "third_value",
+    "type" : [ "null", {
+      "type" : "string",
+      "java-class" : "java.math.BigDecimal"
+    } ]
+  }, {
+    "name" : "quarternary_value",
+    "type" : [ "null", {
+      "type" : "string",
+      "java-class" : "java.math.BigDecimal"
+    } ]
+  } ]
+}

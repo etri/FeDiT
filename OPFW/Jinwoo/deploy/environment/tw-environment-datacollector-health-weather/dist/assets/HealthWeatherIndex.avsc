@@ -1,0 +1,39 @@
+{
+  "type" : "record",
+  "name" : "HealthWeatherIndex",
+  "namespace" : "net.jw.twin.db",
+  "fields" : [ {
+    "name" : "date_time",
+    "type" : [ "null", {
+      "type" : "long",
+      "logicalType" : "timestamp-millis"
+    } ]
+  }, {
+    "name" : "measure_position_id",
+    "type" : [ "null", {
+      "type" : "long",
+      "java-class" : "java.lang.Long"
+    } ]
+  }, {
+    "name" : "oak_pollen_index",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "pine_pollen_index",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "weeds_pollen_index",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "detail_code",
+    "type" : [ "null", "string" ]
+  } ]
+}

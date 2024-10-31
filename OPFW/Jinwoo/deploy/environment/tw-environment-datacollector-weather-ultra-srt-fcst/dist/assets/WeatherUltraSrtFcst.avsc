@@ -1,0 +1,72 @@
+{
+  "type" : "record",
+  "name" : "WeatherUltraSrtFcst",
+  "namespace" : "net.jw.twin.db",
+  "fields" : [ {
+    "name" : "date_time",
+    "type" : [ "null", {
+      "type" : "long",
+      "logicalType" : "timestamp-millis"
+    } ]
+  }, {
+    "name" : "measure_position_id",
+    "type" : [ "null", {
+      "type" : "long",
+      "java-class" : "java.lang.Long"
+    } ]
+  }, {
+    "name" : "temperature",
+    "type" : [ "null", {
+      "type" : "float",
+      "java-class" : "java.lang.Float"
+    } ]
+  }, {
+    "name" : "precipitation_one_hour",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "sky_status",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "humidity",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "rain_type",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "thunderstroke",
+    "type" : [ "null", {
+      "type" : "float",
+      "java-class" : "java.lang.Float"
+    } ]
+  }, {
+    "name" : "wind_direction",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "wind_speed",
+    "type" : [ "null", {
+      "type" : "float",
+      "java-class" : "java.lang.Float"
+    } ]
+  }, {
+    "name" : "wind_uuu",
+    "type" : [ "null", {
+      "type" : "float",
+      "java-class" : "java.lang.Float"
+    } ]
+  }, {
+    "name" : "wind_vvv",
+    "type" : [ "null", {
+      "type" : "float",
+      "java-class" : "java.lang.Float"
+    } ]
+  } ]
+}

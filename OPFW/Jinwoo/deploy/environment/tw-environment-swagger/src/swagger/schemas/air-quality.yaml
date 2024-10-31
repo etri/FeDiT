@@ -1,0 +1,41 @@
+type: object
+properties:
+  date_time:
+    type: string
+    dbDataType: timestamp
+  measure_position_id:
+    type: integer
+  so2_value:
+    type: number
+  co_value:
+    type: number
+  o3_value:
+    type: number
+  no2_value:
+    type: number
+  pm10_value:
+    type: integer
+  pm10_expected_value:
+    type: integer
+  pm25_value:
+    type: integer
+  pm25_expected_value:
+    type: integer
+  integrated_value:
+    type: integer
+  integrated_grade:
+    type: integer
+  so2_grade:
+    type: integer
+  co_grade:
+    type: integer
+  o3_grade:
+    type: integer
+  no2_grade:
+    type: integer
+  pm10_day_grade:
+    type: integer
+  pm25_day_grade:
+    type: integer
+  pm10_hour_grade:
+    type: integer
