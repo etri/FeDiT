@@ -10,7 +10,6 @@ build/
 
 lib/mobileOKManager-jdk1.8_1.0.1.jar
 
-/src/main/resources/config/properties/globals-secret.properties
 /src/main/resources/config/notCommit.properties
 /src/main/resources/static/
 **/node_modules
