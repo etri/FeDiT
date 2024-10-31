@@ -1,0 +1,37 @@
+get:
+  tags: 
+    - beach-weather
+  summary: beach-weather 정보 가져오기
+  parameters:
+    - $ref: '../parameters/query/start_date_time.yaml'
+    - $ref: '../parameters/query/end_date_time.yaml'
+    - $ref: '../parameters/query/measure_position_id.yaml'
+    - $ref: '../parameters/query/page_number.yaml'
+    - $ref: '../parameters/query/number_of_rows.yaml'
+
+  responses:
+    200:
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              code:
+                type: integer
+              msg:
+                type: string
+              pageNumber:
+                type: integer
+              numberOfRows:
+                type: integer
+              totalCount:
+                type: integer
+              list:
+                type: array
+                items: 
+                  $ref: '../schemas/beach-weather.yaml'
+    500:
+      description: ERROR

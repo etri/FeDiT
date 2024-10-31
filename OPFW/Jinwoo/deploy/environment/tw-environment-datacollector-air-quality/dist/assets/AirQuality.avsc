@@ -1,0 +1,164 @@
+{
+  "type" : "record",
+  "name" : "AirQuality",
+  "namespace" : "net.jw.twin.db",
+  "fields" : [ {
+    "name" : "date_time",
+    "type" : [ "null", {
+      "type" : "long",
+      "logicalType" : "timestamp-millis"
+    } ],
+    "default": null
+  }, {
+    "name" : "measure_position_id",
+    "type" : [ "null", {
+      "type" : "long",
+      "java-class" : "java.lang.Long"
+    } ],
+    "default": null
+  }, {
+    "name" : "so2_value",
+    "type" : [ "null", {
+      "type" : "float",
+      "java-class" : "java.lang.Float"
+    } ],
+    "default": null
+  }, {
+    "name" : "co_value",
+    "type" : [ "null", {
+      "type" : "float",
+      "java-class" : "java.lang.Float"
+    } ],
+    "default": null
+  }, {
+    "name" : "o3_value",
+    "type" : [ "null", {
+      "type" : "float",
+      "java-class" : "java.lang.Float"
+    } ],
+    "default": null
+  }, {
+    "name" : "no2_value",
+    "type" : [ "null", {
+      "type" : "float",
+      "java-class" : "java.lang.Float"
+    } ],
+    "default": null
+  }, {
+    "name" : "pm10_value",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ],
+    "default": null
+  }, {
+    "name" : "pm10_expected_value",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ],
+    "default": null
+  }, {
+    "name" : "pm25_value",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ],
+    "default": null
+  }, {
+    "name" : "pm25_expected_value",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ],
+    "default": null
+  }, {
+    "name" : "integrated_value",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ],
+    "default": null
+  }, {
+    "name" : "integrated_grade",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ],
+    "default": null
+  }, {
+    "name" : "so2_grade",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ],
+    "default": null
+  }, {
+    "name" : "co_grade",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ],
+    "default": null
+  }, {
+    "name" : "o3_grade",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ],
+    "default": null
+  }, {
+    "name" : "no2_grade",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ],
+    "default": null
+  }, {
+    "name" : "pm10_day_grade",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ],
+    "default": null
+  }, {
+    "name" : "pm25_day_grade",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ],
+    "default": null
+  }, {
+    "name" : "pm10_hour_grade",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ],
+    "default": null
+  }, {
+    "name" : "pm25_hour_grade",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ],
+    "default": null
+  }, {
+    "name" : "so2_flag",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "co_flag",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "o3_flag",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "no2_flag",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "pm10_flag",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "pm25_flag",
+    "type" : [ "null", "string" ]
+  } ]
+}

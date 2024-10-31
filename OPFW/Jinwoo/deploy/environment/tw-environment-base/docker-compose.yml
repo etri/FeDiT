@@ -1,0 +1,73 @@
+version: "3.7"
+services:
+  tw-environment-db-poc1-mariadb:
+    build:
+      context: ./
+      dockerfile: ./docker-excluded/db/Dockerfile
+    volumes:
+      # - ./docker-bind/init-data/db/config/conf.d:/etc/mariadb/conf.d:ro
+      - ./docker-bind/generated-data/db/mysql:/var/lib/mysql
+      - ./docker-bind/init-data/db/dump_poc1_init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "${MARIADB_HOST_PORT}:3306"
+    restart: always
+    environment:
+      ALLOW_EMPTY_PASSWORD: no
+      TZ: "Asia/Seoul"
+      MARIADB_DATABASE: poc1
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+    hostname: tw-environment-db-poc1-mariadb
+    # command: --lower_case_table_names=1
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MARIADB_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  tw-environment-data-interface:
+    image: twin-ubuntu22-openjdk17
+    build:
+      context: ./docker-excluded/tw-data-interface
+      dockerfile: Dockerfile
+      args:
+      - APP_NAME=${TW_DATA_INTERFACE__APP_NAME}
+      - WORKDIR=${TW_DATA_INTERFACE__WORK_DIR}
+    privileged: true
+    hostname: tw-data-interface
+    volumes:
+      - type: bind
+        source: ./docker-bind/generated-data/logs/${TW_DATA_INTERFACE__APP_NAME}
+        target: ${TW_DATA_INTERFACE__WORK_DIR}/logs
+      - type: bind
+        source: ./docker-bind/init-data/${TW_DATA_INTERFACE__APP_NAME}/svc
+        target: ${TW_DATA_INTERFACE__WORK_DIR}/svc
+    # ports:
+    #   - "${TW_DATA_INTERFACE__CONTAINER_SERVICE_PORT}:${TW_DATA_INTERFACE__CONTAINER_SERVICE_PORT}"
+    #   - "${TW_DATA_INTERFACE__SERVICE_SSH_PORT}:22"
+    environment:
+      - APP_NAME=${TW_DATA_INTERFACE__APP_NAME}
+      - TZ=Asia/Seoul
+      - JAVA_OPTIONS=
+        -Dserver-port=${TW_DATA_INTERFACE__CONTAINER_SERVICE_PORT}
+        -Dprod-jdbc-socket-address=tw-environment-db-poc1-mariadb:3306
+        -Dspring.profiles.active=prod
+        -XX:NativeMemoryTracking=summary
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        ${TW_DATA_INTERFACE__WORK_DIR}/entrypoint.sh
+    tty: true
+    depends_on:
+      tw-environment-db-poc1-mariadb:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+
+networks:
+  default:
+    name: network-tw-environment-base
+    external: true

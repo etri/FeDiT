@@ -1,0 +1,37 @@
+{
+  "name": "swagger-rest-template",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc && tsc-alias",
+    "prod": "cross-env NODE_ENV=production node ./dist/src/app.js",
+    "prod.pm2": "cross-env NODE_ENV=production pm2 start ecosystem.config.js --env production",
+    "prod.pm2.docker": "pm2-runtime start ecosystem.config.js --env production",
+    "dev": "cross-env NODE_ENV=development node ./dist/src/app.js",
+    "dev.watch": "cross-env NODE_ENV=development tsc-watch --onSuccess \"node ./dist/src/app.js\"",
+    "install.pm2": "pm2 install pm2-logrotate",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.8",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-async-handler": "^1.2.0",
+    "reflect-metadata": "^0.2.2",
+    "winston": "^3.13.0",
+    "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "cross-env": "^7.0.3",
+    "tsc-alias": "^1.8.8",
+    "tsc-watch": "^6.2.0",
+    "typescript": "^5.4.5"
+  }
+}
