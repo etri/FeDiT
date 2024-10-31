@@ -91,17 +91,11 @@ public class EventEndDateScheduleProcess implements Runnable {
 			if (trackingProcessInfo != null) {
 				JSONObject json = new JSONObject();
 
-				logger.info("topic : {}",
-						trackingProcessInfo.getTrackingKafkaTopic() != null
-						? trackingProcessInfo.getTrackingKafkaTopic()
-								: trackingProcessInfo.getFederatedTwinId());
+				logger.info("topic : {}", trackingProcessInfo.getTrackingKafkaTopic() != null ? trackingProcessInfo.getTrackingKafkaTopic() : trackingProcessInfo.getFederatedTwinId());
 				logger.info("requestTrackingId : {}", trackingProcessInfo.getRequestTrackingId());
 				logger.info("trackingProcessId : {}", trackingProcessInfo.getTrackingProcessId());
 
-				json.put("topic",
-						trackingProcessInfo.getTrackingKafkaTopic() != null
-						? trackingProcessInfo.getTrackingKafkaTopic()
-								: trackingProcessInfo.getFederatedTwinId());
+				json.put("topic", trackingProcessInfo.getTrackingKafkaTopic() != null ? trackingProcessInfo.getTrackingKafkaTopic() : trackingProcessInfo.getFederatedTwinId());
 				json.put("requestTrackingId", trackingProcessInfo.getRequestTrackingId());
 				json.put("trackingProcessId", trackingProcessInfo.getTrackingProcessId());
 
@@ -111,8 +105,7 @@ public class EventEndDateScheduleProcess implements Runnable {
 
 			if (trackingProcessInfo != null) {
 				// 완료나 에러상태가 아니라면 완료상태로 업데이트
-				if (!Constant.TRCK_PROC_STATUS_COMPLETE.equals(trackingProcessInfo.getTrackingStatus())
-						&& !Constant.TRCK_PROC_STATUS_ERROR.equals(trackingProcessInfo.getTrackingStatus())) {
+				if (!Constant.TRCK_PROC_STATUS_COMPLETE.equals(trackingProcessInfo.getTrackingStatus()) && !Constant.TRCK_PROC_STATUS_ERROR.equals(trackingProcessInfo.getTrackingStatus())) {
 					// 상태정보 업데이트 확인 및 변경
 					// 트래킹 프로세스 상태정보 변경 : 스케줄에 의한 완료 상태로 변경처리
 					pMap.put("trackingStatus", Constant.TRCK_PROC_STATUS_COMPLETE);

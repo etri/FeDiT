@@ -48,7 +48,6 @@ public class RabbitMQConfig {
    */
   @Bean
   public Queue queue() {
-//	  return new Queue(controlQueueName, true, true, true);
     return new Queue(queueName, true, true, true);
   }
 

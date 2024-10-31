@@ -11,8 +11,6 @@ import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
-import org.apache.hc.core5.http.io.entity.StringEntity;
-import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,10 +78,6 @@ public class ResCmdProduceScheduler {
 						trck.setReqTrackingCmd(list.get(i).getReqTrackingCmd());
 						trck.setReqTrckCmdStatus(list.get(i).getReqTrckCmdStatus());
 						try {
-							//int count = dataEventTrackingRequestService.transmissionProcess(msa);
-						//	if (count < 1)
-						//		throw new Exception("******* process Error *******");
-						//	logger.info(Thread.currentThread().getName() + " - updateTaskSending count: " + count);
 						} catch (Exception e) {
 							logger.error("Error Message : {} "+ e);
 						}

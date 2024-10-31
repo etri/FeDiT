@@ -76,7 +76,6 @@ public class DatabaseConfigHikari {
 		if (classPath == null || "".equals(classPath))
 			return null;
 
-		// split classPath
 		String[] paths = classPath.split(",");
 
 		ArrayList<Resource> resList = new ArrayList<Resource>();

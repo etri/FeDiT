@@ -27,10 +27,8 @@ public class RabbitMQDynComponent {
 	@Autowired
 	ApplicationContext ctx;
 
-	//	@Value("${rabbitmq.exchange.name}")
 	private String exchangeName;
 
-	//	  @Value("${rabbitmq.routing.key}")
 	public String routingKey;
 
 	public String queueName;
@@ -45,9 +43,6 @@ public class RabbitMQDynComponent {
 	private MessageConverter jackson2JsonMessageConverter;
 
 	@Autowired
-	private TopicExchange exchange;
-
-	@Autowired
 	public RabbitTemplate rabbitTemplate;
 
 
@@ -57,8 +52,6 @@ public class RabbitMQDynComponent {
 		this.queueName = queueName;
 
 		Queue queue = new Queue(queueName, true, false, false);
-
-		//        Binding binding = BindingBuilder.bind(queue).to(exchange).with(routingKey);
 
 		Binding binding = new Binding(
 				queueName,
@@ -72,7 +65,6 @@ public class RabbitMQDynComponent {
 	}
 
 	public MessageListenerAdapter listenerAdapter() {
-		//RabbitMQDynComponent 내부의 receiveMessage 메소드를 Listener로 등록하는 절차 
 		MessageListenerAdapter listenerAdapter = new MessageListenerAdapter(this, "receiveMessage");
 		listenerAdapter.setDefaultListenerMethod("receiveMessage");
 		listenerAdapter.setMessageConverter(jackson2JsonMessageConverter);
@@ -103,9 +95,6 @@ public class RabbitMQDynComponent {
 		rabbitTemplate.convertAndSend(exchangeName, sendRoutingKey, json);
 	}
 
-	//RabbitMQDynComponent Queue Listener로 생성됨.
-	public void receiveMessage(JSONObject json) {
-		//	  public void handleMessage(JSONObject json) {
-		System.out.println("Received message: "+json.toString());
+	public void receiveMessage(JSONObject json) {	
 	}
 }

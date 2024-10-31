@@ -1,22 +1,15 @@
 package iitp.federatedTwins.DtEvtTracking.trackEntTrigger.task;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.apache.hc.client5.http.classic.methods.HttpPost;
-import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.core5.http.HttpEntity;
-import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
-import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.slf4j.Logger;
@@ -99,7 +92,6 @@ public class DtEvtTrackingTask implements Runnable {
 			
 			EventOccuredInfo eventInfo = eventOccuredInfoMapper.getEventOccuredInfo(map);
 
-			// 보낼 때 json 형태로 결과랑 날짜 같이 보내기
 			HttpPost httpPost = new HttpPost(dataEventTrackingRequestInfo.getResultCallbackUrl());
 			httpPost.addHeader("User-Agent", "Mozila/5.0");
 			httpPost.addHeader("Content-Type", "application/json");

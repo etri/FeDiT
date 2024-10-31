@@ -76,28 +76,24 @@ public class DataTrackingTaskProcessServiceImpl implements DataTrackingTaskProce
 		TrackingProcessInfo prdInfo = null;
 
 		if ("OC".equals(map.get("mode"))) {
-			log.info("DataTrackingTaskProcess mode OC - requestId, processId ==> " + map.get("requestTrackingId") + " : "
-					+ map.get("trackingProcessId"));
+			log.info("DataTrackingTaskProcess mode OC - requestId, processId ==> " + map.get("requestTrackingId") + " : " + map.get("trackingProcessId"));
 			prdInfo = trackingDataSubscriberService.getTrackingProcessInfo(map);
 
 			if (prdInfo != null) {
 				map.put("detectRecordStartId", prdInfo.getDetectRecordStartId());
 				map.put("detectRecordEndId", prdInfo.getDetectRecordEndId());
 
-				log.info("DataTrackingTaskProcess mode OC - Start run() ==> " + prdInfo.getDetectRecordStartId() + " : "
-						+ prdInfo.getDetectRecordEndId());
+				log.info("DataTrackingTaskProcess mode OC - Start run() ==> " + prdInfo.getDetectRecordStartId() + " : " + prdInfo.getDetectRecordEndId());
 			}
 		} else {
-			log.info("DataTrackingTaskProcess mode ED - requestId, processId   ===>  " + map.get("requestTrackingId") + " : "
-					+ map.get("trackingProcessId"));
+			log.info("DataTrackingTaskProcess mode ED - requestId, processId   ===>  " + map.get("requestTrackingId") + " : " + map.get("trackingProcessId"));
 			prdInfo = trackingDataSubscriberService.getDataTrackingDelayProcessInfo(map);
 
 			if (prdInfo != null) {
 				map.put("detectRecordStartId", prdInfo.getDetectRecordStartId());
 				map.put("detectRecordEndId", prdInfo.getDetectRecordEndId());
 
-				log.info("DataTrackingTaskProcess mode ED - Start run() ==> " + prdInfo.getDetectRecordStartId() + " : "
-						+ prdInfo.getDetectRecordEndId());
+				log.info("DataTrackingTaskProcess mode ED - Start run() ==> " + prdInfo.getDetectRecordStartId() + " : "  + prdInfo.getDetectRecordEndId());
 			}
 		}
 
@@ -108,8 +104,7 @@ public class DataTrackingTaskProcessServiceImpl implements DataTrackingTaskProce
 
 			if (prdInfo.getEventOccurredCount() > 0 && prdInfo.getEventOccurredCount() <= prdInfo.getEventTotalCnt()) {
 				JSONObject json = new JSONObject();
-				json.put("topic", prdInfo.getTrackingKafkaTopic() != null ? prdInfo.getTrackingKafkaTopic()
-						: prdInfo.getFederatedTwinId());
+				json.put("topic", prdInfo.getTrackingKafkaTopic() != null ? prdInfo.getTrackingKafkaTopic() : prdInfo.getFederatedTwinId());
 				json.put("requestTrackingId", prdInfo.getRequestTrackingId());
 				json.put("trackingProcessId", prdInfo.getTrackingProcessId());
 				sendRabbitMq(json, RabbitMQConstant.RABBITMQ_ROUTING_KEY_PUB_TOPIC_DELETE);
@@ -120,8 +115,7 @@ public class DataTrackingTaskProcessServiceImpl implements DataTrackingTaskProce
 				if (schFuture != null) {
 					schFuture.cancel(true);
 					schFuture = null;
-					dataScheduledFutureInfo.remove(String.valueOf(prdInfo.getRequestTrackingId())
-							+ String.valueOf(prdInfo.getTrackingProcessId()));
+					dataScheduledFutureInfo.remove(String.valueOf(prdInfo.getRequestTrackingId()) + String.valueOf(prdInfo.getTrackingProcessId()));
 				}
 			} else {
 
@@ -165,10 +159,7 @@ public class DataTrackingTaskProcessServiceImpl implements DataTrackingTaskProce
 					HashMap<String, Object> recordParam = new HashMap<>();
 					recordParam.put("detectorProcId", trackingDectorProc.getDetectorProcId());
 					recordParam.put("detectedStatus", Constant.TRCK_DECTOR_STATUS_COMPLETE);
-					recordParam.put("trackingResultValue",
-							trackingResponseRecord != null && trackingResponseRecord.getTotalReceiveVal() != null
-							? trackingResponseRecord.getTotalReceiveVal()
-									: "-");
+					recordParam.put("trackingResultValue", trackingResponseRecord != null && trackingResponseRecord.getTotalReceiveVal() != null ? trackingResponseRecord.getTotalReceiveVal() : "-");
 
 					trackingDectorProcInfoMapper.updateTrackingDectorProcByParam(recordParam);
 
@@ -251,20 +242,17 @@ public class DataTrackingTaskProcessServiceImpl implements DataTrackingTaskProce
 
 			if (prdInfo.getEventOccurredCount() > 0 && prdInfo.getEventOccurredCount() <= prdInfo.getEventTotalCnt()) {
 				JSONObject json = new JSONObject();
-				json.put("topic", prdInfo.getTrackingKafkaTopic() != null ? prdInfo.getTrackingKafkaTopic()
-						: prdInfo.getFederatedTwinId());
+				json.put("topic", prdInfo.getTrackingKafkaTopic() != null ? prdInfo.getTrackingKafkaTopic() : prdInfo.getFederatedTwinId());
 				json.put("requestTrackingId", prdInfo.getRequestTrackingId());
 				json.put("trackingProcessId", prdInfo.getTrackingProcessId());
 				sendRabbitMq(json, RabbitMQConstant.RABBITMQ_ROUTING_KEY_PUB_TOPIC_DELETE);
 
-				ScheduledFuture schFuture = eventScheduledFutureInfo.get(String.valueOf(prdInfo.getRequestTrackingId())
-						+ String.valueOf(prdInfo.getTrackingProcessId()));
+				ScheduledFuture schFuture = eventScheduledFutureInfo.get(String.valueOf(prdInfo.getRequestTrackingId()) + String.valueOf(prdInfo.getTrackingProcessId()));
 
 				if (schFuture != null) {
 					schFuture.cancel(true);
 					schFuture = null;
-					eventScheduledFutureInfo.remove(String.valueOf(prdInfo.getRequestTrackingId())
-							+ String.valueOf(prdInfo.getTrackingProcessId()));
+					eventScheduledFutureInfo.remove(String.valueOf(prdInfo.getRequestTrackingId()) + String.valueOf(prdInfo.getTrackingProcessId()));
 				}
 			} else {
 
@@ -294,8 +282,7 @@ public class DataTrackingTaskProcessServiceImpl implements DataTrackingTaskProce
 							itfr.put("trackingProcessIdentifier", arr.get(i));
 
 							// 현재 식별자(프로세스) 정보의 응답값 조회
-							TrackingResponseDataInfo trackingResponseDataInfo = trackingTaskInfoMapper
-									.getTrackingResData(itfr);
+							TrackingResponseDataInfo trackingResponseDataInfo = trackingTaskInfoMapper.getTrackingResData(itfr);
 							if (trackingResponseDataInfo != null) {
 								item.add(trackingResponseDataInfo.getResultValue());
 							}
@@ -307,9 +294,7 @@ public class DataTrackingTaskProcessServiceImpl implements DataTrackingTaskProce
 								// 트래킹 프로세스 조회 및 식별자 셋팅
 								TrackingProcessInfo dtTrckInfo = trackingProcessInfoMapper.getTrackingProcessInfo(itfr);
 								rtnJson.put("trckPrcIdtifier", dtTrckInfo.getTrckPrcIdtifier());
-								rtnJson.put("trckValue",
-										trackingResponseDataInfo != null ? trackingResponseDataInfo.getResultValue()
-												: "-");
+								rtnJson.put("trckValue",trackingResponseDataInfo != null ? trackingResponseDataInfo.getResultValue() : "-");
 
 								rtnArr.add(rtnJson);
 							}
@@ -319,7 +304,7 @@ public class DataTrackingTaskProcessServiceImpl implements DataTrackingTaskProce
 
 						String logicalExpr = this.madeToContentsValidParam(prdInfo.getEventCondition(), param);
 						JSONObject json = new JSONObject();
-						JSONObject evntCondition = new JSONObject();
+						JSONObject evntCondition = new JSONObject();			
 						JSONObject json2 = new JSONObject();
 						JSONParser parser = new JSONParser();
 
@@ -340,9 +325,6 @@ public class DataTrackingTaskProcessServiceImpl implements DataTrackingTaskProce
 						evntCondition.put("evntCondition", checkExpr);
 
 						resultVal = evntCondition.toJSONString();
-
-						// 이벤트가 발생했을때만 이벤트를 발생하려 했지만 실패의 정보도 전송하는 것이 일관성측면에서 좋을 것으로 판단됨.
-						//poc를 위해 발생했을 때만 이벤트를 발생하는 것으로 수정
 
 						// 완료 업데이트
 						HashMap<String, Object> dectParam = new HashMap<>();
@@ -370,7 +352,6 @@ public class DataTrackingTaskProcessServiceImpl implements DataTrackingTaskProce
 							sendRabbitMq(json, RabbitMQConstant.RABBITMQ_ROUTING_KEY_TGR_EVENT_TRANSMIT);
 
 
-							//사용한 데이터 트래킹 값을 초기화 시킨다.
 							log.info(" 이벤트 트래킹 이후 trackingProcessIdentifier 값 초기화  >>>>>>>");
 
 							for (int i = 0; i < arr.size(); i++) {
@@ -421,8 +402,7 @@ public class DataTrackingTaskProcessServiceImpl implements DataTrackingTaskProce
 				log.info("procLogicalExpression procBool : {}", procBool);
 			}
 		} catch (Exception e) {
-			log.error("Error Message : {}", e);
-			System.out.println(String.format("ScriptException while running js code: {}", ""));
+			log.error("Error Message : {}", e);			
 			procBool = false;
 		}
 

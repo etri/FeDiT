@@ -48,8 +48,7 @@ public class DataTrackingTaskProcess implements Runnable {
 		if ("OC".equals(mode)) {
 			param.put("startId", startId);
 			param.put("endId", endId);
-			logger.info("DataTrackingTaskProcess mode OC - Start run() ==> " + resId + " : " + proId + " : " + startId
-					+ " : " + endId);
+			logger.info("DataTrackingTaskProcess mode OC - Start run() ==> " + resId + " : " + proId + " : " + startId + " : " + endId);
 		}
 
 		try {

@@ -35,7 +35,7 @@ public class KafkaScheduler {
 	private final Logger logger = LoggerFactory.getLogger(KafkaScheduler.class);
 
 	// 0.5초마다
-//	@Scheduled(initialDelay = 10000, fixedRate = 10000)
+	//	@Scheduled(initialDelay = 10000, fixedRate = 10000)
 	public String execCtrlCmdStsCheckerScheduler() throws Exception {
 		logger.info("execCtrlCmdStsCheckerScheduler Current Thread : {}", Thread.currentThread().getName());
 		logger.info("execCtrlCmdStsCheckerScheduler => Start Time : " + LocalTime.now());
@@ -55,7 +55,7 @@ public class KafkaScheduler {
 		int result = 0;
 		try {
 			// listener 목록 가져오기
-//			List<HashMap<String, String>> listenerList = kafkaListenerAutomation.searchListener();
+			//			List<HashMap<String, String>> listenerList = kafkaListenerAutomation.searchListener();
 
 			Collection<KafkaConsumer> consumerList = kafkaConsumerinfo.values();
 			logger.info("listenerList Size : {}", consumerList.size());
@@ -94,48 +94,6 @@ public class KafkaScheduler {
 				for (String listenerId : delListner)
 					kafkaListenerAutomation.deleteListener(listenerId);
 			}
-
-			// 추가할 목록 확인
-			// DB에 있으면서 리스너로 생성이 안된 목록을 생성
-			// 디비에 있는 정보를 활용하여 생성되지 않은 리스너를 생성한다.
-//			ArrayList<TrackingTopicInfo> addListner = new ArrayList<TrackingTopicInfo>();
-//			boolean check = false;
-//			if (topicList != null && !topicList.isEmpty() && check) {
-//				
-//				//DB에 있는 토픽정보가 리스너로 생성되어 있는지 확인하는 작업을 진행
-//				for(TrackingTopicInfo topicInfo:topicList) {						
-//					
-//					//생성된 리스너 정보가 DB정보 없다면 삭제 목록으로 관리되어 이후 삭제처리 해야 한다.
-//					boolean checkB = false;
-//					if (consumerList != null && !consumerList.isEmpty()) {
-//						for(KafkaConsumer consumer:consumerList) {					
-//							//기존 생성된 정보와 같은지 확인					
-//							if(consumer.topic.equals(topicInfo.getTopicName()) && consumer.proId.equals(topicInfo.getTrackingProcessId()) && consumer.resId.equals(topicInfo.getRequestTrackingId())) {												
-//								checkB = true;
-//								break;
-//							}	
-//						}					
-//					}
-//					
-//					if(!checkB) {
-//						addListner.add(topicInfo);
-//					}					
-//				}
-//				
-//				//신규 생성처리
-//				for(TrackingTopicInfo topic:addListner) {
-//					String topics = topic.getTopicName();
-//					
-//					String csmId = String.valueOf(System.currentTimeMillis());
-//					
-//					String resId = String.valueOf(topic.getRequestTrackingId());
-//					String proId = String.valueOf(topic.getTrackingProcessId());
-//					
-//					KafkaConsumer consumer = (KafkaConsumer) ctx.getBean(KafkaConsumer.class, csmId, topics, "tracking", resId, proId);
-//					
-//					kafkaConsumerinfo.put(csmId, consumer);
-//				}
-//			}
 
 		} catch (Exception e) {
 			result = 0;

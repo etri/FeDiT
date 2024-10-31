@@ -24,9 +24,6 @@ public class ThreadPoolConfig {
 		executor.setCorePoolSize(100);
 		executor.setMaxPoolSize(200);
 		executor.setQueueCapacity(100);
-		// executor.setKeepAliveSeconds(5);
-		// executor.setRejectedExecutionHandler(new
-		// ThreadPoolExecutor.DiscardOldestPolicy());
 		executor.setWaitForTasksToCompleteOnShutdown(true);
 		executor.setAwaitTerminationSeconds(30);
 		executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
@@ -59,10 +56,8 @@ public class ThreadPoolConfig {
 	@Bean(name = "poolHttpClientConnManager")
 	public PoolingHttpClientConnectionManager poolHttpClientConnectManager() {
 		PoolingHttpClientConnectionManager httpCnnMananger = new PoolingHttpClientConnectionManager();
-		// defalut : 20
 		httpCnnMananger.setMaxTotal(100);
 
-		// defalut : 2
 		httpCnnMananger.setDefaultMaxPerRoute(10);
 
 		return httpCnnMananger;

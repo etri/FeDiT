@@ -23,8 +23,6 @@ public class HttpCiientConfig {
 		executor.setCorePoolSize(100);
 		executor.setMaxPoolSize(200);		
 		executor.setQueueCapacity(100);
-		//		executor.setKeepAliveSeconds(5);
-		//		executor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardOldestPolicy()); 
 		executor.setWaitForTasksToCompleteOnShutdown(true);
 		executor.setAwaitTerminationSeconds(30);
 		executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());		
@@ -46,10 +44,9 @@ public class HttpCiientConfig {
 	@Bean(name="poolHttpClientConnManager") 
 	public PoolingHttpClientConnectionManager poolHttpClientConnectManager() {
 		PoolingHttpClientConnectionManager httpCnnMananger = new PoolingHttpClientConnectionManager();		
-		// defalut : 20
+		
 		httpCnnMananger.setMaxTotal(100);
 
-		// defalut : 2
 		httpCnnMananger.setDefaultMaxPerRoute(10);
 
 		return httpCnnMananger;
@@ -71,7 +68,7 @@ public class HttpCiientConfig {
 		RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectTimeout(connTimeOut*1000, TimeUnit.MILLISECONDS)
 				.setConnectionRequestTimeout(requestTimeOut*1000, TimeUnit.MILLISECONDS)
-                .build();		
+				.build();		
 		
 		return HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).setConnectionManager(cm).build();
 	}

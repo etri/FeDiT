@@ -303,9 +303,7 @@ public class TrackingCmdValidator {
 													if (!expression.get("ctrlStatement").equals("")) {
 
 														ctrlStatement = (String) expression.get("ctrlStatement");
-														resultData.put("data", ctrlStatement);
-														System.out.println(
-																"ctrlStatement >>>>>>>>>>>>>>>>>>>>" + ctrlStatement);
+														resultData.put("data", ctrlStatement);														
 
 													} else {
 														throw new Exception(

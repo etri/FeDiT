@@ -18,14 +18,12 @@ public class TrckCmdStsCheckerScheduler {
 
 	private final Logger logger = LoggerFactory.getLogger(TrckCmdStsCheckerScheduler.class);
 
-	// 3초마다
 	@Scheduled(initialDelay = 60000, fixedRate = 30000)
 	public String execTrckErrStsCheckScheduler() throws Exception {
 		logger.info("exec Tracing Error Status CheckerScheduler Current Thread : {}", Thread.currentThread().getName());
 		logger.info("exec Tracing Error Status CheckerScheduler => Start Time : " + LocalTime.now());
 
 		try {
-			// 상태 체크
 			trackCmdStsCheckerService.checkTopicErrStatus();
 
 		} catch (Exception e) {
@@ -37,7 +35,6 @@ public class TrckCmdStsCheckerScheduler {
 		return "success";
 	}
 
-	// 3초마다
 	@Scheduled(initialDelay = 30000, fixedRate = 10000)
 	public String execTrckForceKilledStsCheckScheduler() throws Exception {
 		logger.info("exec Tracing Force Killed Status CheckerScheduler Current Thread : {}",
@@ -57,14 +54,12 @@ public class TrckCmdStsCheckerScheduler {
 		return "success";
 	}
 
-	// 3초마다
 	@Scheduled(initialDelay = 60000, fixedRate = 10000)
 	public String execTrckTimeOutCheckScheduler() throws Exception {
 		logger.info("exec Tracing TimeOut CheckerScheduler Current Thread : {}", Thread.currentThread().getName());
 		logger.info("exec Tracing TimeOut Status CheckerScheduler => Start Time : " + LocalTime.now());
 
 		try {
-			// 에러 업데이트 처리
 			trackCmdStsCheckerService.checkTimeOutStatus();
 		} catch (Exception e) {
 			e.printStackTrace();

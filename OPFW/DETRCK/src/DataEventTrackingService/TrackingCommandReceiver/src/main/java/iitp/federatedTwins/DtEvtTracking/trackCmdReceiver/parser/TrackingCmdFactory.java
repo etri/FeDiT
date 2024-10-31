@@ -62,8 +62,6 @@ public class TrackingCmdFactory {
 		trckCmd.put("evntDelay", trckProcess.getEvntDelay());
 		procInfo.setTrackingCommand(trckCmd.toJSONString());
 
-//		procInfo.setTrackingKafkaGroup(trckProcess.getTrckPrcIdtifier());
-		
 
 		procInfo.setEventCondition(trckProcess.getEvntCondition());
 		procInfo.setEventOccurredCount(trckProcess.getEvntOccrCnt());
