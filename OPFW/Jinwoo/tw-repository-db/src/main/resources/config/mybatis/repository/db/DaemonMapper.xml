@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="net.jw.twin.repository.db.daemon.mapper.DaemonMapper">
+
+	<!--	 common 	-->
+    <sql id="sort">
+      <if test="null != sort and null != sortOrd"> order by ${sort} ${sortOrd}, id ${sortOrd} </if>
+    </sql>
+
+    <sql id="paging">
+      <if test="null != pagingYn and pagingYn == true" >
+        limit #{start}, #{length}
+      </if>
+    </sql>
+
+	<!--	 selectList 	-->
+	<select id="selectList" parameterType="daemonSearch" resultType="daemon">
+		select
+			*
+		from
+			daemon
+		<!--<where>-->
+			<!--<if test="null != id" >                       and id = #{id}                                     </if>-->
+			<!--<if test="null != dtype" >                    and dtype = #{dtype}                               </if>-->
+			<!--<if test="null != name" >                     and name = #{name}                                 </if>-->
+			<!--<if test="null != label" >                    and label = #{label}                               </if>-->
+			<!--<if test="null != useMetricMemory" >          and use_metric_memory = #{useMetricMemory}         </if>-->
+			<!--<if test="null != cronPattern" >              and cron_pattern = #{cronPattern}                  </if>-->
+			<!--<if test="null != apiUrl" >                   and api_url = #{apiUrl}                            </if>-->
+		<!--</where>-->
+		<where>
+			<if test="null != id" >                           and id = #{id}                                    </if>
+			<if test="null != dtype" >                        and dtype = #{dtype}                              </if>
+			<if test="null != name" >                         and name like CONCAT('%', #{name}, '%')           </if>
+			<if test="null != label" >                        and label like CONCAT('%', #{label}, '%')         </if>
+			<if test="null != useMetricMemory" >              and use_metric_memory = #{useMetricMemory}        </if>
+		</where>
+		<!--		where	-->
+		<!--		DEL_ID IS NULL	-->
+		<include refid = "sort"/>
+		<include refid = "paging"/>
+	</select>
+
+	<!--	 selectListNullCheck 	-->
+	<select id="selectListNullCheck" parameterType="daemonSearch" resultType="daemon">
+		select
+			*
+		from
+			daemon
+		where
+			1
+			<foreach collection="isNotNull" item="value"
+					open="and (" separator="and " close=")">
+				${value} is not null
+			</foreach>
+			<foreach collection="isNull" item="value"
+					open="and (" separator="and " close=")">
+				${value} is null
+			</foreach>
+			<if test="null != id" >                           and id = #{id}                                    </if>
+			<if test="null != dtype" >                        and dtype = #{dtype}                              </if>
+			<if test="null != name" >                         and name like CONCAT('%', #{name}, '%')           </if>
+			<if test="null != label" >                        and label like CONCAT('%', #{label}, '%')         </if>
+			<if test="null != useMetricMemory" >              and use_metric_memory = #{useMetricMemory}        </if>
+		<!--		where	-->
+		<!--		DEL_ID IS NULL	-->
+		<include refid = "sort"/>
+		<include refid = "paging"/>
+	</select>
+
+	<!--	 select 	-->
+	<select id="select" parameterType="daemonSearch" resultType="daemon">
+		select
+			*
+		from
+			daemon
+		<where>
+			<if test="null != id" >                           and id = #{id}                                    </if>
+			<if test="null != dtype" >                        and dtype = #{dtype}                              </if>
+			<if test="null != name" >                         and name like CONCAT('%', #{name}, '%')           </if>
+			<if test="null != label" >                        and label like CONCAT('%', #{label}, '%')         </if>
+			<if test="null != useMetricMemory" >              and use_metric_memory = #{useMetricMemory}        </if>
+		</where>
+	</select>
+
+	<!--	 selectBy 	-->
+
+	<!--	 count 	-->
+	<select id="count" parameterType="daemonSearch" resultType="java.lang.Integer">
+		select
+			COUNT( * )
+		from (
+				select 1 from daemon
+				<where>
+					<if test="null != id" >                           and id = #{id}                                    </if>
+					<if test="null != dtype" >                        and dtype = #{dtype}                              </if>
+					<if test="null != name" >                         and name like CONCAT('%', #{name}, '%')           </if>
+					<if test="null != label" >                        and label like CONCAT('%', #{label}, '%')         </if>
+					<if test="null != useMetricMemory" >              and use_metric_memory = #{useMetricMemory}        </if>
+				</where>
+				<include refid = "sort"/>
+				<include refid = "paging"/>
+		) t
+	</select>
+
+	<!--	 countNullCheck 	-->
+	<select id="countNullCheck" parameterType="daemonSearch" resultType="java.lang.Integer">
+		select
+			COUNT( * )
+		from (
+				select 1 from daemon
+				where
+					1
+					<foreach collection="isNotNull" item="value"
+							open="and (" separator="and " close=")">
+						${value} is not null
+					</foreach>
+					<foreach collection="isNull" item="value"
+							open="and (" separator="and " close=")">
+						${value} is null
+					</foreach>
+					<if test="null != id" >                           and id = #{id}                                    </if>
+					<if test="null != dtype" >                        and dtype = #{dtype}                              </if>
+					<if test="null != name" >                         and name like CONCAT('%', #{name}, '%')           </if>
+					<if test="null != label" >                        and label like CONCAT('%', #{label}, '%')         </if>
+					<if test="null != useMetricMemory" >              and use_metric_memory = #{useMetricMemory}        </if>
+				<include refid = "sort"/>
+				<include refid = "paging"/>
+		) t
+	</select>
+
+	<!--	 insert 	-->
+	<insert id="insert" parameterType="daemon" useGeneratedKeys="true" keyProperty="id">
+		insert daemon
+		<set>
+			<if test="null != id" >                      id = #{id},                                   </if>
+			<if test="null != dtype" >                   dtype = #{dtype},                             </if>
+			<if test="null != name" >                    name = #{name},                               </if>
+			<if test="null != label" >                   label = #{label},                             </if>
+			<if test="null != useMetricMemory" >         use_metric_memory = #{useMetricMemory},       </if>
+			<if test="null != cronPattern" >             cron_pattern = #{cronPattern},                </if>
+			<if test="null != apiUrl" >                  api_url = #{apiUrl},                          </if>
+		</set>
+	</insert>
+
+	<!--	 update 	-->
+	<update id="update" parameterType="daemon">
+		update daemon
+		<set>
+			<if test="null != dtype" >                   dtype = #{dtype},                            </if>
+			<if test="null != name" >                    name = #{name},                              </if>
+			<if test="null != label" >                   label = #{label},                            </if>
+			<if test="null != useMetricMemory" >         use_metric_memory = #{useMetricMemory},      </if>
+			<if test="null != cronPattern" >             cron_pattern = #{cronPattern},               </if>
+			<if test="null != apiUrl" >                  api_url = #{apiUrl},                         </if>
+		</set>
+		<where>
+			<if test="null != id" >                           and id = #{id}                                    </if>
+		</where>
+	</update>
+
+	<!--	 delete 	-->
+	<update id="delete" parameterType="daemon">
+		delete from daemon
+		<where>
+			<if test="null != id" >                           and id = #{id}                                    </if>
+		</where>
+	</update>
+
+	<!--	 etc 	-->
+	<insert id="insertList" parameterType="daemon">
+		insert into daemon
+		(
+			id,
+			dtype,
+			name,
+			label,
+			use_metric_memory,
+			cron_pattern,
+			api_url)
+		values
+		<foreach collection="list" item="item" separator=",">
+		(
+			#{item.id},
+			#{item.dtype},
+			#{item.name},
+			#{item.label},
+			#{item.useMetricMemory},
+			#{item.cronPattern},
+			#{item.apiUrl})
+		</foreach>
+		on duplicate key update
+			id=values(id),
+			dtype=values(dtype),
+			name=values(name),
+			label=values(label),
+			use_metric_memory=values(use_metric_memory),
+			cron_pattern=values(cron_pattern),
+			api_url=values(api_url)
+	</insert>
+</mapper>
