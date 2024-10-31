@@ -1,0 +1,20 @@
+type: object
+properties:
+  id: 
+    type: integer
+  type:
+    type: string
+  name:
+    type: string
+  latitude: 
+    type: integer
+  longitude:
+    type: integer
+  district_code:
+    type: string
+  grid_x:
+    type: integer
+  grid_y:
+    type: integer
+  standard_link:
+    type: integer
