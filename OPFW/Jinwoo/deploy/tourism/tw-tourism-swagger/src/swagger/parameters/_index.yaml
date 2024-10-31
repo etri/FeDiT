@@ -1,0 +1,23 @@
+start_date_time:
+  $ref: './query/start_date_time.yaml'
+
+end_date_time:
+  $ref: './query/end_date_time.yaml'
+
+measure_position_id:
+  $ref: './query/measure_position_id.yaml'
+
+page_number:
+  $ref: './query/page_number.yaml'
+
+number_of_rows:
+  $ref: './query/number_of_rows.yaml'
+
+type:
+  $ref: './query/type.yaml'
+
+id:
+  $ref: './query/id.yaml'
+
+dataName:
+  $ref: './query/dataName.yaml'

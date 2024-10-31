@@ -1,0 +1,7 @@
+name: parking_lot_id
+in: query
+required: false
+description: parking_lot_id
+schema:
+  type: string
+dbfield: id

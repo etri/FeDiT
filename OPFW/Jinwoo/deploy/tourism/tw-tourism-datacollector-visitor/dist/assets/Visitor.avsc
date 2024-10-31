@@ -1,0 +1,18 @@
+{
+  "type" : "record",
+  "name" : "Visitor",
+  "namespace" : "net.jw.twin.db",
+  "fields" : [ {
+    "name" : "date_time",
+    "type" : [ "null", {
+      "type" : "long",
+      "logicalType" : "timestamp-millis"
+    } ]
+  }, {
+    "name" : "visitjeju_id",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "s2graph",
+    "type" : [ "null", "string" ]
+  } ]
+}

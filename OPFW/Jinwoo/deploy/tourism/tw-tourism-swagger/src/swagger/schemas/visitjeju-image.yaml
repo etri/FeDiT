@@ -1,0 +1,16 @@
+type: object
+properties:
+  id:
+    type: integer
+  file_item_id:
+    type: integer
+  license:
+    type: string
+  width:
+    type: integer
+  height:
+    type: integer
+  size:
+    type: integer
+  label:
+    type: string
