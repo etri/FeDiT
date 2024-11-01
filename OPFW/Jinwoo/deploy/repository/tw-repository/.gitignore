@@ -1,3 +1,4 @@
 /docker-bind/generated-data/
 /docker-bind/init-data/tw-repository/svc/webapps/
+/docker-bind/init-data/tw-repository/svc/secrets/
 .env
