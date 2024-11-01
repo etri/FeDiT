@@ -72,6 +72,6 @@ services:
 
 
 networks:
-  network-tw-environment-base:
-    driver: bridge
+  default:
     name: network-tw-environment-base
+    external: true
