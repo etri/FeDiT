@@ -28,7 +28,9 @@ services:
 
   tw-repository:
     container_name: tw-repository
-    image: tomcat:8.5.78-jre8-openjdk
+    build:
+      context: .
+      dockerfile: ./docker-excluded/tw-repository/Dockerfile
     ports:
       - "${TW_REPOSITORY__HOST_SERVICE_PORT}:8080"
     environment:
@@ -49,9 +51,13 @@ services:
       - type: bind
         source: ./docker-bind/generated-data/files
         target: /jw/files
-    #      - /build/libs/tw-repository-web-1.0-SNAPSHOT.war:/usr/local/tomcat/webapps/ROOT.war
-    restart: "always"
-    #    command: tail -f /dev/null
+    #restart: "always"
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        ./entrypoint.sh
+    #privileged: true
+    tty: true
     depends_on:
       tw-repository-db-mariadb:
         condition: service_healthy
