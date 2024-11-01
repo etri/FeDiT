@@ -11,8 +11,6 @@ services:
     ports:
       - "${MARIADB_HOST_PORT}:3306"
     restart: always
-    networks:
-      - network-tw-environment-base
     environment:
       ALLOW_EMPTY_PASSWORD: no
       TZ: "Asia/Seoul"
@@ -23,7 +21,7 @@ services:
     hostname: tw-environment-db-poc1-mariadb
     # command: --lower_case_table_names=1
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MARIADB_ROOT_PASSWORD"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MARIADB_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -39,8 +37,6 @@ services:
       - WORKDIR=${TW_DATA_INTERFACE__WORK_DIR}
     privileged: true
     hostname: tw-data-interface
-    networks:
-      - network-tw-environment-base
     volumes:
       - type: bind
         source: ./docker-bind/generated-data/logs/${TW_DATA_INTERFACE__APP_NAME}
