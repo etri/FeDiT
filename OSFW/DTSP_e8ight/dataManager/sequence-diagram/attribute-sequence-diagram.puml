@@ -1,0 +1,56 @@
+@startuml
+
+title <Attribute> Sequence Diagram
+
+collections UI as ui
+queue Server as server
+database Database as data
+
+autonumber 1.0
+== POST / attribute 생성 ==
+ui -> server : attribute 정보 전달
+note over server
+attribute 유효성 검사
+end note
+server -> data: attribute 저장
+
+autonumber 2.0
+== GET / attribute 전체 조회 ==
+ui -> server: attribute 전체 조회 요청 전달 (page)
+server -> data: attribute 전체 조회 페이징
+data --> ui: attribute 정보 전달
+
+autonumber 3.0
+== GET / attribute 조회 ==
+ui -> server: attribute 이름 으로 단건 조회 요청
+server ->data: attribute 이름 으로 조회
+data --> ui: 이름 으로 조회한 attribute 정보 전달
+
+autonumber 4.0
+== PUT / attribute 수정 ==
+ui -> server: 수정할 attribute 조회 요청
+server -> data: 수정할 attribute 조회
+data --> ui: 수정할 attribute 정보 전달
+
+ui -> server : 수정한 attribute 정보 전달
+note over server
+attribute 유효성 검사
+DataModel 사용 유무 확인
+end note
+server -> data: 수정한 attribute 정보 저장
+
+autonumber 5.0
+== DELETE / attribute  삭제==
+ui -> server: 삭제할 attribute 조회 요청
+
+server -> data: 삭제할 attribute 조회
+data --> ui: 삭제할 attribute 정보 전달
+ui -> server : attribute 삭제 요청
+note over server
+DataModel 에서 사용 유무 확인
+attribute-schema 등록 여부 확인
+end note
+server -> data: attribute 삭제
+
+
+@enduml

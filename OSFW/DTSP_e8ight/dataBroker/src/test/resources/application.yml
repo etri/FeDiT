@@ -1,0 +1,11 @@
+spring:
+  kafka:
+    topic:
+      entity: test.pintel.vissim.vehicle.json
+      observedAt: test.pintel.simul.new.vehicle.datetime
+    consumer:
+      group: e8ight-group-test_record
+
+#logging:
+#  logstash:
+#    url: localhost:50000
