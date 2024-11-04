@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.DtEvtTracking.common.mapper.TrackingTopicMapper">
+
+	<insert id="insertTopic" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingTopicInfo">
+	INSERT INTO tracking_topic_info
+		(
+		request_tracking_id,
+		tracking_process_id,
+		group_name,
+		topic_name,
+		topic_create_time,
+		topic_update_time
+		)
+		VALUES
+		(
+		#{requestTrackingId},
+		#{trackingProcessId},
+		#{groupName},
+		#{topicName},
+		NOW(3),
+		NOW(3)
+		)
+	</insert>
+	
+	<select id="getTopicList" parameterType="Map" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingTopicInfo">
+		SELECT 
+			topic_id,
+			request_tracking_id,
+			tracking_process_id,
+		    topic_name,
+		    topic_create_time,
+		    group_name
+		FROM 
+			tracking_topic_info
+		WHERE
+			1=1
+		<if test="requestTrackingId > 0">
+		  AND request_tracking_id = #{requestTrackingId}
+		</if>
+		<if test="trackingProcessId > 0">
+		  AND tracking_process_id = #{trackingProcessId}
+		</if>
+		<if test="topicName != null">
+		  AND topic_name = #{topicName}
+		</if>
+		<if test="groupName != null">
+		  AND group_name = #{groupName}
+		</if>		
+	</select>
+	
+	<select id="getTopicInfo" parameterType="Map" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingTopicInfo">
+		SELECT 
+			topic_id,
+			request_tracking_id,
+			tracking_process_id,
+		    topic_name,
+		    topic_create_time,
+		    group_name
+		FROM 
+			tracking_topic_info
+		WHERE
+			1=1 
+		<if test="requestTrackingId > 0">
+		  AND request_tracking_id = #{requestTrackingId}
+		</if>
+		<if test="trackingProcessId > 0">
+		  AND tracking_process_id = #{trackingProcessId}
+		</if>
+		<if test="topicName != null">
+		  AND topic_name = #{topicName}
+		</if>
+		<if test="groupName != null">
+		  AND group_name = #{groupName}
+		</if>	
+	</select>
+	
+	
+	<update id="updateTopic" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingTopicInfo">
+		UPDATE
+		 	tracking_topic_info
+		SET
+		<if test="requestTrackingId > 0">
+		   request_tracking_id = #{requestTrackingId},
+		</if>
+		<if test="trackingProcessId > 0">
+		   tracking_process_id = #{trackingProcessId},
+		</if>
+		<if test="topicName != null">
+			topic_name = #{topicName},
+		</if>
+		<if test="groupName != null">
+			group_name = #{groupName},
+		</if>
+			topic_update_time = NOW(3)
+		WHERE 
+			topic_id = #{topicId}
+	</update>
+	
+	
+
+	
+		<!-- 토픽  DELETE -->
+		<delete id="deleteTopic" parameterType="Map">
+	    	DELETE from tracking_topic_info		
+			WHERE 
+			<choose>
+				<when test="topicNameList != null">
+					topic_name in
+					<foreach collection="topicName" item="item" index="index" separator="," open="(" close=")">
+			            #{item}
+			        </foreach>	
+				</when>
+				<otherwise>
+				topic_name = #{topicName}
+				</otherwise>
+			</choose>
+			<if test="requestTrackingId > 0">
+			 AND request_tracking_id = #{requestTrackingId}
+			</if>
+			<if test="trackingProcessId > 0">
+			 AND tracking_process_id = #{trackingProcessId}
+			</if>	
+	    </delete>
+	
+	
+	
+</mapper>

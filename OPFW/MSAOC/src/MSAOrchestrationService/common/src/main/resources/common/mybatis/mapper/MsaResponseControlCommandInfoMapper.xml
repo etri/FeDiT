@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.msaOrchstr.common.mapper.MsaResponseControlCommandInfoMapper">
+  	
+  	<select id="getResponseControlCommandList" resultType="iitp.federatedTwins.msaOrchstr.common.dto.MsaResponseControlCommandInfo">
+  		SELECT
+  		   resp_ctrl_cmd_id,
+		   resp_ctrl_cmd_code,
+		   resp_ctrl_cmd_msg,
+		   resp_ctrl_cmd_time,
+		   request_control_command_id
+		FROM 
+		   msa_response_control_command_info
+		   where 1=1 
+		 <if test='respCtrlCmdId != null'>
+			 and resp_ctrl_cmd_id = #{respCtrlCmdId}
+		</if>
+	    <if test='requestControlCommandId != null'>
+			 and request_control_command_id = #{requestControlCommandId}
+		</if>
+		order by resp_ctrl_cmd_id desc
+  		</select>
+  	
+  	 <insert id="insertResponseControlCommand" parameterType="iitp.federatedTwins.msaOrchstr.common.dto.MsaResponseControlCommandInfo">	 
+			INSERT INTO msa_response_control_command_info
+			(
+			   resp_ctrl_cmd_code,
+			   resp_ctrl_cmd_msg,
+			   resp_ctrl_cmd_time,
+			   request_control_command_id
+		   )
+			VALUES
+			(
+			#{respCtrlCmdCode},
+			#{respCtrlCmdMsg},
+			#{respCtrlCmdTime},
+			#{requestControlCommandId}
+		   )
+	  </insert>
+	  
+	  <update id="updateResponseControlCommand" parameterType="iitp.federatedTwins.msaOrchstr.common.dto.MsaResponseControlCommandInfo">
+	  
+	  UPDATE msa_response_control_command_info
+		SET
+	    <if test='respCtrlCmdCode != null'>
+		resp_ctrl_cmd_code = #{respCtrlCmdCode},
+		</if>	 
+		<if test='respCtrlCmdMsg != null'>
+		resp_ctrl_cmd_msg = #{respCtrlCmdMsg},
+		</if>
+		<if test='respCtrlCmdTime != null'>
+		resp_ctrl_cmd_time = #{respCtrlCmdTime},
+		</if>
+		<if test='requestControlCommandId != null'>
+		request_control_command_id = #{requestControlCommandId}
+		</if>
+		WHERE
+		  resp_ctrl_cmd_id = #{respCtrlCmdId}
+		          AND request_control_command_id = #{requestControlCommandId}
+	  </update>
+	  
+	  <delete id="deleteResponseControlCommand" parameterType="iitp.federatedTwins.msaOrchstr.common.dto.MsaResponseControlCommandInfo">
+	  	DELETE 
+	  	  FROM 
+	  	   msa_response_control_command_info
+		 WHERE
+			resp_ctrl_cmd_id = #{respCtrlCmdId}
+		          AND request_control_command_id = #{requestControlCommandId}
+	   </delete>
+	
+  	
+
+
+	
+  	
+</mapper>
