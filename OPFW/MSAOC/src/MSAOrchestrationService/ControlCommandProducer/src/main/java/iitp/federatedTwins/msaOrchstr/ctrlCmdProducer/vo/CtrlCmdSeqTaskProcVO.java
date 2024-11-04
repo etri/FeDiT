@@ -1,0 +1,31 @@
+package iitp.federatedTwins.msaOrchstr.ctrlCmdProducer.vo;
+
+import iitp.federatedTwins.msaOrchstr.common.dto.MsaControlCommandSequenceInfo;
+
+public class CtrlCmdSeqTaskProcVO extends MsaControlCommandSequenceInfo{
+
+	private int taskProcessingId;
+	private String taskProcessingStatus;
+	private String reqCtrlCmdStatus;
+
+	public int getTaskProcessingId() {
+		return taskProcessingId;
+	}
+	public void setTaskProcessingId(int taskProcessingId) {
+		this.taskProcessingId = taskProcessingId;
+	}
+
+	public String getTaskProcessingStatus() {
+		return taskProcessingStatus;
+	}
+	public void setTaskProcessingStatus(String taskProcessingStatus) {
+		this.taskProcessingStatus = taskProcessingStatus;
+	}
+	
+	public String getReqCtrlCmdStatus() {
+		return reqCtrlCmdStatus;
+	}
+	public void setReqCtrlCmdStatus(String reqCtrlCmdStatus) {
+		this.reqCtrlCmdStatus = reqCtrlCmdStatus;
+	}
+}

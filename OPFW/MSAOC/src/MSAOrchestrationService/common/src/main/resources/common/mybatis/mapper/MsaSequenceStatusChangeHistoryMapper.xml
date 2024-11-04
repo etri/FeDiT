@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.msaOrchstr.common.mapper.MsaSequenceStatusChangeRecordMapper">
+  	
+  	<select id="getSequenceStatusChangeHistoryList" resultType="iitp.federatedTwins.msaOrchstr.common.dto.MsaSequenceStatusChangeRecord">
+  		SELECT
+  		   sequence_status_change_id,
+		   status_update_time,
+		   change_status,
+		   status_result_msg,
+		   task_response_id,
+		   ctrl_cmd_sequence_id,
+		   request_control_command_id
+		FROM 
+		   msa_sequence_status_change_record
+		   where 1=1 
+		 <if test='sequenceStatusChangeId != null'>
+			 and sequence_status_change_id = #{sequenceStatusChangeId}
+		</if>
+	     <if test='ctrlCmdSequenceId != null'>
+			 and ctrl_cmd_sequence_id = #{ctrlCmdSequenceId}
+		</if>
+	     <if test='requestControlCommandId != null'>
+			 and request_control_command_id = #{requestControlCommandId}
+		</if>
+		order by sequence_status_change_id desc
+  		</select>
+  	
+  	 <insert id="insertSequenceStatusChangeHistory" parameterType="iitp.federatedTwins.msaOrchstr.common.dto.MsaSequenceStatusChangeRecord">	 
+			INSERT INTO msa_sequence_status_change_record
+			(
+			   ctrl_cmd_sequence_id,
+			   request_control_command_id,
+			   change_status,
+			   status_update_time,
+			   status_result_msg
+		   )
+			VALUES
+			(
+			#{ctrlCmdSequenceId},
+			#{requestControlCommandId},
+			#{changeStatus},
+			NOW(3),
+			#{statusResultMsg}
+		   )
+	  </insert>
+	  
+	  <update id="updateSequenceStatusChangeHistory" parameterType="iitp.federatedTwins.msaOrchstr.common.dto.MsaSequenceStatusChangeRecord">
+	  
+	  UPDATE msa_sequence_status_change_record
+		SET	 
+		<if test='changeStatus != null'>
+		change_status = #{changeStatus},
+		</if>
+		<if test='statusResultMsg != null'>
+		status_result_msg = #{statusResultMsg},
+		</if>
+		<if test='ctrlCmdSequenceId != null'>
+		ctrl_cmd_sequence_id = #{ctrlCmdSequenceId},
+		</if>
+	     <if test='requestControlCommandId != null'>
+		request_control_command_id = #{requestControlCommandId},
+		</if>
+		<if test="taskResponseId != null">
+			task_response_id = #{taskResponseId},
+		</if>
+		status_update_time = NOW(3)
+		WHERE
+		  sequence_status_change_id = #{sequenceStatusChangeId}
+		          AND ctrl_cmd_sequence_id = #{ctrlCmdSequenceId}
+		            AND request_control_command_id = #{requestControlCommandId}
+	  </update>
+	  
+	  <delete id="deleteSequenceStatusChangeHistory" parameterType="iitp.federatedTwins.msaOrchstr.common.dto.MsaSequenceStatusChangeRecord">
+	  	DELETE 
+	  	  FROM 
+	  	   msa_sequence_status_change_record
+		 WHERE
+			  sequence_status_change_id = #{sequenceStatusChangeId}
+			          AND ctrl_cmd_sequence_id = #{ctrlCmdSequenceId}
+			             AND request_control_command_id = #{requestControlCommandId}
+	   </delete>
+	
+  	
+
+
+	
+  	
+</mapper>

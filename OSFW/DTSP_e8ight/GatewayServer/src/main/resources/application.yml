@@ -1,0 +1,48 @@
+server:
+  port: 8000
+spring:
+  application:
+    name: NDXPRO-GW
+#  cloud:
+#    gateway:
+#      httpclient:
+#        # 클라이언트 <-> 게이트웨이 <-> 다운스트림 서버 request response 로깅
+#        wiretap: true
+#        globalcors:
+#          add-to-simple-url-handler-mapping: true
+#      default-filters:
+#        - name: JwtAuthentication #GlobalFilter
+#          args:
+#            baseMessage: Spring Cloud Gateway Global Filter
+#            preLogger: true
+#            postLogger: true
+#      routes:
+#        - id: dataAuthId
+#          uri: lb://AUTHORIZATION-SERVICE
+##          uri: http://localhost:8083
+#          predicates:
+#            - Path=/ndxpro/v1/auth/**
+#          filters:
+#            - RemoveRequestHeader=Cookie
+#            - RewritePath=/ndxpro/v1/auth/(?<segment>.*), /$\{segment}
+#            - Logging
+#        - id: dataManagerId
+#          uri: lb://DATAMANAGER-SERVICE
+##          uri: http://localhost:8080
+#          predicates:
+#            - Path=/ndxpro/v1/manager/**
+#          filters:
+#            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+##            - JwtAuthentication=ROLE_ADMIN
+#            # shortcutField 사용
+#            - OrderedLogging
+##              - OrderedLogging=OrderedLogging Gateway Custom Filter, true, true
+
+# gateway 서버 디버깅용 로깅 추가
+#logging:
+#  level:
+#    org.springframework.cloud.gateway: trace
+#    reactor.netty: trace
+
+
+
