@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.fedit.apiGateway.common.mapper.CtrlDeviceRoutingServiceInfoMapper">
+  	
+ <select id="getCtrlDeviceRoutingServiceInfoList" parameterType="map" resultType="iitp.fedit.apiGateway.common.dto.CtrlDeviceRoutingServiceInfo">
+	  	SELECT ctrl_device_id, 
+			ctrl_cmd_exec_code_id,
+			request_routing,
+			request_param,
+			routing_status,
+			response_routing,
+			response_param,
+			description	  	
+		FROM ctrl_device_routing_service_info
+  		WHERE 1=1 AND routing_status = 'Y'
+  		 <if test="ctrlDeviceId != null">
+  			 AND ctrl_device_id = #{ctrlDeviceId}
+  		 </if>  		 
+  		 <if test="ctrlCmdExecCodeId != null">
+  		 	AND ctrl_cmd_exec_code_id = #{ctrlCmdExecCodeId}
+  		 </if>  
+  		ORDER BY ctrl_device_id, ctrl_cmd_exec_code_id
+  		 <if test="start != null">
+  		 	LIMIT #{start},#{end} 
+  		 </if>
+  	</select>
+  	
+  	<select id="getCtrlDeviceRoutingServiceInfo" parameterType="map" resultType="iitp.fedit.apiGateway.common.dto.CtrlDeviceRoutingServiceInfo">  	
+	  	SELECT ctrl_device_id, 
+			ctrl_cmd_exec_code_id,
+			request_routing,
+			request_param,
+			routing_status,
+			response_routing,
+			response_param,
+			description	  	
+		FROM ctrl_device_routing_service_info
+  		WHERE 1=1 AND routing_status = 'Y'	
+  		 <if test="ctrlDeviceId != null">
+  			 AND ctrl_device_id = #{ctrlDeviceId}
+  		 </if>  		 
+  		 <if test="ctrlCmdExecCodeId != null">
+  		 	AND ctrl_cmd_exec_code_id = #{ctrlCmdExecCodeId}
+  		 </if>   
+  	</select>
+  	
+ 	  <insert id="insertCtrlDeviceRoutingServiceList" parameterType="iitp.fedit.apiGateway.common.dto.CtrlDeviceRoutingServiceInfo">	 
+		<foreach collection="devRtServiceList" index="index" item="data" separator=";">
+	 		INSERT INTO ctrl_device_routing_service_info
+			(			
+				ctrl_device_id, 
+				ctrl_cmd_exec_code_id,
+				request_routing,
+				<if test="data.requestParam != null">
+			    	request_param,
+		 		</if>
+				<if test="data.responseRouting != null">
+			    	response_routing,
+		 		</if>
+				<if test="data.responseParam != null">
+			    	response_param,
+		 		</if>
+				<if test="data.description != null">
+			    	description,
+		 		</if>
+				updateDate    
+			  )
+			VALUES
+			(	
+			#{data.ctrlDeviceId},
+			#{data.ctrlCmdExecCodeId},
+			#{data.requestRouting},
+			<if test="data.requestParam != null">
+	    	#{data.requestParam},
+	 		</if>
+			<if test="data.responseRouting != null">
+	    	#{data.responseRouting},
+	 		</if>
+			<if test="data.responseParam != null">
+	    	#{data.responseParam},
+	 		</if>
+			<if test="data.description != null">
+	    	#{data.description},
+	 		</if>				
+			NOW()
+		   )
+		</foreach>
+	</insert>
+  	
+  	<insert id="insertCtrlDeviceRoutingServiceInfo" parameterType="iitp.fedit.apiGateway.common.dto.CtrlDeviceRoutingServiceInfo">
+  		INSERT INTO ctrl_device_routing_service_info
+			(			
+			ctrl_device_id, 
+			ctrl_cmd_exec_code_id,
+			request_routing,
+			
+			<if test="requestParam != null">
+		    	request_param,
+	 		</if>
+			<if test="responseRouting != null">
+		    	response_routing,
+	 		</if>
+			<if test="responseParam != null">
+		    	response_param,
+	 		</if>
+			<if test="description != null">
+		    	description,
+	 		</if>
+	 						
+			updateDate    
+		   )
+			VALUES
+			(	
+				#{ctrlDeviceId},
+				#{ctrlCmdExecCodeId},
+				#{requestRouting},
+				
+				<if test="execParam != null">
+			    	#{execParam},
+		 		</if>
+				<if test="responseRouting != null">
+			    	#{responseRouting},
+		 		</if>
+				<if test="responseParam != null">
+			    	#{responseParam},
+		 		</if>
+				<if test="description != null">
+			    	#{description},
+		 		</if>				
+				
+				NOW()
+		   )
+  	</insert>
+  	  	
+  	<update id="updateCtrlDeviceRoutingServiceList" parameterType="iitp.fedit.apiGateway.common.dto.CtrlDeviceRoutingServiceInfo">
+		<foreach collection="devRtServiceList" index="index" item="data" separator=";">
+	  		UPDATE ctrl_device_routing_service_info
+				SET
+				<if test="data.requestRouting != null">
+					request_routing = #{data.requestRouting},
+				</if>
+				<if test="data.requestParam != null">
+					request_param = #{data.requestParam},
+				</if>
+				<if test="data.routingStatus != null">
+					routing_status = #{data.routingStatus},
+				</if>
+				<if test="data.responseRouting != null">
+					response_routing = #{data.responseRouting},
+				</if>
+				<if test="data.responseParam != null">
+					response_param = #{data.responseParam},
+				</if>
+				<if test="data.description != null">
+					description = #{data.description},
+				</if>	
+				updateDate = NOW()
+			WHERE
+			ctrl_device_id = #{data.ctrlDeviceId}
+			and ctrl_cmd_exec_code_id = #{data.ctrlCmdExecCodeId}
+		</foreach>
+  	</update>
+  	
+  	<update id="updateCtrlDeviceRoutingServiceInfoByParam" parameterType="map">
+  		UPDATE ctrl_device_routing_service_info
+			SET
+			<if test="requestRouting != null">
+				request_routing = #{requestRouting},
+			</if>
+			<if test="requestParam != null">
+				request_param = #{requestParam},
+			</if>
+			<if test="routingStatus != null">
+				routing_status = #{routingStatus},
+			</if>
+			<if test="responseRouting != null">
+				response_routing = #{responseRouting},
+			</if>
+			<if test="responseParam != null">
+				response_param = #{responseParam},
+			</if>
+			<if test="description != null">
+				description = #{description},
+			</if>	
+			updateDate = NOW()
+		WHERE
+		ctrl_device_id = #{ctrlDeviceId}
+		and ctrl_cmd_exec_code_id = #{ctrlCmdExecCodeId}
+  	</update>
+  	
+  	 <update id="updateCtrlDeviceRoutingServiceInfo" parameterType="iitp.fedit.apiGateway.common.dto.CtrlDeviceRoutingServiceInfo">
+  		UPDATE ctrl_device_routing_service_info
+			SET
+			<if test="requestRouting != null">
+				request_routing = #{requestRouting},
+			</if>
+			<if test="requestParam != null">
+				request_param = #{requestParam},
+			</if>
+			<if test="routingStatus != null">
+				routing_status = #{routingStatus},
+			</if>
+			<if test="responseRouting != null">
+				response_routing = #{responseRouting},
+			</if>
+			<if test="responseParam != null">
+				response_param = #{responseParam},
+			</if>
+			<if test="description != null">
+				description = #{description},
+			</if>	
+			updateDate = NOW()
+		WHERE
+		ctrl_device_id = #{ctrlDeviceId}
+		and ctrl_cmd_exec_code_id = #{ctrlCmdExecCodeId}
+  	</update>
+  	
+  	<delete id="deleteCtrlDeviceRoutingServiceInfo" parameterType="iitp.fedit.apiGateway.common.dto.CtrlDeviceRoutingServiceInfo">
+  		DELETE FROM ctrl_device_routing_service_info
+		WHERE 
+		<choose>
+			<when test="ctrlDeviceId != null and ctrlCmdExecCodeId == null">
+				ctrl_device_id = #{ctrlDeviceId}
+			</when>
+			<otherwise>
+				ctrl_device_id = #{ctrlDeviceId} and ctrl_cmd_exec_code_id = #{ctrlCmdExecCodeId}
+			</otherwise>
+		</choose>
+  	</delete>
+  	
+	 <update id="removeCtrlDeviceRoutingServiceInfo" parameterType="Map">
+  		UPDATE ctrl_device_routing_service_info
+			SET
+				routing_status = #{routingStatus},
+				updateDate = NOW()
+		<choose>
+			<when test="ctrlDeviceId != null and ctrlCmdExecCodeId == null">
+				WHERE
+					ctrl_device_id = #{ctrlDeviceId}
+			</when>
+			<when test="ctrlDeviceId != null and ctrlCmdExecCodeId != null">
+				WHERE
+					ctrl_device_id = #{ctrlDeviceId}
+					and ctrl_cmd_exec_code_id = #{ctrlCmdExecCodeId}
+			</when>
+			<otherwise></otherwise>
+		</choose>
+  	</update>
+</mapper>
