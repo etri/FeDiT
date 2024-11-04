@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.DtEvtTracking.common.mapper.EventTransmissionResultInfoMapper">
+  	
+	
+   	<select id="getEventTransmissionResultList" parameterType="Map" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.EventTransmissionResultInfo">
+  		SELECT 
+  			event_transmission_result_id,
+  			event_occured_id,
+  			detector_proc_id,
+  			tracking_process_id,
+  			request_tracking_id,
+			event_transmission_status,
+			transmission_url,
+			transmission_param,
+			event_occured_msg,
+			transmission_time,
+			transmission_resp_code,
+			transmission_resp_msg			
+		FROM event_transmission_result_info
+		WHERE 1=1
+		<if test="evnetTransMissionResultId != null">
+			AND event_transmission_result_id = #{evnetTransMissionResultId}
+		</if> 
+		ORDER BY event_transmission_result_id DESC
+  	</select>
+  	
+  	<insert id="insertEventTransmissionResult" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.EventTransmissionResultInfo">
+  		INSERT INTO event_transmission_result_info
+			(
+	  			event_occured_id,
+	  			detector_proc_id,
+	  			tracking_process_id,
+	  			request_tracking_id,
+				event_transmission_status,
+				transmission_url,
+				transmission_param,
+				event_occured_msg,
+				transmission_time,
+				transmission_resp_code,
+				transmission_resp_msg			
+		   )
+			VALUES
+			(
+			 	#{eventOccuredId},
+			    #{detectorProcId},
+			    #{trackingProcessId},
+			    #{requestTrackingId},
+			  	#{eventTransmissionStatus},
+			  	#{transmissionUrl},
+			  	#{transmissionParam},
+			  	#{eventOccuredMsg},
+			  	NOW(),
+			  	#{transmissionRespCode},
+			  	#{transmissionRespMsg}
+		   )
+  	</insert>
+  	
+  	<update id="updateEventTransmissionResult" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.EventTransmissionResultInfo">
+	  	UPDATE event_transmission_result_info
+		SET
+			<if test="evnetTransMissionResultId != null">
+				event_transmission_result_id = #{evnetTransMissionResultId},
+			</if>
+			<if test="eventOccuredId != null">
+				event_occured_id = #{eventOccuredId},
+			</if>
+			<if test="detectorProcId != null">
+				detector_proc_id = #{detectorProcId},
+			</if>
+			<if test="trackingProcessId != null">
+				tracking_process_id = #{trackingProcessId},
+			</if>
+			<if test="requestTrackingId != null">
+				request_tracking_id = #{requestTrackingId},
+			</if>
+			<if test="eventTransmissionStatus != null">
+				event_transmission_status = #{eventTransmissionStatus},
+			</if>
+			<if test="transmissionUrl != null">
+				transmission_url = #{transmissionUrl},
+			</if>
+			<if test="eventOccuredMsg != null">
+				event_occured_msg = #{eventOccuredMsg},
+			</if>
+			<if test="transmissionTime != null">
+				transmission_time = #{transmissionTime},
+			</if>
+			
+			transmission_param = #{transmissionParam},
+			transmission_resp_code = #{transmissionRespCode},
+			transmission_resp_msg = #{transmissionRespMsg}
+		WHERE 
+			event_transmission_result_id = #{evnetTransMissionResultId}	
+  	</update>
+
+	<delete id="deleteEventTransmissionResult" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.EventTransmissionResultInfo">
+		DELETE FROM event_transmission_result_info
+		WHERE 
+			event_transmission_result_id = #{evnetTransMissionResultId}
+	</delete>
+  	
+
+  	
+</mapper>

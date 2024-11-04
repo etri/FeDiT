@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<property name ="LOG_DIR" value="/hdd/federatedTwins/rsDtTransmitter"></property>
+	
+	<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<pattern>▶%-5level %d{HH:mm:ss:.SSS} [%thread] %logger[%method:%line] - %msg%n</pattern>
+		</encoder>
+	</appender>
+	
+	<!-- ROLLING File Appender --> 
+	<appender name="ROLLING-FILE" class="ch.qos.logback.core.rolling.RollingFileAppender"> 
+		<!-- 파일경로 설정 --> 
+		<file>${LOG_DIR}/ResultDataTransmitter.log</file> 
+		<!-- 출력패턴 설정--> 
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder"> 
+			<pattern>▶%-5level %d{HH:mm:ss:.SSS} [%thread] %logger[%method:%line] - %msg%n</pattern>
+		</encoder> 
+		<!-- Rolling 정책 --> 
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy"> 
+			<!-- .gz,.zip 등을 넣으면 자동 일자별 로그파일 압축 --> 
+			<fileNamePattern>${LOG_DIR}/ResultDataTransmitter.%d{yyyy-MM-dd}_%i.log</fileNamePattern>  
+			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP"> 
+				<!-- 파일당 최고 용량 kb, mb, gb --> 
+				<maxFileSize>256MB</maxFileSize>				
+			</timeBasedFileNamingAndTriggeringPolicy> 
+			<!-- 일자별 로그파일 최대 보관주기(~일), 해당 설정일 이상된 파일은 자동으로 제거--> 
+			<!--<MinIndex>1</MinIndex> <MaxIndex>10</MaxIndex>--> 
+		</rollingPolicy> 
+	</appender>
+	
+	<!-- console로 이름을 가진 appender를 info 레벨로 찍겠다. -->
+	<root level="DEBUG">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="ROLLING-FILE" />
+	</root>
+	
+	<!-- 특정패키지 로깅레벨 설정 --> 
+	<logger name="org.apache.ibatis" level="DEBUG" additivity="false"> 
+		<appender-ref ref="CONSOLE"/> 
+		<appender-ref ref="ROLLING-FILE"/> 
+	</logger>
+
+	<!-- 패키지 안에 있는 것들 org.springframework 패키지로 시작하는 것은 console에 INFO로 찍겠다. -->
+	<logger name="org.springframework" level="DEBUG" additivity="false">
+		<appender-ref ref="CONSOLE"/> 
+		<appender-ref ref="ROLLING-FILE"/> 
+	</logger>
+		
+	<logger name="iitp.federatedTwins.msaOrchstr.rsDtTransmitter.controller" level="DEBUG" additivity="false">
+		<appender-ref ref="CONSOLE"/> 
+		<appender-ref ref="ROLLING-FILE"/> 
+	</logger>
+	
+	<logger name="iitp.federatedTwins.msaOrchstr.rsDtTransmitter.service" level="DEBUG" additivity="false">
+		<appender-ref ref="CONSOLE"/> 
+		<appender-ref ref="ROLLING-FILE"/> 
+	</logger>
+	
+	
+	<logger name="iitp.federatedTwins.msaOrchstr.common.config" level="DEBUG" additivity="false">
+		<appender-ref ref="CONSOLE"/> 
+		<appender-ref ref="ROLLING-FILE"/> 
+	</logger>
+	
+	<logger name="iitp.federatedTwins.msaOrchstr.common.exception" level="DEBUG" additivity="false">
+		<appender-ref ref="CONSOLE"/> 
+		<appender-ref ref="ROLLING-FILE"/> 
+	</logger>
+		
+	<logger name="iitp.federatedTwins.msaOrchstr.common.util" level="DEBUG" additivity="false">
+		<appender-ref ref="CONSOLE"/> 
+		<appender-ref ref="ROLLING-FILE"/> 
+	</logger>
+	
+	<logger name="iitp.federatedTwins.msaOrchstr.common.dto" level="DEBUG" additivity="false">
+		<appender-ref ref="CONSOLE"/> 
+		<appender-ref ref="ROLLING-FILE"/> 
+	</logger>
+		
+	<logger name="iitp.federatedTwins.msaOrchstr.common.dao" level="DEBUG" additivity="false">
+		<appender-ref ref="CONSOLE"/> 
+		<appender-ref ref="ROLLING-FILE"/> 
+	</logger>
+	
+	<logger name="com.zaxxer.hikari" level="DEBUG" />
+	<logger name="com.zaxxer.hikari.HikariConfig" level="DEBUG"/>
+	
+</configuration>

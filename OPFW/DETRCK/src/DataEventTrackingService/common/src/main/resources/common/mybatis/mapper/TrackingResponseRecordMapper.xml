@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.DtEvtTracking.common.mapper.TrackingResponseRecordMapper">
+  	
+	
+   	<select id="getResponseRecord" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingResponseRecord" >
+  		SELECT tracking_response_id,
+		  	tracking_process_id,
+		    request_tracking_id,
+		    receive_time,
+		    receive_val,
+		    receive_status,
+		    receive_msg,
+		    receive_payload
+		FROM tracking_response_record
+		WHERE 1=1
+		<if test="trackingResponseId != null">
+			 and tracking_response_id = #{trackingResponseId}
+		</if> 
+		<if test="trackingProcessId != null">
+			 and tracking_process_id = #{trackingProcessId}
+		</if> 
+		<if test="requestTrackingId != null">
+			 and request_tracking_id = #{requestTrackingId}
+		</if> 
+		<if test="startProcId != null">
+			<![CDATA[ 
+			 and tracking_response_id >= #{startProcId}
+			 ]]>
+		</if> 
+		<choose>
+			<when test="orderByDesc != null">
+				order by tracking_response_id desc		
+			</when>
+			<otherwise>
+				order by tracking_response_id		
+			</otherwise>
+		</choose>		
+		<if test="limitBufferSize != null">
+				limit 0, #{limitBufferSize}
+			</if>   
+  	</select>
+  	
+  	<select id="getResponseRecordMaxIdInfo" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingResponseRecord" >
+  		select A.*
+        from 
+        (    
+	  		SELECT tracking_response_id,
+			  	tracking_process_id,
+			    request_tracking_id,
+			    receive_time,
+			    receive_val,
+			    receive_status,
+			    receive_msg,
+			    receive_payload
+			FROM tracking_response_record
+			WHERE 1=1
+			<if test="trackingResponseId != null">
+				 and tracking_response_id = #{trackingResponseId}
+			</if> 
+			<if test="trackingProcessId != null">
+				 and tracking_process_id = #{trackingProcessId}
+			</if> 
+			<if test="requestTrackingId != null">
+				 and request_tracking_id = #{requestTrackingId}
+			</if> 
+			<if test="startProcId != null">
+				<![CDATA[ 
+			 	and tracking_response_id >= #{startProcId}
+			 	]]>
+			</if> 
+			order by tracking_response_id desc
+			<if test="limitBufferSize != null">
+				limit 0, #{limitBufferSize}
+			</if>   		
+		) A 
+	 	order by tracking_response_id desc
+	 	limit 0, 1	
+  	</select>
+  	
+  	<select id="getResponseRecordCnt" resultType="Integer" >
+  		SELECT count(*) cnt
+		FROM tracking_response_record
+		WHERE 1=1
+		<if test="trackingResponseId != null">
+			 and tracking_response_id = #{trackingResponseId}
+		</if> 
+		<if test="trackingProcessId != null">
+			 and tracking_process_id = #{trackingProcessId}
+		</if> 
+		<if test="requestTrackingId != null">
+			 and request_tracking_id = #{requestTrackingId}
+		</if> 
+		<if test="startProcId != null">
+			<![CDATA[ 
+			 and tracking_response_id >= #{startProcId}
+			 ]]>
+		</if> 
+		<choose>
+			<when test="orderByDesc != null">
+				order by tracking_response_id desc		
+			</when>
+			<otherwise>
+				order by tracking_response_id		
+			</otherwise>
+		</choose>		
+		<if test="limitBufferSize != null">
+			 limit 0, #{limitBufferSize}
+		</if>   
+			
+  	</select>
+  	
+  	
+  	<insert id="insertResponseRecord" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingResponseRecord"
+  	useGeneratedKeys="true" keyColumn="tracking_response_id" keyProperty="trackingResponseId">
+  	INSERT INTO tracking_response_record
+			(
+			    receive_time,
+			    receive_val,
+			    receive_status,
+			    receive_msg,
+			    tracking_process_id,
+			    request_tracking_id,
+			    receive_payload
+		   )
+			VALUES
+			(
+			    NOW(3),
+			    #{receiveVal},
+			    #{receiveStatus},
+			    #{receiveMsg},
+			    #{trackingProcessId},
+			    #{requestTrackingId},
+			    #{receivePayload}
+		   )
+  	</insert>
+  	
+	 	
+	<insert id="insertResponseRecordList" parameterType="java.util.List" 
+	useGeneratedKeys="true" keyColumn="tracking_response_id" keyProperty="trackingResponseId">
+	    INSERT INTO tracking_response_record(
+		    receive_time,
+		    receive_val,
+		    receive_status,
+		    receive_msg,
+		    tracking_process_id,
+		    request_tracking_id,
+		    receive_payload
+	    ) VALUES 
+	    <foreach collection="list" item="item" separator=",">
+	    (
+		    NOW(3),
+		    #{item.receiveVal},
+		    #{item.receiveStatus},
+		    #{item.receiveMsg},
+		    #{item.trackingProcessId},
+		    #{item.requestTrackingId},
+		    #{item.receivePayload}
+	    )
+	    </foreach>
+	</insert>
+	    
+  	
+  	<update id="updateResponseRecord" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingResponseRecord">
+	  	UPDATE tracking_response_record
+		SET
+			<if test="receiveTime != null">
+				receive_time = #{receiveTime},
+			</if>
+			<if test="receiveVal != null">
+				receive_val = #{receiveVal},
+			</if>
+			<if test="receiveStatus != null">
+				receive_status = #{receiveStatus},
+			</if>
+			<if test="receiveMsg != null">
+				receive_msg = #{receiveMsg},
+			</if>
+			<if test="receivePayload != null">
+				receive_payload = #{receivePayload}
+			</if>
+		WHERE 
+			tracking_response_id = #{trackingResponseId}
+			and tracking_process_id = #{trackingProcessId}
+  	</update>
+
+	<delete id="deleteResponseRecord" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingResponseRecord">
+		DELETE FROM tracking_response_record
+		WHERE 
+			tracking_response_id = #{trackingResponseId}
+	</delete>
+  	
+</mapper>
