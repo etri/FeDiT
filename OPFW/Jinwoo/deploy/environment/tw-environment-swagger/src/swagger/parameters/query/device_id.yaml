@@ -1,0 +1,6 @@
+name: device_id
+in: query
+required: false
+description: device_id
+schema:
+  type: string

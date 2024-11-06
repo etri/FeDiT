@@ -1,35 +1,22 @@
 import { Router, Request, Response } from 'express'
 import axios from 'axios'
+import Decimal from 'decimal.js'
 import asyncHanlder from 'express-async-handler';
 import config from '@/config';
 
 const route = Router();
 
 export default (app: Router) => {
-	app.use('/weather-ultra-srt-ncst', route);
+	app.use('/measure-position/type', route);
 
 	route.get('/', asyncHanlder( async (req: Request, res: Response) => {
 		let page_number = 1;
 		let number_of_rows = 25;
 		let andArgument : any = [];
 		for (const key in req.query) {
-			if (key == 'start_date_time') {
+			if (key == 'dataName') {
 				let condition: any = {};
-				condition['date_time'] = {
-					'$gte': req.query[key]
-				}
-				andArgument.push(condition);
-			}
-			else if (key == 'end_date_time') {
-				let condition: any = {};
-				condition['date_time'] = {
-					'$lte': req.query[key]
-				}
-				andArgument.push(condition);
-			}
-			else if (key == 'measure_position_id') {
-				let condition: any = {};
-				condition['measure_position_id'] = {
+				condition['dataName'] = {
 					'$eq': req.query[key]
 				}
 				andArgument.push(condition);
@@ -58,15 +45,12 @@ export default (app: Router) => {
 			}
 		}
 
-		let result = await axios.post(`${config.dataInterfaceIpAddress}/weather_ultra_srt_ncst/find`, findData)
+		let result = await axios.post(`${config.dataInterfaceIpAddress}/data_info/find`, findData)
 
 		let list = result.data.doc.map( function (element:any) {
 			let obj:any = {};
 			for(const property in element){
-				if(property=='date_time'){
-					obj[property] = new Date(element[property]).toLocaleString('sv');
-				}
-				else if(element[property]!=null){
+				if(element[property]!=null){
 					obj[property] = element[property];
 				}
 			}

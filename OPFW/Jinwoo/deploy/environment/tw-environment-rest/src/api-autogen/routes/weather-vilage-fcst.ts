@@ -1,12 +1,13 @@
 import { Router, Request, Response } from 'express'
 import axios from 'axios'
+import Decimal from 'decimal.js'
 import asyncHanlder from 'express-async-handler';
 import config from '@/config';
 
 const route = Router();
 
 export default (app: Router) => {
-	app.use('/health-weather', route);
+	app.use('/weather-vilage-fcst', route);
 
 	route.get('/', asyncHanlder( async (req: Request, res: Response) => {
 		let page_number = 1;
@@ -58,7 +59,7 @@ export default (app: Router) => {
 			}
 		}
 
-		let result = await axios.post(`${config.dataInterfaceIpAddress}/health_weather_index/find`, findData)
+		let result = await axios.post(`${config.dataInterfaceIpAddress}/weather_vilage_fcst/find`, findData)
 
 		let list = result.data.doc.map( function (element:any) {
 			let obj:any = {};
