@@ -1,21 +1,29 @@
 import { Router, Request, Response } from 'express'
 import axios from 'axios'
+import Decimal from 'decimal.js'
 import asyncHanlder from 'express-async-handler';
 import config from '@/config';
 
 const route = Router();
 
 export default (app: Router) => {
-	app.use('/measure-position/type', route);
+	app.use('/measure-position', route);
 
 	route.get('/', asyncHanlder( async (req: Request, res: Response) => {
 		let page_number = 1;
 		let number_of_rows = 25;
 		let andArgument : any = [];
 		for (const key in req.query) {
-			if (key == 'dataName') {
+			if (key == 'type') {
 				let condition: any = {};
-				condition['dataName'] = {
+				condition['type'] = {
+					'$eq': req.query[key]
+				}
+				andArgument.push(condition);
+			}
+			else if (key == 'id') {
+				let condition: any = {};
+				condition['id'] = {
 					'$eq': req.query[key]
 				}
 				andArgument.push(condition);
@@ -44,7 +52,7 @@ export default (app: Router) => {
 			}
 		}
 
-		let result = await axios.post(`${config.dataInterfaceIpAddress}/data_info/find`, findData)
+		let result = await axios.post(`${config.dataInterfaceIpAddress}/measure_position/find`, findData)
 
 		let list = result.data.doc.map( function (element:any) {
 			let obj:any = {};

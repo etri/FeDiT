@@ -30,6 +30,10 @@ paths:
   /life-weather:
     dbTableName: life_weather_index
     $ref: './resources/life-weather.yaml'
+  /river-water-level:
+    $ref: './resources/river-water-level.yaml'
+  /river-water-level-device:
+    $ref: './resources/river-water-level-device.yaml'
   /weather-ultra-srt-fcst:
     $ref: './resources/weather-ultra-srt-fcst.yaml'
   /weather-ultra-srt-ncst:
