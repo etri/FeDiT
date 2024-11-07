@@ -650,15 +650,19 @@ class learningViewSetMeta(viewsets.ViewSet):
         req_outputs = request.data.get('outputs')
         #req_features = request.data.get('features')
         req_modelType = request.data.get('modelType')
-        req_timeSteps = request.data.get('timeSteps')
+        req_windowSize = request.data.get('windowSize')
+        
         req_batchSize = request.data.get('batchSize')
         req_testSize = request.data.get('testSize')
         req_epochs = request.data.get('epochs')
         req_optimizerLr = request.data.get('optimizerLr')
         req_modelID = request.data.get('modelID')
         req_indexColumn = request.data.get('indexColumn')
-        #req_dataSize = request.data.get('dataSize')
-        
+        req_gradientClipping = request.data.get('gradientClipping')
+        req_missingGroup = request.data.get('missingGroup')
+        req_missingRange = request.data.get('missingRange')
+        req_testSizePerDataLength = request.data.get('testSizePerDataLength')
+
         req_targetColList = request.data.get('trgt_col_list')
         '''
         print(req_filePath)
@@ -690,7 +694,8 @@ class learningViewSetMeta(viewsets.ViewSet):
         #features = (['w20'] if req_features==None else req_features)
         #features = ([] if req_features==None else req_features)
         modelType = ('lstm' if req_modelType==None else req_modelType)
-        timeSteps = (100 if req_timeSteps==None else req_timeSteps)
+        windowSize = (8 if req_windowSize==None else req_windowSize)
+        
         batchSize = (16 if req_batchSize==None else req_batchSize)
         testSize = (0.2 if req_testSize==None else req_testSize)
         epochs = (50 if req_epochs==None else req_epochs)
@@ -698,16 +703,20 @@ class learningViewSetMeta(viewsets.ViewSet):
         #meterics = ('mse' if req_meterics==None else req_meterics)
 
         #optimizer = ('sgd' if req_optimizer==None else req_optimizer)
-        optimizerLr = (0.0005 if req_optimizerLr==None else req_optimizerLr)
+        optimizerLr = (0.005 if req_optimizerLr==None else req_optimizerLr)
         modelID = (9999 if req_modelID==None else req_modelID)
         indexColumn = (0 if req_indexColumn==None else req_indexColumn)
-        #dataSize = (100 if req_dataSize==None else req_dataSize)
+        gradientClipping = (10 if req_gradientClipping==None else req_gradientClipping)
+        missingGroup = (4 if req_missingGroup==None else req_missingGroup)
+        missingRange = ([10, 30] if req_missingRange==None else req_missingRange)
+        testSizePerDataLength = (100 if req_testSizePerDataLength==None else req_testSizePerDataLength)
         targetColList = ([] if req_targetColList==None else req_targetColList)
 
 
         data = self.service.createImputationNaomi(
             filePath=filePath, fileName=fileName, targetFileName=targetFileName, modelFilePath=modelFilePath, modelFileName=modelFileName, outputs=outputs, modelType=modelType, 
-            batchSize=batchSize, testSize=testSize, epochs=epochs, timesteps=timeSteps, optimizerLr=optimizerLr,
+            windowSize=windowSize, batchSize=batchSize, testSize=testSize, epochs=epochs, optimizerLr=optimizerLr, gradientClipping=gradientClipping,
+            missingGroup=missingGroup, missingRange=missingRange, testSizePerDataLength=testSizePerDataLength,
             modelID=modelID, indexColumn=indexColumn, targetColList=targetColList
         )
         if data['result']:
