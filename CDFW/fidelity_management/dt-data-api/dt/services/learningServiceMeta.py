@@ -1323,7 +1323,8 @@ class learningServiceMeta(object):
 
     def createImputationNaomi(self, 
             filePath=None, fileName=None, targetFileName=None, modelFilePath=None, modelFileName=None, outputs=None,  
-            modelType=None, batchSize=None, testSize=None, epochs=None, timesteps=None, optimizerLr=None,
+            modelType=None, windowSize=None, batchSize=None, testSize=None, epochs=None, optimizerLr=None, gradientClipping=None,
+            missingGroup=None, missingRange=None, testSizePerDataLength=None,
             modelID=None, indexColumn=None, targetColList=None
         ):
         '''
@@ -1368,8 +1369,9 @@ class learningServiceMeta(object):
         #dataPath = 'dt_data_api\\storage\\data\\2023\\04\\0000\\'
         #dataFile = 'dt_data_api\\storage\\data\\2023\\04\\0000\\' + filename
         #modelFilepath = 'dt_data_api\\storage\\model\\2023\\04\\0000\\'
-
-        df=pd.read_csv(dataFile, header=0, index_col=indexColumn, parse_dates=True)
+        print('경로',dataFile)
+        #df=pd.read_csv(dataFile, header=0, index_col=indexColumn, parse_dates=True)
+        df=pd.read_csv(dataFile, header=0)
 
         is_indpds = False
         
@@ -1383,7 +1385,7 @@ class learningServiceMeta(object):
             modelType = MD_TYPE.LSTM
 
 
-        modelArgs = ModelParameters(model_type=modelType, batch_size=batchSize, units=32, test_size=testSize, epochs=epochs, patience=10, optimizer_lr=optimizerLr)
+        modelArgs = ModelParameters(model_type=modelType, window_size=windowSize, batch_size=batchSize, units=32, test_size=testSize, epochs=epochs, patience=10, optimizer_lr=optimizerLr)
         inputArgs = InputParameters(filepath=modelFilePath, filename=modelFileName, output_cols=outputs, trgt_col_list=targetColList)
         
         try:
@@ -1391,12 +1393,14 @@ class learningServiceMeta(object):
             #m = imputerNaomiGenerater.Manager(data=df, modelArgs=modelArgs, inputArgs=inputArgs)
             m = imputerNaomiGenerater.Manager(data=df, modelArgs=modelArgs, inputArgs=inputArgs)
 
-            r = m.modelTrainning()
+            r = m.modelTrainning(gradientClipping=gradientClipping, missingGroup=missingGroup, missingRange=missingRange, testSizePerDataLength=testSizePerDataLength)
 
             #모델평가
             #print(r['evaluate_loss'])
             #print(r['evaluate_acc'])
+
             print('모델평가', r)
+
             #if features == None or features == "" or features == "[]" or len(features) == 0:
             #    features = outputs
 
