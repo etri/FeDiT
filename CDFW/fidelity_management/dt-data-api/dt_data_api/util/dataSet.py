@@ -536,7 +536,7 @@ class DataInfo:
         elif str(rule).lower() == "float":
             if re.match(r'^-?\d+\.?\d*$', value):
                 if "." in value:
-                    if float(rule1) < float(value) and float(rule2) < float(value):
+                    if float(rule1) <= float(value) and float(rule2) >= float(value):
                         return True
                     else:
                         return False

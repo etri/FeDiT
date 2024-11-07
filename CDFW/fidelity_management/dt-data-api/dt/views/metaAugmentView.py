@@ -648,3 +648,19 @@ class augmentViewSet(viewsets.ViewSet):
         else:
             rd = responseData(code=ERROR_CODE.AUGMENT.value + '-0006' , message='Augment Create nbeats Interpolation Error', detail=data['resultMessage'])
         return Response(rd.getJson())     
+    
+        
+    @action(detail=False, methods=['POST', 'GET'])
+    def augmentCreate_naomi(self, request):
+        '''
+        naomi 학습모델 활용 데이터 추론 생성
+        '''
+        paramData = request.data        
+            
+        data = self.service.augmentCreate_naomi(paramData=paramData)
+
+        if data['result']:
+            rd = responseData(code=status.HTTP_200_OK, message='OK', data=data['resultMessage'])            
+        else:
+            rd = responseData(code=status.HTTP_400_BAD_REQUEST, message='BAD_REQUEST', detail=data['resultMessage'])
+        return Response(rd.getJson())    
