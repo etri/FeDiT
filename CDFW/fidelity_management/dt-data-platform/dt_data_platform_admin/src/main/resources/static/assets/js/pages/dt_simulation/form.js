@@ -258,6 +258,7 @@
             var augmentTp = $('#augmentTp option:selected').val();
             var set_model_name = $('#set_model_name').val();
             var use_yn = $('input[name="useYn"]:checked').val();
+            let rls_yn = document.querySelector('input[name="rlsYn"]:checked').value;
 
             if (title.length === 0) {
                 alert('제목 입력하세요.');
@@ -328,6 +329,7 @@
             formData.append('simTp', simTp);
             formData.append('augmentTp', augmentTp);
             formData.append('useYn', use_yn);
+            formData.append('rlsYn', rls_yn);
 
             var preProcData = JSON.parse($('#preprocProPerty').val());
             var preproc_trgt_col = preProcData.preproc_property_info[0].preproc_trgt_col;
@@ -370,6 +372,7 @@
             var augmentTp = $('#augmentTp option:selected').val();
             var set_model_name = $('#set_model_name').val();
             var use_yn = $('input[name="useYn"]:checked').val();
+            let rls_yn = document.querySelector('input[name="rlsYn"]:checked').value;
 
             if (title.length === 0) {
                 alert('제목 입력하세요.');
@@ -424,6 +427,7 @@
                 cycle_bgng_dsgn_ymd: cycleBgngDsgnYmdValue,
                 cycle_end_dsgn_ymd: cycleEndDsgnYmdValue,
                 use_yn: use_yn,
+                rls_yn: rls_yn,
                 data_crt_intvl_value: dataCrtIntvlValue,
                 data_crt_intvl_tp: dataCrtIntvlTp,
                 preproc_trgt_col: preproc_trgt_col,
@@ -581,6 +585,7 @@
             }
 
             let augmentStatus = document.querySelector('input[name="augmentStatus"]:checked').value;
+            let rls_yn = document.querySelector('input[name="rlsYn"]:checked').value;
 
             console.log('dataCrtLastHrValue', dataCrtLastHrValue);
 
@@ -598,9 +603,10 @@
                 cycle_bgng_dsgn_ymd: cycleBgngDsgnYmd,
                 cycle_end_dsgn_ymd: cycleEndDsgnYmd,
                 use_yn: useYn,
+                rls_yn: rls_yn,
                 augment_status: augmentStatus,
                 data_max_limit_cnt: data_max_limit_cnt,
-                data_crt_last_hr: dataCrtLastHrValue
+                data_crt_last_hr: dataCrtLastHrValue,
             }
             console.log('data', data);
             showProgressBar({element: null, process_id: 'process-50'});
@@ -840,7 +846,7 @@ function uploadFile() {
     //console.log(form)
     var formData = new FormData(form);
     //formData.append('file', $('#attachFiles')[0].files[0]);
-    $('#loading').show();
+    showProgressBar({element: null, process_id: 'process-54'});
     $.ajax({
         type: 'POST', //enctype: 'multipart/form-data',
         url: '/dt/model/csvFileUpload',
@@ -851,8 +857,14 @@ function uploadFile() {
             var strHTML = '';
             //var resultData = result.result_data[0];
             if (result.code == 200) {
-                var header_list = JSON.parse(result.header_list);
-                var data_list = JSON.parse(result.data_list);
+                var header_list = result.header_list;
+                var data_list = result.data_list;
+
+                if (header_list.length === 0 || data_list.length === 0) {
+                    alert('선택하신 파일에 가져올 데이터가 없습니다.');
+                    closeProgressBar({element: null, process_id: 'process-54'});
+                    return;
+                }
 
                 var preProcData = preProcTemplate();
                 preProcData.preproc_property_info[0].base_dir = result.base_dir;

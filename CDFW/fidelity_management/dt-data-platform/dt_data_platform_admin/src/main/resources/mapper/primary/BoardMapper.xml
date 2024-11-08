@@ -2,15 +2,6 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.stoneitgt.dt.data.platform.admin.mapper.BoardMapper">
-    <!--void saveBoard(Board board);-->
-    <insert id="saveBoard" parameterType="com.stoneitgt.dt.data.platform.domain.Board" keyProperty="boardSeq"
-            useGeneratedKeys="true">
-        INSERT INTO TB_BOARD(BOARD_TP, BOARD_NM, BOARD_SMP_DERPN, BOARD_DERPN, RLS_YN, USE_YN, DEL_YN,
-                             REG_USER_SEQ, REG_IP)
-        VALUES (#{boardTp}, #{boardNm}, #{boardSmpDerpn}, #{boardDerpn}, #{rlsYn}, #{useYn}, #{delYn}, #{regUserSeq},
-                #{regIp});
-    </insert>
-
     <!--List<Map<String, Object>> getBoardList(Map<String, Object> params, RowBounds paging);-->
     <select id="getBoardList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
         SELECT *
@@ -93,17 +84,14 @@
                 AND A.BOARD_SEQ = #{boardSeq}) TB
     </select>
 
-    <!--void deleteBoardByBoardSeqAndType(int boardSeq, String type);-->
-    <update id="deleteBoardByBoardSeqAndType" parameterType="com.stoneitgt.dt.data.platform.domain.Board">
-        UPDATE
-            TB_BOARD
-        SET DEL_YN       = #{delYn},
-            DEL_IP=#{delIp},
-            DEL_USER_SEQ = #{delUserSeq},
-            DEL_DT       = NOW()
-        WHERE BOARD_SEQ = #{boardSeq}
-          AND BOARD_TP = #{boardTp}
-    </update>
+    <!--void saveBoard(Board board);-->
+    <insert id="saveBoard" parameterType="com.stoneitgt.dt.data.platform.domain.Board" keyProperty="boardSeq"
+            useGeneratedKeys="true">
+        INSERT INTO TB_BOARD(BOARD_TP, BOARD_NM, BOARD_SMP_DERPN, BOARD_DERPN, RLS_YN, USE_YN, DEL_YN,
+                             REG_USER_SEQ, REG_IP)
+        VALUES (#{boardTp}, #{boardNm}, #{boardSmpDerpn}, #{boardDerpn}, #{rlsYn}, #{useYn}, #{delYn}, #{regUserSeq},
+                #{regIp});
+    </insert>
 
     <!--void updateBoard(Board board);-->
     <update id="updateBoard" parameterType="com.stoneitgt.dt.data.platform.domain.Board">
@@ -117,5 +105,17 @@
             MDFCN_USER_SEQ=#{mdfcnUserSeq},
             MDFCN_IP=#{mdfcnIp}
         WHERE BOARD_SEQ = #{boardSeq}
+    </update>
+
+    <!--void deleteBoardByBoardSeqAndType(int boardSeq, String type);-->
+    <update id="deleteBoardByBoardSeqAndType" parameterType="com.stoneitgt.dt.data.platform.domain.Board">
+        UPDATE
+            TB_BOARD
+        SET DEL_YN       = #{delYn},
+            DEL_IP=#{delIp},
+            DEL_USER_SEQ = #{delUserSeq},
+            DEL_DT       = NOW()
+        WHERE BOARD_SEQ = #{boardSeq}
+          AND BOARD_TP = #{boardTp}
     </update>
 </mapper>

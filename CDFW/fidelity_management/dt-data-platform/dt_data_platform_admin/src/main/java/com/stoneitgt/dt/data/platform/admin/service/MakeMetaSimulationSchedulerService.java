@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import com.stoneitgt.dt.data.platform.admin.mapper.MakeMetaSimulationSchedulerMapper;
 
 @Service
-public class MakeMetaSimulationSchedulerService {
+public class MakeMetaSimulationSchedulerService extends BaseService {
 
     @Autowired
     private MakeMetaSimulationSchedulerMapper makeMetaSimulationSchedulerMapper;

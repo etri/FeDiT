@@ -114,8 +114,11 @@ document.querySelector('#select_algorithm')?.addEventListener('change', event =>
     });
 });
 
-$(document).on('change', '#customRange', function () {
-    $('.custom-number-range').val($(this).val());
+$(document).on('change', '.custom-range-obj', function (event) {
+    let _this = this;
+    let parent = _this.parentElement;
+    let rangeElement = parent.querySelector('.custom-number-range');
+    rangeElement.value = this.value;
 });
 
 $(document).on('click', '.make-model', function () {
@@ -318,6 +321,77 @@ $(document).on('click', '.make-model', function () {
                     if (result.result_code === 200) {
 
                         window.location.href = contextPath + "/dt/etc/model/brits/list?menuCd=" + menuCd;
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error('error : ', error);
+                    closeProgressBar({element: null, process_id: 'process-18'});
+                    alert('에러가 발생하였습니다. 관리자에게 문의하십시오.');
+                }
+            });
+        } else {
+            return false;
+        }
+    } else if (algorithm_seq === '4' || algorithm === 'Naomi') {
+        var optimizer_number_chk = $('.optimizer-number-chk').val();
+
+        if (typeof optimizer_number_chk != 'undefined') {
+            if (isNaN(optimizer_number_chk) || optimizer_number_chk <= 0 || optimizer_number_chk >= 1) {
+                alert("optimizerLr은   0보다 크고 1보다 작은 값만 가능합니다.");
+                $('.optimizer-number-chk').val("0.005"); // 기본값으로 조정
+                return false;
+            }
+        }
+
+        console.log('algorithmMetaItemList', algorithmMetaItemList);
+
+        //console.log(jsonTemplateArrayNumbering());
+        var modelTemplate = modelEtcAlgorithmTemplate();
+        modelTemplate.output_col = outputCol;
+        modelTemplate.algorithm = algorithm;
+        modelTemplate.algorithm_seq = algorithm_seq;
+        modelTemplate.hyperparam.window_size = $('#window_size').val();
+        modelTemplate.hyperparam.batch_size = $('#batch_size').val();
+        modelTemplate.hyperparam.test_size = $('#testSize').val();
+        modelTemplate.hyperparam.epochs = $('#epochs').val();
+        modelTemplate.hyperparam.optimizer_lr = $('#optimizerLr').val();
+        modelTemplate.hyperparam.gradientClipping = $('#gradientClipping').val();
+        modelTemplate.hyperparam.testSizePerDataLength = $('#testSizePerDataLength').val();
+
+        preProcData.preproc_property_info[0].model_create = "Y";
+        preProcData.preproc_property_info[0].model_property[0] = modelTemplate;
+
+        $('#preprocProPerty').val(JSON.stringify(preProcData));
+        $('.preprocProPerty').val(prettyJson(JSON.stringify(preProcData)));
+        var full_text = $('#preprocProPerty').val();
+
+        let confirm_comment = '등록 이후 수정이 불가합니다.\n등록 하시겠습니까?';
+
+        let con = confirm(confirm_comment);
+        if (con === true) {
+            var data = {
+                model_seq: model_seq,
+                algorithm: algorithm,
+                algorithm_seq: algorithm_seq,
+                algorithm_meta_item_list: algorithmMetaItemList,
+                file_path: file_path,
+                file_name: file_name,
+                output_col: outputCol, //feature_col: feature_col,
+                full_text: full_text
+            }
+            showProgressBar({element: null, process_id: 'process-18'});
+            $.ajax({
+                type: "POST",
+                url: '/dt/etc/model/make/model_set',
+                data: JSON.stringify(data),
+                contentType: "application/json; charset=utf-8;",
+                dataType: "json",
+                success: function (result) {
+                    console.log('result', result);
+                    closeProgressBar({element: null, process_id: 'process-18'});
+                    if (result.result_code === 200) {
+
+                        window.location.href = contextPath + "/dt/etc/model/naomi/list?menuCd=" + menuCd;
                     }
                 },
                 error: function (xhr, status, error) {
@@ -664,70 +738,92 @@ function makeAlgorithmMetaItemList(model_algrm_seq, model_seq, callback) {
                             strHTML += '						<div class="col-lg-8">';
                             if (item_list[i].model_params_item_value == null || item_list[i].model_params_item_value === '') {
                                 if (item_list[i].model_params_item == 'test_size') {
-                                    strHTML += '			<input type="range" class="form-control" min="0.1" max="0.9"  step="0.1" id="customRange" value="0.2">';
-                                    strHTML += '			<input type="number" id="' + item_list[i].model_params_item + '" class="form-control custom-number-range number_only" min="0.1" max="0.9" value="0.2" readonly="readonly" style="margin-left: 10px;">';
+                                    strHTML += `			<input type="range" class="form-control custom-range-obj" min="0.1" max="0.9"  step="0.1" id="${item_list[i].model_params_item}Range" value="${item_list[i].model_params_item_crtr_1}">`;
+                                    strHTML += `			<input type="number" id="${item_list[i].model_params_item}" class="form-control custom-number-range number_only" min="0.1" max="0.9" value="${item_list[i].model_params_item_crtr_1}" readonly="readonly" style="margin-left: 10px;">`;
+                                } else if (item_list[i].model_params_item == 'testSize') {
+                                    strHTML += `			<input type="range" class="form-control custom-range-obj" min="0.01" max="0.9"  step="0.01" id="${item_list[i].model_params_item}Range" value="${item_list[i].model_params_item_crtr_1}">`;
+                                    strHTML += `			<input type="number" id="${item_list[i].model_params_item}" class="form-control custom-number-range number_only" min="0.01" max="0.9" value="${item_list[i].model_params_item_crtr_1}" readonly="readonly" style="margin-left: 10px;">`;
+                                } else if (item_list[i].model_params_item === 'testSizePerDataLength') {
+                                    strHTML += `			<input type="range" class="form-control custom-range-obj" min="0.01" max="0.9"  step="0.01" id="${item_list[i].model_params_item}Range" value="${item_list[i].model_params_item_crtr_1}">`;
+                                    strHTML += `			<input type="number" id="${item_list[i].model_params_item}" class="form-control custom-number-range number_only" min="0.01" max="0.9" value="${item_list[i].model_params_item_crtr_1}" readonly="readonly" style="margin-left: 10px;">`;
                                 } else {
                                     if (item_list[i].model_params_item == 'window_size') {
-                                        strHTML += '			<input type="number" class="form-control number_only" id="' + item_list[i].model_params_item + '" placeholder="" value="10" required="required">';
+                                        strHTML += `			<input type="number" class="form-control number_only" id="${item_list[i].model_params_item}" placeholder="${item_list[i].model_params_derpn}" value="${item_list[i].model_params_item_crtr_1}" required="required">`;
                                     }
                                     if (item_list[i].model_params_item == 'batch_size') {
-                                        strHTML += '			<input type="number" class="form-control number_only" id="' + item_list[i].model_params_item + '" placeholder=""  value="32" required="required">';
+                                        strHTML += `			<input type="number" class="form-control number_only" id="${item_list[i].model_params_item}" placeholder="${item_list[i].model_params_derpn}"  value="${item_list[i].model_params_item_crtr_1}" required="required">`;
                                     }
                                     if (item_list[i].model_params_item == 'epochs') {
-                                        strHTML += '			<input type="number" class="form-control number_only" id="' + item_list[i].model_params_item + '" placeholder=""  value="50" required="required">';
+                                        strHTML += `			<input type="number" class="form-control number_only" id="${item_list[i].model_params_item}" placeholder="${item_list[i].model_params_derpn}"  value="${item_list[i].model_params_item_crtr_1}" required="required">`;
                                     }
                                     if (item_list[i].model_params_item == 'units') {
-                                        strHTML += '			<input type="number" class="form-control number_only" id="' + item_list[i].model_params_item + '" placeholder=""  value="16" required="required">';
+                                        strHTML += `			<input type="number" class="form-control number_only" id="${item_list[i].model_params_item}" placeholder="${item_list[i].model_params_derpn}"  value="${item_list[i].model_params_item_crtr_1}" required="required">`;
                                     }
                                     if (item_list[i].model_params_item == 'patience') {
-                                        strHTML += '			<input type="number" class="form-control number_only" id="' + item_list[i].model_params_item + `" placeholder="${item_list[i].model_params_derpn}"  value="10" required="required">`;
+                                        strHTML += `			<input type="number" class="form-control number_only" id="${item_list[i].model_params_item}" placeholder="${item_list[i].model_params_derpn}"  value="${item_list[i].model_params_item_crtr_1}" required="required">`;
                                     }
                                     if (item_list[i].model_params_item === 'n_estimator') {
-                                        strHTML += '			<input type="number" class="form-control number_only" id="' + item_list[i].model_params_item + `" placeholder="${item_list[i].model_params_derpn}"  value="100" required="required">`;
+                                        strHTML += `			<input type="number" class="form-control number_only" id="${item_list[i].model_params_item}" placeholder="${item_list[i].model_params_derpn}"  value="${item_list[i].model_params_item_crtr_1}" required="required">`;
                                     }
                                     if (item_list[i].model_params_item === 'min_samples_leaf') {
-                                        strHTML += '			<input type="number" class="form-control number_only" id="' + item_list[i].model_params_item + `" placeholder="${item_list[i].model_params_derpn}"  value="1" required="required">`;
+                                        strHTML += `			<input type="number" class="form-control number_only" id="${item_list[i].model_params_item}" placeholder="${item_list[i].model_params_derpn}"  value="${item_list[i].model_params_item_crtr_1}" required="required">`;
                                     }
                                     if (item_list[i].model_params_item === 'min_samples_split') {
-                                        strHTML += '			<input type="number" class="form-control number_only" id="' + item_list[i].model_params_item + `" placeholder="${item_list[i].model_params_derpn}"  value="2" required="required">`;
+                                        strHTML += `			<input type="number" class="form-control number_only" id="${item_list[i].model_params_item}" placeholder="${item_list[i].model_params_derpn}"  value="${item_list[i].model_params_item_crtr_1}" required="required">`;
                                     }
                                     if (item_list[i].model_params_item === 'max_features') {
-                                        strHTML += '			<input type="number" class="form-control number_only" id="' + item_list[i].model_params_item + `" placeholder="${item_list[i].model_params_derpn}"  value="5" required="required">`;
+                                        strHTML += `			<input type="number" class="form-control number_only" id="${item_list[i].model_params_item}" placeholder="${item_list[i].model_params_derpn}"  value="${item_list[i].model_params_item_crtr_1}" required="required">`;
                                     }
                                     if (item_list[i].model_params_item === 'max_depth') {
-                                        strHTML += '			<input type="number" class="form-control number_only" id="' + item_list[i].model_params_item + `" placeholder="${item_list[i].model_params_derpn}"  value="2" required="required">`;
+                                        strHTML += `			<input type="number" class="form-control number_only" id="${item_list[i].model_params_item}" placeholder="${item_list[i].model_params_derpn}"  value="${item_list[i].model_params_item_crtr_1}" required="required">`;
                                     }
                                     if (item_list[i].model_params_item === 'data_size') {
-                                        strHTML += '			<input type="number" class="form-control number_only" id="' + item_list[i].model_params_item + '" placeholder=""  value="100" required="required">';
+                                        strHTML += `			<input type="number" class="form-control number_only" id="${item_list[i].model_params_item}" placeholder="${item_list[i].model_params_derpn}"  value="${item_list[i].model_params_item_crtr_1}" required="required">`;
                                     }
                                     if (item_list[i].model_params_item === 'optimizerLr') {
-                                        strHTML += '			<input type="number" class="form-control optimizer-number-chk" id="' + item_list[i].model_params_item + '" placeholder=""  value="0.0005" required="required">';
+                                        strHTML += `			<input type="number" class="form-control optimizer-number-chk" id="${item_list[i].model_params_item}" placeholder="${item_list[i].model_params_derpn}"  value="${item_list[i].model_params_item_crtr_1}" required="required">`;
                                     }
                                     if (item_list[i].model_params_item === 'time_steps') {
-                                        strHTML += '			<input type="number" class="form-control number_only" id="' + item_list[i].model_params_item + `" placeholder="${item_list[i].model_params_derpn}"  value="100" required="required">`;
+                                        strHTML += `			<input type="number" class="form-control number_only" id="${item_list[i].model_params_item}" placeholder="${item_list[i].model_params_derpn}"  value="${item_list[i].model_params_item_crtr_1}" required="required">`;
+                                    }
+                                    if (item_list[i].model_params_item === 'gradientClipping') {
+                                        strHTML += `			<input type="number" class="form-control number_only" id="${item_list[i].model_params_item}" placeholder="${item_list[i].model_params_derpn}"  value="${item_list[i].model_params_item_crtr_1}" required="required">`;
                                     }
                                 }
                             } else {
-                                if (item_list[i].model_params_item === 'testSize') {
-                                    strHTML += '			<input type="range" class="form-control" min="0.1" max="0.9"  step="0.1" id="customRange" value="0.2">';
-                                    strHTML += '			<input type="number" id="' + item_list[i].model_params_item + '" value= "' + item_list[i].model_params_item_value + '" class="form-control custom-number-range number_only" min="0.1" max="0.9" value="0.2" readonly="readonly" style="margin-left: 10px;">';
+                                if (item_list[i].model_params_item === 'test_size') {
+                                    strHTML += `			<input type="range" class="form-control custom-range-obj" min="0.1" max="0.9"  step="0.1" id="${item_list[i].model_params_item}Range" value="${item_list[i].model_params_item_value}">`;
+                                    strHTML += `			<input type="number" class="form-control custom-number-range number_only" id="${item_list[i].model_params_item}" value="${item_list[i].model_params_item_value}" min="0.1" max="0.9" readonly="readonly" style="margin-left: 10px;">`;
+                                } else if (item_list[i].model_params_item === 'testSize') {
+                                    strHTML += `			<input type="range" class="form-control custom-range-obj" min="0.01" max="0.9"  step="0.01" id="${item_list[i].model_params_item}Range" value="${item_list[i].model_params_item_value}">`;
+                                    strHTML += `			<input type="number" class="form-control custom-number-range number_only" id="${item_list[i].model_params_item}" value="${item_list[i].model_params_item_value}" min="0.01" max="0.9" readonly="readonly" style="margin-left: 10px;">`;
+                                } else if (item_list[i].model_params_item === 'testSizePerDataLength') {
+                                    strHTML += `			<input type="range" class="form-control custom-range-obj" min="0.01" max="0.9"  step="0.01" id="${item_list[i].model_params_item}Range" value="${item_list[i].model_params_item_value}">`;
+                                    strHTML += `			<input type="number" class="form-control custom-number-range number_only" id="${item_list[i].model_params_item}" value="${item_list[i].model_params_item_value}" min="0.01" max="0.9" readonly="readonly" style="margin-left: 10px;">`;
                                 } else {
-                                    strHTML += '			<input type="number" class="form-control number_only" id="' + item_list[i].model_params_item + '" value= "' + item_list[i].model_params_item_value + '" placeholder="" required="required">';
+                                    strHTML += `			<input type="number" class="form-control number_only" id="${item_list[i].model_params_item}" value= "${item_list[i].model_params_item_value}" placeholder="${item_list[i].model_params_derpn}" required="required">`;
                                 }
                             }
                             strHTML += '						</div>';
                         } else {
                             if (item_list[i].model_params_item === 'loss') {
                                 strHTML += '						<div class="col-lg-8">';
-                                strHTML += '					<select class="select" id="' + item_list[i].model_params_item + '">';
+                                strHTML += `					<select class="select" id="${item_list[i].model_params_item}">`;
                                 for (var j = 0; j < loss_list.length; j++) {
                                     if (item_list[i].model_params_item_value == null || item_list[i].model_params_item_value == '') {
-                                        strHTML += '<option value=' + loss_list[j].dtl_cd + '>' + loss_list[j].dtl_cd_nm + '</option>';
+                                        //기본값이 포함되는 경우
+                                        if (loss_list[j].dtl_cd === item_list[i].model_params_item_crtr_1) {
+                                            strHTML += `<option selected value="${loss_list[j].dtl_cd}">${loss_list[j].dtl_cd_nm}</option>`;
+                                        }
+                                        //기본값이 포함되지 않는 경우
+                                        else {
+                                            strHTML += `<option value="${loss_list[j].dtl_cd}">${loss_list[j].dtl_cd_nm}</option>`;
+                                        }
                                     } else {
                                         if (item_list[i].model_params_item_value == loss_list[j].dtl_cd) {
-                                            strHTML += '<option selected value=' + loss_list[j].dtl_cd + '>' + loss_list[j].dtl_cd_nm + '</option>';
+                                            strHTML += `<option selected value="${loss_list[j].dtl_cd}">${loss_list[j].dtl_cd_nm}</option>`;
                                         } else {
-                                            strHTML += '<option value=' + loss_list[j].dtl_cd + '>' + loss_list[j].dtl_cd_nm + '</option>';
+                                            strHTML += `<option value="${loss_list[j].dtl_cd}">${loss_list[j].dtl_cd_nm}</option>`;
                                         }
                                     }
                                 }
@@ -736,15 +832,22 @@ function makeAlgorithmMetaItemList(model_algrm_seq, model_seq, callback) {
                             }
                             if (item_list[i].model_params_item === 'meterics') {
                                 strHTML += '						<div class="col-lg-8">';
-                                strHTML += '					<select class="select" id="' + item_list[i].model_params_item + '">';
+                                strHTML += `					<select class="select" id="${item_list[i].model_params_item}">`;
                                 for (var k = 0; k < meterics_list.length; k++) {
                                     if (item_list[i].model_params_item_value == null || item_list[i].model_params_item_value === '') {
-                                        strHTML += '<option value=' + meterics_list[k].dtl_cd + '>' + meterics_list[k].dtl_cd_nm + '</option>';
+                                        //기본값이 포함되는 경우
+                                        if (meterics_list[k].dtl_cd === item_list[i].model_params_item_crtr_1) {
+                                            strHTML += `<option selected value="${meterics_list[k].dtl_cd}">${meterics_list[k].dtl_cd_nm}</option>`;
+                                        }
+                                        //기본값이 포함되지 않는 경우
+                                        else {
+                                            strHTML += `<option value="${meterics_list[k].dtl_cd}">${meterics_list[k].dtl_cd_nm}</option>`;
+                                        }
                                     } else {
                                         if (item_list[i].model_params_item_value === meterics_list[k].dtl_cd) {
-                                            strHTML += '<option selected value=' + meterics_list[k].dtl_cd + '>' + meterics_list[k].dtl_cd_nm + '</option>';
+                                            strHTML += `<option selected value="${meterics_list[k].dtl_cd}">${meterics_list[k].dtl_cd_nm}</option>`;
                                         } else {
-                                            strHTML += '<option value=' + meterics_list[k].dtl_cd + '>' + meterics_list[k].dtl_cd_nm + '</option>';
+                                            strHTML += `<option value="${meterics_list[k].dtl_cd}">${meterics_list[k].dtl_cd_nm}</option>`;
                                         }
                                     }
                                 }
@@ -753,15 +856,22 @@ function makeAlgorithmMetaItemList(model_algrm_seq, model_seq, callback) {
                             }
                             if (item_list[i].model_params_item === 'optimizer') {
                                 strHTML += '						<div class="col-lg-8">';
-                                strHTML += '					<select class="select" id="' + item_list[i].model_params_item + '">';
+                                strHTML += `					<select class="select" id="${item_list[i].model_params_item}">`;
                                 for (var l = 0; l < optimizer_list.length; l++) {
                                     if (item_list[i].model_params_item_value == null || item_list[i].model_params_item_value === '') {
-                                        strHTML += '<option value=' + optimizer_list[l].dtl_cd + '>' + optimizer_list[l].dtl_cd_nm + '</option>';
+                                        //기본값이 포함되는 경우
+                                        if (optimizer_list[l].dtl_cd === item_list[i].model_params_item_crtr_1) {
+                                            strHTML += `<option selected value="${optimizer_list[l].dtl_cd}">${optimizer_list[l].dtl_cd_nm}</option>`;
+                                        }
+                                        //기본값이 포함되지 않는 경우
+                                        else {
+                                            strHTML += `<option value="${optimizer_list[l].dtl_cd}">${optimizer_list[l].dtl_cd_nm}</option>`;
+                                        }
                                     } else {
-                                        if (item_list[i].model_params_item_value == optimizer_list[l].dtl_cd) {
-                                            strHTML += '<option selected value=' + optimizer_list[l].dtl_cd + '>' + optimizer_list[l].dtl_cd_nm + '</option>';
+                                        if (item_list[i].model_params_item_value === optimizer_list[l].dtl_cd) {
+                                            strHTML += `<option selected value="${optimizer_list[l].dtl_cd}">${optimizer_list[l].dtl_cd_nm}</option>`;
                                         } else {
-                                            strHTML += '<option value=' + optimizer_list[l].dtl_cd + '>' + optimizer_list[l].dtl_cd_nm + '</option>';
+                                            strHTML += `<option value="${optimizer_list[l].dtl_cd}">${optimizer_list[l].dtl_cd_nm}</option>`;
                                         }
                                     }
                                 }

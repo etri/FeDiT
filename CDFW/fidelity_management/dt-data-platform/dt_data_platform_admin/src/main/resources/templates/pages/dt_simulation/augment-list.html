@@ -38,16 +38,16 @@
                         <div class="row">
                             <div class="col-sm-12">
                                 <div class="form-group row">
-                                    <div class="col-sm-2">
+                                    <div class="col-sm-auto">
                                         <select th:field="*{field}" class="form-control">
                                             <option value="title">제목</option>
                                         </select>
                                     </div>
-                                    <div class="col-sm-6">
+                                    <div class="col-sm">
                                         <input type="text" th:field="*{keyword}" class="form-control"
                                                placeholder="검색어를 입력하세요">
                                     </div>
-                                    <div class="col-sm-4">
+                                    <div class="col-sm-auto">
                                         <button type="submit" class="btn btn-primary mr-2 btn-icon-text btn-search">
                                             <i class="btn-icon-prepend" data-feather="search"></i>조회
                                         </button>
@@ -56,7 +56,7 @@
                                             <i class="btn-icon-prepend" data-feather="edit"></i>등록
                                         </a>
 
-                                        <button type="button" class="btn btn-secondary btn-icon-text schd-test">
+                                        <button type="button" class="btn btn-secondary btn-icon-text schd-test d-none">
                                             <i class="btn-icon-prepend" data-feather="edit"></i>스케쥴러테스트
                                         </button>
                                         <!--<button type="button" class="btn btn-secondary btn-icon-text schd-decision-test">
@@ -105,7 +105,7 @@
                                 </tr>
                                 </thead>
                                 <tbody class="table-text-nowrap">
-                                <th:block th:include="fragments/table_empty:: table_empty(7)"
+                                <th:block th:include="fragments/table_empty:: table_empty(8)"
                                           th:if="${#lists.isEmpty(list)}"></th:block>
                                 <tr th:each="item : ${list}" th:unless="${#lists.isEmpty(list)}">
                                     <td th:text="${paging.total - item.rnum + 1}"></td>

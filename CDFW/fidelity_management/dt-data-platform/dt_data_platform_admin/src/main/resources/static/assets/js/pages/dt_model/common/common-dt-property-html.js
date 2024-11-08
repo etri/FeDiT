@@ -357,6 +357,11 @@ function makePropertyListHtml() {
                                 strHTML += '보간 옵션 : ' + set.interpl_tp.toUpperCase();
                                 strHTML += ' | 보간 대상 항목 : ' + set.interpl_outputs[0];
                                 break;
+                            case 'naomi':
+                                strHTML += `<a href="#none" class="btn-property-file-view" data-interpl_tp="${set.interpl_tp}" data-output="${set.interpl_outputs.map(item => `${item}`)}" data-set-order="` + set.set_order + '" data-preproc-order="' + preprocOrder + '" data-trgt-file-nm="' + set.trgt_file_nm + '">';
+                                strHTML += '보간 옵션 : ' + set.interpl_tp.toUpperCase();
+                                strHTML += ' | 보간 대상 항목 : ' + set.interpl_outputs[0];
+                                break;
                             default:
                                 strHTML += `<a href="#none" class="btn-property-file-view" data-interpl_tp="${set.interpl_tp}" data-set-order="` + set.set_order + '" data-preproc-order="' + preprocOrder + '" data-trgt-file-nm="' + set.trgt_file_nm + '">';
                                 strHTML += '보간 옵션 : ' + set.interpl_tp.toUpperCase();
@@ -436,8 +441,8 @@ function viewPreprocFile(form_type, file_name, file_path, position_id, datatable
         dataType: "json",
         success: function (result) {
             if (result.code == 200) {
-                let header_list = JSON.parse(result.header_list);
-                let data_list = JSON.parse(result.data_list);
+                let header_list = result.header_list;
+                let data_list = result.data_list;
                 if (form_type === 'U') {
                     makeInfoHtmlJsonProperty(set_order);
                     $('#preprocTableRangeView').show();
