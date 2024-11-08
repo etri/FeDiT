@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.stoneitgt.common.GlobalConstant;
 import com.stoneitgt.dt.data.platform.domain.LoginForm;
-import com.stoneitgt.dt.data.platform.util.StoneUtil;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -39,9 +38,6 @@ public class RootController extends BaseController {
 
     @GetMapping("/main")
     public String main(Model model) {
-        Map<String, Object> params = new HashMap<String, Object>();
-        params.put("yyyymm", StoneUtil.getToday("yyyy-MM"));
-        //return "pages/main";
         return "redirect:/dt/board/notice/list?menuCd=M0401";
     }
 

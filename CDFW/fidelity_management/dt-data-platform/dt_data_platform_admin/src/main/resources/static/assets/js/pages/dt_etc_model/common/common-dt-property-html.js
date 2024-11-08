@@ -391,8 +391,8 @@ function viewPreprocFile(form_type, file_name, file_path, position_id, datatable
         success: function (result) {
             try {
                 if (result.code === 200) {
-                    var header_list = JSON.parse(result.header_list);
-                    var data_list = JSON.parse(result.data_list);
+                    var header_list = result.header_list;
+                    var data_list = result.data_list;
 
                     if (form_type === 'U') {
                         makeInfoHtmlJsonProperty(set_order);

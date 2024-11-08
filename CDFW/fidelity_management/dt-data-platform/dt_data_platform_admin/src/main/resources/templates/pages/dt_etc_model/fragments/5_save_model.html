@@ -38,7 +38,7 @@
 							                                </tr>
 							                            </thead>
 							                            <tbody>
-							                                <th:block th:include="fragments/table_empty:: table_empty(3)" th:if="${#lists.isEmpty(list_loss)}"></th:block>
+							                                <th:block th:include="fragments/table_empty:: table_empty(5)" th:if="${#lists.isEmpty(list_loss)}"></th:block>
 							                                <tr th:each="item : ${list_loss}" th:unless="${#lists.isEmpty(list_loss)}">
 							                                    <td th:text="${item.epochs_cnt}"></td>
 							                                    <td th:text="${#numbers.formatDecimal(item.loss,1,6)}"></td>

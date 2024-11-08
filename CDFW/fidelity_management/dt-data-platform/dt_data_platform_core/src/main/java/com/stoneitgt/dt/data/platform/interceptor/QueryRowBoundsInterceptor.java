@@ -67,7 +67,6 @@ public class QueryRowBoundsInterceptor implements Interceptor {
 		sql.append("        LIMIT " + (rowBounds.getOffset() - 1) + "," + rowBounds.getLimit() + " ) X2 \n");
 		sql.append("INNER JOIN (SELECT @ROWNUM := " + (rowBounds.getOffset() - 1) + ") XR1 \n");
 		sql.append(" " + suffixSql + " \n");
-//		log.info("sql = {}", sql.toString());
 
 		// RowBounds 정보 제거
 		metaStatementHandler.setValue("delegate.rowBounds.offset", RowBounds.NO_ROW_OFFSET);

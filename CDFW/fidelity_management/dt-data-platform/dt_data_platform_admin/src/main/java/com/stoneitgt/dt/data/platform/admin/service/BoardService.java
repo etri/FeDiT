@@ -12,13 +12,13 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class BoardService {
+public class BoardService extends BaseService {
 
     @Autowired
     private BoardMapper boardMapper;
+
     @Autowired
     private FilesMapper filesMapper;
-
 
     public int saveBoard(Board board) {
         boardMapper.saveBoard(board);

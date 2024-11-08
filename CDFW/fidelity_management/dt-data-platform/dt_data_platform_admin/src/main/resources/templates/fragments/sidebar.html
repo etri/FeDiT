@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <nav th:fragment="sidebar" class="sidebar">
     <div class="sidebar-header">
         <a th:href="@{/main}" class="sidebar-brand">
@@ -16,17 +18,41 @@
             <th:block th:each="item : ${menu}">
                 <li class="nav-item topMenu" th:if="${item.up_menu_cd == 'TOP'}">
                     <th:block th:if="${#strings.isEmpty(item.menu_url)}">
-                        <a th:href="|#${item.menu_cd}|" class="nav-link" data-toggle="collapse" role="button" aria-expanded="false" th:aria-controls="${item.menu_cd}">
-                            <i class="link-icon" th:data-feather="${item.menu_icon}"></i>
-                            <span th:text="${item.menu_nm}" class="link-title">메뉴명</span>
+                        <a th:href="|#${item.menu_cd}|" class="nav-link" data-toggle="collapse" role="button"
+                           aria-expanded="false" th:aria-controls="${item.menu_cd}">
+                            <span th:text="${item.menu_nm}" class="link-title ml-0">메뉴명</span>
                             <i class="link-arrow" data-feather="chevron-down"></i>
                         </a>
                         <div class="collapse" th:id="${item.menu_cd}">
                             <ul class="nav sub-menu">
                                 <th:block th:each="sub : ${menu}">
-                                    <li class="nav-item" th:if="${item.menu_cd == sub.up_menu_cd}">
-                                        <a th:href="@{${sub.menu_url}(menuCd=${sub.menu_cd})}" class="nav-link" th:text="${sub.menu_nm}">메뉴명</a>
-                                    </li>
+                                    <th:block
+                                            th:if="${#strings.isEmpty(sub.menu_url) && sub.up_menu_cd != 'TOP' && sub.up_menu_cd == item.menu_cd}">
+                                        <li class="nav-item topSubMenu">
+                                            <a th:href="|#${sub.menu_cd}|" class="nav-link" data-toggle="collapse"
+                                               role="button" aria-expanded="false" th:aria-controls="${sub.menu_cd}">
+                                                <span th:text="${sub.menu_nm}" class="link-title ml-0">메뉴명</span>
+                                                <i class="link-arrow" data-feather="chevron-down"></i>
+                                            </a>
+                                            <div class="collapse" th:id="${sub.menu_cd}">
+                                                <ul class="nav sub-menu">
+                                                    <th:block th:each="ssub : ${menu}">
+                                                        <li class="nav-item" th:if="${sub.menu_cd == ssub.up_menu_cd}">
+                                                            <a th:href="@{${ssub.menu_url}(menuCd=${ssub.menu_cd})}"
+                                                               class="nav-link" th:text="${ssub.menu_nm}">메뉴명</a>
+                                                        </li>
+                                                    </th:block>
+                                                </ul>
+                                            </div>
+                                        </li>
+                                    </th:block>
+                                    <th:block
+                                            th:unless="${#strings.isEmpty(sub.menu_url) && sub.up_menu_cd != 'TOP' && sub.up_menu_cd == item.menu_cd}">
+                                        <li class="nav-item" th:if="${item.menu_cd == sub.up_menu_cd}">
+                                            <a th:href="@{${sub.menu_url}(menuCd=${sub.menu_cd})}" class="nav-link"
+                                               th:text="${sub.menu_nm}">메뉴명</a>
+                                        </li>
+                                    </th:block>
                                 </th:block>
                             </ul>
                         </div>

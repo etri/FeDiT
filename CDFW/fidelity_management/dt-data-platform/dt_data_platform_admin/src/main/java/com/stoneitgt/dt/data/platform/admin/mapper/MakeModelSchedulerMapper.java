@@ -19,11 +19,11 @@ public interface MakeModelSchedulerMapper {
 
 	int finishMakeModel(Map<String, Object> checkParams);
 
-	int deleteMakeModelFile(Map<String, Object> checkParams);
+	/*int deleteMakeModelFile(Map<String, Object> checkParams);
 
 	int deleteMakeModelFid(Map<String, Object> checkParams);
 
-	int deleteMakeModelLoss(Map<String, Object> checkParams);
+	int deleteMakeModelLoss(Map<String, Object> checkParams);*/
 
 	List<Map<String, Object>> getOriginFiles(Map<String, Object> checkParams);
 

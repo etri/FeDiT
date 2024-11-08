@@ -109,14 +109,4 @@
 		  </if>
 		WHERE USER_SEQ = #{userSeq}
 	</insert>
-
-	<update id="deleteUser" parameterType="map" >
-		/* file : UserMapper.xml, id : deleteUser */
-		  UPDATE TB_USER
-		     SET DEL_YN      = 'Y'
-		       , DEL_USER_SEQ     = #{login_user_seq}
-		       , DEL_DATE         = CURRENT_TIMESTAMP()
-		   WHERE USER_SEQ         = #{user_seq}
-	</update>
-
 </mapper>
