@@ -20,47 +20,6 @@ public class StringUtil extends StringUtils {
 				: StringUtils.defaultString(obj.toString().trim(), defaultStr);
 	}
 
-	public static int getInteger(Object obj) {
-		int result = 0;
-		if (obj != null) {
-			try {
-				result = Integer.parseInt(obj.toString());
-			} catch (Exception e) {
-				log.error("getInteger error", e);
-				result = 0;
-			}
-		}
-		return result;
-	}
-
-	public static double getDouble(Object obj) {
-		double result = 0;
-		if (obj != null) {
-			try {
-				result = Double.parseDouble(obj.toString());
-			} catch (Exception e) {
-				log.error("getInteger error", e);
-				result = 0;
-			}
-		}
-		return result;
-	}
-	
-	public static boolean isValidTelNo(String tel) {
-		String regex = "^0(\\d{1}|\\d{2})[.-]?(\\d{3,4})[.-]?(\\d{4})$";
-		return tel.matches(regex);
-	}
-
-	public static boolean isValidHp(String tel) {
-		String regex = "^01([0|1|6|7|8|9]?)[.-]?(\\d{3,4})[.-]?(\\d{4})$";
-		return tel.matches(regex);
-	}
-
-	public static boolean isValidEmail(String email) {
-		String regex = "^[\\w!#$%&'*+/=?`{|}~^-]+(?:\\.[\\w!#$%&'*+/=?`{|}~^-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,6}$";
-		return email.matches(regex);
-	}
-	
 	public static int getIntValue(Object obj) {
 		int result = 0;
 		if (obj != null) {

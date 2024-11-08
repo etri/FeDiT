@@ -315,7 +315,30 @@
                                         </div>
                                     </div>
                                 </div>
-
+                                <div class="row" id="row_rls_yn">
+                                    <div class="col-sm-12">
+                                        <div class="form-group row">
+                                            <label class="col-sm-2 col-form-label">공개 여부</label>
+                                            <div class="col-sm-9">
+                                                <div class="form-check form-check-inline">
+                                                    <label class="form-check-label">
+                                                        <input type="radio" class="form-check-input"
+                                                               name="rlsYn" th:checked="*{rlsYn == 'Y'}" value="Y" data-label="공개">공개
+                                                        <i class="input-frame"></i>
+                                                    </label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <label class="form-check-label">
+                                                        <input type="radio" class="form-check-input"
+                                                               name="rlsYn" th:checked="*{rlsYn == 'N' or useYn==null}" value="N" data-label="비공개">비공개
+                                                        <i class="input-frame"></i>
+                                                    </label>
+                                                </div>
+                                                <span style="margin-top: 10px;color: red;font-size: 13px;">(공개로 설정한 경우 시뮬레이션이 완료된 데이터만 공개됩니다.)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <th:block th:if="${dTAugment.augmentTp == 'R'}">
                                     <div class="row">
                                         <div class="col-sm-12">

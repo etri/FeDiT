@@ -86,6 +86,11 @@
                     britscommentElement.style.display = 'none';
                 }
 
+                let naomicommentElement = document.querySelector('#naomicomment');
+                if (naomicommentElement) {
+                    naomicommentElement.style.display = 'none';
+                }
+
                 switch (datasetElement.getAttribute('value')) {
                     case 'decisiontree': {
                         getTargetDataSetInfoCallbackFunction(base_file_path, base_file_nm, index_trgt_col, 'N', 'interpolate', function (result) {
@@ -240,6 +245,45 @@
                                     } else {
                                         britscommentElement.style.display = 'flex';
                                         britscommentElement.innerHTML = `선택 컬럼(OC) : ${datasetElement.dataset.output_col}`;
+                                    }
+                                }
+                            }, true);
+                        } else if (value.includes('naomi')) {
+                            //Brits 모델을 이용한 옵션일 때,
+                            getTargetDataSetInfoCallbackFunction(base_file_path, base_file_nm, index_trgt_col, 'N', 'interpolate', function (result) {
+                                let headers = JSON.parse(result.data).data.columns;
+                                let infos = JSON.parse(result.data).data.info.map((info) => {
+                                    return JSON.parse(info);
+                                });
+                                const table = new PreProcessInterpolateTable({
+                                    container: document.querySelector('#tab_missing_table_range_interpolate'),
+                                    columns: ['#', 'COLUMN', 'COUNT'/*, '컬럼 선택'*/],
+                                    headers: headers,
+                                    infos: infos,
+                                    case: 'origin',
+                                    type: 'basic',
+                                    initialize: function (options) {
+                                        console.log('Custom initialize', options);
+                                    }
+                                });
+                                console.log('table', table);
+                                let naomicommentElement = document.querySelector('#naomicomment');
+                                if (naomicommentElement) {
+                                    const keysArray = infos.map(item => Object.keys(item)).flat();
+                                    let outputCheck = false;
+                                    keysArray.forEach((key, index, array) => {
+                                        if (datasetElement.dataset.output_col.trim() === key) {
+                                            outputCheck = true;
+                                        }
+                                    });
+
+                                    // outputCheck가 true인 경우
+                                    if (!outputCheck) {
+                                        naomicommentElement.style.display = 'flex';
+                                        naomicommentElement.innerHTML = `변환전 필요 선택 컬럼(OC) : ${datasetElement.dataset.output_col} 컬럼이 존재해야합니다.`;
+                                    } else {
+                                        naomicommentElement.style.display = 'flex';
+                                        naomicommentElement.innerHTML = `선택 컬럼(OC) : ${datasetElement.dataset.output_col}`;
                                     }
                                 }
                             }, true);
@@ -684,16 +728,16 @@
                             validateTemplate.rule3 = result.param.rule3;
                             validateTemplate.rule4 = result.param.rule4;
                             validateTemplate.validate_count = result.removed_count;
-                            validateTemplate.validate_data = JSON.parse(result.removed_data_list);
+                            validateTemplate.validate_data = result.removed_data_list;
                             validateTemplate.row_count = result.row_count;
                             let preProcData = JSON.parse($('#preprocProPerty').val());
                             preProcData.preproc_property_info[0].preproc_property[0].preproc_set[set_order] = validateTemplate;
                             preProcData.preproc_property_info[0].last_step_preproc_file_nm = result.param.target_file_name;
                             $('#preprocProPerty').val(JSON.stringify(preProcData));
                             $('.preprocProPerty').val(prettyJson(JSON.stringify(preProcData)));
-                            let header_list = JSON.parse(result.header_list);
-                            let data_list = JSON.parse(result.data_list);
-                            let removed_data = JSON.parse(result.removed_data_list);
+                            let header_list = result.header_list;
+                            let data_list = result.data_list;
+                            let removed_data = result.removed_data_list;
                             let preprocTableRangeValidate = document.querySelector('#preprocTableRangeValidate');
                             preprocTableRangeValidate.style.display = 'block';
                             preprocTableRangeValidate.innerHTML = '';
@@ -731,7 +775,7 @@
                             validateTemplate.rule3 = result.param.rule3;
                             validateTemplate.rule4 = result.param.rule4;
                             validateTemplate.validate_count = result.removed_count;
-                            validateTemplate.validate_data = JSON.parse(result.removed_data_list);
+                            validateTemplate.validate_data = result.removed_data_list;
                             validateTemplate.row_count = result.row_count;
                             let preProcData = JSON.parse($('#preprocProPerty').val());
                             preProcData.preproc_property_info[0].preproc_property[0].preproc_set[set_order] = validateTemplate;
@@ -742,11 +786,11 @@
                             /**
                              * 2024-07-26 만든 함수 끼워넣기
                              * */
-                            var header_list = JSON.parse(result.header_list);
+                            var header_list = result.header_list;
                             let removedCount = result.removed_count;
                             let rowCount = result.row_count;
                             let statusMessage = `총 ${rowCount}개의 데이터에서 ${removedCount}개가 수정되었습니다.`;
-                            let removed_data = JSON.parse(result.removed_data_list);
+                            let removed_data = result.removed_data_list;
                             preProcessMakeHTMLExcludeDataTable('#preprocTableExcludeRangeValidate', 'validateDataTableExcludeRange', header_list, removed_data, statusMessage, function (wrapper, headers, datas) {
                                 console.log('wrapper', wrapper);
                                 console.log('preProcessMakeHTMLExcludeDataTable is completed');
@@ -767,8 +811,8 @@
                                     }
                                 });
                             });
-                            var data_list = JSON.parse(result.data_list);
-                            let origin_list = JSON.parse(result.origin_list);
+                            var data_list = result.data_list;
+                            let origin_list = result.origin_list;
                             let preprocTableRangeValidate = document.querySelector('#preprocTableRangeValidate');
                             preprocTableRangeValidate.style.display = 'block';
                             preprocTableRangeValidate.innerHTML = '';
@@ -1815,8 +1859,8 @@
                         $('#preprocProPerty').val(JSON.stringify(preProcData));
                         $('.preprocProPerty').val(prettyJson(JSON.stringify(preProcData)));
 
-                        var header_list = JSON.parse(result.header_list);
-                        var data_list = JSON.parse(result.data_list);
+                        var header_list = result.header_list;
+                        var data_list = result.data_list;
 
                         console.log('data_list', data_list);
                         console.log('header_list', header_list);
@@ -2023,8 +2067,8 @@
                         $('#preprocProPerty').val(JSON.stringify(preProcData));
                         $('.preprocProPerty').val(prettyJson(JSON.stringify(preProcData)));
 
-                        var header_list = JSON.parse(result.header_list);
-                        var data_list = JSON.parse(result.data_list);
+                        var header_list = result.header_list;
+                        var data_list = result.data_list;
 
                         let preprocTableRangeUnit = document.querySelector('#preprocTableRangeUnit');
                         preprocTableRangeUnit.innerHTML = ``;
@@ -2091,6 +2135,9 @@
             }
             if (interpolate_option.includes('brits')) {
                 interpolate_option = 'brits';
+            }
+            if (interpolate_option.includes('naomi')) {
+                interpolate_option = 'naomi';
             }
             switch (interpolate_option) {
                 case 'decisiontree': {
@@ -2195,6 +2242,33 @@
                     }
                     break;
                 }
+                case 'naomi': {
+                    select_interpolate = document.querySelector('#select_interpolate');
+
+                    // 선택된 옵션의 텍스트 추출
+                    selectedOption = select_interpolate.options[select_interpolate.selectedIndex];
+                    outputs = [];
+                    features = [];
+
+                    // outputs와 features 배열 설정
+                    outputs.push(selectedOption.dataset.output_col.trim());
+
+                    // 테이블의 모든 data-column 속성을 배열로 추출
+                    let tableRows = document.querySelectorAll('#tab_missing_table_range_interpolate tbody tr');
+                    let tableColumns = Array.from(tableRows).map(row => row.dataset.column);
+
+                    // outputs와 features가 모두 data-column에 존재하는지 확인
+                    let allExist = outputs.every(col => tableColumns.includes(col));
+
+                    if (allExist) {
+                        console.log('해당 Naomi 모델은 모든 컬럼이 존재하며, 중복이 없습니다.');
+                    } else {
+                        console.log('해당 Naomi 모델은 일부 컬럼이 테이블에 존재하지 않습니다.');
+                        alert('해당 Naomi 모델은 일부 컬럼이 테이블에 존재하지 않습니다.');
+                        return;
+                    }
+                    break;
+                }
                 default:
                     break;
             }
@@ -2218,6 +2292,8 @@
                 case 'brits':
                     break;
                 case 'random forest':
+                    break;
+                case 'naomi':
                     break;
                 default:
                     verifyOptions.forEach(verifyOption => {
@@ -2316,8 +2392,8 @@
                                 $('#preprocProPerty').val(JSON.stringify(preProcData));
                                 $('.preprocProPerty').val(prettyJson(JSON.stringify(preProcData)));
 
-                                var header_list = JSON.parse(result.header_list);
-                                var data_list = JSON.parse(result.data_list);
+                                var header_list = result.header_list;
+                                var data_list = result.data_list;
                                 let missing_data = preProcData.preproc_property_info[0].preproc_property[2].preproc_set[set_order].missing_data;
 
                                 console.log('header_list', header_list);
@@ -2546,8 +2622,8 @@
                                 $('#preprocProPerty').val(JSON.stringify(preProcData));
                                 $('.preprocProPerty').val(prettyJson(JSON.stringify(preProcData)));
 
-                                var header_list = JSON.parse(result.header_list);
-                                var data_list = JSON.parse(result.data_list);
+                                var header_list = result.header_list;
+                                var data_list = result.data_list;
                                 let missing_data = preProcData.preproc_property_info[0].preproc_property[2].preproc_set[set_order].missing_data;
 
                                 console.log('header_list', header_list);
@@ -2729,7 +2805,7 @@
                         dataType: "json",
                         success: function (result) {
                             if (result.code === 200) {
-                                console.log('random forest result', result);
+                                console.log('brits result', result);
                                 let template = interpolateTemplate();
                                 template.set_order = set_order + 1;
                                 template.trgt_file_nm = result.param.output_file;
@@ -2782,8 +2858,245 @@
                                 $('#preprocProPerty').val(JSON.stringify(preProcData));
                                 $('.preprocProPerty').val(prettyJson(JSON.stringify(preProcData)));
 
-                                var header_list = JSON.parse(result.header_list);
-                                var data_list = JSON.parse(result.data_list);
+                                var header_list = result.header_list;
+                                var data_list = result.data_list;
+                                let missing_data = preProcData.preproc_property_info[0].preproc_property[2].preproc_set[set_order].missing_data;
+
+                                console.log('header_list', header_list);
+                                console.log('data_list', data_list);
+                                console.log('missing_data', missing_data);
+
+                                /**
+                                 * 만약 0개일때는 제외된 테이블을 생성하도록 하지 않는 경우
+                                 * */
+                                let statusMessage = `총 ${data_list.length}개의 데이터에서 ${missing_data.length}개의 결측치가 존재합니다.`;
+                                if (statusMessage) {
+                                    preProcessMakeHTMLExcludeDataTable('#preprocTableExcludeRangeMissing', 'missingDataTableExcludeRange', header_list, missing_data, statusMessage, function (wrapper, headers, datas) {
+                                        console.log('wrapper', wrapper);
+                                        console.log('preProcessMakeHTMLExcludeDataTable is completed');
+                                        $('#missingDataTableExcludeRange').DataTable({
+                                            scrollX: true,
+                                            columnDefs: [{
+                                                targets: '_all', className: 'text-nowrap'
+                                            }],
+                                            order: [[0, "asc"]],
+                                            searching: false,
+                                            info: false,
+                                            lengthChange: false,
+                                            autoWidth: true,
+                                            lengthMenu: [[10], [10]],
+                                            initComplete: function (settings, json) {
+                                                console.log('DataTable has finished its initialisation.');
+                                                wrapper.parentElement.style.display = 'block';
+                                            }
+                                        });
+                                    }, true);
+                                }
+
+                                let preprocTableRangeMissing = document.querySelector('#preprocTableRangeMissing');
+                                preprocTableRangeMissing.style.display = 'block';
+                                preprocTableRangeMissing.innerHTML = '';
+
+                                /**
+                                 * 테이블 헤더 만들기
+                                 * */
+                                let newHeaderList = []
+                                newHeaderList.push(data.index_trgt_col);
+                                let dateIndex = 0;
+                                header_list.forEach(function (header, index) {
+                                    if (header !== data.index_trgt_col) {
+                                        newHeaderList.push(header);
+                                        newHeaderList.push(header + ' BEFORE');
+                                    } else {
+                                        dateIndex = index;
+                                    }
+                                });
+
+                                /**
+                                 * 테이블 데이터 만들기
+                                 * */
+                                let newDataList = [];
+                                data_list.forEach(function (data, index) {
+                                    let newDataRow = [];
+                                    data.forEach((_data, _index) => {
+                                        if (_index !== dateIndex) {
+                                            newDataRow.push(_data);
+                                            newDataRow.push('');
+                                        } else {
+                                            newDataRow.push(_data);
+                                        }
+                                    });
+                                    newDataList.push(newDataRow);
+                                });
+                                let orders = [];
+                                newHeaderList.forEach(function (header, index) {
+                                    if (index === 0) {
+                                        orders.push(index);
+                                    } else {
+                                        orders.push('asc');
+                                    }
+                                });
+                                makeHtmlTable(newHeaderList, newDataList, 'preprocTableRangeMissing', 'N', 'interpolateDataTableRange');
+                                $('#interpolateDataTableRange').DataTable({
+                                    scrollX: true,
+                                    columnDefs: [{
+                                        targets: '_all', className: 'text-nowrap'
+                                    }],
+                                    order: [orders],
+                                    searching: false,
+                                    info: false,
+                                    lengthChange: false,
+                                    autoWidth: true,
+                                    lengthMenu: [[10], [10]],
+                                    createdRow: function (row, data, dataIndex) {
+                                        let targetIndex = 0;
+                                        //조건 검사
+                                        let isExist = false;
+                                        if (data.length !== 0) {
+                                            //Row의 날짜 컬럼 데이터
+                                            let dateStr = data[targetIndex];
+                                            //비교 검사 (BEFORE 전용)
+                                            let originRow;
+                                            for (let i = 0; i < missing_data.length; i++) {
+                                                //돌리는 날짜와 오리진 리스트의 날짜가 같은게 있다면
+                                                if (dateStr === missing_data[i][targetIndex].replaceAll('T', ' ')) {
+                                                    originRow = missing_data[i];
+                                                    isExist = true;
+                                                    break;
+                                                }
+                                            }
+
+                                            if (originRow) {
+                                                let count = 1;
+                                                data.forEach(function (value, index) {
+                                                    if (index !== targetIndex && index % 2 === 0) {
+                                                        data[index] = originRow[count];
+                                                        $('td', row).eq(index).text(originRow[count++]);
+                                                    }
+                                                });
+                                            } else {
+                                                //매칭되는 ROW 없음 그대로 로직 전개
+                                            }
+                                            if (isExist) $(row).addClass('active');
+                                        } else {
+                                            console.error('$(\'#interpolateDataTableRange\').DataTable({}) createdRow data is 0');
+                                        }
+                                    }
+                                });
+
+                                var base_file_path = preProcData.preproc_property_info[0].base_dir;
+                                var base_file_nm = preProcData.preproc_property_info[0].last_step_preproc_file_nm;
+                                var index_trgt_col = preProcData.preproc_property_info[0].index_trgt_col;
+                                closeProgressBar({element: null, process_id: 'process-41'});
+                                getTargetDataSetInfoCallbackFunction(base_file_path, base_file_nm, index_trgt_col, 'N', 'interpolate', function () {
+                                    makePropertyListHtml();
+                                });
+                            } else {
+                                closeProgressBar({element: null, process_id: 'process-41'});
+                                if (result.result_code === -100) {
+                                    let errorModal = document.querySelector('#errorModal');
+                                    if (errorModal) {
+                                        let errTpElement = errorModal.querySelector('#errTp');
+                                        let errCdElement = errorModal.querySelector('#errCd');
+                                        let errNmElement = errorModal.querySelector('#errNm');
+                                        let errLctElement = errorModal.querySelector('#errLct');
+                                        let errCnElement = errorModal.querySelector('#errCn');
+                                        let errRegDtElement = errorModal.querySelector('#errRegDt');
+
+                                        errTpElement.innerHTML = `${result.errTp}`;
+                                        errCdElement.innerHTML = `${result.errCd}`;
+                                        errNmElement.innerHTML = `${result.errNm}`;
+                                        errLctElement.innerHTML = `${result.errLct}`;
+                                        errCnElement.innerHTML = `${result.errCn}`;
+                                        errRegDtElement.innerHTML = `${result.errRegDt}`;
+
+                                        console.log('errorModal', errorModal);
+                                        $(errorModal).modal('show');
+                                    } else {
+                                        console.error('errorModal could not find');
+                                        alert('에러가 발생하였습니다. 관리자에게 문의해주세요.');
+                                    }
+                                } else {
+                                    console.error('errorModal could not find');
+                                    alert('에러가 발생하였습니다. 관리자에게 문의해주세요.');
+                                }
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            console.error('error : ', error);
+                            closeProgressBar({element: null, process_id: 'process-41'});
+                            alert('에러가 발생하였습니다. 관리자에게 문의하십시오.');
+                        }
+                    });
+                } else if (data.interpolate_option === 'naomi') {
+                    data.etc_model_seq = selectedOption.dataset.etc_model_seq;
+                    delete data.feature;
+                    showProgressBar({element: null, process_id: 'process-41'});
+                    console.log('data', data);
+                    $.ajax({
+                        type: "POST",
+                        url: '/dt/model/make/interpolate_set/naomi',
+                        data: JSON.stringify(data),
+                        contentType: "application/json; charset=utf-8;",
+                        dataType: "json",
+                        success: function (result) {
+                            if (result.code === 200) {
+                                console.log('naomi result', result);
+                                let template = interpolateTemplate();
+                                template.set_order = set_order + 1;
+                                template.trgt_file_nm = result.param.output_file;
+                                template.interpl_tp = interpolate_option;
+                                template.interpl_outputs = result.param.outputs;
+                                template.interpl_window_size = result.param.windowSize;
+                                template.interpl_etc_model_seq = parseInt(result.param.etc_model_seq);
+                                template.interpl_etc_model_file_path = result.param.model_file_path;
+                                template.interpl_etc_model_file_name = result.param.model_file_name;
+
+                                var preProcData = JSON.parse($('#preprocProPerty').val());
+
+                                template.missing_data = [];
+                                let missing_count = 0;
+                                //보간 데이터 보여주는 작업 Validate 부분 합산
+                                if (preProcData.preproc_property_info[0].preproc_property[0].preproc_set && preProcData.preproc_property_info[0].preproc_property[0].preproc_set.length !== 0) {
+                                    console.log('preProcData.preproc_property_info[0].preproc_property[0].preproc_set', preProcData.preproc_property_info[0].preproc_property[0].preproc_set);
+                                    preProcData.preproc_property_info[0].preproc_property[0].preproc_set.forEach((property) => {
+                                        try {
+                                            missing_count += parseInt(property.validate_count);
+                                        } catch (e) {
+                                            missing_count = 0;
+                                            console.error(e);
+                                            alert('데이터의 정합성이 일치하지 않습니다.');
+                                            return;
+                                        }
+                                        template.missing_data = [...template.missing_data, ...property.validate_data];
+                                    });
+                                }
+
+                                //보간 데이터 보여주는 작업 Outlier 부분 합산
+                                if (preProcData.preproc_property_info[0].preproc_property[1].preproc_set && preProcData.preproc_property_info[0].preproc_property[1].preproc_set.length !== 0) {
+                                    console.log('preProcData.preproc_property_info[0].preproc_property[1].preproc_set', preProcData.preproc_property_info[0].preproc_property[1].preproc_set);
+                                    preProcData.preproc_property_info[0].preproc_property[1].preproc_set.forEach((property) => {
+                                        try {
+                                            missing_count += parseInt(property.outlier_count);
+                                        } catch (e) {
+                                            missing_count = 0;
+                                            console.error(e);
+                                            alert('데이터의 정합성이 일치하지 않습니다.');
+                                            return;
+                                        }
+                                        template.missing_data = [...template.missing_data, ...property.outlier_data];
+                                    });
+                                }
+                                template.row_count = preProcData.preproc_property_info[0].target_row_count;
+                                template.missing_count = missing_count;
+                                preProcData.preproc_property_info[0].preproc_property[2].preproc_set[set_order] = template;
+                                preProcData.preproc_property_info[0].last_step_preproc_file_nm = result.param.output_file;
+
+                                $('#preprocProPerty').val(JSON.stringify(preProcData));
+                                $('.preprocProPerty').val(prettyJson(JSON.stringify(preProcData)));
+
+                                var header_list = result.header_list;
+                                var data_list = result.data_list;
                                 let missing_data = preProcData.preproc_property_info[0].preproc_property[2].preproc_set[set_order].missing_data;
 
                                 console.log('header_list', header_list);
@@ -3012,8 +3325,8 @@
                                 $('#preprocProPerty').val(JSON.stringify(preProcData));
                                 $('.preprocProPerty').val(prettyJson(JSON.stringify(preProcData)));
 
-                                var header_list = JSON.parse(result.header_list);
-                                var data_list = JSON.parse(result.data_list);
+                                var header_list = result.header_list;
+                                var data_list = result.data_list;
                                 let missing_data = preProcData.preproc_property_info[0].preproc_property[2].preproc_set[set_order].missing_data;
 
                                 console.log('header_list', header_list);
@@ -3272,12 +3585,12 @@
                                 //console.log(result);
                                 var set_order = 0
 
-                                let header_list = JSON.parse(result.header_list);
-                                let data_list = JSON.parse(result.data_list);
-                                let prev_header_list = JSON.parse(result.prev_header_list);
-                                let prev_data_list = JSON.parse(result.prev_data_list);
-                                let added_data_list = JSON.parse(result.added_data);
-                                let removed_data_list = JSON.parse(result.removed_data);
+                                let header_list = result.header_list;
+                                let data_list = result.data_list;
+                                let prev_header_list = result.prev_header_list;
+                                let prev_data_list = result.prev_data_list;
+                                let added_data_list = result.added_data;
+                                let removed_data_list = result.removed_data;
                                 template.set_order = 1;
                                 template.trgt_file_nm = result.param.target_file_name;
                                 template.resmpl_tp = resmpl_tp;
@@ -3439,12 +3752,12 @@
                                 //console.log(result);
                                 var set_order = 0
 
-                                let header_list = JSON.parse(result.header_list);
-                                let data_list = JSON.parse(result.data_list);
-                                let prev_header_list = JSON.parse(result.prev_header_list);
-                                let prev_data_list = JSON.parse(result.prev_data_list);
-                                let added_data_list = JSON.parse(result.added_data);
-                                let removed_data_list = JSON.parse(result.removed_data);
+                                let header_list = result.header_list;
+                                let data_list = result.data_list;
+                                let prev_header_list = result.prev_header_list;
+                                let prev_data_list = result.prev_data_list;
+                                let added_data_list = result.added_data;
+                                let removed_data_list = result.removed_data;
                                 template.set_order = 1;
                                 template.trgt_file_nm = result.param.target_file_name;
                                 template.resmpl_tp = resmpl_tp;

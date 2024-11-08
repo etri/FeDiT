@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.session.RowBounds;
 
 import com.stoneitgt.dt.data.platform.domain.Menu;
 import com.stoneitgt.dt.data.platform.domain.MenuAuth;
@@ -17,8 +16,6 @@ public interface MenuMapper {
 	Map<String, Object> getBreadcrumb(String menuCode);
 
 	List<Map<String, Object>> getMenuList(Map<String, Object> params);
-
-	List<Map<String, Object>> getMenuList(Map<String, Object> params, RowBounds rowBounds);
 
 	List<Map<String, Object>> getAuthMenuList(String auth);
 
@@ -37,4 +34,6 @@ public interface MenuMapper {
 	int deleteMenuParent(Menu menu);
 
 	Map<String, Object> getMenu(String menuCode);
+
+	Map<String, Object> getFindParentByMenuCode(String menuCd);
 }

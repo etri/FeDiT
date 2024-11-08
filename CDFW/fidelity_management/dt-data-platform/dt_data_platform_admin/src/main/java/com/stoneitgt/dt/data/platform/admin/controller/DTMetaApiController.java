@@ -5,8 +5,10 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+import com.stoneitgt.dt.data.platform.admin.properties.SystemProperties;
 import com.stoneitgt.dt.data.platform.domain.DigitalObjectInfo;
 import com.stoneitgt.dt.data.platform.util.ConvertUtil;
+import com.stoneitgt.dt.data.platform.util.file.FileReader;
 import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 import com.stoneitgt.dt.data.platform.util.JSONParser;
 import com.stoneitgt.dt.data.platform.util.file.FileWriter;
@@ -26,7 +28,6 @@ import com.stoneitgt.common.GlobalConstant;
 import com.stoneitgt.dt.data.platform.admin.config.WebConfig;
 import com.stoneitgt.dt.data.platform.admin.service.DTModelApiService;
 import com.stoneitgt.dt.data.platform.admin.service.DTModelService;
-import com.stoneitgt.dt.data.platform.properties.BaseSystemProperties;
 
 
 @Slf4j
@@ -41,7 +42,7 @@ public class DTMetaApiController extends BaseController {
     private DTModelService dTModelService;
 
     @Autowired
-    private BaseSystemProperties systemproperties;
+    private SystemProperties systemProperties;
 
     @PostMapping(value = "/api/v1/resource/dts")
     @ResponseBody
@@ -140,7 +141,7 @@ public class DTMetaApiController extends BaseController {
         Map<String, Object> result = new HashMap<>();
         log.info("getBaseData -> " + param.toString());
         Map<String, Object> findParsingParam = new HashMap<>();
-        int limit = systemproperties.getLimitCsvRowCount();
+        int limit = systemProperties.getLimitCsvRowCount();
         findParsingParam.put("limit", limit);
         //컬럼 정보
         //column_depth_1,column_depth_2,data_depth_1,data_depth_2, data_time_yn
@@ -173,8 +174,8 @@ public class DTMetaApiController extends BaseController {
 
         //csv를 읽어들인다
         //가져올 갯수 0은 전체, 나머지는 환경세팅에서
-
-        Map<String, Object> resultCsv = readCSV(resultJson.get("file_path").toString(), resultJson.get("file_name").toString(), limit);
+        FileReader fileReader = FileReader.getInstance();
+        Map<String, Object> resultCsv = fileReader.readCSVWithLimit(resultJson.get("file_path") + File.separator + resultJson.get("file_name"), limit);
 
         /**
          * 가져온 데이터 날짜 중복 제거
@@ -184,10 +185,10 @@ public class DTMetaApiController extends BaseController {
         log.info("indexColumn -> {}", indexColumn);
 
         if (indexColumn != null) {
-            JSONParser.isDuplicateDataByKey(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name").toString(), indexColumn);
+            JSONParser.isDuplicateDataByKey(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name"), indexColumn);
         }
 
-        resultCsv = readCSV(resultJson.get("file_path").toString(), resultJson.get("file_name").toString(), limit);
+        resultCsv = fileReader.readCSVWithLimit(resultJson.get("file_path") + File.separator + resultJson.get("file_name"), limit);
 
         /**
          * 2024-07-26 정렬 로직 추가
@@ -197,11 +198,14 @@ public class DTMetaApiController extends BaseController {
         ArrayList<String> headers = (ArrayList<String>) convertHashMap.get("headers");
         List<List<String>> rearrangedDataList = (List<List<String>>) convertHashMap.get("datas");
 
-        JSONParser.writeCsv(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name").toString(), headers, rearrangedDataList);
+        FileWriter.getInstance().writeCSV(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name"), headers, rearrangedDataList);
 
         if (convertHashMap != null) {
-            result.put("header_list", convertHashMap.get("headers").toString());
-            result.put("data_list", convertHashMap.get("datas").toString());
+            result.put("header_list", convertHashMap.get("headers"));
+            result.put("data_list", convertHashMap.get("datas"));
+        } else {
+            result.put("header_list", resultCsv.get("header_list"));
+            result.put("data_list", resultCsv.get("data_list"));
         }
         result.put("code", GlobalConstant.API_STATUS.SUCCESS);
         result.put("base_dir", resultJson.get("base_dir").toString());
@@ -219,7 +223,7 @@ public class DTMetaApiController extends BaseController {
         log.info("reGetBaseData -> " + param.toString());
 
         Map<String, Object> findParsingParam = new HashMap<>();
-        int limit = systemproperties.getLimitCsvRowCount();
+        int limit = systemProperties.getLimitCsvRowCount();
         findParsingParam.put("limit", limit);
 
         /**
@@ -232,7 +236,7 @@ public class DTMetaApiController extends BaseController {
              * 디렉토리 삭제 후 조회 다시 원본 파일 생성
              * 이후 조회 버튼 로직 그대로 수행하게된다.
              * */
-            File directory = new File(systemproperties.getDtMetaFilePath().replace("\\", File.separator) + File.separator + "tmp" + File.separator + param.get("base_file_path").toString());
+            File directory = new File(systemProperties.getDtMetaFilePath().replace("\\", File.separator) + File.separator + "tmp" + File.separator + param.get("base_file_path").toString());
             log.info("Delete to " + directory.getAbsolutePath() + " directory");
             if (FileUtil.deleteDirectory(directory)) {
                 log.info("Directory deleted successfully.");
@@ -273,7 +277,8 @@ public class DTMetaApiController extends BaseController {
 
             //csv를 읽어들인다
             //가져올 갯수 0은 전체, 나머지는 환경세팅에서
-            Map<String, Object> resultCsv = readCSV(resultJson.get("file_path").toString(), resultJson.get("file_name").toString(), limit);
+            FileReader fileReader = FileReader.getInstance();
+            Map<String, Object> resultCsv = fileReader.readCSVWithLimit(resultJson.get("file_path") + File.separator + resultJson.get("file_name"), limit);
 
             /**
              * 가져온 데이터 날짜 중복 제거
@@ -286,7 +291,7 @@ public class DTMetaApiController extends BaseController {
                 JSONParser.isDuplicateDataByKey(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name").toString(), indexColumn);
             }
 
-            resultCsv = readCSV(resultJson.get("file_path").toString(), resultJson.get("file_name").toString(), limit);
+            resultCsv = fileReader.readCSVWithLimit(resultJson.get("file_path") + File.separator + resultJson.get("file_name"), limit);
 
             /**
              * 2024-07-26 정렬 로직 추가
@@ -296,11 +301,14 @@ public class DTMetaApiController extends BaseController {
             ArrayList<String> headers = (ArrayList<String>) convertHashMap.get("headers");
             List<List<String>> rearrangedDataList = (List<List<String>>) convertHashMap.get("datas");
 
-            JSONParser.writeCsv(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name").toString(), headers, rearrangedDataList);
+            FileWriter.getInstance().writeCSV(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name").toString(), headers, rearrangedDataList);
 
             if (convertHashMap != null) {
-                result.put("header_list", convertHashMap.get("headers").toString());
-                result.put("data_list", convertHashMap.get("datas").toString());
+                result.put("header_list", convertHashMap.get("headers"));
+                result.put("data_list", convertHashMap.get("datas"));
+            } else {
+                result.put("header_list", resultCsv.get("header_list"));
+                result.put("data_list", resultCsv.get("data_list"));
             }
             result.put("code", GlobalConstant.API_STATUS.SUCCESS);
             result.put("base_dir", resultJson.get("base_dir").toString());
@@ -309,9 +317,10 @@ public class DTMetaApiController extends BaseController {
         } else {
             //파일 업로드 데이터
             //컬럼 정보
-            String file_path = systemproperties.getDtMetaFilePath().replace("\\", File.separator) + File.separator + "tmp" + File.separator + param.get("base_file_path") + File.separator + param.get("base_file_name");
+            String file_path = systemProperties.getDtMetaFilePath() + File.separator + "tmp" + File.separator + param.get("base_file_path") + File.separator + param.get("base_file_name");
             log.info("file_path -> {}", file_path);
-            List<Map<String, Object>> data = JSONParser.readObjectCsv(file_path);
+
+            List<Map<String, Object>> data = FileReader.getInstance().readCSVToListObjectMap(file_path);
             param.put("data", data);
             param.put("user_tmp_key", WebConfig.getSessionInfo().getUserId() + currentTimeMillis());
             ResponseEntity<?> resultOriginFileSet = dtModelApiService.makeBaseDataFile(param);
@@ -321,17 +330,18 @@ public class DTMetaApiController extends BaseController {
 
             //csv를 읽어들인다
             //가져올 갯수 0은 전체, 나머지는 환경세팅에서
-            Map<String, Object> resultCsv = readCSV(resultJson.get("file_path").toString(), resultJson.get("file_name").toString(), limit);
+            FileReader fileReader = FileReader.getInstance();
+            Map<String, Object> resultCsv = fileReader.readCSVWithLimit(resultJson.get("file_path") + File.separator + resultJson.get("file_name"), limit);
             /**
              * 2024-07-26 정렬 로직 추가
              * */
             HashMap<String, Object> convertHashMap = ConvertUtil.moveAndReOrderHeaderDatas((List<String>) resultCsv.get("header_list"), (List<List<String>>) resultCsv.get("data_list"));
             if (convertHashMap != null) {
-                result.put("header_list", convertHashMap.get("headers").toString());
-                result.put("data_list", convertHashMap.get("datas").toString());
+                result.put("header_list", convertHashMap.get("headers"));
+                result.put("data_list", convertHashMap.get("datas"));
             } else {
-                result.put("header_list", resultCsv.get("header_list").toString());
-                result.put("data_list", resultCsv.get("data_list").toString());
+                result.put("header_list", resultCsv.get("header_list"));
+                result.put("data_list", resultCsv.get("data_list"));
             }
             result.put("code", GlobalConstant.API_STATUS.SUCCESS);
             result.put("base_dir", resultJson.get("base_dir").toString());
@@ -348,7 +358,7 @@ public class DTMetaApiController extends BaseController {
          * */
         log.info("getFindMetaDataParsing -> " + findParsingParam.toString());
         ResponseEntity<?> resultResourceObjectData = dtModelApiService.getResourceObjectDataMetaFirst(findParsingParam);
-
+        log.info("getFindMetaDataParsing data end of part -> {}", resultResourceObjectData.getBody().toString().substring(Math.max(0, resultResourceObjectData.getBody().toString().length() - 100))); // 마지막 100자 출력
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode rootNodePath = objectMapper.readTree(resultResourceObjectData.getBody().toString());
 

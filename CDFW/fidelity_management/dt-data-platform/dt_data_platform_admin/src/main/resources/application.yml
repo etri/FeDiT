@@ -69,6 +69,9 @@ server:
   port: { PORT }
 
 system:
+  #해당 부분 존재할 경우 ID, PASSWORD로 자동 로그인
+  username:
+  password:
   upload-file-path: { PATH }\files
   upload-file-url: /resource
   limit-csv-row-count: 10000
@@ -124,6 +127,9 @@ server:
   port: { PORT }
 
 system:
+  #해당 부분 존재할 경우 ID, PASSWORD로 자동 로그인
+  username:
+  password:
   upload-file-path: { PATH }\files
   upload-file-url: /resource
   limit-csv-row-count: 10000
@@ -178,6 +184,9 @@ server:
   port: { PORT }
 
 system:
+  #해당 부분 존재할 경우 ID, PASSWORD로 자동 로그인
+  username:
+  password:
   upload-file-path: { PATH }\files
   upload-file-url: /resource
   limit-csv-row-count: 10000

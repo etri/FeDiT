@@ -1,7 +1,6 @@
 package com.stoneitgt.dt.data.platform.admin.service;
 
 import java.io.IOException;
-import java.text.DecimalFormat;
 import java.util.*;
 
 import com.stoneitgt.common.GlobalConstant;
@@ -12,27 +11,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stoneitgt.dt.data.platform.admin.config.DatabaseConfig;
 import com.stoneitgt.dt.data.platform.admin.mapper.DTModelMapper;
-import com.stoneitgt.dt.data.platform.properties.BaseSystemProperties;
-import com.stoneitgt.dt.data.platform.util.MetaRelateUtil;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-public class DTModelService {
+public class DTModelService extends BaseService {
 
     @Autowired
     private DTModelMapper dtModelMapper;
-
-    @Autowired
-    private BaseSystemProperties systemproperties;
-
-    @Autowired
-    private FilesService filesService;
 
     public List<Map<String, Object>> getDTModelList(Map<String, Object> params, Paging paging) {
         return dtModelMapper.getDTModelList(params, paging.getPaging());
@@ -95,7 +85,7 @@ public class DTModelService {
             dtModelMetaUserItem.setTwinObjId("None");
         }
         String addDirectory = FileUtil.getUploadDtFilePath(GlobalConstant.FILE_REF_TYPE.DATA, dtModel.getModelSeq());
-        String moveDirectory = systemproperties.getDtMetaFilePath() + addDirectory;
+        String moveDirectory = systemProperties.getDtMetaFilePath() + addDirectory;
         ObjectMapper objectMapper = new ObjectMapper();
         DTModelJsonProperty sss = objectMapper.readValue(jsonString, DTModelJsonProperty.class);
         for (DTModelJsonPropertySub step : sss.getPreproc_property_info().get(0).getPreproc_property()) {
@@ -193,7 +183,7 @@ public class DTModelService {
         //log.info(info.getBase_dir());
         //log.info(info.getLast_step_preproc_file_nm());
 
-        String sourceDirectory = systemproperties.getDtMetaFilePath() + "/tmp/" + info.getBase_dir();
+        String sourceDirectory = systemProperties.getDtMetaFilePath() + "/tmp/" + info.getBase_dir();
         String fileName = info.getLast_step_preproc_file_nm();
         //savePreProcLastFiles()
 
@@ -215,30 +205,9 @@ public class DTModelService {
         return dtModelMapper.selectMetaUserItem(modelSeq);
     }
 
-    public List<DTModelMetaUserItemPreprocessMapVrfc> selectMetaPreprocessVrfc(int userMetaItemSeq) {
-        return dtModelMapper.selectMetaPreprocessVrfc(userMetaItemSeq);
-    }
-
-    public List<DTModelMetaUserItemPreprocessMapOutlr> selectMetaPreprocessOutlr(int userMetaItemSeq) {
-        return dtModelMapper.selectMetaPreprocessOutlr(userMetaItemSeq);
-    }
-
-    public List<DTModelMetaUserItemPreprocessMapInterpl> selectMetaPreprocessInterpl(int userMetaItemSeq) {
-        return dtModelMapper.selectMetaPreprocessInterpl(userMetaItemSeq);
-    }
-
-    public List<DTModelMetaUserItemPreprocessMapResmpl> selectMetaPreprocessResmpl(int userMetaItemSeq) {
-        return dtModelMapper.selectMetaPreprocessResmpl(userMetaItemSeq);
-    }
-
-    public List<DTModelMetaUserItemPreprocessMapUnit> selectMetaPreprocessUnit(int userMetaItemSeq) {
-        return dtModelMapper.selectMetaPreprocessUnit(userMetaItemSeq);
-    }
-
     public Files getDtPreprocLastFile(int modelSeq) {
         return dtModelMapper.getDtPreprocLastFile(modelSeq);
     }
-
 
     public DTModel getAugmentModel(int modelSeq) {
         return dtModelMapper.getAugmentModel(modelSeq);
@@ -262,7 +231,6 @@ public class DTModelService {
         dtModelMapper.saveAlgorithmModelColumn(dtModelColumn);
     }
 
-
     public int updateAlgorithmSeq(Map<String, Object> requestBody) {
         return dtModelMapper.updateAlgorithmSeq(requestBody);
     }
@@ -279,7 +247,6 @@ public class DTModelService {
         return dtModelMapper.updateMetaUerItemFulltext(param);
     }
 
-
     public List<Map<String, Object>> getModelLossList(int modelSeq) {
         return dtModelMapper.getModelLoss(modelSeq);
     }
@@ -287,7 +254,6 @@ public class DTModelService {
     public List<Map<String, Object>> getModelFIDList(int modelSeq) {
         return dtModelMapper.getModelFID(modelSeq);
     }
-
 
     public int getCountModelFileInfo(Map<String, Object> modelParam) {
         return dtModelMapper.getCountModelFileInfo(modelParam);
@@ -324,7 +290,6 @@ public class DTModelService {
     public int insertPredFileInfo(Map<String, Object> predParam) {
         return dtModelMapper.insertPredFileInfo(predParam);
     }
-
 
     @Transactional(DatabaseConfig.PRIMARY_TRANSACTION_MANAGER)
     public HashMap<String, Object> getModelLoss(int modelSeq) {
@@ -443,5 +408,13 @@ public class DTModelService {
 
     public boolean checkUseBritsModel(int brits_model_seq) {
         return dtModelMapper.checkUseBritsModel(brits_model_seq);
+    }
+
+    public boolean checkUseNaomiModel(int naomi_model_seq) {
+        return dtModelMapper.checkUseNaomiModel(naomi_model_seq);
+    }
+
+    public List<Map<String, Object>> getDTAllSharedList(Map<String, Object> params, Paging paging) {
+        return dtModelMapper.getDTAllSharedList(params, paging.getPaging());
     }
 }

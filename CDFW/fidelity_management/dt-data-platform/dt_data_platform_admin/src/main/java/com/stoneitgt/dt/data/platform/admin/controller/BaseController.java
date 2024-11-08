@@ -1,16 +1,11 @@
 package com.stoneitgt.dt.data.platform.admin.controller;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -25,7 +20,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stoneitgt.common.GlobalConstant;
 import com.stoneitgt.dt.data.platform.admin.component.AuthenticationFacade;
-import com.stoneitgt.dt.data.platform.admin.config.WebConfig;
 import com.stoneitgt.dt.data.platform.admin.properties.SystemProperties;
 import com.stoneitgt.dt.data.platform.admin.service.CodeService;
 import com.stoneitgt.dt.data.platform.admin.service.ErrorService;
@@ -155,55 +149,6 @@ public class BaseController {
         return String.join("&", result);
     }
 
-    public List<String> getTimeHourList() {
-        return getTimeList(23);
-    }
-
-    public List<String> getTimeHourList(int start, int end) {
-        return getTimeList(start, end);
-    }
-
-    public List<String> getTimeMinList() {
-        return getTimeList(59);
-    }
-
-    public List<String> getTimeMinList(int interval) {
-        return getTimeList(0, 59, interval, true);
-    }
-
-    public List<String> getTimeList(int end) {
-        return getTimeList(0, end, 0, true);
-    }
-
-    public List<String> getTimeList(int start, int end) {
-        return getTimeList(start, end, 0, true);
-    }
-
-    public List<String> getTimeList(int start, int end, int interval, boolean addEmpty) {
-        List<String> list = new ArrayList<String>();
-
-        if (addEmpty) {
-            list.add("");
-        }
-        for (int i = start; i < end + 1; i++) {
-            if (interval > 0) {
-                if (i % interval == 0) {
-                    list.add(StringUtil.leftPad("" + i, 2, "0"));
-                }
-            } else {
-                list.add(StringUtil.leftPad("" + i, 2, "0"));
-            }
-        }
-        return list;
-    }
-
-    public List<Map<String, Object>> getDtFileList(String refType, int refSrno) {
-        Map<String, Object> params = new HashMap<String, Object>();
-        params.put("refTp", refType.toUpperCase());
-        params.put("refSeq", refSrno);
-        return filesService.getDtFileList(params);
-    }
-
     public List<Map<String, Object>> getDtMetaFileList(String refType, int refSrno) {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("refTp", refType.toUpperCase());
@@ -287,224 +232,6 @@ public class BaseController {
         Map<String, Object> resultMap = new HashMap<>();
         resultMap.put("added_data", addedData);
         resultMap.put("removed_data", removedData);
-        return resultMap;
-    }
-
-    public Map<String, Object> readCSV(String filePath, String fileName, int limit) throws IOException {
-        String csvFile = filePath + "/" + fileName; // 전체 파일 경로 생성
-
-        log.info("readCSV -> {}", csvFile);
-
-        List<String> headerList = new ArrayList<>(); // 헤더를 담을 리스트
-        List<List<String>> dataList = new ArrayList<>(); // 데이터를 담을 리스트
-        //List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
-
-        try (FileReader fileReader = new FileReader(csvFile); BufferedReader br = new BufferedReader(fileReader)) {
-            String line;
-            boolean isFirstLine = true;
-            int rowCount = 0;
-            if (limit > 0) {
-                while ((line = br.readLine()) != null && rowCount < limit) {
-                    String[] values = line.split(","); // CSV 파일을 쉼표로 분리하여 배열에 저장
-                    if (isFirstLine) {
-                        for (String value : values) {
-                            if (value.startsWith("\"") && value.endsWith("\"")) {
-                                headerList.add(value); // 첫 번째 행은 헤더로 저장
-                            } else {
-                                headerList.add("\"" + value + "\""); // 첫 번째 행은 헤더로 저장
-                            }
-                        }
-                        isFirstLine = false;
-                    } else {
-                        List<String> rowData = new ArrayList<>();
-                        for (int i = 0; i < values.length; i++) {
-                            if (values[i].startsWith("\"") && values[i].endsWith("\"")) {
-                                rowData.add(values[i]); // 첫 번째 행은 헤더로 저장
-                            } else {
-                                rowData.add("\"" + values[i] + "\""); // 첫 번째 행은 헤더로 저장
-                            }
-                        }
-                        dataList.add(rowData);
-                        rowCount++; // 행 카운터 증가
-                    }
-                }
-            } else {
-                while ((line = br.readLine()) != null) {
-                    String[] values = line.split(","); // CSV 파일을 쉼표로 분리하여 배열에 저장
-                    if (isFirstLine) {
-                        for (String value : values) {
-                            if (value.startsWith("\"") && value.endsWith("\"")) {
-                                headerList.add(value); // 첫 번째 행은 헤더로 저장
-                            } else {
-                                headerList.add("\"" + value + "\""); // 첫 번째 행은 헤더로 저장
-                            }
-                        }
-                        isFirstLine = false;
-                    } else {
-                        List<String> rowData = new ArrayList<>();
-                        for (String value : values) {
-                            if (value.startsWith("\"") && value.endsWith("\"")) {
-                                rowData.add(value); // 첫 번째 행은 헤더로 저장
-                            } else {
-                                rowData.add("\"" + value + "\""); // 첫 번째 행은 헤더로 저장
-                            }
-                        }
-                        dataList.add(rowData);
-                    }
-                }
-            }
-        }
-
-        Map<String, Object> resultMap = new HashMap<>();
-        resultMap.put("header_list", headerList);
-        resultMap.put("data_list", dataList);
-        return resultMap;
-    }
-
-    public Map<String, Object> readCSV(String filePath, int limit) throws IOException {
-        String csvFile = filePath; // 전체 파일 경로 생성
-
-        log.info("readCSV -> {}", csvFile);
-
-        List<String> headerList = new ArrayList<>(); // 헤더를 담을 리스트
-        List<List<String>> dataList = new ArrayList<>(); // 데이터를 담을 리스트
-
-        try (FileReader fileReader = new FileReader(csvFile); BufferedReader br = new BufferedReader(fileReader)) {
-            String line;
-            boolean isFirstLine = true;
-            int rowCount = 0;
-            if (limit > 0) {
-                while ((line = br.readLine()) != null && rowCount < limit) {
-                    String[] values = line.split(","); // CSV 파일을 쉼표로 분리하여 배열에 저장
-                    if (isFirstLine) {
-                        for (String value : values) {
-                            if (value.startsWith("\"") && value.endsWith("\"")) {
-                                headerList.add(value); // 첫 번째 행은 헤더로 저장
-                            } else {
-                                headerList.add("\"" + value + "\""); // 첫 번째 행은 헤더로 저장
-                            }
-                        }
-                        isFirstLine = false;
-                    } else {
-                        List<String> rowData = new ArrayList<>();
-                        for (int i = 0; i < values.length; i++) {
-                            if (values[i].startsWith("\"") && values[i].endsWith("\"")) {
-                                rowData.add(values[i]); // 첫 번째 행은 헤더로 저장
-                            } else {
-                                rowData.add("\"" + values[i] + "\""); // 첫 번째 행은 헤더로 저장
-                            }
-                        }
-                        dataList.add(rowData);
-                        rowCount++; // 행 카운터 증가
-                    }
-                }
-            } else {
-                while ((line = br.readLine()) != null) {
-                    String[] values = line.split(","); // CSV 파일을 쉼표로 분리하여 배열에 저장
-                    if (isFirstLine) {
-                        for (String value : values) {
-                            if (value.startsWith("\"") && value.endsWith("\"")) {
-                                headerList.add(value); // 첫 번째 행은 헤더로 저장
-                            } else {
-                                headerList.add("\"" + value + "\""); // 첫 번째 행은 헤더로 저장
-                            }
-                        }
-                        isFirstLine = false;
-                    } else {
-                        List<String> rowData = new ArrayList<>();
-                        for (String value : values) {
-                            if (value.startsWith("\"") && value.endsWith("\"")) {
-                                rowData.add(value); // 첫 번째 행은 헤더로 저장
-                            } else {
-                                rowData.add("\"" + value + "\""); // 첫 번째 행은 헤더로 저장
-                            }
-                        }
-                        dataList.add(rowData);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            Map<String, Object> resultMap = new HashMap<>();
-            resultMap.put("header_list", headerList);
-            resultMap.put("data_list", dataList);
-            return resultMap;
-        }
-
-        Map<String, Object> resultMap = new HashMap<>();
-        resultMap.put("header_list", headerList);
-        resultMap.put("data_list", dataList);
-        return resultMap;
-    }
-
-    public Map<String, Object> decisionReadCSV(String filePath, int limit) throws IOException {
-        String csvFile = filePath; // 전체 파일 경로 생성
-
-        log.info("decisionReadCSV -> {}", csvFile);
-
-        List<String> headerList = new ArrayList<>(); // 헤더를 담을 리스트
-        List<List<String>> dataList = new ArrayList<>(); // 데이터를 담을 리스트
-        List<Map<String, Object>> datas = new ArrayList<Map<String, Object>>();
-
-        try (FileReader fileReader = new FileReader(csvFile); BufferedReader br = new BufferedReader(fileReader)) {
-            String line;
-            boolean isFirstLine = true;
-            int rowCount = 0;
-            if (limit > 0) {
-                while ((line = br.readLine()) != null && rowCount < limit) {
-                    String[] values = line.split(","); // CSV 파일을 쉼표로 분리하여 배열에 저장
-                    if (isFirstLine) {
-                        for (String value : values) {
-                            if (value.contains("\"")) {
-                                headerList.add(value); // 첫 번째 행은 헤더로 저장
-                            } else {
-                                headerList.add("\"" + value + "\""); // 첫 번째 행은 헤더로 저장
-                            }
-                        }
-                        isFirstLine = false;
-                    } else {
-                        List<String> rowData = new ArrayList<>();
-                        for (int i = 0; i < values.length; i++) {
-                            if (values[i].contains("\"")) {
-                                rowData.add(values[i]);
-                            } else {
-                                rowData.add("\"" + values[i] + "\"");
-                            }
-                        }
-                        dataList.add(rowData);
-                        rowCount++; // 행 카운터 증가
-                    }
-                }
-            } else {
-                while ((line = br.readLine()) != null) {
-                    String[] values = line.split(","); // CSV 파일을 쉼표로 분리하여 배열에 저장
-                    if (isFirstLine) {
-                        for (String value : values) {
-                            if (value.contains("\"")) {
-                                headerList.add(value); // 첫 번째 행은 헤더로 저장
-                            } else {
-                                headerList.add("\"" + value + "\""); // 첫 번째 행은 헤더로 저장
-                            }
-                        }
-                        isFirstLine = false;
-                    } else {
-                        List<String> rowData = new ArrayList<>();
-                        for (String value : values) {
-                            if (value.contains("\"")) {
-                                rowData.add(value);
-                            } else {
-                                rowData.add("\"" + value + "\"");
-                            }
-                        }
-                        dataList.add(rowData);
-                    }
-                }
-            }
-        }
-
-        Map<String, Object> resultMap = new HashMap<>();
-        resultMap.put("header_list", headerList);
-        resultMap.put("data_list", dataList);
         return resultMap;
     }
 

@@ -7,11 +7,12 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stoneitgt.dt.data.platform.admin.properties.SystemProperties;
 import com.stoneitgt.dt.data.platform.admin.service.*;
 import com.stoneitgt.dt.data.platform.domain.*;
-import com.stoneitgt.dt.data.platform.properties.BaseSystemProperties;
 import com.stoneitgt.dt.data.platform.util.JSONParser;
 import com.stoneitgt.dt.data.platform.util.TimeUtil;
+import com.stoneitgt.dt.data.platform.util.file.FileReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -36,7 +37,7 @@ import com.stoneitgt.dt.data.platform.util.StoneUtil;
 public class DTSimulationController extends BaseController {
 
     @Autowired
-    private BaseSystemProperties systemproperties;
+    private SystemProperties systemProperties;
 
     @Autowired
     private DTModelService dtModelService;
@@ -214,7 +215,7 @@ public class DTSimulationController extends BaseController {
         model.addAttribute("sim_type_list", getCodeList3("SIM_TYPE", true));
         model.addAttribute("augment_type_list", getCodeList3("AUGMENT_TYPE", true));
         model.addAttribute("cycle_tp", getCodeList3("CYCLE_TP", true));
-        model.addAttribute("limit", systemproperties.getLimitCsvRowCount());
+        model.addAttribute("limit", systemProperties.getLimitCsvRowCount());
 
         List<Map<String, Object>> data_crt_intvl_tp_list = simulationService.getModelDataTerm();
         model.addAttribute("data_crt_intvl_tp_list", data_crt_intvl_tp_list);
@@ -289,7 +290,7 @@ public class DTSimulationController extends BaseController {
         model.addAttribute("data_crt_intvl_tp_list", getCodeList3("AUGMENT_INTVL_TYPE", true));
         model.addAttribute("cycle_tp", getCodeList3("CYCLE_TP", true));
 
-        model.addAttribute("limit", systemproperties.getLimitCsvRowCount());
+        model.addAttribute("limit", systemProperties.getLimitCsvRowCount());
         // 요청된 URL 확인
         String requestUrl = request.getRequestURI();
         log.info("requestUrl -> {}", requestUrl);
@@ -361,7 +362,7 @@ public class DTSimulationController extends BaseController {
         model.addAttribute("data_crt_intvl_tp_list", getCodeList3("AUGMENT_INTVL_TYPE", true));
         model.addAttribute("cycle_tp", getCodeList3("CYCLE_TP", true));
 
-        model.addAttribute("limit", systemproperties.getLimitCsvRowCount());
+        model.addAttribute("limit", systemProperties.getLimitCsvRowCount());
 
         // 요청된 URL 확인
         String requestUrl = request.getRequestURI();
@@ -402,7 +403,8 @@ public class DTSimulationController extends BaseController {
         Map<String, Object> predictionViewParam = dtSimulationService.getSimulationPredictionView(Integer.parseInt(augmentSeq));
         result.put("code", GlobalConstant.API_STATUS.SUCCESS);
         log.info("predictionViewParam -> {}", predictionViewParam);
-        Map<String, Object> data = readCSV(systemproperties.getDtMetaFilePath() + predictionViewParam.get("augment_file_path"), 0);
+        FileReader fileReader = FileReader.getInstance();
+        Map<String, Object> data = fileReader.readCSV(systemProperties.getDtMetaFilePath() + predictionViewParam.get("augment_file_path"));
         result.put("data", data);
         return result;
     }
@@ -421,7 +423,7 @@ public class DTSimulationController extends BaseController {
         log.info("makeResampleSetView filePath -> {}, fileName -> {}", filePath, fileName);
         List<String> headers = new ArrayList<>();
         try {
-            headers = JSONParser.readHeaders(filePath + File.separator + fileName, 1);
+            headers = FileReader.getInstance().readHeaders(filePath + File.separator + fileName, 1);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -465,8 +467,8 @@ public class DTSimulationController extends BaseController {
         List<Map<String, String>> readCSVResult = null;
         List<String> headers = new ArrayList<>();
         try {
-            readCSVResult = JSONParser.readCsv(filePath + File.separator + fileName);
-            headers = JSONParser.readHeaders(filePath + File.separator + fileName, 1);
+            readCSVResult = FileReader.getInstance().readCSVToListStringMap(filePath + File.separator + fileName);
+            headers = FileReader.getInstance().readHeaders(filePath + File.separator + fileName, 1);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -536,6 +538,8 @@ public class DTSimulationController extends BaseController {
         param.put("data_crt_bgng_hr", data_crt_last_hr);
         String use_yn = param.get("use_yn").toString();
         param.put("use_yn", use_yn);
+        String rls_yn = param.get("rls_yn").toString();
+        param.put("rls_yn", rls_yn);
 
         /**
          * 2024-07-10

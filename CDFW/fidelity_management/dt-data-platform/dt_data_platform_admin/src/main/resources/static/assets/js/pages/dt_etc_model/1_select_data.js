@@ -292,28 +292,32 @@
             var digitalObjectDataModel = $('#digitalObjectDataModel').val();
             var digitalObjectDataSample = $('#digitalObjectDataSample').val();
 
-            getBaseData(digitalTwinId, digitalObjectId, digitalObjectName, digitalObjectDataSourceUrl, description, digitalObjectDataModel);
+            getBaseDataCallback(digitalTwinId, digitalObjectId, digitalObjectName, digitalObjectDataSourceUrl, description, digitalObjectDataModel, function (result) {
+                if (result.header_list.length === 0 || result.data_list.length === 0) {
+                    alert('선택하신 오브젝트에 가져올 데이터가 없습니다.');
+                } else {
+                    $('#modalApiView').modal('hide');
 
-            $('#modalApiView').modal('hide');
+                    $('#tab_getdata_range').hide();
+                    $('#tab_info_range').show();
+                    $('#tab_preview_range').show();
 
-            $('#tab_getdata_range').hide();
-            $('#tab_info_range').show();
-            $('#tab_preview_range').show();
+                    $('#tab_getdata').attr('class', 'nav-link');
+                    $('#tab_info').attr('class', 'nav-link active');
+                    $('#tab_column_info').attr('class', 'nav-link');
+                    $('#tab_preproc').attr('class', 'nav-link');
+                    $('#tab_getalgo').attr('class', 'nav-link');
+                    $('#tab_savemodel').attr('class', 'nav-link');
 
-            $('#tab_getdata').attr('class', 'nav-link');
-            $('#tab_info').attr('class', 'nav-link active');
-            $('#tab_column_info').attr('class', 'nav-link');
-            $('#tab_preproc').attr('class', 'nav-link');
-            $('#tab_getalgo').attr('class', 'nav-link');
-            $('#tab_savemodel').attr('class', 'nav-link');
+                    $('#next_button_info_range').show();
 
-            $('#next_button_info_range').show();
+                    //$('#next_button_info_range').show();
 
-            //$('#next_button_info_range').show();
-
-            //var param4 = { key: 'sdt_full_text', value: sdt_full_text };
-            //ar paramsArray = [param1, param2, param3, param4];
-            //var params = {sdt_uniq_id : sdt_uniq_id, sdt_nm : sdt_nm};
+                    //var param4 = { key: 'sdt_full_text', value: sdt_full_text };
+                    //ar paramsArray = [param1, param2, param3, param4];
+                    //var params = {sdt_uniq_id : sdt_uniq_id, sdt_nm : sdt_nm};
+                }
+            });
         });
     });
 })();
@@ -387,8 +391,8 @@ function getBaseData(twin_id, object_id, sdt_nm, sdt_data_url, sdt_derpn, sdt_fu
         var strHTML = '';
         //var resultData = result.result_data[0];
         if (result.code === 200) {
-            var header_list = JSON.parse(result.header_list);
-            var data_list = JSON.parse(result.data_list);
+            var header_list = result.header_list;
+            var data_list = result.data_list;
 
             var preProcData = preProcTemplate();
             preProcData.preproc_property_info[0].twin_id = twin_id;
@@ -426,6 +430,60 @@ function getBaseData(twin_id, object_id, sdt_nm, sdt_data_url, sdt_derpn, sdt_fu
     });
 }
 
+function getBaseDataCallback(twin_id, object_id, sdt_nm, sdt_data_url, sdt_derpn, sdt_full_text, callback) {
+    var data = {
+        digital_twins: twin_id, digital_objects: object_id
+    }
+    showProgressBar({element: null, process_id: 'process-11'});
+    ajaxPost('/dt/etc/meta/api/v1/resource/objects/detail/set/file', data, function (result) {
+        var strHTML = '';
+        //var resultData = result.result_data[0];
+        if (result.code === 200) {
+            if (result.header_list.length === 0 || result.data_list.length === 0) {
+                closeProgressBar({element: null, process_id: 'process-11'});
+                callback(result);
+                return;
+            }
+            var header_list = result.header_list;
+            var data_list = result.data_list;
+
+            var preProcData = preProcTemplate();
+            preProcData.preproc_property_info[0].twin_id = twin_id;
+            preProcData.preproc_property_info[0].twin_obj_id = object_id;
+            preProcData.preproc_property_info[0].base_dir = result.base_dir;
+            preProcData.preproc_property_info[0].base_file_nm = result.file_name;
+            preProcData.preproc_property_info[0].data_use_tp = 'M';
+            //preProcData.preproc_property_info[0].index_trgt_col = result.data.index_trgt_col;
+            $('#preprocProPerty').val(JSON.stringify(preProcData));
+            $('.preprocProPerty').val(prettyJson(JSON.stringify(preProcData)));
+
+            //결과값으로  테이블 만들기
+            makeHtmlTable(header_list, data_list, 'csvUpRange', 'Y', 'csvUpRangeDataTable', result.limit);
+            let sample_desc = document.querySelector('#sample_desc');
+            sample_desc.innerHTML = `미리보기로 ${result.limit}개 이하만 보입니다.`;
+            $('#csvUpRangeDataTable').DataTable({
+                columnDefs: [{
+                    targets: '_all',
+                    className: 'text-nowrap'
+                }],
+                "order": [[0, "asc"]],
+                "searching": false,
+                "info": false,
+                "lengthChange": false,
+                "autoWidth": true,
+                "lengthMenu": [[10], [10]],
+                scrollX: true
+            });
+            closeProgressBar({element: null, process_id: 'process-11'});
+            callback(result);
+        } else {
+            console.error('error : ', result);
+            closeProgressBar({element: null, process_id: 'process-11'});
+            alert('API 에러가 발생하였습니다. 관리자에게 문의하십시오.');
+        }
+    });
+}
+
 function reGetBaseDataCallbackFunction(data, callback) {
     let sendData = {
         digital_twins: data.digitalTwinId,
@@ -440,8 +498,8 @@ function reGetBaseDataCallbackFunction(data, callback) {
     ajaxPost('/dt/etc/meta/api/v1/resource/objects/detail/reset/file', sendData, function (result) {
         console.log('result', result);
         if (result.code === 200) {
-            var header_list = JSON.parse(result.header_list);
-            var data_list = JSON.parse(result.data_list);
+            var header_list = result.header_list;
+            var data_list = result.data_list;
 
             var preProcData = preProcTemplate();
             preProcData.preproc_property_info[0].twin_id = data.digitalTwinId;
@@ -537,8 +595,8 @@ function getBaseDataSetRangeRow(base_file_path, base_file_nm, index_trgt_col, ta
             $('.preprocProPerty').val(prettyJson(JSON.stringify(preProcData)));
 
             //결과값으로  테이블 만들기
-            var header_list = JSON.parse(result.header_list);
-            var data_list = JSON.parse(result.data_list);
+            var header_list = result.header_list;
+            var data_list = result.data_list;
             makeHtmlTable(header_list, data_list, 'csvUpRange', 'Y', 'csvUpRangeDataTable2', result.target_row_count, data.target_start_date, data.target_end_date);
 
             $('#csvUpRangeDataTable2').DataTable({
@@ -592,8 +650,14 @@ function uploadFile() {
             //var resultData = result.result_data[0];
             try {
                 if (result.code === 200) {
-                    let header_list = JSON.parse(result.header_list);
-                    let data_list = JSON.parse(result.data_list);
+                    let header_list = result.header_list;
+                    let data_list = result.data_list;
+
+                    if (header_list.length === 0 || data_list.length === 0) {
+                        alert('선택하신 파일에 가져올 데이터가 없습니다.');
+                        closeProgressBar({element: null, process_id: 'process-7'});
+                        return;
+                    }
 
                     let preProcData = preProcTemplate();
                     preProcData.preproc_property_info[0].base_dir = result.base_dir;

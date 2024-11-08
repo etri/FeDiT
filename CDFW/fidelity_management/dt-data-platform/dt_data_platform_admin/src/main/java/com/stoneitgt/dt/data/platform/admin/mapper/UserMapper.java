@@ -18,8 +18,6 @@ public interface UserMapper {
 
 	int updateLastLoginDate(int userSeq);
 
-	List<Map<String, Object>> getUserList(Map<String, Object> params);
-
 	List<Map<String, Object>> getUserList(Map<String, Object> params, RowBounds rowBounds);
 
 	User getUserInfo(int userSeq);
@@ -27,8 +25,6 @@ public interface UserMapper {
 	int existedUserId(String id);
 
 	int saveUser(User user);
-
-	int deleteUser(Map<String, Object> params);
 
 	int updateUser(@Valid User user);
 }
