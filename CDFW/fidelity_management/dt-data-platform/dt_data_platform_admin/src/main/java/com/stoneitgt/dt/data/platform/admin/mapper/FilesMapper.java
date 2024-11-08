@@ -3,7 +3,6 @@ package com.stoneitgt.dt.data.platform.admin.mapper;
 import java.util.List;
 import java.util.Map;
 
-import com.stoneitgt.dt.data.platform.domain.Board;
 import org.apache.ibatis.annotations.Mapper;
 
 import com.stoneitgt.dt.data.platform.domain.Files;

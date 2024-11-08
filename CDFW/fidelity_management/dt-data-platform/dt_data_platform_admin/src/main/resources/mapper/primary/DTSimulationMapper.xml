@@ -218,6 +218,7 @@
                              , REG_IP
                              , DATA_CRT_LAST_HR
                              , USE_YN
+                             , RLS_YN
                              , DATA_MAX_LIMIT_CNT
                              , DATA_CRT_BGNG_HR)
         VALUES ( #{augment_seq}
@@ -235,6 +236,7 @@
                , #{user_ip}
                , #{data_crt_last_hr}
                , #{use_yn}
+               , #{rls_yn}
                , #{data_max_limit_cnt}
                , #{data_crt_bgng_hr})
     </insert>
@@ -245,21 +247,13 @@
         SET TITLE          = #{title}
           , DERPN          = #{derpn}
           , USE_YN         = #{useYn}
+          , RLS_YN         = #{rlsYn}
           , AUGMENT_STATUS = #{augmentStatus}
           , MDFCN_DT       = CURRENT_TIMESTAMP
           , MDFCN_IP       = #{loginUserIp}
         WHERE AUGMENT_SEQ = #{augmentSeq}
           AND DEL_YN = 'N'
     </update>
-
-
-    <update id="updateAugmentStatus" parameterType="map">
-        /* file : DTSimulationMapper.xml, id : updateAlgorithmSeq */
-        UPDATE TB_META_AUGMENT
-        SET AUGMENT_STATUS = #{augment_status}
-        WHERE AUGMENT_SEQ = #{augment_seq}
-    </update>
-
 
     <insert id="getSimulationSaveAugmentOnetime" parameterType="com.stoneitgt.dt.data.platform.domain.DTAugment">
         /* file : DTSimulationMapper.xml, id : getSimulationSaveAugment */
@@ -277,6 +271,7 @@
         , REG_USER_SEQ
         , REG_IP
         , USE_YN
+        , RLS_YN
         )
         VALUES (
         #{augmentSeq}
@@ -291,12 +286,12 @@
         , #{regUserSeq}
         , #{regIp}
         , #{useYn}
+        , #{rlsYn}
         )
         <selectKey resultType="int" keyProperty="augmentSeq" order="AFTER">
             SELECT LAST_INSERT_ID()
         </selectKey>
     </insert>
-
 
     <select id="getDTSimulation" parameterType="map" resultType="com.stoneitgt.dt.data.platform.domain.DTAugment">
         /* file : DTSimulationMapper.xml, id : getDTSimulation */
@@ -305,7 +300,6 @@
                  JOIN TB_META_MODEL B ON A.MODEL_SEQ = B.MODEL_SEQ AND B.USE_YN = 'Y' AND B.DEL_YN = 'N'
         WHERE AUGMENT_SEQ = #{augment_seq}
     </select>
-
 
     <select id="getDTSimulationFileList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
         /* file : DTSimulationMapper.xml, id : getDTSimulationFileList */
@@ -329,7 +323,6 @@
         WHERE A.AUGMENT_SEQ = #{augment_seq}
         ORDER BY A.REG_DT DESC
     </select>
-
 
     <select id="getModelInfo" parameterType="int" resultType="com.stoneitgt.common.LowerKeyMap">
         /* file : DTSimulationMapper.xml, id : getModelInfo */
@@ -371,6 +364,7 @@
           AND USE_YN = 'Y'
           AND DEL_YN = 'N'
     </select>
+
     <select id="getSimulationPredictionView" parameterType="int" resultType="com.stoneitgt.common.LowerKeyMap">
         SELECT CONCAT(B.FILE_PATH, '/', B.FILE_NM) AUGMENT_FILE_PATH, FILE_SEQ AUGMENT_FILE_SEQ
         FROM TB_META_AUGMENT A
@@ -379,6 +373,7 @@
         WHERE A.DEL_YN = 'N'
           AND A.AUGMENT_SEQ = #{augmentSeq};
     </select>
+
     <select id="getTargetColumnInfo" parameterType="int" resultType="String">
         SELECT DISTINCT MODEL_COL_NM
         FROM TB_META_MODEL_COLUMN
@@ -386,17 +381,7 @@
           AND USE_YN = 'Y'
           AND DEL_YN = 'N'
     </select>
-    <select id="getInsertSimulationViewResult" parameterType="int"
-            resultType="com.stoneitgt.dt.data.platform.domain.SimulationModel">
-        /* file : PredictionMapper.xml, id : getInsertSimulationViewResult */
-        SELECT CONCAT(B.FILE_PATH, '/', B.STRG_FILE_NM) AUGMENT_FILE_PATH, FILE_SEQ AUGMENT_FILE_SEQ
-        FROM TB_AUGMENT A
-                 LEFT OUTER JOIN TB_AUGMENT_MODEL_FILES B
-                                 ON A.AUGMENT_SEQ = B.REF_SEQ AND B.REF_TP = 'AUGMENT' AND B.DEL_YN = 'N'
-        WHERE A.DEL_YN = 'N'
-          AND A.USE_YN = 'Y'
-          AND A.AUGMENT_SEQ = #{augmentSeq}
-    </select>
+
     <select id="checkUseDTModel" parameterType="int" resultType="boolean">
         SELECT CASE
                    WHEN COUNT(*) > 0 THEN true
@@ -406,6 +391,7 @@
         WHERE MODEL_SEQ = #{model_seq}
           AND AUGMENT_TP = 'R';
     </select>
+
     <!--boolean checkUseRemakeDTModel(@Param("model_seq") int modelSeq);-->
     <select id="checkUseRemakeDTModel" parameterType="int" resultType="boolean">
         SELECT CASE
@@ -417,6 +403,7 @@
           AND AUGMENT_TP = 'R'
           AND AUGMENT_STATUS = 'T';
     </select>
+
     <select id="deleteDTSimulation" parameterType="map" resultType="com.stoneitgt.dt.data.platform.domain.DTAugment">
         UPDATE TB_META_AUGMENT
         SET USE_YN= 'N',

@@ -23,22 +23,34 @@ public class BaseSystemProperties {
     private String resuorceLinkUrl;
 
     private int limitCsvRowCount;
+
     private int limitMakeModelCnt;
 
-
     private String dtFilePath;
+
     private String dtModelPath;
+
     private String dtDataPath;
+
     private String dtUploadPath;
+
     private String dtApiUrl;
+
     private String dtMetaApiUrl;
+
     private String dtKetiApiUrl;
+
     private String dtApiKey;
+
     private String dtN2mKey;
 
     private String dtMetaFilePath;
+
     private String dtEtcMetaFilePath;
+
     private String tmpSampleData;
 
+    private String username;
 
+    private String password;
 }

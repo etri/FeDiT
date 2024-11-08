@@ -64,6 +64,7 @@ public class DTModelJsonPropertySubSet {
     private String interpl_feature;
     private List<String> interpl_outputs;
     private List<String> interpl_labels;
+    private int interpl_window_size;
 
     /**
      * Decision Tree 변수

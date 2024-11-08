@@ -1,220 +1,61 @@
 package com.stoneitgt.dt.data.platform.admin.service;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URLEncoder;
 import java.util.*;
 
 import com.stoneitgt.dt.data.platform.enums.TimeUnit;
 import com.stoneitgt.dt.data.platform.util.*;
-import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.stoneitgt.common.GlobalConstant.FILE_REF_TYPE;
-import com.stoneitgt.dt.data.platform.properties.BaseSystemProperties;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-public class DTModelApiService {
+public class DTModelApiService extends BaseService {
 
     @Autowired
-    private BaseSystemProperties systemproperties;
+    private APIService apiService;
 
-    public String requestPythonApi(String url, Map<String, Object> params) {
-        RestTemplate restTemplate = new RestTemplate();
-
-        String contentType = "application/json";
-        String authKey = "Token " + systemproperties.getDtApiKey();
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-Type", contentType);
-        headers.add("Authorization", authKey);
-
-        log.info("requestPythonApi url -> {}", url);
-        log.info("requestPythonApi params -> {}", params);
-
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(params, headers);
-
-        ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-        return response.getBody();
-    }
-
-    public String requestN2MApiGET(String url, Map<String, Object> params) throws UnsupportedEncodingException {
-        Map<String, Object> result = new HashMap<String, Object>();
-
-        String contentType = "application/json";
-        String authKey = "Bearer " + systemproperties.getDtN2mKey();
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-Type", contentType);
-        headers.add("Authorization", authKey);
-        headers.add("accept", "*/*");
-
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url);
-        for (Map.Entry<String, Object> entry : params.entrySet()) {
-            String key = entry.getKey();
-            Object value = entry.getValue();
-            builder.queryParam(key, value);
-        }
-        URI uri = builder.build().expand(params).encode().toUri();
-        HttpEntity<?> entity = new HttpEntity<>(headers);
-        RestTemplate restTemplate = new RestTemplate();
-
-        log.info("requestN2MApiGET uri -> {}", uri);
-
-        ResponseEntity<String> response = restTemplate.exchange(uri, HttpMethod.GET, entity, String.class);
-
-        String responseBody = response.getBody();
-        result.put("responseBody", responseBody);
-
-        return responseBody;
-    }
-
-
-    public String requestKETIApiGET(String url, Map<String, Object> params) throws UnsupportedEncodingException {
-        Map<String, Object> result = new HashMap<String, Object>();
-
-        String contentType = "application/json";
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-Type", contentType);
-        headers.add("accept", "*/*");
-
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url);
-        for (Map.Entry<String, Object> entry : params.entrySet()) {
-            String key = entry.getKey();
-            Object value = entry.getValue();
-
-            if (value instanceof String) {
-                // URL 인코딩하여 추가
-                builder.queryParam(key, URLEncoder.encode((String) value, "UTF-8"));
-            } else {
-                builder.queryParam(key, value);
-            }
-        }
-
-        URI uri = builder.build().toUri();
-
-        // Create HTTP Entity with Headers
-        HttpEntity<?> entity = new HttpEntity<>(headers);
-
-        // Create RestTemplate instance
-        RestTemplate restTemplate = new RestTemplate();
-
-        ResponseEntity<String> response = restTemplate.exchange(uri, HttpMethod.GET, entity, String.class);
-
-        String responseBody = response.getBody();
-        result.put("responseBody", responseBody);
-        return responseBody;
-    }
-
-
-    public String requestKETIApiGETSample(String url, Map<String, Object> params) throws UnsupportedEncodingException {
-        Map<String, Object> result = new HashMap<String, Object>();
-
-        String contentType = "application/json";
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-Type", contentType);
-        headers.add("accept", "*/*");
-
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url);
-        for (Map.Entry<String, Object> entry : params.entrySet()) {
-            String key = entry.getKey();
-            Object value = entry.getValue();
-
-            if (value instanceof String) {
-                // URL 인코딩하여 추가
-                builder.queryParam(key, URLEncoder.encode((String) value, "UTF-8"));
-            } else {
-                builder.queryParam(key, value);
-            }
-        }
-
-        URI uri = builder.build().toUri();
-
-        // Create HTTP Entity with Headers
-        HttpEntity<?> entity = new HttpEntity<>(headers);
-
-        // Create RestTemplate instance
-        RestTemplate restTemplate = new RestTemplate();
-
-        ResponseEntity<String> response = restTemplate.exchange(uri, HttpMethod.GET, entity, String.class);
-
-        String responseBody = response.getBody();
-        result.put("responseBody", responseBody);
-
-        return responseBody;
-    }
-
-
-    //사용자 업로드 파일로 프로세스 태우기
-    public ResponseEntity<?> makeUserUploadBaseDataFile(Map<String, Object> param) throws Exception {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorMakeUserUploadBaseDataSet/";
-
+    public ResponseEntity<?> makeUserUploadBaseDataFile(Map<String, Object> param) {
         Map<String, Object> params = new HashMap<String, Object>();
-        params.put("file_path", systemproperties.getDtMetaFilePath().replace("\\", "/") + "/tmp/" + param.get("user_tmp_key").toString());
+        params.put("file_path", systemProperties.getDtMetaFilePath().replace("\\", "/") + "/tmp/" + param.get("user_tmp_key").toString());
         params.put("file_name", param.get("file_name").toString());
-
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorMakeUserUploadBaseDataSet/", params));
     }
 
-
-    //모달 팝업에서 초기 가져오는 갯수만 제한을 둘 조건 없는 데이터
-    public ResponseEntity<?> makeBaseDataFile(Map<String, Object> param) throws Exception {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorMakeBaseDataSet/";
-
+    public ResponseEntity<?> makeBaseDataFile(Map<String, Object> param) {
         Map<String, Object> params = new HashMap<String, Object>();
-        params.put("file_path", systemproperties.getDtMetaFilePath().replace("\\", "/") + "/tmp/" + param.get("user_tmp_key").toString());
+        params.put("file_path", systemProperties.getDtMetaFilePath() + "/tmp/" + param.get("user_tmp_key").toString());
         params.put("file_name", param.get("user_tmp_key").toString() + "_origin" + "_" + MetaRelateUtil.generateFileNameTime("H") + ".csv");
         params.put("data", param.get("data"));
-
-
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorMakeBaseDataSet/", params));
     }
 
-    //시뮬레이션 기본 데이터
-    public ResponseEntity<?> makeBaseSimulationDataFile(Map<String, Object> param) throws Exception {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorMakeBaseDataSet/";
-
+    public ResponseEntity<?> makeBaseSimulationDataFile(Map<String, Object> param) {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("file_path", param.get("file_path"));
         params.put("file_name", param.get("file_name"));
         params.put("data", param.get("data"));
         params.put("index_trgt_col", param.get("index_trgt_col"));
-
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorMakeBaseDataSet/", params));
     }
 
-
-    //데이터 선택 화면에서 인덱스컬럼과 시간 또는 갯수를 지정해서 원본 csv 다음 csv를 생성 후 로드
-    public ResponseEntity<?> checkIndexTimeColumn(Map<String, Object> param) throws Exception {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorCheckIndexTimeColumn/";
-
+    public ResponseEntity<?> checkIndexTimeColumn(Map<String, Object> param) {
         Map<String, Object> params = new HashMap<String, Object>();
-        params.put("file_path", systemproperties.getDtMetaFilePath().replace("\\", "/") + "/tmp/" + param.get("base_file_path").toString());
+        params.put("file_path", systemProperties.getDtMetaFilePath().replace("\\", "/") + "/tmp/" + param.get("base_file_path").toString());
         params.put("base_file_name", param.get("base_file_nm").toString());
         params.put("index_trgt_col", param.get("index_trgt_col").toString());
-
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorCheckIndexTimeColumn/", params));
     }
 
-    //데이터 선택 화면에서 인덱스컬럼과 시간 또는 갯수를 지정해서 원본 csv 다음 csv를 생성 후 로드
-    public ResponseEntity<?> makeBaseDataSetRangeRow(Map<String, Object> param) throws Exception {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorMakeBaseDataSetRangeRow/";
-
+    public ResponseEntity<?> makeBaseDataSetRangeRow(Map<String, Object> param) {
         Map<String, Object> params = new HashMap<String, Object>();
-        params.put("file_path", systemproperties.getDtMetaFilePath().replace("\\", "/") + "/tmp/" + param.get("base_file_path").toString());
+        params.put("file_path", systemProperties.getDtMetaFilePath().replace("\\", "/") + "/tmp/" + param.get("base_file_path").toString());
         params.put("target_file_name", StringUtil.changeFileName(param.get("base_file_nm").toString(), "_set_row"));
         params.put("base_file_name", param.get("base_file_nm").toString());
 
@@ -223,19 +64,16 @@ public class DTModelApiService {
         params.put("target_end_date", param.get("target_end_date").toString());
         params.put("target_row_count", param.get("target_row_count").toString());
 
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorMakeBaseDataSetRangeRow/", params));
     }
 
-    //데이터 선택 화면에서 인덱스컬럼과 시간 또는 갯수를 지정해서 원본 csv 다음 csv를 생성 후 로드
-    public ResponseEntity<?> makeBaseDataSetRangeCol(Map<String, Object> param) throws Exception {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorMakeBaseDataSetRangeCol/";
-
+    public ResponseEntity<?> makeBaseDataSetRangeCol(Map<String, Object> param) {
         Map<String, Object> params = new HashMap<String, Object>();
         String base_file_path = param.get("last_file_path").toString();
         if ("U".equals(param.get("form_type").toString())) {
-            params.put("file_path", systemproperties.getDtMetaFilePath().replace("\\", "/") + base_file_path.substring(0, base_file_path.length() - 1));
+            params.put("file_path", systemProperties.getDtMetaFilePath().replace("\\", "/") + base_file_path.substring(0, base_file_path.length() - 1));
         } else {
-            params.put("file_path", systemproperties.getDtMetaFilePath().replace("\\", "/") + "/tmp/" + param.get("base_dir").toString());
+            params.put("file_path", systemProperties.getDtMetaFilePath().replace("\\", "/") + "/tmp/" + param.get("base_dir").toString());
         }
 
         params.put("target_file_name", StringUtil.changeFileName(param.get("base_file_nm").toString(), "_set_col"));
@@ -244,167 +82,96 @@ public class DTModelApiService {
         params.put("index_trgt_col", param.get("index_trgt_col").toString());
         params.put("preproc_trgt_col", MetaRelateUtil.parseJSONStringToArray(param.get("preproc_trgt_col").toString()));
 
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorMakeBaseDataSetRangeCol/", params));
     }
 
-    //데이터 선택 화면에서 인덱스컬럼과 시간 또는 갯수를 지정해서 원본 csv 다음 csv를 생성 후 로드
-    public ResponseEntity<?> getDataSetColumnListInfo(Map<String, Object> param) throws Exception {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorDatasetInfo/";
-
+    public ResponseEntity<?> getDataSetColumnListInfo(Map<String, Object> param) {
         Map<String, Object> params = new HashMap<String, Object>();
         String base_file_path = param.get("base_file_path").toString();
         if ("U".equals(param.get("form_type").toString())) {
-            params.put("file_path", systemproperties.getDtMetaFilePath().replace("\\", "/") + base_file_path.substring(0, base_file_path.length() - 1));
+            params.put("file_path", systemProperties.getDtMetaFilePath().replace("\\", "/") + base_file_path.substring(0, base_file_path.length() - 1));
         } else {
-            params.put("file_path", systemproperties.getDtMetaFilePath().replace("\\", "/") + "/tmp/" + base_file_path);
+            params.put("file_path", systemProperties.getDtMetaFilePath().replace("\\", "/") + "/tmp/" + base_file_path);
         }
 
 
         params.put("file_name", param.get("base_file_nm").toString());
         params.put("index_trgt_col", param.get("index_trgt_col").toString());
 
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorDatasetInfo/", params));
     }
 
-
-    //데이터 선택 화면에서 인덱스컬럼과 시간 또는 갯수를 지정해서 원본 csv 다음 csv를 생성 후 로드
-    public ResponseEntity<?> makeValidateSet(Map<String, Object> params) throws Exception {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorDatasetVerify/";
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+    public ResponseEntity<?> makeValidateSet(Map<String, Object> params) {
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorDatasetVerify/", params));
     }
 
-
-    //데이터 선택 화면에서 인덱스컬럼과 시간 또는 갯수를 지정해서 원본 csv 다음 csv를 생성 후 로드
-    public ResponseEntity<?> makeOutlierSet(Map<String, Object> params, String type) throws Exception {
-        log.info("type:::" + type);
-        log.info("params:::" + params);
-        String apiUrl = "";
-        if ("standard".equals(type)) {
-            apiUrl = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorOutlierStandardDeviation/";
+    public ResponseEntity<?> makeOutlierSet(Map<String, Object> params, String type) {
+        switch (type) {
+            case "standard":
+                return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorOutlierStandardDeviation/", params));
+            case "kmean":
+                return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorOutlierKMeans/", params));
+            case "dbscan":
+                return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorOutlierDBscan/", params));
+            case "autoencoder":
+            case "AutoEncoder":
+            case "Auto Encoder":
+            case "auto encoder":
+                return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorDataAEGenerater/", params));
+            default:
+                throw new RuntimeException();
         }
-
-        if ("kmean".equals(type)) {
-            apiUrl = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorOutlierKMeans/";
-            log.info("type:::" + apiUrl);
-        }
-
-        if ("dbscan".equals(type)) {
-            apiUrl = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorOutlierDBscan/";
-        }
-
-        if ("autoencoder".equals(type)
-                || "autoencoder".equalsIgnoreCase(type)
-                || "auto encoder".equals(type)
-                || "auto encoder".equalsIgnoreCase(type)) {
-            apiUrl = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorDataAEGenerater/";
-        }
-
-
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
     }
 
-
-    //데이터 선택 화면에서 인덱스컬럼과 시간 또는 갯수를 지정해서 원본 csv 다음 csv를 생성 후 로드
-    public ResponseEntity<?> makeInterpolateSet(Map<String, Object> params) throws Exception {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorDatasetInterpolate/";
-        //FileSystems.getDefault().getSeparator()
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+    public ResponseEntity<?> makeInterpolateSet(Map<String, Object> params) {
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorDatasetInterpolate/", params));
     }
 
-    public ResponseEntity<?> makeInterpolateDecisionSet(Map<String, Object> params) throws Exception {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/example/processorDecisionTree/";
-        log.info("apiUrl -> {}", apiUrl);
-        //FileSystems.getDefault().getSeparator()
-
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+    public ResponseEntity<?> makeInterpolateDecisionSet(Map<String, Object> params) {
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/example/processorDecisionTree/", params));
     }
 
-    public ResponseEntity<?> makeInterpolateModelDecisionSet(Map<String, Object> params) throws Exception {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/example/processorDecisionTree_model/";
-        log.info("apiUrl -> {}", apiUrl);
-        //FileSystems.getDefault().getSeparator()
-
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+    public ResponseEntity<?> makeInterpolateModelDecisionSet(Map<String, Object> params) {
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/example/processorDecisionTree_model/", params));
     }
 
-    //데이터 선택 화면에서 인덱스컬럼과 시간 또는 갯수를 지정해서 원본 csv 다음 csv를 생성 후 로드
-    public ResponseEntity<?> makeInterpolateSetRF(Map<String, Object> params) throws Exception {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/newaugment/augmentCreate_randomForest/";
-        //FileSystems.getDefault().getSeparator()
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+    public ResponseEntity<?> makeInterpolateSetRF(Map<String, Object> params) {
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/newaugment/augmentCreate_randomForest/", params));
     }
 
-    //데이터 선택 화면에서 인덱스컬럼과 시간 또는 갯수를 지정해서 원본 csv 다음 csv를 생성 후 로드
-    public ResponseEntity<?> makeInterpolateSetBrits(Map<String, Object> params) throws Exception {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/newaugment/augmentCreate_brits_ori/";
-        //FileSystems.getDefault().getSeparator()
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+    public ResponseEntity<?> makeInterpolateSetBrits(Map<String, Object> params) {
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/newaugment/augmentCreate_brits_ori/", params));
     }
 
-    //데이터 선택 화면에서 인덱스컬럼과 시간 또는 갯수를 지정해서 원본 csv 다음 csv를 생성 후 로드
-    public ResponseEntity<?> makeResampleSet(Map<String, Object> params) throws Exception {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorDatasetResample/";
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+    public ResponseEntity<?> makeInterpolateSetNaomi(Map<String, Object> params) {
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/newaugment/augmentCreate_naomi/", params));
     }
 
-    //데이터 선택 화면에서 인덱스컬럼과 시간 또는 갯수를 지정해서 원본 csv 다음 csv를 생성 후 로드
-    public ResponseEntity<?> makeUnitSet(Map<String, Object> params) throws Exception {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorDatasetUnitConverter/";
-        //FileSystems.getDefault().getSeparator()
-
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+    public ResponseEntity<?> makeResampleSet(Map<String, Object> params) {
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorDatasetResample/", params));
     }
 
-    //데이터 선택 화면에서 인덱스컬럼과 시간 또는 갯수를 지정해서 원본 csv 다음 csv를 생성 후 로드
-    public ResponseEntity<?> getIndexColumnTimeCheck(Map<String, Object> params) throws Exception {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorDateTimeCheck/";
-        //FileSystems.getDefault().getSeparator()
-
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+    public ResponseEntity<?> makeUnitSet(Map<String, Object> params) {
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorDatasetUnitConverter/", params));
     }
 
-    public String requestDjangoApi(String url, Map<String, Object> params, int modelSeq) {
-        Map<String, Object> result = new HashMap<String, Object>();
-
-        RestTemplate restTemplate = new RestTemplate();
-
-        String contentType = "application/json";
-        String authKey = "Token " + systemproperties.getDtApiKey();
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-Type", contentType);
-        headers.add("Authorization", authKey);
-
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(params, headers);
-
-        ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-        String responseBody = response.getBody();
-        result.put("responseBody", responseBody);
-
-        return responseBody;
+    public ResponseEntity<?> getIndexColumnTimeCheck(Map<String, Object> params) {
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorDateTimeCheck/", params));
     }
 
-
-    //데이터 선택 화면에서 인덱스컬럼과 시간 또는 갯수를 지정해서 원본 csv 다음 csv를 생성 후 로드
-    public ResponseEntity<?> getResourceDts(Map<String, Object> params) throws Exception {
-        String apiUrl = systemproperties.getDtMetaApiUrl() + "/meta/api/v1/resource/dts";
-        return ResponseEntity.ok(requestN2MApiGET(apiUrl, params));
+    public ResponseEntity<?> getResourceDts(Map<String, Object> params) throws UnsupportedEncodingException {
+        return ResponseEntity.ok(apiService.requestMetaDataApi("/meta/api/v1/resource/dts", params));
     }
 
-    //데이터 선택 화면에서 인덱스컬럼과 시간 또는 갯수를 지정해서 원본 csv 다음 csv를 생성 후 로드
-    public ResponseEntity<?> getResourceObject(Map<String, Object> params) throws Exception {
-        String apiUrl = systemproperties.getDtMetaApiUrl() + "/meta/api/v1/resource/objects";
-        return ResponseEntity.ok(requestN2MApiGET(apiUrl, params));
+    public ResponseEntity<?> getResourceObject(Map<String, Object> params) throws UnsupportedEncodingException {
+        return ResponseEntity.ok(apiService.requestMetaDataApi("/meta/api/v1/resource/objects", params));
     }
 
-    public ResponseEntity<?> getResourceObjectDetailFull(Map<String, Object> params) throws Exception {
-        String apiUrl = systemproperties.getDtMetaApiUrl() + "/meta/api/v1/resource/full-objects/" + params.get("object_id") + "?arrayDataLimitYn=Y&arrayDataLimit=50";
-        log.info("getResourceObjectDetailFull apiUrl -> {}", apiUrl);
-        return ResponseEntity.ok(requestN2MApiGET(apiUrl, params));
+    public ResponseEntity<?> getResourceObjectDetailFull(Map<String, Object> params) throws UnsupportedEncodingException {
+        return ResponseEntity.ok(apiService.requestMetaDataApi("/meta/api/v1/resource/full-objects/" + params.get("object_id") + "?arrayDataLimitYn=Y&arrayDataLimit=50", params));
     }
 
-    public ResponseEntity<?> getResourceObjectDataMetaFirst(Map<String, Object> params) throws Exception {
-        log.info("params:::" + params);
+    public ResponseEntity<?> getResourceObjectDataMetaFirst(Map<String, Object> params) {
         String digital_twins = params.get("digital_twins").toString();
         String digital_objects = params.get("digital_objects").toString();
         String count = params.get("target_row_count").toString();
@@ -447,16 +214,11 @@ public class DTModelApiService {
                     count_range = "count=" + limit;
                 }
             }
-			/*if (Integer.parseInt(count) <= Integer.parseInt(limit)) {
-                count_range = "?count=" + count;
-            } else {
-                count_range = "?count=" + limit;
-            }*/
         }
 
         // API URL 구성
         StringBuilder apiUrlBuilder = new StringBuilder();
-        apiUrlBuilder.append(systemproperties.getDtKetiApiUrl() + "/fedit/v1/digital-twins/");
+        apiUrlBuilder.append("/fedit/v1/digital-twins/");
         apiUrlBuilder.append(digital_twins);
         apiUrlBuilder.append("/digital-objects/");
         apiUrlBuilder.append(digital_objects);
@@ -477,15 +239,10 @@ public class DTModelApiService {
             }
             apiUrlBuilder.append(date_range);
         }
-
-        String apiUrl = apiUrlBuilder.toString();
-
-        log.info("getResourceObjectDataMetaFirst apiUrl -> " + apiUrl);
-        //return ResponseEntity.ok(requestKETIApiGET(apiUrl, params));
-        return ResponseEntity.ok(requestKETIApiGETSample(apiUrl, params));
+        return ResponseEntity.ok(apiService.requestDataApi(apiUrlBuilder.toString(), new HashMap<>()));
     }
 
-    public ResponseEntity<?> getResourceObjectDataSet(Map<String, Object> params, boolean isLimit) throws Exception {
+    public ResponseEntity<?> getResourceObjectDataSet(Map<String, Object> params, boolean isLimit) {
         String digital_twins = params.get("digital_twins").toString();
         String digital_objects = params.get("digital_objects").toString();
         String from_date = params.get("from_date") != null ? params.get("from_date").toString() : null;
@@ -496,14 +253,11 @@ public class DTModelApiService {
             // 데이터 가져올 한계치 정할 때
             count_range = "count=" + data_max_limit_cnt;
         }
-        String apiUrl = null;
         if (to_date != null && from_date != null) {
-            apiUrl = systemproperties.getDtKetiApiUrl() + "/fedit/v1/digital-twins/" + digital_twins + "/digital-objects/" + digital_objects + "/data?from=" + from_date + "&to=" + to_date + (count_range != null ? "&" + count_range : "");
+            return ResponseEntity.ok(apiService.requestDataApi("/fedit/v1/digital-twins/" + digital_twins + "/digital-objects/" + digital_objects + "/data?from=" + from_date + "&to=" + to_date + (count_range != null ? "&" + count_range : ""), params));
         } else {
-            apiUrl = systemproperties.getDtKetiApiUrl() + "/fedit/v1/digital-twins/" + digital_twins + "/digital-objects/" + digital_objects + "/data" + (count_range != null ? "?" + count_range : "");
+            return ResponseEntity.ok(apiService.requestDataApi("/fedit/v1/digital-twins/" + digital_twins + "/digital-objects/" + digital_objects + "/data" + (count_range != null ? "?" + count_range : ""), params));
         }
-        log.info("getResourceObjectDataSet apiUrl -> " + apiUrl);
-        return ResponseEntity.ok(requestKETIApiGET(apiUrl, params));
     }
 
     public HashMap<String, Object> makeDataNormalize(JsonNode infoNode) {
@@ -712,19 +466,34 @@ public class DTModelApiService {
      * LSTM, GRU
      * */
     public ResponseEntity<?> makeContinuousAugmentRepeatInterpolationSet(Map<String, Object> params) {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/newaugment/augmentCreate_interpolation/";
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/newaugment/augmentCreate_interpolation/", params));
     }
 
     /*DEEP AR*/
     public ResponseEntity<?> makeContinuousDeepARAugmentRepeatInterpolationSet(Map<String, Object> params) {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/newaugment/augmentCreate_deepAR_interpolation/";
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/newaugment/augmentCreate_deepAR_interpolation/", params));
     }
 
     /*N-Beats*/
     public ResponseEntity<?> makeContinuousNBeatsAugmentRepeatInterpolationSet(Map<String, Object> params) {
-        String apiUrl = systemproperties.getDtApiUrl() + "/dt/newaugment/augmentCreate_nbeats_interpolation/";
-        return ResponseEntity.ok(requestPythonApi(apiUrl, params));
+        return ResponseEntity.ok(apiService.requestPythonApi("/dt/newaugment/augmentCreate_nbeats_interpolation/", params));
+    }
+
+    public ResponseEntity<?> correlation(Map<String, Object> params, String type) {
+        switch (type) {
+            case "standard":
+                return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorOutlierStandardDeviation/", params));
+            case "kmean":
+                return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorOutlierKMeans/", params));
+            case "dbscan":
+                return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorOutlierDBscan/", params));
+            case "autoencoder":
+            case "AutoEncoder":
+            case "Auto Encoder":
+            case "auto encoder":
+                return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorDataAEGenerater/", params));
+            default:
+                return ResponseEntity.ok(apiService.requestPythonApi("/dt/newpreproc/processorDatasetCorrelation/", params));
+        }
     }
 }

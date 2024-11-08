@@ -208,8 +208,8 @@ function getBaseDataSetRangeCol(param, callback) {
                 $('.preprocProPerty').val(prettyJson(JSON.stringify(preProcData)));
 
                 //결과값으로  테이블 만들기
-                var header_list = JSON.parse(result.header_list);
-                var data_list = JSON.parse(result.data_list);
+                var header_list = result.header_list;
+                var data_list = result.data_list;
                 makeHtmlTable(header_list, data_list, 'csvUpRange3', 'N', 'csvUpRangeDataTable3');
 
                 $('#csvUpRangeDataTable3').DataTable({

@@ -10,8 +10,11 @@ import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.stoneitgt.dt.data.platform.admin.properties.SystemProperties;
 import com.stoneitgt.dt.data.platform.admin.service.*;
 import com.stoneitgt.dt.data.platform.domain.*;
+import com.stoneitgt.dt.data.platform.util.file.FileReader;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -36,14 +39,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stoneitgt.common.GlobalConstant;
 import com.stoneitgt.common.GlobalConstant.FILE_REF_TYPE;
 import com.stoneitgt.dt.data.platform.admin.config.WebConfig;
-import com.stoneitgt.dt.data.platform.properties.BaseSystemProperties;
 import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 import com.stoneitgt.dt.data.platform.util.StoneUtil;
 
 @Slf4j
 @Controller
 @RequestMapping("/dt/etc/model")
-public class DTEtcCModelController extends BaseController {
+public class DTEtcModelController extends BaseController {
 
     @Autowired
     private DTEtcModelApiService dtEtcModelApiService;
@@ -55,7 +57,7 @@ public class DTEtcCModelController extends BaseController {
     private DTEtcModelService dtEtcModelService;
 
     @Autowired
-    private BaseSystemProperties systemproperties;
+    private SystemProperties systemProperties;
 
     @Autowired
     private ErrorService errorService;
@@ -280,6 +282,77 @@ public class DTEtcCModelController extends BaseController {
         return "pages/dt_etc_model/brits-list";
     }
 
+    @GetMapping("/naomi/list")
+    public String getNaomiModelList(@ModelAttribute BaseParameter params, Model model, HttpServletRequest request, HttpServletResponse response) {
+        Paging paging = new Paging();
+        paging.setPage(params.getPage());
+        paging.setSize(params.getSize());
+
+        Map<String, Object> paramsMap = StoneUtil.convertObjectToMap(params);
+        log.info("paramsMap -> {}", paramsMap);
+        List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
+        paramsMap.put("model_tp", "naomi");
+        if (authenticationFacade.getAuth().equals("AU00")) {
+            list = dtEtcModelService.getDTEtcModelListByModelTp(paramsMap, paging);
+        } else {
+            paramsMap.put("user_seq", authenticationFacade.getLoginUserSeq());
+            list = dtEtcModelService.getDTEtcModelListSetUserSeqByModelTp(paramsMap, paging);
+        }
+        for (Map<String, Object> map : list) {
+            ErrorLog errorLog = errorService.getErrorLog(Integer.parseInt(map.get("etc_model_seq").toString()), "Make AI Model");
+            if (errorLog != null) {
+                map.put("ERR_TP", errorLog.getErrTp());
+                map.put("ERR_CD", errorLog.getErrCd());
+                map.put("ERR_NM", errorLog.getErrNm());
+                map.put("ERR_LCT", errorLog.getErrLct());
+                map.put("ERR_CN", errorLog.getErrCn());
+                map.put("ERRREGDT", errorLog.getRegDt());
+            } else {
+                map.put("ERR_TP", "PLATFORM");
+                map.put("ERR_CD", "500");
+                map.put("ERR_NM", "INTERNAL_SERVER_ERROR");
+                map.put("ERR_LCT", "Make AI Model");
+                map.put("ERR_CN", "java.lang.RuntimeException");
+                map.put("ERRREGDT", "날짜 미정");
+            }
+            if (map.get("model_algrm_seq") != null) {
+                int model_algrm_seq = Integer.parseInt(map.get("model_algrm_seq").toString());
+                Map<String, Object> modelAlgorithmResult = dtEtcModelService.getModelAlgorithmBySeq(model_algrm_seq);
+                map.put("model_algorithm", modelAlgorithmResult.get("rmrk").toString());
+            } else {
+                map.put("model_algorithm", "");
+            }
+        }
+        model.addAttribute("list", list);
+        model.addAttribute("paging", StoneUtil.setTotalPaging(list, paging));
+        model.addAttribute("params", params);
+
+
+        Paging subPaging = new Paging();
+        subPaging.setPage(params.getSubPage());
+        subPaging.setSize(params.getSubSize());
+
+        Map<String, Object> subParamsMap = StoneUtil.convertObjectToMap(params);
+        subParamsMap.put("model_tp", "naomi");
+        List<Map<String, Object>> share_list = dtEtcModelService.getDTEtcModelSharedListByModelTp(subParamsMap, subPaging);
+        for (Map<String, Object> map : share_list) {
+            if (map.get("model_algrm_seq") != null) {
+                int model_algrm_seq = Integer.parseInt(map.get("model_algrm_seq").toString());
+                Map<String, Object> modelAlgorithmResult = dtEtcModelService.getModelAlgorithmBySeq(model_algrm_seq);
+                map.put("model_algorithm", modelAlgorithmResult.get("rmrk").toString());
+            } else {
+                map.put("model_algorithm", "");
+            }
+        }
+        model.addAttribute("share_list", share_list);
+        model.addAttribute("subPaging", StoneUtil.setTotalPaging(share_list, subPaging));
+        model.addAttribute("subParams", params);
+
+        model.addAttribute("pageParams", getBaseParameterString(params));
+        model.addAttribute("breadcrumb", getBreadcrumb(params.getMenuCd()));
+        return "pages/dt_etc_model/naomi-list";
+    }
+
     /**
      * getModelList(), getSharedModelList() 한세트
      */
@@ -419,7 +492,7 @@ public class DTEtcCModelController extends BaseController {
         return "pages/dt_etc_model/shared-rf-list";
     }
 
-    @GetMapping(value = {"/form", "/ae/form", "/rf/form", "/brits/form"})
+    @GetMapping(value = {"/form", "/ae/form", "/rf/form", "/brits/form", "/naomi/form"})
     public String modelForm(@ModelAttribute BaseParameter params, Model model) throws Exception {
         DTModelEtc dtModelEtc = new DTModelEtc();
         model.addAttribute("dtModelEtc", dtModelEtc);
@@ -428,7 +501,7 @@ public class DTEtcCModelController extends BaseController {
         model.addAttribute("pageParams", getBaseParameterString(params));
 
         model.addAttribute("formType", "I");
-        int limit = systemproperties.getLimitCsvRowCount();
+        int limit = systemProperties.getLimitCsvRowCount();
         model.addAttribute("limit", limit);
 
         //TB_MODEL_META_ITEM
@@ -606,6 +679,46 @@ public class DTEtcCModelController extends BaseController {
     /**
      * modelView(), sharedModelView() 한세트
      */
+    @GetMapping("/naomi/{etcModelSeq}")
+    public String naomiModelView(@PathVariable int etcModelSeq, @ModelAttribute BaseParameter params, Model model) throws Exception {
+        DTModelEtc dtModelEtc = new DTModelEtc();
+        DTModelEtcMetaUserItem dtModelEtcMetaUserItem = new DTModelEtcMetaUserItem();
+
+        //TB_MODEL_META_ITEM
+        List<Map<String, Object>> algorithm_list = dtEtcModelService.getAlgolithmList();
+        model.addAttribute("algorithm_list", algorithm_list);
+
+        log.info("params -> {}", params);
+        log.info("Model -> {}", model);
+
+        model.addAttribute("menuCd", params.getMenuCd());
+        model.addAttribute("breadcrumb", getBreadcrumb(params.getMenuCd()));
+        model.addAttribute("formType", "U");
+
+        dtModelEtc = dtEtcModelService.selectMetaModel(etcModelSeq);
+        dtModelEtcMetaUserItem = dtEtcModelService.selectMetaUserItem(etcModelSeq);
+
+        Files files = dtEtcModelService.getDtPreprocLastFile(etcModelSeq);
+
+        model.addAttribute("dtModelEtc", dtModelEtc);
+        model.addAttribute("dtModelEtcMetaUserItem", dtModelEtcMetaUserItem);
+        model.addAttribute("lastFilePath", files.getFilePath());
+
+        if ("DONE".equals(dtModelEtc.getModelStatus())) {
+            List<Map<String, Object>> list_loss = dtEtcModelService.getModelLossList(etcModelSeq);
+            model.addAttribute("list_loss", list_loss);
+        } else if (Objects.equals("FAIL", dtModelEtc.getModelStatus())) {
+            /* 해당 모델과 관련된 에러 최신 로그 가져오기*/
+            ErrorLog errorLog = errorService.getErrorLog(dtModelEtc.getEtcModelSeq(), "Make AI Model");
+            log.info("errorLog -> {}", errorLog);
+            model.addAttribute("errorLog", errorLog);
+        }
+        return "pages/dt_etc_model/form";
+    }
+
+    /**
+     * modelView(), sharedModelView() 한세트
+     */
     @GetMapping("/shared/ae/{etcModelSeq}")
     public String sharedAEModelView(@PathVariable int etcModelSeq, @ModelAttribute BaseParameter params, Model model) throws Exception {
         DTModelEtc dtModelEtc = new DTModelEtc();
@@ -693,17 +806,17 @@ public class DTEtcCModelController extends BaseController {
         String file_path = null;
 
         if ("I".equals(formType)) {
-            file_path = systemproperties.getDtEtcMetaFilePath().replace("\\", "/") + "/tmp/" + params.get("file_path").toString();
+            file_path = systemProperties.getDtEtcMetaFilePath().replace("\\", "/") + "/tmp/" + params.get("file_path").toString();
         } else {
-            file_path = systemproperties.getDtEtcMetaFilePath().replace("\\", "/") + File.separator + params.get("file_path").toString();
+            file_path = systemProperties.getDtEtcMetaFilePath().replace("\\", "/") + File.separator + params.get("file_path").toString();
         }
 
-
-        Map<String, Object> resultCsv = readCSV(file_path, params.get("file_name").toString(), 0);
+        FileReader fileReader = FileReader.getInstance();
+        Map<String, Object> resultCsv = fileReader.readCSV(file_path + File.separator + params.get("file_name").toString());
 
         result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-        result.put("header_list", resultCsv.get("header_list").toString());
-        result.put("data_list", resultCsv.get("data_list").toString());
+        result.put("header_list", resultCsv.get("header_list"));
+        result.put("data_list", resultCsv.get("data_list"));
 
         return result;
     }
@@ -725,18 +838,18 @@ public class DTEtcCModelController extends BaseController {
 
         //결과 json을 먼저 풀고
         Map<String, Object> resultJson = extractDataKeyValues(resultOriginFileSet);
+
         //csv를 읽어들인다
-        //가져올 갯수 0은 전체, 나머지는 환경세팅에서
-        int limit = 0;
-        Map<String, Object> resultCsv = readCSV(resultJson.get("file_path").toString(), resultJson.get("file_name").toString(), limit);
+        FileReader fileReader = FileReader.getInstance();
+        Map<String, Object> resultCsv = fileReader.readCSV(resultJson.get("file_path") + File.separator + resultJson.get("file_name"));
 
         result.put("code", GlobalConstant.API_STATUS.SUCCESS);
         result.put("base_dir", resultJson.get("base_dir").toString());
         result.put("file_name", resultJson.get("file_name").toString());
         result.put("file_path", resultJson.get("file_path").toString());
-        result.put("header_list", resultCsv.get("header_list").toString());
-        result.put("data_list", resultCsv.get("data_list").toString());
-        limit = systemproperties.getLimitCsvRowCount();
+        result.put("header_list", resultCsv.get("header_list"));
+        result.put("data_list", resultCsv.get("data_list"));
+        int limit = ((List<List<String>>) resultCsv.get("data_list")).size();
         result.put("limit", limit);
         return result;
     }
@@ -754,15 +867,16 @@ public class DTEtcCModelController extends BaseController {
 
         //csv를 읽어들인다
         //가져올 갯수 0은 전체, 나머지는 환경세팅에서
-        int limit = systemproperties.getLimitCsvRowCount();
-        Map<String, Object> resultCsv = readCSV(resultJson.get("file_path").toString(), resultJson.get("file_name").toString(), limit);
+        int limit = systemProperties.getLimitCsvRowCount();
+        FileReader fileReader = FileReader.getInstance();
+        Map<String, Object> resultCsv = fileReader.readCSVWithLimit(resultJson.get("file_path") + File.separator + resultJson.get("file_name"), limit);
 
         result.put("code", GlobalConstant.API_STATUS.SUCCESS);
         result.put("base_dir", resultJson.get("base_dir").toString());
         result.put("file_name", resultJson.get("file_name").toString());
         result.put("file_path", resultJson.get("file_path").toString());
-        result.put("header_list", resultCsv.get("header_list").toString());
-        result.put("data_list", resultCsv.get("data_list").toString());
+        result.put("header_list", resultCsv.get("header_list"));
+        result.put("data_list", resultCsv.get("data_list"));
 
         return result;
     }
@@ -792,7 +906,7 @@ public class DTEtcCModelController extends BaseController {
     public Map<String, Object> getBaseDataSetRangeRow(@RequestBody Map<String, Object> param) throws Exception {
         Map<String, Object> result = new HashMap<>();
         log.info("param -> " + param.toString());
-        int limit = systemproperties.getLimitCsvRowCount();
+        int limit = systemProperties.getLimitCsvRowCount();
         param.put("limit", limit);
 
         ResponseEntity<?> resultBaseDataSetRangeRow = dtEtcModelApiService.makeBaseDataSetRangeRow(param);
@@ -802,17 +916,17 @@ public class DTEtcCModelController extends BaseController {
 
         //csv를 읽어들인다
         //가져올 갯수 0은 전체, 나머지는 환경세팅에서
-        Map<String, Object> resultCsv = readCSV(resultJson.get("file_path").toString(), resultJson.get("base_file_nm_set_range_row").toString(), 0);
+        FileReader fileReader = FileReader.getInstance();
+        Map<String, Object> resultCsv = fileReader.readCSV(resultJson.get("file_path") + File.separator + resultJson.get("base_file_nm_set_range_row"));
 
         result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-
         result.put("index_trgt_col", resultJson.get("index_trgt_col").toString());
         result.put("target_start_date", resultJson.get("target_start_date").toString());
         result.put("target_end_date", resultJson.get("target_end_date").toString());
         result.put("target_row_count", resultJson.get("target_row_count").toString());
         result.put("base_file_nm_set_range_row", resultJson.get("base_file_nm_set_range_row").toString());
-        result.put("header_list", resultCsv.get("header_list").toString());
-        result.put("data_list", resultCsv.get("data_list").toString());
+        result.put("header_list", resultCsv.get("header_list"));
+        result.put("data_list", resultCsv.get("data_list"));
 
         return result;
     }
@@ -829,12 +943,13 @@ public class DTEtcCModelController extends BaseController {
 
         //결과 json을 먼저 풀고
         Map<String, Object> resultJson = extractDataKeyValues(resultBaseDataSetRangeCol);
-        Map<String, Object> resultCsv = readCSV(resultJson.get("file_path").toString(), resultJson.get("base_file_nm_set_range_col").toString(), 0);
+        FileReader fileReader = FileReader.getInstance();
+        Map<String, Object> resultCsv = fileReader.readCSV(resultJson.get("file_path") + File.separator + resultJson.get("base_file_nm_set_range_col"));
 
         result.put("code", GlobalConstant.API_STATUS.SUCCESS);
         result.put("base_file_nm_set_range_col", resultJson.get("base_file_nm_set_range_col").toString());
-        result.put("header_list", resultCsv.get("header_list").toString());
-        result.put("data_list", resultCsv.get("data_list").toString());
+        result.put("header_list", resultCsv.get("header_list"));
+        result.put("data_list", resultCsv.get("data_list"));
         return result;
     }
 
@@ -853,7 +968,7 @@ public class DTEtcCModelController extends BaseController {
     public Map<String, Object> getDataTimeCheck(@RequestBody Map<String, Object> params) throws Exception {
         Map<String, Object> result = new HashMap<String, Object>();
 
-        String file_path = systemproperties.getDtEtcMetaFilePath() + "/tmp/" + params.get("file_path").toString();
+        String file_path = systemProperties.getDtEtcMetaFilePath() + "/tmp/" + params.get("file_path").toString();
         String file_name = params.get("file_name").toString();
 
         Map<String, Object> setParam = new HashMap<String, Object>();
@@ -875,7 +990,7 @@ public class DTEtcCModelController extends BaseController {
         Map<String, Object> result = new HashMap<String, Object>();
 
         List<String> filesList = (List<String>) request.get("files");
-        String base_dir = systemproperties.getDtEtcMetaFilePath() + "/tmp/" + request.get("file_path").toString();
+        String base_dir = systemProperties.getDtEtcMetaFilePath() + "/tmp/" + request.get("file_path").toString();
 
         for (int i = 0; i < filesList.size(); i++) {
             FileUtil.delete(base_dir + "/" + filesList.get(i).toString());
@@ -904,19 +1019,15 @@ public class DTEtcCModelController extends BaseController {
         DTModelEtc dtModelEtc = new DTModelEtc();
         dtModelEtc = dtEtcModelService.getAugmentModel(modelSeq);
 
-        String correlationUrl = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorDatasetCorrelation/";
+        String correlationUrl = systemProperties.getDtApiUrl() + "/dt/newpreproc/processorDatasetCorrelation/";
 
         Map<String, Object> correlationParam = new HashMap<String, Object>();
-        correlationParam.put("file_path", systemproperties.getDtEtcMetaFilePath().replace("\\", "/") + dtModelEtc.getFilePath());
+        correlationParam.put("file_path", systemProperties.getDtEtcMetaFilePath().replace("\\", "/") + dtModelEtc.getFilePath());
         correlationParam.put("file_name", params.get("file_name").toString());
         correlationParam.put("index_trgt_col", params.get("index_trgt_col").toString());
         correlationParam.put("columns", checkHeaderList);
-
-        String correlationString = dtEtcModelApiService.requestDjangoApi(correlationUrl, correlationParam, modelSeq);
-
-        JSONParser correlationParser = new JSONParser();
-        JSONObject correlationObj = (JSONObject) correlationParser.parse(correlationString);
-
+        ResponseEntity<?> correlationSet = dtEtcModelApiService.correlation(correlationParam, "default");
+        JSONObject correlationObj = (JSONObject) new JSONParser().parse(correlationSet.getBody().toString());
         if (Integer.parseInt(correlationObj.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
             result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
             result.put("model_status", dtModelEtc.getModelStatus());
@@ -939,17 +1050,11 @@ public class DTEtcCModelController extends BaseController {
         int model_algrm_seq = Integer.parseInt(params.get("model_algrm_seq").toString());
         map.put("model_algrm_seq", model_algrm_seq);
 
+        //Get
         List<Map<String, Object>> algorithm_meta_item_list = dtEtcModelService.getModelAlgorithmParamsList(map);
 
+        //Default
         List<Map<String, Object>> algorithm_param_template_set = new ArrayList<>();
-
-        if (algorithm_meta_item_list.size() > 0) {
-            for (int i = 0; i < algorithm_meta_item_list.size(); i++) {
-                Map<String, Object> newItem = new HashMap<>();
-                newItem.put(algorithm_meta_item_list.get(i).get("model_params_item").toString(), null); // value 값은 여기에 설정하세요.
-                algorithm_param_template_set.add(newItem);
-            }
-        }
 
         List<Map<String, Object>> loss_list = new ArrayList<>();
         List<Map<String, Object>> meterics_list = new ArrayList<>();
@@ -957,6 +1062,13 @@ public class DTEtcCModelController extends BaseController {
         if (model_algrm_seq == 3) {
             loss_list = dtEtcModelService.getAlgolithmCodeList("BRITS_LOSS");
             optimizer_list = dtEtcModelService.getAlgolithmCodeList("BRITS_OPTIMIZER");
+        }
+
+        for (Map<String, Object> algorithmMetaItem : algorithm_meta_item_list) {
+            log.info("algorithmMetaItem -> {}", algorithmMetaItem);
+            Map<String, Object> defaultItem = new HashMap<>();
+            defaultItem.put(algorithmMetaItem.get("model_params_item").toString(), algorithmMetaItem.get("model_params_item_crtr_1"));
+            algorithm_param_template_set.add(defaultItem);
         }
 
         result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
@@ -1063,8 +1175,8 @@ public class DTEtcCModelController extends BaseController {
         List<Map<String, Object>> predFileList = getDtMetaFileList(FILE_REF_TYPE.PREDICTION, modelSeq);
         List<Map<String, Object>> testFileList = getDtMetaFileList(FILE_REF_TYPE.TEST, modelSeq);
 
-        String prctFilePath = systemproperties.getDtEtcMetaFilePath() + predFileList.get(0).get("file_path").toString() + predFileList.get(0).get("file_nm").toString();
-        String testFilePath = systemproperties.getDtEtcMetaFilePath() + testFileList.get(0).get("file_path").toString() + testFileList.get(0).get("file_nm").toString();
+        String prctFilePath = systemProperties.getDtEtcMetaFilePath() + predFileList.get(0).get("file_path").toString() + predFileList.get(0).get("file_nm").toString();
+        String testFilePath = systemProperties.getDtEtcMetaFilePath() + testFileList.get(0).get("file_path").toString() + testFileList.get(0).get("file_nm").toString();
 
         HashMap<String, Object> r = new HashMap<String, Object>();
         List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
@@ -1220,8 +1332,9 @@ public class DTEtcCModelController extends BaseController {
             boolean checkAE = dtModelService.checkUseAEModel(model_seq);
             boolean checkRF = dtModelService.checkUseRFModel(model_seq);
             boolean checkBRITS = dtModelService.checkUseBritsModel(model_seq);
+            boolean checkNAOMI = dtModelService.checkUseNaomiModel(model_seq);
 
-            if (!checkAE && !checkRF && !checkRF) {
+            if (!checkAE && !checkRF && !checkRF && !checkNAOMI) {
                 Map<String, Object> parameters = new HashMap<String, Object>();
                 parameters.put("model_seq", model_seq);
                 parameters.put("user_seq", authenticationFacade.getLoginUserSeq());
@@ -1232,7 +1345,7 @@ public class DTEtcCModelController extends BaseController {
             } else {
                 result.put("code", GlobalConstant.API_STATUS.SUCCESS);
                 result.put("type", "restrict");
-                result.put("model_type", checkAE ? "AE" : checkRF ? "RF" : checkBRITS ? "BRITS" : "EMPTY");
+                result.put("model_type", checkAE ? "AE" : checkRF ? "RF" : checkBRITS ? "BRITS" : checkNAOMI ? "NAOMI" : "EMPTY");
             }
         } else {
             result.put("code", GlobalConstant.API_STATUS.SUCCESS);

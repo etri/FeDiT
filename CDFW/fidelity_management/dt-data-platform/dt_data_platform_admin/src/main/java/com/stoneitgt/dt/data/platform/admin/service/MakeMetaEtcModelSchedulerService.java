@@ -11,15 +11,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.stoneitgt.dt.data.platform.admin.mapper.MakeMetaEtcModelSchedulerMapper;
-import com.stoneitgt.dt.data.platform.admin.properties.SystemProperties;
 import org.springframework.web.client.RestTemplate;
 
 @Slf4j
 @Service
-public class MakeMetaEtcModelSchedulerService {
-
-    @Autowired
-    private SystemProperties systemproperties;
+public class MakeMetaEtcModelSchedulerService extends BaseService {
 
     @Autowired
     private MakeMetaEtcModelSchedulerMapper makeMetaEtcModelSchedulerMapper;
@@ -81,9 +77,9 @@ public class MakeMetaEtcModelSchedulerService {
     public String processorCreateAELearningModel(Map<String, Object> requestBody) {
         RestTemplate restTemplate = new RestTemplate();
 
-        String url = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorCreateAELearningModel/";
+        String url = systemProperties.getDtApiUrl() + "/dt/newpreproc/processorCreateAELearningModel/";
         String contentType = "application/json";
-        String authKey = "Token " + systemproperties.getDtApiKey();
+        String authKey = "Token " + systemProperties.getDtApiKey();
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", contentType);
@@ -101,9 +97,9 @@ public class MakeMetaEtcModelSchedulerService {
     public String createModelGenerater_randomForest(Map<String, Object> requestBody) {
         RestTemplate restTemplate = new RestTemplate();
 
-        String url = systemproperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater_randomForest/";
+        String url = systemProperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater_randomForest/";
         String contentType = "application/json";
-        String authKey = "Token " + systemproperties.getDtApiKey();
+        String authKey = "Token " + systemProperties.getDtApiKey();
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", contentType);
@@ -121,9 +117,29 @@ public class MakeMetaEtcModelSchedulerService {
     public String createModelGenerater_brits_ori(Map<String, Object> requestBody) {
         RestTemplate restTemplate = new RestTemplate();
 
-        String url = systemproperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater_brits_ori/";
+        String url = systemProperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater_brits_ori/";
         String contentType = "application/json";
-        String authKey = "Token " + systemproperties.getDtApiKey();
+        String authKey = "Token " + systemProperties.getDtApiKey();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Type", contentType);
+        headers.add("Authorization", authKey);
+
+        log.info("url -> {}", url);
+        log.info("requestBody -> {}", requestBody);
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+
+        ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
+        String responseBody = response.getBody();
+        return responseBody;
+    }
+
+    public String createModelGenerater_naomi(Map<String, Object> requestBody) {
+        RestTemplate restTemplate = new RestTemplate();
+
+        String url = systemProperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater_naomi/";
+        String contentType = "application/json";
+        String authKey = "Token " + systemProperties.getDtApiKey();
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", contentType);

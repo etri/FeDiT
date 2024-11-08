@@ -15,6 +15,8 @@ import com.stoneitgt.dt.data.platform.admin.controller.DTModelController;
 import com.stoneitgt.dt.data.platform.domain.*;
 import com.stoneitgt.dt.data.platform.enums.TimeUnit;
 import com.stoneitgt.dt.data.platform.util.ConvertUtil;
+import com.stoneitgt.dt.data.platform.util.file.FileReader;
+import com.stoneitgt.dt.data.platform.util.file.FileWriter;
 import org.apache.commons.collections4.map.HashedMap;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -31,7 +33,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stoneitgt.dt.data.platform.admin.config.DatabaseConfig;
 import com.stoneitgt.dt.data.platform.admin.mapper.DTSimulationMapper;
-import com.stoneitgt.dt.data.platform.properties.BaseSystemProperties;
 import com.stoneitgt.dt.data.platform.util.JSONParser;
 import com.stoneitgt.dt.data.platform.util.MetaRelateUtil;
 
@@ -39,16 +40,10 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-public class DTSimulationService {
+public class DTSimulationService extends BaseService {
 
     @Autowired
     private DTSimulationMapper dtSimulationMapper;
-
-    @Autowired
-    private BaseSystemProperties systemproperties;
-
-    @Autowired
-    private FilesService filesService;
 
     @Autowired
     private DTModelApiService dtModelApiService;
@@ -66,10 +61,10 @@ public class DTSimulationService {
     private DTSimulationService dtSimulationService;
 
     @Autowired
-    private DjangoApiService djangoApiService;
+    private MakeMetaModelSchedulerService makeMetaModelSchedulerService;
 
     @Autowired
-    private MakeMetaModelSchedulerService makeMetaModelSchedulerService;
+    private APIService apiService;
 
     public List<Map<String, Object>> getDTSimulationList(Map<String, Object> params, Paging paging) {
         return dtSimulationMapper.getDTSimulationList(params, paging.getPaging());
@@ -113,7 +108,7 @@ public class DTSimulationService {
         String DIGITAL_TWIN_OBJECT_ID = targetModel.get("sdt_obj_id").toString();
         if (!DIGITAL_TWIN_ID.isEmpty() && !DIGITAL_TWIN_OBJECT_ID.isEmpty()) {
             JSONObject jsonObject = JSONParser.formatDigitalTwinObjectCreated(is_full, DIGITAL_TWIN_ID, DIGITAL_TWIN_OBJECT_ID, dtAugment.getAugmentSeq(), dtAugment.getTitle());
-            JSONParser.sendDigitalTwinObjectCreated(systemproperties, DIGITAL_TWIN_ID, jsonObject);
+            JSONParser.sendDigitalTwinObjectCreated(systemProperties, DIGITAL_TWIN_ID, jsonObject);
         }
         //JSONParser.sendDigitalTwinObjectDelete(systemproperties, DIGITAL_TWIN_ID, DIGITAL_TWIN_OBJECT_ID, dtAugment.getAugmentSeq());
         return dtAugment.getAugmentSeq();
@@ -180,10 +175,10 @@ public class DTSimulationService {
         Map<String, Object> modelFiles = dtSimulationMapper.getModelFiles(metaSimulationModel.getModelSeq());
 
         String model_file_name = modelFiles.get("file_nm").toString();
-        metaSimulationModel.setModelFilePath(systemproperties.getDtMetaFilePath() + modelFiles.get("file_path").toString());
+        metaSimulationModel.setModelFilePath(systemProperties.getDtMetaFilePath() + modelFiles.get("file_path").toString());
         metaSimulationModel.setModelFileName(model_file_name);
 
-        String test_file_path = systemproperties.getDtMetaFilePath().replace("\\", "/") + metaSimulationModel.getBasePath() + "/";
+        String test_file_path = systemProperties.getDtMetaFilePath().replace("\\", "/") + metaSimulationModel.getBasePath() + "/";
         metaSimulationModel.setTestFilePath(test_file_path);
 
         metaSimulationModel.setModelUseFilePath(test_file_path);
@@ -513,7 +508,7 @@ public class DTSimulationService {
 
                                 Map<String, Object> model_info = dtModelService.getEtcModelInfo(modelParams);
 
-                                setParam.put("model_file_path", systemproperties.getDtEtcMetaFilePath() + model_info.get("file_path").toString());
+                                setParam.put("model_file_path", systemProperties.getDtEtcMetaFilePath() + model_info.get("file_path").toString());
                                 setParam.put("model_file_name", model_info.get("file_nm").toString());
                                 setParam.put("etc_model_seq", Integer.parseInt(preprocSetArray.get(p2).get("etc_model_seq").toString().replaceAll("\"", "")));
 
@@ -650,6 +645,33 @@ public class DTSimulationService {
                                 setParam.put("file_path", file_path);
                                 setParam.put("index_trgt_col", index_trgt_col);
                                 resultTargetFileName = lastFileName;
+                            } else if (Objects.equals(setParam.get("interpl_tp"), "naomi")) {
+                                Iterator<JsonNode> elements = preprocSetArray.get(p3).get("interpl_outputs").elements();
+                                ArrayList<String> outputs = new ArrayList<>();
+                                while (elements.hasNext()) {
+                                    outputs.add(elements.next().asText());
+                                }
+
+                                setParam.put("outputs", outputs);
+                                setParam.put("model_file_path", preprocSetArray.get(p3).get("interpl_etc_model_file_path").asText());
+                                setParam.put("model_file_name", preprocSetArray.get(p3).get("interpl_etc_model_file_name").asText());
+                                setParam.put("windowSize", preprocSetArray.get(p3).get("interpl_window_size").asInt());
+                                setParam.put("model_use_file_path", file_path);
+                                setParam.put("model_use_file_name", setParam.get("file_name"));
+                                setParam.put("output_file", file_path + File.separator + setParam.get("target_file_name").toString());
+                                setParam.put("index_column", index_trgt_col);
+                                setParam.put("trgt_col_list", outputs);
+
+                                log.info("makeInterpolateSetNaomi setParam -> {}", setParam);
+                                interpolateSet = dtModelApiService.makeInterpolateSetNaomi(setParam);
+                                log.info("makeInterpolateSetNaomi Set -> {}", interpolateSet);
+                                errorcheckBody = interpolateSet.getBody().toString();
+                                lastFileName = setParam.get("target_file_name").toString();
+                                setParam = new HashMap<String, Object>();
+                                setParam.put("file_name", lastFileName);
+                                setParam.put("file_path", file_path);
+                                setParam.put("index_trgt_col", index_trgt_col);
+                                resultTargetFileName = lastFileName;
                             } else {
                                 setParam.put("index_trgt_col", index_trgt_col);
                                 interpolateSet = dtModelApiService.makeInterpolateSet(setParam);
@@ -670,7 +692,7 @@ public class DTSimulationService {
                      * */
                     if (originTimeData != null && !originTimeData.isEmpty()) {
                         log.info("다시 쓰는 파일 -> {}", file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
-                        List<Map<String, String>> readData = JSONParser.readCsv(file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
+                        List<Map<String, String>> readData = FileReader.getInstance().readCSVToListStringMap(file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
                         log.info("originTimeData -> {}", originTimeData);
                         List<Map<String, String>> originData = originDataFilter(originTimeData, readData, index_trgt_col);
                         log.info("필터링 종료 -> originData : {}", originData);
@@ -685,7 +707,7 @@ public class DTSimulationService {
                             resultHashMap.put("isSizeAvailable", false);
                             return resultHashMap;
                         }
-                        JSONParser.writeCsv(file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName), originData);
+                        FileWriter.getInstance().writeCSV(file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName), originData);
                         log.info("파일 덮어 쓰기 종료 -> filePath : {}, fileName : {}", file_path, (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
                     } else {
                         log.info("데이터가 최초 데이터에서 다 이루어졋습니다.");
@@ -722,7 +744,7 @@ public class DTSimulationService {
                              * 시간 구분 로직
                              * */
                             String dateKey = index_trgt_col;
-                            Map<String, Object> prevResultCsv = MetaRelateUtil.readCSV(file_path, file_name, 0);
+                            Map<String, Object> prevResultCsv = FileReader.getInstance().readCSV(file_path + File.separator + file_name);
                             List<String> timeIndicatorHeaders = (List<String>) prevResultCsv.get("header_list");
                             List<List<String>> prevResultDataList = (List<List<String>>) prevResultCsv.get("data_list");
                             TimeUnit unit = dtModelApiService.reSampleTimeDivider(dateKey, timeIndicatorHeaders, prevResultDataList);
@@ -881,7 +903,7 @@ public class DTSimulationService {
             }
 
             //Target Start Date와 Target End Date 파악
-            Map<String, Object> lastRowData = JSONParser.readCSVLastRowData(file_path, lastFileName);
+            Map<String, Object> lastRowData = FileReader.getInstance().readCSVLastRowObjectData(file_path, lastFileName);
             log.info("lastRowData -> {}, {}, {}", lastRowData, index_trgt_col, lastRowData.get(index_trgt_col));
             String lastRowDataTime = lastRowData.get(index_trgt_col).toString().replaceAll("\"", "");
             JsonNode intervalNode = preprocProperty.get(3).get("preproc_set");
@@ -954,7 +976,7 @@ public class DTSimulationService {
              * 결과 데이터 관련
              * */
             JSONArray formattedIndividuallyDataArray = JSONParser.formatIndividuallyData(resultDataList);
-            List<Map<String, String>> csvData = JSONParser.readCsv(file_path + File.separator + lastFileName);
+            List<Map<String, String>> csvData = FileReader.getInstance().readCSVToListStringMap(file_path + File.separator + lastFileName);
             //log.info("augmentOriginCsvData -> {}", csvData);
             //log.info("formattedIndividuallyDataArray -> {}", formattedIndividuallyDataArray);
             JSONArray recoveredDataFormatArray = JSONParser.recoveredDataFormat(formattedIndividuallyDataArray, csvData);
@@ -962,7 +984,7 @@ public class DTSimulationService {
             //log.info("recoveredDataFormatArray -> {}", recoveredDataFormatArray);
             List<Map<String, String>> augmentData = JSONParser.convertJsonArrayToListOfMaps(recoveredDataFormatArray);
             //기존 증강 파일 또는 전처리 파일을 원본 데이터 형태로 다시 파일 쓰기
-            JSONParser.writeCsv(resultData.get("file_path").toString(), augmentData);
+            FileWriter.getInstance().writeCSV(resultData.get("file_path").toString(), augmentData);
 
             //데이터 시간을 마지막 증강 데이터의 시간으로 변경
             data_crt_last_hr = augmentData.get(augmentData.size() - 1).get(index_trgt_col).replaceAll("\"", "");
@@ -986,7 +1008,7 @@ public class DTSimulationService {
                 validationDataJsonArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, validationDataJsonArray);
                 validationUploadJson.put("validation", validationDataJsonArray);
                 //log.info("validationUploadJson -> {}", validationUploadJson);
-                JSONParser.sendValidationData(systemproperties, validationUploadJson);
+                JSONParser.sendValidationData(systemProperties, validationUploadJson);
 
                 /*Outlier 데이터 업로드*/
                 JSONObject outlierUploadJson = new JSONObject();
@@ -1002,14 +1024,14 @@ public class DTSimulationService {
                 outlierDataJsonArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, outlierDataJsonArray);
                 outlierUploadJson.put("outlier", outlierDataJsonArray);
                 //log.info("outlierUploadJson -> {}", outlierUploadJson);
-                JSONParser.sendOutlierData(systemproperties, outlierUploadJson);
+                JSONParser.sendOutlierData(systemProperties, outlierUploadJson);
 
                 //증강 결과 데이터 업로드
-                JSONParser.sendIndividuallyData(systemproperties, augment_seq, twin_id, obj_id, recoveredDataFormatArray, 1);
+                JSONParser.sendIndividuallyData(systemProperties, augment_seq, twin_id, obj_id, recoveredDataFormatArray, 1);
                 /**
                  * 데이터 여러건 업로드
                  * */
-                //JSONParser.sendIndividuallyData(systemproperties, augment_seq, twin_id, obj_id, recoveredDataFormatArray, 5);
+                //JSONParser.sendIndividuallyData(systemProperties, augment_seq, twin_id, obj_id, recoveredDataFormatArray, 5);
             }
             HashMap<String, Object> resultHashMap = new HashMap<>();
             resultHashMap.put("data_crt_last_hr", data_crt_last_hr);
@@ -1048,7 +1070,7 @@ public class DTSimulationService {
                     /**
                      * 에러 데이터 업로드
                      * */
-                    JSONParser.sendErrorToJson(systemproperties, errorInfo);
+                    JSONParser.sendErrorToJson(systemProperties, errorInfo);
                 }
             } catch (Exception e1) {
                 e1.printStackTrace();
@@ -1061,12 +1083,12 @@ public class DTSimulationService {
 
     private boolean dataFinalCut(String filePath, int windowSize) throws Exception {
         log.info("dataFinalCut -> {}, {}", filePath, windowSize);
-        List<Map<String, String>> data = JSONParser.readCsv(filePath);
+        List<Map<String, String>> data = FileReader.getInstance().readCSVToListStringMap(filePath);
         if (data.size() > windowSize) {
             Collections.reverse(data);
             List<Map<String, String>> cutData = data.subList(0, windowSize + 1);
             Collections.reverse(cutData);
-            JSONParser.writeCsv(filePath, cutData);
+            FileWriter.getInstance().writeCSV(filePath, cutData);
             return true;
         }
         return false;
@@ -1074,7 +1096,7 @@ public class DTSimulationService {
 
     private boolean dataFinalDateCut(String filePath, String timeIndex, String toDate) throws Exception {
         log.info("dataFinalDateCut -> {}, {}, {}", filePath, timeIndex, toDate);
-        List<Map<String, String>> data = JSONParser.readCsv(filePath);
+        List<Map<String, String>> data = FileReader.getInstance().readCSVToListStringMap(filePath);
         Date cutoffDate = ConvertUtil.tryParse(ConvertUtil.DATEFORMATS, toDate);
         // 데이터를 필터링하여 timeIndex로 지정된 날짜가 toDate 이전인 항목들만 남김
         List<Map<String, String>> filteredData = data.stream().filter(row -> {
@@ -1087,7 +1109,7 @@ public class DTSimulationService {
                 return false; // 날짜 파싱 오류 시 필터에서 제외
             }
         }).collect(Collectors.toList());
-        JSONParser.writeCsv(filePath, filteredData);
+        FileWriter.getInstance().writeCSV(filePath, filteredData);
         // 필터링된 결과를 저장하거나 처리
         log.info("Filtered data count: {}", filteredData.size());
 
@@ -1301,7 +1323,7 @@ public class DTSimulationService {
 
                                 Map<String, Object> model_info = dtModelService.getEtcModelInfo(modelParams);
 
-                                setParam.put("model_file_path", systemproperties.getDtEtcMetaFilePath() + model_info.get("file_path").toString());
+                                setParam.put("model_file_path", systemProperties.getDtEtcMetaFilePath() + model_info.get("file_path").toString());
                                 setParam.put("model_file_name", model_info.get("file_nm").toString());
                                 setParam.put("etc_model_seq", Integer.parseInt(preprocSetArray.get(p2).get("etc_model_seq").toString().replaceAll("\"", "")));
 
@@ -1439,6 +1461,33 @@ public class DTSimulationService {
                                 setParam.put("file_path", file_path);
                                 setParam.put("index_trgt_col", index_trgt_col);
                                 resultTargetFileName = lastFileName;
+                            } else if (Objects.equals(setParam.get("interpl_tp"), "naomi")) {
+                                Iterator<JsonNode> elements = preprocSetArray.get(p3).get("interpl_outputs").elements();
+                                ArrayList<String> outputs = new ArrayList<>();
+                                while (elements.hasNext()) {
+                                    outputs.add(elements.next().asText());
+                                }
+
+                                setParam.put("outputs", outputs);
+                                setParam.put("model_file_path", preprocSetArray.get(p3).get("interpl_etc_model_file_path").asText());
+                                setParam.put("model_file_name", preprocSetArray.get(p3).get("interpl_etc_model_file_name").asText());
+                                setParam.put("windowSize", preprocSetArray.get(p3).get("interpl_window_size").asInt());
+                                setParam.put("model_use_file_path", file_path);
+                                setParam.put("model_use_file_name", setParam.get("file_name"));
+                                setParam.put("output_file", file_path + File.separator + setParam.get("target_file_name").toString());
+                                setParam.put("index_column", index_trgt_col);
+                                setParam.put("trgt_col_list", outputs);
+
+                                log.info("makeInterpolateSetNaomi setParam -> {}", setParam);
+                                interpolateSet = dtModelApiService.makeInterpolateSetNaomi(setParam);
+                                log.info("makeInterpolateSetNaomi Set -> {}", interpolateSet);
+                                errorcheckBody = interpolateSet.getBody().toString();
+                                lastFileName = setParam.get("target_file_name").toString();
+                                setParam = new HashMap<String, Object>();
+                                setParam.put("file_name", lastFileName);
+                                setParam.put("file_path", file_path);
+                                setParam.put("index_trgt_col", index_trgt_col);
+                                resultTargetFileName = lastFileName;
                             } else {
                                 setParam.put("index_trgt_col", index_trgt_col);
                                 interpolateSet = dtModelApiService.makeInterpolateSet(setParam);
@@ -1459,7 +1508,7 @@ public class DTSimulationService {
                      * */
                     if (originTimeData != null && !originTimeData.isEmpty()) {
                         log.info("다시 쓰는 파일 -> {}", file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
-                        List<Map<String, String>> readData = JSONParser.readCsv(file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
+                        List<Map<String, String>> readData = FileReader.getInstance().readCSVToListStringMap(file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
                         log.info("originTimeData -> {}", originTimeData);
                         List<Map<String, String>> originData = originDataFilter(originTimeData, readData, index_trgt_col);
                         log.info("필터링 종료 -> originData : {}", originData);
@@ -1474,7 +1523,7 @@ public class DTSimulationService {
                             resultHashMap.put("isSizeAvailable", false);
                             return resultHashMap;
                         }
-                        JSONParser.writeCsv(file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName), originData);
+                        FileWriter.getInstance().writeCSV(file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName), originData);
                         log.info("파일 덮어 쓰기 종료 -> filePath : {}, fileName : {}", file_path, (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
                     } else {
                         log.info("데이터가 최초 데이터에서 다 이루어졋습니다.");
@@ -1511,7 +1560,7 @@ public class DTSimulationService {
                              * 시간 구분 로직
                              * */
                             String dateKey = index_trgt_col;
-                            Map<String, Object> prevResultCsv = MetaRelateUtil.readCSV(file_path, file_name, 0);
+                            Map<String, Object> prevResultCsv = FileReader.getInstance().readCSV(file_path + File.separator + file_name);
                             List<String> timeIndicatorHeaders = (List<String>) prevResultCsv.get("header_list");
                             List<List<String>> prevResultDataList = (List<List<String>>) prevResultCsv.get("data_list");
                             TimeUnit unit = dtModelApiService.reSampleTimeDivider(dateKey, timeIndicatorHeaders, prevResultDataList);
@@ -1641,13 +1690,13 @@ public class DTSimulationService {
              * 결과 데이터 관련
              * */
             JSONArray formattedIndividuallyDataArray = JSONParser.formatIndividuallyData(resultDataList);
-            List<Map<String, String>> csvData = JSONParser.readCsv(file_path + File.separator + lastFileName);
+            List<Map<String, String>> csvData = FileReader.getInstance().readCSVToListStringMap(file_path + File.separator + lastFileName);
             JSONArray recoveredDataFormatArray = JSONParser.recoveredDataFormat(formattedIndividuallyDataArray, csvData);
             recoveredDataFormatArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, recoveredDataFormatArray);
 
             List<Map<String, String>> preprocessData = JSONParser.convertJsonArrayToListOfMaps(recoveredDataFormatArray);
             //기존 증강 파일 또는 전처리 파일을 원본 데이터 형태로 다시 파일 쓰기
-            JSONParser.writeCsv(resultData.get("file_path").toString(), preprocessData);
+            FileWriter.getInstance().writeCSV(resultData.get("file_path").toString(), preprocessData);
 
             //평균 시간 뽑기(기존 로직 유지하기 위해서 나중에는 지워도 된다.)
             HashMap<String, Object> unitParam = dtSimulationService.getTimeUnitStringMap(index_trgt_col, preprocessData);
@@ -1692,7 +1741,7 @@ public class DTSimulationService {
                 validationDataJsonArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, validationDataJsonArray);
                 validationUploadJson.put("validation", validationDataJsonArray);
                 //log.info("validationUploadJson -> {}", validationUploadJson);
-                JSONParser.sendValidationData(systemproperties, validationUploadJson);
+                JSONParser.sendValidationData(systemProperties, validationUploadJson);
 
                 /*Outlier 데이터 업로드*/
                 JSONObject outlierUploadJson = new JSONObject();
@@ -1708,14 +1757,14 @@ public class DTSimulationService {
                 outlierDataJsonArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, outlierDataJsonArray);
                 outlierUploadJson.put("outlier", outlierDataJsonArray);
                 //log.info("outlierUploadJson -> {}", outlierUploadJson);
-                JSONParser.sendOutlierData(systemproperties, outlierUploadJson);
+                JSONParser.sendOutlierData(systemProperties, outlierUploadJson);
 
                 //증강 결과 데이터 업로드
-                JSONParser.sendIndividuallyData(systemproperties, augment_seq, twin_id, obj_id, recoveredDataFormatArray, 1);
+                JSONParser.sendIndividuallyData(systemProperties, augment_seq, twin_id, obj_id, recoveredDataFormatArray, 1);
                 /**
                  * 데이터 여러건 업로드
                  * */
-                //JSONParser.sendIndividuallyData(systemproperties, augment_seq, twin_id, obj_id, recoveredDataFormatArray, 5);
+                //JSONParser.sendIndividuallyData(systemProperties, augment_seq, twin_id, obj_id, recoveredDataFormatArray, 5);
             }
             HashMap<String, Object> resultHashMap = new HashMap<>();
             resultHashMap.put("data_crt_last_hr", data_crt_last_hr);
@@ -1755,7 +1804,7 @@ public class DTSimulationService {
                     /**
                      * 에러 데이터 업로드
                      * */
-                    JSONParser.sendErrorToJson(systemproperties, errorInfo);
+                    JSONParser.sendErrorToJson(systemProperties, errorInfo);
                 }
             } catch (Exception e1) {
                 e1.printStackTrace();
@@ -1911,8 +1960,7 @@ public class DTSimulationService {
 
     public HashMap<String, Object> processorDatasetCorrelation(int modelSeq, Map<String, Object> correlationParam) throws ParseException {
         HashMap<String, Object> result = new HashMap<>();
-        String correlationUrl = systemproperties.getDtApiUrl() + "/dt/newpreproc/processorDatasetCorrelation/";
-        String processorDatasetCorrelationResult = djangoApiService.requestDjangoApi(correlationUrl, correlationParam, modelSeq);
+        String processorDatasetCorrelationResult = apiService.requestPythonApi("/dt/newpreproc/processorDatasetCorrelation/", correlationParam);
         org.json.simple.JSONObject correlationObj = (org.json.simple.JSONObject) new org.json.simple.parser.JSONParser().parse(processorDatasetCorrelationResult);
         if (Integer.parseInt(correlationObj.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
             result.put("data", correlationObj.get("data"));
@@ -1928,10 +1976,6 @@ public class DTSimulationService {
 
     public List<String> getTargetColumnInfo(int modelSeq) {
         return dtSimulationMapper.getTargetColumnInfo(modelSeq);
-    }
-
-    public SimulationModel getInsertSimulationViewResult(int augmentSeq) {
-        return dtSimulationMapper.getInsertSimulationViewResult(augmentSeq);
     }
 
     public boolean checkUseDTModel(int modelSeq) {
