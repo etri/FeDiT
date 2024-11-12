@@ -28,7 +28,6 @@ services:
   volumes:
    - ../app_root:/app
   command: bash -c "npm install mysql http && node index.js"
-  #command: bash -c "npm install mysql http"
   environment:
    - NODE_ENV=production
 #  links:
@@ -44,7 +43,7 @@ services:
    mynet:
     ipv4_address: 172.28.0.4
   ports:
-   - 3306:3306
+   - 3307:3306
   volumes:
    - ../db:/var/lib/mysql
   environment:

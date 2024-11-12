@@ -90,7 +90,7 @@ class watertank(CsModel):
 
 if __name__ == "__main__":
     w = watertank()
-    w.ExtTransFn(0.1, 'water_src', 1.0)
+    w.ExtTransFn(0.1,0.1, 'water_src','water_src', 1.0)
     print(w.MODEL_NAME, w.water_height)
 
 

@@ -560,6 +560,10 @@ function unload_model_on_server(){
     document.getElementById('btn_sim_stop').disabled = true;
 }
 function load_model_on_server(project_name, file_name){
+    if(projectname == ''){
+        alert('프로젝트 명을 넣어주세요');
+        return;
+    }
     let json_data = cpd_designer.save();
     let json = {};
     json['Type'] = 'sim_ctl';
@@ -645,7 +649,7 @@ function stop_model_on_server(projectname){
     json['Data']['msg'] = "stop";
 
     ws.on_data_callback['res_m'] = function(json){
-        openEditorInNewWindow
+ 
     }
     ws.send(JSON.stringify(json));
     document.getElementById('btn_sim_run').disabled = false;
@@ -815,7 +819,8 @@ function add_keyevent_listener() {
 
 function animate_loop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = 'rgba(40,40,40,1)';
+    // ctx.fillStyle = 'rgba(40,40,40,1)';
+    // ctx.fillStyle = #7da5d7;
     ctx.rect(0,0,canvas.width, canvas.height);
     // ctx.fill();
     cpd_designer.draw();
