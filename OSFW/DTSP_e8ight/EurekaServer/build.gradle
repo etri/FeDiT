@@ -1,0 +1,69 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '2.7.4'
+    id 'io.spring.dependency-management' version '1.0.14.RELEASE'
+    id 'com.google.cloud.tools.jib' version '3.2.1'
+}
+
+group = 'kr.co.e8ight'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '11'
+
+repositories {
+    mavenCentral()
+}
+
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-server:3.1.4'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+jib {
+
+    from {
+        image = "openjdk:11.0.14-jre-slim"
+    }
+    to {
+        image = "172.16.28.217:12000/ndxpro-eurekaserver"
+        tags = ["v1.1"]
+        auth {
+            username = "admin"
+            password = "ndxpro123!"
+        }
+    }
+    setAllowInsecureRegistries(true)
+}
+
+//
+//jib {
+//    from {
+//        image = "openjdk:11.0.14-jre-slim"
+//        platforms {
+//            platform {
+//                architecture = 'arm64'
+//                os = 'linux'
+//            }
+//        }
+//
+//    }
+//    to {
+//        image = "172.16.28.217:12000/ndxpro-eurekaserver"
+//        tags = ["latest"]
+//        auth {
+//            username = "admin"
+//            password = "ndxpro123!"
+//        }
+//        container {
+//            mainClass ="kr.co.e8ight.eurekaserver.EurekaServerApplication"
+//            ports = ["8761"]
+//            environment = ["TZ" : "Asia/Seoul"]
+//        }
+//    }
+//    setAllowInsecureRegistries(true)
+//}
