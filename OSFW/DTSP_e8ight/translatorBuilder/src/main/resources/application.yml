@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: TRANSLATOR-BUILDER-SERVICE
+
+translator:
+  dir: /translatorSource
+  path: /translatorSource/src/main/java/kr/co/e8ight/ndxpro/translatorRunner/translator
+
+logging:
+  file:
+    name: dataTranslator
+    path: /opt/logs
+  pattern:
+    console: "[%d{yyyy-MM-dd HH:mm:ss}] %-5level %logger{36} - %msg%n"
+    file: "[%d{yyyy-MM-dd HH:mm:ss}] %-5level %logger{36} - %msg%n"
+  logback:
+    rollingpolicy:
+      file-name-pattern: ${LOG_PATH}/${LOG_FILE}.%d{yyyy-MM-dd}
+      max-file-size: 100MB
+      max-history: 10

@@ -1,0 +1,13 @@
+eureka:
+  client:
+    enabled: false
+
+spring:
+  sleuth:
+    enabled: false
+  zipkin:
+    enabled: false
+
+logging:
+  logstash:
+    url: 172.16.28.218:50000
