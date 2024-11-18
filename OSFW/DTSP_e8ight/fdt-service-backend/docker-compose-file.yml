@@ -1,0 +1,26 @@
+version: '3.8'
+
+networks:
+  default:
+    external:
+      name: ndxpro
+
+services:
+  file-service:
+    container_name: file-service
+    environment:
+      DATASOURCE_URL: jdbc:postgresql://220.124.222.90:55432/ndxpro
+      TZ: Asia/Seoul
+      SPRING_PROFILES_ACTIVE: prod
+      WRITER_COUNT: 1
+      EUREKA_URL: http://eureka:8761/eureka
+    ports:
+      - 54020:8080
+      - 8081:8081
+    image: ${IMAGE_REPO_URL}/ndxpro-file-service:v1.0
+    restart: always
+    volumes:
+      - /data/ndxpro/file-service/data:/data
+      - /data/ndxpro/file-service/logs:/opt/logs
+#      - /mnt/sda/docker-volumes/file-service/logs:/opt/logs
+#      - /mnt/sda/docker-volumes/file-service/logs:/opt/logs
