@@ -1,0 +1,42 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: ${DATASOURCE_URL}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+
+  sleuth:
+    sampler:
+      probability:1.0
+  zipkin:
+    base-url: ${ZIPKIN_URL}
+
+token:
+#  access_expiration_time: 31536000000 #1시간 (!000 * 60 * 60)
+#  refresh_expiration_time: 315360000000 #2주 (1000 * 60 * 60 * 24 * 14)
+  access_expiration_time: 3600000 #1시간 (1000 * 60 * 60)
+  refresh_expiration_time: 1209600000 #2주 (1000 * 60 * 60 * 24 * 14)
+  secret: ZThpZ2h0LW5keHByby1wbGF0Zm9ybS1kZXZlbG9wbWVudC10ZWFtLXN1Y2Nlc3MtcHJvamVjdC1kZXY=
+  #HS512 알고리즘을 사용할 것이기 때문에 512bit, 즉 64byte 이상의 secret key를 사용해야 한다.
+
+eureka:
+  instance:
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_URL}
+
+logging:
+  level:
+    me.silvernine: DEBUG
+  logstash:
+    url: ${LOGSTASH_URL}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
