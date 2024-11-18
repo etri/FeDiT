@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 30초마다 설정 파일의 변경을 확인한다. 파일이 변경되면 다시 로딩한다 -->
+<configuration scan="true" scanPeriod="30 seconds">
+    <!-- log packagename -->
+    <property name="LOG_PACKAGE_NAME" value="kr.co.e8ight.ndxpro.translatorRunner"/>
+    <!-- log file path -->
+    <property name="LOG_PATH">${translator.logDir}</property>>
+    <!-- log file name -->
+    <property name="LOG_FILE_NAME">${translator.id}</property>
+    <!-- logstash URL -->
+    <property name="LOGSTASH_URL">${logstash.url}</property>
+    <!-- log days -->
+    <property name="LOG_DAYS" value="10"/>
+    <!-- log filesize log -->
+    <property name="LOG_FILESIZE_LOG" value="100MB"/>
+    <!-- log filesize zip -->
+    <property name="LOG_FILESIZE_ZIP" value="10MB"/>
+    <!-- log filesize total -->
+    <property name="LOG_TOTAL_FILESIZE" value="10GB"/>
+    <!-- log min count -->
+    <property name="LOG_FILE_MIN" value="1"/>
+    <!-- log max count -->
+    <property name="LOG_FILE_MAX" value="10"/>
+    <!-- pattern -->
+    <property name="LOG_PATTERN_DEFAULT" value="[%d{yyyy-MM-dd HH:mm:ss}] %-5level %logger{36} - %msg%n"/>
+    <property name="LOG_PATTERN_DEFAULT_ERROR" value="[%d{yyyy-MM-dd HH:mm:ss}] %-5level %logger{36} - %msg%n"/>
+
+    <!-- CONSOLE appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${LOG_PATTERN_DEFAULT}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 테스트를 위한 설정 -->
+    <appender name="ERROR_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${LOG_PATTERN_DEFAULT_ERROR}</pattern>
+        </encoder>
+    </appender>
+    <!-- file appender -->
+    <appender name="INFO_DEFAULT_FILE_APPENDER"
+        class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${translator.logDir}/translator_${translator.id}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${translator.logDir}/translator_${translator.id}.%d{yyyy-MM-dd}.log
+            </fileNamePattern>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${LOG_PATTERN_DEFAULT}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="ERROR_DEFAULT_FILE_APPENDER"
+        class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <file>${translator.logDir}/translator_${translator.id}-error.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${translator.logDir}/translator_${translator.id}-error.%d{yyyy-MM-dd}.log
+            </fileNamePattern>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${LOG_PATTERN_DEFAULT}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <destination>${logstash.url}</destination>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"service": "translator-${translator.id}"}</customFields>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="ERROR_DEFAULT_FILE_APPENDER"/>
+        <appender-ref ref="INFO_DEFAULT_FILE_APPENDER"/>
+        <appender-ref ref="LOGSTASH"/>
+    </root>
+
+</configuration>
