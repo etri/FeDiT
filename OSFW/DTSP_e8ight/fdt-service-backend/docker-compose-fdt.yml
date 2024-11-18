@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  fdt-service:
+    container_name: fdt-service
+    image: ${IMAGE_REPO_URL}/fdt-service:v1.1
+    restart: always
+    ports:
+      - 50038:8050
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - GATEWAY_URL=${GATEWAY_URL}
+      - FDT_CONTEXT=${FDT_CONTEXT} 
+
+
+networks:
+  default:
+    name: ndxpro
+    external: true

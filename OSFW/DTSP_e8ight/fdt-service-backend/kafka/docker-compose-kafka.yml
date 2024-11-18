@@ -1,0 +1,25 @@
+version: '3.8'
+volumes:
+  pipeline-kafka-1-volume:
+    name: pipeline-kafka-1-volume
+
+networks:
+  default:
+    external:
+      name: ndxpro
+
+services:
+  pipeline-kafka-1:
+    container_name: pipeline-kafka-1
+    environment:
+      BROKER_ID: 1
+      IN_IP: pipeline-kafka-1
+      OUT_IP: ${HOST}:19092
+      OUT_PORT: 19092
+    ports:
+      - 19092:19092
+    hostname: pipeline-kafka-1
+    image: pipeline-kafka
+    restart: always
+    volumes:
+      - ${REPO}/docker-volumes/pipeline-kafka-1-volume:/data
