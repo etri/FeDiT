@@ -1,0 +1,120 @@
+spring:
+  sleuth:
+    sampler:
+      probability: 1.0 # 기본값 0.1  샘플링 정의 0~1(100%)
+  zipkin:
+#    base-url: ${ZIPKIN_URL} # zipkin 주소
+      base-url: http://localhost:9411/ # zipkin 주소
+  cloud:
+    gateway:
+      #       cors-configurations:
+      #          '[/**]':
+      #            allowedOriginPatterns: "*"
+      #            allow-credentials: true   #추가
+      #            allowedHeaders:
+      #              - x-requested-with
+      #              - authorization
+      #              - content-type
+      #              - credential
+      #              - X-AUTH-TOKEN
+      #              - X-CSRF-TOKEN
+      #              - origin
+      #            allowedMethods:
+      #              - POST
+      #              - GET
+      #              - PUT
+      #              - OPTIONS
+      #              - DELETE
+      #        add-to-simple-url-handler-mapping: true
+      httpclient:
+        # 클라이언트 <-> 게이트웨이 <-> 다운스트림 서버 request response 로깅
+        wiretap: true
+        globalcors:
+          add-to-simple-url-handler-mapping: true
+      default-filters:
+        - name: JwtAuthentication
+          args:
+            baseMessage: Spring Cloud Gateway Global Filter
+            preLogger: true
+            postLogger: true
+      routes:
+        - id: dataAuthId
+          uri: lb://AUTHORIZATION-SERVICE
+          predicates:
+            - Path=/ndxpro/v1/auth/**
+          filters:
+            - RemoveRequestHeader=Cookie
+            - RewritePath=/authorization-service/(?<segment>.*), /$\{segment}
+            - OrderedLogging=OrderedLogging Gateway Custom Filter, true, true
+        - id: dataManagerId
+          uri: lb://DATAMANAGER-SERVICE
+          predicates:
+            - Path=/ndxpro/v1/manager/**
+          filters:
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - JwtAuthentication=ROLE_ADMIN
+#            - OrderedLogging=OrderedLogging Gateway Custom Filter, true, true
+            - Logging=Logging Gw, true, true
+        - id: dataIngestId
+          uri: lb://DATAINGEST-SERVICE
+          predicates:
+            - Path=/ndxpro/v1/ingest/**
+          filters:
+            - OrderedLogging=OrderedLogging Gateway Custom Filter, true, true
+        - id: dataConverterId
+          uri: lb://DATACONVERTER-SERVICE
+          predicates:
+            - Path=/ndxpro/v1/converter/**
+          filters:
+            - OrderedLogging=OrderedLogging Gateway Custom Filter, true, true
+        - id: dataConverterBuilderId
+          uri: lb://CONVERTERBUILDER-SERVICE
+          predicates:
+            - Path=/ndxpro/v1/converter-builder/**
+          filters:
+            - OrderedLogging=OrderedLogging Gateway Custom Filter, true, true
+        - id: dataBrokerId
+          uri: lb://DATABROKER-SERVICE
+          predicates:
+            - Path=/ndxpro/v1/broker/**
+          filters:
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - OrderedLogging=OrderedLogging Gateway Custom Filter, true, true
+        - id: dataServiceId
+          uri: lb://DATASERVICE-SERVICE
+          predicates:
+            - Path=/ndxpro/v1/service/**
+          filters:
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - OrderedLogging=OrderedLogging Gateway Custom Filter, true, true
+        - id: dataPredictionId
+          uri: lb://DATAPREDICTION-SERVICE
+          predicates:
+            - Path=/ndxpro/v1/prediction/**
+          filters:
+            - OrderedLogging=OrderedLogging Gateway Custom Filter, true, true
+
+
+# gateway 서버 디버깅용 로깅 추가
+#logging:
+#  level:
+#    org.springframework.cloud.gateway: trace
+#    reactor.netty: trace
+
+eureka:
+  instance:
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+logging:
+  logstash:
+    url: localhost:50000
+
+token:
+  secret: ZThpZ2h0LW5keHByby1wbGF0Zm9ybS1kZXZlbG9wbWVudC10ZWFtLXN1Y2Nlc3MtcHJvamVjdC1sb2NhbA==
+
