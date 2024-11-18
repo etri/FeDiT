@@ -1,0 +1,12 @@
+[
+  {
+    "url":"http://172.16.28.220:3005/e8ight-context.jsonld",
+    "@context": {
+      "e8ight": "https://e8ight-data-models/",
+      "common": "https://e8ight-data-models/common/",
+      "ngsi-ld": "https://uri.etsi.org/ngsi-ld/"
+    },
+    "isReady": false
+  }
+]
+
