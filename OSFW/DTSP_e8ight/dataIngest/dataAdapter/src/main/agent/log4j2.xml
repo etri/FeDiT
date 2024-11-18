@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="ERROR">
+    <Appenders>
+        <Console name="Console" target="SYSTEM_ERR">
+            <PatternLayout pattern="%d (%t) [%p - %l] %m%n" />
+        </Console>
+        <RollingFile name="LogFile" fileName="${sys:logDir}/agent_${sys:agentId}.log" filePattern="${sys:logDir}/archive/agent_${sys:agentId}.log.%d{yyyyMMdd}-%i">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%t] (%C.%M:%L) %equals{%x}{[]}{} - %m%n" />
+            <Policies>
+                <!-- Roll every night at midnight or when the file reaches 100MB -->
+                <SizeBasedTriggeringPolicy size="10 MB"/>
+                <CronTriggeringPolicy schedule="0 0 0 * * ?"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10" fileIndex="max">
+                <Delete basePath="${sys:logDir}/archive">
+                    <!-- Nested conditions: the inner condition is only evaluated on files for which the outer conditions are true. -->
+                    <IfFileName glob="agent_*.log.*"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+        <Socket name="logstash" host="${sys:logstashHost}" port="${sys:logstashPort}">
+            <JsonLayout includeStacktrace="true" compact="true" eventEol="true" >
+                <KeyValuePair key="@version" value="1" />
+                <KeyValuePair key="@timestamp" value="$${date:yyyy-MM-dd'T'HH:mm:ss.SSSZ}" />
+                <KeyValuePair key="service" value="agent" />
+                <KeyValuePair key="agentId" value="${sys:agentId}" />
+            </JsonLayout>
+        </Socket>
+    </Appenders>
+    <Loggers>
+        <Logger name="org.apache.flume.lifecycle" level="info"/>
+        <Logger name="org.apache.flume.sink.kafka" level="INFO"/>
+        <Logger name="org.apache.flume.source.kafka.KafkaSource" level="TRACE"/>
+        <Logger name="org.apache.kafka.clients.NetworkClient" level="ERROR" additivity="false"/>
+        <Logger name="kr.co.e8ight.ndxpro.dataAdapter.interceptor.CustomInterceptorImpl" level="WARN"/>
+        <Logger name="kr.co.e8ight.ndxpro.dataAdapter" level="INFO"/>
+        <Logger name="org.jboss" level="WARN"/>
+        <Logger name="org.apache.avro.ipc.netty.NettyTransceiver" level="WARN"/>
+        <Logger name="org.apache.hadoop" level="INFO"/>
+        <Logger name="org.apache.hadoop.hive" level="ERROR"/>
+        <Root level="INFO">
+            <AppenderRef ref="LogFile" />
+            <AppenderRef ref="logstash" />
+        </Root>
+    </Loggers>
+</Configuration>
