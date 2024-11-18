@@ -1,0 +1,59 @@
+@startuml
+
+title <Attribute-Schema> Sequence Diagram
+
+collections UI as ui
+queue Server as server
+database Database as data
+
+autonumber 1.0
+== POST / attribute-schema 생성 ==
+ui -> server : attribute-schema 정보 전달
+note over server
+attribute-schema 유효성 검사
+end note
+server -> data: attribute-schema 저장
+
+autonumber 2.0
+== GET / attribute-schema 전체 조회 ==
+ui -> server: attribute-schema 전체 조회 요청 전달
+server -> data: attribute-schema 전체 조회
+data --> ui: attribute-schema 정보 전달
+
+autonumber 3.0
+== GET / attribute-schema 조회 ==
+
+ui -> server: attribute-schema 단건 조회 요청
+server ->data: attribute-schema 조회
+data --> ui: attribute-schema 정보 전달
+
+autonumber 4.0
+== PUT / attribute-schema 수정(등록) ==
+ui -> server: 수정할 attribute-schema 조회 요청
+server -> data: 수정할 attribute-schema 조회
+data --> ui: 수정할 attribute-schema 정보 전달
+
+ui -> server: attribute-schema 에 추가할 attribute 조회 요청
+server -> data: attribute 조회
+data -> ui: attribute 정보 전달
+
+ui -> server : 수정한 attribute-schema 정보 전달
+note over server
+사전에 정의한 attribute 를 attribute-schema 에 등록 및 제거
+end note
+server -> data: 수정한 attribute-schema 정보 저장
+
+autonumber 5.0
+== DELETE / attribute-schema 삭제==
+ui -> server: 삭제할 attribute-schema 조회 요청
+server -> data: 삭제할 attribute-schema 조회
+data --> ui: 삭제할 attribute-schema 정보 전달
+
+ui -> server : attribute 삭제 요청
+note over server
+attribute-schema 에 추가된 attribute 있는지 확인 후 제거
+end note
+server -> data: attribute 삭제
+
+
+@enduml
