@@ -5,6 +5,8 @@
 
 
 ## fdt-service-backend 디렉터리 이동
+docker network create ndxpro
+
 ```bash
 cd fdt-service-backend
 cd infra
