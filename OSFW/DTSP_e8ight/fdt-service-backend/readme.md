@@ -9,7 +9,7 @@
 cd fdt-service-backend
 cd infra
 # MongoDB와 PostgreSQL의 초기 스크립트가 자동 실행됩니다
-docker compose up -d docker-compose.yml
+docker compose up -d 
 
 
 cd kafka
