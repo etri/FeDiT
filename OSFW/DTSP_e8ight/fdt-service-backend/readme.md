@@ -13,6 +13,7 @@ docker compose up -d docker-compose.yml
 
 
 cd kafka
+sh install_images.sh
 docker compose -f docker-compose-zookeeper.yml up -d 
 docker compose -f docker-compose-kafka.yml up -d 
 docker compose -f docker-compose-ui.yml up -d
