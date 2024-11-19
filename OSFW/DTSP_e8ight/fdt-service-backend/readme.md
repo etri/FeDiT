@@ -1,5 +1,9 @@
 # Backend 서비스 실행 가이드
 
+.evn 파일 REPO 경로 설정 (volume mount 경로)
+
+
+
 ## fdt-service-backend 디렉터리 이동
 ```bash
 cd fdt-service-backend
