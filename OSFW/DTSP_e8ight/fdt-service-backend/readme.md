@@ -5,9 +5,12 @@
 
 
 ## fdt-service-backend 디렉터리 이동
-docker network create ndxpro
+
 
 ```bash
+# docker network 생성 
+docker network create ndxpro
+
 cd fdt-service-backend
 cd infra
 # MongoDB와 PostgreSQL의 초기 스크립트가 자동 실행됩니다
