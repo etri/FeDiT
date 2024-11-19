@@ -9,11 +9,11 @@ docker compose up -d docker-compose.yml
 
 
 cd kafka
-docker compose up -d docker-compose-zookeeper.yml
-docker compose up -d docker-compose-kafka.yml
-docker compose up -d docker-compose-ui.yml
+docker compose -f docker-compose-zookeeper.yml up -d 
+docker compose -f docker-compose-kafka.yml up -d 
+docker compose -f docker-compose-ui.yml up -d
 
 cd ndxpro
-docker compose up -d docker-compose-ndxpro.yml
-docker compose up -d docker-compose-file.yml
-docker compose up -d docker-compose-fdt.yml
+docker compose -f docker-compose-ndxpro.yml up -d 
+docker compose -f docker-compose-file.yml up -d 
+docker compose -f docker-compose-fdt.yml up -d 
