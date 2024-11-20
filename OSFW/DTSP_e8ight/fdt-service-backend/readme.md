@@ -19,6 +19,7 @@ docker compose up -d
 
 cd kafka
 sh install_images.sh
+.evn 파일 HOST 변경 (내 서버 host)
 docker compose -f docker-compose-zookeeper.yml up -d 
 docker compose -f docker-compose-kafka.yml up -d 
 docker compose -f docker-compose-ui.yml up -d
