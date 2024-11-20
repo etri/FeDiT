@@ -23,7 +23,6 @@ docker compose -f docker-compose-zookeeper.yml up -d
 docker compose -f docker-compose-kafka.yml up -d 
 docker compose -f docker-compose-ui.yml up -d
 
-cd ndxpro
 docker compose -f docker-compose-ndxpro.yml up -d 
 docker compose -f docker-compose-file.yml up -d 
 docker compose -f docker-compose-fdt.yml up -d 
