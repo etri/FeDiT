@@ -3,7 +3,7 @@ version: '3'
 services:
   eureka:
     container_name: eureka
-    image: ${IMAGE_REPO_URL}/ndxpro-eurekaserver:v1.1
+    image: ${IMAGE_REPO_URL}/eurekaserver:v1.1
     restart: always
     ports:
       - 58761:8761
@@ -13,7 +13,7 @@ services:
 
   gateway:
     container_name: gateway
-    image: ${IMAGE_REPO_URL}/ndxpro-gatewayserver:v1.1
+    image: ${IMAGE_REPO_URL}/gatewayserver:v1.1
     restart: always
     ports:
       - 54002:8000
@@ -28,7 +28,7 @@ services:
 
   data-ingest:
     container_name: data-ingest
-    image: ${IMAGE_REPO_URL}/ndxpro-dataingest:v1.1.1
+    image: ${IMAGE_REPO_URL}/dataingest:v1.1.1
     restart: always
     volumes:
       - ${REPO}/logs/data-ingest:/opt/logs
@@ -53,7 +53,7 @@ services:
 
   translator-builder:
     container_name: translator-builder
-    image: ${IMAGE_REPO_URL}/ndxpro-translatorbuilder:v1.1.1
+    image: ${IMAGE_REPO_URL}/translatorbuilder:v1.1.1
     restart: always
     volumes:
       - ${REPO}/logs/translator-builder:/opt/logs
@@ -71,7 +71,7 @@ services:
 
   ngsi-translator:
     container_name: ngsi-translator
-    image: ${IMAGE_REPO_URL}/ndxpro-ngsi-translator:v1.1.1
+    image: ${IMAGE_REPO_URL}/ngsi-translator:v1.1.1
     restart: always
     volumes:
       - ${REPO}/logs/ngsi-translator:/opt/logs
@@ -97,7 +97,7 @@ services:
 
   data-broker-1:
     container_name: data-broker-1
-    image: ${IMAGE_REPO_URL}/ndxpro-core-databroker:v1.1.2
+    image: ${IMAGE_REPO_URL}/core-databroker:v1.1.2
     restart: always
     volumes:
       - ${REPO}/logs/data-broker-1:/logFile
@@ -128,7 +128,7 @@ services:
 
   data-service:
     container_name: data-service
-    image: ${IMAGE_REPO_URL}/ndxpro-dataservice:v1.1
+    image: ${IMAGE_REPO_URL}/dataservice:v1.1
     restart: always
     volumes:
       - ${REPO}/logs/data-service:/logFile
@@ -149,7 +149,7 @@ services:
 
   data-manager:
     container_name: data-manager
-    image: ${IMAGE_REPO_URL}/ndxpro-datamanager:v1.1
+    image: ${IMAGE_REPO_URL}/datamanager:v1.1
     restart: always
     volumes:
       - ${REPO}/logs/data-manager:/logFile
@@ -174,7 +174,7 @@ services:
 
   data-authorization:
     container_name: data-auth
-    image: ${IMAGE_REPO_URL}/ndxpro-authorization:v1.1
+    image: ${IMAGE_REPO_URL}/authorization:v1.1
     restart: always
     volumes:
       - ${REPO}/logs/data-auth:/logFile
@@ -195,7 +195,7 @@ services:
       - gateway
 
   ndxpro-core-context:
-    container_name: ndxpro-core-context
+    container_name: ngsi-context
     image: httpd:alpine
     restart: always
     volumes:
