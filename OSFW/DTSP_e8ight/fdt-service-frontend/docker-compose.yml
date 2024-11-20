@@ -17,12 +17,10 @@ services:
       - NDXPRO_ENV_METADATA_VISUALIZATION_GRAPH=http://220.124.222.86:8084/loginpass?to=/meta/exmedatagraph
       - NDXPRO_ENV_UNION_OBJECT_SYNC_ENGINE_MANAGEMENT=http://220.124.222.84:5173
       - NDXPRO_ENV_VERIFICATION_DATA_ADDITION_MANAGEMENT=http://220.124.222.85:9102
-
+    ports:
+      - '50031:80'
 networks:
   default:
     name: ndxpro
     external: true
-
-    
-    ports:
-      - '50031:80'
+      
