@@ -5,5 +5,7 @@
 # 프론트엔드 서비스 디렉터리 이동
 cd fdt-service-frontend
 
+
+.evn 파일 HOST 변경 (내 서버 HOST)
 # 프론트엔드 서비스 Docker Compose 실행
 docker compose up -d docker-compose.yml
