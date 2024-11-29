@@ -218,7 +218,7 @@ const Signup = ({}) => {
                   <div className="text-xl font-bold">연락처</div>
                 </div>
                 <input
-                  // disabled
+                  disabled
                   data-name="연락처"
                   {...register("phoneNumber", ReactHookFormOptions.PhoneNumber)}
                   className="w-full rounded-lg border border-disabled bg-disabled px-4 py-1 text-xl text-disabled shadow-md"

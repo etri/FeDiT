@@ -1,11 +1,9 @@
 const path = require("path");
 const fs = require("fs");
-const webpack = require("webpack");
+
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const CopyWebpackPlugin = require("copy-webpack-plugin");
-const CopyBundle = require("./webpack/custom_plugin/CopyBundle.js");
+const CopyAfterBuildPlugin = require('./webpack/custom_plugin/CopyAfterBuildPlugin');
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
-const HtmlReplaceWebpackPlugin = require("html-replace-webpack-plugin");
 const autoprefixer = require("autoprefixer");
 
 const PLUGIN_NAME = "TimeLoggerPlugin";
@@ -183,22 +181,20 @@ module.exports = (env) => {
       //     sourceDir: './project_front/src/errors/impl'  // 스캔할 디렉토리 지정
       // }),
       new TimeLoggerPlugin(),
-      new CopyWebpackPlugin({
-        patterns: [
-          {
-            from: path.resolve(__dirname, `${WEBPACK_OUTPUT}/fonts`),
-            to: path.resolve(__dirname, `src/main/resources/static/fonts`),
-          },
-          {
-            from: path.resolve(__dirname, `${WEBPACK_OUTPUT}/images`),
-            to: path.resolve(__dirname, `src/main/resources/static/images`),
-          },
-          {
-            from: path.resolve(__dirname, `${WEBPACK_OUTPUT}/js`),
-            to: path.resolve(__dirname, `src/main/resources/static/js`),
-          },
+      new CleanWebpackPlugin({
+        cleanOnceBeforeBuildPatterns: [
+          "**/*",
+          // build 폴더 안의 모든 것을 지우도록 설정
+          path.resolve(__dirname, "src/main/resources/static/fonts/*"),
+          path.resolve(__dirname, "src/main/resources/static/images/*"),
+          path.resolve(__dirname, "src/main/resources/static/js/*"),
         ],
       }),
+      new CopyAfterBuildPlugin([
+        { from: `${WEBPACK_OUTPUT}/fonts`, to: 'src/main/resources/static/fonts' },
+        { from: `${WEBPACK_OUTPUT}/images`, to: 'src/main/resources/static/images' },
+        { from: `${WEBPACK_OUTPUT}/js`, to: 'src/main/resources/static/js' },
+      ]),
       pages.map((page) => {
         return new HtmlWebpackPlugin({
           header: {
@@ -219,36 +215,6 @@ module.exports = (env) => {
           minify: false,
           inject: false,
         });
-      }),
-      // new HtmlReplaceWebpackPlugin([
-      //     {
-      //         pattern: '<@@',
-      //         replacement: '<%'
-      //     },
-      //     {
-      //         pattern: '@@>',
-      //         replacement: '%>'
-      //     }]),
-      // new webpack.BannerPlugin({
-      //     banner: `
-      //         Build Date :: ${new Date().toLocaleString()}
-      //         Profile :: ${profile}
-      //   `,
-      // }),
-      // new CopyBundle(
-      //     pages.reduce((bundles, page) => {
-      //         bundles[page.name] = path.resolve(__dirname, 'src/main/webapp/public/');
-      //         return bundles;
-      //     }, {}),
-      // ),
-      new CleanWebpackPlugin({
-        cleanOnceBeforeBuildPatterns: [
-          "**/*",
-          // build 폴더 안의 모든 것을 지우도록 설정
-          path.resolve(__dirname, "src/main/resources/static/fonts/*"),
-          path.resolve(__dirname, "src/main/resources/static/images/*"),
-          path.resolve(__dirname, "src/main/resources/static/js/*"),
-        ],
       }),
     ),
   };
