@@ -4,8 +4,7 @@ info:
   title: 환경 트윈 api docs
   description: 환경 트윈 api
 servers:
-  # - url: 'http://192.168.62.152:8102/v1'
-  - url: 'http://localhost:8082/v1'
+  - url: 'http://tw-environment-rest:8080/v1'
 paths:
   /measure-position:
     get:

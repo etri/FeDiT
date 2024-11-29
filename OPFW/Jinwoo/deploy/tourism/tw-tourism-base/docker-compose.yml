@@ -54,6 +54,8 @@ services:
       - JAVA_OPTIONS=
         -Dserver-port=${TW_DATA_INTERFACE__CONTAINER_SERVICE_PORT}
         -Dprod-jdbc-socket-address=tw-tourism-db-poc1-mariadb:3306
+        -Djdbc-username=${TW_DATA_INTERFACE__JDBC_USERNAME}
+        -Djdbc-password=${TW_DATA_INTERFACE__JDBC_PASSWORD}
         -Dspring.profiles.active=prod
         -XX:NativeMemoryTracking=summary
     entrypoint: ["/bin/bash", "-c"]
