@@ -1,0 +1,5 @@
+# exception_en.yml
+exception:
+  unknown:
+    code: "-9999"
+    msg: "An unknown error has occurred."

@@ -1,0 +1,6 @@
+# data_ko.yml
+data:
+  table:
+    restKey: "rest_key"
+    dataUse: "data_use"
+    dataItem: "data_item""
