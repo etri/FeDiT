@@ -1,0 +1,78 @@
+version: "3.7"
+services:
+  tw-service-manager:
+    container_name: tw-service-manager
+    image: twin-ubuntu22-openjdk17
+    build:
+      context: ./docker-excluded
+      dockerfile: Dockerfile
+    privileged: true
+    hostname: tw-service-manager
+    volumes:
+      - type: bind
+        source: ./docker-bind/generated-data/logs/${TW_SERVICE_MANAGER__APP_NAME}
+        target: ${TW_SERVICE_MANAGER__WORK_DIR}/logs
+      - type: bind
+        source: ./docker-bind/init-data/${TW_SERVICE_MANAGER__APP_NAME}/svc
+        target: ${TW_SERVICE_MANAGER__WORK_DIR}/svc
+    environment:
+      - APP_NAME=${TW_SERVICE_MANAGER__APP_NAME}
+      - WORKDIR=${TW_SERVICE_MANAGER__WORK_DIR}
+      - TZ=Asia/Seoul
+      - JAVA_OPTIONS=
+        -Dspring.profiles.active=prod
+        -Dserver-port=${TW_SERVICE_MANAGER__CONTAINER_SERVICE_PORT}
+        -Dprod-jdbc-socket-address=tw-repository-db-mariadb:3306
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        /entrypoint.sh
+    tty: true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/time"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  tw-gateway:
+    container_name: tw-gateway
+    image: twin-ubuntu22-openjdk17
+    build:
+      context: ./docker-excluded
+      dockerfile: Dockerfile
+    privileged: true
+    hostname: tw-gateway
+    volumes:
+      - type: bind
+        source: ./docker-bind/generated-data/jw
+        target: /jw
+      - type: bind
+        source: ./docker-bind/init-data/${TW_GATEWAY__APP_NAME}/svc
+        target: ${TW_GATEWAY__WORK_DIR}/svc
+    ports:
+      - "${TW_GATEWAY__HOST_PORT}:${TW_GATEWAY__CONTAINER_SERVICE_PORT}"
+    environment:
+      - APP_NAME=${TW_GATEWAY__APP_NAME}
+      - WORKDIR=${TW_GATEWAY__WORK_DIR}
+      - TZ=Asia/Seoul
+      - JAVA_OPTIONS=
+        -Dspring.profiles.active=prod
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        /entrypoint.sh
+    tty: true
+    depends_on:
+      tw-service-manager:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+
+networks:
+  default:
+    name: network-tw-base
+    external: true
