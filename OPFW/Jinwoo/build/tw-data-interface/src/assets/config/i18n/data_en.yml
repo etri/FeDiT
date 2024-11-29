@@ -1,0 +1,13 @@
+# data_ko.yml
+data:
+  openapiResponse:
+    category: "category"
+    fcstValue: "fcstValue"
+    fcstDate: "fcstDate"
+    fcstTime: "fcstTime"
+    pty: "pty"
+    rn1: "rn1"
+    t1h: "t1h"
+    reh: "reh"
+    vec: "vec"
+    wsd: "wsd"
