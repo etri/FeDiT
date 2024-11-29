@@ -1,0 +1,22 @@
+# exception_ko.yml
+exception:
+  unKnown:
+    code: "-9999"
+    msg: "알수 없는 오류가 발생하였습니다."
+  db:
+    notFound:
+      code: "-2000"
+      msg: "DB 에 {0} 정보가 없습니다."
+    nullData:
+      code: "-2001"
+      msg: "해당 DB 개체에 {0} 필드 정보가 없습니다."
+    fail:
+      code: "-2002"
+      msg: "DB operation 실패하였습니다."
+  receivedParam:
+    nullData:
+      code: "-3000"
+      msg: "parameter 에 {0} 정보가 없습니다."
+    wrongType:
+      code: "-3001"
+      msg: "parameter 에 {0} 타입이 잘못되었습니다."

@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: twin-data-interface
+  config:
+    activate:
+      on-profile: common
+  messages:
+    basename: config/i18n/exception, config/i18n/data
+    encoding: UTF-8
+  mvc:
+    converters:
+      preferred-json-mapper: gson
+
+#  gson:
+#    field-naming-policy: lower_case_with_underscores
+#    serialize-nulls: true
+#    exclude-fields-without-expose-annotation: true
+
+management:
+  endpoints:
+    enabled-by-default: false
+    web:
+      exposure:
+        include: info, health
+      base-path: /manage-data
+    jmx.exposure.exclude: "*"
+  #  server:
+  #    port: 8090
+  endpoint:
+    health:
+      show-details: always
+      enabled: true
+    info:
+      enabled: true
+#  info:
+#    build:
+#      enabled: true
+
+logging:
+  config: classpath:config/logback-spring.xml
+
+server:
+  port: ${server-port}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    groups-order: DESC
+    operationsSorter: method
+    disable-swagger-default-url: true
+    display-request-duration: true
+  api-docs:
+    path: /api-docs
+  show-actuator: true
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+  paths-to-match:
+    - /v1/**

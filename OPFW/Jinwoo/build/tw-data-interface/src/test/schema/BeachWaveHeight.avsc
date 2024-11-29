@@ -1,0 +1,96 @@
+{
+  "type" : "record",
+  "name" : "BeachWaveHeight",
+  "namespace" : "net.jw.twin.db.beachWaveHeight.model",
+  "fields" : [ {
+    "name" : "start",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "length",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "sort",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "sort_ord",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "paging_yn",
+    "type" : [ "null", "boolean" ]
+  }, {
+    "name" : "groupby_list",
+    "type" : [ "null", {
+      "type" : "array",
+      "items" : "string"
+    } ]
+  }, {
+    "name" : "select_list",
+    "type" : [ "null", {
+      "type" : "array",
+      "items" : "string"
+    } ]
+  }, {
+    "name" : "reg_id",
+    "type" : [ "null", {
+      "type" : "long",
+      "java-class" : "java.lang.Long"
+    } ]
+  }, {
+    "name" : "reg_dt",
+    "type" : [ "null", {
+      "type" : "long",
+      "logicalType" : "local-timestamp-millis"
+    } ]
+  }, {
+    "name" : "upd_id",
+    "type" : [ "null", {
+      "type" : "long",
+      "java-class" : "java.lang.Long"
+    } ]
+  }, {
+    "name" : "upd_dt",
+    "type" : [ "null", {
+      "type" : "long",
+      "logicalType" : "local-timestamp-millis"
+    } ]
+  }, {
+    "name" : "del_id",
+    "type" : [ "null", {
+      "type" : "long",
+      "java-class" : "java.lang.Long"
+    } ]
+  }, {
+    "name" : "del_dt",
+    "type" : [ "null", {
+      "type" : "long",
+      "logicalType" : "local-timestamp-millis"
+    } ]
+  }, {
+    "name" : "rec_st",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "date_time",
+    "type" : [ "null", {
+      "type" : "long",
+      "logicalType" : "local-timestamp-millis"
+    } ]
+  }, {
+    "name" : "measure_position_id",
+    "type" : [ "null", {
+      "type" : "long",
+      "java-class" : "java.lang.Long"
+    } ]
+  }, {
+    "name" : "wave_height",
+    "type" : [ "null", {
+      "type" : "float",
+      "java-class" : "java.lang.Float"
+    } ]
+  } ]
+}

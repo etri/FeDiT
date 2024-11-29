@@ -1,0 +1,10 @@
+spring:
+  config:
+    activate:
+      on-profile: dev-common
+
+redis:
+  host: ${dev-redis-ip}
+  port: ${dev-redis-port}
+  userId:
+  userPassword:
