@@ -1,0 +1,24 @@
+type: object
+properties:
+  device_id:
+    type: integer
+  device_name:
+    type: string
+  ip_addr:
+    type: string
+  port:
+    type: integer
+  lsysid: 
+    type: integer
+  lgroupno: 
+    type: integer
+  max_adjustment: 
+    type: integer
+  min_adjustment: 
+    type: integer
+  status: 
+    type: integer
+  created_at: 
+    type: string
+    dbDataType: timestamp
+

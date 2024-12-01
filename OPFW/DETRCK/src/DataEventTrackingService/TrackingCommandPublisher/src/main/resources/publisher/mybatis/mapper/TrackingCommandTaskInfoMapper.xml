@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.DtEvtTracking.trackCmdPublisher.mapper.TrackingCommandTaskInfoMapper">
+
+	  	
+  	  <select id="getTrackCmdProcInfoList" parameterType="HashMap" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingProcessInfo">
+		 SELECT 
+		    tracking_process_id,
+		    request_tracking_id,
+		    tracking_process_identifier,
+		    tracking_process_type,
+		    federated_twin_id,
+		    federated_digital_object_id,
+		    digital_twin_id,
+		    digital_object_id,
+		    tracking_command,
+		    tracking_kafka_group,
+		    tracking_kafka_topic,
+		    data_filter_type,
+		    event_occurred_count,
+		    event_condition,
+		    event_delay,
+		    event_end_date,
+		    tracking_status,
+		    tracking_status_change_time,
+		    create_time
+		FROM
+		    tracking_process_info A
+		WHERE 1=1					 
+  			 AND request_tracking_id = #{requestTrackingId}
+  	</select>
+	  	
+	  	
+	  	  	
+  	
+  	<update id="updateTrackingProcessInfoMap" parameterType="HashMap">
+  		UPDATE tracking_process_info
+			SET			
+			<if test="trackingStatus != null">
+				tracking_status = #{trackingStatus},
+			</if>
+			tracking_status_change_time = NOW(3)
+		WHERE
+			<choose>
+				<when test="procSeqList != null">
+					tracking_process_id in 
+					<foreach collection="procSeqList" item="item" index="index" separator="," open="(" close=")">
+						#{item}
+					</foreach>
+				</when>
+				<otherwise>
+					tracking_process_id = #{trackingProcessId} 
+				</otherwise>
+			</choose> 
+  	</update>
+  	
+  	
+  	<insert id="insertTrackingProcChangeHisMultiList" parameterType="HashMap">
+  		insert into tracking_process_status_change_record
+		(tracking_process_id, request_tracking_id, change_status, status_update_time, status_result_msg)
+		SELECT tracking_process_id,  request_tracking_id, tracking_status, NOW(3), #{statusResultMsg} status_result_msg
+		FROM tracking_process_info
+		WHERE 1=1
+			<if test="tracingStatus != null">
+	  			and tracking_status = #{trackingStatus}
+	  		</if>	
+			<choose>
+				<when test="procSeqList != null">
+					and tracking_process_id in 
+					<foreach collection="procSeqList" item="item" index="index" separator="," open="(" close=")">
+						#{item}
+					</foreach>
+				</when>
+				<otherwise>
+					and tracking_process_id = #{trackingProcessId} 
+				</otherwise>
+			</choose> 
+  	</insert>
+</mapper>

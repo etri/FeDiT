@@ -1,6 +1,7 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import Logger from './logger';
 import routes from '../api';
+import routesAutogen from '../api-autogen';
 import config from '../config';
 import cors from 'cors';
 
@@ -44,7 +45,8 @@ export default ({ app }: { app: express.Application }) => {
     app.use(express.json());
     // Load API routes
     app.use(config.api.prefix, routes());
-
+    app.use(config.api.prefix, routesAutogen());
+    
     // API Documentation
     //   app.use(OpticMiddleware({
     //       enabled: process.env.NODE_ENV !== 'production',

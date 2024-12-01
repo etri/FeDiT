@@ -4,7 +4,8 @@ info:
   title: 환경 트윈 api docs
   description: 환경 트윈 api
 servers:
-  - url: 'http://192.168.62.152:8102/v1'
+  # - url: 'http://192.168.62.152:8102/v1'
+  - url: 'http://localhost:8082/v1'
 paths:
   /measure-position:
     get:
@@ -457,6 +458,143 @@ paths:
                           type: integer
                         detail_code:
                           type: string
+        '500':
+          description: ERROR
+  /river-water-level:
+    get:
+      tags:
+        - river-water-level
+      summary: river-water-level 정보 가져오기
+      parameters:
+        - name: start_measurement_date
+          in: query
+          required: true
+          description: 'start_measurement_date(yyyy-MM-dd HH:mm:ss)'
+          schema:
+            type: string
+          operator: $gte
+          dbfield: measurement_date
+        - name: end_measurement_date
+          in: query
+          required: true
+          description: 'end_measurement_date(yyyy-MM-dd HH:mm:ss)'
+          schema:
+            type: string
+          operator: $lte
+          dbfield: measurement_date
+        - name: device_id
+          in: query
+          required: false
+          description: device_id
+          schema:
+            type: string
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/number_of_rows'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        measurement_id:
+                          type: integer
+                        device_id:
+                          type: integer
+                        measurement_date:
+                          type: string
+                          dbDataType: timestamp
+                        min_adjustment:
+                          type: number
+                        primary_value:
+                          type: number
+                        secondary_value:
+                          type: number
+                        third_value:
+                          type: number
+                        quarternary_value:
+                          type: number
+        '500':
+          description: ERROR
+  /river-water-level-device:
+    get:
+      tags:
+        - river-water-level-device
+      summary: river-water-level-device 정보 가져오기
+      parameters:
+        - $ref: '#/paths/~1river-water-level/get/parameters/2'
+        - name: device_name
+          in: query
+          required: false
+          description: device_name
+          schema:
+            type: string
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/number_of_rows'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: integer
+                  msg:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  numberOfRows:
+                    type: integer
+                  totalCount:
+                    type: integer
+                  list:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        device_id:
+                          type: integer
+                        device_name:
+                          type: string
+                        ip_addr:
+                          type: string
+                        port:
+                          type: integer
+                        lsysid:
+                          type: integer
+                        lgroupno:
+                          type: integer
+                        max_adjustment:
+                          type: integer
+                        min_adjustment:
+                          type: integer
+                        status:
+                          type: integer
+                        created_at:
+                          type: string
+                          dbDataType: timestamp
         '500':
           description: ERROR
   /weather-ultra-srt-fcst:

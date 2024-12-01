@@ -1,0 +1,24 @@
+spring:
+  jpa:
+    generate-ddl: 'true'
+    database: postgresql
+    hibernate:
+      ddl-auto: create
+  datasource:
+    password: ndxpro123!
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: '20'
+    username: ndxpro
+    url: jdbc:postgresql://172.16.28.217:52102/data-ingest
+
+agent-manager:
+  kafka-url: 172.16.28.220:19092,172.16.28.220:29092,172.16.28.220:39092,172.16.28.220:49092,172.16.28.220:59092
+  inspector:
+    inspect-delay: 10000
+    threshold: 60000
+
+translator-manager:
+  url: http://172.16.28.217:54004/ndxpro/v1/translator
+data-manager:
+  url: http://172.16.28.217:54008/ndxpro/v1/manager

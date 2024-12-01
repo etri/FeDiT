@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.msaOrchstr.rsDtConsumer.mapper.MsaControlCommandTaskInfoMapper">
+  	
+	 <select id="getControlCommandTaskInfo" resultType="iitp.federatedTwins.msaOrchstr.common.dto.MsaControlCommandSequenceInfo">
+			 SELECT 
+			    ctrl_cmd_sequence_id,
+			    request_control_command_id,
+			    sequence_act_type,
+			    digital_twin_id,
+			    digital_object_id,
+			    digital_control_Id,
+			    start_interval,
+			    control_command,
+			    next_sequence_identifier,
+			    create_id,
+			    next_sequence_condition,
+			    logical_expression,
+			    next_interval,
+			    condition_param,
+			    sequence_status,
+			    seqeunce_status_change_time,
+			    sequence_identifier,
+			    federated_twin_id,
+			    federated_digital_object_id
+			FROM
+			    msa_control_command_sequence_info A
+			WHERE
+			    NOT EXISTS( 
+			       SELECT 
+			            ctrl_cmd_sequence_id, request_control_command_id
+			        FROM
+			            msa_task_processing_info B
+			        WHERE
+			            B.ctrl_cmd_sequence_id = A.ctrl_cmd_sequence_id
+			                AND B.request_control_command_id = A.request_control_command_id)
+	  		 order by A.ctrl_cmd_sequence_id desc
+	  	</select>
+	  	
+			
+	  	<update id="updateCtrlCmdSeqInfoTaskProc" parameterType="map">
+	  		UPDATE msa_control_command_sequence_info
+				SET			
+				<if test="sequenceStatus != null">
+					sequence_status = #{sequenceStatus},
+				</if>
+				seqeunce_status_change_time = NOW(3)
+			WHERE
+				<choose>
+					<when test="procSeqList != null">
+						ctrl_cmd_sequence_id in 
+						<foreach collection="procSeqList" item="item" index="index" separator="," open="(" close=")">
+							#{item}
+						</foreach>
+					</when>
+					<otherwise>
+						ctrl_cmd_sequence_id = #{ctrlCmdSequenceId} 
+					</otherwise>
+				</choose> 
+	  	</update>
+  	
+  	
+  	<insert id="insertCtrlCmdSeqChangeHisMultiProcInfo" parameterType="map">
+  		insert into msa_sequence_status_change_record(ctrl_cmd_sequence_id, request_control_command_id, change_status, status_update_time, status_result_msg)
+		SELECT ctrl_cmd_sequence_id,  request_control_command_id, sequence_status, NOW(3), #{statusResultMsg} status_result_msg
+		FROM msa_control_command_sequence_info
+		WHERE 1=1
+			<if test="sequenceStatus != null">
+	  			and sequence_status = #{sequenceStatus}
+	  		</if>	
+			<choose>
+				<when test="procSeqList != null">
+					and ctrl_cmd_sequence_id in 
+					<foreach collection="procSeqList" item="item" index="index" separator="," open="(" close=")">
+						#{item}
+					</foreach>
+				</when>
+				<otherwise>
+					and ctrl_cmd_sequence_id = #{ctrlCmdSequenceId} 
+				</otherwise>
+			</choose> 
+  	</insert>
+  	
+</mapper>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.msaOrchstr.common.mapper.MsaResultDataTransmissionInfoMapper">
+  	
+  	<select id="getResultDataTransmissionList" resultType="iitp.federatedTwins.msaOrchstr.common.dto.MsaResultDataTransmissionInfo">
+  		SELECT
+  		   transmission_id,
+		   request_control_command_id,
+		   transmission_code,
+		   transmission_msg,
+		   transmission_time,
+		   transmission_url,
+		   transmission_param,
+		   transmission_result_data
+		FROM 
+		   msa_result_data_transmission_info
+		   where 1=1 
+		 <if test='transmissionId != null'>
+			 and transmission_id = #{transmissionId}
+		</if>
+		<if test='requestControlCommandId != null'>
+			 and request_control_command_id = #{requestControlCommandId}
+		</if>
+		order by transmission_id desc
+  		</select>
+  	
+  	 <insert id="insertResultDataTransmission" parameterType="iitp.federatedTwins.msaOrchstr.common.dto.MsaResultDataTransmissionInfo"
+  	 useGeneratedKeys="true" keyColumn="transmission_id" keyProperty="transmissionId">	 
+			INSERT INTO msa_result_data_transmission_info
+			(
+			   request_control_command_id,
+			   transmission_code,
+			   transmission_msg,
+			   transmission_time,
+			   transmission_url,
+			   transmission_param,
+			   transmission_result_data,
+			   resp_ctrl_cmd_time
+		   )
+			VALUES
+			(
+				#{requestControlCommandId},
+				#{transmissionCode},
+				#{transmissionMsg},
+				NOW(3),
+				#{transmissionUrl},
+				#{transmissionParam},
+				#{transmissionResultData},
+				NOW(3)
+		   )
+	  </insert>
+	  
+	  <update id="updateResultDataTransmission" parameterType="iitp.federatedTwins.msaOrchstr.common.dto.MsaResultDataTransmissionInfo">
+		  UPDATE msa_result_data_transmission_info
+			SET
+				<if test="transmissionMsg != null">
+				transmission_msg = #{transmissionMsg},
+				</if>
+				<if test="transmissionCode > 0">
+				transmission_code = #{transmissionCode},
+				</if>
+				<if test="transmissionResultData != null">
+				transmission_result_data = #{transmissionResultData},
+				</if>
+				<if test="respCtrlCmdCode != null">
+				resp_ctrl_cmd_code = #{respCtrlCmdCode},
+				</if>
+				<if test="respCtrlCmdMsg != null">
+				 resp_ctrl_cmd_msg = #{respCtrlCmdMsg},
+				</if>
+				resp_ctrl_cmd_time = NOW(3)
+			WHERE 
+				transmission_id = #{transmissionId}
+			AND request_control_command_id = #{requestControlCommandId}
+	  </update>
+	  
+	  <delete id="deleteResultDataTransmission" parameterType="iitp.federatedTwins.msaOrchstr.common.dto.MsaResultDataTransmissionInfo">
+	  	DELETE 
+	  	  FROM 
+	  	   msa_result_data_transmission_info
+		 WHERE
+		  transmission_id = #{transmissionId}
+		          AND request_control_command_id = #{requestControlCommandId}
+	   </delete>
+	
+  	
+
+
+	
+  	
+</mapper>
