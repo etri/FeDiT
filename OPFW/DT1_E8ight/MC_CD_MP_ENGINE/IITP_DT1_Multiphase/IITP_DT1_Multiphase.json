@@ -1,0 +1,268 @@
+{
+	"meta": {
+		"version": 202410,
+		"title": ""
+	},
+	"config": {
+		"solver_common": {
+			"solver_type": "multiphase",
+			"collision_model": "Cumulant_D3Q27",
+			"simulation_start_time": 0.0,
+			"simulation_end_time": 2000.0,
+			"time_step": 1.0,
+			"devices": [
+				0
+			]
+		},
+		"initial_conditions": [
+			{
+				"is_main_initial_condition": false,
+				"pressure": 101325,
+				"velocity": [
+					0.0,
+					-0.12,
+					0.0
+				],
+				"temperature": 0.008017625
+			},
+			{
+				"is_main_initial_condition": true,
+				"pressure": 101325,
+				"velocity": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"temperature": 0.008017625
+			}
+		],
+		"source_terms": {
+			"momentum_source": [
+				0.0,
+				0.0,
+				0.0
+			],
+			"gravity": [
+				0.0,
+				0.0,
+				0.0
+			]
+		},
+		"materials": [
+			{
+				"name": "high_density_fluid",
+				"is_main_material": false,
+				"phase": "liquid",
+				"density": 0.4541,
+				"dynamic_viscosity": 0.00302733,
+				"thermal_conductivity": 0.0,
+				"specific_heat_capacity_cp": 0.0,
+				"specific_heat_capacity_cv": 0.0
+			},
+			{
+				"name": "low_density_fluid",
+				"is_main_material": true,
+				"phase": "gas",
+				"density": 0.00061,
+				"dynamic_viscosity": 0.00002033,
+				"thermal_conductivity": 0.0,
+				"specific_heat_capacity_cp": 0.0,
+				"specific_heat_capacity_cv": 0.0
+			},
+			{
+				"name": "Duralumin A6061",
+				"is_main_material": false,
+				"phase": "solid",
+				"density": 0.0,
+				"dynamic_viscosity": 0.0,
+				"thermal_conductivity": 0.0,
+				"specific_heat_capacity_cp": 0.0,
+				"specific_heat_capacity_cv": 0.0
+			}
+		],
+		"model_settings": {
+			"turbulence_model": "NONE",
+			"smagorinsky_constant": 0.2,
+			"K": 0.41,
+			"B": 5
+		},
+		"multiphase_settings": {
+			"multiphase_model": "CS",
+			"gas_const": 0.0,
+			"critical_temperature": 0.01603525,
+			"critical_pressure": 0.0,
+			"surface_tension": [
+				0.02,
+				0.0,
+				0.0
+			],
+			"latent_heat": 0.0,
+			"surface_tension_lattice": [
+				0.02,
+				0.0,
+				0.0
+			],
+			"peng_robinsonA_lattice": 0.17,
+			"peng_robinsonB_lattice": 4.0,
+			"lambda_lattice": 2.65,
+			"kappa_lattice": 0.0,
+			"omega_bulk_lattice": 0.51
+		},
+		"thermal_settings": {
+			"Nondim_temperature": 0.008017625,
+			"wall_temperature": 0.0
+		},
+		"outer_boundary_condition": {
+			"xmin": {
+				"type": "periodic"
+			},
+			"xmax": {
+				"type": "periodic"
+			},
+			"ymin": {
+				"type": "wall",
+				"scheme": "halfway",
+				"interaction_coefficient": 0.0
+			},
+			"ymax": {
+				"type": "wall",
+				"scheme": "halfway",
+				"interaction_coefficient": 0.0
+			},
+			"zmin": {
+				"type": "periodic"
+			},
+			"zmax": {
+				"type": "periodic"
+			}
+		},
+		"lattice_generation": [
+			{
+				"inertial_frame": true,
+				"position": [0.0, 0.0, 0.0],
+				"angular_velocity": [0.0, 0.0, 0.0],
+				"domain_general": false,
+				"base_dx": 1.0,
+				"base_region": {
+					"min": [0.0, 0.0, 0.0],
+					"max": [600.0, 300.0, 1.0]
+				},
+				"regional_segment": [
+					{
+						"name": "C0",
+						"mesh_path": "Droplet_region.stl",
+						"invert_normal": false,
+						"material": "high_density_fluid",
+						"region_type": "region_ref",
+						"initial_condition_id": 0,
+						"origin": [0.0, 0.0, 0.0],
+						"scale": [1.0, 1.0, 1.0],
+						"translate": [300.0, 65.0, 0.0],
+						"boundary": [
+							{
+								"subdivision_max_depth": 0,
+								"subdivision_min_buffer": 8,
+								"boundary_condition": {
+									"type": "wall"
+								}
+							}
+						]
+					},
+					{
+						"name": "C1",
+						"mesh_path": "Bottom_region.stl",
+						"invert_normal": false,
+						"material": "high_density_fluid",
+						"region_type": "region_ref",
+						"initial_condition_id": 1,
+						"origin": [0.0, 0.0, 0.0],
+						"scale": [3.0, 1.0, 1.0],
+						"translate": [330.0, 0.0, 0.0],
+						"boundary": [
+							{
+								"subdivision_max_depth": 0,
+								"subdivision_min_buffer": 8,
+								"boundary_condition": {
+									"type": "wall"
+								}
+							}
+						]
+					}
+				]
+			}
+		],
+		"result_report": {
+			"export_path": "",
+			"export_format": [
+				"BINARY_VTK",
+				"NFILE"
+			],
+			"save_start_time": 0.0,
+			"save_end_time": 2000.0,
+			"save_time_interval": 50.0,
+			"items": {
+				"density": true,
+				"velocity": true,
+				"order_parameter1": true,
+				"pressure_norm": true,
+				"pressure": false,
+				"temperature": false,
+				"dynamic_viscosity": false,
+				"kinematic_viscosity": false,
+				"turbulent_viscosity": false,
+				"artificial_viscosity": false,
+				"diffusion_coefficient": false,
+				"y_plus": false,
+				"u_plus": false,
+				"pressure_coefficient": false,
+				"wall_shear_coefficient": false,
+				"cell_center": false,
+				"wall_normal": false,
+				"projection_point": false,
+				"net_force": false,
+				"gravity": false,
+				"body_force": false,
+				"free_surface_id": true,
+				"region_ref_id": true,
+				"material_index": true
+			},
+			"cell_flags": {
+				"gas": false,
+				"vapor": true,
+				"liquid": true,
+				"solid": true,
+				"supercritical": true,
+				"iton": true,
+				"ntoi": true,
+				"boundary_conservation": true,
+				"boundary_specified": false,
+				"boundary_flux": true,
+				"boundary_non_reflecting": true,
+				"boundary_farfield": true,
+				"boundary_absorbing": true,
+				"boundary_HBB": true,
+				"boundary_wall": true,
+				"boundary_wallmodel": true,
+				"boundary_slip": true,
+				"boundary_symmetry_x": true,
+				"boundary_symmetry_y": true,
+				"boundary_symmetry_z": true,
+				"boundary_periodic_x": true,
+				"boundary_periodic_y": true,
+				"boundary_periodic_z": true,
+				"boundary_xmin": true,
+				"boundary_xmax": true,
+				"boundary_ymin": true,
+				"boundary_ymax": true,
+				"boundary_zmin": true,
+				"boundary_zmax": true,
+				"grid_interconnect": true,
+				"region_inner": true,
+				"region_outer": true,
+				"subdivision_region": true,
+				"nearby_subdivision_region": true,
+				"erase_later": true
+			}
+		}
+	}
+}
