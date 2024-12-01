@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: AUTHORIZATION-SERVICE
+  main:
+    allow-circular-references: true
+
+  sleuth:
+    sampler:
+      probability:1.0
+  zipkin:
+    base-url: ${ZIPKIN_URL}
+
+  jpa:
+    open-in-view: 'false'
+    hibernate:
+      ddl-auto: update
+#      ddl-auto: create-drop
+      generate-ddl: true
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+      hikari:
+        connectionTimeout : 30000   # 클라이언트가 pool에 connection을 요청하는데 기다리는 최대시간   (30초)
+        maximumPoolSize : 10        # 유휴 및 사용중인 connection을 포함하여 풀에 보관가능한 최대 커넥션 개수
+        maxLifetime : 1800000       # connection의 최대 유지 시간        (30분)
+        poolName : HikariCP         # pool 이름
+        readOnly : false            # pool에서 얻은 connection이 기본적으로 readOnly인지 지정
+        connectionTestQuery : SELECT 1  # 데이터베이스 연결이 여전히 활성화되어있는지
+
+logging:
+  level:
+    me.silvernine: DEBUG
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

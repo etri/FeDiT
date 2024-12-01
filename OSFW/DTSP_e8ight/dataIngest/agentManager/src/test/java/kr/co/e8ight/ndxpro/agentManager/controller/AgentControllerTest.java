@@ -3,6 +3,8 @@ package kr.co.e8ight.ndxpro.agentManager.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.co.e8ight.ndxpro.agentManager.domain.AgentOperation;
 import kr.co.e8ight.ndxpro.agentManager.domain.AgentType;
+import kr.co.e8ight.ndxpro.agentManager.domain.JsonField;
+import kr.co.e8ight.ndxpro.agentManager.domain.JsonType;
 import kr.co.e8ight.ndxpro.agentManager.domain.dto.*;
 import kr.co.e8ight.ndxpro.agentManager.exceptions.AgentException;
 import kr.co.e8ight.ndxpro.agentManager.service.AgentService;
@@ -16,14 +18,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -82,7 +84,7 @@ class AgentControllerTest {
 
         given(memberService.getMemberId(token))
                 .willReturn(username);
-        given(agentService.createAgent(any(AgentRequestDto.class), eq(username)))
+        given(agentService.createAgent(any(AgentRequestDto.class), eq(username), "token"))
                 .willReturn(responseDto);
 
         //when
@@ -129,7 +131,11 @@ class AgentControllerTest {
     void startAgentSuccess() throws Exception {
         //given
         String operation = AgentOperation.RUN.name();
-        OperationRequestDto operationRequestDto = new OperationRequestDto(operation);
+        Map<String , JsonField> bodyInfo = new HashMap<>();
+        bodyInfo.put("fromDtm", new JsonField("20230502000000", JsonType.STRING, true));
+        bodyInfo.put("toDtm", new JsonField("20230502000001", JsonType.STRING, true));
+        OperationRequestDto operationRequestDto = new OperationRequestDto(operation, bodyInfo);
+
         String requestBody = objectMapper.writeValueAsString(operationRequestDto);
 
         AgentResponseDto responseDto = AgentResponseDto.builder()
@@ -148,7 +154,7 @@ class AgentControllerTest {
 
         given(memberService.getMemberId(token))
                 .willReturn(username);
-        given(agentService.operate(responseDto.getId(), operation, username))
+        given(agentService.operate(eq(responseDto.getId()), any(OperationRequestDto.class), eq(username)))
                 .willReturn(responseDto);
 
         //when
@@ -191,15 +197,18 @@ class AgentControllerTest {
     void startAgentFailCauseNotFound() throws Exception {
         //given
         String operation = AgentOperation.RUN.name();
+        Map<String , JsonField> bodyInfo = new HashMap<>();
+        bodyInfo.put("fromDtm", new JsonField("20230502000000", JsonType.STRING, true));
+        bodyInfo.put("toDtm", new JsonField("20230502000001", JsonType.STRING, true));
+        OperationRequestDto operationRequestDto = new OperationRequestDto(operation, bodyInfo);
         long agentId = 1L;
-        OperationRequestDto operationRequestDto = new OperationRequestDto(operation);
         String requestBody = objectMapper.writeValueAsString(operationRequestDto);
         String token = "test token";
         String username = "testuser";
 
         given(memberService.getMemberId(token))
                 .willReturn(username);
-        given(agentService.operate(agentId, operation, username))
+        given(agentService.operate(eq(agentId), any(OperationRequestDto.class), eq(username)))
                 .willThrow(new AgentException(ErrorCode.RESOURCE_NOT_FOUND, "Agent id :" + agentId + " not found"));
 
         //when
@@ -233,7 +242,7 @@ class AgentControllerTest {
 
         given(memberService.getMemberId(token))
                 .willReturn(username);
-        given(agentService.deleteAgent(responseDto.getId(), username))
+        given(agentService.deleteAgent(responseDto.getId(), username, token))
                 .willReturn(responseDto);
 
         //when
@@ -260,7 +269,7 @@ class AgentControllerTest {
 
         given(memberService.getMemberId(token))
                 .willReturn(username);
-        given(agentService.deleteAgent(agentId, username))
+        given(agentService.deleteAgent(agentId, username, token))
                 .willThrow(new AgentException(ErrorCode.RESOURCE_NOT_FOUND, "Agent id :" + agentId + " not found"));
 
         //when

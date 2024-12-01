@@ -1,0 +1,13 @@
+# exception_ko.yml
+# v1.0.0
+exception:
+  db:
+    select:
+      msg: "{0} 조회 중 오류가 발생하였습니다."
+    selectNotFound:
+      msg: "유효한 {0} 데이터가 없습니다."
+    update:
+      msg: "{0} 갱신 중 오류가 발생하였습니다."
+  dataUse:
+    exceedMaxcount:
+      msg: "데이터 최대 사용량을 초과하였습니다."

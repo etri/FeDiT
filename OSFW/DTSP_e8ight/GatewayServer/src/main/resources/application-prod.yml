@@ -99,7 +99,42 @@ spring:
             - Path=/ndxpro/v1/unity/**
           filters:
             - OrderedLogging=OrderedLogging Gateway Custom Filter, true, true
-
+        - id: dataBrokerAiId
+          uri: lb://DATABROKER-AI-SERVICE
+          predicates:
+            - Path=/ndxpro/v1/aibroker/**
+          filters:
+            - OrderedLogging=OrderedLogging Gateway Custom Filter, true, true
+        - id: dataManagementBroker
+          uri: lb://DATA-MANAGEMENT-BROKER-SERVICE
+          predicates:
+            - Path=/ndxpro/v2/management-broker/**
+          filters:
+            - OrderedLogging=OrderedLogging Gateway Custom Filter, true, true
+        - id: dataLoadingBroker
+          uri: lb://DATA-LOADING-BROKER-SERVICE
+          predicates:
+            - Path=/ndxpro/v2/loading-broker/**
+          filters:
+            - OrderedLogging=OrderedLogging Gateway Custom Filter, true, true
+        - id: dataStatisticsBroker
+          uri: lb://DATA-STATISTICS-BROKER-SERVICE
+          predicates:
+            - Path=/ndxpro/v2/statistics-broker/**
+          filters:
+            - OrderedLogging=OrderedLogging Gateway Custom Filter, true, true
+        - id: dataServiceBroker
+          uri: lb://DATA-SERVICE-BROKER-SERVICE
+          predicates:
+            - Path=/ndxpro/v2/service-broker/**
+          filters:
+            - OrderedLogging=OrderedLogging Gateway Custom Filter, true, true
+        - id: fileService
+          uri: lb://FILE-SERVICE
+          predicates:
+            - Path=/ndxpro/v1/file-service/**
+          filters:
+            - OrderedLogging=OrderedLogging Gateway Custom Filter, true, true
 
 # gateway 서버 디버깅용 로깅 추가
 #logging:

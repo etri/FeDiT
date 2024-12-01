@@ -40,6 +40,13 @@ class wrandom:
             #shared_memory에 data 초기화
             self.shared_ptr[:] = zrng
 
+    def __del__(self):
+        try:
+            if self.shm != null:
+                self.close()
+        except:
+            print("shm close exception")
+
     def Random(self, stream):
         if (stream < 1 or stream > 100):
             stream = stream % 100 + 1

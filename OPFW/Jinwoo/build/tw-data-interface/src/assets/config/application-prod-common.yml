@@ -1,0 +1,15 @@
+spring:
+  config:
+    activate:
+      on-profile: prod-common
+
+redis:
+  host: ${prod-redis-ip}
+  port: ${prod-redis-port}
+  userId:
+  userPassword:
+
+logging:
+  level:
+    com.zaxxer.hikari.HikariConfig: DEBUG
+    com.zaxxer.hikari: TRACE

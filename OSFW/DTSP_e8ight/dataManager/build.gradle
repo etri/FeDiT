@@ -29,7 +29,6 @@ repositories {
 
 dependencies {
 
-//    implementation 'co.elastic.apm:elastic-apm-agent:1.27.0'
 
     implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -50,7 +49,7 @@ dependencies {
 //    implementation 'com.querydsl:querydsl-mongodb'
 
 
-//    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client:3.1.4'
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client:3.1.4'
 
     //mongoDB persistence
     implementation 'javax.persistence:javax.persistence-api:2.2'
@@ -72,18 +71,18 @@ tasks.named('test') {
 jib {
     from {
         image = "openjdk:11.0.14-jre-slim"
-                platforms {
-            platform {
-                architecture = 'arm64'
-                os = 'linux'
-            }
-        }
+//                platforms {
+//            platform {
+//                architecture = 'arm64'
+//                os = 'linux'
+//            }
+//        }
     }
     to {
 //        image = "172.16.28.217:12000/ndxpro-datamanager"
         image = "172.16.28.217:12000/ndxpro-datamanager"
 //        tags = ["v1.2"]
-        tags = ["v1.5"]
+        tags = ["v1.1"]
         auth {
             username = "admin"
             password = "ndxpro123!"

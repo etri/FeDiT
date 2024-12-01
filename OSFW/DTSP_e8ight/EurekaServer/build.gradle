@@ -30,7 +30,7 @@ jib {
         image = "openjdk:11.0.14-jre-slim"
     }
     to {
-        image = "172.16.28.217:12000/ndxpro-discovery"
+        image = "172.16.28.217:12000/ndxpro-eurekaserver"
         tags = ["v1.1"]
         auth {
             username = "admin"

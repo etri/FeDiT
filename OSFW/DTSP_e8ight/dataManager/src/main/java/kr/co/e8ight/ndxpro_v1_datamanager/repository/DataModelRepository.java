@@ -8,16 +8,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.Aggregation;
 import org.springframework.data.mongodb.repository.MongoRepository;
+
 public interface DataModelRepository extends MongoRepository<DataModel, String> {
 
 //    Optional<DataModel> findByTypeAndContext(String type, String context);
 
 
     Optional<DataModel> findByType(String type);
+
     Optional<DataModel> findFirstByAndTypeOrderByCreatedAtDesc(String type);
 
-//    List<DataModel> findByType(String type);
-    Optional<DataModel> findByTypeAndVersion(String type,String version);
+    Optional<DataModel> findByTypeAndVersion(String type, String version);
 
     @Aggregation(pipeline = {
             "{ '$match': { 'type': ?0 } }",
@@ -28,25 +29,33 @@ public interface DataModelRepository extends MongoRepository<DataModel, String> 
 
     @Aggregation(pipeline = {
             "{'$project':  {" +
-                    "type: 1,"+
-                    "attributeNames:1,"+
-                    "attributes: 1"+
+                    "type: 1," +
+                    "attributeNames:1," +
+                    "attributes: 1" +
                     "}" +
                     "}"
     })
     List<DataModel> findAllDataModel();
 
-
-    Page<DataModel> findAllByIsReadyOrderByTypeAsc(Boolean isReady,Pageable pageable);
-    Page<DataModel> findAllByOrderByTypeAsc(Pageable pageable);
+    @Aggregation(pipeline = {
+            "{ '$match': { 'type': { '$regex' : ?0 ,'$options' : 'i' }} }",
+            "{ '$group': { '_id': '$type', 'lastDocument': { '$last': '$$ROOT' } } }",
+            "{ '$replaceRoot': { 'newRoot': '$lastDocument' } }",
+            "{ '$match': {'isReady': ?1} }",
+            "{ '$sort': { 'type': 1} }",
+            "{'$skip':  ?2}",
+            "{'$limit':  ?3}"
+    })
+    List<DataModel> findByIsReadyAndTypeContainingIgnoreCaseOrderByTypeAscCreatedAtDesc(String word,Boolean isReady, Integer pageNumber, Integer pageSize);
 
     @Aggregation(pipeline = {
-            "{$group : {_id : '$type'}}",
-            "{$group : {_id : null, dist_count : { $push : '$_id' }}}",
-            "{$addFields : { totalCount : { $size : '$dist_count' } }}"
+            "{ '$match': { 'type': { '$regex' : ?0 ,'$options' : 'i' }} }",
+            "{ '$group': { '_id': '$type', 'lastDocument': { '$last': '$$ROOT' } } }",
+            "{ '$replaceRoot': { 'newRoot': '$lastDocument' } }",
+            "{ '$match': {'isReady': ?1} }",
+            "{  $count: 'totalData'}"
     })
-    CountResult countDistinctDataModelByType();
-
+    CountResult countByIsReadyAndTypeContainingIgnoreCase(String word,Boolean isReady);
 
 
 
@@ -58,33 +67,40 @@ public interface DataModelRepository extends MongoRepository<DataModel, String> 
             "{'$skip':  ?1}",
             "{'$limit':  ?2}"
     })
-    List<DataModel> findAllByIsReadyOrderByTypeAscCreatedAtDesc(Boolean isReady,Integer pageNumber, Integer pageSize);
-
-//    Page<DataModel> findAllByIsReadyOrderByTypeAscCreatedAtDesc(Boolean isReady,Pageable pageable);
+    List<DataModel> findAllByIsReadyOrderByTypeAscCreatedAtDesc(Boolean isReady, Integer pageNumber, Integer pageSize);
 
     @Aggregation(pipeline = {
-            "{ '$match': { 'type': { '$regex' : ?1 ,'$options' : 'i' }} }",
             "{ '$group': { '_id': '$type', 'lastDocument': { '$last': '$$ROOT' } } }",
             "{ '$replaceRoot': { 'newRoot': '$lastDocument' } }",
             "{ '$match': {'isReady': ?0} }",
-            "{ '$sort': { 'type': 1} }",
-            "{'$skip':  ?2}",
-            "{'$limit':  ?3}"
+            "{  $count: 'totalData'}"
     })
-    List<DataModel> findByIsReadyAndTypeContainingIgnoreCaseOrderByTypeAscCreatedAtDesc(Boolean isReady ,String word, Integer pageNumber, Integer pageSize);
-//    Page<DataModel> findByIsReadyAndTypeContainingIgnoreCaseOrderByTypeAscCreatedAtDesc(Boolean isReady ,String word, Pageable pageable);
+    CountResult countAllByIsReady(Boolean isReady);
+
+
+
+
 
 
     @Aggregation(pipeline = {
             "{ '$match': { 'type': { '$regex' : ?0 ,'$options' : 'i' }} }",
-            "{ '$group': { '_id': '$type', 'lastDocument': { '$last': '$$ROOT' } } }",
+            "{ '$group': { '_id': '$type', 'lastDocument': { '$last': '$$ROOT' }} }",
             "{ '$replaceRoot': { 'newRoot': '$lastDocument' } }",
             "{ '$sort': { 'type': 1} }",
             "{'$skip':  ?1}",
             "{'$limit':  ?2}"
     })
     List<DataModel> findByTypeContainingIgnoreCaseOrderByTypeAscCreatedAtDesc(String word, Integer pageNumber, Integer pageSize);
-//    Page<DataModel> findByTypeContainingIgnoreCaseOrderByTypeAscCreatedAtDesc(String word, Pageable pageable);
+
+    @Aggregation(pipeline = {
+            "{ '$match': { 'type': { '$regex' : ?0 ,'$options' : 'i' }} }",
+            "{ '$group': { '_id': '$type', 'lastDocument': { '$last': '$$ROOT' } } }",
+            "{ '$replaceRoot': { 'newRoot': '$lastDocument' } }",
+            "{  $count: 'totalData'}"
+    })
+    CountResult countByTypeContainingIgnoreCase(String word);
+
+
 
 
     @Aggregation(pipeline = {
@@ -95,5 +111,14 @@ public interface DataModelRepository extends MongoRepository<DataModel, String> 
             "{'$limit':  ?1}"
     })
     List<DataModel> findAllByOrderByTypeAscCreatedAtDesc(Integer pageNumber, Integer pageSize);
-//    Page<DataModel> findAllByOrderByTypeAscCreatedAtDesc(Pageable pageable);
+
+    @Aggregation(pipeline = {
+            "{ '$group': { '_id': '$type', 'lastDocument': { '$last': '$$ROOT' } } }",
+            "{ '$replaceRoot': { 'newRoot': '$lastDocument' } }",
+            "{  $count: 'totalData'}"
+    })
+    CountResult countAll();
+
+
+
 }

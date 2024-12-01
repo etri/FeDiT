@@ -6,7 +6,7 @@ from CsModel import CsModel
 
 class watersrc(CsModel):
     def __init__(self):
-        self.MODEL_NAME = "watersrc"
+        self.MODEL_NAME = "watersrc____SSSSSSSSSSSSSGUB"
 	
         self.add_inport('on_signal', 0)
         self.add_inport('off_signal', 0)
@@ -27,18 +27,20 @@ class watersrc(CsModel):
         elif port_name == "off_signal" and port_value == 1:
             self.V = 0.0
             self.state = 0
-        print("watersrc ext", sim_time, dt, self.V)
+        print("ext", sim_time, dt, self.V)
          
         return True    
 
     def IntTransFn(self, sim_time, dt):
-        print("watersrc IntTransFn : "," at t = ", sim_time)
         return True
 
     def OutputFn(self, sim_time, dt):
         self.set_outport_value('src_cs_out', self.V)
-        print("watersrc OutputFn : ", self.V, " at t = ", sim_time)
         return True
+
+    def TimeAdvanceFn(self, sim_time):
+        return 0.1
+
 
 if __name__ == "__main__":
     w = watersrc()

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="30 seconds">
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
+    <!-- 로그를 파일에 기록 -->
+    <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- 로그 파일 경로 설정 -->
+            <fileNamePattern>logFile/logback-%d{yyyy-MM-dd}.%i.log
+            </fileNamePattern>
+            <!-- 날짜 별 파일 보관 및 파일 크기 제한 -->
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>100MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxHistory>10</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d ${LOG_LEVEL_PATTERN:-%5p} %logger{36} - %msg %n</pattern>
+        </encoder>
+    </appender>
+    <!-- console 에 로그를 출력 -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(%-40.40logger{39}){cyan} %clr(%4L){magenta} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}</pattern>
+        </layout>
+    </appender>
+
+    <!-- logstash 설정 -->
+    <springProperty scope="context" name="LOGSTASH_URL" source="logging.logstash.url"/>
+
+    <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <destination>${LOGSTASH_URL}</destination>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"service": "dataservice-service"}</customFields>
+        </encoder>
+    </appender>
+
+    <!-- 패키지 로깅 설정, additivity false 설정으로 중복 로깅 방지 -->
+<!--    <springProfile name="dev">-->
+    <logger name="kr.co.e8ight.ndxpro.dataservice" level="INFO" additivity="false">
+        <appender-ref ref="ROLLING"/>
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="LOGSTASH"/>
+    </logger>
+<!--    </springProfile>-->
+    <root level="INFO">
+        <appender-ref ref="ROLLING"/>
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="LOGSTASH"/>
+    </root>
+</configuration>

@@ -24,9 +24,9 @@ public class DataModelService {
     @Value("${data-manager.url}")
     private String dataManagerUrl;
 
-    public boolean checkDataModels(List<DataModelDto> dataModels) {
+    public boolean checkDataModels(List<DataModelDto> dataModels, String token) {
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI4IiwiYXV0aCI6IkFETUlOIiwiZXhwIjoxNzA2MzMwMDE1fQ.zIKioGZVchXB2UYQcTyet_FywLhYq4MbodMWyuNSiOMz6ScOKDwHbJELz2VNN5KubgOgRVKVE5sOUcAPFJnqRg");
+        headers.set("Authorization", token);
 
         HttpEntity request = new HttpEntity(headers);
 
@@ -40,11 +40,10 @@ public class DataModelService {
 
             if ( !responseEntity.getStatusCode().equals(HttpStatus.OK) ||
                     responseEntity.getBody() == null ||
-                    !responseEntity.getBody().getIsReady() ||
                     !responseEntity.getBody().getContext().containsKey(model.getModelType())
             ) {
                 throw new AgentException(ErrorCode.RESOURCE_NOT_FOUND, "Context '" + model.getContext() + "' or Model Type '" +
-                        model + "' is not ready or not found.");
+                        model + "' not found.");
             }
         }
         return true;

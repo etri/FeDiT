@@ -1,6 +1,7 @@
 package kr.co.e8ight.ndxpro.agentManager.service.operater;
 
 import kr.co.e8ight.ndxpro.agentManager.domain.Agent;
+import kr.co.e8ight.ndxpro.agentManager.domain.JsonField;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,8 +10,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
+import java.util.Map;
 
 public abstract class Operater {
     protected static final Logger log = LoggerFactory.getLogger(Operater.class);
@@ -25,7 +28,7 @@ public abstract class Operater {
     private String logstashUrl;
 
     @Transactional
-    public abstract Agent operate(Agent agent);
+    public abstract Agent operate(Agent agent, Map<String, JsonField> bodyInfo);
 
     protected boolean isRunning(long pid) {
         try {
@@ -50,7 +53,7 @@ public abstract class Operater {
         }
     }
 
-    protected long runAgent(Agent agent) {
+    protected long runAgent(Agent agent, Map<String, JsonField> bodyInfo) {
         String logstashHost = logstashUrl.split(":")[0];
         String logstashPort = logstashUrl.split(":")[1];
 
@@ -62,9 +65,34 @@ public abstract class Operater {
                         " -DlogDir=" + flumeLogPath +
                         " -DlogstashHost=" + logstashHost +
                         " -DlogstashPort=" + logstashPort;
-        log.debug("cmd::::::::::::::::::::::::::"+ runAgentCommand);
-        Process run = exec(runAgentCommand.split(" ", -1));
+
+        StringBuilder commandBuilder = new StringBuilder(runAgentCommand);
+
+        if ( bodyInfo != null ) {
+            String bodyKeys = Arrays.toString(bodyInfo.keySet().toArray()).replace(" ", "");
+            commandBuilder.append(" -DbodyKeys=").append(bodyKeys);
+            for (String key : bodyInfo.keySet()) {
+                commandBuilder.append(" -D").append(key).append(".type=").append(bodyInfo.get(key).getType());
+                commandBuilder.append(" -D").append(key).append(".incremental=").append(bodyInfo.get(key).getIncremental());
+                commandBuilder.append(" -D").append(key).append(".value=").append(bodyInfo.get(key).getValue());
+            }
+        }
+
+        log.debug("cmd::::::::::::::::::::::::::"+ commandBuilder);
+        Process run = exec(commandBuilder.toString().split(" ", -1));
+        clear(run);
         return run.pid();
+    }
+
+    private void clear(Process process) {
+        try {
+            InputStream inputStream = process.getInputStream();
+            InputStream errorStream = process.getErrorStream();
+            inputStream.close();
+            errorStream.close();
+        } catch (IOException ioe) {
+            log.error(ExceptionUtils.getStackTrace(ioe));
+        }
     }
 
     protected void killAgent(Agent agent) {

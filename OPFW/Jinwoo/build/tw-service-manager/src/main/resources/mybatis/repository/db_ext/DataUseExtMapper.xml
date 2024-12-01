@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="net.jw.twin.repository.db.ext.dataUseExt.mapper.DataUseMapperExt">
+	<!--<include refid = "net.jw.twin.repository.db.dataUse.mapper.DataUseMapper.sort"/>-->
+	<!--<include refid = "net.jw.twin.repository.db.dataUse.mapper.DataUseMapper.paging"/>-->
+	<select id="selectByDataCode" resultType="dataUse" parameterType="dataUseSearchExt">
+		select DU.*
+		from (
+				select * from data_use
+			   	where DEL_ID is null
+			   	  	and REG_ID=#{userId}
+			   		and status=#{status}
+		) DU
+		join (
+				select * from data_item
+			 	where DEL_ID is null
+					and data_code=#{dataCode}
+			 		and status=#{dataItemStatus}
+		) as DI on DU.data_id = DI.id
+	</select>
+
+	<select id="selectByServiceId" resultType="dataUse" parameterType="dataUseSearchExt">
+		select DU.*
+		from (
+				 select * from data_use
+				 where DEL_ID is null
+				   and REG_ID=#{userId}
+				   and status=#{status}
+			 ) DU
+				 join (
+			select * from data_item
+			where DEL_ID is null
+			  and service_id=#{serviceId}
+			  and status=#{dataItemStatus}
+		) as DI on DU.data_id = DI.id
+	</select>
+</mapper>

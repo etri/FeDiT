@@ -1,0 +1,159 @@
+{
+  "type" : "record",
+  "name" : "Visitjeju",
+  "namespace" : "net.jw.twin.db.visitjeju.model",
+  "fields" : [ {
+    "name" : "start",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "length",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "sort",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "sort_ord",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "paging_yn",
+    "type" : [ "null", "boolean" ]
+  }, {
+    "name" : "groupby_list",
+    "type" : [ "null", {
+      "type" : "array",
+      "items" : "string"
+    } ]
+  }, {
+    "name" : "select_list",
+    "type" : [ "null", {
+      "type" : "array",
+      "items" : "string"
+    } ]
+  }, {
+    "name" : "reg_id",
+    "type" : [ "null", {
+      "type" : "long",
+      "java-class" : "java.lang.Long"
+    } ]
+  }, {
+    "name" : "reg_dt",
+    "type" : [ "null", {
+      "type" : "long",
+      "logicalType" : "local-timestamp-millis"
+    } ]
+  }, {
+    "name" : "upd_id",
+    "type" : [ "null", {
+      "type" : "long",
+      "java-class" : "java.lang.Long"
+    } ]
+  }, {
+    "name" : "upd_dt",
+    "type" : [ "null", {
+      "type" : "long",
+      "logicalType" : "local-timestamp-millis"
+    } ]
+  }, {
+    "name" : "del_id",
+    "type" : [ "null", {
+      "type" : "long",
+      "java-class" : "java.lang.Long"
+    } ]
+  }, {
+    "name" : "del_dt",
+    "type" : [ "null", {
+      "type" : "long",
+      "logicalType" : "local-timestamp-millis"
+    } ]
+  }, {
+    "name" : "rec_st",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "contentsid",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "contentscd",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "measure_position_id",
+    "type" : [ "null", {
+      "type" : "long",
+      "java-class" : "java.lang.Long"
+    } ]
+  }, {
+    "name" : "title",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "address",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "roadaddress",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "tag",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "introduction",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "latitude",
+    "type" : [ "null", {
+      "type" : "string",
+      "java-class" : "java.math.BigDecimal"
+    } ]
+  }, {
+    "name" : "longitude",
+    "type" : [ "null", {
+      "type" : "string",
+      "java-class" : "java.math.BigDecimal"
+    } ]
+  }, {
+    "name" : "postcode",
+    "type" : [ "null", {
+      "type" : "int",
+      "java-class" : "java.lang.Integer"
+    } ]
+  }, {
+    "name" : "phoneno",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "url",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "fee",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "parking",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "use_time",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "detail_info",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "image1_id",
+    "type" : [ "null", {
+      "type" : "long",
+      "java-class" : "java.lang.Long"
+    } ]
+  }, {
+    "name" : "image2_id",
+    "type" : [ "null", {
+      "type" : "long",
+      "java-class" : "java.lang.Long"
+    } ]
+  }, {
+    "name" : "kakao_code",
+    "type" : [ "null", "string" ]
+  }, {
+    "name" : "has_visitor_data",
+    "type" : [ "null", "string" ]
+  } ]
+}

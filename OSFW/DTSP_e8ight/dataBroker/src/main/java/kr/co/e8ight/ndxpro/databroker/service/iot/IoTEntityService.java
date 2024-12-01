@@ -5,6 +5,7 @@ import kr.co.e8ight.ndxpro.common.exception.error.ErrorCode;
 import kr.co.e8ight.ndxpro.databroker.domain.Attribute;
 import kr.co.e8ight.ndxpro.databroker.domain.datamanager.AttributeResponseDto;
 import kr.co.e8ight.ndxpro.databroker.dto.iot.IoTObservedAtDto;
+import kr.co.e8ight.ndxpro.databroker.repository.EntityRepository;
 import kr.co.e8ight.ndxpro.databroker.service.AttributeCacheService;
 import kr.co.e8ight.ndxpro.databroker.domain.iot.IoTEntityValidation;
 import kr.co.e8ight.ndxpro.databroker.repository.iot.IoTEntityValidationRepository;
@@ -44,6 +45,8 @@ public class IoTEntityService {
 
     private final IoTEntityHistoryRepository ioTEntityHistoryRepository;
 
+    private final EntityRepository entityRepository;
+
     private final IoTObservedAtRepository ioTObservedAtRepository;
 
     private final IoTEntityValidationRepository ioTEntityValidationRepository;
@@ -56,9 +59,11 @@ public class IoTEntityService {
 
     private final MongoTemplate mongoTemplate;
 
-    public IoTEntityService(IoTEntityRepository ioTEntityRepository, IoTEntityHistoryRepository ioTEntityHistoryRepository, IoTObservedAtRepository ioTObservedAtRepository, IoTEntityValidationRepository ioTEntityValidationRepository, EntityValidationService entityValidationService, AttributeCacheService attributeCacheService, ObjectMapper objectMapper, MongoTemplate mongoTemplate) {
+    public IoTEntityService(IoTEntityRepository ioTEntityRepository, IoTEntityHistoryRepository ioTEntityHistoryRepository,
+            EntityRepository entityRepository, IoTObservedAtRepository ioTObservedAtRepository, IoTEntityValidationRepository ioTEntityValidationRepository, EntityValidationService entityValidationService, AttributeCacheService attributeCacheService, ObjectMapper objectMapper, MongoTemplate mongoTemplate) {
         this.ioTEntityRepository = ioTEntityRepository;
         this.ioTEntityHistoryRepository = ioTEntityHistoryRepository;
+        this.entityRepository = entityRepository;
         this.ioTObservedAtRepository = ioTObservedAtRepository;
         this.ioTEntityValidationRepository = ioTEntityValidationRepository;
         this.entityValidationService = entityValidationService;
@@ -71,6 +76,7 @@ public class IoTEntityService {
         try {
             entityValidationService.validateEntity(entity);
         } catch (Exception e) {
+            log.error("Entity Validation Fail. entityId = {}", entity.getId().getId());
             ioTEntityValidationRepository.insert(IoTEntityValidation.builder()
                             .result("fail")
                             .cause(e.getMessage())
@@ -85,19 +91,35 @@ public class IoTEntityService {
 //        IoTEntity existEntity = ioTEntityRepository.findByIdIdAndContext(entity.getId().getId(), entity.getContext());
         if(existEntity == null) {
             responseEntity = ioTEntityRepository.insert(entity);
+            entityRepository.insert(entity);
             iotEntityHistory.setEntity(entity);
         } else {
             existEntity.setContext(entity.getContext());
             existEntity.setAttrNames(entity.getAttrNames());
             existEntity.setAttrs(entity.getAttrs());
-
+            entityRepository.save(existEntity);
             responseEntity = ioTEntityRepository.save(existEntity);
             iotEntityHistory.setEntity(existEntity);
         }
+        String observedAt = "";
+        for (var attribute : iotEntityHistory.getEntity().getAttrs()) {
+            for (var childAttribute : attribute.getMd()) {
+                if (childAttribute.getName().equals("observedAt")) {
+                    observedAt = childAttribute.getValue().toString();
+                    break;
+                }
+            }
+            if (observedAt != "") break;
+        }
+        String entityId = iotEntityHistory.getEntity().getId().getId();
+        Optional<IoTEntityHistory> historyEntity = ioTEntityHistoryRepository.findFirstHistoryEntityData(
+                entityId, "observedAt", observedAt);
+        if (historyEntity.isEmpty()) {
+            ioTEntityHistoryRepository.insert(iotEntityHistory);
+        }
 
-        ioTEntityHistoryRepository.insert(iotEntityHistory);
-
-        log.debug("Completed Entity Save.");
+//        log.debug("Completed Entity Save.", responseEntity.getId().getId());
+        log.info("Completed Entity Save. entityId = {}", responseEntity.getId().getId());
         return responseEntity;
     }
 

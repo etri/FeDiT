@@ -1,12 +1,32 @@
 package kr.co.e8ight.ndxpro.agentManager.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.mock;
+import static org.mockito.BDDMockito.never;
+import static org.mockito.BDDMockito.verify;
+import static org.mockito.BDDMockito.willThrow;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import kr.co.e8ight.ndxpro.agentManager.config.Constants;
 import kr.co.e8ight.ndxpro.agentManager.config.OperaterProvider;
-import kr.co.e8ight.ndxpro.agentManager.domain.*;
+import kr.co.e8ight.ndxpro.agentManager.domain.Agent;
+import kr.co.e8ight.ndxpro.agentManager.domain.AgentOperation;
+import kr.co.e8ight.ndxpro.agentManager.domain.AgentType;
+import kr.co.e8ight.ndxpro.agentManager.domain.HttpAgent;
+import kr.co.e8ight.ndxpro.agentManager.domain.JsonField;
+import kr.co.e8ight.ndxpro.agentManager.domain.JsonType;
 import kr.co.e8ight.ndxpro.agentManager.domain.dto.AgentListResponseDto;
-import kr.co.e8ight.ndxpro.agentManager.domain.dto.AgentResponseDto;
 import kr.co.e8ight.ndxpro.agentManager.domain.dto.AgentRequestDto;
+import kr.co.e8ight.ndxpro.agentManager.domain.dto.AgentResponseDto;
 import kr.co.e8ight.ndxpro.agentManager.domain.dto.DataModelDto;
+import kr.co.e8ight.ndxpro.agentManager.domain.dto.OperationRequestDto;
 import kr.co.e8ight.ndxpro.agentManager.exceptions.AgentException;
 import kr.co.e8ight.ndxpro.agentManager.repository.AgentRepository;
 import kr.co.e8ight.ndxpro.agentManager.service.operater.Operater;
@@ -21,16 +41,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AgentServiceTest {
@@ -77,7 +87,7 @@ class AgentServiceTest {
                 .willReturn(confFileContents);
 
         //when
-        AgentResponseDto responseDto = agentService.createAgent(agentRequestDto, "testuser");
+        AgentResponseDto responseDto = agentService.createAgent(agentRequestDto, "testuser", "token");
 
         //then
         verify(fileService).createOrReplaceFile(agent.getConfigFileFullPath(), confFileContents);
@@ -115,7 +125,7 @@ class AgentServiceTest {
                 .willThrow(new AgentException(ErrorCode.INTERNAL_SERVER_ERROR, configPath + " file save error"));
 
         //when
-        AgentException exception = Assertions.assertThrows(AgentException.class, () -> agentService.createAgent(agentRequestDto, "testuser"));
+        AgentException exception = Assertions.assertThrows(AgentException.class, () -> agentService.createAgent(agentRequestDto, "testuser", "token"));
 
         //then
         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR);
@@ -142,7 +152,7 @@ class AgentServiceTest {
         given(agentRepository.findById(agent.getId())).willReturn(Optional.of(agent));
 
         //when
-        AgentResponseDto responseDto = agentService.deleteAgent(agent.getId(), "testuser");
+        AgentResponseDto responseDto = agentService.deleteAgent(agent.getId(), "testuser", "token");
 
         //then
         verify(translatorManagerService).existByAgentId(agent.getId());
@@ -161,7 +171,7 @@ class AgentServiceTest {
 
         //when
         AgentException exception = Assertions.assertThrows(AgentException.class, () -> {
-            agentService.deleteAgent(agentId, "testuser");
+            agentService.deleteAgent(agentId, "testuser", "token");
         });
 
         //then
@@ -194,7 +204,7 @@ class AgentServiceTest {
 
         //when
         AgentException exception = Assertions.assertThrows(AgentException.class, () -> {
-            agentService.deleteAgent(agentId, "testuser");
+            agentService.deleteAgent(agentId, "testuser", "token");
         });
 
         //then
@@ -224,15 +234,19 @@ class AgentServiceTest {
 
         given(fileService.isExistFile(agent.getConfigFileFullPath())).willReturn(true);
         String operation = "run";
+        Map<String , JsonField> bodyInfo = new HashMap<>();
+        bodyInfo.put("fromDtm", new JsonField("20230502000000", JsonType.STRING, true));
+        bodyInfo.put("toDtm", new JsonField("20230502000001", JsonType.STRING, true));
+        OperationRequestDto requestDto = new OperationRequestDto(operation, bodyInfo);
 
         Operater operater = mock(Operater.class);
-        given(operater.operate(any(Agent.class)))
+        given(operater.operate(any(Agent.class), any()))
                 .willReturn(agent);
-        given(operaterProvider.getOperater(AgentOperation.getOperation(operation)))
+        given(operaterProvider.getOperater(AgentOperation.getOperation(requestDto)))
                 .willReturn(operater);
 
         //when
-        AgentResponseDto responseDto = agentService.operate(agent.getId(), operation, "testuser");
+        AgentResponseDto responseDto = agentService.operate(agent.getId(), requestDto, "testuser");
 
         //then
         assertThat(responseDto.getId()).isEqualTo(agent.getId());
@@ -249,11 +263,15 @@ class AgentServiceTest {
         //given
         Long agentId = 1L;
         given(agentRepository.findById(agentId)).willReturn(Optional.empty());
-        String operation = "start";
+        String operation = "run";
+        Map<String , JsonField> bodyInfo = new HashMap<>();
+        bodyInfo.put("fromDtm", new JsonField("20230502000000", JsonType.STRING, true));
+        bodyInfo.put("toDtm", new JsonField("20230502000001", JsonType.STRING, true));
+        OperationRequestDto requestDto = new OperationRequestDto(operation, bodyInfo);
 
         //when
         AgentException exception = Assertions.assertThrows(AgentException.class, () -> {
-            agentService.operate(agentId, operation, "testuser");
+            agentService.operate(agentId, requestDto, "testuser");
         });
 
         //then
@@ -282,10 +300,14 @@ class AgentServiceTest {
         given(agentRepository.findById(agent.getId())).willReturn(Optional.of(agent));
         given(fileService.isExistFile(agent.getConfigFileFullPath())).willReturn(false);
         String operation = "start";
+        Map<String , JsonField> bodyInfo = new HashMap<>();
+        bodyInfo.put("fromDtm", new JsonField("20230502000000", JsonType.STRING, true));
+        bodyInfo.put("toDtm", new JsonField("20230502000001", JsonType.STRING, true));
+        OperationRequestDto requestDto = new OperationRequestDto(operation, bodyInfo);
 
         //when
         AgentException exception = Assertions.assertThrows(AgentException.class, () -> {
-            agentService.operate(agent.getId(), operation, "testuser");
+            agentService.operate(agent.getId(), requestDto, "testuser");
         });
 
         //then
@@ -314,10 +336,14 @@ class AgentServiceTest {
         given(agentRepository.findById(agent.getId())).willReturn(Optional.of(agent));
         given(fileService.isExistFile(agent.getConfigFileFullPath())).willReturn(true);
         String operation = "invalid";
+        Map<String , JsonField> bodyInfo = new HashMap<>();
+        bodyInfo.put("fromDtm", new JsonField("20230502000000", JsonType.STRING, true));
+        bodyInfo.put("toDtm", new JsonField("20230502000001", JsonType.STRING, true));
+        OperationRequestDto requestDto = new OperationRequestDto(operation, bodyInfo);
 
         //when
         AgentException exception = Assertions.assertThrows(AgentException.class, () -> {
-            agentService.operate(agent.getId(), operation, "testuser");
+            agentService.operate(agent.getId(), requestDto, "testuser");
         });
 
         //then
@@ -438,7 +464,7 @@ class AgentServiceTest {
         agentList.add(agent2);
         Pageable pageable = PageRequest.of(0, 10);
 
-        given(agentRepository.findByStatusAndNameContainsAndNotDeleted(eq(null), eq(null), any(Pageable.class))).willReturn(new PageImpl<>(agentList));
+        given(agentRepository.findByStatusAndNameContainsAndNotDeletedOrderByName(eq(null), eq(null), any(Pageable.class))).willReturn(new PageImpl<>(agentList));
 
         //when
         AgentListResponseDto responseDto = agentService.getAgentList(null, null, pageable);
@@ -477,7 +503,7 @@ class AgentServiceTest {
                 .willReturn(confFileContents);
 
         //when
-        AgentResponseDto responseDto = agentService.updateAgent(agent.getId(), agentRequestDto);
+        AgentResponseDto responseDto = agentService.updateAgent(agent.getId(), agentRequestDto, "token");
 
         //then
         verify(configProvider).getConfFileContents(eq(agent), any(AgentRequestDto.class));
@@ -511,7 +537,7 @@ class AgentServiceTest {
 
         //when
         AgentException exception = Assertions.assertThrows(AgentException.class, () -> {
-            agentService.updateAgent(agentId, agentRequestDto);
+            agentService.updateAgent(agentId, agentRequestDto, "token");
         });
 
         //then
@@ -540,7 +566,7 @@ class AgentServiceTest {
 
         //when
         AgentException exception = Assertions.assertThrows(AgentException.class, () -> {
-            agentService.updateAgent(agent.getId(), agentRequestDto);
+            agentService.updateAgent(agent.getId(), agentRequestDto, "token");
         });
 
         //then
@@ -576,7 +602,7 @@ class AgentServiceTest {
 
         //when
         AgentException exception = Assertions.assertThrows(AgentException.class, () -> {
-            agentService.updateAgent(agent.getId(), agentRequestDto);
+            agentService.updateAgent(agent.getId(), agentRequestDto, "token");
         });
 
         //then

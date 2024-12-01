@@ -286,7 +286,7 @@ public class ContextService {
                 objectContext.getValue());
 
         objectContext.setUrl(contextUrl);
-        objectContext.setDefaultUrl(contextUrl);
+//        objectContext.setDefaultUrl(contextUrl);
 
         Optional<Context> byUrl = contextRepository.findByUrl(contextUrl);
 
@@ -328,13 +328,13 @@ public class ContextService {
     }
     public List<ContextResponseDto> readContextVersion(String contextUrl) {
 
-        List<Context> contextInfo =  contextRepository.findByDefaultUrlOrderByCreatedAtDesc(contextUrl);
+        List<Context> contextInfo =  contextRepository.findByUrlOrderByCreatedAtDesc(contextUrl);
 
         List<ContextResponseDto> contexts = new ArrayList<>();
 
         for (Context context: contextInfo) {
             final ContextResponseDto contextResponseDto = new ContextResponseDto();
-            contextResponseDto.setVersion(context.getVersion());
+//            contextResponseDto.setVersion(context.getVersion());
             contextResponseDto.setUrl(context.getUrl());
             contexts.add(contextResponseDto);
         }
@@ -347,8 +347,8 @@ public class ContextService {
         validationContextUrl(contextUrl);
 
         Context contextInfo  =  contextRepository.findByUrl(contextUrl).orElseThrow(
-                        () -> new ContextException(ErrorCode.RESOURCE_NOT_FOUND,
-                                "Not Exists. @context= " + contextUrl));
+                () -> new ContextException(ErrorCode.RESOURCE_NOT_FOUND,
+                        "Not Exists. @context= " + contextUrl));
 
         Object value = contextInfo.getValue();
 
@@ -361,10 +361,10 @@ public class ContextService {
 
         if (full) {
             contextResponseDto.setContext(stringStringTreeMap);
-            contextResponseDto.setVersion(contextInfo.getVersion());
+//            contextResponseDto.setVersion(contextInfo.getVersion());
         } else {
             contextResponseDto.setContext(linkedHashMap);
-            contextResponseDto.setVersion(contextInfo.getVersion());
+//            contextResponseDto.setVersion(contextInfo.getVersion());
         }
 
         return contextResponseDto;
@@ -384,10 +384,10 @@ public class ContextService {
         List<ContextResponseDto> contextResponseDtos = new ArrayList<>();
         for (String a:collect) {
             final ContextResponseDto contextResponseDto = new ContextResponseDto();
-            List<Context> byDefaultUrlOrderByCreatedAtDesc = contextRepository.findByDefaultUrlOrderByCreatedAtDesc(a);
+            List<Context> byDefaultUrlOrderByCreatedAtDesc = contextRepository.findByUrlOrderByCreatedAtDesc(a);
             Context context = byDefaultUrlOrderByCreatedAtDesc.get(byDefaultUrlOrderByCreatedAtDesc.size() - 1);
             contextResponseDto.setUrl(context.getUrl());
-            contextResponseDto.setVersion(context.getVersion());
+//            contextResponseDto.setVersion(context.getVersion());
             contextResponseDtos.add(contextResponseDto);
         }
         return contextResponseDtos;
@@ -421,7 +421,7 @@ public class ContextService {
         if (!ValidateUtil.isEmptyData(dataModels)) {
 
             for (String model : dataModels) {
-                DataModel dataModel = dataModelRepository.findByType(model).orElseThrow(
+                DataModel dataModel = dataModelRepository.findFirstByAndTypeOrderByCreatedAtDesc(model).orElseThrow(
                         () -> new DataModelException(ErrorCode.RESOURCE_NOT_FOUND,
                                 "Not Exists. DataModel= " + model));
                 if (dataModel.getIsReady()) {
@@ -478,7 +478,7 @@ public class ContextService {
 
         for (String model : dataModels) {
 
-            DataModel dataModel = dataModelRepository.findByType(model).orElseThrow(
+            DataModel dataModel = dataModelRepository.findFirstByAndTypeOrderByCreatedAtDesc(model).orElseThrow(
                     () -> new DataModelException(ErrorCode.RESOURCE_NOT_FOUND,
                             "Not Exists. DataModel= " + model));
             HashMap<String, Object> attributes = dataModel.getAttributes();
@@ -496,7 +496,7 @@ public class ContextService {
                     }
                 }
             }
-                contextInnerMap.remove(model);
+            contextInnerMap.remove(model);
         }
 
 
@@ -644,7 +644,6 @@ public class ContextService {
         }
 
     }
-
 
 
 }

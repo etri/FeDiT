@@ -1,6 +1,7 @@
 package kr.co.e8ight.ndxpro.dataAdapter.source;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.co.e8ight.ndxpro.dataAdapter.component.SignalProcessor;
 import kr.co.e8ight.ndxpro.dataAdapter.exception.ResponseBodyMissingException;
 import kr.co.e8ight.ndxpro.dataAdapter.interceptor.CustomInterceptorImpl;
@@ -16,6 +17,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class HttpSource extends AbstractPollableSource {
@@ -25,6 +32,14 @@ public class HttpSource extends AbstractPollableSource {
 
     private SourceConfig config;
 
+    private ObjectMapper objectMapper = new ObjectMapper();
+
+    private List<JsonField> jsonFieldList = new ArrayList<>();
+    private Map<String, Object> body = new HashMap<>();
+
+    private long count;
+
+    //Agent의 동작 부분, 반복적으로 실행됨
     @Override
     protected Status doProcess() {
         Headers headers = new Headers.Builder()
@@ -39,8 +54,18 @@ public class HttpSource extends AbstractPollableSource {
                     .headers(headers)
                     .build();
         } else if ( config.getMethod().equalsIgnoreCase("POST") ) {
-            String json = config.getJsonBody();
-            RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), json);
+            String jsonBody;
+            body.clear();
+            jsonFieldList.forEach(
+                    jsonField -> body.put(jsonField.getName(), jsonField.getValue())
+            );
+            try {
+                jsonBody = objectMapper.writeValueAsString(body);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+
+            RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), jsonBody);
 
             request = new Request.Builder()
                     .url(config.getUrlAddr())
@@ -63,11 +88,13 @@ public class HttpSource extends AbstractPollableSource {
             String body = response.body().string();
 
             sendEvent(body);
+            log.info("[{}] HTTP {} {} SUCCESS", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss")), config.getMethod(), config.getUrlAddr());
 
             SignalProcessor signalProcessor = SignalProcessor.INSTANCE;
             signalProcessor.sendSignal("source", config.getAgentId());
 
-            Thread.sleep(config.getConnTerm() * 1000);
+            Thread.sleep(config.getConnTerm() * 1000L);
+            jsonFieldList.forEach(JsonField::increaseValueIfIncremental);
             return Status.READY;
         } catch (RuntimeException | IOException | InterruptedException e) {
             log.error(ExceptionUtils.getStackTrace(e));
@@ -75,6 +102,7 @@ public class HttpSource extends AbstractPollableSource {
         }
     }
 
+    //Agent 실행 시점에 단 한번 실행되는 구성 메서드
     @Override
     protected void doConfigure(Context context) throws FlumeException {
         this.config = new SourceConfig(
@@ -84,6 +112,26 @@ public class HttpSource extends AbstractPollableSource {
                 context.getString("METHOD"),
                 context.getString("JSON_BODY")
         );
+
+        String bodyKeys = System.getProperty("bodyKeys");
+
+        if ( bodyKeys != null && !bodyKeys.isEmpty() ) {
+            String[] fieldNames = bodyKeys.substring(1, bodyKeys.length() - 1).split(",");
+            for (String fieldName : fieldNames) {
+                JsonType type = JsonType.valueOf(System.getProperty(fieldName.trim() + ".type"));
+                Object value = null;
+                if ( type.equals(JsonType.STRING) ) {
+                    value = System.getProperty(fieldName.trim() + ".value");
+                } else if ( type.equals(JsonType.NUMBER) ) {
+                    value = Long.parseLong(System.getProperty(fieldName.trim() + ".value"));
+                } else if ( type.equals(JsonType.BOOLEAN) ) {
+                    value = Boolean.parseBoolean(System.getProperty(fieldName.trim() + ".value"));
+                }
+                Boolean incremental = Boolean.parseBoolean(System.getProperty(fieldName.trim() + ".incremental"));
+                JsonField jsonField = new JsonField(fieldName, value, type, incremental);
+                jsonFieldList.add(jsonField);
+            }
+        }
     }
 
     @Override

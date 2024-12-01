@@ -30,6 +30,7 @@
     <Loggers>
         <Logger name="org.apache.flume.lifecycle" level="info"/>
         <Logger name="org.apache.flume.sink.kafka" level="INFO"/>
+        <Logger name="org.apache.flume.source.kafka.KafkaSource" level="TRACE"/>
         <Logger name="org.apache.kafka.clients.NetworkClient" level="ERROR" additivity="false"/>
         <Logger name="kr.co.e8ight.ndxpro.dataAdapter.interceptor.CustomInterceptorImpl" level="WARN"/>
         <Logger name="kr.co.e8ight.ndxpro.dataAdapter" level="INFO"/>

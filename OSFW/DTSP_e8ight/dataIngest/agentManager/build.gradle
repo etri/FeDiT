@@ -17,6 +17,7 @@ version = '0.0.1-SNAPSHOT'
 sourceCompatibility = '11'
 
 repositories {
+    mavenCentral()
     maven {
         url 'http://172.16.28.217:9081/repository/maven-releases/'
         allowInsecureProtocol = true
@@ -25,7 +26,6 @@ repositories {
             password = "ndxpro123!"
         }
     }
-    mavenCentral()
 }
 
 dependencies {
@@ -68,7 +68,7 @@ tasks.named('test') {
 
 jib {
     from{
-        image = "172.16.28.217:12000/ndxpro-dataadapter:v1.4"
+        image = "172.16.28.217:12000/ndxpro-dataadapter:v1.1"
         auth {
             username = "admin"
             password = "ndxpro123!"
@@ -76,7 +76,7 @@ jib {
     }
     to {
         image = "172.16.28.217:12000/ndxpro-dataingest"
-        tags = ["v1.4"]
+        tags = ["v1.1"]
         auth {
             username = "admin"
             password = "ndxpro123!"

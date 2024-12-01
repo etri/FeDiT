@@ -1,0 +1,49 @@
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL}
+
+spring:
+  jpa:
+    generate-ddl: 'true'
+    database: postgresql
+    hibernate:
+      ddl-auto: update
+  datasource:
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: '20'
+    url: ${DATASOURCE_URL}
+  sleuth:
+    scheduled:
+      enabled: false
+    sampler:
+      probability: 1.0
+  zipkin:
+    base-url: ${ZIPKIN_URL}
+
+translator:
+  dir: /translatorJars
+  kafka-url: ${KAFKA_URL}
+  default:
+    poll-duration: 100
+  inspector:
+    inspect-duration: 10000
+    threshold: 60000
+
+data-ingest:
+  url: ${GATEWAY_URL}/ndxpro/v1/ingest
+data-manager:
+  url: ${GATEWAY_URL}/ndxpro/v1/manager
+translator-builder:
+  url: ${GATEWAY_URL}/ndxpro/v1/translator-builder
+auth:
+  url: ${GATEWAY_URL}/ndxpro/v1/auth
+gateway:
+  url: ${GATEWAY_URL}
+
+logging:
+  logstash:
+    url: ${LOGSTASH_URL}

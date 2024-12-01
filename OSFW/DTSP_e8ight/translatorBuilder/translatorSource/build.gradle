@@ -1,0 +1,46 @@
+plugins {
+    id 'java'
+}
+
+group 'kr.co.e8ight.ndxpro'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.apache.kafka:kafka-clients:3.2.3'
+    implementation 'org.json:json:20220320'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.14.2'
+    implementation 'ch.qos.logback:logback-classic:1.4.0'
+    implementation 'com.squareup.okhttp3:okhttp:3.14.4'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.14.2'
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation 'com.fasterxml.jackson:jackson-bom:2.14.2'
+
+    //logstash encoder
+    implementation group: 'net.logstash.logback', name: 'logstash-logback-encoder', version: '7.0.1'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+}
+
+jar {
+    manifest {
+        attributes  'Title': 'Translator', 'Version': version, 'Main-Class': 'kr.co.e8ight.ndxpro.translatorRunner.TranslatorRunner'
+    }
+    archiveName 'translator.jar'
+//    dependsOn configurations.runtime
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from {
+        configurations.runtimeClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+}
+
+
+test {
+    useJUnitPlatform()
+}

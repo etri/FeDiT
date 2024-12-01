@@ -1,0 +1,22 @@
+version: '3.8'
+volumes:
+  pipeline-zookeeper-a-volume:
+    name: pipeline-zookeeper-a-volume
+    
+services:
+  pipeline-zookeeper-a:
+    image: pipeline-zookeeper
+    container_name: pipeline-zookeeper-a
+    restart: always
+    hostname: pipeline-zookeeper-a
+    ports:
+      - 22181:2181
+    environment:
+      MY_ID: 1
+    volumes:
+      - ${REPO}/docker-volumes/pipeline-zookeeper-a-volume:/data
+
+networks:
+  default:
+    external:
+      name: ndxpro

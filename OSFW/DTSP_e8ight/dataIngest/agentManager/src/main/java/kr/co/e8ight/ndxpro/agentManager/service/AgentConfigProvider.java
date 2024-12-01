@@ -49,6 +49,7 @@ public class AgentConfigProvider {
         confStringBuilder.append(requestDto.getName()).append(".sinks.sink_kafka.type = ").append("kr.co.e8ight.ndxpro.dataAdapter.sink.SignalableKafkaSink").append("\n");
         confStringBuilder.append(requestDto.getName()).append(".sinks.sink_kafka.channel = ").append("ch_kafka").append("\n");
         confStringBuilder.append(requestDto.getName()).append(".sinks.sink_kafka.kafka.bootstrap.servers = ").append(kafkaUrl).append("\n");
+        confStringBuilder.append(requestDto.getName()).append(".sinks.sink_kafka.kafka.producer.max.request.size = ").append("10485880").append("\n");
 
         confStringBuilder.append(requestDto.getName()).append(".sinks.sink_kafka.kafka.topic = ").append(agent.getTopic()).append("\n");
         confStringBuilder.append(requestDto.getName()).append(".sinks.sink_kafka.flumeBatchSize = ").append(1).append("\n");

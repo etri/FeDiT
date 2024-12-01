@@ -12,4 +12,5 @@ public class NdxproGatewayApplication {
     public static void main(String[] args) {
         SpringApplication.run(NdxproGatewayApplication.class, args);
     }
+
 }

@@ -1,0 +1,217 @@
+version: '3'
+
+services:
+  eureka:
+    container_name: eureka
+    image: ${IMAGE_REPO_URL}/eurekaserver:v1.1
+    restart: always
+    ports:
+      - 58761:8761
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - TZ=${TZ}
+
+  gateway:
+    container_name: gateway
+    image: ${IMAGE_REPO_URL}/gatewayserver:v1.1
+    restart: always
+    ports:
+      - 54002:8000
+    environment:
+      - LOGSTASH_URL=${LOGSTASH_URL}
+      - ZIPKIN_URL=${ZIPKIN_URL}
+      - EUREKA_URL=${EUREKA_URL}
+      - SPRING_PROFILES_ACTIVE=prod
+      - TZ=${TZ}
+    depends_on:
+      - eureka
+
+  data-ingest:
+    container_name: data-ingest
+    image: ${IMAGE_REPO_URL}/dataingest:v1.1.1
+    restart: always
+    volumes:
+      - ${REPO}/logs/data-ingest:/opt/logs
+      - flume:/opt/flume/conf/files
+    environment:
+      - LOGSTASH_URL=${LOGSTASH_URL}
+      - ZIPKIN_URL=${ZIPKIN_URL}
+      - EUREKA_URL=${EUREKA_URL}
+      - DATASOURCE_URL=${DATASOURCE_URL}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - KAFKA_URL=${KAFKA_URL}
+      - GATEWAY_URL=${GATEWAY_URL}
+      - SPRING_PROFILES_ACTIVE=prod
+      - TZ=${TZ}
+    ports:
+      - 54003:8080
+    depends_on:
+      - eureka
+      - gateway
+
+
+  translator-builder:
+    container_name: translator-builder
+    image: ${IMAGE_REPO_URL}/translatorbuilder:v1.1.1
+    restart: always
+    volumes:
+      - ${REPO}/logs/translator-builder:/opt/logs
+    environment:
+      - LOGSTASH_URL=${LOGSTASH_URL}
+      - ZIPKIN_URL=${ZIPKIN_URL}
+      - EUREKA_URL=${EUREKA_URL}
+      - SPRING_PROFILES_ACTIVE=prod
+      - TZ=${TZ}
+    ports:
+      - 54005:8080
+    depends_on:
+      - eureka
+      - gateway
+
+  ngsi-translator:
+    container_name: ngsi-translator
+    image: ${IMAGE_REPO_URL}/ngsi-translator:v1.1.1
+    restart: always
+    volumes:
+      - ${REPO}/logs/ngsi-translator:/opt/logs
+      - ${REPO}/translatorJars:/translatorJars
+    environment:
+      - LOGSTASH_URL=${LOGSTASH_URL}
+      - ZIPKIN_URL=${ZIPKIN_URL}
+      - EUREKA_URL=${EUREKA_URL}
+      - DATASOURCE_URL=${DATASOURCE_URL}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - KAFKA_URL=${KAFKA_URL}
+      - GATEWAY_URL=${GATEWAY_URL}
+      - SPRING_PROFILES_ACTIVE=prod
+      - TZ=${TZ}
+    ports:
+      - 54004:8080
+    depends_on:
+      - eureka
+      - gateway
+      - translator-builder
+      - data-ingest
+
+  data-broker-1:
+    container_name: data-broker-1
+    image: ${IMAGE_REPO_URL}/core-databroker:v1.1.2
+    restart: always
+    volumes:
+      - ${REPO}/logs/data-broker-1:/logFile
+    environment:
+      - EUREKA_URL=${EUREKA_URL}
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DATABASE_NAME=${MONGODB_DATABASE_NAME}
+      - KAFKA_URL=${KAFKA_URL}
+      - KAFKA_TOPIC_FOR_ENTITY=ngsild.topic
+      - KAFKA_TOPIC_FOR_OBSERVED_AT=observedAt.topic
+      - KAFKA_CONSUMER_GROUP=e8ight-group_record
+      - DATAMANAGER_URL=http://data-manager:8080
+      - DATAMANAGER_GET_DATA_MODELS_API_PATH=/ndxpro/v1/manager/data-models
+      - DATAMANAGER_GET_ATTRIBUTES_API_PATH=/ndxpro/v1/manager/attributes
+      - SPRING_PROFILES_ACTIVE=prod
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - TZ=${TZ}
+      - ZIPKIN_URL=${ZIPKIN_URL}
+      - LOGSTASH_URL=${LOGSTASH_URL}
+    ports:
+      - 54011:8080
+    depends_on:
+      - eureka
+      - gateway
+      - data-manager
+
+  data-service:
+    container_name: data-service
+    image: ${IMAGE_REPO_URL}/dataservice:v1.1
+    restart: always
+    volumes:
+      - ${REPO}/logs/data-service:/logFile
+    environment:
+      - EUREKA_URL=${EUREKA_URL}
+      - DATABROKER_URL=http://data-broker-1:8080
+      - DATABROKER_API_PATH=/ndxpro/v1/broker/entities
+      - SPRING_PROFILES_ACTIVE=prod
+      - TZ=${TZ}
+      - ZIPKIN_URL=${ZIPKIN_URL}
+      - LOGSTASH_URL=${LOGSTASH_URL}
+    ports:
+      - 54007:8080
+    depends_on:
+      - eureka
+      - gateway
+      - data-broker-1
+
+  data-manager:
+    container_name: data-manager
+    image: ${IMAGE_REPO_URL}/datamanager:v1.1
+    restart: always
+    volumes:
+      - ${REPO}/logs/data-manager:/logFile
+      - ${REPO}/ngsi-context:/ngsi-context
+    environment:
+      - LOGSTASH_URL=${LOGSTASH_URL}
+      - ZIPKIN_URL=${ZIPKIN_URL}
+      - EUREKA_URL=${EUREKA_URL}
+      - MONGO_HOST=mongodb
+      - MONGO_DATABASE=ndxpro
+      - MONGO_INITDB_ROOT_USERNAME=ndxpro
+      - MONGO_INITDB_ROOT_PASSWORD=ndxpro123!
+      - DATABROKER_URL=http://data-broker-1:8080
+      - DATABROKER_API_PATH=/ndxpro/v1/broker/entities
+      - SPRING_PROFILES_ACTIVE=prod
+      - TZ=${TZ}
+    ports:
+      - 54008:8080
+    depends_on:
+      - eureka
+      - gateway
+
+  data-authorization:
+    container_name: data-auth
+    image: ${IMAGE_REPO_URL}/authorization:v1.1
+    restart: always
+    volumes:
+      - ${REPO}/logs/data-auth:/logFile
+    environment:
+      - ZIPKIN_URL=${ZIPKIN_URL}
+      - LOGSTASH_URL=${LOGSTASH_URL}
+      - EUREKA_URL=${EUREKA_URL}
+      - DATASOURCE_URL=${DATASOURCE_URL}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - GATEWAY_URL=${GATEWAY_URL}
+      - SPRING_PROFILES_ACTIVE=prod
+      - TZ=${TZ}
+    ports:
+      - 54009:8080
+    depends_on:
+      - eureka
+      - gateway
+
+  ndxpro-core-context:
+    container_name: ngsi-context
+    image: httpd:alpine
+    restart: always
+    volumes:
+      - ${REPO}/ngsi-context:/usr/local/apache2/htdocs/
+    environment:
+      - TZ=${TZ}
+    hostname: context
+    ports:
+      - "53005:80"
+
+
+networks:
+  default:
+    name: ndxpro
+    external: true
+
+volumes:
+  flume:
+    name: flume

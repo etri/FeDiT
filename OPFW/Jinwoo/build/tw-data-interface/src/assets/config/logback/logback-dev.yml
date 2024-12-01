@@ -1,0 +1,2 @@
+# logback property 는 한줄로 해야하는듯
+custom.logback.path: logs

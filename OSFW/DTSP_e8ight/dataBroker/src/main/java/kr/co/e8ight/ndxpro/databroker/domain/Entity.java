@@ -46,4 +46,5 @@ public class Entity implements Persistable<EntityId> {
     public boolean isNew() {
         return creDate == null;
     }
+
 }
