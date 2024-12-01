@@ -17,6 +17,7 @@ _FDTFW 프로젝트_ 는 디지털 트윈간 연합과 상호운용을 위한 �
 
 ### History
 _FDTFW 프로젝트_ 는 2022년 4월 시작
+Version 1.0 공개: 2024년 10월 31일
 
 ### Authors
 [AUTHORS.md](AUTHORS.md)를 참조
