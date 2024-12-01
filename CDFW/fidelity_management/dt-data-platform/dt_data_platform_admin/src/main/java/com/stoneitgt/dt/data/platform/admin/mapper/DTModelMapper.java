@@ -7,9 +7,6 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.session.RowBounds;
 
-import com.stoneitgt.dt.data.platform.domain.AugmentModel;
-import com.stoneitgt.dt.data.platform.domain.AugmentModelColumn;
-import com.stoneitgt.dt.data.platform.domain.AugmentModelParams;
 import com.stoneitgt.dt.data.platform.domain.DTModel;
 import com.stoneitgt.dt.data.platform.domain.DTModelColumn;
 import com.stoneitgt.dt.data.platform.domain.DTModelMetaUserItem;
@@ -20,11 +17,6 @@ import com.stoneitgt.dt.data.platform.domain.DTModelMetaUserItemPreprocessMapUni
 import com.stoneitgt.dt.data.platform.domain.DTModelMetaUserItemPreprocessMapVrfc;
 import com.stoneitgt.dt.data.platform.domain.DTModelParams;
 import com.stoneitgt.dt.data.platform.domain.Files;
-import com.stoneitgt.dt.data.platform.domain.Menu;
-import com.stoneitgt.dt.data.platform.domain.MenuAuth;
-import com.stoneitgt.dt.data.platform.domain.MetaOriginFullTextModel;
-import com.stoneitgt.dt.data.platform.domain.MetaOriginItemModel;
-import com.stoneitgt.dt.data.platform.domain.MetaOriginModel;
 
 @Mapper
 public interface DTModelMapper {
@@ -63,48 +55,23 @@ public interface DTModelMapper {
 
     DTModel selectMetaModel(int modelSeq);
 
-
     DTModelMetaUserItem selectMetaUserItem(int modelSeq);
-
-
-    List<DTModelMetaUserItemPreprocessMapVrfc> selectMetaPreprocessVrfc(int userMetaItemSeq);
-
-
-    List<DTModelMetaUserItemPreprocessMapOutlr> selectMetaPreprocessOutlr(int userMetaItemSeq);
-
-
-    List<DTModelMetaUserItemPreprocessMapInterpl> selectMetaPreprocessInterpl(int userMetaItemSeq);
-
-
-    List<DTModelMetaUserItemPreprocessMapResmpl> selectMetaPreprocessResmpl(int userMetaItemSeq);
-
-
-    List<DTModelMetaUserItemPreprocessMapUnit> selectMetaPreprocessUnit(int userMetaItemSeq);
-
 
     int getAlgorithmModelParamsCount(DTModelParams dtModelParams);
 
-
     int deleteAlgorithmModelParams(DTModelParams dtModelParams);
-
 
     int deleteAlgorithmModelColumn(DTModelParams dtModelParams);
 
-
     int saveAlgorithmModelParams(DTModelParams dtModelParams);
-
 
     int saveAlgorithmModelColumn(DTModelColumn dtModelColumn);
 
-
     int updateAlgorithmSeq(Map<String, Object> requestBody);
-
 
     List<Map<String, Object>> getModelAlgorithmParamsList(Map<String, Object> map);
 
-
     List<Map<String, Object>> getAlgolithmCodeList(String code);
-
 
     int updateMetaUerItemFulltext(Map<String, Object> param);
 
@@ -147,4 +114,8 @@ public interface DTModelMapper {
     void deleteModelFid(int modelSeq);
 
     boolean checkUseBritsModel(@Param("model_seq") int britsModelSeq);
+
+    boolean checkUseNaomiModel(@Param("model_seq") int naomiModelSeq);
+
+    List<Map<String, Object>> getDTAllSharedList(Map<String, Object> params, RowBounds paging);
 }

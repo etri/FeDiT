@@ -7,27 +7,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.session.RowBounds;
 
-import com.stoneitgt.dt.data.platform.domain.AugmentModel;
-import com.stoneitgt.dt.data.platform.domain.AugmentModelColumn;
-import com.stoneitgt.dt.data.platform.domain.AugmentModelParams;
 import com.stoneitgt.dt.data.platform.domain.DTAugment;
-import com.stoneitgt.dt.data.platform.domain.DTModel;
-import com.stoneitgt.dt.data.platform.domain.DTModelColumn;
-import com.stoneitgt.dt.data.platform.domain.DTModelMetaUserItem;
-import com.stoneitgt.dt.data.platform.domain.DTModelMetaUserItemPreprocessMapInterpl;
-import com.stoneitgt.dt.data.platform.domain.DTModelMetaUserItemPreprocessMapOutlr;
-import com.stoneitgt.dt.data.platform.domain.DTModelMetaUserItemPreprocessMapResmpl;
-import com.stoneitgt.dt.data.platform.domain.DTModelMetaUserItemPreprocessMapUnit;
-import com.stoneitgt.dt.data.platform.domain.DTModelMetaUserItemPreprocessMapVrfc;
-import com.stoneitgt.dt.data.platform.domain.DTModelParams;
-import com.stoneitgt.dt.data.platform.domain.Files;
-import com.stoneitgt.dt.data.platform.domain.Menu;
-import com.stoneitgt.dt.data.platform.domain.MenuAuth;
-import com.stoneitgt.dt.data.platform.domain.MetaOriginFullTextModel;
-import com.stoneitgt.dt.data.platform.domain.MetaOriginItemModel;
-import com.stoneitgt.dt.data.platform.domain.MetaOriginModel;
 import com.stoneitgt.dt.data.platform.domain.SimulationModel;
-import org.springframework.security.core.parameters.P;
 
 @Mapper
 public interface DTSimulationMapper {
@@ -60,15 +41,11 @@ public interface DTSimulationMapper {
 
     int getSimulationSaveAugmentOnetime(DTAugment dtAugment);
 
-    int updateAugmentStatus(Map<String, Object> setParam);
-
     int updateSimulationInfo(SimulationModel simulationModel);
 
     Map<String, Object> getSimulationPredictionView(@Param("augmentSeq") int augmentSeq);
 
     List<String> getTargetColumnInfo(@Param("modelSeq") int modelSeq);
-
-    SimulationModel getInsertSimulationViewResult(@Param("augmentSeq") int augmentSeq);
 
     boolean checkUseDTModel(@Param("model_seq") int modelSeq);
 

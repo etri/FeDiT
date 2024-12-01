@@ -18,70 +18,63 @@ import com.stoneitgt.dt.data.platform.util.StoneUtil;
 import com.stoneitgt.dt.data.platform.util.StringUtil;
 
 @Service
-public class UserService implements UserDetailsService {
+public class UserService extends BaseService implements UserDetailsService {
 
-	@Autowired
-	private UserMapper userMapper;
+    @Autowired
+    private UserMapper userMapper;
 
-	@Autowired
-	private PasswordEncoder passwEncoder;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
-	@Override
-	public User loadUserByUsername(String id) throws UsernameNotFoundException {
-		return userMapper.findByUserId(id);
-	}
+    @Override
+    public User loadUserByUsername(String id) throws UsernameNotFoundException {
+        return userMapper.findByUserId(id);
+    }
 
-	public int updateLastLoginDate(int userSeq) {
-		return userMapper.updateLastLoginDate(userSeq);
-	}
+    public int updateLastLoginDate(int userSeq) {
+        return userMapper.updateLastLoginDate(userSeq);
+    }
 
-	public List<Map<String, Object>> getUserList(Map<String, Object> params) {
-		return userMapper.getUserList(params);
-	}
+    public List<Map<String, Object>> getUserList(Map<String, Object> params, Paging paging) {
+        return userMapper.getUserList(params, paging.getPaging());
+    }
 
-	public List<Map<String, Object>> getUserList(Map<String, Object> params, Paging paging) {
-		return userMapper.getUserList(params, paging.getPaging());
-	}
+    public User getUserInfo(int userSeq) {
+        User user = userMapper.getUserInfo(userSeq);
+        if (StringUtil.isNotBlank(user.getUserBirthYmd())) {
+            user.setUserBirthYmd(StoneUtil.dateToFormatString(user.getUserBirthYmd()));
+        }
+        return user;
+    }
 
-	public User getUserInfo(int userSeq) {
-		User user = userMapper.getUserInfo(userSeq);
-		if (StringUtil.isNotBlank(user.getUserBirthYmd())) {
-			user.setUserBirthYmd(StoneUtil.dateToFormatString(user.getUserBirthYmd()));
-		}
-		return user;
-	}
+    public int existedUserId(String id) {
+        return userMapper.existedUserId(id);
+    }
 
-	public int existedUserId(String id) {
-		return userMapper.existedUserId(id);
-	}
+    public int saveUser(User user) {
+        if (StringUtil.isNotBlank(user.getPassword())) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
 
-	public int saveUser(User user) {
-		if (StringUtil.isNotBlank(user.getPassword())) {
-			user.setPassword(passwEncoder.encode(user.getPassword()));
-		}
-		if (StringUtil.isNotBlank(user.getUserBirthYmd())) {
-			user.setUserBirthYmd(user.getUserBirthYmd().replaceAll("[^0-9]", ""));
-		}
-		return userMapper.saveUser(user);
-	}
+        if (StringUtil.isNotBlank(user.getUserBirthYmd())) {
+            user.setUserBirthYmd(user.getUserBirthYmd().replaceAll("[^0-9]", ""));
+        }
+        return userMapper.saveUser(user);
+    }
 
-	public int deleteUser(Map<String, Object> params) {
-		return userMapper.deleteUser(params);
-	}
+    public int updateUser(@Valid User user) {
+        if (StringUtil.isNotBlank(user.getPassword())) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
 
-	public int updateUser(@Valid User user) {
-		if (StringUtil.isNotBlank(user.getPassword())) {
-			user.setPassword(passwEncoder.encode(user.getPassword()));
-		}
-		if (StringUtil.isNotBlank(user.getUserBirthYmd())) {
-			user.setUserBirthYmd(user.getUserBirthYmd().replaceAll("[^0-9]", ""));
-		}
-		
-		if (StringUtil.isNotBlank(user.getNewPassword())) {
-			user.setNewPassword(passwEncoder.encode(user.getNewPassword()));
-		}
-		
-		return userMapper.updateUser(user);
-	}
+        if (StringUtil.isNotBlank(user.getUserBirthYmd())) {
+            user.setUserBirthYmd(user.getUserBirthYmd().replaceAll("[^0-9]", ""));
+        }
 
+        if (StringUtil.isNotBlank(user.getNewPassword())) {
+            user.setNewPassword(passwordEncoder.encode(user.getNewPassword()));
+        }
+
+        return userMapper.updateUser(user);
+    }
 }

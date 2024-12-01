@@ -84,16 +84,6 @@
                 return false;
             }
 
-            if (parent_menu_code === 'TOP' && menu_icon === '') {
-                alert('메뉴명 아이콘을 입력하세요.');
-                return false;
-            }
-
-            if (parent_menu_code !== 'TOP' && menu_link === '') {
-                alert('링크를 입력하세요.');
-                return false;
-            }
-
             var data = {
                 menuCd: menu_code,
                 menuNm: menu_name,

@@ -224,5 +224,11 @@
 		 WHERE A.MENU_CD = #{menuCd}
 		   AND A.DEL_YN  = 'N'
 	</select>
-
+	<select id="getFindParentByMenuCode" parameterType="String" resultType="com.stoneitgt.common.LowerKeyMap">
+		SELECT parent.*
+		FROM TB_MENU AS child
+				 JOIN TB_MENU AS parent ON child.UP_MENU_CD = parent.MENU_CD
+		WHERE child.MENU_CD = #{menuCd}
+		  AND parent.UP_MENU_CD != 'TOP';
+	</select>
 </mapper>

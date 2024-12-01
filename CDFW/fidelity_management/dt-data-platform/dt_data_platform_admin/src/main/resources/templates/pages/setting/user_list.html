@@ -13,28 +13,30 @@
                     <form name="searchForm" th:action="@{/setting/user(menuCd=${params.menuCd})}" th:object="${params}" method="get">
                         <th:block th:include="fragments/search_hidden"></th:block>
                         <div class="row">
-                            <div class="col-sm-4">
+                            <div class="col-sm">
                                 <div class="form-group row">
-                                    <div class="col-sm-4">
+                                    <div class="col-sm-auto">
                                         <select th:field="*{field}" class="form-control">
                                             <option value="user_id">아이디</option>
                                             <option value="user_nm">이름</option>
                                         </select>
                                     </div>
-                                    <div class="col-sm-8">
+                                    <div class="col-sm">
                                         <input type="text" th:field="*{keyword}" class="form-control" placeholder="검색어를 입력하세요">
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-sm-12 text-right">
-                                <button type="submit" class="btn btn-primary mr-2 btn-icon-text btn-search">
-                                    <i class="btn-icon-prepend" data-feather="search"></i>조회
-                                </button>
-                                <a th:href="@{|/setting/user/form?${pageParams}|}" class="btn btn-secondary btn-icon-text">
-                                    <i class="btn-icon-prepend" data-feather="edit"></i>등록
-                                </a>
+                            <div class="col-sm-auto">
+                                <div class="form-group row">
+                                    <div class="col-sm-auto">
+                                        <button type="submit" class="btn btn-primary mr-2 btn-icon-text btn-search">
+                                            <i class="btn-icon-prepend" data-feather="search"></i>조회
+                                        </button>
+                                        <a th:href="@{|/setting/user/form?${pageParams}|}" class="btn btn-secondary btn-icon-text">
+                                            <i class="btn-icon-prepend" data-feather="edit"></i>등록
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -75,7 +77,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <th:block th:include="fragments/table_empty:: table_empty(9)" th:if="${#lists.isEmpty(list)}"></th:block>
+                                <th:block th:include="fragments/table_empty:: table_empty(8)" th:if="${#lists.isEmpty(list)}"></th:block>
                                 <tr th:each="item : ${list}" th:unless="${#lists.isEmpty(list)}">
                                     <td th:text="${paging.total - item.rnum + 1}">1</td>
                                     <td th:text="${item.id}">아이디</td>

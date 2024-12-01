@@ -29,10 +29,8 @@ public class AuthFailureHandler extends SimpleUrlAuthenticationFailureHandler {
                                         AuthenticationException exception) throws IOException, ServletException {
 
         String username = request.getParameter("id");
-        //request.setAttribute("status", false);
         request.setAttribute("id", username);
         exception.printStackTrace();
-        //request.setAttribute("error", exception.getMessage());
 
         request.getRequestDispatcher(defaultFailureUrl).forward(request, response);
 

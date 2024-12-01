@@ -91,7 +91,6 @@
             });
             insertSimulationViewResult(augmentSeq, function (data) {
                 document.querySelector('#predictionResultChart').style.display = 'flex';
-                console.log('data', data);
                 if (data) {
                     //결과차트
                     makeResultDataChart(data);
@@ -193,14 +192,12 @@
                                 chart: 'line',
                                 data: [{name: item[xKey], value: parseFloat(item[yKey])}]
                             }
-                            console.log('data', data);
                             seriesData.push(data);
                         } else {
                             let data = {
                                 name: item[xKey],
                                 value: parseFloat(item[yKey])
                             }
-                            console.log('data', data);
                             seriesData[dataIndex].data.push(data);
                         }
                     }

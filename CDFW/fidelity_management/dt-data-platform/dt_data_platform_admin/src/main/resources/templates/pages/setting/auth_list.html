@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/layout}">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/layout}">
 
 <head>
     <title th:text="${breadcrumb.menu_nm}">권한관리</title>
@@ -28,18 +29,20 @@
                                     <col style="width: 50%;">
                                 </colgroup>
                                 <thead>
-                                    <tr>
-                                        <th>권한 코드</th>
-                                        <th>권한 코드명</th>
-                                    </tr>
+                                <tr>
+                                    <th>권한 코드</th>
+                                    <th>권한 코드명</th>
+                                </tr>
                                 </thead>
                                 <tbody>
-                                    <tr th:each="item : ${authList}" th:class="${item.dtl_cd} == ${auth} ? 'table-info'" th:data-group-code="${item.dtl_cd}">
-                                        <td th:text="${item.dtl_cd}">code</td>
-                                        <td>
-                                            <a th:href="@{/setting/auth(auth=${item.dtl_cd},menuCd=${params.menuCd})}" th:text="${item.dtl_cd_nm}">grp_code_name</a>
-                                        </td>
-                                    </tr>
+                                <tr th:each="item : ${authList}" th:class="${item.dtl_cd} == ${auth} ? 'table-info'"
+                                    th:data-group-code="${item.dtl_cd}">
+                                    <td th:text="${item.dtl_cd}">code</td>
+                                    <td>
+                                        <a th:href="@{/setting/auth(auth=${item.dtl_cd},menuCd=${params.menuCd})}"
+                                           th:text="${item.dtl_cd_nm}">grp_code_name</a>
+                                    </td>
+                                </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -65,16 +68,20 @@
 </div>
 <th:block layout:fragment="custom_css">
     <style type="text/css">
-    .table-no-paging {
-        height: 650px;
-        overflow-x: hidden;
-    }
+        .table-no-paging {
+            height: 650px;
+            overflow-x: hidden;
+        }
     </style>
 </th:block>
 <th:block layout:fragment="custom_js">
     <script th:inline="javascript">
-    var menuList = /*[[${menuList}]]*/ null;
-    var values = /*[[${values}]]*/ null;
+        var menuList = /*[[${menuList}]]*/ null;
+        var values = /*[[${values}]]*/ null;
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('menuList', menuList);
+            console.log('values', values);
+        });
     </script>
     <script th:src="@{/assets/js/libs/tree.min.js}"></script>
     <script th:src="@{/assets/js/pages/setting/auth_list.js}"></script>

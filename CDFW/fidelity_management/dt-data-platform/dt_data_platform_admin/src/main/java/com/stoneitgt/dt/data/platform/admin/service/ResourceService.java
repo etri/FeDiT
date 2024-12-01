@@ -17,43 +17,41 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-public class ResourceService {
-	@Autowired
-	private SystemProperties systemProperties;
-	
-	@Autowired
-	private ResourceMapper resourceMapper;
-	
-	public HashMap<String, Object> saveResource(MultipartFile attachFile, String type, String directory, int loginUserSeq, String loginUserIp) 
-			throws IOException {								
-		HashMap<String, Object> result = new HashMap<String, Object>();
-		long fileLen = attachFile.getSize();
-		
-		if (fileLen > 0) {
-			Resource resource = new Resource();
-			resource.setFileNm(attachFile.getOriginalFilename());			
-			//resource.setFileLen(fileLen);
-			resource.setFileSz(fileLen);
-			//resource.setRefType(directory.toUpperCase());
-			resource.setRefTp(type);
-			
-			resource.setFileExtn(FileUtil.getFileExtension(resource.getFileNm()));
-			resource.setLoginUserSeq(loginUserSeq);
-			resource.setLoginUserIp(loginUserIp);
+public class ResourceService extends BaseService {
 
-			resourceMapper.insertResource(resource);
+    @Autowired
+    private ResourceMapper resourceMapper;
 
-			String filePath = FileUtil.getUploadFilePath(directory);
-			resource.setFilePath(filePath + resource.getResourceSeq());
+    public HashMap<String, Object> saveResource(MultipartFile attachFile, String type, String directory, int loginUserSeq, String loginUserIp)
+            throws IOException {
+        HashMap<String, Object> result = new HashMap<String, Object>();
+        long fileLen = attachFile.getSize();
 
-			File file = FileUtil.uploadFile(systemProperties.getUploadFilePath() + resource.getFilePath(), attachFile);
-			resource.setFileContsTp(FileUtil.getFileContentType(file));
-			result.put("url", resource.getFilePath());
-			result.put("domain", systemProperties.getResuorceLinkUrl());
-			
-			resourceMapper.updateResource(resource);						
-		}
-		
-		return result;		
-	} 	
+        if (fileLen > 0) {
+            Resource resource = new Resource();
+            resource.setFileNm(attachFile.getOriginalFilename());
+            //resource.setFileLen(fileLen);
+            resource.setFileSz(fileLen);
+            //resource.setRefType(directory.toUpperCase());
+            resource.setRefTp(type);
+
+            resource.setFileExtn(FileUtil.getFileExtension(resource.getFileNm()));
+            resource.setLoginUserSeq(loginUserSeq);
+            resource.setLoginUserIp(loginUserIp);
+
+            resourceMapper.insertResource(resource);
+
+            String filePath = FileUtil.getUploadFilePath(directory);
+            resource.setFilePath(filePath + resource.getResourceSeq());
+
+            File file = FileUtil.uploadFile(systemProperties.getUploadFilePath() + resource.getFilePath(), attachFile);
+            resource.setFileContsTp(FileUtil.getFileContentType(file));
+            result.put("url", resource.getFilePath());
+            result.put("domain", systemProperties.getResuorceLinkUrl());
+
+            resourceMapper.updateResource(resource);
+        }
+
+        return result;
+    }
 }

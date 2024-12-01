@@ -23,6 +23,7 @@
         ORDER BY REG_DT DESC
         /*||ORDER BY REG_DT DESC||*/
     </select>
+
     <!--List<Map<String, Object>> getDTEtcModelListByModelTp(Map<String, Object> params, RowBounds paging);-->
     <select id="getDTEtcModelListByModelTp" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
         /* file : DTModelMapper.xml, id : getDTEtcModelList */
@@ -65,6 +66,7 @@
         </if>
         ORDER BY REG_DT ASC
     </select>
+
     <!--List<Map<String, Object>> getDTEtcModelListSetUserSeqByModelTp(Map<String, Object> params, RowBounds paging);-->
     <select id="getDTEtcModelListSetUserSeqByModelTp" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
         /* file : DTModelMapper.xml, id : getDTModelListSetUserSeq */
@@ -108,6 +110,7 @@
         </if>
         /*||ORDER BY REG_DT DESC||*/
     </select>
+
     <select id="getDTEtcModelSharedListByModelTp" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
         /* file : DTModelMapper.xml, id : getDTModelSharedList */
         SELECT *
@@ -238,6 +241,8 @@
                B.ETC_MODEL_SEQ,
                A.MODEL_PARAMS_ITEM,
                B.MODEL_PARAMS_ITEM_VALUE,
+               A.MODEL_PARAMS_ITEM_CRTR_1,
+               A.MODEL_PARAMS_ITEM_CRTR_2,
                (SELECT T.MODEL_ALGRM
                 FROM TB_META_ETC_MODEL_ALGRM T
                 WHERE A.MODEL_ALGRM_SEQ = T.MODEL_ALGRM_SEQ
@@ -251,7 +256,6 @@
           AND A.USE_YN = 'Y'
         ORDER BY ORDBY
     </select>
-
 
     <select id="getAlgorithmModelParamsCount" parameterType="com.stoneitgt.dt.data.platform.domain.DTModelEtcParams"
             resultType="int">
@@ -271,14 +275,6 @@
         WHERE ETC_MODEL_SEQ = #{etcModelSeq}
     </delete>
 
-    <!--
-    <delete id="deleteAlgorithmModelColumn" parameterType="com.stoneitgt.dt.data.platform.domain.DTModelEtcParams" >
-        /* file : MatchingMapper.xml, id : deleteAlgorithmModelColumn */
-          DELETE FROM TB_META_ETC_MODEL_COLUMN
-           WHERE ETC_MODEL_SEQ = #{etcModelSeq}
-    </delete>
-    -->
-
     <insert id="saveAlgorithmModelParams" parameterType="com.stoneitgt.dt.data.platform.domain.DTModelEtcParams">
         /* file : DTModelMapper.xml, id : saveAlgorithmModelParams */
         INSERT
@@ -293,7 +289,6 @@
                , #{modelParamsItemSeq}
                , #{modelParamsItemValue})
     </insert>
-
 
     <update id="updateAlgorithmSeq" parameterType="map">
         /* file : DTModelMapper.xml, id : updateAlgorithmSeq */
@@ -314,7 +309,6 @@
         SET USER_PPRCS_FULL_STNG_VALUE = #{user_pprcs_full_stng_value}
         WHERE ETC_MODEL_SEQ = #{model_seq}
     </update>
-
 
     <insert id="saveAlgorithmModelColumn" parameterType="com.stoneitgt.dt.data.platform.domain.DTModelColumn">
         /* file : DTModelMapper.xml, id : saveAlgorithmModelColumn */
@@ -347,26 +341,6 @@
           AND A.DEL_YN = 'N'
     </select>
 
-    <select id="getUnitTpList" parameterType="String" resultType="com.stoneitgt.common.LowerKeyMap">
-        /* file : DTModelMapper.xml, id : getUnitTpList */
-        SELECT *
-        FROM TB_UNIT A
-        WHERE A.DEL_YN = 'N'
-          AND A.USE_YN = 'Y'
-          AND A.UNIT_TP = #{unit}
-        ORDER BY A.ORDBY
-    </select>
-
-    <select id="getUnitFormula" parameterType="map" resultType="String">
-        /* file : DTModelMapper.xml, id : getUnitFormula */
-        SELECT UNIT_FORMULA
-        FROM TB_UNIT A
-        WHERE A.USE_YN = 'Y'
-          AND A.DEL_YN = 'N'
-          AND A.UNIT_TP = #{unit_tp}
-          AND A.UNIT_SEQ = #{unit_seq}
-    </select>
-
     <select id="getAlgolithmCodeList" parameterType="string" resultType="com.stoneitgt.common.LowerKeyMap">
         /* file : DTModelMapper.xml, id : getAlgolithmCodeList */
         SELECT DTL_CD
@@ -381,7 +355,6 @@
           AND USE_YN = 'Y'
         ORDER BY ORDBY, DTL_CD_NM
     </select>
-
 
     <select id="getEtcAEModelList" parameterType="string" resultType="com.stoneitgt.common.LowerKeyMap">
         /* file : DTModelMapper.xml, id : getEtcModelList */
@@ -433,6 +406,21 @@
         ORDER BY A.REG_DT DESC;
     </select>
 
+    <select id="getEtcNaomiModelList" parameterType="string" resultType="com.stoneitgt.common.LowerKeyMap">
+        /* file : DTModelMapper.xml, id : getEtcModelList */
+        SELECT ETC_MODEL_SEQ,
+               ETC_MODEL_NM,
+               TRGT_COL,
+               ETC_MODEL_TP
+        FROM TB_META_ETC_MODEL A
+        WHERE DEL_YN = 'N'
+          AND USE_YN = 'Y'
+          AND REG_USER_SEQ = #{session_userseq}
+          AND MODEL_ALGRM_SEQ = 4
+          AND MODEL_STATUS = 'DONE'
+        ORDER BY A.REG_DT DESC;
+    </select>
+
     <!--AE Model 삭제 관련 로직-->
     <update id="deleteModel" parameterType="map">
         update TB_META_ETC_MODEL
@@ -454,7 +442,6 @@
         where ETC_MODEL_SEQ = #{model_seq}
     </update>
 
-
     <update id="deleteModelColumn" parameterType="map">
         update TB_META_ETC_MODEL_COLUMN
         set USE_YN= 'N',
@@ -468,12 +455,14 @@
             DEL_YN = 'Y'
         where ETC_MODEL_SEQ = #{model_seq}
     </update>
+
     <update id="deleteModelParams" parameterType="map">
         update TB_META_ETC_MODEL_PARAMS
         set USE_YN= 'N',
             DEL_YN = 'Y'
         where ETC_MODEL_SEQ = #{model_seq}
     </update>
+
     <!--Map<String, Object> getModelAlgorithmBySeq(@Param("modelAlgrmSeq") int modelAlgrmSeq);-->
     <select id="getModelAlgorithmBySeq" parameterType="int" resultType="com.stoneitgt.common.LowerKeyMap">
         SELECT *

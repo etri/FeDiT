@@ -8,13 +8,12 @@ import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 @Configuration
 public class SchedulerConfig implements SchedulingConfigurer {
 
-	private final int POOL_SIZE = 1;
-
-	@Override
+    @Override
 	public void configureTasks(ScheduledTaskRegistrar scheduledTaskRegistrar) {
 		ThreadPoolTaskScheduler threadPoolTaskScheduler = new ThreadPoolTaskScheduler();
 
-		threadPoolTaskScheduler.setPoolSize(POOL_SIZE);
+        int POOL_SIZE = 3;
+        threadPoolTaskScheduler.setPoolSize(POOL_SIZE);
 		threadPoolTaskScheduler.setThreadNamePrefix("twin-task-pool-");
 		threadPoolTaskScheduler.initialize();
 

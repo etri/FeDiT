@@ -31,7 +31,6 @@
         </choose>
 	</update>		
 
-
 	<select id="getMakeModelDoingList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
 		/* file : MakeModelSchedulerMapper.xml, id : getMakeModelDoingList */
 		SELECT *
@@ -40,8 +39,6 @@
 		   AND U.MODEL_STATUS = 'DOING' AND U.PRCS_LEVEL IS NOT NULL
 		  ORDER BY MDFCN_DT ASC, MODEL_SEQ ASC LIMIT #{limitCnt}
 	</select>
-
-
 
 	<select id="setMakeModelOutputColumns" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
 		/* file : MakeModelSchedulerMapper.xml, id : setMakeModelOutputColumns */
@@ -95,11 +92,9 @@
 		UPDATE TB_MODEL
 		     SET MODEL_STATUS = #{model_status}
 		 WHERE MODEL_SEQ = #{model_seq}
-	</update>	
+	</update>
 
-
-
-	<delete id="deleteMakeModelFile" parameterType="int" >
+	<!--<delete id="deleteMakeModelFile" parameterType="int" >
 		/* file : MatchingMapper.xml, id : deleteMakeModelFile */
 		  DELETE FROM TB_MODEL_FILES
 		   WHERE MODEL_SEQ = #{model_seq}
@@ -116,8 +111,7 @@
 		/* file : MatchingMapper.xml, id : deleteMakeModelLoss */
 		  DELETE FROM TB_MODEL_LOSS
 		   WHERE MODEL_SEQ = #{model_seq}
-	</delete>	
-	
+	</delete>-->
 
 	<update id="updateLearningBgngDt" parameterType="map">
 		/* file : MakeModelSchedulerMapper.xml, id : updateLearningBgngDt */
@@ -132,6 +126,4 @@
 		     SET LEARNING_END_DT = CURRENT_TIMESTAMP
 		 WHERE MODEL_SEQ = #{model_seq}
 	</update>
-	
-
 </mapper>

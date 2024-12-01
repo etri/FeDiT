@@ -631,17 +631,52 @@ function getTargetDataSetInfo(base_file_path, base_file_nm, index_trgt_col, main
                         console.log('table', table);
 
                         const data = [];
+                        let jsonValue, featureCols = [];
                         for (const item of result.etc_interpolate_list) {
-                            let jsonValue = JSON.parse(item.user_pprcs_full_stng_value);
-                            let featureCols = jsonValue.preproc_property_info[0].model_property[0].feature_cols;
-                            console.log('featureCols', featureCols);
-                            data.push({
-                                etc_model_nm: item.etc_model_nm + '(RF)',
-                                trgt_col: item.etc_model_tp + '|' + item.etc_model_seq + '|' + item.trgt_col + '|' + featureCols.map(item => `${item}(F)`).join(', '),
-                                feature_cols: featureCols.map(item => `${item}`).join(', '),
-                                output_col: item.trgt_col,
-                                etc_model_seq: item.etc_model_seq
-                            });
+                            switch (item.etc_model_tp) {
+                                case 'random forest':
+                                    jsonValue = JSON.parse(item.user_pprcs_full_stng_value);
+                                    featureCols = jsonValue.preproc_property_info[0].model_property[0].feature_cols;
+                                    console.log('featureCols', featureCols);
+                                    data.push({
+                                        etc_model_nm: item.etc_model_nm + '(RF)',
+                                        trgt_col: item.etc_model_tp + '|' + item.etc_model_seq + '|' + item.trgt_col + '|' + featureCols.map(item => `${item}(F)`).join(', '),
+                                        output_col: item.trgt_col,
+                                        etc_model_seq: item.etc_model_seq,
+                                        feature_cols: featureCols.map(item => `${item}`).join(', ')
+                                    });
+                                    break;
+                                case 'brits':
+                                    jsonValue = JSON.parse(item.user_pprcs_full_stng_value);
+                                    data.push({
+                                        etc_model_nm: item.etc_model_nm + '(Brits)',
+                                        trgt_col: item.etc_model_tp + '|' + item.etc_model_seq + '|' + item.trgt_col,
+                                        output_col: item.trgt_col,
+                                        etc_model_seq: item.etc_model_seq,
+                                        feature_cols: []
+                                    });
+                                    break;
+                                case 'naomi':
+                                    jsonValue = JSON.parse(item.user_pprcs_full_stng_value);
+                                    data.push({
+                                        etc_model_nm: item.etc_model_nm + '(Naomi)',
+                                        trgt_col: item.etc_model_tp + '|' + item.etc_model_seq + '|' + item.trgt_col,
+                                        output_col: item.trgt_col,
+                                        etc_model_seq: item.etc_model_seq,
+                                        feature_cols: []
+                                    });
+                                    break;
+                                default:
+                                    jsonValue = JSON.parse(item.user_pprcs_full_stng_value);
+                                    data.push({
+                                        etc_model_nm: item.etc_model_nm + '(default)',
+                                        trgt_col: item.etc_model_tp + '|' + item.etc_model_seq + '|' + item.trgt_col,
+                                        output_col: item.trgt_col,
+                                        etc_model_seq: item.etc_model_seq,
+                                        feature_cols: []
+                                    });
+                                    break;
+                            }
                         }
 
                         /**
@@ -829,6 +864,16 @@ function getTargetDataSetInfoCallbackFunction(base_file_path, base_file_nm, inde
                                     jsonValue = JSON.parse(item.user_pprcs_full_stng_value);
                                     data.push({
                                         etc_model_nm: item.etc_model_nm + '(Brits)',
+                                        trgt_col: item.etc_model_tp + '|' + item.etc_model_seq + '|' + item.trgt_col,
+                                        output_col: item.trgt_col,
+                                        etc_model_seq: item.etc_model_seq,
+                                        feature_cols: []
+                                    });
+                                    break;
+                                case 'naomi':
+                                    jsonValue = JSON.parse(item.user_pprcs_full_stng_value);
+                                    data.push({
+                                        etc_model_nm: item.etc_model_nm + '(Naomi)',
                                         trgt_col: item.etc_model_tp + '|' + item.etc_model_seq + '|' + item.trgt_col,
                                         output_col: item.trgt_col,
                                         etc_model_seq: item.etc_model_seq,

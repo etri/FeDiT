@@ -18,19 +18,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.stoneitgt.common.GlobalConstant.FILE_REF_TYPE;
 import com.stoneitgt.dt.data.platform.admin.mapper.FilesMapper;
-import com.stoneitgt.dt.data.platform.admin.properties.SystemProperties;
 import com.stoneitgt.dt.data.platform.domain.Files;
 import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 
 import lombok.extern.slf4j.Slf4j;
-import net.coobird.thumbnailator.Thumbnails;
 
 @Slf4j
 @Service
-public class FilesService {
-
-    @Autowired
-    private SystemProperties systemProperties;
+public class FilesService extends BaseService {
 
     @Autowired
     private FilesMapper filesMapper;
