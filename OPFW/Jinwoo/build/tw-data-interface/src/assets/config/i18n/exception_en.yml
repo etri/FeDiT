@@ -1,0 +1,9 @@
+# exception_en.yml
+exception:
+  unKnown:
+    code: "-9999"
+    msg: "An unknown error has occurred."
+  airQuality:
+    notFound:
+      code: "-1000"
+      msg: "AirQuality info is not found."

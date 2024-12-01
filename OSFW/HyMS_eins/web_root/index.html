@@ -121,7 +121,7 @@
             padding: 1px;
             top: 0;
             left: 0rem;
-            right:15rem;
+            right:0rem;
             bottom:0;
             overflow-y: hidden;
             background: #dfe5ee;
@@ -218,7 +218,7 @@
                     &nbsp;:&nbsp;:&nbsp;MENU
                 </div>
                 <div style="position:absolute;right:0; ">
-                    EinsS&C(Eins)님 최근 로그인 정보 : 2024-09-27 14:17:23
+                    EinsS&C(Eins)님 최근 로그인 정보 : 2024-10-22 15:17:23
                 </div>
             </div>
             <div class="iconbar" style="display:flex;">
@@ -284,15 +284,14 @@
                 </div>
 
 
-                <button type="button" id="openEditorButton" onclick="get_model_on_server(atomicmodule_list.value)">
-                    <img src="images/btn_codeEditor.png" style="margin: 0px;" border="0" title="에디터 열기">
-                </button>
+                <!-- <button type="button" id="openEditorButton" onclick="get_model_on_server(atomicmodule_list.value)" style="width:100px;">
+                        <img src="images/btn_codeEditor.png" style="margin: 0px;" border="0" title="에디터 열기">
+                </button> -->
             </div>
             <div class="main">
                 <div id="div_left_model_list" class="left_menu" style="display:none;">
                     <div style="display:flex;flex-direction: column;position:absolute; left:0px;top:0;bottom:0;width:250px; color:black">
-                        
-                        <div style="display:flex;">
+                        <div style="display:flex;" >
                             package : <select id="module_list" onclick="req_list_projects('module_list')" name="module_name" onchange="req_list_models(this.value)" style="width:150px;">
                                             <!-- <option value="banksim">banksim</option>
                                             <option value="watertank" >watertank</option>
@@ -307,23 +306,27 @@
                         </div>
                     </div>
                 </div>
-                <div id="div_content" class="content">
-                    <canvas id="canvas" height="100%" style="width:100%; height:100%; border:1px solid #606060;">
+                <!-- <div id="div_content" class="content" > -->
+                    <div id="div_content" class="content">
+                         <canvas id="canvas" height="100%" style="width:100%; height:100%; border:1px solid #606060;"></canvas>
+
                     </canvas>
                 </div>
                 <div class="right_menu" >
-                    <div style="border:1px solid #606060;margin-top:5px;position:absolute;top:0;left:0;right:0;height:50%;overflow: auto; color:black">
-                        Project : <select id="sel_project_name" name="project_name" style="width:150px;">
+                    <div style="border:1px solid #606060;margin-top:5px;position:absolute;top:0;left:0;right:0;height:50%;overflow: auto; color:black"">
+                        Project : <input name="project_name" type="text" id="text-box" size="20" value="" />
+                        <!-- Project : <select id="sel_project_name" name="project_name" style="width:150px;">
                             <option value="banksim" selected>banksim</option>
                             <option value="watertank" >watertank</option>
 							<option value="watertankshin">watertankshin</option>
-                            <option value="util">util</option>
-                            </select>
+                            <option value="util">util11</option>
+                            <option value="util2">PocModelSim</option>
+                            </select> -->
                         <div id="tree" >
 
                         </div>
                     </div>
-                    <div style="border:1px solid #606060;position:absolute;bottom:0;left:0;right:0;height:50%;overflow: auto; color:black">
+                    <div style="border:1px solid #606060;position:absolute;bottom:0;left:0;right:0;height:50%;overflow: auto; color:black"">
                     입력 파라미터
                     <table border="0" cellpadding="0" cellspacing="2" id="tb_properties" bgcolor="navy" width="100%">
                         <tr>

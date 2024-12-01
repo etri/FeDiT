@@ -3,7 +3,7 @@ spring:
     sampler:
       probability: 1.0 # 기본값 0.1  샘플링 정의 0~1(100%)
   zipkin:
-    base-url: http://172.16.28.41:9411/ # zipkin 주소
+    base-url: http://172.16.28.7:9411/ # zipkin 주소
   config:
     activate:
       on-profile: local
@@ -21,7 +21,7 @@ spring:
 
 logging:
   logstash:
-    url: 172.16.28.41:50000
+    url: 172.16.28.7:50000
   level:
     org:
       springframework:

@@ -1,0 +1,15 @@
+spring:
+  config:
+    activate:
+      on-profile: prod-db-mysql8-mybatis
+  datasource:
+    jdbc-url: jdbc:mariadb://${prod-jdbc-socket-address}/poc1
+    driver-class-name: org.mariadb.jdbc.Driver
+    username: ${jdbc-username}
+    password: ${jdbc-password}
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+  type-aliases-package: net.jw.twin.**.model
+  mapper-locations: config/mybatis/**/*.xml

@@ -14,7 +14,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
- * Context class ㅗㅛ.
+ * Context class
  */
 
 @Document(collection = "context")

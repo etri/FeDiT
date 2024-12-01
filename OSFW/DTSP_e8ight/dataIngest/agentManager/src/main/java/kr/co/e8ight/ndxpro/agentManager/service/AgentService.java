@@ -1,14 +1,21 @@
 package kr.co.e8ight.ndxpro.agentManager.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
 import kr.co.e8ight.ndxpro.agentManager.config.OperaterProvider;
 import kr.co.e8ight.ndxpro.agentManager.domain.Agent;
 import kr.co.e8ight.ndxpro.agentManager.domain.AgentOperation;
+import kr.co.e8ight.ndxpro.agentManager.domain.AttributeSource;
 import kr.co.e8ight.ndxpro.agentManager.domain.DataModel;
 import kr.co.e8ight.ndxpro.agentManager.domain.dto.AgentListResponseDto;
 import kr.co.e8ight.ndxpro.agentManager.domain.dto.AgentRequestDto;
 import kr.co.e8ight.ndxpro.agentManager.domain.dto.AgentResponseDto;
+import kr.co.e8ight.ndxpro.agentManager.domain.dto.AttributeSourceAddRequestDto;
+import kr.co.e8ight.ndxpro.agentManager.domain.dto.AttributeSourceDto;
+import kr.co.e8ight.ndxpro.agentManager.domain.dto.OperationRequestDto;
 import kr.co.e8ight.ndxpro.agentManager.exceptions.AgentException;
 import kr.co.e8ight.ndxpro.agentManager.repository.AgentRepository;
+import kr.co.e8ight.ndxpro.agentManager.repository.AttributeSourceRepository;
 import kr.co.e8ight.ndxpro.agentManager.service.operater.Operater;
 import kr.co.e8ight.ndxpro.common.exception.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -29,10 +36,11 @@ public class AgentService {
     private final TranslatorManagerService translatorManagerService;
     private final OperaterProvider operaterProvider;
     private final AgentHistoryService agentHistoryService;
+    private final AttributeSourceRepository attributeSourceRepository;
 
     @Transactional
-    public AgentResponseDto createAgent(AgentRequestDto requestDto, String memberId) {
-        dataModelService.checkDataModels(requestDto.getModels());
+    public AgentResponseDto createAgent(AgentRequestDto requestDto, String memberId, String token) {
+        dataModelService.checkDataModels(requestDto.getModels(), token);
 
         String confPath = configProvider.getConfFilePath();
 
@@ -63,7 +71,7 @@ public class AgentService {
     }
 
     @Transactional
-    public AgentResponseDto deleteAgent(Long agentId, String memberId) {
+    public AgentResponseDto deleteAgent(Long agentId, String memberId, String token) {
         Agent agent = agentRepository.findById(agentId).orElseThrow(() -> {
             throw new AgentException(ErrorCode.RESOURCE_NOT_FOUND, "Agent id :" + agentId + " not found");
         });
@@ -72,9 +80,7 @@ public class AgentService {
             throw new AgentException(ErrorCode.OPERATION_NOT_SUPPORTED, "Agent id :" + agentId + " is currently running, Stop agent before deleting.");
         }
 
-        if ( translatorManagerService.existByAgentId(agentId) ) {
-            throw new AgentException(ErrorCode.OPERATION_NOT_SUPPORTED, "Translator is exist on Agent ID : " + agentId);
-        }
+        translatorManagerService.deleteAllByAgentId(agentId, token);
 
         agent.delete();
         agentHistoryService.recordHistory(agent, memberId);
@@ -83,7 +89,7 @@ public class AgentService {
     }
 
     @Transactional
-    public AgentResponseDto operate(Long agentId, String operation, String memberId) {
+    public AgentResponseDto operate(Long agentId, OperationRequestDto requestDto, String memberId) {
         Agent agent = agentRepository.findById(agentId).orElseThrow(() -> {
             throw new AgentException(ErrorCode.RESOURCE_NOT_FOUND, "Agent id :" + agentId + " not found");
         });
@@ -95,10 +101,10 @@ public class AgentService {
             throw new AgentException(ErrorCode.RESOURCE_NOT_FOUND, "Agent config file not found.");
         }
 
-        Operater operater = operaterProvider.getOperater(AgentOperation.getOperation(operation));
-        Agent operated = operater.operate(agent);
+        Operater operater = operaterProvider.getOperater(AgentOperation.getOperation(requestDto));
+        Agent operated = operater.operate(agent, requestDto.getBodyInfo());
 
-        translatorManagerService.operateAllByAgentId(agentId, operation);
+//        translatorManagerService.operateAllByAgentId(agentId, requestDto.getOperation());
         agentHistoryService.recordHistory(operated, memberId);
 
         return AgentResponseDto.from(operated);
@@ -137,8 +143,8 @@ public class AgentService {
     }
 
     @Transactional
-    public AgentResponseDto updateAgent(Long agentId, AgentRequestDto requestDto) {
-        dataModelService.checkDataModels(requestDto.getModels());
+    public AgentResponseDto updateAgent(Long agentId, AgentRequestDto requestDto, String token) {
+        dataModelService.checkDataModels(requestDto.getModels(), token);
 
         Agent agent = agentRepository.findById(agentId).orElseThrow(() -> {
             throw new AgentException(ErrorCode.RESOURCE_NOT_FOUND, "Agent id :" + agentId + " not found");
@@ -172,5 +178,42 @@ public class AgentService {
 
     private boolean isConfigFileNotExist(String configFilePath) {
         return !fileService.isExistFile(configFilePath);
+    }
+
+    public AttributeSourceDto addAttributeSources(Long agentId, AttributeSourceAddRequestDto requestDto) {
+        Agent agent = agentRepository.findById(agentId).orElseThrow(() -> {
+            throw new AgentException(ErrorCode.RESOURCE_NOT_FOUND, "Agent id :" + agentId + " not found");
+        });
+
+        DataModel dataModel = agent.getDataModels().stream().filter(model -> model.getModelType()
+          .equals(requestDto.getModelType())).findFirst().orElseThrow(() -> {
+            throw new AgentException(ErrorCode.RESOURCE_NOT_FOUND,
+              "Model type :" + requestDto.getModelType() + " not found");
+        });
+
+        AttributeSource attributeSource = AttributeSource.create(dataModel, requestDto);
+        AttributeSource save = attributeSourceRepository.save(attributeSource);
+        return AttributeSourceDto.from(save);
+    }
+
+    public List<AttributeSourceDto> getAttributeSources(Long agentId, String modelType) {
+        Agent agent = agentRepository.findById(agentId).orElseThrow(() -> {
+            throw new AgentException(ErrorCode.RESOURCE_NOT_FOUND, "Agent id :" + agentId + " not found");
+        });
+
+        DataModel dataModel = agent.getDataModels().stream().filter(model -> model.getModelType()
+          .equals(modelType)).findFirst().orElseThrow(() -> {
+            throw new AgentException(ErrorCode.RESOURCE_NOT_FOUND,
+              "Model type :" + modelType + " not found");
+        });
+
+
+        List<AttributeSource> list = attributeSourceRepository.findByDataModel(dataModel);
+        return list.stream().map(AttributeSourceDto::from).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteAttributeSources(Long attributeSourceId) {
+        attributeSourceRepository.deleteById(attributeSourceId);
     }
 }

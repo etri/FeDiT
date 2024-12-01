@@ -1,0 +1,65 @@
+@startuml
+title Simulation Process
+
+actor user
+participant WebUnity
+participant SimulationService
+database DB
+participant DataIngest
+participant LimesAPI
+participant DataBroker
+participant Kafka
+
+== 신규 History 등록 ==
+autonumber "1-."
+user -> WebUnity: 이력 리스트 조회 (원하는 이력 없음)
+WebUnity -> SimulationService: GET /histories
+SimulationService -> WebUnity: 이력 목록
+user -> WebUnity: 새로운 이력 요청
+WebUnity -> SimulationService: 신규 이력 생성 (from/end)
+SimulationService -> DB: 새로운 이력 저장 (시뮬레이션 진행중 상태로 저장, ID 부여)
+/'ID (ScenarioID) 는 동시 실행 및 겹치는 시간이 있을수 있으므로 필요함 (동시 실행 및 겹치는 시간이 없으면 필요 없음)'/
+SimulationService -> LimesAPI: VISSIM 실행, 동시 실행 가능성? (ID, from/end)
+
+LimesAPI -> SimulationService: success
+SimulationService -> DataIngest: 수집 에이전트 생성
+DataIngest -> SimulationService: 신규 에이전트 정보
+SimulationService -> DB: 신규 이력에 에이전트 ID 업데이트
+SimulationService -> DataIngest: 수집 실행 (agent ID)
+DataIngest -> SimulationService: OK
+loop 1s
+DataIngest -> LimesAPI: POST http://limes.kr:8180/api/getTraffic.json
+DataIngest -> Kafka: Produce Traffic Data
+end
+
+SimulationService -> WebUnity: OK
+WebUnity -> WebUnity: 이력 목록 리프래시
+WebUnity -> user: 새로운 이력(시뮬레이션 진행중 상태)가 포함된 리스트
+autonumber stop
+
+== History 상태 업데이트 ==
+autonumber "2-."
+loop 1s
+SimulationService -> DB: 상태가 시뮬레이션 중인 이력 확인
+SimulationService -> DataIngest: 이력을 수집중인 에이전트 상태 조회(ID)
+alt ingest agent is stop
+SimulationService -> DB: 이력 상태 업데이트(완료)
+end
+end
+autonumber stop
+
+== History 실행 ==
+autonumber "3-."
+user -> WebUnity: 이력 리스트 조회 (원하는 이력 있음)
+WebUnity -> SimulationService: GET /histories
+SimulationService -> WebUnity: 이력 목록
+user -> WebUnity: 이력 실행
+WebUnity -> SimulationService: GET /histories/ID 이력 정보 조회 (start,end)
+SimulationService -> WebUnity: 이력 정보
+loop 1s
+WebUnity -> DataBroker: GET http://gateway/ndxpro/v1/broker, observedAt
+WebUnity -> user: 화면 출력
+end
+autonumber stop
+
+@enduml

@@ -1,6 +1,5 @@
 package kr.co.e8ight.ndxpro.agentManager.domain;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import kr.co.e8ight.ndxpro.agentManager.config.Constants;
 import kr.co.e8ight.ndxpro.agentManager.domain.dto.AgentRequestDto;
 import kr.co.e8ight.ndxpro.agentManager.exceptions.AgentException;
@@ -12,7 +11,6 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import javax.persistence.*;
-import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;

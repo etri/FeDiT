@@ -33,6 +33,7 @@ public class EntityValidationService {
     }
 
     public void validateEntity(Entity entity) {
+        log.info("EntityValidationService.validateEntity() entity={}", entity.getId().getId());
         String entityId = entity.getId().getId();
         String parsedDataModelId = getDataModelId(entityId);
 
@@ -219,8 +220,8 @@ public class EntityValidationService {
                     return;
                 break;
             case "Object":
-                LinkedHashMap<String, Object> objectMember = (LinkedHashMap<String, Object>) dataModelAttribute.get("objectMember");
-                validateObjectValue((LinkedHashMap<String, Object>) value, objectMember);
+//                LinkedHashMap<String, Object> objectMember = (LinkedHashMap<String, Object>) dataModelAttribute.get("objectMember");
+//                validateObjectValue((LinkedHashMap<String, Object>) value, objectMember);
                 return;
             case "ArrayString":
                 if(value instanceof ArrayList &&
@@ -238,8 +239,8 @@ public class EntityValidationService {
                     return;
                 break;
             case "ArrayObject":
-                List<LinkedHashMap<String, Object>> objectMemberList = (List<LinkedHashMap<String, Object>>) dataModelAttribute.get("objectMember");
-                validateArrayObjectValue((List<LinkedHashMap<String, Object>>) value, objectMemberList);
+//                List<LinkedHashMap<String, Object>> objectMemberList = (List<LinkedHashMap<String, Object>>) dataModelAttribute.get("objectMember");
+//                validateArrayObjectValue((List<LinkedHashMap<String, Object>>) value, objectMemberList);
                 return;
             default:
                 throw new DataBrokerException(ErrorCode.INTERNAL_SERVER_ERROR, "DataModel Property Attribute ValueType is Invalid." +
@@ -390,8 +391,8 @@ public class EntityValidationService {
                         continue;
                     break;
                 case "Object":
-                    LinkedHashMap<String, Object> childMember = (LinkedHashMap<String, Object>) member.get("objectMember");
-                    validateObjectValue((LinkedHashMap<String, Object>) value, childMember);
+//                    LinkedHashMap<String, Object> childMember = (LinkedHashMap<String, Object>) member.get("objectMember");
+//                    validateObjectValue((LinkedHashMap<String, Object>) value, childMember);
                     return;
                 case "ArrayString":
                     if(value instanceof ArrayList &&
@@ -409,8 +410,8 @@ public class EntityValidationService {
                         continue;
                     break;
                 case "ArrayObject":
-                    List<LinkedHashMap<String, Object>> childMemberList = (List<LinkedHashMap<String, Object>>) member.get("objectMember");
-                    validateArrayObjectValue((List<LinkedHashMap<String, Object>>) value, childMemberList);
+//                    List<LinkedHashMap<String, Object>> childMemberList = (List<LinkedHashMap<String, Object>>) member.get("objectMember");
+//                    validateArrayObjectValue((List<LinkedHashMap<String, Object>>) value, childMemberList);
                     return;
                 default:
                     throw new DataBrokerException(ErrorCode.INTERNAL_SERVER_ERROR, "DataModel Property Attribute ObjectMember ValueType is Invalid." +
@@ -438,8 +439,11 @@ public class EntityValidationService {
     }
 
     public void validateChildAttributeValue(List<Attribute> entityChildAttributes, LinkedHashMap<String, Object> dataModelChildAttributes, String parentAttributeName) {
-        if(ValidateUtil.isEmptyData(dataModelChildAttributes))
+        if(ValidateUtil.isEmptyData(dataModelChildAttributes)){
+            log.error("Invalid child attribute. Parent attribute={}", dataModelChildAttributes);
             throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid child attribute. Parent attribute=" + parentAttributeName);
+        }
+
 
         List<String> entityChildAttributesNames = entityChildAttributes.stream().map(attribute -> attribute.getName()).collect(Collectors.toList());
         for(String childAttributeName : dataModelChildAttributes.keySet()) {

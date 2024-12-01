@@ -19,7 +19,10 @@ blocks_storage:
   storage_prefix: blocks
   tsdb:
     dir: /data/ingester
-    retention_period: 720h
+    retention_period: 13h
+
+limits:
+  compactor_blocks_retention_period: 14d
 
 # Use memberlist, a gossip-based protocol, to enable the 3 Mimir replicas to communicate
 memberlist:

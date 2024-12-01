@@ -30,7 +30,7 @@ public class AgentInspectorService {
 
     @Scheduled(fixedDelayString = "${agent-manager.inspector.inspect-delay}")
     @Transactional
-    void inspectAgents() {
+    public void inspectAgents() {
         List<Agent> runningAgentList = agentRepository.findAllByStatus(AgentStatus.RUN);
 
         runningAgentList.stream()
@@ -62,17 +62,19 @@ public class AgentInspectorService {
 
     protected boolean isAlive(long pid) {
         try {
-            String[] commands = {"/bin/sh", "-c", "ps --no-headers --pid " + pid};
+            String[] commands = {"/bin/sh", "-c", "ls /proc | grep " + pid};
 
-            ProcessBuilder builder = new ProcessBuilder(commands);
-            Process checker = builder.start();
+            Process checker = Runtime.getRuntime().exec(commands);
             checker.waitFor();
 
             BufferedReader bufferedReader =
                     new BufferedReader(new InputStreamReader(checker.getInputStream()));
+            BufferedReader errorReader =
+                    new BufferedReader(new InputStreamReader(checker.getErrorStream()));
             boolean isRunning = bufferedReader.readLine() != null;
 
             bufferedReader.close();
+            errorReader.close();
 
             return isRunning;
 

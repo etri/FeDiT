@@ -18,7 +18,7 @@ public class ContextResponseDto {
 
     private String url;
 
-    private String version;
+//    private String version;
 
     private Boolean isReady;
 

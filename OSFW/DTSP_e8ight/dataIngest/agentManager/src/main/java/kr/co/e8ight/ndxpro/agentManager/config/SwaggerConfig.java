@@ -6,8 +6,7 @@ import org.springdoc.core.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-@OpenAPIDefinition(info = @Info(title = "DataIngest API 명세",
-        version = "v1"))
+@OpenAPIDefinition(info = @Info(title = "세종 5-1 NDXPRO NGSI-LD dataIngest명세서", version = "v1.1"))
 @Configuration
 public class SwaggerConfig {
 

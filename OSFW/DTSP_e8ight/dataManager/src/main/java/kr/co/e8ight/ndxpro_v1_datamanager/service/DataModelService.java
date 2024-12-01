@@ -1,5 +1,13 @@
 package kr.co.e8ight.ndxpro_v1_datamanager.service;
 
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.count;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.group;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.limit;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.replaceRoot;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.skip;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.sort;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,6 +32,15 @@ import kr.co.e8ight.ndxpro_v1_datamanager.util.PagingResult;
 import kr.co.e8ight.ndxpro_v1_datamanager.util.ResponseMessage;
 import kr.co.e8ight.ndxpro_v1_datamanager.util.ValidateUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -48,11 +65,14 @@ public class DataModelService {
 //    @Value("${databroker.api-path}")
 //    private String dataBrokerApiPath;
 
+    private final MongoTemplate mongoTemplate;
     public DataModelService(DataModelRepository dataModelRepository,
-            UnitCodeRepository unitCodeRepository, FileService fileService) {
+            UnitCodeRepository unitCodeRepository, FileService fileService,
+            MongoTemplate mongoTemplate) {
         this.dataModelRepository = dataModelRepository;
         this.unitCodeRepository = unitCodeRepository;
         this.fileService = fileService;
+        this.mongoTemplate = mongoTemplate;
     }
 
     public String createDataModel(DataModelRequestDto dataModelRequestDto)
@@ -137,30 +157,36 @@ public class DataModelService {
 
         return dataModel;
     }
-    public PagingResult<List<String>> readAllDataModel(Integer curPage, Integer size, String word,
-            Boolean isReady) {
+    public PagingResult<List<String>> readAllDataModel(Integer curPage, Integer size, String word, Boolean isReady) {
 
         curPage *= size;
 
         List<DataModel> dataModels = null;
+        CountResult countResult = null;
         if (isReady != null) {
             if (!ValidateUtil.isEmptyData(word)) {
-                dataModels = dataModelRepository.findByIsReadyAndTypeContainingIgnoreCaseOrderByTypeAscCreatedAtDesc(isReady, word, curPage,size);
+                // 준비 여부와 검색 기준 전체 조회
+                dataModels = dataModelRepository.findByIsReadyAndTypeContainingIgnoreCaseOrderByTypeAscCreatedAtDesc(word,isReady, curPage,size);
+                countResult = dataModelRepository.countByIsReadyAndTypeContainingIgnoreCase(word, isReady);
+
             } else {
+                // 준비 여부 기준 전체 조회
                 dataModels = dataModelRepository.findAllByIsReadyOrderByTypeAscCreatedAtDesc(isReady,curPage,size);
+                countResult = dataModelRepository.countAllByIsReady(isReady);
             }
         } else {
             if (!ValidateUtil.isEmptyData(word)) {
-                dataModels = dataModelRepository.findByTypeContainingIgnoreCaseOrderByTypeAscCreatedAtDesc(word, curPage,size);
+                // 검색 단어 기준 전체 조회
+                dataModels = dataModelRepository.findByTypeContainingIgnoreCaseOrderByTypeAscCreatedAtDesc(word, curPage, size);
+                countResult = dataModelRepository.countByTypeContainingIgnoreCase(word);
             } else {
+                // 기본 전체 조회
                 dataModels = dataModelRepository.findAllByOrderByTypeAscCreatedAtDesc(curPage, size);
-
+                countResult = dataModelRepository.countAll();
             }
         }
-        CountResult countResult= dataModelRepository.countDistinctDataModelByType();
-        int totalData =countResult.getTotalCount();
+        int totalData = (countResult == null) ? 0 : countResult.getTotalData();
         int totalPage = (int) Math.ceil((double) totalData / size);
-
 
         List<DataModelResponseDto> dataModelResponseDtos = new ArrayList<>();
         if (!ValidateUtil.isEmptyData(dataModels)){
@@ -177,6 +203,32 @@ public class DataModelService {
 
         return new PagingResult<>(dataModelResponseDtos, totalData, totalPage);
     }
+
+//    public Page<DataModel> getDataByTypeRegexIgnoreCase(String typeRegex, Pageable pageable) {
+//        Aggregation aggregation = Aggregation.newAggregation(
+//                match(Criteria.where("type").regex(typeRegex, "i")),
+//                group("type").last("$$ROOT").as("lastDocument"),
+//                replaceRoot("lastDocument"),
+//                sort(Sort.Direction.ASC, "type"),
+//                skip(pageable.getOffset()),
+//                limit(pageable.getPageSize())
+//        );
+//        AggregationResults<DataModel> result = mongoTemplate.aggregate(aggregation, mongoTemplate.getCollectionName(DataModel.class),
+//                DataModel.class);
+//
+//        List<DataModel> resultList = result.getMappedResults();
+//        long total = resultList.isEmpty() ? 0 :
+//            mongoTemplate.aggregate(
+//                    Aggregation.newAggregation(
+//                            match(Criteria.where("type").regex(typeRegex, "i")),
+//                            group("type").last("$$ROOT").as("lastDocument"),
+//                            replaceRoot("lastDocument")),
+//                    mongoTemplate.getCollectionName(DataModel.class),
+//                    Long.class).getMappedResults().size();
+//
+//        return new PagingResult<>(resultList, total, 1);
+//    }
+
 
     // 데이터 모델 단건 조회
     public DataModelResponseDto readDataModel(String type,String version) {

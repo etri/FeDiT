@@ -1,0 +1,15 @@
+# data_ko.yml
+data:
+  field:
+    measurePositionId: "measurePositionId"
+    dateTime: "dateTime"
+    id: "id"
+  resource:
+    dataInfo: "dataInfo"
+    measurePosition: "measurePosition"
+    weather: "weather"
+    airQuality: "airQuality"
+    healthWeather: "healthWeather"
+    lifeWeather: "lifeWeather"
+    roadCondition: "roadCondition"
+    traffic: "traffic"

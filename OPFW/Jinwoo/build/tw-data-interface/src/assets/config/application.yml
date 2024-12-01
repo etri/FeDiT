@@ -1,0 +1,14 @@
+spring:
+  profiles:
+    group:
+      dev :
+      - common
+      - dev-common
+      - dev-db-mysql8-mybatis
+      prod :
+      - common
+      - prod-common
+      - prod-db-mysql8-mybatis
+
+
+

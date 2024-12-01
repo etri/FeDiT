@@ -11,13 +11,13 @@ public interface ContextRepository extends MongoRepository<Context, String> {
 
     Optional<Context> findByUrl(String url);
 
-    Optional<Context> findFirstByDefaultUrlOrderByCreatedAtDesc(String url);
+//    Optional<Context> findFirstByDefaultUrlOrderByCreatedAtDesc(String url);
 
-    List<Context> findByDefaultUrlOrderByCreatedAtDesc(String url);
+    List<Context> findByUrlOrderByCreatedAtDesc(String url);
 
     @Aggregation(pipeline = {
             "{'$project':  {" +
-                    "defaultUrl: 1" +
+                    "url: 1" +
                     "}" +
                     "}"
     })

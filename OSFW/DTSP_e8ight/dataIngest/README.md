@@ -3,9 +3,9 @@
 1. Build & Push Docker image 
 ```
 ./gradlew build -p ~/IdeaProjects/dataIngest/dataAdapter
-docker buildx build --platform linux/amd64 -t ndxpro/ndxpro-dataadapter:v1.2 .
-docker tag ndxpro/ndxpro-dataadapter:v1 172.16.28.217:12000/ndxpro-dataadapter:v1.2
-docker push 172.16.28.217:12000/ndxpro-dataadapter:v1.2
+docker buildx build --platform linux/amd64 -t ndxpro/ndxpro-dataadapter:v1.1 .
+docker tag ndxpro/ndxpro-dataadapter:v1 172.16.28.217:12000/ndxpro-dataadapter:v1.1
+docker push 172.16.28.217:12000/ndxpro-dataadapter:v1.1
 ```
 
 2. Run gradle jib

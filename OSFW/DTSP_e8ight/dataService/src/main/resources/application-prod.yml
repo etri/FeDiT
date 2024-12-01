@@ -1,0 +1,24 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: DATASERVICE-SERVICE
+
+  sleuth:
+    sampler:
+      probability: 1.0
+  zipkin:
+    base-url: ${ZIPKIN_URL}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL}
+
+databroker:
+  url: ${DATABROKER_URL}
+  api-path: ${DATABROKER_API_PATH}
+
+logging:
+  logstash:
+    url: ${LOGSTASH_URL}

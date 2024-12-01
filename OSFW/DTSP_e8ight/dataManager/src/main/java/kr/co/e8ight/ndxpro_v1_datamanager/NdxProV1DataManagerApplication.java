@@ -15,5 +15,5 @@ public class NdxProV1DataManagerApplication {
         SpringApplication.run(NdxProV1DataManagerApplication.class, args);
     }
 
-    String test;
+
 }

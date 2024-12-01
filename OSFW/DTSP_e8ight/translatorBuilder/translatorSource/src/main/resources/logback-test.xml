@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 30초마다 설정 파일의 변경을 확인한다. 파일이 변경되면 다시 로딩한다 -->
+<configuration scan="true" scanPeriod="30 seconds">
+    <!-- log packagename -->
+    <property name="LOG_PACKAGE_NAME" value="kr.co.e8ight.ndxpro.translatorRunner"/>
+    <!-- log file path -->
+    <property name="LOG_PATH" value="/opt/logs"/>
+    <!-- log days -->
+    <property name="LOG_DAYS" value="10"/>
+    <!-- log filesize log -->
+    <property name="LOG_FILESIZE_LOG" value="100MB"/>
+    <!-- log filesize zip -->
+    <property name="LOG_FILESIZE_ZIP" value="10MB"/>
+    <!-- log filesize total -->
+    <property name="LOG_TOTAL_FILESIZE" value="10GB"/>
+    <!-- log min count -->
+    <property name="LOG_FILE_MIN" value="1"/>
+    <!-- log max count -->
+    <property name="LOG_FILE_MAX" value="10"/>
+    <!-- pattern -->
+    <property name="LOG_PATTERN_DEFAULT" value="[%d{yyyy-MM-dd HH:mm:ss}] %-5level %logger{36} - %msg%n"/>
+    <property name="LOG_PATTERN_DEFAULT_ERROR" value="[%d{yyyy-MM-dd HH:mm:ss}] %-5level %logger{36} - %msg%n"/>
+
+    <!-- CONSOLE appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${LOG_PATTERN_DEFAULT}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="REPLACE_FILE" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_PATH}/translator_${translator.id}_test.log</file>
+        <append>false</append>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${LOG_PATTERN_DEFAULT}</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="kr.co.e8ight.ndxpro.translatorRunner" level="DEBUG" additivity="false">
+        <appender-ref ref="REPLACE_FILE"/>
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="REPLACE_FILE"/>
+    </root>
+
+</configuration>

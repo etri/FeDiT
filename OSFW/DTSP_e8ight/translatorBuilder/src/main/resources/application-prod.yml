@@ -1,0 +1,17 @@
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL}
+
+spring:
+  sleuth:
+    scheduled:
+      enabled: false
+    sampler:
+      probability: 1.0
+  zipkin:
+    base-url: ${ZIPKIN_URL}
+
+logging:
+  logstash:
+    url: ${LOGSTASH_URL}

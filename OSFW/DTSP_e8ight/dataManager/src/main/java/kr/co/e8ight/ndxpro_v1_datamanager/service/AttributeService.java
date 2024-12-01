@@ -56,7 +56,7 @@ public class AttributeService {
         attribute.setId(attributeRequestDto.getId());
         attribute.setTitle(attributeRequestDto.getTitle());
         attribute.setDescription(attributeRequestDto.getDescription());
-        attribute.setAttributeType(attributeRequestDto.getAttributeType());
+//        attribute.setAttributeType(attributeRequestDto.getAttributeType());
         attribute.setValueType(attributeRequestDto.getValueType());
         attribute.setType(attributeRequestDto.getType());
         attribute.setFormat(attributeRequestDto.getFormat());
@@ -245,9 +245,9 @@ public class AttributeService {
         if (ValidateUtil.isEmptyData(type)) {
             throw new AttributeException(ErrorCode.INVALID_REQUEST, "Attribute Type is Empty");
         }
-        if (ValidateUtil.isEmptyData(attributeType)) {
-            throw new AttributeException(ErrorCode.INVALID_REQUEST, "Attribute attributeType is Empty");
-        }
+//        if (ValidateUtil.isEmptyData(attributeType)) {
+//            throw new AttributeException(ErrorCode.INVALID_REQUEST, "Attribute attributeType is Empty");
+//        }
 //        if (type!="e8ight"){
 //
 //        }

@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <!--Import Google Icon Font-->
+  <!-- <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Roboto+Mono" rel="stylesheet"> -->
+  <!--Import materialize.css-->
+  <link type="text/css" rel="stylesheet" href="css/materialize.min.css" media="screen,projection" />
+  <!-- <link type="text/css" rel="stylesheet" href="css/tt.css" media="screen,projection" />   -->
+
+  <link type="text/css" rel="stylesheet" href="css/my.css" media="screen,projection" />
+  <link type='text/css' rel='stylesheet' href='css/prism.css' media='screen,projection' />  
+  <link rel="stylesheet" href="css/jqcloud.min.css" />    
+
+
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  <!--Let browser know website is optimized for mobile-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8">
+</head>
+
+<body scroll="no" style="overflow: hidden">
+  
+<!-- <body> -->
+  <nav class="z-depth-0">    
+    <div id='nav' class="nav-wrapper blue">
+      <div class="container">
+        <a href="#" class="brand-logo center">CRIPS (Crime Risk Prediction System)</a>
+      </div>
+      <!-- <ul class="right hide-on-med-and-down">
+        <li><a class="waves-effect waves-light btn modal-trigger" href="#id_modal">Model Performance</a></li>
+      </ul>       -->
+    </div>
+  </nav>
+    
+  <div class="row">
+    
+    <div class="col s6 mypane grey lighten-5">
+      <div class="row">      
+        <div class="col s12">
+          <blockquote>
+              <h6>Case</h6>
+          </blockquote>
+          <div class="input-field col s12">
+            <textarea id="id_case" class="materialize-textarea" spellcheck="false"></textarea>
+            <label for="id_case">text</label>
+          </div>
+        </div>  
+
+        <div class="col s12">            
+          <blockquote>
+            <h6>Word Cloud</h6>
+          </blockquote>          
+          <div id='id_word_cloud' class='word_cloud'></div>
+        </div>
+
+        <div class="col s12">            
+          <blockquote>
+            <h6>Keywords Vector</h6>
+          </blockquote>          
+          <pre><code id='id_keywords' class="language-javascript"></code></pre>
+        </div>
+
+      </div>
+      <br/>        
+      <br/>
+  
+    </div>
+
+    <div class="col s6 mypane">
+      <div class="row">
+        <div class="col s12">          
+          <blockquote>
+            <h6>Crime Type Probability</h6>
+          </blockquote>                        
+          <!-- <div id="id_chart1" style="width: 100%;"></div> -->
+          <h6 class="center"><pre id="id_crime_true"></pre></h6>          
+          <canvas id="id_chart1" width="100vw" height="70"></canvas>
+        </div>
+      </div>
+      <div class="row">        
+        <div class="col s12">  
+          <blockquote>
+              <h6>Crime Risk Score</h6>
+          </blockquote>                
+          <h2 class="center" id="id_risk_pred">0</h2>
+        </div>
+      </div>        
+      <br/>        
+      <br/>      
+    </div>
+    
+  </div>
+
+
+  <!-- Modal Structure -->
+  <div id="id_modal" class="modal">
+    <div class="modal-content">
+      <pre>
+          # 범죄 위험도 예측 평가
+          accuracy: 422.96 (rmse, root mean squared error)
+
+          # 범죄 유형 예측 평가 (전체)
+          accuracy:  0.85
+          precision: 0.82
+          recall:    0.86
+          f-score:   0.83
+
+          # 범죄 유형 예측 평가 (유형별)
+          type    precision  recall     f-score    samples
+          강간     0.97       0.88       0.92       32
+          강도     0.0        0.0        0.0        13
+          방화     1.0        0.73       0.84       11
+          살인     1.0        0.5        0.67       4
+          상해     0.0        0.0        0.0        1
+          절도     0.93       1.0        0.96       25
+          폭력     0.73       0.87       0.79       53
+          기타     0.87       0.95       0.91       111
+      </pre>
+    </div>
+    <div class="modal-footer">
+      <a href="#!" class="modal-close waves-effect waves-green btn-flat">ok</a>
+    </div>
+  </div>
+
+  <script type='text/javascript' src='js/prism.js'></script> 
+  <script type="text/javascript" src="js/jquery-2.1.1.min.js"></script> 
+  <script type="text/javascript" src="js/materialize.min.js"></script> 
+  <script type="text/javascript" src="js/jqcloud.min.js"></script>
+  <script src="js/chart.min.js"></script>
+
+  <script>
+
+  var words = [
+  ];
+
+  $(document).ready(function () {
+
+    $('#id_word_cloud').jQCloud(words, {
+        autoResize: true
+    });
+
+    $('.modal').modal();
+
+    $(window).resize(function(){
+      drawChart()
+    });
+
+    //events
+    document.getElementById('id_case').onkeyup = case_changed
+
+    init()
+
+  });
+
+  var g_labels = [
+    "절도",
+    "체포감금",
+    "손괴",
+    "공갈",
+    "약취유인",
+    "상해",
+    "폭행",
+    "협박",
+    "횡령",
+    "배임",
+    "사기",
+    "특별경제범죄",
+    "강간",
+    "강도",
+    "강제추행",
+    "살인",
+    "방화",
+    "유사강간",
+    "마약",
+    "도박범죄",
+    "성풍속범죄"
+  ]
+
+  function init() {
+    text = `피의자 고시안은 "봉골레" 레스토랑 직원이다.
+피의자는 2014. 06 .05. 14:23경 충청북도 제천시 고명로9길 19에 위치한 레스토랑 "봉골레"에서 피해자 남민주로부터 자동차키를 받아 발렛파킹하던 중, 주차하던 차량을 절취하였다. 이로써 피의자는 피해자로부터 시가 5,600만원 상당의 아우디A4 2.0 TFSI 콰트로 프레스티지(43조6942)를 절취하였다.`
+    document.getElementById('id_case').innerHTML = text
+
+    case_changed()
+  }
+
+  function update(data) {
+    g_data = data
+    wordcloud(data['wordcloud'])
+    keywords(data['keywords'])
+    drawChart()
+
+
+    document.getElementById('id_crime_true').innerHTML = `${g_labels[data['crime']]} (${data['crime_probs'][data['crime']]})`
+
+    document.getElementById('id_risk_pred').innerHTML = data['crs']
+
+  }
+
+  function case_changed() {
+    var text = document.getElementById("id_case").value
+    console.log(text)
+
+    data = {
+      'text': text
+    }
+
+    $.ajax({
+      type: "post",
+      contentType: "application/json",
+      url: "/model/predict",
+      data: JSON.stringify(data),
+      dataType: 'json',
+      timeout: 60*1000,
+      success: function (msg) {
+        if (msg['err'] == null) {
+          update(msg['res'])
+        } else {
+          update(null)
+        }
+      },
+      error: function (e) {
+        console.log(e)
+        update(null)
+      }
+    });
+  }
+
+  function wordcloud(data) {
+    words = [];
+    for (var key in data){
+      words.push({text:key, weight:data[key]})
+    }
+    $('#id_word_cloud').jQCloud('update', words)
+  }
+
+  function keywords(data) {
+    temp = ""
+    for (var x in data){
+      if (data[x] == "0")
+        temp += "0" + " "
+      else
+        temp += data[x] + " "
+    }
+
+    document.getElementById('id_keywords').innerHTML = temp
+    Prism.highlightElement($('#id_keywords')[0]);     
+  }
+
+  var g_data = null
+  var chart = null
+  function drawChart() {
+
+    if (g_data == null) {
+      g_data = {
+        'crime_probs': [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]
+      } 
+    }
+
+    colors = []
+    for (i =0; i<21; i++) {
+      colors.push('rgba(0, 0, 0, 0.5)')
+    }
+    colors[g_data['crime']] = 'rgba(255, 0, 0, 0.5)'
+    
+    // destroy old graph
+    if (chart) {
+        chart.destroy();
+    }
+
+    chart = new Chart(document.getElementById("id_chart1"), {
+      type: 'horizontalBar',
+      data: {
+        labels: g_labels,
+        datasets: [
+          {
+            data: g_data['crime_probs'],
+            backgroundColor: colors
+            // data: [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
+            //backgroundColor: ["#E57373", "#F06292", "#BA68C8", "#9575CD", "#7986CB", "#7986CB", "#4FC3F7", "#B0BEC5"],
+          }
+        ]
+      },
+      options: {
+        legend: { display: false },
+        title: {
+          display: false,
+          text: ''
+        },
+        scales: {
+            xAxes: [{
+                ticks: {
+                    suggestedMin: 0,
+                    suggestedMax: 1
+                }
+            }]
+        }
+      }
+    });
+
+  }  
+
+  // g_data = null
+  // function get_data() {
+  //   var xhr = new XMLHttpRequest();
+  //   xhr.open('get', '/demo_data.json');
+  //   xhr.onload = function () {
+  //     if (xhr.status === 200) {
+  //       data = JSON.parse(xhr.responseText);
+  //       console.log(data);
+  //       g_data = data
+
+  //       //set select
+  //       temp = ""
+  //       for (i in g_data['samples']) {
+  //         tt = g_data['samples'][i]['crime_true'] + ": " + g_data['samples'][i]['text'].split(" ", 50).join(" ")
+  //         //tt = g_data['samples'][i]['crime_true'] + ": " + g_data['samples'][i]['text']
+  //         console.log(tt)
+  //         temp += `<option value="${i}">${tt}</option>`
+  //       }
+  //       console.log(temp)
+  //       document.getElementById('id_case').innerHTML = temp;
+  //       changed_case()        
+  //     }
+  //     else {
+  //       console.log(xhr.status);
+  //     }
+  //   };
+  //   xhr.send();
+  // }  
+
+  // g_crime_prob = []
+  // // g_crime_prob = [
+  // //   ['type', 'probability' ],
+  // //   ['강간', 0],
+  // //   ['강도', 0],
+  // //   ['방화', 0],
+  // //   ['살인', 0],
+  // //   ['상해', 0],
+  // //   ['절도', 0],
+  // //   ['폭력', 0],
+  // //   ['기타', 0]
+  // // ]
+
+  // function changed_case() {
+  //   console.log('changed_case')
+  //   var obj = document.getElementById('id_case');
+  //   //var val = obj.options[obj.selectedIndex].value;
+    
+  //   document.getElementById('id_case_text').innerHTML = g_data['samples'][obj.selectedIndex].text
+  //   //Prism.highlightElement($('#id_case_text')[0]);    
+
+  //   //keywords
+  //   // temp = ""
+  //   // weights = g_data['samples'][obj.selectedIndex]['x']    
+  //   // category = ["강간·강제추행", "강도", "방화", "살인", "상해", "절도", "폭력"]
+  //   // for(i in category) {
+  //   //   words = g_data['keywords'][category[i]]
+  //   //   temp += '#' + category[i] + '\n'
+  //   //   for (j = 0; j < 10; j++) {
+  //   //     temp += words[j] + '(' + weights[j + i*10] + ') '
+  //   //   }
+  //   //   temp += '\n\n'
+  //   // }
+
+  //   temp = ""
+  //   weights = g_data['samples'][obj.selectedIndex]['x']    
+  //   category = ["강간·강제추행", "강도", "방화", "살인", "상해", "절도", "폭력"]
+  //   for(i in category) {
+  //     words = g_data['keywords'][category[i]]
+  //     for (j = 0; j < 10; j++) {
+  //       if (weights[j + i*10] != 0) {
+  //         temp += words[j] + '(' + weights[j + i*10] + ') '
+  //       }
+  //     }
+  //   }
+  //   document.getElementById('id_keywords').innerHTML = temp
+  //   Prism.highlightElement($('#id_keywords')[0]); 
+
+  //   //word_cloud
+  //   words = [
+  //   ];    
+  //   temp = ""
+  //   dict = g_data['samples'][obj.selectedIndex]['word_cloud']
+  //   for (var key in dict){
+  //     //console.log( key, dict[key] );
+  //     words.push({text:key, weight:dict[key]})
+  //   }
+  //   $('#id_word_cloud').jQCloud('update', words)
+
+
+  //   // risk
+  //   document.getElementById('id_risk_pred').innerHTML = g_data['samples'][obj.selectedIndex]['risk_pred']
+  //   document.getElementById('id_risk_true').innerHTML = 'true:' + g_data['samples'][obj.selectedIndex]['risk_true']
+
+
+  //   // crime
+  //   document.getElementById('id_crime_true').innerHTML = 'true:' + g_data['samples'][obj.selectedIndex]['crime_true']
+
+  //   g_crime_prob = g_data['samples'][obj.selectedIndex]['crime_pred_vals']
+  //   // g_crime_prob = [
+  //   //   ['type', 'probability' ],
+  //   //   ['강간', vals[0]],
+  //   //   ['강도', vals[1]],
+  //   //   ['방화', vals[2]],
+  //   //   ['살인', vals[3]],
+  //   //   ['상해', vals[4]],
+  //   //   ['절도', vals[5]],
+  //   //   ['폭력', vals[6]],
+  //   //   ['기타', vals[7]]
+  //   // ]
+    
+  //   drawChart()
+
+  // }
+
+  // var chart
+  // function drawChart() {
+
+  //   // destroy old graph
+  //   if (chart) {
+  //       chart.destroy();
+  //   }
+
+  //   chart = new Chart(document.getElementById("id_chart1"), {
+  //     type: 'horizontalBar',
+  //     data: {
+  //       labels: ['강간', '강도', '방화', '살인', '상해', '절도', '폭력', '기타'],
+  //       datasets: [
+  //         {
+  //           backgroundColor: ["#E57373", "#F06292", "#BA68C8", "#9575CD", "#7986CB", "#7986CB", "#4FC3F7", "#B0BEC5"],
+  //           data: g_crime_prob,
+  //         }
+  //       ]
+  //     },
+  //     options: {
+  //       legend: { display: false },
+  //       title: {
+  //         display: false,
+  //         text: ''
+  //       }
+  //     }
+  //   });
+
+  // }
+
+  </script>
+  
+</body>
+
+</html>

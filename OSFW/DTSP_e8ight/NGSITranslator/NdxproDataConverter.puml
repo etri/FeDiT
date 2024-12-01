@@ -1,0 +1,62 @@
+@startuml
+title Translator Management
+
+actor Admin
+participant AdminUI
+participant NGSITranslator
+database DB
+participant TranslatorBuilder
+collections Kafka
+
+== 신규 Translator 등록 ==
+
+Admin -> AdminUI: 1-1. Translator 컴파일
+
+AdminUI -> NGSITranslator: 1-2. POST /Translators/compile { translator : translator class file }
+NGSITranslator -> TranslatorBuilder: 1-3. POST /compile { translator : translator class file }
+TranslatorBuilder -> TranslatorBuilder: 1-4. Translator 클래스 저장
+TranslatorBuilder -> TranslatorBuilder: 1-5. translator compile
+TranslatorBuilder -> TranslatorBuilder: 1-6. Translator 클래스 제거
+TranslatorBuilder -> NGSITranslator: 1-7. compile result
+NGSITranslator -> AdminUI: 1-8. compile result
+
+Admin -> AdminUI: 1-9. Translator 생성
+AdminUI -> NGSITranslator: 1-10. POST /Translators { translator : translator class file }
+NGSITranslator -> TranslatorBuilder: 1-11. POST /build { translator : translator class file }
+TranslatorBuilder -> TranslatorBuilder: 1-12. Translator 클래스 저장
+TranslatorBuilder -> TranslatorBuilder: 1-13. translator build
+alt build 성공
+    TranslatorBuilder -> NGSITranslator: 1-14-1. executable jar 파일 response
+    NGSITranslator -> NGSITranslator: 1-14-2. jar 파일 저장
+    NGSITranslator -> DB: 1-14-3. insert translator info
+else build 실패
+    TranslatorBuilder -> NGSITranslator: 1-14-1. 실패 stack trace response
+end
+TranslatorBuilder -> TranslatorBuilder: 1-15. Translator 클래스 제거
+NGSITranslator -> AdminUI: 1-16. translator 생성 결과 response
+
+== Translator 실행 ==
+Admin -> AdminUI: 2-1. Translator 실행
+AdminUI -> NGSITranslator: 2-2. PATCH /Translators/{TranslatorId} { operation : run }
+NGSITranslator -> NGSITranslator: 2-3. translator 실행 (java -jar)
+NGSITranslator -> DB: 2-4. update translator state
+
+loop Translator Application (loop)
+    NGSITranslator -> Kafka: 2-5-1. datasetId+"-org"의 topic을 consume
+    Kafka -> NGSITranslator: 2-5-2. return byte[];
+    NGSITranslator -> NGSITranslator: 2-5-3. convert byte[] to IngestInterfaceVo
+    NGSITranslator -> Kafka: 2-5-4. datasetId topic으로 produce
+end
+
+== Translator 중지 ==
+Admin -> AdminUI: 3-1. Translator 중지
+AdminUI -> NGSITranslator: 3-2. PUT /Translators/{TranslatorId}/stop
+NGSITranslator -> NGSITranslator: 3-3. translator 중지 (kill -9)
+NGSITranslator -> DB: 3-4. update translator state
+
+== Translator 제거 ==
+Admin -> AdminUI: 4-1. Translator 제거
+AdminUI -> NGSITranslator: 4-2. DELETE /Translators/{TranslatorId}
+NGSITranslator -> NGSITranslator: 4-3. translator jar 파일 제거
+NGSITranslator -> DB: 4-4. delete translator info
+@enduml
