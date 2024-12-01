@@ -2,6 +2,29 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.stoneitgt.dt.data.platform.admin.mapper.CodeMapper">
+	<select id="getCodeMasterList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : CodeMapper.xml, id : getCodeMasterList */
+		SELECT A.*
+		, DATE_FORMAT(A.REG_DT, '%Y-%m-%d') AS REG_DT
+		FROM TB_CODE_MST A
+		WHERE A.DEL_YN = 'N'
+		<if test="GRP_CD != null and GRP_CD != ''">
+			AND A.GRP_CD = #{grpCode}
+		</if>
+		ORDER BY GRP_CD
+		/*||ORDER BY GRP_CD||*/
+	</select>
+
+	<select id="getCodeDetailList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : CodeMapper.xml, id : getCodeDetailList */
+		SELECT A.*
+			 , DATE_FORMAT(A.REG_DT, '%Y-%m-%d') AS REG_DT
+		FROM TB_CODE_DTL A
+		WHERE A.DEL_YN = 'N'
+		  AND A.GRP_CD = #{grpCd}
+		ORDER BY ORDBY
+		/*||ORDER BY ORDBY||*/
+	</select>
 
 	<select id="getCodeList" parameterType="string" resultType="com.stoneitgt.common.LowerKeyMap">
 		/* file : CodeMapper.xml, id : getCodeList */
@@ -33,25 +56,21 @@
 		ORDER BY ORDBY, DTL_CD_NM
 	</select>
 
-	<select id="getCodeMasterList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
-		/* file : CodeMapper.xml, id : getCodeMasterList */
-		  SELECT A.*
-		       , DATE_FORMAT(A.REG_DT, '%Y-%m-%d') AS REG_DT
-		    FROM TB_CODE_MST A
-		   WHERE A.DEL_YN = 'N'
-		<if test="GRP_CD != null and GRP_CD != ''">
-		     AND A.GRP_CD = #{grpCode}
-		</if>
-		ORDER BY GRP_CD
-	/*||ORDER BY GRP_CD||*/
-	</select>
-
 	<select id="getCodeMaster" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
 		/* file : CodeMapper.xml, id : getCodeMaster */
 		  SELECT A.*
 		    FROM TB_CODE_MST A
 		   WHERE A.DEL_YN = 'N'
 		     AND A.GRP_CD = #{grpCd}
+	</select>
+
+	<select id="getCodeDetail" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : CodeMapper.xml, id : getCodeDetail */
+		SELECT A.*
+		FROM TB_CODE_DTL A
+		WHERE A.DEL_YN = 'N'
+		  AND A.GRP_CD = #{grpCd}
+		  AND A.DTL_CD     = #{dtlCd}
 	</select>
 
 	<insert id="saveCodeMaster" parameterType="com.stoneitgt.dt.data.platform.domain.CodeMst">
@@ -74,6 +93,34 @@
 		     , MDFCN_IP                             = #{loginUserIp}
 	</insert>
 
+	<insert id="saveCodeDetail" parameterType="com.stoneitgt.dt.data.platform.domain.CodeDtl">
+		/* file : CodeMapper.xml, id : saveCodeDetail */
+		INSERT
+		INTO TB_CODE_DTL (
+						   GRP_CD
+						 , DTL_CD
+						 , DTL_CD_NM
+						 , ORDBY
+						 , USE_YN
+						 , REG_USER_SEQ
+						 , REG_IP)
+		VALUES (
+				 UPPER( #{grpCd} )
+			   , UPPER( #{dtlCd} )
+			   , #{dtlCdNm}
+			   , #{ordby}
+			   , #{useYn}
+			   , #{loginUserSeq}
+			   , #{loginUserIp})
+		ON DUPLICATE KEY UPDATE DTL_CD_NM = #{dtlCdNm}
+							  , ORDBY                          = #{ordby}
+							  , USE_YN                       = #{useYn}
+							  , DEL_YN                       = 'N'
+							  , MDFCN_USER_SEQ                   = #{loginUserSeq}
+							  , MDFCN_DT                       = CURRENT_TIMESTAMP
+							  , MDFCN_IP                         = #{loginUserIp}
+	</insert>
+
 	<update id="deleteCodeMaster" parameterType="com.stoneitgt.dt.data.platform.domain.CodeDtl" >
 		/* file : CodeMapper.xml, id : deleteCodeMaster */
 		  UPDATE TB_CODE_MST
@@ -94,54 +141,6 @@
 		   WHERE GRP_CD     = #{grpCd}
 	</update>
 
-	<select id="getCodeDetailList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
-		/* file : CodeMapper.xml, id : getCodeDetailList */
-		  SELECT A.*
-		       , DATE_FORMAT(A.REG_DT, '%Y-%m-%d') AS REG_DT
-		    FROM TB_CODE_DTL A
-		   WHERE A.DEL_YN = 'N'
-		     AND A.GRP_CD = #{grpCd}
-		ORDER BY ORDBY
-	/*||ORDER BY ORDBY||*/
-	</select>
-
-	<select id="getCodeDetail" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
-		/* file : CodeMapper.xml, id : getCodeDetail */
-		  SELECT A.*
-		    FROM TB_CODE_DTL A
-		   WHERE A.DEL_YN = 'N'
-		     AND A.GRP_CD = #{grpCd}
-		     AND A.DTL_CD     = #{dtlCd}
-	</select>
-
-	<insert id="saveCodeDetail" parameterType="com.stoneitgt.dt.data.platform.domain.CodeDtl">
-		/* file : CodeMapper.xml, id : saveCodeDetail */
-		INSERT
-		  INTO TB_CODE_DTL (
-		              GRP_CD
-		            , DTL_CD
-		            , DTL_CD_NM
-		            , ORDBY
-		            , USE_YN
-		            , REG_USER_SEQ
-		            , REG_IP)
-		       VALUES (
-		              UPPER( #{grpCd} )
-		            , UPPER( #{dtlCd} )
-		            , #{dtlCdNm}
-		            , #{ordby}
-		            , #{useYn}
-		            , #{loginUserSeq}
-		            , #{loginUserIp})
-		     ON DUPLICATE KEY UPDATE DTL_CD_NM = #{dtlCdNm}
-		     , ORDBY                          = #{ordby}
-		     , USE_YN                       = #{useYn}
-		     , DEL_YN                       = 'N'
-		     , MDFCN_USER_SEQ                   = #{loginUserSeq}
-		     , MDFCN_DT                       = CURRENT_TIMESTAMP
-		     , MDFCN_IP                         = #{loginUserIp}
-	</insert>
-
 	<update id="deleteCodeDetail" parameterType="com.stoneitgt.dt.data.platform.domain.CodeDtl" >
 		/* file : CodeMapper.xml, id : deleteCodeDetail */
 		  UPDATE TB_CODE_DTL
@@ -152,21 +151,4 @@
 		   WHERE GRP_CD     = #{grpCd}
 		     AND DTL_CD         = #{dtlCd}
 	</update>
-	
-	<select id="getCodeTcList" parameterType="string" resultType="com.stoneitgt.common.LowerKeyMap">
-		/* file : CodeMapper.xml, id : getCodeTcList */
-		  SELECT CODE
-		       , DTL_CD_NM
-		       , REF_CODE
-		       , REF_CLASS
-		       , REF_VALUE
-		       , ORDBY
-		    FROM TB_CODE_DTL
-		   WHERE GRP_CD = #{grpCd}
-		     AND DEL_YN = 'N'
-		     AND USE_YN = 'Y'
-		     AND CODE IN ('SB','CT')
-		ORDER BY ORDBY, DTL_CD_NM
-	</select>
-
 </mapper>

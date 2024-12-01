@@ -39,5 +39,4 @@
 		     , FILE_CONTS_TP = #{fileContsTp}
 		 WHERE RESOURCE_SEQ      = #{resourceSeq}
 	</update>
-
 </mapper>

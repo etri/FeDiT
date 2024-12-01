@@ -15,28 +15,30 @@
                           method="get">
                         <th:block th:include="fragments/search_hidden"></th:block>
                         <div class="row">
-                            <div class="col-sm-4">
+                            <div class="col-sm">
                                 <div class="form-group row">
-                                    <div class="col-sm-4">
+                                    <div class="col-sm-auto">
                                         <select th:field="*{field}" class="form-control">
                                             <option value="menu_nm">메뉴명</option>
                                         </select>
                                     </div>
-                                    <div class="col-sm-8">
+                                    <div class="col-sm">
                                         <input type="text" th:field="*{keyword}" class="form-control"
                                                placeholder="검색어를 입력하세요">
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-sm-12 text-right">
-                                <button type="submit" class="btn btn-primary mr-2 btn-icon-text btn-search">
-                                    <i class="btn-icon-prepend" data-feather="search"></i>조회
-                                </button>
-                                <button type="button" class="btn btn-secondary btn-icon-text btn-add-menu">
-                                    <i class="btn-icon-prepend" data-feather="edit"></i>등록
-                                </button>
+                            <div class="col-sm-auto">
+                                <div class="form-group row">
+                                    <div class="col-sm">
+                                        <button type="submit" class="btn btn-primary mr-2 btn-icon-text btn-search">
+                                            <i class="btn-icon-prepend" data-feather="search"></i>조회
+                                        </button>
+                                        <button type="button" class="btn btn-secondary btn-icon-text btn-add-menu">
+                                            <i class="btn-icon-prepend" data-feather="edit"></i>등록
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -79,11 +81,17 @@
                                       th:if="${#lists.isEmpty(list)}"></th:block>
                             <tr th:each="item, rows : ${list}" th:unless="${#lists.isEmpty(list)}">
                                 <td th:text="${paging.total - rows.index}">1</td>
-                                <td th:utext="|${item.level == 2 ? '&nbsp;&nbsp;&nbsp;&nbsp;' : ''}${item.menu_cd}|">
-                                    menu_code
+                                <td th:switch="${item.level}">
+                                    <th:block th:case="1" th:utext="'&nbsp;' + ${item.menu_cd}"></th:block>
+                                    <th:block th:case="2" th:utext="'&nbsp;&nbsp;&nbsp;&nbsp;' + ${item.menu_cd}"></th:block>
+                                    <th:block th:case="3" th:utext="'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + ${item.menu_cd}"></th:block>
+                                    <th:block th:case="*" th:utext="${item.menu_cd}"></th:block>
                                 </td>
-                                <td th:utext="|${item.level == 2 ? '&nbsp;&nbsp;&nbsp;&nbsp;ㄴ&nbsp;' : ''}${item.menu_nm}|">
-                                    menu_nm
+                                <td th:switch="${item.level}">
+                                    <th:block th:case="1" th:utext="'&nbsp;' + ${item.menu_nm}"></th:block>
+                                    <th:block th:case="2" th:utext="'&nbsp;&nbsp;&nbsp;&nbsp;ㄴ&nbsp;' + ${item.menu_nm}"></th:block>
+                                    <th:block th:case="3" th:utext="'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ㄴ&nbsp;' + ${item.menu_nm}"></th:block>
+                                    <th:block th:case="*" th:utext="${item.menu_cd}"></th:block>
                                 </td>
                                 <td th:text="${item.up_menu_cd}">parent_menu_code</td>
                                 <td th:text="${item.menu_url}">parent_menu_code</td>

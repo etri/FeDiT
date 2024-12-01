@@ -40,7 +40,12 @@ document.addEventListener('DOMContentLoaded', function () {
                                     case 'BRITS':
                                         alert('보간 옵션에서 사용되는 Data Twin Model이 존재합니다.\n삭제할 수 없습니다.');
                                         break;
-                                    default:
+                                    case 'NAOMI':
+                                        alert('보간 옵션에서 사용되는 Data Twin Model이 존재합니다.\n삭제할 수 없습니다.');
+                                        break;
+                                    default:{
+                                        alert('다른 옵션에서 사용되는 Data Twin Model이 존재합니다.\n삭제할 수 없습니다.');
+                                    }
                                 }
                                 break;
                             case 'nofind':

@@ -1,5 +1,6 @@
 package com.stoneitgt.dt.data.platform.admin.config;
 
+import com.stoneitgt.dt.data.platform.admin.Filter.AutoLoginFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -13,6 +14,7 @@ import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.firewall.HttpFirewall;
 import org.springframework.security.web.firewall.StrictHttpFirewall;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
@@ -27,89 +29,93 @@ import com.stoneitgt.dt.data.platform.admin.security.AuthSuccessHandler;
  * Spring Security에 대한 설정 클래스
  *
  * @author yh.kim
- *
  */
 @Configuration
 @EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
-	@Autowired
-	private AuthProvider authProvider;
+    @Autowired
+    private AuthProvider authProvider;
 
-	@Autowired
-	private AuthFailureHandler authFailureHandler;
+    @Autowired
+    private AuthFailureHandler authFailureHandler;
 
-	@Autowired
-	private AuthSuccessHandler authSuccessHandler;
+    @Autowired
+    private AuthSuccessHandler authSuccessHandler;
 
-	@Override
-	public void configure(AuthenticationManagerBuilder auth) throws Exception {
-		auth.authenticationProvider(authProvider);
-	}
+    @Autowired
+    private AutoLoginFilter autoLoginFilter;
 
-	@Bean
-	public RequestContextListener requestContextListener() {
-		return new RequestContextListener();
-	}
+    @Override
+    public void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.authenticationProvider(authProvider);
+    }
 
-	@Override
-	public void configure(WebSecurity web) throws Exception {
-		super.configure(web);
-		web.ignoring().antMatchers("/static/**", "/assets/**", "/streaming/**", "/files/**");
-		web.httpFirewall(allowUrlEncodedSlashHttpFirewall());
-	}
+    @Bean
+    public RequestContextListener requestContextListener() {
+        return new RequestContextListener();
+    }
 
-	@Override
-	protected void configure(HttpSecurity http) throws Exception {
+    @Override
+    public void configure(WebSecurity web) throws Exception {
+        super.configure(web);
+        web.ignoring().antMatchers("/static/**", "/assets/**", "/streaming/**", "/files/**");
+        web.httpFirewall(allowUrlEncodedSlashHttpFirewall());
+    }
 
-		http.cors().and().csrf().ignoringAntMatchers("/api/session/extention", "/login");
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
 
-		http.headers().frameOptions().disable();
-		http.headers().httpStrictTransportSecurity().disable();
-			
-		http.authorizeRequests().antMatchers("/", "/login", "/error/**").permitAll();
+        http.cors().and().csrf().ignoringAntMatchers("/api/session/extention", "/login");
 
-		http.authorizeRequests().antMatchers("/actuator/**").hasRole("ADMIN");
+        http.headers().frameOptions().disable();
+        http.headers().httpStrictTransportSecurity().disable();
 
-		http.authorizeRequests()
-				.antMatchers("/**").hasAnyRole("ADMIN", "USER")
-				.anyRequest().denyAll()
-				.and()
-					.formLogin()
-					.loginPage("/login")
-					.usernameParameter("id")
-					.passwordParameter("password")
-					.successHandler(authSuccessHandler)
-					.failureHandler(authFailureHandler)
-				.and()
-					.logout()
-					.logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-					.deleteCookies("DT_DATA_TWIN_JSESSIONID")
-					.clearAuthentication(true)
-					.invalidateHttpSession(true)
-					.logoutSuccessUrl("/login");
-	}
+        http.authorizeRequests().antMatchers("/", "/login", "/error/**").permitAll();
 
-	@Bean
-	public HttpFirewall allowUrlEncodedSlashHttpFirewall() {
-		StrictHttpFirewall firewall = new StrictHttpFirewall();
-		firewall.setAllowUrlEncodedSlash(true);
-		firewall.setAllowSemicolon(true);
-		return firewall;
-	}
+        http.authorizeRequests().antMatchers("/actuator/**").hasRole("ADMIN");
 
-	@Bean
-	public PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
-	}
+        http.authorizeRequests()
+                .antMatchers("/**").hasAnyRole("ADMIN", "USER")
+                .anyRequest().denyAll()
+                .and()
+                .formLogin()
+                .loginPage("/login")
+                .usernameParameter("id")
+                .passwordParameter("password")
+                .successHandler(authSuccessHandler)
+                .failureHandler(authFailureHandler)
+                .and()
+                .logout()
+                .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
+                .deleteCookies("DT_DATA_TWIN_JSESSIONID")
+                .clearAuthentication(true)
+                .invalidateHttpSession(true)
+                .logoutSuccessUrl("/login");
+        // 자동 로그인 필터 추가
+        http.addFilterBefore(autoLoginFilter, UsernamePasswordAuthenticationFilter.class);
+    }
 
-	@Bean
-	public SessionRegistry sessionRegistry() {
-		return new SessionRegistryImpl();
-	}
+    @Bean
+    public HttpFirewall allowUrlEncodedSlashHttpFirewall() {
+        StrictHttpFirewall firewall = new StrictHttpFirewall();
+        firewall.setAllowUrlEncodedSlash(true);
+        firewall.setAllowSemicolon(true);
+        return firewall;
+    }
 
-	@Bean
-	public ServletListenerRegistrationBean<HttpSessionEventPublisher> httpSessionEventPublisher() {
-		return new ServletListenerRegistrationBean<HttpSessionEventPublisher>(new HttpSessionEventPublisher());
-	}
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public SessionRegistry sessionRegistry() {
+        return new SessionRegistryImpl();
+    }
+
+    @Bean
+    public ServletListenerRegistrationBean<HttpSessionEventPublisher> httpSessionEventPublisher() {
+        return new ServletListenerRegistrationBean<HttpSessionEventPublisher>(new HttpSessionEventPublisher());
+    }
 }

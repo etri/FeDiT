@@ -14,15 +14,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.stoneitgt.dt.data.platform.admin.mapper.MakeMetaModelSchedulerMapper;
-import com.stoneitgt.dt.data.platform.admin.properties.SystemProperties;
 import org.springframework.web.client.RestTemplate;
 
 @Slf4j
 @Service
-public class MakeMetaModelSchedulerService {
-
-    @Autowired
-    private SystemProperties systemproperties;
+public class MakeMetaModelSchedulerService extends BaseService {
 
     @Autowired
     private MakeMetaModelSchedulerMapper makeMetaModelSchedulerMapper;
@@ -73,9 +69,9 @@ public class MakeMetaModelSchedulerService {
     public JSONObject createMetaBasicModel(Map<String, Object> requestBody) throws ParseException {
         RestTemplate restTemplate = new RestTemplate();
 
-        String url = systemproperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater/";
+        String url = systemProperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater/";
         String contentType = "application/json";
-        String authKey = "Token " + systemproperties.getDtApiKey();
+        String authKey = "Token " + systemProperties.getDtApiKey();
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", contentType);
@@ -94,9 +90,9 @@ public class MakeMetaModelSchedulerService {
     public JSONObject createMetaDeepARModel(Map<String, Object> requestBody) throws ParseException {
         RestTemplate restTemplate = new RestTemplate();
 
-        String url = systemproperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater_deepAR/";
+        String url = systemProperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater_deepAR/";
         String contentType = "application/json";
-        String authKey = "Token " + systemproperties.getDtApiKey();
+        String authKey = "Token " + systemProperties.getDtApiKey();
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", contentType);
@@ -115,9 +111,9 @@ public class MakeMetaModelSchedulerService {
     public JSONObject createMetaNBeatsModel(Map<String, Object> requestBody) throws ParseException {
         RestTemplate restTemplate = new RestTemplate();
 
-        String url = systemproperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater_nbeats/";
+        String url = systemProperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater_nbeats/";
         String contentType = "application/json";
-        String authKey = "Token " + systemproperties.getDtApiKey();
+        String authKey = "Token " + systemProperties.getDtApiKey();
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", contentType);

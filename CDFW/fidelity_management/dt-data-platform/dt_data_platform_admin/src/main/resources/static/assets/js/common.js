@@ -169,6 +169,16 @@ $(document).ready(function () {
                 topNavItemWrapper.classList.add('collapse');
                 topNavItemWrapper.classList.add('show');
             });
+            let topSubNavItems = sidebarBody.querySelectorAll('ul.nav > li.nav-item.topSubMenu');
+            topSubNavItems.forEach(function (topSubNavItem) {
+                let aTag = topSubNavItem.querySelector('a.nav-link');
+                aTag.setAttribute('aria-expanded', 'true');
+                let topNavItemWrapper = topSubNavItem.querySelector('div');
+                topNavItemWrapper.className = '';
+                topNavItemWrapper.setAttribute('style', '');
+                topNavItemWrapper.classList.add('collapse');
+                topNavItemWrapper.classList.add('show');
+            });
         }
     }
 });

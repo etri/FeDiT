@@ -17,25 +17,17 @@ import com.stoneitgt.dt.data.platform.domain.DTModelEtcColumn;
 import com.stoneitgt.dt.data.platform.domain.DTModelEtcMetaUserItem;
 import com.stoneitgt.dt.data.platform.domain.DTModelEtcParams;
 import com.stoneitgt.dt.data.platform.domain.DTModelJsonPropertyMain;
-import com.stoneitgt.dt.data.platform.domain.DTModelJsonPropertySub;
 import com.stoneitgt.dt.data.platform.domain.Files;
 import com.stoneitgt.dt.data.platform.domain.Paging;
-import com.stoneitgt.dt.data.platform.properties.BaseSystemProperties;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-public class DTEtcModelService {
+public class DTEtcModelService extends BaseService{
 
     @Autowired
     private DTEtcModelMapper dtEtcModelMapper;
-
-    @Autowired
-    private BaseSystemProperties systemproperties;
-
-    @Autowired
-    private FilesService filesService;
 
     public List<Map<String, Object>> getDTEtcModelList(Map<String, Object> params, Paging paging) {
         return dtEtcModelMapper.getDTEtcModelList(params, paging.getPaging());
@@ -51,14 +43,6 @@ public class DTEtcModelService {
 
     public List<Map<String, Object>> getUnitCodeList() {
         return dtEtcModelMapper.getUnitCodeList();
-    }
-
-    public List<Map<String, Object>> getUnitTpList(String unit) {
-        return dtEtcModelMapper.getUnitTpList(unit);
-    }
-
-    public String getUnitFormula(Map<String, Object> params) {
-        return dtEtcModelMapper.getUnitFormula(params);
     }
 
     @Transactional(DatabaseConfig.PRIMARY_TRANSACTION_MANAGER)
@@ -87,7 +71,7 @@ public class DTEtcModelService {
 
         dtEtcModelMapper.insertDTModelEtcMetaUserItem(dtModelEtcMetaUserItem);
 
-        String sourceDirectory = systemproperties.getDtEtcMetaFilePath() + "/tmp/" + info.getBase_dir();
+        String sourceDirectory = systemProperties.getDtEtcMetaFilePath() + "/tmp/" + info.getBase_dir();
         String fileName = info.getLast_step_preproc_file_nm();
 
         try {
@@ -155,7 +139,6 @@ public class DTEtcModelService {
     public int updateMetaUerItemFulltext(Map<String, Object> param) {
         return dtEtcModelMapper.updateMetaUerItemFulltext(param);
     }
-
 
     @Transactional(DatabaseConfig.PRIMARY_TRANSACTION_MANAGER)
     public HashMap<String, Object> getModelLoss(int modelSeq) {
@@ -285,5 +268,8 @@ public class DTEtcModelService {
 
     public List<Map<String, Object>> getEtcBritsModelList(Map<String, Object> etcParams) {
         return dtEtcModelMapper.getEtcBritsModelList(etcParams);
+    }
+    public List<Map<String, Object>> getEtcNaomiModelList(Map<String, Object> etcParams) {
+        return dtEtcModelMapper.getEtcNaomiModelList(etcParams);
     }
 }

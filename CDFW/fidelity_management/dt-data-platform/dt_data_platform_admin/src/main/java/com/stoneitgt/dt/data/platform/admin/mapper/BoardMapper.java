@@ -9,15 +9,15 @@ import java.util.Map;
 
 @Mapper
 public interface BoardMapper {
-    void saveBoard(Board board);
-
     List<Map<String, Object>> getBoardList(Map<String, Object> params, RowBounds paging);
 
     List<Map<String, Object>> getBoardListSetUserSeq(Map<String, Object> params, RowBounds paging);
 
     Map<String, Object> getBoardBySeq(String boardSeq);
 
-    void deleteBoardByBoardSeqAndType(Board board);
+    void saveBoard(Board board);
 
     void updateBoard(Board board);
+
+    void deleteBoardByBoardSeqAndType(Board board);
 }
