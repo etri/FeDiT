@@ -37,6 +37,8 @@ services:
     environment:
       - TZ=Asia/Seoul
       - JAVA_OPTS=
+        -Djdbc-username=${TW_REPOSITORY__JDBC_USERNAME}
+        -Djdbc-password=${TW_REPOSITORY__JDBC_PASSWORD}
         -Dspring.profiles.active=prod
         # -Duser.timezone="Asia/Seoul"
     volumes:
