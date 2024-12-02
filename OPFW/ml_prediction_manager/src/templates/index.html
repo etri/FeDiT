@@ -1,0 +1,808 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    
+    <link rel="stylesheet" href="{% static 'assets/uikit-3/css/uikit.min.css' %}">
+    <link rel="stylesheet" href="{% static 'index.css' %}">
+    <script src="{% static 'assets/uikit-3/js/uikit.min.js' %}"></script>
+    <script src="{% static 'assets/uikit-3/js/uikit-icons.min.js' %}"></script>
+    <link href="http://fonts.googleapis.com/css2?family=Material+Icons" rel="stylesheet">
+
+    <link href="http://fonts.googleapis.com/css2?family=Material+Icons+Outlined" rel="stylesheet">
+
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" >
+
+    <script src="{% static 'index.js' %}"></script>
+
+    <script type="importmap">
+        {
+          "imports": {
+            "@google/generative-ai": "https://esm.run/@google/generative-ai"
+          }
+        }
+    </script>
+
+    <script type="module" src="{% static 'chatbot.js' %}">
+    </script>
+    <script src="https://kit.fontawesome.com/8acaf5db69.js" crossorigin="anonymous"></script>
+
+
+
+
+</head>
+
+<body>
+    <!-- Container Start -->
+
+    <div uk-grid uk-height-viewport="expand: true" class="uk-child-width-1-4@s">
+        <!-- Left Pannel Start -->
+        <div class="uk-box-shadow-xlarge" style="background-color: white;">
+            <div style="
+                    height:64px; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    background-color: #4984FA;
+                    color: white;
+                    font-weight: bold;
+                    ">
+                연합 디지털트윈 예측 매니저
+            </div>
+            <ul class="uk-tab-left" uk-tab style="padding-left: 20px;" id="tab_list">
+                <li class="uk-active" onclick="select_tab('home')" style="padding:8px;">
+                    <a href="#">
+                        <span class="material-icons-outlined">
+                            home
+                        </span>
+                        Home
+                    </a>
+                </li>
+
+                <li onclick="select_tab('images')" style="padding:8px;">
+                    <a href="#">
+                        <span class="material-icons-outlined">
+                            list
+                        </span>
+                        images
+                    </a>
+                </li>
+
+                <li onclick="select_tab('containers')" style="padding:8px;">
+                    <a href="#">
+                        <span class="material-icons-outlined">
+                            keyboard_alt
+                        </span>
+                        containers
+                    </a>
+                </li>
+
+                {% comment %} <li onclick="select_tab('pipelines')" style="padding:8px;">
+                    <a href="#">
+                        <span class="material-icons-outlined">
+                            account_tree
+                        </span>
+                        pipelines
+                    </a>
+                </li> {% endcomment %}
+
+                <li onclick="select_tab('chatbot')" style="padding:8px;">
+                    <a href="#">
+                        <span class="material-icons-outlined">
+                            sms
+                        </span>
+                    chat bot
+                    </a>
+                </li>
+
+                <li style="padding:8px;">
+                    <span id="is_docker_run" style="font-size: x-small">    
+                        
+                    </span>
+                </li>
+                
+
+                <li style="padding:8px;">
+                    
+                    <span id="my_ip" style="font-size: x-small">    
+
+                        나의 아이피 : 
+                        
+                    </span>
+                </li>                        
+                
+            </ul>
+        </div>
+        <!-- Left Pannel End -->
+
+        <!-- Right Pannel Start -->
+        <div style="padding:0; flex-grow:1">
+            <!-- Header Start-->
+            <div class="uk-box-shadow-xlarge" style="
+                    height:64px; 
+                    background-color: white; 
+                    padding: 0 24px; 
+                    align-items: center;
+                    display: flex;">
+                <span class="material-icons-outlined">
+                    account_circle
+                </span>
+                <span class="uk-text-middle">
+                    FDT-USER (Developer)
+                </span>
+                <span style="flex-grow: 1;"></span>
+
+                <span class="material-icons-outlined">
+                    settings
+                </span>
+            </div>
+            <!-- Header End -->
+
+            <!-- Body Start -->
+            <div style="padding:1rem;">
+
+                <!-- Home Tab Start -->
+                <div id="tab_home">
+                    <div uk-grid>
+                        <!-- <div class="uk-card uk-card-default uk-card-body">Item</div> -->
+                        <div class="uk-width-1-2">
+                            <h3 class="uk-card uk-card-default nc-padding-8 nc-round-8">Connected FDTS</h3>
+
+                            <div style="display:flex; gap:8px">
+                                <div style="flex-grow: 1; ">
+                                    <button class="uk-button nc-round-8" type="button"
+                                        style="width:100%; display: flex; align-items: center; justify-content: center;">
+                                        <span>연합트윈</span>
+                                        <span class="material-icons-outlined">
+                                            arrow_drop_down
+                                        </span>
+                                    </button>
+                                    <div uk-dropdown>
+                                        <ul class="uk-nav uk-dropdown-nav">
+                                            <li class="uk-active"><a href="#">연합트윈</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div style="flex-grow: 1;">
+                                    <button class="uk-button nc-round-8" type="button"
+                                        style="width:100%; display: flex; align-items: center; justify-content: center;">
+                                        <span id="home_cat2_btn">단일트윈 (전체)</span>
+                                        <span class="material-icons-outlined">
+                                            arrow_drop_down
+                                        </span>
+                                    </button>
+                                    <div uk-dropdown>
+                                        <ul class="uk-nav uk-dropdown-nav" id="home_cat2">
+                                            <li class="uk-active" onclick="home_select_cat2(this,'all')"><a
+                                                    href="#">단일트윈 (전체)</a></li>
+                                            <li onclick="home_select_cat2(this,'tour')"><a href="#">관광트윈</a></li>
+                                            <li onclick="home_select_cat2(this,'traffic')"><a href="#">교통트윈</a></li>
+                                            <li onclick="home_select_cat2(this,'env')"><a href="#">환경트윈</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div style="flex-grow: 1;">
+                                    <button class="uk-button nc-round-8" type="button"
+                                        style="width:100%; display: flex; align-items: center; justify-content: center;">
+                                        <span id="home_cat3_btn">서비스</span>
+                                        <span class="material-icons-outlined">
+                                            arrow_drop_down
+                                        </span>
+                                    </button>
+                                    <div uk-dropdown>
+                                        <ul class="uk-nav uk-dropdown-nav" id="home_cat3">
+                                            <li class="uk-active"><a href="#">서비스 (전체)</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <table class="uk-table uk-table-striped nc-round-8" style="background-color: white;">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Description</th>
+                                        <th>Data</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="home_table">
+
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="uk-width-1-2" uk-height-viewport="expand: true" grid>
+
+                            <div class="uk-card uk-card-default nc-round-8">
+                                <div class="uk-card-header">
+                                    <h4>Recent Services</h4>
+                                </div>
+                                <div class="uk-card-body" id="home_recent_services">
+                                    <!-- Service List -->
+                                </div>
+
+                            </div>
+                            <br>
+
+                            <div class="uk-card uk-card-default nc-round-8">
+                                <div class="uk-card-header">
+                                    <h4>Recent Models</h4>
+                                </div>
+                                <div class="uk-card-body" id="home_recent_models">
+                                    <!-- Model List -->
+                                </div>
+
+                            </div>
+                            <br>
+
+                            <div class="uk-card uk-card-default nc-round-8">
+                                <div class="uk-card-header">
+                                    <h4>Recent Pipelines</h4>
+                                </div>
+                                <div class="uk-card-body" id="home_recent_pipelines">
+                                    <!-- Pipeline List -->
+                                </div>
+
+                            </div>
+                            <br>
+
+
+                        </div>
+                    </div>
+                </div>
+                <!-- Home Tab End -->
+
+                <!-- tab_containers Tab Start -->
+                <div id="tab_containers">
+                    {% comment %} <iframe src="http://karinnet.iptime.org:58889/notebooks/Untitled.ipynb" title="Notebooks"
+                        style="width: 100%; border-radius: 8px; height: 88vh;"></iframe> {% endcomment %}
+
+                    <div style="display: flex; gap:16px; height:35.97px;">
+                        {% comment %} <input type="button" uk-toggle="target: #modal-image-create"
+                            style="flex-grow: 1; background-color: white; border-radius: 8px; border-style: none; height:36px; cursor: pointer;"
+                            value="Create"></input> {% endcomment %}
+                        {% comment %} <input type="button" 
+                            style="flex-grow: 1; background-color: white; border-radius: 8px; border-style: none; height:36px; cursor: pointer;"
+                            value="Refresh"></input>
+                        <input type="button"
+                            style="flex-grow: 1; background-color: white; border-radius: 8px; border-style: none; height:36px; cursor: pointer;"
+                            value="Delete" onclick="modal_delete()"></input> {% endcomment %}
+                        <input type="text"
+                            style="flex-grow: 6; background-color: white; border-radius: 8px; border-style: none; overflow: hidden;">
+                        <span class="material-icons-outlined"
+                            style="width:48px; height: 28px; color:white; background-color: #4984FA; position: absolute;right:16px;padding:4px; border-radius: 8px; display: flex; justify-content: center; align-items: center; cursor:pointer;">
+                            search
+                        </span>
+                        </input>
+
+                    </div>
+                    <table class="uk-table uk-table-striped nc-round-8 uk-table-hover" style="background-color: white;">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Image</th>
+                                <th>Model</th>
+                                <th>Service</th>                                
+                                <th>Port(Notebook)</th>
+                                <th>Port(tensorboard)</th>
+                                <th>Modified on</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="containers_table" class="containers_table">
+
+                        </tbody>
+                    </table>                        
+                </div>
+                <!-- tab_containers Tab End -->
+
+                <!-- ChatBot Tab Start -->
+                <div id="tab_chatbot">
+                    <div style="background-color: white; border-radius: 8px; margin-top: 16px; height:80vh">
+                        <div style="height: 70%;">
+                            <div style="background-color: rgb(18, 1, 112); color:white; font-weight: bold; border-radius: 8px; text-align: center; height: 50px; line-height:50px; margin-bottom: 15px;">
+                                Chat with Gemini(v-1.5-flash)
+                            </div>
+                            <div id="response" style="background-color: rgb(255, 255, 255); height: 90%; color:rgb(24, 23, 23); margin-left: 10px; margin-right: 10px; overflow: auto;">
+                                <!-- 챗봇 결과 리턴 -->
+                            </div>
+                        </div>
+                        <div style="height: 30%; background-color: none;">
+                            <div id="input_area" style="background-color: none; height: 75%; color:white; margin-left: 10px; margin-right: 10px;">
+                                <textarea 
+                                    id="user_input"
+                                    style="                                        
+                                        width: 98%; 
+                                        background-color: transparent; 
+                                        font-size: small; 
+                                        color: darkslategrey; 
+                                        line-height: 1.5; 
+                                        font-family: '맑은 고딕'; 
+                                        resize: none; 
+                                        border:none;
+                                        padding-top: 1%;           
+                                        padding-left: 1%;                              
+                                        padding-right: 1%; 
+                                        border-radius: 10px;
+                                        background-color: rgb(254, 255, 237);
+                                        font-size: larger;
+                                        outline: none;
+                                        " 
+                                    
+                                    placeholder="이곳에 채팅을 입력하세요"
+                                    required
+                                    oninput="adjustTextareaHeight(this)"
+                                    onkeydown="handleKeyDown(event,this)"
+                                    ></textarea>
+                            </div>
+                            <div style="height: 25%; display: flex; justify-content: flex-end;">                             
+
+                                <div 
+                                    style="
+                                        display: inline-block; 
+                                        margin-right: 10px;
+                                        width:48px; 
+                                        height: 28px;
+                                        color:white;
+                                        background-color: #4984FA;
+                                        padding:4px;
+                                        border-radius: 8px;
+                                        cursor:pointer;
+                                        display: flex;
+                                        justify-content: center;
+                                    " onclick="sendMessage()">
+                                        <span class="material-icons-outlined">
+                                            send
+                                        </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>                        
+                </div>
+                <!-- ChatBot Tab End -->
+
+
+                <!-- Models Tab Start -->
+                <div id="tab_images">
+                    <div style="display: flex; gap:16px;">
+                        <input type="button" uk-toggle="target: #modal-image-create"
+                            style="flex-grow: 1; background-color: white; border-radius: 8px; border-style: none; height:36px; cursor: pointer;"
+                            value="Create"></input>
+                        {% comment %} <input type="button" 
+                            style="flex-grow: 1; background-color: white; border-radius: 8px; border-style: none; height:36px; cursor: pointer;"
+                            value="Refresh"></input>
+                        <input type="button"
+                            style="flex-grow: 1; background-color: white; border-radius: 8px; border-style: none; height:36px; cursor: pointer;"
+                            value="Delete" onclick="modal_delete()"></input> {% endcomment %}
+                        <input type="text"
+                            style="flex-grow: 6; background-color: white; border-radius: 8px; border-style: none; overflow: hidden;">
+                        <span class="material-icons-outlined"
+                            style="width:48px; height: 28px; color:white; background-color: #4984FA; position: absolute;right:16px;padding:4px; border-radius: 8px; display: flex; justify-content: center; align-items: center; cursor:pointer;">
+                            search
+                        </span>
+                        </input>
+
+                    </div>
+                    <table class="uk-table uk-table-striped nc-round-8 uk-table-hover" style="background-color: white;">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Model</th>
+                                <th>Service</th>
+                                <th>Modified on</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="models_table">
+
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Models Tab End -->
+
+                <!-- Pipelines Tab Start -->
+                <div id="tab_pipelines">
+                    <div style="display: flex; gap: 16px;">
+                        <div style="flex-grow: 1; min-width: 480px;">
+                            <input type="button" value="Select"
+                                style="cursor: pointer;background-color: white; border-radius: 8px; border-style: none; width:128px; height:28px;">
+                            <div style="background-color: white; border-radius: 8px; margin-top: 16px; height:80vh">
+                                <div class="flowchart" id="pipeline_flowchart">
+                                    <div class="step success">
+                                        <div class="progress"></div>
+                                        <div class="title">Procedure 1</div>
+                                        <div class="process">Success</div>
+                                        <div class="time">10 sec</div>
+                                    </div>
+
+                                    <div class="step running">
+                                        <div class="progress"></div>
+                                        <div class="title">Procedure 2</div>
+                                        <div class="process">Running..</div>
+                                        <div class="time">- sec</div>
+                                    </div>
+
+                                    <div class="step waiting">
+                                        <div class="progress"></div>
+                                        <div class="title">Procedure 3</div>
+                                        <div class="process">Waiting</div>
+                                        <div class="time">- sec</div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                        <div style="flex-grow: 1;">
+                            <input type="button" value="Run"
+                                style="cursor: pointer;background-color: white; border-radius: 8px; border-style: none; width:128px; height:28px;"
+                                onclick="onclick_flowchart_run()">
+                            <div
+                                style="background-color: white; border-radius: 8px; margin-top: 16px; height:80vh; padding: 16px;">
+                                <ul class="uk-tab" uk-switcher>
+                                    <li><a href="#">Source</a></li>
+                                    <li><a href="#">Outputs</a></li>
+                                </ul>
+
+                                <ul class="uk-switcher uk-margin"
+                                    style="background-color: #333; height:90%; padding:16px; color:white; border-radius: 8px;overflow: scroll; font-size: small;">
+                                    <li id="pipeline_source">source</li>
+                                    <li id="pipeline_output">output</li>
+                                </ul>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Pipelines Tab End -->
+
+                <!-- Analysis Tab Start -->
+                {% comment %} <div id="tab_analysis">
+                    <iframe src="http://karinnet.iptime.org:58890/" title="Analysis"
+                        style="width: 100%; border-radius: 8px; height: 88vh;"></iframe>
+                </div> {% endcomment %}
+                <!-- Analysis Tab End -->
+
+
+                <!-- Run Tab Start -->
+                {% comment %} <div id="tab_run">
+                    run
+                </div> {% endcomment %}
+                <!-- Run Tab End -->
+
+            </div>
+            <!-- Body End -->
+
+        </div>
+        <!-- Right Pannel End -->
+
+
+    </div>
+    <!-- Container End -->
+    <div id="modal-image-create" uk-modal>
+        <div class="uk-modal-dialog uk-modal-body uk-margin-auto-vertical" style="background:transparent">
+            <div class="uk-card uk-card-default nc-round-8">
+                <div class="uk-card-header">
+                    <h4 style="text-align:center">이미지 등록 및 모델 업로드</h4>
+                </div>
+                <div class="uk-card-body" id="home_recent_services">
+                    <table class="uk-table uk-table-striped nc-round-8" style="background-color: white;">
+{% comment %} 
+                        <thead>
+                            <tr>
+                                <th>FROM :</th>
+                                <th><input type="text" id="from"
+                                        style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>
+                            </tr>
+                        </thead> {% endcomment %}
+                        <thead>
+                            <tr>
+                                <th>FROM :</th>
+                                <th><button class="uk-button nc-round-8" type="button" id="type_type_btn_parents"
+                                        style="width:100%; display: flex; align-items: center; justify-content: center;"
+                                        aria-haspopup="true">
+                                        <span id="modal_type_btn">PyTorch</span>
+                                        <span class="material-icons-outlined">
+                                            arrow_drop_down
+                                        </span>
+                                    </button>
+                                    <div uk-dropdown="" class="uk-drop uk-dropdown" id="type_dropdown"
+                                        style="top: 197.594px; left: 596.906px; max-width: 1634px;">
+                                        <ul class="uk-nav uk-dropdown-nav" id="modal_type">
+                                            <li class="" onclick="modal_type(this,'pytorch')"><a href="#">PyTorch</a></li>
+                                            <li onclick="modal_type(this,'tensorflow')" class=""><a href="#">Tensorflow</a></li>
+                                        </ul>
+                                    </div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <thead>
+                            <tr>
+                                <th>WORKDIR :</th>
+                                <th><input type="text" id="workdir" value="/workdir"
+                                        style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>
+                            </tr>
+                        </thead>
+                        {% comment %} <thead>
+                            <tr>
+                                <th>ADD :</th>
+                                <th><input type="text" id="add"
+                                        style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>
+                            </tr>
+                        </thead>
+                        <thead>
+                            <tr>
+                                <th>COPY :</th>
+                                <th><input type="text" id="copy"
+                                        style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>
+                            </tr>
+                        </thead>                                                 {% endcomment %}
+                        <thead>
+                            <tr>
+                                <th>RUN :</th>
+                                <th><input type="text" id="run" value="mkdir -p /notebooks /logs && apt-get update && apt-get install -y python3 python3-pip && pip3 install jupyter tensorboard"
+                                        style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>
+                            </tr>
+                        </thead>
+                        <thead>
+                            <tr>
+                                <th>CMD :</th>
+                                <th><input 
+                                    type="text" 
+                                    id="cmd" 
+                                    placeholder="<--port=포트번호>가 없으면 9500포트, 10500포트에서 실행됨" 
+                                    value="[&quot;sh&quot;, &quot;-c&quot;, &quot;jupyter notebook --ip=0.0.0.0 --port=9500 --allow-root & tensorboard --logdir=/logs --host=0.0.0.0 --port=10500&quot;]"
+                                    style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>
+                            </tr>
+                        </thead>
+                        {% comment %} <thead>
+                            <tr>
+                                <th>EXPOSE :</th>
+                                <th><input type="text" id="expose"
+                                        style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>
+                            </tr>
+                        </thead> {% endcomment %}
+
+                        {% comment %} <thead>
+                            <tr>
+                                <th>ENV :</th>
+                                <th><input type="text" id="env"
+                                        style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>
+                            </tr>
+                        </thead> {% endcomment %}
+
+                        <thead>
+                            <tr>
+                                <th>DOCKER FILE :</th>
+                                <th><textarea id="dockerFile"  readonly
+                                        style="width:100%; height: 110px; background-color: lightgray; border-radius: 2px; border-style: none; overflow: auto;"></textarea>
+                                </th>
+                            </tr>
+                        </thead>                                                                              
+
+
+                        <thead>
+                            <tr>
+                                <th>image name :</th>
+                                <th><input type="text" id="modal_name"
+                                        style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>
+                            </tr>
+                        </thead>                        
+                        <thead>
+                            <tr>
+                                <th>SERVICE :</th>
+                                <th><button class="uk-button nc-round-8" type="button" id="service_type_btn_parents"
+                                        style="width:100%; display: flex; align-items: center; justify-content: center;"
+                                        aria-haspopup="true">
+                                        <span id="service_type_btn">교통트윈</span>
+                                        <span class="material-icons-outlined">
+                                            arrow_drop_down
+                                        </span>
+                                    </button>
+                                    <div uk-dropdown="" class="uk-drop uk-dropdown" id="service_dropdown"
+                                        style="top: 197.594px; left: 596.906px; max-width: 1634px;">
+                                        <ul class="uk-nav uk-dropdown-nav" id="service_type">
+                                            <li onclick="service_type(this,'교통트윈')"><a href="#">교통트윈</a></li>
+                                            <li onclick="service_type(this,'환경트윈')" class=""><a href="#">환경트윈</a></li>
+                                            <li onclick="service_type(this,'관광트윈')" class=""><a href="#">관광트윈</a></li>
+                                        </ul>
+                                    </div>
+                                </th>
+                            </tr>
+                        </thead>
+                        {% comment %} <thead>
+                            <tr>
+                                <th>UPLOAD MODEL</th>
+                                <th>
+                                    {% csrf_token %}
+                                    <input type="file" name="file" id="file">                                    
+                                </th>
+                            </tr>
+                        </thead>      {% endcomment %}
+
+        
+                                           
+                    </table>
+                    <div style="display: flex; gap:16px;">
+                        <button id="create_modal_btn" class="uk-button uk-modal-close_custom uk-button-primary"
+                            style="flex-grow: 1; border-radius: 8px; border-style: none; height:36px; cursor: pointer;"
+                            type="button" onclick="upload_image()">등록하기</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="modal-container-run" uk-modal>
+        <div class="uk-modal-dialog uk-modal-body uk-margin-auto-vertical" style="background:transparent">
+            <div class="uk-card uk-card-default nc-round-8" >
+                <div class="uk-card-header">
+                    <h4 style="text-align:center">컨테이너 실행</h4>
+                </div>
+                <div class="uk-card-body" id="home_recent_services">
+                    <table class="uk-table uk-table-striped nc-round-8" style="background-color: white;">
+
+                        <thead>
+
+                            <!-- 해당 이미지 시퀀스 히든 폼 -->
+                            <tr style="display:none;">                                
+                                <th><input type="text" id="image_id" >
+                                </th>
+                            </tr>
+
+                            <tr style="display:none;">                                
+                                <th><input type="text" id="image_type" >
+                                </th>
+                            </tr>                            
+
+                            <tr>
+                                <th>IMAGE NAME :</th>
+                                <th><input type="text" id="image_name" readonly
+                                        style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <thead>
+                            <tr>
+                                <th>SERVICE :</th>
+                                <th><input type="text" id="image_service" readonly
+                                        style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>
+                            </tr>
+                        </thead>                        
+
+                        <thead>
+                            <tr>
+                                <th>container name :</th>
+                                <th><input type="text" id="container_name"  required
+                                        style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>
+                            </tr>
+                        </thead>
+                        <thead>
+                            <tr>
+                                <th>JUPYTER-NB PORT :</th>
+                                <th><input type="number" id="externalPort_nb" placeholder=" Network Port"  required
+                                        style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>
+                                <th><input type="number" id="internalPort_nb" placeholder=" Internal Port"  required readonly
+                                    style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>                                
+                            </tr>
+                        </thead>
+                        <thead>
+                            <tr>
+                                <th>TENSORBOARD PORT :</th>
+                                <th><input type="number" id="externalPort_tb" placeholder=" Network Port"  required
+                                        style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>
+                                <th><input type="number" id="internalPort_tb" placeholder=" Internal Port"  required readonly
+                                    style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>                                
+                            </tr>
+                        </thead>                        
+                        <thead>
+                            <tr>
+                                <th>VOLUMES :</th>
+                                <th><input type="text" id="container_path" placeholder=" Container path"
+                                    style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>
+                                <th><input type="text" id="host_path" placeholder=" Host path" readonly value="/uploads"
+                                style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden; ">
+                                </th> 
+                            </tr>
+                        </thead>
+                        <thead>
+                            <tr>
+                                <th>ENVIRONMENT VARIABLES :</th>
+                                <th><input type="text" id="env_variable" placeholder=" Variable"
+                                        style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden; ">
+                                </th>
+                                <th><input type="text" id="env_value" placeholder=" Value"
+                                    style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden; ">
+                                </th>
+                            </tr>
+                        </thead>                                                
+                      
+        
+                                           
+                    </table>
+                    <div style="display: flex; gap:16px;">
+                        <button class="uk-button uk-modal-close_custom uk-button-primary" id="create_cont_btn"
+                            style="flex-grow: 1; border-radius: 8px; border-style: none; height:36px; cursor: pointer;"
+                            type="button" onclick="start_container()">실행하기</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-container-rename" uk-modal>
+        <div class="uk-modal-dialog uk-modal-body uk-margin-auto-vertical" style="background:transparent">
+            <div class="uk-card uk-card-default nc-round-8" >
+                <div class="uk-card-header">
+                    <h4 style="text-align:center">컨테이너 이름변경</h4>
+                </div>
+                <div class="uk-card-body" id="home_recent_services">
+                    <table class="uk-table uk-table-striped nc-round-8" style="background-color: white;">
+
+                        <thead>
+
+                            <!-- 해당 이미지 시퀀스 히든 폼 -->
+                            <tr style="display:none;">                                
+                                <th><input type="text" id="cont_id" >
+                                </th>
+                            </tr>               
+
+                            <tr>
+                                <th>컨테이너 이름 :</th>
+                                <th><input type="text" id="old_name" readonly
+                                        style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>
+                            </tr>
+                        </thead>                     
+
+                        <thead>
+                            <tr>
+                                <th>새로운 컨테이너 이름 :</th>
+                                <th><input type="text" id="new_name"  required
+                                        style="width:100%; flex-grow: 1; background-color: lightgray; border-radius: 2px; border-style: none; overflow: hidden;">
+                                </th>
+                            </tr>
+                        </thead>
+       
+                                           
+                    </table>
+                    <div style="display: flex; gap:16px;">
+                        <button class="uk-button uk-modal-close_custom uk-button-primary" id="rename_cont_btn"
+                            style="flex-grow: 1; border-radius: 8px; border-style: none; height:36px; cursor: pointer;"
+                            type="button" onclick="rename_container_start()">변경하기</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--
+        <footer>
+            <p>Icons provided by <a href="https://fontawesome.com/">Font Awesome</a> under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0 License</a>.</p>
+        </footer>
+    -->
+</body>
+{% comment %} <script src="index.js"></script> {% endcomment %}
+
+</html>
