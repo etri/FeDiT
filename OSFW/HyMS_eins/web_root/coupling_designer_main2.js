@@ -400,7 +400,7 @@ function req_list_projects(element_id) {
             res.data[0].forEach((element)=>{
                 add_project_list_option(project_list_node,element.project_name)
             })
-            document.getElementById(element_id).value = project_name;
+            document.getElementById(element_id).value = element.project_name;
             // req_list_models(project_name);
             }
         }
@@ -560,7 +560,7 @@ function unload_model_on_server(){
     document.getElementById('btn_sim_stop').disabled = true;
 }
 function load_model_on_server(project_name, file_name){
-    if(projectname == ''){
+    if(project_name == ''){
         alert('프로젝트 명을 넣어주세요');
         return;
     }
@@ -623,8 +623,10 @@ function run_model_on_server(projectname, sim_start_time, sim_end_time){
         console.log(json);
         if(json.Data.stop !== undefined){
             document.getElementById('btn_sim_run').disabled = false;
-            document.getElementById('btn_sim_pause').disabled = true;
-            document.getElementById('btn_sim_stop').disabled = true;
+            document.getElementById('btn_sim_pause').disabled = false;
+            document.getElementById('btn_sim_stop').disabled = false;
+            document.getElementById('btn_sim_push').disabled = false;
+            document.getElementById('btn_sim_update').disabled = false;
         }
         else{
             let model = _root_model.get_model_by_id(json.Data.iid, true);

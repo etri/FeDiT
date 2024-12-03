@@ -121,7 +121,7 @@
             padding: 1px;
             top: 0;
             left: 0rem;
-            right:0rem;
+            right:15rem;
             bottom:0;
             overflow-y: hidden;
             background: #dfe5ee;
@@ -218,7 +218,7 @@
                     &nbsp;:&nbsp;:&nbsp;MENU
                 </div>
                 <div style="position:absolute;right:0; ">
-                    EinsS&C(Eins)님 최근 로그인 정보 : 2024-10-22 15:17:23
+                    EinsS&C 시뮬레이션 모델 조합/실행기
                 </div>
             </div>
             <div class="iconbar" style="display:flex;">
@@ -234,10 +234,10 @@
                     <img src="images/btn_model_list.png" style="margin: 0px;" border="0" title="모델리스트">
                 </button>
                 &nbsp; <img src="images/v_bar.png"> &nbsp;
-                <button type="button" id="btn_sim_push" disabled onclick="load_model_on_server(document.all.project_name.value, document.all.load_file_name.value);" style="width:32px;height:32px;padding-left: 1px;">
+                <button type="button" id="btn_sim_push" disabled onclick="load_model_on_server(document.all.project_name.value, document.all.load_file_name.value);" id="btn_push" style="width:32px;height:32px;padding-left: 1px;">
                     <img src="images/btn_push.png" style="margin: 0px;" border="0" title="시뮬레이션 서버에 올리기">
                 </button>
-                <button type="button" id="btn_sim_update" disabled onclick="update_model_on_server(document.all.project_name.value, document.all.load_file_name.value);" style="width:32px;height:32px;padding-left: 1px;">
+                <button type="button" id="btn_sim_update" disabled onclick="update_model_on_server(document.all.project_name.value, document.all.load_file_name.value);" id="btn_refresh" style="width:32px;height:32px;padding-left: 1px;">
                     <img src="images/btn_refresh.png" style="margin: 0px;" border="0" title="시뮬레이션 업데이트">
                 </button>
                 &nbsp; 
@@ -259,18 +259,18 @@
                     <img src="images/btn_adjust.png" style="margin: 0px;" border="0" title="화면크기조절">
                 </button>
                 &nbsp; 
-                <button type="button" onclick="test_send();" style="width:32px;height:32px;padding-left: 1px;">
+                <!--<button type="button" onclick="test_send();" style="width:32px;height:32px;padding-left: 1px;">
                     <img src="images/btn_stop_ani.png" style="margin: 0px;" border="0" title="디버그">
-                </button>
+                </button>-->
 
                 &nbsp; <img src="images/v_bar.png"> &nbsp;
 
                 SIM_TIME : <input type="number" name="sim_start_time" value="0" style="width:50px;">
                 ~<input type="number" name="sim_end_time" value="30"  style="width:50px;">
                 &nbsp;
-                model_name: <input type="text" name="load_model_name" value="index" style="width:180px;">
+                model_name: <input type="text" name="load_model_name" value="index" style="width:80px;">
                 &nbsp;
-                filename: <input type="text" name="load_file_name" value="index.json">
+                filename: <input type="text" name="load_file_name" value="index.json" style="width:80px;">
                 &nbsp; <img src="images/v_bar.png"> &nbsp;
 
 
@@ -284,21 +284,21 @@
                 </div>
 
 
-                <!-- <button type="button" id="openEditorButton" onclick="get_model_on_server(atomicmodule_list.value)" style="width:100px;">
-                        <img src="images/btn_codeEditor.png" style="margin: 0px;" border="0" title="에디터 열기">
-                </button> -->
+                <button type="button" id="openEditorButton" onclick="get_model_on_server(atomicmodule_list.value)" style="width:100px;">
+                    <img src="images/btn_codeEditor.png" style="margin: 0px;" border="0" title="에디터 열기">
+                </button>
             </div>
             <div class="main">
                 <div id="div_left_model_list" class="left_menu" style="display:none;">
                     <div style="display:flex;flex-direction: column;position:absolute; left:0px;top:0;bottom:0;width:250px; color:black">
                         <div style="display:flex;" >
-                            package : <select id="module_list" onclick="req_list_projects('module_list')" name="module_name" onchange="req_list_models(this.value)" style="width:150px;">
+                            package : <select id="module_list" name="module_name" onchange="req_list_models(this.value)" style="width:150px;">
                                             <!-- <option value="banksim">banksim</option>
                                             <option value="watertank" >watertank</option>
                                             <option value="util">util</option> -->
                                         </select>
                                         &nbsp;
-                            <button onclick="req_list_models(document.all.module_name.value);">
+                            <button onclick="req_list_projects('module_list');">
                                 <img src="images/btn_refresh.png">
                             </button>
                         </div>
@@ -308,7 +308,7 @@
                 </div>
                 <!-- <div id="div_content" class="content" > -->
                     <div id="div_content" class="content">
-                         <canvas id="canvas" height="100%" style="width:100%; height:100%; border:1px solid #606060;"></canvas>
+                    <canvas id="canvas" height="100%" style="width:100%; height:100%; border:1px solid #606060;">
 
                     </canvas>
                 </div>
@@ -326,7 +326,7 @@
 
                         </div>
                     </div>
-                    <div style="border:1px solid #606060;position:absolute;bottom:0;left:0;right:0;height:50%;overflow: auto; color:black"">
+                    <div style="border:1px solid #606060;position:absolute;bottom:0;left:0;right:0;height:50%;overflow: auto; color:black">
                     입력 파라미터
                     <table border="0" cellpadding="0" cellspacing="2" id="tb_properties" bgcolor="navy" width="100%">
                         <tr>
@@ -353,6 +353,8 @@
             init_designer();
             update_tree();
             function open_model_list_window(force_close = false){
+                req_list_projects('module_list');
+                req_list_models(module_list.value);
                 let d = document.getElementById('div_left_model_list');
                 let c = document.getElementById('div_content');
                 if(d.style.display != 'none'){
