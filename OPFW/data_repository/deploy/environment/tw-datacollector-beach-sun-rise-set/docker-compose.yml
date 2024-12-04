@@ -15,8 +15,8 @@ services:
       - TZ = "Asia/Seoul"
       - NODE_ENV=${NODE_ENV}
     networks:
-      - tw-environment-base_default
-      - tw-base_default
+      - network-tw-environment-base
+      - network-tw-base
 
     # entrypoint: ["/bin/bash"]
     entrypoint: ["/bin/sh", "-c"]
@@ -26,7 +26,7 @@ services:
     tty: true
 
 networks:
-  tw-environment-base_default:
+  network-tw-environment-base:
     external: true
-  tw-base_default:
+  network-tw-base:
     external: true
