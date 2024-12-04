@@ -6,7 +6,7 @@ import LoggerInstance from './logger';
 import config from '@/config';
 import { CronHandler } from '@/services/cronhandler';
 import { AvroSchema } from '@/services/AvroSchema';
-import { getDataTime } from '@/utils/time';
+import { getDateStringWithoutTime, hhmmToTimeMillis } from '@/utils/time';
 import { parseParamInt, parseParamFloat } from '@/utils/etc'
 
 function getNowPlus(plus:number) {
@@ -21,6 +21,10 @@ function getDateTruncatedString(date:Date) {
     var day = ("0" + date.getDate()).slice(-2);
 
     return year + month + day;
+}
+
+function isIntegerString(value:string) {
+    return /^-?\d+$/.test(value);
 }
 
 export default () => {
@@ -58,6 +62,10 @@ export default () => {
 
                 const schema: AvroSchema = Container.get('avroSchemaBeachSunRiseSet');
                 let encoder = new avro.streams.BlockEncoder(schema.getSchema());
+                let beachNumBase = 200000;
+
+                let dateStr = getDateStringWithoutTime(new Date(), '$3$2$1')
+                let nowDate = new Date(getDateStringWithoutTime(new Date(), '$3-$2-$1T00:00:00'))
 
                 const promises = res.data.data.map(async (item: any) => {
                     const measure_position_id = item.id;
@@ -66,22 +74,22 @@ export default () => {
                     const response = await axios.get(apiUrl, {
                         params: {
                             serviceKey: apiKey,
-                            returnType: "json",
+                            dataType: "JSON",
                             numOfRows: 100,
                             pageNo: 1,
-                            stationName: item.name,
-                            dataTerm: "DAILY",
+                            base_date: dateStr,
+                            beach_num: item.id - beachNumBase,
                             ver: "1.3"
                         }
                     });
 
-                    for (const element of response.data.response.body.items) {
-
+                    for (const element of response.data.response.body.items.item) {
+                        
                         encoder.write({
-                            date_time: new Date(element.dataTime),
+                            date_time: nowDate,
                             measure_position_id: measure_position_id,
-                            sunrise: `${element.sunrise}:00`,
-                            sunset: `${element.sunset}:00`,
+                            sunrise: isIntegerString(element.sunrise)?hhmmToTimeMillis(element.sunrise):null,
+                            sunset: isIntegerString(element.sunset)?hhmmToTimeMillis(element.sunset):null,
                         })
                     }
                 });
