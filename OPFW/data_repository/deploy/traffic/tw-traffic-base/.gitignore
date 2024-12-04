@@ -1,4 +1,3 @@
 /docker-bind/generated-data
-/docker-bind/init-data/db/dump_poc1_init.sql
 /docker-bind/init-data/tw-data-interface/svc/tw-data-interface.jar
 .env
