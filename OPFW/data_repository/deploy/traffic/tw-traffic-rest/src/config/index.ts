@@ -27,7 +27,7 @@ export default {
         name: cast('APP_NAME', 'string', undefined),
         version: cast('APP_VERSION', 'string', undefined)
     },
-    port: cast('SERVICE_PORT', 'number', undefined),
+    port: cast('CONTAINER_SERVICE_PORT', 'number', undefined),
     logs: {
         dir: cast('LOGDIR', 'string', undefined)
     },
