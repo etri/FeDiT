@@ -11,7 +11,7 @@
     "dev": "cross-env NODE_ENV=development node ./dist/src/app.js",
     "dev.watch": "cross-env NODE_ENV=development tsc-watch --onSuccess \"node ./dist/src/app.js\"",
     "install.pm2": "pm2 install pm2-logrotate",
-    "gen-docs": "swagger-cli bundle ./src/swagger/openapi.yaml --outfile ./dist/swagger.yaml --type yaml",
+    "gen-docs": "swagger-cli bundle ./src/swagger/openapi.yaml --outfile ./dist/swagger.yaml --type yaml -r",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

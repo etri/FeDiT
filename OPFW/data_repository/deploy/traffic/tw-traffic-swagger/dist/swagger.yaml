@@ -4,7 +4,7 @@ info:
   title: 교통 트윈 api docs
   description: 교통 트윈 api
 servers:
-  - url: 'http://tw-traffic-rest:8080/v1'
+  - url: 'http://192.168.62.152:8202/v1'
 paths:
   /measure-position:
     get:
@@ -12,10 +12,32 @@ paths:
         - measure-position
       summary: measure-position 정보 가져오기
       parameters:
-        - $ref: '#/components/parameters/type'
-        - $ref: '#/components/parameters/id'
-        - $ref: '#/components/parameters/page_number'
-        - $ref: '#/components/parameters/number_of_rows'
+        - name: type
+          in: query
+          required: false
+          description: type
+          schema:
+            type: string
+        - name: id
+          in: query
+          required: false
+          description: id
+          schema:
+            type: string
+        - name: page_number
+          in: query
+          required: false
+          description: page_number
+          schema:
+            type: integer
+            default: 1
+        - name: number_of_rows
+          in: query
+          required: false
+          description: number_of_rows
+          schema:
+            type: integer
+            default: 10
       responses:
         '200':
           description: OK
@@ -68,9 +90,27 @@ paths:
         - measure-position
       summary: measure-position-type 정보 가져오기
       parameters:
-        - $ref: '#/components/parameters/dataName'
-        - $ref: '#/components/parameters/page_number'
-        - $ref: '#/components/parameters/number_of_rows'
+        - name: dataName
+          in: query
+          required: false
+          description: dataName
+          schema:
+            type: string
+          dbfield: name
+        - name: page_number
+          in: query
+          required: false
+          description: page_number
+          schema:
+            type: integer
+            default: 1
+        - name: number_of_rows
+          in: query
+          required: false
+          description: number_of_rows
+          schema:
+            type: integer
+            default: 10
       responses:
         '200':
           description: OK
@@ -161,11 +201,42 @@ paths:
         - airport-pax
       summary: airport-pax 정보 가져오기
       parameters:
-        - $ref: '#/components/parameters/start_date_time'
-        - $ref: '#/components/parameters/end_date_time'
-        - $ref: '#/components/parameters/measure_position_id'
-        - $ref: '#/components/parameters/page_number'
-        - $ref: '#/components/parameters/number_of_rows'
+        - name: start_date_time
+          in: query
+          required: true
+          description: 'start_date_time(yyyy-MM-dd HH:mm:ss)'
+          schema:
+            type: string
+          operator: $gte
+          dbfield: date_time
+        - name: end_date_time
+          in: query
+          required: true
+          description: 'end_date_time(yyyy-MM-dd HH:mm:ss)'
+          schema:
+            type: string
+          operator: $lte
+          dbfield: date_time
+        - name: measure_position_id
+          in: query
+          required: false
+          description: measure_position_id
+          schema:
+            type: string
+        - name: page_number
+          in: query
+          required: false
+          description: page_number
+          schema:
+            type: integer
+            default: 1
+        - name: number_of_rows
+          in: query
+          required: false
+          description: number_of_rows
+          schema:
+            type: integer
+            default: 10
       responses:
         '200':
           description: OK
@@ -229,8 +300,20 @@ paths:
           description: name
           schema:
             type: string
-        - $ref: '#/components/parameters/page_number'
-        - $ref: '#/components/parameters/number_of_rows'
+        - name: page_number
+          in: query
+          required: false
+          description: page_number
+          schema:
+            type: integer
+            default: 1
+        - name: number_of_rows
+          in: query
+          required: false
+          description: number_of_rows
+          schema:
+            type: integer
+            default: 10
       responses:
         '200':
           description: OK
@@ -296,11 +379,43 @@ paths:
         - parking-lot-status
       summary: parking-lot-status 정보 가져오기
       parameters:
-        - $ref: '#/components/parameters/start_date_time'
-        - $ref: '#/components/parameters/end_date_time'
-        - $ref: '#/paths/~1parking-lot/get/parameters/0'
-        - $ref: '#/components/parameters/page_number'
-        - $ref: '#/components/parameters/number_of_rows'
+        - name: start_date_time
+          in: query
+          required: true
+          description: 'start_date_time(yyyy-MM-dd HH:mm:ss)'
+          schema:
+            type: string
+          operator: $gte
+          dbfield: date_time
+        - name: end_date_time
+          in: query
+          required: true
+          description: 'end_date_time(yyyy-MM-dd HH:mm:ss)'
+          schema:
+            type: string
+          operator: $lte
+          dbfield: date_time
+        - name: parking_lot_id
+          in: query
+          required: false
+          description: parking_lot_id
+          schema:
+            type: string
+          dbfield: id
+        - name: page_number
+          in: query
+          required: false
+          description: page_number
+          schema:
+            type: integer
+            default: 1
+        - name: number_of_rows
+          in: query
+          required: false
+          description: number_of_rows
+          schema:
+            type: integer
+            default: 10
       responses:
         '200':
           description: OK
@@ -353,11 +468,42 @@ paths:
         - road-condition
       summary: road-condition 정보 가져오기
       parameters:
-        - $ref: '#/components/parameters/start_date_time'
-        - $ref: '#/components/parameters/end_date_time'
-        - $ref: '#/components/parameters/measure_position_id'
-        - $ref: '#/components/parameters/page_number'
-        - $ref: '#/components/parameters/number_of_rows'
+        - name: start_date_time
+          in: query
+          required: true
+          description: 'start_date_time(yyyy-MM-dd HH:mm:ss)'
+          schema:
+            type: string
+          operator: $gte
+          dbfield: date_time
+        - name: end_date_time
+          in: query
+          required: true
+          description: 'end_date_time(yyyy-MM-dd HH:mm:ss)'
+          schema:
+            type: string
+          operator: $lte
+          dbfield: date_time
+        - name: measure_position_id
+          in: query
+          required: false
+          description: measure_position_id
+          schema:
+            type: string
+        - name: page_number
+          in: query
+          required: false
+          description: page_number
+          schema:
+            type: integer
+            default: 1
+        - name: number_of_rows
+          in: query
+          required: false
+          description: number_of_rows
+          schema:
+            type: integer
+            default: 10
       responses:
         '200':
           description: OK
@@ -411,11 +557,42 @@ paths:
         - road-operation-status
       summary: road-operation-status 정보 가져오기
       parameters:
-        - $ref: '#/components/parameters/start_date_time'
-        - $ref: '#/components/parameters/end_date_time'
-        - $ref: '#/components/parameters/measure_position_id'
-        - $ref: '#/components/parameters/page_number'
-        - $ref: '#/components/parameters/number_of_rows'
+        - name: start_date_time
+          in: query
+          required: true
+          description: 'start_date_time(yyyy-MM-dd HH:mm:ss)'
+          schema:
+            type: string
+          operator: $gte
+          dbfield: date_time
+        - name: end_date_time
+          in: query
+          required: true
+          description: 'end_date_time(yyyy-MM-dd HH:mm:ss)'
+          schema:
+            type: string
+          operator: $lte
+          dbfield: date_time
+        - name: measure_position_id
+          in: query
+          required: false
+          description: measure_position_id
+          schema:
+            type: string
+        - name: page_number
+          in: query
+          required: false
+          description: page_number
+          schema:
+            type: integer
+            default: 1
+        - name: number_of_rows
+          in: query
+          required: false
+          description: number_of_rows
+          schema:
+            type: integer
+            default: 10
       responses:
         '200':
           description: OK
@@ -476,11 +653,42 @@ paths:
         - traffic
       summary: traffic 정보 가져오기
       parameters:
-        - $ref: '#/components/parameters/start_date_time'
-        - $ref: '#/components/parameters/end_date_time'
-        - $ref: '#/components/parameters/measure_position_id'
-        - $ref: '#/components/parameters/page_number'
-        - $ref: '#/components/parameters/number_of_rows'
+        - name: start_date_time
+          in: query
+          required: true
+          description: 'start_date_time(yyyy-MM-dd HH:mm:ss)'
+          schema:
+            type: string
+          operator: $gte
+          dbfield: date_time
+        - name: end_date_time
+          in: query
+          required: true
+          description: 'end_date_time(yyyy-MM-dd HH:mm:ss)'
+          schema:
+            type: string
+          operator: $lte
+          dbfield: date_time
+        - name: measure_position_id
+          in: query
+          required: false
+          description: measure_position_id
+          schema:
+            type: string
+        - name: page_number
+          in: query
+          required: false
+          description: page_number
+          schema:
+            type: integer
+            default: 1
+        - name: number_of_rows
+          in: query
+          required: false
+          description: number_of_rows
+          schema:
+            type: integer
+            default: 10
       responses:
         '200':
           description: OK
@@ -527,11 +735,42 @@ paths:
         - vvms
       summary: vvms 정보 가져오기
       parameters:
-        - $ref: '#/components/parameters/start_date_time'
-        - $ref: '#/components/parameters/end_date_time'
-        - $ref: '#/components/parameters/measure_position_id'
-        - $ref: '#/components/parameters/page_number'
-        - $ref: '#/components/parameters/number_of_rows'
+        - name: start_date_time
+          in: query
+          required: true
+          description: 'start_date_time(yyyy-MM-dd HH:mm:ss)'
+          schema:
+            type: string
+          operator: $gte
+          dbfield: date_time
+        - name: end_date_time
+          in: query
+          required: true
+          description: 'end_date_time(yyyy-MM-dd HH:mm:ss)'
+          schema:
+            type: string
+          operator: $lte
+          dbfield: date_time
+        - name: measure_position_id
+          in: query
+          required: false
+          description: measure_position_id
+          schema:
+            type: string
+        - name: page_number
+          in: query
+          required: false
+          description: page_number
+          schema:
+            type: integer
+            default: 1
+        - name: number_of_rows
+          in: query
+          required: false
+          description: number_of_rows
+          schema:
+            type: integer
+            default: 10
       responses:
         '200':
           description: OK
@@ -586,15 +825,32 @@ paths:
         - river-water-level-device
       summary: river-water-level-device 정보 가져오기
       parameters:
-        - $ref: '#/paths/~1river-water-level/get/parameters/2'
+        - name: device_id
+          in: query
+          required: false
+          description: device_id
+          schema:
+            type: string
         - name: device_name
           in: query
           required: false
           description: device_name
           schema:
             type: string
-        - $ref: '#/components/parameters/page_number'
-        - $ref: '#/components/parameters/number_of_rows'
+        - name: page_number
+          in: query
+          required: false
+          description: page_number
+          schema:
+            type: integer
+            default: 1
+        - name: number_of_rows
+          in: query
+          required: false
+          description: number_of_rows
+          schema:
+            type: integer
+            default: 10
       responses:
         '200':
           description: OK
@@ -687,8 +943,20 @@ paths:
           description: device_id
           schema:
             type: string
-        - $ref: '#/components/parameters/page_number'
-        - $ref: '#/components/parameters/number_of_rows'
+        - name: page_number
+          in: query
+          required: false
+          description: page_number
+          schema:
+            type: integer
+            default: 1
+        - name: number_of_rows
+          in: query
+          required: false
+          description: number_of_rows
+          schema:
+            type: integer
+            default: 10
       responses:
         '200':
           description: OK
