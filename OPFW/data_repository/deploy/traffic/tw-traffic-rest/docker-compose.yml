@@ -9,7 +9,7 @@ services:
       args:
       - WORKDIR=${WORKDIR}
     ports:
-      - "${SERVICE_PORT}:${SERVICE_PORT}"
+      - "${HOST_SERVICE_PORT}:${CONTAINER_SERVICE_PORT}"
     volumes:
       - "./docker-bind/generated-data/${LOGDIR}:${WORKDIR}/${LOGDIR}"
       - "../shareData/files:/jw/service/shareData/db-files"
