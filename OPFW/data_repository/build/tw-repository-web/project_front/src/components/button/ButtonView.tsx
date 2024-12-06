@@ -26,6 +26,10 @@ const ButtonView = (props:any) => {
             attributes.formId = formId;
         }
 
+        if(isDisabled){
+            attributes.disabled = 'disabled';
+        }
+
         let disabledClass = isDisabled? 'opacity-60 cursor-not-allowed text-grayscale-500' : '';
 
         let sizeClass = '';

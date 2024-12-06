@@ -22,8 +22,8 @@
 			<script src="https://scert.mobile-ok.com/resources/js/index.js"></script>
 		</c:when>
 		<c:when test="${activeProfile == 'prod'}">
-			<script src="https://scert.mobile-ok.com/resources/js/index.js"></script>
-			<!--<script src="https://cert.mobile-ok.com/resources/js/index.js"></script>-->
+<%--			<script src="https://scert.mobile-ok.com/resources/js/index.js"></script>--%>
+			<script src="https://cert.mobile-ok.com/resources/js/index.js"></script>
 		</c:when>
 	</c:choose>
 <%--<script src="/js/jquery/jQuery-2.1.4.min.js"></script>--%>
