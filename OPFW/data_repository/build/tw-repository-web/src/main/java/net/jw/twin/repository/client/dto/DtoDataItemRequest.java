@@ -40,7 +40,7 @@ public class DtoDataItemRequest {
     private Integer restPort;
     @Size(max=200, message = "API 문서 URL을 200자 이하로 입력해 주세요.")
     private String swaggerUrl;
-    @NotBlank(message = "API 문서 HOMEPATH를 입력해 주세요.")
+//    @NotBlank(message = "API 문서 HOMEPATH를 입력해 주세요.")
     @Size(max=50, message = "API 문서 HOMEPATH를 50자 이하로 입력해 주세요.")
     private String swaggerHomepath;
     @Size(max=2000, message = "설명을 2000자 이하로 입력해 주세요.")

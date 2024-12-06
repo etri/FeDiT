@@ -108,9 +108,15 @@ const RawDataDetailContent = () => {
                         for(const [method, methodValue] of Object.entries(value)) {
                             if(targetMethods.includes(method)){
                                 // console.log(`api : ${api}, method : ${method}`);
-                                methodValue.parameters.unshift({
-                                    $ref: "#/components/parameters/rest_key"
-                                })
+                                if(methodValue.parameters===null || methodValue.parameters===undefined) {
+                                    methodValue.parameters = [{
+                                        $ref: "#/components/parameters/rest_key"
+                                    }];
+                                }else{
+                                    methodValue.parameters.unshift({
+                                        $ref: "#/components/parameters/rest_key"
+                                    })
+                                }
                             }
                         }
                     }
@@ -133,19 +139,18 @@ const RawDataDetailContent = () => {
         let tableStructure=[
               [{type: "name", name: "데이터명"}],
             [{value: `${detailData.gatewayUrl}/${detailData.data?.serviceId}/v1`, name: "api base url"}],
-            [{value: `${detailData.gatewayUrl}/${detailData.data?.serviceId}api`, name: "swagger base url"}],
-            [{type: "swaggerHomepath", name: "swagger homepath"}],
+            // [{value: `${detailData.gatewayUrl}/${detailData.data?.serviceId}api`, name: "swagger base url"}],
+            // [{type: "swaggerHomepath", name: "swagger homepath"}],
             [{type: "apiType", name: "타입"}, {type: "dataFormat", name: "포맷"}],
-        // [{type: "dataCode", name: "코드"}],
-            [{type: "registrantName", name: "등록인"}, {type: "registrantPhoneNumber", name: "등록인 전화번호"}],
+            [{type: "registrantName", name: "등록인"}/*, {type: "registrantPhoneNumber", name: "등록인 전화번호"}*/],
             [{type: "institutionName", name: "제공기관"}],
-            [{type: "managerName", name: "담당자"},{type: "managerPhoneNumber", name: "담당자 전화번호"}],
+            [{type: "managerName", name: "담당자"}/*,{type: "managerPhoneNumber", name: "담당자 전화번호"}*/],
             [{type: "description", name: "설명"}]
         ]
 
       if(detailData.userInstitutionId) {
           tableStructure[1].push({value: `${detailData.data.restIp}:${detailData.data.restPort}/v1`, name: "inner api base url"});
-          tableStructure[2].push({value: `${detailData.data.swaggerUrl}`, name: "inner swagger base url"});
+          // tableStructure[2].push({value: `${detailData.data.swaggerUrl}`, name: "inner swagger base url"});
       }
 
       return tableStructure;

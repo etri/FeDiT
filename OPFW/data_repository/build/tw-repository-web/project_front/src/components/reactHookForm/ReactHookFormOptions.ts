@@ -107,11 +107,11 @@ ReactHookFormOptions.RestIp = {
     value: 200,
     message: "* RestIP : 최대 200자 이하로 입력해주세요.",
   },
-  pattern: {
-    value:
-      /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/,
-    message: "* RestIP : IP 형식을 확인해주세요.",
-  },
+  // pattern: {
+  //   value:
+  //     /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/,
+  //   message: "* RestIP : IP 형식을 확인해주세요.",
+  // },
 };
 
 ReactHookFormOptions.RestPort = {
@@ -168,10 +168,10 @@ ReactHookFormOptions.ServiceId = {
 };
 
 ReactHookFormOptions.SwaggerHomepath = {
-  required: {
-    value: true,
-    message: "* API 문서 HomePath : 필수 정보입니다.",
-  },
+  // required: {
+  //   value: true,
+  //   message: "* API 문서 HomePath : 필수 정보입니다.",
+  // },
   maxLength: {
     value: 50,
     message: "* API 문서 HomePath : 최대 50자 이하로 입력해주세요.",
