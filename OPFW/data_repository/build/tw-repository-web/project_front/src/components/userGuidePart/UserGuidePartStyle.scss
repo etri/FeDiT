@@ -1,0 +1,30 @@
+
+.react-horizontal-scrolling-menu--item {
+  border-bottom-color: rgb(204, 204, 204);
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+  border-image-slice: 100%;
+  border-image-source: none;
+  border-image-width: 1;
+  border-left-color: rgb(204, 204, 204);
+  border-left-style: solid;
+  border-left-width: 1px;
+  border-right-color: rgb(204, 204, 204);
+  border-right-style: solid;
+  border-right-width: 1px;
+  border-top-color: rgb(204, 204, 204);
+  border-top-style: solid;
+  border-top-width: 1px;
+  margin: 0 5px;
+  color: rgb(102, 102, 102);
+
+  &:hover {
+    background: var(--color-primary-400);
+    border-color: var(--color-primary-400);
+    color:#fff;
+    font-weight:500;
+    transition: background ease-in-out .15s, border-color ease-in-out .15s;
+  }
+}

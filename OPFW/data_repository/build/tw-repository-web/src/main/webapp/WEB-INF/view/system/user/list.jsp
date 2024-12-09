@@ -7,13 +7,13 @@
 
 <section class="content">
 	<div class="row">
-		<div class="col-xs-12">
-			<div class="box box-success">
-				<div class="box-footer">
-					<button type="button" class="btn btn-outline-primary pull-right" onclick="showInsertModal()">등록</button>
-				</div>
-			</div>
-		</div>
+<%--		<div class="col-xs-12">--%>
+<%--			<div class="box box-success">--%>
+<%--				<div class="box-footer">--%>
+<%--					<button type="button" class="btn btn-outline-primary pull-right" onclick="showInsertModal()">등록</button>--%>
+<%--				</div>--%>
+<%--			</div>--%>
+<%--		</div>--%>
 		<div class="col-xs-12">
 			<div class="box box-success">
 				<div class="box-header">
@@ -89,10 +89,10 @@
 <%--								<th class="text-center">생년월일</th>--%>
 <%--								<td><div id="birthDtl"></div></td>--%>
 <%--							</tr>--%>
-							<tr>
-								<th class="text-center">연락처</th>
-								<td><div id="mobileDtl"></div></td>
-							</tr>
+<%--							<tr>--%>
+<%--								<th class="text-center">연락처</th>--%>
+<%--								<td><div id="mobileDtl"></div></td>--%>
+<%--							</tr>--%>
 <%--							<tr>--%>
 <%--								<th class="text-center">주소</th>--%>
 <%--								<td><div id="addrDtl"></div></td>--%>
@@ -174,12 +174,12 @@
 <%--								<input type="number" id="birth" name="birth" class="form-control col-md-7 col-xs-12" maxlength="8" placeholder="8자리 숫자로만 입력">--%>
 <%--							</div>--%>
 <%--						</div>--%>
-						<div class="form-group">
-							<label class="control-label col-md-3 col-sm-3 col-xs-12">연락처 *</label>
-							<div class="col-md-7 col-sm-7 col-xs-12">
-								<input type="test" id="mobile" name="mobile" class="form-control col-md-7 col-xs-12">
-							</div>
-						</div>
+<%--						<div class="form-group">--%>
+<%--							<label class="control-label col-md-3 col-sm-3 col-xs-12">연락처 *</label>--%>
+<%--							<div class="col-md-7 col-sm-7 col-xs-12">--%>
+<%--								<input type="test" id="mobile" name="mobile" class="form-control col-md-7 col-xs-12">--%>
+<%--							</div>--%>
+<%--						</div>--%>
 <%--						<div class="form-group">--%>
 <%--							<label class="control-label col-md-3 col-sm-3 col-xs-12">주소 *</label>--%>
 <%--							<div class="col-md-7 col-sm-7 col-xs-12">--%>
@@ -319,7 +319,7 @@
 					function (data, type, row) {
 						let html = "";
 						html += "<button type='button' class='btn btn-sm btn-outline-primary' data-toggle='tooltip' title='상세보기' onclick='goDetailUser(\"" + row["userId"] + "\")'><i class='material-icons'>pageview</i></button>&nbsp;";
-						html += "<button type='button' class='btn btn-sm btn-outline-primary' data-toggle='tooltip' title='수정' onclick='showUpdateModal(\"" + row["userId"] + "\")'><i class='material-icons'>create</i></button>&nbsp;";
+						// html += "<button type='button' class='btn btn-sm btn-outline-primary' data-toggle='tooltip' title='수정' onclick='showUpdateModal(\"" + row["userId"] + "\")'><i class='material-icons'>create</i></button>&nbsp;";
 						html += "<button type='button' class='btn btn-sm btn-outline-primary' data-toggle='tooltip' title='권한부여' onclick='autUser(\"" + row["userId"] + "\")'><i class='material-icons'>assignment_ind</i></button>&nbsp;";
 						html += "<button type='button' class='btn btn-sm btn-outline-primary";
 						if (row["failCnt"] < 5) {
@@ -381,7 +381,7 @@
 		form.userPwdConfirm.value = "";
 		// form.gender.value = "";
 		// form.birth.value = "";
-		form.mobile.value = "";
+		// form.mobile.value = "";
 		// form.addr.value = "";
 		form.email.value = "";
 
@@ -408,7 +408,7 @@
 					form.userNm.value = data.userNm;
 					// form.gender.value = data.gender;
 					// form.birth.value = data.birth;
-					form.mobile.value = data.mobile;
+					// form.mobile.value = data.mobile;
 					// form.addr.value = data.addr;
 					form.email.value = data.email;
 
@@ -445,7 +445,7 @@
 		if($("#userId").val() == "" && !formUtil.chkPassword(form.userPwd, form.userPwdConfirm, 2, 32)) return;
 		if(!formUtil.chkText(form.userNm, "사용자명", 2, 30)) return;
 		if(!formUtil.chkEmail(form.email, "이메일", 2, 40)) return;
-		if(!formUtil.chkTel(form.mobile, "연락처", 2, 30)) return;
+		// if(!formUtil.chkTel(form.mobile, "연락처", 2, 30)) return;
 
 		if($("#userId").val() == "") {
 			var insertUserParams = {
@@ -454,7 +454,7 @@
 				name: $("#userNm").val(),
 				// gender: $("#gender").val(),
 				// birth: $("#birth").val(),
-				mobile: $("#mobile").val(),
+				// mobile: $("#mobile").val(),
 				// addr: $("#addr").val(),
 				email: $("#email").val(),
 			}
@@ -472,7 +472,7 @@
 							"userPwd" : form.userPwd.value,
 							"userNm" : form.userNm.value,
 							"email" : form.email.value,
-							"mobile" : form.mobile.value.replace(/[^0-9]/g, "").replace(/(^02|^0505|^1[0-9]{3}|^0[0-9]{2})([0-9]+)?([0-9]{4})$/,"$1-$2-$3").replace("--", "-")
+							// "mobile" : form.mobile.value.replace(/[^0-9]/g, "").replace(/(^02|^0505|^1[0-9]{3}|^0[0-9]{2})([0-9]+)?([0-9]{4})$/,"$1-$2-$3").replace("--", "-")
 						},
 						dataType: "json",
 						success: function (res) {
@@ -492,7 +492,7 @@
 				name: $("#userNm").val(),
 				// gender: $("#gender").val(),
 				// birth: $("#birth").val(),
-				mobile: $("#mobile").val(),
+				// mobile: $("#mobile").val(),
 				// addr: $("#addr").val(),
 				email: $("#email").val(),
 			};
@@ -511,7 +511,7 @@
 							"userPwd" : form.userPwd.value,
 							"userNm" : form.userNm.value,
 							"email" : form.email.value,
-							"mobile" : form.mobile.value.replace(/[^0-9]/g, "").replace(/(^02|^0505|^1[0-9]{3}|^0[0-9]{2})([0-9]+)?([0-9]{4})$/,"$1-$2-$3").replace("--", "-")
+							// "mobile" : form.mobile.value.replace(/[^0-9]/g, "").replace(/(^02|^0505|^1[0-9]{3}|^0[0-9]{2})([0-9]+)?([0-9]{4})$/,"$1-$2-$3").replace("--", "-")
 						},
 						dataType: "json",
 						success: function (res) {
@@ -546,7 +546,7 @@
 					// 	$("#genderDtl").html("여자");
 					// }
 					// $("#birthDtl").html(data.birth);
-					$("#mobileDtl").html(data.mobile);
+					// $("#mobileDtl").html(data.mobile);
 					// $("#addrDtl").html(data.addr);
 					$("#emailDtl").html(data.email);
 					$("#regDtDtl").html(new Date(data.regDt).format("yyyy-MM-dd"));

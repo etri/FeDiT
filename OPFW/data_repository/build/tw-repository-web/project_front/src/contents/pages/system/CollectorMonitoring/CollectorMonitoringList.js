@@ -7,6 +7,7 @@ import Pagination from "@/components/Pagination";
 import axios from "axios";
 import Select from 'react-select';
 import useTimer from "@/hooks/useTimer";
+import ModalCollectorSave from "./ModalCollectorData";
 
 const CollectorMonitoringListWrapper = styled.div`
     display: flex;
@@ -30,6 +31,7 @@ const CollectorMonitoringList = ({ searchValue }) => {
     const [error, setError] = useState(null)
     const [selectVal, setSelectVal] = useState({value: 'off', label: 'off'})
     const [current, delayValue, isActive, setDelayValue, setIsActive] = useTimer(0, false)
+    const [isOpenedModalSave, setIsOpenedModalSave] = useState(false);
 
     const options = [
         { value: 'off', label: 'off' },
@@ -101,29 +103,53 @@ const CollectorMonitoringList = ({ searchValue }) => {
         }
     }, [selectVal])
 
+    const reloadDatatable = () => {
+        window.location.reload();
+    };
+
+    const openSaveModal = (data) => {
+        setIsOpenedModalSave(true);
+    };
+
+    const closeSaveModal = () => {
+        setIsOpenedModalSave(false);
+    };
+
     return (
-        <CollectorMonitoringListWrapper>
-            <IntervalPickerBlock>
-                <Select
-                    options={options}
-                    defaultValue={selectVal}
-                    onChange={setSelectVal}
-                    styles={customStyles}
-                />
-            </IntervalPickerBlock>
-            {
-                monitoringData && monitoringData.data?.data?.map(data => (
-                    <CollectorCard key={data.label} name={data.name} label={data.label} values={data.values} width={"86%"} isCursor={false} />
-                ))
-            }
-            {monitoringData &&
-                <Pagination
-                    page={page}
-                    lastPage={parseInt(monitoringData.recordsTotal / 6)}
-                    setPage={setPage}
-                />
-            }
-        </CollectorMonitoringListWrapper>
+        <>
+            <CollectorMonitoringListWrapper>
+                <IntervalPickerBlock>
+                    <button type="button" className="btn btn-outline-primary" id="right-aligned-button"
+                            onClick={openSaveModal}> 등록
+                    </button>
+                    <Select
+                        options={options}
+                        defaultValue={selectVal}
+                        onChange={setSelectVal}
+                        styles={customStyles}
+                    />
+                </IntervalPickerBlock>
+                {
+                    monitoringData && monitoringData.data?.data?.map(data => (
+                        <CollectorCard key={data.label} name={data.name} label={data.label} values={data.values} width={"86%"} isCursor={false} />
+                    ))
+                }
+                {monitoringData &&
+                    <Pagination
+                        page={page}
+                        lastPage={parseInt(monitoringData.recordsTotal / 6)}
+                        setPage={setPage}
+                    />
+                }
+            </CollectorMonitoringListWrapper>
+
+            <ModalCollectorSave
+                data={null}
+                isOpened={isOpenedModalSave}
+                onClose={closeSaveModal}
+                reloadDatatable={reloadDatatable}
+            />
+        </>
     );
 }
 

@@ -88,14 +88,14 @@ const ModalDataItemDetail = ({
               </div>
             </td>
           </tr>
-          <tr>
-            <th className="text-center">등록인 연락처</th>
-            <td>
-              <div id="provider">
-              {data?.registrantPhoneNumber}
-              </div>
-            </td>
-          </tr>
+          {/*<tr>*/}
+          {/*  <th className="text-center">등록인 연락처</th>*/}
+          {/*  <td>*/}
+          {/*    <div id="provider">*/}
+          {/*    {data?.registrantPhoneNumber}*/}
+          {/*    </div>*/}
+          {/*  </td>*/}
+          {/*</tr>*/}
           <tr>
             <th className="text-center">제공업체</th>
             <td>
@@ -110,14 +110,14 @@ const ModalDataItemDetail = ({
               <div id="manager">{data?.managerName}</div>
             </td>
           </tr>
-          <tr>
-            <th className="text-center">담당자 연락처</th>
-            <td>
-              <div id="manager_phone_number">
-              {data?.managerPhoneNumber}
-              </div>
-            </td>
-          </tr>
+          {/*<tr>*/}
+          {/*  <th className="text-center">담당자 연락처</th>*/}
+          {/*  <td>*/}
+          {/*    <div id="manager_phone_number">*/}
+          {/*    {data?.managerPhoneNumber}*/}
+          {/*    </div>*/}
+          {/*  </td>*/}
+          {/*</tr>*/}
         </tbody>
       </table>
     </SysModal>

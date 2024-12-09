@@ -14,7 +14,7 @@ const DataList = () => {
     const [searchTxt, setSearchTxt] = useState('')
     const [category, setCategory] = useState(null)
     const [searchValue, setSearchValue] = useState('')
-    const [mounted, setMounted] = useState(true)
+    const [isInitialLoad, setIsInitialLoad] = useState(true)
 
     const onSearchBarKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter" && !e.nativeEvent.isComposing && searchTxt.trim() !== '') {
@@ -29,35 +29,28 @@ const DataList = () => {
         const params = new URLSearchParams(queryString)
 
         const categoryQuery = params.get('category');
-        if(categoryQuery!==null) setCategory(categoryQuery);
+        if(categoryQuery!==null && isInitialLoad) {
+            setCategory(categoryQuery);
+        }
 
         const keyword = params.get("keyword")
-        if (keyword!==null) setSearchTxt(keyword);
-
-        if((categoryQuery===null||categoryQuery.trim()==='')
-            &&(keyword===null||searchTxt.trim()==='')){
-            setMounted(false)
-        }
-    }, []);
-
-    useEffect(() => {
-        if (mounted && searchTxt) {
-            setSearchValue(searchTxt)
-            setMounted(false)
+        if (keyword!==null && isInitialLoad) {
+            setSearchTxt(keyword);
+            setSearchValue(keyword);
         }
 
-        if (mounted && category) {
-            setMounted(false)
+        if(isInitialLoad) {
+            setIsInitialLoad(false);
         }
-    }, [searchTxt, category]);
+    }, [isInitialLoad]);
 
     return (
         <PublicContainer>
             <PublicHeader/>
             <PublicMain>
-                {!mounted && <DataItemCategoriesMini category={category}/>}
-                <SearchBar searchTxt={searchTxt} placeholder={!mounted && "Search data (eg.대기오염정보)"} setSearchTxt={setSearchTxt} onSearchBarKeyDown={onSearchBarKeyDown} />
-                {!mounted && <DataListContent searchValue={searchValue} category={category}/>}
+                {!isInitialLoad&&<DataItemCategoriesMini category={category}/>}
+                {!isInitialLoad&&<SearchBar searchTxt={searchTxt} placeholder={"Search data (eg.대기오염정보)"} setSearchTxt={setSearchTxt} onSearchBarKeyDown={onSearchBarKeyDown} />}
+                {!isInitialLoad&&<DataListContent searchValue={searchValue} category={category}/>}
             </PublicMain>
             <PublicFooter/>
         </PublicContainer>

@@ -46,6 +46,9 @@ const ChartBlock = styled.div`
 `
 
 const CollectorCard = ({ name, label, values, width, isCursor }) => {
+    if(values===null||values===undefined)
+        return;
+
     const [series, setSeries] = useState([{
         name: "memory_rss_byte",
         data: values.map(data=>parseInt(data[1]))
