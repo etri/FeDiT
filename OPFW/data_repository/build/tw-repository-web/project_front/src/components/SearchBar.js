@@ -55,8 +55,11 @@ const SearchBar = ({ searchTxt, placeholder, setSearchTxt, height, onSearchBarKe
                     <SearchBarInput
                         placeholder={placeholder}
                         value={searchTxt}
-                        onChange={e=>
-                            setSearchTxt(e.target.value)
+                        onChange={e=> {
+                                if(setSearchTxt!==null) {
+                                    setSearchTxt(e.target.value)
+                                }
+                            }
                         }
                         onKeyDown={onSearchBarKeyDown}
                     >

@@ -1,19 +1,22 @@
 "use strict";
 
-import React from "react";
+import React, {useState} from "react";
 import ReactDOM from "react-dom";
 import PublicHeader from "@/components/publicHeader/PublicHeader";
 import PublicFooter from "@/components/publicFooter/PublicFooter";
 import { PublicMain } from "@/components/PublicMain";
 import { PublicContainer } from "@/components/PublicContainer";
+import UserGuidePart from "@/components/userGuidePart/UserGuidePart";
 
 const UserGuide = ({}) => {
+    // const [selectedId, setSelectedId] = useState("1")
+
   return (
     <PublicContainer>
       <div>
         <PublicHeader />
         <PublicMain>
-          <span>유저가이드</span>
+            <UserGuidePart/>
         </PublicMain>
       </div>
       <PublicFooter />

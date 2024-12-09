@@ -44,8 +44,8 @@ services:
       - type: bind
         source: ./docker-bind/init-data/${TW_DATA_INTERFACE__APP_NAME}/svc
         target: ${TW_DATA_INTERFACE__WORK_DIR}/svc
-    # ports:
-    #   - "${TW_DATA_INTERFACE__CONTAINER_SERVICE_PORT}:${TW_DATA_INTERFACE__CONTAINER_SERVICE_PORT}"
+    ports:
+      - "${TW_DATA_INTERFACE__HOST_SERVICE_PORT}:${TW_DATA_INTERFACE__CONTAINER_SERVICE_PORT}"
     #   - "${TW_DATA_INTERFACE__SERVICE_SSH_PORT}:22"
     environment:
       - APP_NAME=${TW_DATA_INTERFACE__APP_NAME}

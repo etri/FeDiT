@@ -1,6 +1,11 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ include file="/WEB-INF/view/include/tags.jspf"%>
 
+<script src="/energy/js/validation/common-validation.js"></script>
+<script src="/energy/js/user/userService.js"></script>
+<script src="/energy/js/user/mypage.js"></script>
+<script src="<c:url value='/js/util/formUtil.js'/>"></script>
+
 <section class="content">
 	<div class="row">
 		<div class="col-xs-12">

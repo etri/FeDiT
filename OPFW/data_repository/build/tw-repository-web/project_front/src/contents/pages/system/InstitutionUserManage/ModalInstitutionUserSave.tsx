@@ -132,15 +132,15 @@ const ModalInstitutionUserSave = ({data,
             value={formData.email}
             name={"이메일"}
           />
-          <SysLabelText
-            disabled={true}
-            inputName={"mobile"}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              onChangeDetail("mobile", e.target.value)
-            }
-            value={formData.mobile}
-            name={"전화번호"}
-          />
+          {/*<SysLabelText*/}
+          {/*  disabled={true}*/}
+          {/*  inputName={"mobile"}*/}
+          {/*  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>*/}
+          {/*    onChangeDetail("mobile", e.target.value)*/}
+          {/*  }*/}
+          {/*  value={formData.mobile}*/}
+          {/*  name={"전화번호"}*/}
+          {/*/>*/}
           <SysLabelToggle inputName={"isActive"} name={"사용여부"} checked={formData.isActive}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                             onChangeDetail("isActive", e.target.checked)

@@ -36,7 +36,7 @@ const DatatableInstitutionUser = ({searchData, onClickModify}: props) => {
       { width: "150px",   name : "user_login_id",        data:"userLoginId",          title : "로그인ID",           className : "dt-head-center dt-body-left" },
       { width: "150px",   name : "user_nm",              data:"userNm",               title : "이름",               className : "dt-head-center dt-body-left" },
       { width: "150px",   name : "email",                data:"email",                title : "이메일",             className : "dt-head-center dt-body-left" },
-      { width: "150px",   name : "mobile",               data:"mobile",               title : "전화번호",            className : "dt-head-center dt-body-left" },
+      // { width: "150px",   name : "mobile",               data:"mobile",               title : "전화번호",            className : "dt-head-center dt-body-left" },
       {
         "width": "80px", name : "user_st", "title": "유저상태",
         "render":

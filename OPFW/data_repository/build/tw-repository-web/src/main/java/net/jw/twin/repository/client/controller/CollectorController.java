@@ -2,18 +2,22 @@ package net.jw.twin.repository.client.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import net.jcms.framework.base.web.BaseController;
+import net.jw.twin.repository.annotation.HandleRuntimeException;
 import net.jw.twin.repository.client.service.CollectorService;
+import net.jw.twin.repository.db.daemon.model.Daemon;
 import net.jw.twin.repository.db.daemon.model.DaemonSearch;
 import net.jw.twin.repository.db.daemon.service.DaemonService;
+import net.jw.twin.repository.db.institution.model.Institution;
+import net.jw.twin.repository.exception.CustomException;
+import net.jw.twin.repository.exception.ErrorStatus;
 import net.jw.twin.repository.global.FrontGlobal;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -81,6 +85,29 @@ public class CollectorController extends BaseController {
         result.put("result", "success");
 
         return result;
+    }
+
+    @PutMapping(value="/system/collector.json")
+    @ResponseBody
+    @HandleRuntimeException(ErrorStatus.E_DB__FAIL_INSERT)
+    public ResponseEntity<?> insert(@RequestBody Daemon daemon) {
+        daemon.setDtype("DATACOLLECTOR");
+        int count = daemonService.insert(daemon);
+        if(count != 1){
+            throw new CustomException(ErrorStatus.E_DB__FAIL_INSERT, "daemon id : " + daemon.getId());
+        }
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PatchMapping(value="/system/collector.json")
+    @ResponseBody
+    @HandleRuntimeException(ErrorStatus.E_DB__FAIL_MODIFY)
+    public ResponseEntity<?> update(@RequestBody Daemon daemon) {
+
+        daemonService.update(daemon);
+
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @RequestMapping (value="/system/collector/list.json", method=RequestMethod.POST)
