@@ -8,6 +8,10 @@ build/
 **/logs
 **/prod_logs
 
+.env
+.env.dev
+.env.prod
+
 lib/mobileOKManager-jdk1.8_1.0.1.jar
 
 /src/main/resources/config/notCommit.properties

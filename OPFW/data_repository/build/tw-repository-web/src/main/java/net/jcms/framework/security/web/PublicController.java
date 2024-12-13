@@ -18,11 +18,14 @@ import net.jw.twin.repository.db.dataItem.model.DataItem;
 import net.jw.twin.repository.db.dataUse.model.DataUse;
 import net.jw.twin.repository.exception.CustomException;
 import net.jw.twin.repository.exception.ErrorStatus;
+import net.jw.twin.repository.global.FrontGlobal;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -53,6 +56,8 @@ public class PublicController extends BaseController {
 
     private final ModelMapper modelMapper;
 
+    @Value("${AppConf.mok.enabled}")
+    private Boolean idAuthEnabled;
 
     @RequestMapping("/index.mng")
     public String publicIndex(HttpServletRequest request,
@@ -187,6 +192,22 @@ public class PublicController extends BaseController {
         model.addAttribute("path", request.getParameter("path"));
         model.addAttribute("activeProfile", activeProfile);
         return "public/repository/Signup";
+    }
+
+    @RequestMapping (value="/public/signup/initial.json"
+            , method= RequestMethod.POST
+            , consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    @ResponseBody
+    public Map<String, Object> initial(HttpServletRequest request) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<String, Object>();
+
+        map.put("idAuthEnabled", idAuthEnabled);
+
+        result.put("data", map);
+        result.put("result", "success");
+
+        return result;
     }
 
     @RequestMapping(value = {"/public/check-id-duplicate.json"}, method = RequestMethod.POST)
