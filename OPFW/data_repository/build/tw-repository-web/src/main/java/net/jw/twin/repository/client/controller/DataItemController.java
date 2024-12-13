@@ -19,6 +19,7 @@ import net.jw.twin.repository.global.CodeValue;
 import net.jw.twin.repository.global.FrontGlobal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -42,8 +43,12 @@ public class DataItemController extends BaseController {
     @Autowired
     @Qualifier("dataUseServiceExt")
     DataUseServiceExt dataUseServiceExt;
+
     @Autowired
     private UserServiceImpl userService;
+
+    @Value("${AppConf.rest.innerIp}")
+    private String restInnerIp;
 
 
     @RequestMapping (value="/user/data-item/initial.json"
@@ -187,6 +192,7 @@ public class DataItemController extends BaseController {
 
 
         result.put("gatewayUrl", gatewayUrl);
+        result.put("restInnerIp", restInnerIp);
 
         HttpSession session = request.getSession();
         User user = (User) session.getAttribute("user");

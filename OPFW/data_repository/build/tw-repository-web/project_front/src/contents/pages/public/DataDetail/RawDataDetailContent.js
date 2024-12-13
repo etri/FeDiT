@@ -149,7 +149,7 @@ const RawDataDetailContent = () => {
         ]
 
       if(detailData.userInstitutionId) {
-          tableStructure[1].push({value: `${detailData.data.restIp}:${detailData.data.restPort}/v1`, name: "inner api base url"});
+          tableStructure[1].push({value: `${detailData.restInnerIp}:${detailData.data.restPort}/v1`, name: "inner api base url"});
           // tableStructure[2].push({value: `${detailData.data.swaggerUrl}`, name: "inner swagger base url"});
       }
 
