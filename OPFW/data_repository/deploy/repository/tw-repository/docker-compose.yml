@@ -1,6 +1,7 @@
 version: "3.7"
 services:
   tw-repository-db-mariadb:
+    hostname: tw-repository-db-mariadb
     build:
       context: ./
       dockerfile: ./docker-excluded/db/Dockerfile
@@ -19,7 +20,6 @@ services:
       MARIADB_USER: ${MARIADB_USER}
       MARIADB_PASSWORD: ${MARIADB_PASSWORD}
       MARIADB_EVENT_SCHEDULER: ON 
-    hostname: tw-repository-db-mariadb
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MARIADB_ROOT_PASSWORD"]
       interval: 10s
@@ -37,8 +37,19 @@ services:
     environment:
       - TZ=Asia/Seoul
       - JAVA_OPTS=
+        -Djdbc-url=${TW_REPOSITORY__JDBC_URL}
         -Djdbc-username=${TW_REPOSITORY__JDBC_USERNAME}
         -Djdbc-password=${TW_REPOSITORY__JDBC_PASSWORD}
+        -Dfile-dir=${TW_REPOSITORY__FILE_DIR}
+        -Dgateway-url=${TW_REPOSITORY__GATEWAY_URL}
+        -Dprometheus-api-url=${TW_REPOSITORY__PROMETHEUS_API_URL}
+        -DID-auth-mok-enabled=${TW_REPOSITORY__AUTH_MOK_ENABLED}
+        -DID-auth-mok-path=${TW_REPOSITORY__AUTH_MOK_PATH}
+        -DID-auth-mok-url=${TW_REPOSITORY__AUTH_MOK_URL}
+        -DID-auth-mok-clientId=${TW_REPOSITORY__AUTH_MOK_CLIENT_ID}
+        -DID-auth-mok-pwd=${TW_REPOSITORY__AUTH_MOK_PWD}
+        -Djavamail-username=${TW_REPOSITORY__JAVAMAIL_USERNAME}
+        -Djavamail-password=${TW_REPOSITORY__JAVAMAIL_PASSWORD}
         -Dspring.profiles.active=prod
         # -Duser.timezone="Asia/Seoul"
     volumes:

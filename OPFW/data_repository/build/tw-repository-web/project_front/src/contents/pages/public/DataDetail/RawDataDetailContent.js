@@ -53,7 +53,7 @@ const RawDataDetailContent = () => {
 
     useEffect(() => {
         const fetchRawDetailData = async () => {
-            try {ㅂㅂㅂㅂㅂㅂㅂㅂㅂㅂㅂ
+            try {
                 const queryString = window.location.search;
                 const params = new URLSearchParams(queryString)
                 let options = Global.getFetchOption(params);
