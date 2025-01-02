@@ -42,7 +42,12 @@ function parse_condition_operator(key: string, value: any) {
         case '$eq':
             return `${key} = ${argument}`;
         case '$ne':
-            return `${key} = ${argument}`;
+            {
+                if('null' === argument) {
+                    return `${key} is not null`;
+                }
+                return `${key} != ${argument}`;
+            }
         case '$regex':
             return `${key} regexp ${argument}`;
         default:
