@@ -43,6 +43,14 @@ export default (app: Router) => {
             }
         }
 
+        {
+            let condition: any = {};
+                condition['measure_position_id'] = {
+                    '$ne': 'null'
+                }
+                andArgument.push(condition);
+        }
+
         let findData: any = {
             limit: number_of_rows,
             skip: number_of_rows * (page_number - 1)
