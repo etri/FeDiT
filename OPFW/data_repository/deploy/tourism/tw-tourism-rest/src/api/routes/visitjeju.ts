@@ -137,7 +137,7 @@ export default (app: Router) => {
                 const resultFileItem = await axios.post(`${config.dataInterfaceIpAddress}/file_item/find`, { selector: { '$and': andArgumentFile } });
                 const fileInfo = resultFileItem.data.doc[0];
 
-                objImage.url = `http://${config.imageAPI.ipAddress}:${config.imageAPI.port}/v1/visitjeju-image/data?id=${elementImageId}`;
+                objImage.url = `http://${config.imageAPI.ipAddress}:${config.imageAPI.port}/${config.imageAPI.servicdId}/v1/visitjeju-image/data?id=${elementImageId}`;
                 objImage.license = visitjejuImage.license;
                 objImage.copyright_holder = visitjejuImage.copyright_holder;
 

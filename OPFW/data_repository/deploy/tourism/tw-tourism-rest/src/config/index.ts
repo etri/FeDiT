@@ -30,6 +30,7 @@ export default {
     imageAPI: {
         ipAddress: cast('IMAGE_API__HOST_SERVICE_IPADDRESS', 'string', undefined),
         port: cast('IMAGE_API__HOST_SERVICE_PORT', 'number', undefined),
+        servicdId: cast('IMAGE_API__SERVICE_ID', 'number', undefined),
     },
     logs: {
         dir: cast('LOGDIR', 'string', undefined)
