@@ -21,8 +21,9 @@ public class RepositoryWebConfig {
     public CorsWebFilter corsWebFilter() {
         org.springframework.web.cors.CorsConfiguration corsConfig = new org.springframework.web.cors.CorsConfiguration();
 
-        corsConfig.addAllowedOrigin("*");
-        corsConfig.addAllowedMethod("*");
+        corsConfig.addAllowedOrigin("http://data.fedit.or.kr");
+        corsConfig.addAllowedMethod("GET");
+        corsConfig.addAllowedMethod("POST");
         corsConfig.addAllowedHeader("*");
 //        corsConfig.setAllowCredentials(true);
         corsConfig.setMaxAge(3600L);
