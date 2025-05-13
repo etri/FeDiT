@@ -5,9 +5,9 @@ services:
     image: fdttwin/union-twin-fe:latest
     restart: always
     environment:
-      - NDXPRO_ENV_TOKEN=eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIxIiwiYXV0aCI6IkFETUlOIiwiZXhwIjoxNzMzOTkwNTQwfQ._VG-hAh6cVwgIkNn9Qg5YGYI5h6twPDssGoAePsI1Iw6QwhnLw1Dpjj2Xh773dLLzI4nPMpAM6jhD6hRVY99-w
-      - NDXPRO_ENV_API_URL=http://{HOST}:54002
-      - NDXPRO_ENV_API_OUTSIDE_URL=http://{HOST}:54002
+      - NDXPRO_ENV_TOKEN={TOKEN}
+      - NDXPRO_ENV_API_URL=http://220.124.222.90:54002
+      - NDXPRO_ENV_API_OUTSIDE_URL=http://220.124.222.90:54002
       - NDXPRO_ENV_DIGITAL_TWIN_SEARCH_URL=http://220.124.222.86:8084/meta/exsearch/list
       - NDXPRO_ENV_VIEWER_URL=http://220.124.222.90:50038
       - NDXPRO_ENV_PREDICTOR_TOOL_URL=http://220.124.222.82:18080
