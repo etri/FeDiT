@@ -1,3 +1,13 @@
+params:
+  train_interval_sec: 600       # 학습 주기(초)
+  infer_interval_sec: 600       # 추론 주기(초)
+  learning_rate: 0.001          # 학습률
+  epochs: 10                    # 에폭
+  hidden_dim: 64                # LSTM hidden size
+  num_layers: 2                 # LSTM 레이어
+  batch_size: 32                # 배치사이즈
+  parallel_train: 2             # 동시 학습 개수
+
 urls:
     source: 'http://220.124.222.84:1221/fedit/v1/federated-twins/KR-02-K10000-20240000/federated-digital-objects/'
     
