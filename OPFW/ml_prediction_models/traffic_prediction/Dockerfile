@@ -1,7 +1,7 @@
 FROM nvcr.io/nvidia/pytorch:22.12-py3
 
-ARG user=fdt2024-traffic-prediction
-ARG passwd=fdt2024-traffic-prediction
+ARG user=fedit2025_trapred
+ARG passwd=fedit2025_trapred
 ARG UID=1000
 ARG GID=1000
 ARG DEBIAN_FRONTEND=noninteractive
@@ -48,10 +48,9 @@ ENV PATH=/home/${USER}/.local/bin:$PATH
 
 RUN sudo apt install -y mariadb-client
 
-RUN pip install -U Cython glances[gpu] nodejs npm ujson wget Flask && \
-    pip install -U pillow matplotlib einops torchsummary pandas yaml && \
-    pip install -U scikit-learn scikit-image seaborn netifaces schedule && \
-    pip install -U mysql-connector-python opencv-contrib-python
+RUN pip install -U Cython glances[gpu] nodejs npm ujson wget Flask requests
+RUN pip install -U pillow matplotlib einops pandas pyyaml joblib
+RUN pip install -U scikit-learn scikit-image seaborn netifaces schedule 
 
 ADD app.py configs.yaml /home/$USER/traffic-prediction
 
