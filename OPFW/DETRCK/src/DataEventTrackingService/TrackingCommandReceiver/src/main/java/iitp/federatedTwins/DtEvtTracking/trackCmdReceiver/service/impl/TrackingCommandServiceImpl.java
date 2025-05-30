@@ -66,7 +66,85 @@ public class TrackingCommandServiceImpl implements TrackingCommandService {
 	@Value("${CTRL_CMD_REQ_RECORDING_TYPE}")
 	public boolean CTRL_CMD_REQ_RECORDING_TYPE = false;
 
+	public LinkedHashMap<String, Object> findTrckProcList(String trackingIdentifier) throws Exception {
 
+		logger.info("uuid-reqIdentifier : {}", trackingIdentifier);
+
+		LinkedHashMap<String, Object> param = new LinkedHashMap<String, Object>();
+		param.put("trackingIdentifier", trackingIdentifier);
+
+		DataEventTrackingRequestInfo dataEventTrackingRequestInfo = dtEvTrckReqInfoMapper
+				.getDataEventTrackingRequestInfoParam(param);
+
+		JSONObject request = new JSONObject();
+		List<JSONObject> addList = new ArrayList<>();
+		if (dataEventTrackingRequestInfo != null) {
+			request.put("req_identifier", dataEventTrackingRequestInfo.getReqIdentifier());
+			request.put("uuid-reqIdentifier", dataEventTrackingRequestInfo.getTrackingIdentifier());
+			request.put("reqTrckCmdStatus", dataEventTrackingRequestInfo.getReqTrckCmdStatus());
+			request.put("reqTrckCmdTime", dataEventTrackingRequestInfo.getReqTrckCmdTime());
+			request.put("reqStatusChangeTime", dataEventTrackingRequestInfo.getReqStatusChangeTime());
+
+			param.put("requestTrackingId", dataEventTrackingRequestInfo.getRequestTrackingId());
+			List<TrackingProcessInfo> procList = trackingProcessInfoMapper.getTrackingProcessList(param);
+
+			if (procList != null && !procList.isEmpty()) {
+				for (int i = 0; i < procList.size(); i++) {
+					JSONObject process = new JSONObject();
+					process.put("trckPrcIdtifier", procList.get(i).getTrckPrcIdtifier());
+					process.put("trackingProcessIdentifier", procList.get(i).getTrackingProcessIdentifier());
+					process.put("trackingProcessType", procList.get(i).getTrackingProcessType());
+					process.put("createTime", procList.get(i).getCreateTime());
+					process.put("trackingStatusChangeTime", procList.get(i).getTrackingStatusChangeTime());
+					process.put("trackingStatus", procList.get(i).getTrackingStatus());
+					addList.add(process);
+				}
+			} else {
+				throw new Exception("***** procList is null or Empty *****");
+			}
+
+		} else {
+			throw new Exception("***** dataEventTrackingRequestInfo is null or Empty *****");
+		}
+		param.clear();
+		param.put("trckReqInfo", request);
+		param.put("trckProcInfoList", addList);
+
+		return param;
+	}
+
+	public LinkedHashMap<String, Object> findTrckReqList() throws Exception {
+
+		LinkedHashMap<String, Object> param = new LinkedHashMap<String, Object>();
+		param.put("reqTrckCmdStatus", Constant.TRCK_CMD_STATUS_RUNNING);
+
+		List<JSONObject> dataList = new ArrayList<>();
+		List<DataEventTrackingRequestInfo> dtEtTrckReqList = dtEvTrckReqInfoMapper
+				.getDataEventTrackingRequestList(param);
+
+		if (dtEtTrckReqList != null && !dtEtTrckReqList.isEmpty()) {
+			for (int i = 0; i < dtEtTrckReqList.size(); i++) {
+				param.put("requestTrackingId", dtEtTrckReqList.get(i).getRequestTrackingId());
+				List<TrackingProcessInfo> pList = trackingProcessInfoMapper.getTrackingProcessList(param);
+				JSONObject request = new JSONObject();
+				request.put("reqIdentifier", dtEtTrckReqList.get(i).getReqIdentifier());
+				request.put("uuid-reqIdentifier", dtEtTrckReqList.get(i).getTrackingIdentifier());
+				request.put("reqTrckCmdStatus", dtEtTrckReqList.get(i).getReqTrckCmdStatus());
+				request.put("reqTrckCmdTime", dtEtTrckReqList.get(i).getReqTrckCmdTime());
+				request.put("reqStatusChangeTime", dtEtTrckReqList.get(i).getReqStatusChangeTime());
+				request.put("processCnt", pList.size());
+				dataList.add(request);
+			}
+		} else {
+			throw new Exception("***** dtEtTrckReqList is null  or Empty *****");
+		}
+
+		param.clear();
+		param.put("totalCnt", dataList.size());
+		param.put("trckReqInfoList", dataList);
+
+		return param;
+	}
 
 	public HttpStatus procDeleteTrackingCommand(HashMap<String, String> map) throws Exception {
 		HttpStatus procStat = Constant.HTTP_SERVER_ERROR_STAT;
@@ -78,30 +156,30 @@ public class TrackingCommandServiceImpl implements TrackingCommandService {
 
 			ArrayList<String> stsList = new ArrayList<String>();
 
-			//AD 관리자용으로 전체 재 종료처리를 위한 용
-			if(!"AD".equals(map.get("opType"))) {
+			// AD 관리자용으로 전체 재 종료처리를 위한 용
+			if (!"AD".equals(map.get("opType"))) {
 				stsList.add(Constant.TRCK_CMD_STATUS_READY);
 				stsList.add(Constant.TRCK_CMD_STATUS_RUNNING);
 				param.put("reqTrckCmdStatusList", stsList);
 			}
 
-			List<DataEventTrackingRequestInfo> reqInfoList = this.dtEvTrckReqInfoMapper.getDataEventTrackingRequestList(param);
+			List<DataEventTrackingRequestInfo> reqInfoList = this.dtEvTrckReqInfoMapper
+					.getDataEventTrackingRequestList(param);
 
-			if(reqInfoList == null || reqInfoList.size() < 1)
+			if (reqInfoList == null || reqInfoList.size() < 1)
 				throw new Exception("***** uuid-reqIdentifier is unprocessible status or not searched *****");
-
 
 			DataEventTrackingRequestInfo trckInfo = reqInfoList.get(0);
 
-			//특정 데이터
-			if(map.get("trckPrcIdtifier") != null && !"".equals(map.get("trckPrcIdtifier"))) {
+			// 특정 데이터
+			if (map.get("trckPrcIdtifier") != null && !"".equals(map.get("trckPrcIdtifier"))) {
 				param.put("trckPrcIdtifier", map.get("trckPrcIdtifier"));
 			}
 
 			param.put("requestTrackingId", trckInfo.getRequestTrackingId());
 
-			//AD 관리자용으로 전체 재 종료처리를 위한 용
-			if(!"AD".equals(map.get("opType"))) {
+			// AD 관리자용으로 전체 재 종료처리를 위한 용
+			if (!"AD".equals(map.get("opType"))) {
 				stsList = new ArrayList<String>();
 				stsList.add(Constant.TRCK_PROC_STATUS_REG);
 				stsList.add(Constant.TRCK_PROC_STATUS_READY);
@@ -109,72 +187,73 @@ public class TrackingCommandServiceImpl implements TrackingCommandService {
 				stsList.add(Constant.TRCK_PROC_STATUS_RUNNING);
 
 				param.put("trackingStatusList", stsList);
-			}			
+			}
 
 			List<TrackingProcessInfo> trckList = trackingProcessInfoMapper.getTrackingProcessList(param);
 
-			if(trckList == null || trckList.size() < 1)
-				throw new Exception("***** reqIdentifier || uuid-trckPrcIdtifier is unprocessible status or not searched *****");
+			if (trckList == null || trckList.size() < 1)
+				throw new Exception(
+						"***** reqIdentifier || uuid-trckPrcIdtifier is unprocessible status or not searched *****");
 
 			ArrayList<Integer> trackingProcessIdList = new ArrayList<Integer>();
-			for(TrackingProcessInfo tpInfo:trckList) {
+			for (TrackingProcessInfo tpInfo : trckList) {
 				trackingProcessIdList.add(tpInfo.getTrackingProcessId());
 			}
 
 			param.clear();
 
-			/**  트래킹 프로세스 상태 업데이트(강제종료)  **/
+			/** 트래킹 프로세스 상태 업데이트(강제종료) **/
 			param.put("requestTrackingId", trckInfo.getRequestTrackingId());
 			param.put("trackingProcessIdList", trackingProcessIdList);
 			param.put("trackingStatus", Constant.TRCK_PROC_STATUS_TASKKILL);
 
 			trackingProcessInfoMapper.updateTrackingProcessByParam(param);
 
-
-			/**  이력생성  **/
-			if(CTRL_CMD_REQ_RECORDING_TYPE) {
+			/** 이력생성 **/
+			if (CTRL_CMD_REQ_RECORDING_TYPE) {
 				param.put("statusResultMsg", "********  Force Tracking Process Killed *********");
 
 				trackingProcStatusChangeHisMapper.insertTrackingProcChangeHisMultiList(param);
 			}
 
-
-			/**  요청정보 상태 업데이트   **/
-			if("A".equals(map.get("mode"))) {
+			/** 요청정보 상태 업데이트 **/
+			if ("A".equals(map.get("mode"))) {
 				DataEventTrackingRequestInfo dataEventTrackingRequestInfo = new DataEventTrackingRequestInfo();
 				dataEventTrackingRequestInfo.setRequestTrackingId(trckInfo.getRequestTrackingId());
 				dataEventTrackingRequestInfo.setReqTrckCmdStatus(Constant.TRCK_CMD_STATUS_KILLED);
 
 				int recCnt = dtEvTrckReqInfoMapper.updateDataEventTrackingRequest(dataEventTrackingRequestInfo);
 
-				if(CTRL_CMD_REQ_RECORDING_TYPE) {
+				if (CTRL_CMD_REQ_RECORDING_TYPE) {
 					TrackingStatusChangeRecord trackingStatusChangeRecord = new TrackingStatusChangeRecord();
 					trackingStatusChangeRecord.setRequestTrackingId(trckInfo.getRequestTrackingId());
 					trackingStatusChangeRecord.setChangeStatus(Constant.TRCK_CMD_STATUS_KILLED);
-					trackingStatusChangeRecord.setStatusResultMsg("********  Force Request Tracking Info Killed  *********");
+					trackingStatusChangeRecord
+							.setStatusResultMsg("********  Force Request Tracking Info Killed  *********");
 					statusChangeHisMapper.insertTrackingStatusChangeHistory(trackingStatusChangeRecord);
 				}
 			}
 
 			procStat = Constant.HTTP_OK_STAT;
-		} catch(Exception e) {			
-			logger.error("Error Message : {}" , e);
+		} catch (Exception e) {
+			logger.error("Error Message : {}", e);
 			procStat = Constant.HTTP_SERVER_ERROR_STAT;
 
 		} finally {
 			try {
-			} catch(Exception e) {
+				// if(procStat == Constant.HTTP_SERVER_ERROR_STAT)
+				// updateStatusCtrlProcCmdData(stsParam);
+			} catch (Exception e) {
 				e.printStackTrace();
 				procStat = Constant.HTTP_SERVER_ERROR_STAT;
 			}
 		}
 
-
-		return procStat;	
+		return procStat;
 	}
 
-
-	public LinkedHashMap<String, Object> procRequestTrackingCommand(TrackingCommandVO trackingCommand) throws Exception {
+	public LinkedHashMap<String, Object> procRequestTrackingCommand(TrackingCommandVO trackingCommand)
+			throws Exception {
 		HttpStatus procStat = Constant.HTTP_SERVER_ERROR_STAT;
 		HashMap<String, String> param = new HashMap<String, String>();
 		LinkedHashMap<String, Object> map = new LinkedHashMap<String, Object>();
@@ -186,6 +265,7 @@ public class TrackingCommandServiceImpl implements TrackingCommandService {
 			map.put("uuid-reqIdentifier", data.get("trackingIdentifier").toString());
 			map.put("trckProcInfo", data.get("trckProcInfo").toString());
 
+			// ***********************************************************************//
 			logger.info("procRequestTrackingCommand requestTrackingId : {}", data.get("requestTrackingId"));
 
 			param.put("requestTrackingId", String.valueOf(data.get("requestTrackingId")));
@@ -194,30 +274,30 @@ public class TrackingCommandServiceImpl implements TrackingCommandService {
 			json.put("requestTrackingId", String.valueOf(data.get("requestTrackingId")));
 
 			rabbitMqComponent.sendMessage(json, RabbitMQConstant.RABBITMQ_ROUTING_KEY_PUB_TRACKING_COMMAND_SEND);
+			// ***********************************************************************//
 
 			procStat = Constant.HTTP_CREATE_STAT;
-		} catch(Exception e) {			
-			logger.error("Error Message : {}" , e);
+		} catch (Exception e) {
+			logger.error("Error Message : {}", e);
 			procStat = Constant.HTTP_SERVER_ERROR_STAT;
 
 		} finally {
 			try {
-				if(procStat == Constant.HTTP_SERVER_ERROR_STAT)
+				if (procStat == Constant.HTTP_SERVER_ERROR_STAT)
 					updateStatusCtrlProcCmdData(param);
-			} catch(Exception e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 				procStat = Constant.HTTP_SERVER_ERROR_STAT;
 			}
 
 		}
 
-		return map;		
+		return map;
 	}
-
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
 	public HashMap<String, Object> insertRequesttrackingCommand(TrackingCommandVO trackingCommand) throws Exception {
-		int requestTrackingId = -1, regCnt = 0, trackingProcessId = -1, regSeqCnt = 0 , i = 0;
+		int requestTrackingId = -1, regCnt = 0, trackingProcessId = -1, regSeqCnt = 0, i = 0;
 		HashMap<String, Object> data = new HashMap<String, Object>();
 		LinkedHashMap<String, Object> info = new LinkedHashMap<>();
 		String trckProcInfo[] = new String[trackingCommand.getTrckProcInfo().length];
@@ -238,7 +318,7 @@ public class TrackingCommandServiceImpl implements TrackingCommandService {
 			if (requestTrackingId > -1) {
 				data.put("requestTrackingId", requestTrackingId);
 				// 트래킹 명령 생성 이력등록
-				if(CTRL_CMD_REQ_RECORDING_TYPE) {
+				if (CTRL_CMD_REQ_RECORDING_TYPE) {
 					TrackingStatusChangeRecord trckCh = new TrackingStatusChangeRecord();
 					trckCh.setRequestTrackingId(requestTrackingId);
 					trckCh.setChangeStatus(trckcc.getReqTrckCmdStatus());
@@ -258,19 +338,19 @@ public class TrackingCommandServiceImpl implements TrackingCommandService {
 					info.put("trckTp", procInfo.getTrackingProcessType());
 					info.put("trckPrcIdtifier", procInfo.getTrckPrcIdtifier());
 					info.put("uuid-trckPrcIdtifier", procInfo.getTrackingProcessIdentifier());
-					trckProcInfo[i] = gson.toJson(info); 
+					trckProcInfo[i] = gson.toJson(info);
 					i++;
 
 					// 트래킹 단위 프로세스 정보 등록
 					regSeqCnt = trackingProcessInfoMapper.insertTrackingProcess(procInfo);
 
-					// 트래킹 프로세스 저장이 정상이라면 
+					// 트래킹 프로세스 저장이 정상이라면
 					if (regSeqCnt > 0)
 						trackingProcessId = procInfo.getTrackingProcessId();
 
-					if (trackingProcessId > -1) {						
+					if (trackingProcessId > -1) {
 						// 트래킹 프로세스 생성 이력등록
-						if(CTRL_CMD_REQ_RECORDING_TYPE) {
+						if (CTRL_CMD_REQ_RECORDING_TYPE) {
 							TrackingProcessStatusChangeRecord trcksh = new TrackingProcessStatusChangeRecord();
 
 							trcksh.setTrackingProcessId(trackingProcessId);
@@ -301,17 +381,15 @@ public class TrackingCommandServiceImpl implements TrackingCommandService {
 		return data;
 	}
 
-
-
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
 	public void updateStatusCtrlProcCmdData(HashMap<String, String> param) throws Exception {
 		DataEventTrackingRequestInfo trackingCommand = new DataEventTrackingRequestInfo();
-		trackingCommand.setRequestTrackingId(Integer.valueOf((String)param.get("requestTrackingId")).intValue());
+		trackingCommand.setRequestTrackingId(Integer.valueOf((String) param.get("requestTrackingId")).intValue());
 		trackingCommand.setReqTrckCmdStatus(Constant.TRCK_CMD_STATUS_ERROR);
 		this.dtEvTrckReqInfoMapper.updateDataEventTrackingRequest(trackingCommand);
 
 		HashMap<String, Object> data = new HashMap<String, Object>();
-		data.put("requestTrackingId", Integer.valueOf((String)param.get("requestTrackingId")));
+		data.put("requestTrackingId", Integer.valueOf((String) param.get("requestTrackingId")));
 		data.put("trackingStatus", Constant.TRCK_PROC_STATUS_ERROR);
 
 		trackingProcessInfoMapper.updateTrackingProcessByParam(data);

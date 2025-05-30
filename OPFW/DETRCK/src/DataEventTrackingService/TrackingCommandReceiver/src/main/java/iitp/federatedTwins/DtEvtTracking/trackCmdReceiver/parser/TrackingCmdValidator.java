@@ -1,7 +1,6 @@
 package iitp.federatedTwins.DtEvtTracking.trackCmdReceiver.parser;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.UUID;
@@ -149,10 +148,10 @@ public class TrackingCmdValidator {
 				}
 
 				// digitalObjId
-				if (trckProcInfo.getDigitalObjId() == null || "".equals(trckProcInfo.getDigitalObjId())) {
-					throw new Exception(
-							"========= validetetrackingCommands TrackingCommandVO In DigitalObjId Exception is Null Or Empty ========= ");
-				}
+//				if (trckProcInfo.getDigitalObjId() == null || "".equals(trckProcInfo.getDigitalObjId())) {
+//					throw new Exception(
+//							"========= validetetrackingCommands TrackingCommandVO In DigitalObjId Exception is Null Or Empty ========= ");
+//				}
 
 				// trckTopic
 				if (trckProcInfo.getTrckTopic() == null || "".equals(trckProcInfo.getTrckTopic())) {
@@ -303,7 +302,7 @@ public class TrackingCmdValidator {
 													if (!expression.get("ctrlStatement").equals("")) {
 
 														ctrlStatement = (String) expression.get("ctrlStatement");
-														resultData.put("data", ctrlStatement);														
+														resultData.put("data", ctrlStatement);
 
 													} else {
 														throw new Exception(

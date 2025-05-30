@@ -21,6 +21,8 @@ public interface DataEventTrackingRequestInfoMapper {
 
 	DataEventTrackingRequestInfo getDataEventTrackingRequestInfo(HashMap<String, Object> map) throws Exception;
 
+	DataEventTrackingRequestInfo getDataEventTrackingRequestInfoParam(HashMap<String, Object> map) throws Exception;
+
 	int insertDataEventTrackingRequest(DataEventTrackingRequestInfo msaRc) throws Exception;
 
 	int updateDataEventTrackingRequest(DataEventTrackingRequestInfo msaRc) throws Exception;

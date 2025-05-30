@@ -55,10 +55,36 @@
 			    req_tracking_cmd,
 			    req_status_change_time
 				FROM data_event_tracking_request_info
-		  		WHERE 1=1	
-  			 		AND request_tracking_id = #{requestTrackingId}
+		  	WHERE 1=1	
+  			 	AND request_tracking_id = #{requestTrackingId}
 	  	</select>
 	  	
+	  	 <select id="getDataEventTrackingRequestInfoParam" parameterType="Map" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.DataEventTrackingRequestInfo">
+		  	SELECT 
+			    request_tracking_id,
+			    tracking_identifier,
+	    		req_identifier,
+			    req_trck_cmd_time,
+			    req_trck_cmd_status,
+			    result_callback_url,
+			    req_tracking_cmd,
+			    req_status_change_time
+				FROM data_event_tracking_request_info
+	  		WHERE 1=1	
+		  		 <if test="requestTrackingId > 0">
+		  			 AND request_tracking_id = #{requestTrackingId}
+		  		 </if>
+		  		 <if test="trackingIdentifier != null">
+		  			 AND tracking_identifier = #{trackingIdentifier}
+		  		 </if>	  		 
+	 		     <if test="reqIdentifier != null">
+		  			 AND req_identifier = #{reqIdentifier}
+		  		 </if>	
+     			 <if test="reqTrckCmdStatus != null">
+		  			 AND req_trck_cmd_status = #{reqTrckCmdStatus}
+		  		 </if>	
+		</select>
+		
   	
 	  	<insert id="insertDataEventTrackingRequest" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.DataEventTrackingRequestInfo"
 	  		useGeneratedKeys="true" keyColumn="request_tracking_id" keyProperty="requestTrackingId">
