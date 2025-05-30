@@ -1,0 +1,80 @@
+version: '3'
+services:
+  dataeventtrackingservice:
+    container_name: dataeventtrackingservice
+    image: msa-detrck
+    ports:
+      - "30061:8761"     # Eureka
+      - "30062:8000"     # Gateway
+      - "30063:22419"
+      - "30064:22429"
+      - "30065:22439"
+      - "30066:22449"
+      - "30067:22459"
+    volumes:
+      - type: bind
+        source: C:/data/DtEvtTracking/trackCmdReceiver
+        target: /hdd/DtEvtTracking/trackCmdReceiver
+      - type: bind
+        source: C:/data/DtEvtTracking/trackCmdPublisher
+        target: /hdd/DtEvtTracking/trackCmdPublisher
+      - type: bind
+        source: C:/data/DtEvtTracking/trackDataSub
+        target: /hdd/DtEvtTracking/trackDataSub
+      - type: bind
+        source: C:/data/DtEvtTracking/trackEntTrigger
+        target: /hdd/DtEvtTracking/trackEntTrigger
+      - type: bind
+        source: C:/data/DtEvtTracking/trackCmdStsChecker
+        target: /hdd/DtEvtTracking/trackCmdStsChecker
+    env_file: .env.prod
+    networks:
+      - detrck-network
+    restart: unless-stopped
+
+  rabbitmq:
+    container_name: rabbitmq_detrck
+    image: rabbitmq:3.7.14-management-alpine 
+    volumes:
+      - C:/hdd/rabbitmq/data/detrck/:/var/lib/rabbitmq/mnesia
+      - C:/hdd/rabbitmq/logs/detrck:/var/log/rabbitmq/
+    environment: 
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - "30071:5672"
+      - "30072:15672"
+      - "30073:25672"
+      - "30074:4369"
+      - "30075:5671"
+      - "30076:15671"
+      - "30077:1883"
+      - "30078:8883"
+      - "30079:61613"
+      - "30080:61614"
+    networks:
+      - detrck-network
+    restart: unless-stopped
+
+  mariadb:
+    image: mariadb:10
+    ports:
+      - "30068:3306"
+    volumes:
+      - ./db/conf.d:/etc/mysql/conf.d
+      - C:/hdd/dataTest/mariadb3:/hdd/data/mariadb
+      - ./db/initdb.d:/docker-entrypoint-initdb.d
+    env_file: .env
+    environment:
+      TZ: Asia/Seoul
+    networks:
+      - detrck-network
+    restart: unless-stopped
+
+networks:
+  detrck-network:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
