@@ -70,7 +70,7 @@ public class RabbitMQComponent {
 	HashMap<String, KafkaConsumer> kafkaConsumerinfo;
 
 	@Autowired
-	@Qualifier("scheduledTrackingTackExecutor")
+	@Qualifier("scheduledTrackingTaskExecutor")
 	private ScheduledThreadPoolExecutor schdledTrckExecutor;
 
 	@Autowired
@@ -154,8 +154,8 @@ public class RabbitMQComponent {
 					if (consumerList != null && consumerList.size() > 0) {
 						for (KafkaConsumer consumer : consumerList) {
 							// 기존 생성된 정보와 같은지 확인
-							if (consumer.topic.equals(topics) && consumer.proId.equals(proId)
-									&& consumer.resId.equals(resId)) {
+							if (consumer.getTopic().equals(topics) && consumer.getTopic().equals(proId)
+									&& consumer.getTopic().equals(resId)) {
 								check = true;
 								break;
 							}
@@ -170,8 +170,10 @@ public class RabbitMQComponent {
 								"tracking", 
 								resId, 
 								proId, 
-								trackingProcessInfo.getDigitalTwinId(),
-								trackingProcessInfo.getTrackingValueInfo()
+//								trackingProcessInfo.getDigitalTwinId(),
+								trackingProcessInfo.getDigitalObjectId(),
+								trackingProcessInfo.getTrackingValueInfo(),
+								trackingProcessInfo.getDataFilterType()
 								);
 						kafkaConsumerinfo.put(csmId, consumer);
 					} else {
@@ -338,10 +340,10 @@ public class RabbitMQComponent {
 			if (consumerList != null && !consumerList.isEmpty()) {
 				for (KafkaConsumer consumer : consumerList) {
 					// 생성되어 있는 리스너 정보를 확인하여 기존 생성된 정보가 있으면 리스너 삭제
-					if (consumer.topic.equals(topics) 
-							&& consumer.resId.equals(String.valueOf(requestTrackingId))
-							&& consumer.proId.equals(String.valueOf(trackingProcessId))) {
-						kafkaListenerAutomation.deleteListener(consumer.consumerId);
+					if (consumer.getTopic().equals(topics) 
+							&& consumer.getResId().equals(String.valueOf(requestTrackingId))
+							&& consumer.getProId().equals(String.valueOf(trackingProcessId))) {
+						kafkaListenerAutomation.deleteListener(consumer.getConsumerId());
 						break;
 					}
 				}

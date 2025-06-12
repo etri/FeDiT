@@ -54,7 +54,7 @@ public class TrackingCmdFactory {
 
 		procInfo.setFederatedTwinId(trckProcess.getFederatedTwinId());
 		procInfo.setFederatedDigitalObjectId(trckProcess.getFederatedDigitalObjectId());
-		procInfo.setDigitalTwinId(trckProcess.getDigitalTwinId());
+//		procInfo.setDigitalTwinId(trckProcess.getDigitalTwinId());
 		procInfo.setDigitalObjectId(trckProcess.getDigitalObjId());
 		
 				

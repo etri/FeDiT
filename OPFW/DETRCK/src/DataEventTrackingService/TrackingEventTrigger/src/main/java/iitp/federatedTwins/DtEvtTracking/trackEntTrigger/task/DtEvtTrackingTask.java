@@ -102,7 +102,7 @@ public class DtEvtTrackingTask implements Runnable {
 			bodyCommand.put("reqIdentifier", dataEventTrackingRequestInfo.getReqIdentifier());
 			bodyCommand.put("trckTp", trackingProcessInfo.getTrackingProcessType());
 			bodyCommand.put("trckPrcIdtifier", trackingProcessInfo.getTrckPrcIdtifier());
-			bodyCommand.put("trckValue", detetorProcInfo.getTrackingResultValue());
+			bodyCommand.put("ETP".equals(trackingProcessInfo.getTrackingProcessType())?"conditionResult":"trckValue", detetorProcInfo.getTrackingResultValue());			
 			bodyCommand.put("evntOccuredTime", eventInfo.getEventOccuredTime());
 			
 			

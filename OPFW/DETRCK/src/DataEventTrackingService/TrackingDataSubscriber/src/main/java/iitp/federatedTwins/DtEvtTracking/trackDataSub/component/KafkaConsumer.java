@@ -56,13 +56,17 @@ public class KafkaConsumer {
 	@Autowired
 	HashMap<String, ScheduledFuture> dataScheduledFutureInfo;
 
-	public String consumerId;
-	public String topic;
-	public String groupId;
-	public String resId;
-	public String proId;
-	public String digitalTwinId;
-	public String trckValInfo;
+	private String consumerId;
+	private String topic;
+	private String groupId;
+	private String resId;
+	private String proId;
+//	private String digitalTwinId;
+	private String digitalTwinObjId;
+	private String trckValInfo;
+	private String trckFltTp;
+	
+	
 
 	private String digitalObjectPath;
 	private String objValType;
@@ -73,14 +77,16 @@ public class KafkaConsumer {
 
 
 
-	public KafkaConsumer(String consumerId, String topic, String groupId, String resId, String proId, String digitalTwinId,String trckValInfo) {
+	public KafkaConsumer(String consumerId, String topic, String groupId, String resId, String proId, String digitalTwinObjId,String trckValInfo,String trckFltTp) {
 		this.consumerId = consumerId;
 		this.topic = topic;
 		this.groupId = groupId;
 		this.resId = resId;
 		this.proId = proId;
-		this.digitalTwinId = digitalTwinId;
+//		this.digitalTwinId = digitalTwinId;
+		this.digitalTwinObjId = digitalTwinObjId;
 		this.trckValInfo = trckValInfo;
+		this.trckFltTp = trckFltTp;
 
 		if(this.trckValInfo != null && !"".equals(this.trckValInfo)) {
 			try {
@@ -93,7 +99,7 @@ public class KafkaConsumer {
 				StringBuffer sb = new StringBuffer();
 				sb.append("$");
 				sb.append(".");
-				sb.append(this.digitalTwinId);
+				sb.append(this.digitalTwinObjId);
 				sb.append(".");
 				sb.append(this.digitalObjectPath);
 
@@ -107,6 +113,38 @@ public class KafkaConsumer {
 			}
 		}
 	}
+	
+	public String getConsumerId() {
+		return consumerId;
+	}
+
+	public void setConsumerId(String consumerId) {
+		this.consumerId = consumerId;
+	}
+
+	public String getTopic() {
+		return topic;
+	}
+
+	public void setTopic(String topic) {
+		this.topic = topic;
+	}
+
+	public String getResId() {
+		return resId;
+	}
+
+	public void setResId(String resId) {
+		this.resId = resId;
+	}
+
+	public String getProId() {
+		return proId;
+	}
+
+	public void setProId(String proId) {
+		this.proId = proId;
+	}
 
 	// record 를 수신하기 위한 consumer 설정
 	@KafkaListener(id = "#{__listener.consumerId}", topics = "#{__listener.topic}", containerFactory = "filterListenerContainerFactory")
@@ -115,6 +153,8 @@ public class KafkaConsumer {
 			return;
 		}
 
+		JSONObject json = new JSONObject();
+		JSONParser parser = new JSONParser();
 		List<TrackingResponseRecord> trList = new ArrayList<>();
 
 		try {
@@ -133,7 +173,7 @@ public class KafkaConsumer {
 
 					String jsonStr = payload.toString();
 					String data = JsonPath.parse(jsonStr).read("$.data");
-					rd.setReceivePayload(data.substring(0,data.length()>10000?10000:data.length()));
+					rd.setReceivePayload(data.substring(0,data.length()>50?50:data.length()));
 
 					JSONArray dataArray = new JSONArray();
 
@@ -143,7 +183,7 @@ public class KafkaConsumer {
 						StringBuffer sb = new StringBuffer();
 						sb.append("$");
 						sb.append(".");
-						sb.append(this.digitalTwinId);
+						sb.append(this.digitalTwinObjId);
 						sb.append(".");
 						sb.append("list");
 
@@ -171,6 +211,7 @@ public class KafkaConsumer {
 
 							OptionalInt trckStat = trckData.stream()
 									.mapToInt(num -> num)
+									
 									.max()
 									;
 

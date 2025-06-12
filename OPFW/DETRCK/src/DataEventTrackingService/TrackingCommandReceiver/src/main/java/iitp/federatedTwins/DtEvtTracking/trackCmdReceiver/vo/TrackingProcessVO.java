@@ -16,7 +16,7 @@ public class TrackingProcessVO {
 	private String trckPrcIdtifierBF;
 	private String federatedTwinId;
 	private String federatedDigitalObjectId;
-	private String digitalTwinId;
+//	private String digitalTwinId;
 	private String digitalObjId;
 	private String digitalControlId;
 	private String trckGroup;
@@ -68,13 +68,13 @@ public class TrackingProcessVO {
 		this.federatedDigitalObjectId = federatedDigitalObjectId;
 	}
 
-	public String getDigitalTwinId() {
-		return digitalTwinId;
-	}
-
-	public void setDigitalTwinId(String digitalTwinId) {
-		this.digitalTwinId = digitalTwinId;
-	}
+//	public String getDigitalTwinId() {
+//		return digitalTwinId;
+//	}
+//
+//	public void setDigitalTwinId(String digitalTwinId) {
+//		this.digitalTwinId = digitalTwinId;
+//	}
 
 	public String getDigitalObjId() {
 		return digitalObjId;

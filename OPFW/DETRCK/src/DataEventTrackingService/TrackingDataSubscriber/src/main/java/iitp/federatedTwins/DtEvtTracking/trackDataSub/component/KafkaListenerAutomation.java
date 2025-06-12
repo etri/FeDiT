@@ -51,7 +51,7 @@ public class KafkaListenerAutomation {
     		if(consumerList != null && consumerList.size() > 0) {
     			for(KafkaConsumer consumer:consumerList) {
     				//기존 생성된 정보와 같은지 확인					
-    				if(consumer.consumerId.equals(listenerId)) {												
+    				if(consumer.getConsumerId().equals(listenerId)) {												
     					consumerList.remove(consumer);
     					break;
     				}			

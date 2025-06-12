@@ -142,16 +142,16 @@ public class TrackingCmdValidator {
 				}
 
 				// digitalTwinId
-				if (trckProcInfo.getDigitalTwinId() == null || "".equals(trckProcInfo.getDigitalTwinId())) {
-					throw new Exception(
-							"========= valideteTrackingCommands TrackingCommandVO In DigitalTwinId Exception is Null Or Empty ========= ");
-				}
+//				if (trckProcInfo.getDigitalTwinId() == null || "".equals(trckProcInfo.getDigitalTwinId())) {
+//					throw new Exception(
+//							"========= valideteTrackingCommands TrackingCommandVO In DigitalTwinId Exception is Null Or Empty ========= ");
+//				}
 
 				// digitalObjId
-//				if (trckProcInfo.getDigitalObjId() == null || "".equals(trckProcInfo.getDigitalObjId())) {
-//					throw new Exception(
-//							"========= validetetrackingCommands TrackingCommandVO In DigitalObjId Exception is Null Or Empty ========= ");
-//				}
+				if (trckProcInfo.getDigitalObjId() == null || "".equals(trckProcInfo.getDigitalObjId())) {
+					throw new Exception(
+							"========= validetetrackingCommands TrackingCommandVO In DigitalObjId Exception is Null Or Empty ========= ");
+				}
 
 				// trckTopic
 				if (trckProcInfo.getTrckTopic() == null || "".equals(trckProcInfo.getTrckTopic())) {

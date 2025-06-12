@@ -35,7 +35,7 @@ public class KafkaScheduler {
 	private final Logger logger = LoggerFactory.getLogger(KafkaScheduler.class);
 
 	// 0.5초마다
-	//	@Scheduled(initialDelay = 10000, fixedRate = 10000)
+//	@Scheduled(initialDelay = 10000, fixedRate = 10000)
 	public String execCtrlCmdStsCheckerScheduler() throws Exception {
 		logger.info("execCtrlCmdStsCheckerScheduler Current Thread : {}", Thread.currentThread().getName());
 		logger.info("execCtrlCmdStsCheckerScheduler => Start Time : " + LocalTime.now());
@@ -55,7 +55,7 @@ public class KafkaScheduler {
 		int result = 0;
 		try {
 			// listener 목록 가져오기
-			//			List<HashMap<String, String>> listenerList = kafkaListenerAutomation.searchListener();
+//			List<HashMap<String, String>> listenerList = kafkaListenerAutomation.searchListener();
 
 			Collection<KafkaConsumer> consumerList = kafkaConsumerinfo.values();
 			logger.info("listenerList Size : {}", consumerList.size());
@@ -76,9 +76,9 @@ public class KafkaScheduler {
 					if (topicList != null && !topicList.isEmpty()) {
 						for (TrackingTopicInfo topicInfo : topicList) {
 							// 기존 생성된 정보와 같은지 확인
-							if (consumer.topic.equals(topicInfo.getTopicName())
-									&& consumer.proId.equals(topicInfo.getTrackingProcessId())
-									&& consumer.resId.equals(topicInfo.getRequestTrackingId())) {
+							if (consumer.getTopic().equals(topicInfo.getTopicName())
+									&& consumer.getProId().equals(topicInfo.getTrackingProcessId())
+									&& consumer.getResId().equals(topicInfo.getRequestTrackingId())) {
 								checkB = true;
 								break;
 							}
@@ -86,7 +86,7 @@ public class KafkaScheduler {
 					}
 
 					if (!checkB) {
-						delListner.add(consumer.consumerId);
+						delListner.add(consumer.getConsumerId());
 					}
 				}
 
