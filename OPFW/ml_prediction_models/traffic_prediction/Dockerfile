@@ -52,7 +52,8 @@ RUN pip install -U Cython glances[gpu] nodejs npm ujson wget Flask requests
 RUN pip install -U pillow matplotlib einops pandas pyyaml joblib
 RUN pip install -U scikit-learn scikit-image seaborn netifaces schedule 
 
-ADD app.py configs.yaml /home/$USER/traffic-prediction
+ADD app.py /home/$USER/traffic-prediction
+ADD configs.yaml /home/$USER/traffic-prediction
 
 #################################################################################
 
