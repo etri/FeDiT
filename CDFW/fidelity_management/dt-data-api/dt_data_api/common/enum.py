@@ -118,6 +118,10 @@ class MD_TYPE(Enum):
     '''
     GRU
     '''
+    SEG_RNN = "seg_rnn"
+    '''
+    SEG_RNN
+    '''
     GAN = 'gan'
     '''
     GAN

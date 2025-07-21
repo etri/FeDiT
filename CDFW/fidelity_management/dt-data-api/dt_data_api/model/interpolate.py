@@ -1,4 +1,5 @@
 import pandas as pd
+import re
 from dt_data_api.common.enum import MD_FILL_METHOD, MD_IP_METHOD
 
 class Manager:
@@ -108,3 +109,20 @@ class Manager:
         except Exception as e:
             raise e
         return df        
+    
+    def convert_java_dateformat_to_python(self, java_format):
+        java_format = java_format.replace("'", "")  # 'T' 같은 건 제거
+
+        replacements = {
+            "yyyy": "%Y",
+            "MM": "%m",
+            "dd": "%d",
+            "HH": "%H",
+            "mm": "%M",
+            "ss": "%S",
+            "Z": "%z",
+            "T": "T"  # 그대로 유지
+        }
+
+        pattern = re.compile('|'.join(re.escape(k) for k in replacements))
+        return pattern.sub(lambda x: replacements[x.group()], java_format)

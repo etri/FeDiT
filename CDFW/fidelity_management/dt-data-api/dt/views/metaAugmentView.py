@@ -664,3 +664,81 @@ class augmentViewSet(viewsets.ViewSet):
         else:
             rd = responseData(code=status.HTTP_400_BAD_REQUEST, message='BAD_REQUEST', detail=data['resultMessage'])
         return Response(rd.getJson())    
+    
+      
+    @action(detail=False, methods=['POST', 'GET'])
+    def augmentCreate_seg_rnn_interpolation(self, request):
+        '''
+        학습모델 활용 데이터 추론 생성(입력 데이터 추론 보간 기능 추가)
+        '''
+        paramData = request.data        
+
+        #테스트용
+        if not paramData:
+            '''
+            paramData = {
+                "model_file_path": None,
+                "model_file_name": "ID_2023.h5",
+                "test_file_path": None,
+                "test_file_name": "254_RAIN015003_202305171245_ex1.csv",
+                "outputs": ['LRAIN'],
+                "features": [],
+                "window_size": 8,
+                "batch_size": 16,
+                "model_id": 9999,
+                "index_column": 0,
+            }
+            '''
+            '''
+            #사용자, 입력:전체, 실시간:X
+            paramData = {
+                "model_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "model_file_name": "origin_sample_7d_w12.h5",
+                "test_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "test_file_name": "origin_sample_3d.csv",
+                "outputs": ["ondo","m10","m60","m30","w30","w20"],
+                "features": [],
+                "window_size": 12,
+                "batch_size": 16,
+                "model_id": 9999,
+                "index_column": "date"
+            }
+            '''
+
+            #모델, 입력:기간지정, 실시간:X
+            paramData = {
+                "model_use_file_path" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\",
+                "model_use_file_name" : "200_153_admin_20240827125704_interval.csv",
+                "test_file_path" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\",
+                "test_file_name" : "200_153_admin_20240827125704_interval_simulation_target.csv",
+                "model_file_path" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\model\\2024\\08\\153\\",
+                "model_file_name" : "MODEL_153_20240827123022999.h5",
+                "output_file_name" : "200_153_admin_20240827125704_interval_augment.csv",
+                "output_file" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\200_153_admin_20240827125704_interval_augment.csv",
+                "original_file" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\200_153_admin_20240827125704_interval_ori.csv",
+                "features" : ["RAIN5", "RAIN6", "RAIN7", "LEVEL32"],
+                "outputs" : ["ALERT"],
+                "use_model_yn" : "Y",
+                "real_time_yn" : "N",
+                "target_start_date" : "2024-08-26 23:59:50",
+                "target_last_date" : "2024-08-27 12:57:04",
+                "batch_size" : 16,
+                "count" : 4661,
+                "model_id" : 153,
+                "index_column" : "rowtime",
+                "window_size" : 10,
+                "trgt_col_list" : "",
+                "resmpl_intvl_tp" : "seconds",
+                "resmpl_intvl_value" : 10
+            }
+
+        print(f"paramData -> {paramData}")
+        data = self.service.augmentCreate_seg_rnn_interpolation(paramData=paramData)
+
+        if data['result']:
+            rd = responseData(code=status.HTTP_200_OK, message='OK', data=data['resultMessage'])            
+        else:
+            rd = responseData(code=ERROR_CODE.AUGMENT.value + '-0006' , message='Augment Create Interpolation Error', detail=data['resultMessage'])
+        return Response(rd.getJson())    
+    
+    
