@@ -1,61 +1,31 @@
 package com.stoneitgt.dt.data.platform.admin.controller;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
-
+import com.stoneitgt.common.GlobalConstant;
+import com.stoneitgt.dt.data.platform.admin.component.PasswordConstraintValidator;
+import com.stoneitgt.dt.data.platform.admin.service.*;
+import com.stoneitgt.dt.data.platform.domain.*;
+import com.stoneitgt.dt.data.platform.util.StoneUtil;
+import com.stoneitgt.dt.data.platform.util.StringUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.passay.RuleResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import com.stoneitgt.common.GlobalConstant;
-
-import lombok.extern.slf4j.Slf4j;
-
-import com.stoneitgt.dt.data.platform.admin.component.PasswordConstraintValidator;
-import com.stoneitgt.dt.data.platform.admin.service.CodeService;
-import com.stoneitgt.dt.data.platform.admin.service.MenuService;
-import com.stoneitgt.dt.data.platform.admin.service.UserService;
-import com.stoneitgt.dt.data.platform.admin.service.UnitService;
-import com.stoneitgt.dt.data.platform.admin.service.VerifyService;
-import com.stoneitgt.dt.data.platform.domain.BaseParameter;
-import com.stoneitgt.dt.data.platform.domain.CodeDtl;
-import com.stoneitgt.dt.data.platform.domain.CodeMst;
-import com.stoneitgt.dt.data.platform.domain.Unit;
-import com.stoneitgt.dt.data.platform.domain.Verify;
-import com.stoneitgt.dt.data.platform.domain.Menu;
-import com.stoneitgt.dt.data.platform.domain.MenuAuth;
-import com.stoneitgt.dt.data.platform.domain.Paging;
-import com.stoneitgt.dt.data.platform.domain.User;
-import com.stoneitgt.dt.data.platform.util.StoneUtil;
-import com.stoneitgt.dt.data.platform.util.StringUtil;
+import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Controller
 @RequestMapping("/setting")
 public class SettingController extends BaseController {
-
-    @Autowired
-    private MenuService menuService;
-
-    @Autowired
-    private CodeService codeService;
-
     @Autowired
     private UserService userService;
 
@@ -229,8 +199,8 @@ public class SettingController extends BaseController {
     public Map<String, Object> codeMasterList(@RequestBody Map<String, Object> params) {
         List<Map<String, Object>> list = codeService.getCodeMasterList(params);
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put("grp_cd", "");
-        map.put("grp_cd_nm", "선택하세요");
+        map.put("grp_cd", "0");
+        map.put("grp_cd_nm", "선택 없음");
         list.add(0, map);
         Map<String, Object> result = new HashMap<String, Object>();
         result.put("data", list);
@@ -304,7 +274,7 @@ public class SettingController extends BaseController {
     @GetMapping("/user/{userSeq}")
     public String userView(@PathVariable int userSeq, @ModelAttribute BaseParameter params, Model model) {
         model.addAttribute("user", userService.getUserInfo(userSeq));
-        model.addAttribute("authList", getCodeList("AUTH"));
+        model.addAttribute("authList", getCodeList("AUTH", true));
         model.addAttribute("menuCd", params.getMenuCd());
         model.addAttribute("breadcrumb", getBreadcrumb(params.getMenuCd()));
         model.addAttribute("pageParams", getBaseParameterString(params));
@@ -313,8 +283,11 @@ public class SettingController extends BaseController {
 
     @GetMapping("/user/form")
     public String userForm(@ModelAttribute BaseParameter params, Model model) {
-        model.addAttribute("user", new User());
-        model.addAttribute("authList", getCodeList("AUTH"));
+        User user = new User();
+        user.setUserSeq(0);
+        model.addAttribute("user", user);
+        log.info("user -> {}", user);
+        model.addAttribute("authList", getCodeList("AUTH", true));
         model.addAttribute("menuCd", params.getMenuCd());
         model.addAttribute("breadcrumb", getBreadcrumb(params.getMenuCd()));
         model.addAttribute("pageParams", getBaseParameterString(params));
@@ -323,8 +296,6 @@ public class SettingController extends BaseController {
 
     @PostMapping("/user/form")
     public String saveUser(@RequestParam(required = false) String menuCd, @ModelAttribute("user") @Valid User user, BindingResult bindingResult, Model model, RedirectAttributes rttr) {
-
-
         PasswordConstraintValidator passwordValidator = new PasswordConstraintValidator();
         if (user.getUserSeq() == 0) {
 
@@ -367,7 +338,7 @@ public class SettingController extends BaseController {
         }
 
         if (bindingResult.hasErrors()) {
-            model.addAttribute("authList", getCodeList("AUTH"));
+            model.addAttribute("authList", getCodeList("AUTH", true));
             model.addAttribute("menuCd", menuCd);
             model.addAttribute("breadcrumb", getBreadcrumb(menuCd));
             model.addAttribute("pageParams", user.getPageParams());
@@ -377,7 +348,6 @@ public class SettingController extends BaseController {
         String returnUrl = "redirect:/setting/user?";
 
         if (user.getUserSeq() == 0) {
-            //user.setUserType("A");
             rttr.addFlashAttribute("result_code", GlobalConstant.CRUD_TYPE.INSERT);
             returnUrl += "menuCd=" + menuCd;
         } else {

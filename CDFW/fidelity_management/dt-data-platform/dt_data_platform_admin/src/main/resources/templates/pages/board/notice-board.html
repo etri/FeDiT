@@ -1,95 +1,98 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/layout}">
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/platform_layout}">
 
 <head>
     <title th:text="${breadcrumb.menu_nm}">게시판</title>
-    <!--임시css-->
-    <!-- <link rel="stylesheet" href="../../../assets/css/temp.css"> -->
-
-    <style>
-        .table-responsive-meta {
-            max-height: 400px;
-            /* overflow-y: auto; */
-        }
-
-        #dynamic-card-body {
-            height: auto; /* 고정된 높이를 제거합니다. */
-            min-height: 100px; /* 필요한 경우 최소 높이를 설정합니다. */
-        }
-
-        .table-responsive {
-            max-height: fit-content !important;
-        }
-    </style>
 </head>
 <div layout:fragment="content">
-    <form name="searchForm" th:action="@{/dt/board/notice/list(menuCd=${params.menuCd})}" th:object="${params}"
-          method="GET">
-        <div id="loading" style="margin-left: 0px;display: none;">
-            <img th:src="@{/assets/images/ajax-loading.gif}">
+    <div class="page-title">
+        <div class="contain">
+            <h1 th:text="${breadcrumb.menu_nm}">공지사항 게시판</h1>
         </div>
-        <nav th:replace="fragments/page_breadcrumb"></nav>
-        <div class="row">
-            <div class="col-12" style="margin-bottom: 0.3rem;">
-                <div class="card stretch-card">
-                    <div class="card-body">
-                        <input type="hidden" th:field="*{menuCd}">
-                        <input type="hidden" id="pagingPage" name="page" th:value="${paging.page}">
-                        <input type="hidden" id="pagingSize" name="size" th:value="${paging.size}">
-                        <div class="row">
-                            <div class="col-sm-12">
-                                <p class="d-block mb-3">공지사항 게시판</p>
-                            </div>
-                            <div class="col-sm-12">
-                                <div class="form-group row">
-                                    <div class="col-auto my-auto">
-                                        <select th:field="*{field}" class="form-control">
-                                            <option value="title">제목</option>
-                                            <option value="description">내용</option>
-                                            <option value="author">작성자</option>
-                                        </select>
-                                    </div>
-                                    <div class="col my-auto">
-                                        <input type="text" th:field="*{keyword}" class="form-control"
-                                               placeholder="검색어를 입력하세요">
-                                    </div>
-                                    <div class="col-auto my-auto">
-                                        <button type="submit" class="btn btn-primary mr-2 btn-icon-text btn-search">
-                                            <i class="btn-icon-prepend" data-feather="search"></i>조회
-                                        </button>
-                                        <a th:href="@{|/dt/board/notice/form?menuCd=${menuCd}|}"
-                                           class="btn btn-secondary btn-icon-text">
-                                            <i class="btn-icon-prepend" data-feather="edit"></i>등록
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
+    </div>
+    <div class="list-top">
+        <div class="contain">
+            <form name="searchForm" th:action="@{/dt/board/notice/list(menuCd=${params.menuCd})}"
+                  th:object="${params}"
+                  method="GET" style="display: none;">
+                <input type="hidden" th:field="*{menuCd}"/>
+                <input type="hidden" id="pagingPage" name="page" th:value="${paging.page}"/>
+                <input type="hidden" id="pagingSize" name="size" th:value="${paging.size}"/>
+                <input type="hidden" th:field="*{field}"/>
+                <input type="hidden" th:field="*{keyword}"/>
+                <button type="submit" class="ui-button primary btn-search">조회</button>
+            </form>
+            <div class="filter-wrap">
+                <!-- 유형 -->
+                <div class="filter-layer-box"><!-- 옵션 선택시 :: is-selected 클래스 추가 -->
+                    <button type="button" class="filter-toggle">유형<span class="filter-value"
+                                                                        th:data-initialize="${params.field}">제목</span>
+                    </button>
+                    <div class="filter-layer" aria-expanded="false" style="position: absolute; top: calc(100% + 2px);">
+                        <ul class="option-list">
+                            <li>
+                                <input type="radio" id="searchType1" name="searchType" value="title"
+                                       th:checked="${params.field == 'title' or params.field == null or params.field == ''}">
+                                <label for="searchType1">제목</label>
+                            </li>
+                            <li>
+                                <input type="radio" id="searchType2" name="searchType" value="description"
+                                       th:checked="${params.field == 'description'}">
+                                <label for="searchType2">내용</label>
+                            </li>
+                            <li>
+                                <input type="radio" id="searchType3" name="searchType" value="author"
+                                       th:checked="${params.field == 'author'}">
+                                <label for="searchType3">작성자</label>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 검색어 -->
+                <div class="filter-layer-box">
+                    <button type="button" class="filter-toggle">검색어<span class="filter-value"
+                                                                         th:if="${params.keyword != null && params.keyword != ''}"
+                                                                         th:text="${params.keyword}"></span></button>
+                    <div class="filter-layer exclude-layer form-control-wrap"
+                         style="position: absolute; top: calc(100% + 2px);"
+                         aria-expanded="false">
+                        <div class="input-group">
+                            <input type="text" id="filterKeyword" class="form-control md" placeholder="검색어를 입력해주세요">
+                            <button type="button" class="form-right-action" id="filterKeywordAction">입력</button>
                         </div>
                     </div>
                 </div>
             </div>
+            <div class="buttons-group">
+                <button type="button" th:data-href="@{|/dt/board/notice/form?menuCd=${menuCd}|}"
+                        class="ui-button xs primary ico">
+                    <img src="/assets/images/platform/ico_add_wh.svg" alt="">등록
+                </button>
+            </div>
         </div>
-        <div class="row">
-            <div class="col-12">
-                <div class="card stretch-card">
-                    <div class="card-body">
-                        <p class="card-description" id="main_range">
-                            <th:block th:include="fragments/paging_result_single:: paging_result('')"></th:block>
-                        </p>
-                        <table class="table table-hover table-responsive table-text-nowrap">
+    </div>
+    <section class="data-section">
+        <div class="contain">
+            <div id="loading" style="margin-left: 0px;display: none;">
+                <img th:src="@{/assets/images/ajax-loading.gif}" alt="loading"/>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="table-box">
+                        <table class="data-table">
                             <colgroup>
-                                <col style="width: auto;">
-                                <col style="width: 30%;">
-                                <col style="width: 100%;">
-                                <col style="width: auto;">
-                                <col style="width: auto;">
-                                <col style="width: auto;">
+                                <col style="width:5%">
+                                <col style="width: 15%;">
+                                <col style="width: 20%;">
+                                <col style="width:4.8%;">
+                                <col style="width:4.8%;">
+                                <col style="width:4.8%;">
                             </colgroup>
                             <thead>
                             <tr>
-                                <th>순번</th>
+                                <th>번호</th>
                                 <th>제목</th>
                                 <th>내용</th>
                                 <th>작성자</th>
@@ -111,7 +114,8 @@
                                 <td th:text="${item.reg_dt}"></td>
                                 <td>
                                     <th:block th:if="${item.is_delete == true}">
-                                        <button type="button" class="btn btn-sm btn-danger btn-icon-text text-nowrap"
+                                        <button type="button"
+                                                class="ui-button danger sm"
                                                 data-action="delete" th:data-number="${item.board_seq}"
                                                 data-type="NOTICE">
                                             삭제
@@ -121,12 +125,12 @@
                             </tr>
                             </tbody>
                         </table>
-                        <th:block th:include="fragments/paging"></th:block>
                     </div>
+                    <th:block th:include="fragments/platform_paging"></th:block>
                 </div>
             </div>
         </div>
-    </form>
+    </section>
 </div>
 <th:block layout:fragment="custom_css">
     <link rel="stylesheet" th:href="@{/assets/css/codemirror.css}"/>
@@ -135,8 +139,6 @@
 </th:block>
 <th:block layout:fragment="custom_js">
     <script th:src="@{/assets/js/file-upload.js}"></script>
-    <script th:src="@{/assets/js/pages/dt_etc_model/common/progress.js}"></script>
-    <script th:src="@{/assets/js/browser_event.js}"></script>
     <script th:src="@{/assets/js/pages/board/board.js}"></script>
 </th:block>
 </html>

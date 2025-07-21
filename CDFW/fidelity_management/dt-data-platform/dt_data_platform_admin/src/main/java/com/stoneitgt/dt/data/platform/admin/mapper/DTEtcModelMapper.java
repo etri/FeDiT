@@ -1,25 +1,15 @@
 package com.stoneitgt.dt.data.platform.admin.mapper;
 
-import java.util.List;
-import java.util.Map;
-
+import com.stoneitgt.dt.data.platform.domain.*;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.session.RowBounds;
 
-import com.stoneitgt.dt.data.platform.domain.DTModelEtc;
-import com.stoneitgt.dt.data.platform.domain.DTModelEtcColumn;
-import com.stoneitgt.dt.data.platform.domain.DTModelEtcMetaUserItem;
-import com.stoneitgt.dt.data.platform.domain.DTModelEtcParams;
-import com.stoneitgt.dt.data.platform.domain.Files;
+import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface DTEtcModelMapper {
-
-    List<Map<String, Object>> getDTEtcModelList(Map<String, Object> params, RowBounds paging);
-
-    List<Map<String, Object>> getDTEtcModelListSetUserSeq(Map<String, Object> params, RowBounds paging);
-
     int insertDTModelEtc(DTModelEtc dtModelEtc);
 
     int insertDTModelEtcMetaUserItem(DTModelEtcMetaUserItem dtModelEtcMetaUserItem);
@@ -81,4 +71,8 @@ public interface DTEtcModelMapper {
     List<Map<String, Object>> getEtcBritsModelList(Map<String, Object> etcParams);
 
     List<Map<String, Object>> getEtcNaomiModelList(Map<String, Object> etcParams);
+
+    int countEtcModel();
+
+    int countEtcModelByAlgrmSeq(int modelAlgrmSeq);
 }

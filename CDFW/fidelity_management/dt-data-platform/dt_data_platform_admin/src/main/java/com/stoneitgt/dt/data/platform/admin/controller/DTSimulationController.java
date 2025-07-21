@@ -1,35 +1,31 @@
 package com.stoneitgt.dt.data.platform.admin.controller;
 
-import java.io.*;
-import java.util.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stoneitgt.dt.data.platform.admin.properties.SystemProperties;
-import com.stoneitgt.dt.data.platform.admin.service.*;
+import com.stoneitgt.common.GlobalConstant;
+import com.stoneitgt.dt.data.platform.admin.config.DatabaseConfig;
+import com.stoneitgt.dt.data.platform.admin.service.DTModelService;
+import com.stoneitgt.dt.data.platform.admin.service.DTSimulationService;
 import com.stoneitgt.dt.data.platform.domain.*;
-import com.stoneitgt.dt.data.platform.util.JSONParser;
+import com.stoneitgt.dt.data.platform.util.ConvertUtil;
+import com.stoneitgt.dt.data.platform.util.StoneUtil;
 import com.stoneitgt.dt.data.platform.util.TimeUtil;
 import com.stoneitgt.dt.data.platform.util.file.FileReader;
+import com.stoneitgt.dt.data.platform.util.file.FileUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import lombok.extern.slf4j.Slf4j;
-import com.stoneitgt.common.GlobalConstant;
-import com.stoneitgt.dt.data.platform.util.StoneUtil;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
 
 @Slf4j
 @Controller
@@ -37,58 +33,13 @@ import com.stoneitgt.dt.data.platform.util.StoneUtil;
 public class DTSimulationController extends BaseController {
 
     @Autowired
-    private SystemProperties systemProperties;
-
-    @Autowired
     private DTModelService dtModelService;
 
     @Autowired
     private DTSimulationService dtSimulationService;
 
-    @Autowired
-    private SimulationService simulationService;
-
-    @GetMapping("/preprocess/list")
-    public String getPreprocessSimulationList(@ModelAttribute BaseParameter params, Model model, HttpServletRequest request, HttpServletResponse response) {
-        Paging paging = new Paging();
-        paging.setPage(params.getPage());
-        paging.setSize(params.getSize());
-
-        Map<String, Object> paramsMap = StoneUtil.convertObjectToMap(params);
-
-        List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
-
-        paramsMap.put("sim_tp", "P");
-        if (authenticationFacade.getAuth().equals("AU00")) {
-            list = dtSimulationService.getDTSimulationListBySimTp(paramsMap, paging);
-        } else {
-            paramsMap.put("user_seq", authenticationFacade.getLoginUserSeq());
-            list = dtSimulationService.getDTSimulationListSetUserSeqBySimTp(paramsMap, paging);
-        }
-
-        model.addAttribute("list", list);
-        model.addAttribute("paging", StoneUtil.setTotalPaging(list, paging));
-        model.addAttribute("params", params);
-
-        Paging subPaging = new Paging();
-        subPaging.setPage(params.getSubPage());
-        subPaging.setSize(params.getSubSize());
-
-        Map<String, Object> subParamsMap = StoneUtil.convertObjectToMap(params);
-
-        List<Map<String, Object>> share_list = dtSimulationService.getDTSimulationSharedList(subParamsMap, subPaging);
-        model.addAttribute("share_list", share_list);
-        model.addAttribute("subPaging", StoneUtil.setTotalPaging(share_list, subPaging));
-        model.addAttribute("subParams", params);
-
-        model.addAttribute("pageParams", getBaseParameterString(params));
-        model.addAttribute("breadcrumb", getBreadcrumb(params.getMenuCd()));
-        return "pages/dt_simulation/preprocess-list";
-    }
-
     @GetMapping("/augment/list")
     public String getAugmentSimulationList(@ModelAttribute BaseParameter params, Model model, HttpServletRequest request, HttpServletResponse response) {
-
         Paging paging = new Paging();
         paging.setPage(params.getPage());
         paging.setSize(params.getSize());
@@ -125,81 +76,6 @@ public class DTSimulationController extends BaseController {
         return "pages/dt_simulation/augment-list";
     }
 
-    @GetMapping("/shared/preprocess/list")
-    public String getSharedPreprocessSimulationList(@ModelAttribute BaseParameter params, Model model, HttpServletRequest request, HttpServletResponse response) {
-
-        Paging paging = new Paging();
-        paging.setPage(params.getPage());
-        paging.setSize(params.getSize());
-
-        Paging subPaging = new Paging();
-        subPaging.setPage(params.getSubPage());
-        subPaging.setSize(params.getSubSize());
-
-        Map<String, Object> paramsMap = StoneUtil.convertObjectToMap(params);
-        Map<String, Object> subParamsMap = StoneUtil.convertObjectToMap(params);
-
-        List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
-
-        if (authenticationFacade.getAuth().equals("AU00")) {
-            list = dtSimulationService.getDTSimulationList(subParamsMap, subPaging);
-        } else {
-            subParamsMap.put("user_seq", authenticationFacade.getLoginUserSeq());
-            list = dtSimulationService.getDTSimulationListSetUserSeq(subParamsMap, subPaging);
-        }
-
-        model.addAttribute("share_list", list);
-        model.addAttribute("subPaging", StoneUtil.setTotalPaging(list, subPaging));
-        model.addAttribute("subParams", params);
-        paramsMap.put("sim_tp", "P");
-        List<Map<String, Object>> share_list = dtSimulationService.getDTSimulationSharedListBySimTp(paramsMap, paging);
-        model.addAttribute("list", share_list);
-        model.addAttribute("paging", StoneUtil.setTotalPaging(share_list, paging));
-        model.addAttribute("params", params);
-
-        model.addAttribute("pageParams", getBaseParameterString(params));
-        model.addAttribute("breadcrumb", getBreadcrumb(params.getMenuCd()));
-        return "pages/dt_simulation/shared-preprocess-list";
-    }
-
-    @GetMapping("/shared/augment/list")
-    public String getSharedAugmentSimulationList(@ModelAttribute BaseParameter params, Model model, HttpServletRequest request, HttpServletResponse response) {
-
-        Paging paging = new Paging();
-        paging.setPage(params.getPage());
-        paging.setSize(params.getSize());
-
-        Paging subPaging = new Paging();
-        subPaging.setPage(params.getSubPage());
-        subPaging.setSize(params.getSubSize());
-
-        Map<String, Object> paramsMap = StoneUtil.convertObjectToMap(params);
-        Map<String, Object> subParamsMap = StoneUtil.convertObjectToMap(params);
-
-        List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
-
-        if (authenticationFacade.getAuth().equals("AU00")) {
-            list = dtSimulationService.getDTSimulationList(subParamsMap, subPaging);
-        } else {
-            subParamsMap.put("user_seq", authenticationFacade.getLoginUserSeq());
-            list = dtSimulationService.getDTSimulationListSetUserSeq(subParamsMap, subPaging);
-        }
-
-        model.addAttribute("share_list", list);
-        model.addAttribute("subPaging", StoneUtil.setTotalPaging(list, subPaging));
-        model.addAttribute("subParams", params);
-
-        paramsMap.put("sim_tp", "A");
-        List<Map<String, Object>> share_list = dtSimulationService.getDTSimulationSharedListBySimTp(paramsMap, paging);
-        model.addAttribute("list", share_list);
-        model.addAttribute("paging", StoneUtil.setTotalPaging(share_list, paging));
-        model.addAttribute("params", params);
-
-        model.addAttribute("pageParams", getBaseParameterString(params));
-        model.addAttribute("breadcrumb", getBreadcrumb(params.getMenuCd()));
-        return "pages/dt_simulation/shared-augment-list";
-    }
-
     @GetMapping(value = {"/form", "/preprocess/form", "/augment/form"})
     public String modelForm(HttpServletRequest request, @ModelAttribute BaseParameter params, Model model) throws Exception {
         DTAugment dTAugment = new DTAugment();
@@ -214,10 +90,10 @@ public class DTSimulationController extends BaseController {
 
         model.addAttribute("sim_type_list", getCodeList3("SIM_TYPE", true));
         model.addAttribute("augment_type_list", getCodeList3("AUGMENT_TYPE", true));
-        model.addAttribute("cycle_tp", getCodeList3("CYCLE_TP", true));
+        model.addAttribute("cycle_tp", getCodeList3("CYCLE_TP", false));
         model.addAttribute("limit", systemProperties.getLimitCsvRowCount());
 
-        List<Map<String, Object>> data_crt_intvl_tp_list = simulationService.getModelDataTerm();
+        List<Map<String, Object>> data_crt_intvl_tp_list = dtSimulationService.getModelDataTerm();
         model.addAttribute("data_crt_intvl_tp_list", data_crt_intvl_tp_list);
 
         // 요청된 URL 확인
@@ -226,7 +102,7 @@ public class DTSimulationController extends BaseController {
 
         // 요청된 경로에 따라 리다이렉트 경로 변경
         model.addAttribute("prevUrl", "/dt/simulation/augment/list");
-        return "pages/dt_simulation/form";
+        return "pages/dt_simulation/platform_form";
     }
 
     @PostMapping(value = {"/form", "/preprocess/form", "/augment/form"})
@@ -237,8 +113,8 @@ public class DTSimulationController extends BaseController {
             redirectUrl = "redirect:/dt/simulation/";
             redirectUrl += "augment/";
         } else {
-            // 기본 리다이렉트 URL
             redirectUrl = "redirect:/dt/simulation/";
+            redirectUrl += "augment/";
         }
         // 리다이렉트 URL에 추가 정보 삽입
         String returnUrl = redirectUrl + simulationModel.getAugmentSeq() + "?";
@@ -254,17 +130,21 @@ public class DTSimulationController extends BaseController {
 
     @GetMapping(value = {"/{augmentSeq}", "/preprocess/{augmentSeq}", "/augment/{augmentSeq}"})
     public String modelView(HttpServletRequest request, @PathVariable int augmentSeq, @ModelAttribute BaseParameter params, Model model) throws Exception {
-
-        DTAugment dtAugment = new DTAugment();
-
-        dtAugment = dtSimulationService.getDTSimulation(augmentSeq);
+        DTAugment dtAugment = dtSimulationService.getDTSimulation(augmentSeq);
         List<Map<String, Object>> file_list = dtSimulationService.getDTSimulationFileList(augmentSeq);
+        for (Map<String, Object> file : file_list) {
+            if (file.get("file_sz").toString() != null && Integer.parseInt(file.get("file_sz").toString()) != 0) {
+                file.put("changedFileSize", FileUtil.formatFileSize(Integer.parseInt(file.get("file_sz").toString())));
+            } else {
+                file.put("changedFileSize", "0 KB");
+            }
+        }
         List<Map<String, Object>> log_list = dtSimulationService.getDTSimulationLogList(augmentSeq);
         Map<String, Object> param = new HashMap<>();
         param.put("model_seq", dtAugment.getModelSeq());
         Map<String, Object> property = dtSimulationService.getSimulationSetModelProperty(param);
         int windowSize = 0;
-        log.info("dtAugment -> {}", dtAugment);
+
         if (Objects.equals(dtAugment.getSimTp(), "A") && Objects.equals(dtAugment.getAugmentTp(), "R")) {
             try {
                 String json = property.get("user_pprcs_full_stng_value").toString();
@@ -288,12 +168,11 @@ public class DTSimulationController extends BaseController {
         model.addAttribute("sim_type_list", getCodeList3("SIM_TYPE", true));
         model.addAttribute("augment_type_list", getCodeList3("AUGMENT_TYPE", true));
         model.addAttribute("data_crt_intvl_tp_list", getCodeList3("AUGMENT_INTVL_TYPE", true));
-        model.addAttribute("cycle_tp", getCodeList3("CYCLE_TP", true));
+        model.addAttribute("cycle_tp", getCodeList3("CYCLE_TP", false));
 
         model.addAttribute("limit", systemProperties.getLimitCsvRowCount());
         // 요청된 URL 확인
         String requestUrl = request.getRequestURI();
-        log.info("requestUrl -> {}", requestUrl);
 
         // 요청된 경로에 따라 리다이렉트 경로 변경
         if (requestUrl.contains("/preprocess/")) {
@@ -302,14 +181,14 @@ public class DTSimulationController extends BaseController {
             model.addAttribute("prevUrl", "/dt/simulation/augment/list");
         } else {
             // 기본 "/form"은 추가 작업 없이 그대로 사용
-            model.addAttribute("prevUrl", "/dt/simulation/list");
+            model.addAttribute("prevUrl", "/dt/simulation/augment/list");
         }
         if (property.get("job_level") != null && property.get("job_level").toString().equals("P")) {
-            model.addAttribute("modelUrl", "/dt/model/preprocess/" + dtAugment.getModelSeq() + "?menuCd=" + params.getMenuCd());
+            model.addAttribute("modelUrl", "/dt/model/model/" + dtAugment.getModelSeq() + "?menuCd=" + params.getMenuCd());
         } else if (property.get("job_level") != null && property.get("job_level").toString().equals("M")) {
             model.addAttribute("modelUrl", "/dt/model/model/" + dtAugment.getModelSeq() + "?menuCd=" + params.getMenuCd());
         } else {
-            model.addAttribute("modelUrl", "/dt/model/" + dtAugment.getModelSeq() + "?menuCd=" + params.getMenuCd());
+            model.addAttribute("modelUrl", "/dt/model/model/" + dtAugment.getModelSeq() + "?menuCd=" + params.getMenuCd());
         }
 
         if (authenticationFacade.getAuth().equals("AU00")) {
@@ -321,16 +200,21 @@ public class DTSimulationController extends BaseController {
                 model.addAttribute("GRANT", false);
             }
         }
-        return "pages/dt_simulation/view";
+        return "pages/dt_simulation/platform_view";
     }
 
     @GetMapping(value = {"/shared/{augmentSeq}", "/shared/preprocess/{augmentSeq}", "/shared/augment/{augmentSeq}"})
     public String sharedModelView(HttpServletRequest request, @PathVariable int augmentSeq, @ModelAttribute BaseParameter params, Model model) throws Exception {
-
-        DTAugment dtAugment = new DTAugment();
-
-        dtAugment = dtSimulationService.getDTSimulation(augmentSeq);
+        DTAugment dtAugment = dtSimulationService.getDTSimulation(augmentSeq);
         List<Map<String, Object>> file_list = dtSimulationService.getDTSimulationFileList(augmentSeq);
+        for (Map<String, Object> file : file_list) {
+            if (file.get("file_sz").toString() != null && Integer.parseInt(file.get("file_sz").toString()) != 0) {
+                file.put("changedFileSize", FileUtil.formatFileSize(Integer.parseInt(file.get("file_sz").toString())));
+            } else {
+                file.put("changedFileSize", "0 KB");
+            }
+        }
+
         List<Map<String, Object>> log_list = dtSimulationService.getDTSimulationLogList(augmentSeq);
         Map<String, Object> param = new HashMap<>();
         param.put("model_seq", dtAugment.getModelSeq());
@@ -393,7 +277,7 @@ public class DTSimulationController extends BaseController {
                 model.addAttribute("GRANT", false);
             }
         }
-        return "pages/dt_simulation/view";
+        return "pages/dt_simulation/platform_view";
     }
 
     @PostMapping(value = "/{augmentSeq}/prediction")
@@ -401,55 +285,14 @@ public class DTSimulationController extends BaseController {
     public Map<String, Object> getSimulationPredictionView(HttpServletRequest request, @PathVariable String augmentSeq) throws IOException, org.json.simple.parser.ParseException {
         Map<String, Object> result = new HashMap<>();
         Map<String, Object> predictionViewParam = dtSimulationService.getSimulationPredictionView(Integer.parseInt(augmentSeq));
-        result.put("code", GlobalConstant.API_STATUS.SUCCESS);
         log.info("predictionViewParam -> {}", predictionViewParam);
-        FileReader fileReader = FileReader.getInstance();
-        Map<String, Object> data = fileReader.readCSV(systemProperties.getDtMetaFilePath() + predictionViewParam.get("augment_file_path"));
-        result.put("data", data);
-        return result;
-    }
-
-    @PostMapping("/make/correlation")
-    @ResponseBody
-    public Map<String, Object> makeResampleSetView(@RequestBody Map<String, Object> params) {
-        Map<String, Object> result = new HashMap<String, Object>();
-        DTAugment dtAugment = dtSimulationService.getDTSimulation(Integer.parseInt(params.get("augmentSeq").toString()));
-        int modelSeq = dtAugment.getModelSeq();
-        DTModel dtModel = dtModelService.getAugmentModel(modelSeq);
-        List<Map<String, Object>> fileList = dtSimulationService.getDTSimulationFileList(dtAugment.getAugmentSeq());
-        Map<String, Object> fileInfo = fileList.get(0);
-        String filePath = systemProperties.getDtMetaFilePath() + fileInfo.get("file_path").toString();
-        String fileName = fileInfo.get("file_nm").toString();
-        log.info("makeResampleSetView filePath -> {}, fileName -> {}", filePath, fileName);
-        List<String> headers = new ArrayList<>();
-        try {
-            headers = FileReader.getInstance().readHeaders(filePath + File.separator + fileName, 1);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        List<Map<String, Object>> columns = new ArrayList<Map<String, Object>>();
-        columns = dtSimulationService.getModelColumns(modelSeq);
-        List<String> checkHeaderList = dtSimulationService.getTargetColumnInfo(modelSeq);
-        Map<String, Object> correlationParam = new HashMap<String, Object>();
-        correlationParam.put("file_path", filePath);
-        correlationParam.put("file_name", fileName);
-        correlationParam.put("index_trgt_col", dtModel.getIndexTrgtCol());
-        correlationParam.put("columns", checkHeaderList);
-        log.info("correlationParam -> {}", correlationParam);
-        HashMap<String, Object> correlationResult = null;
-        try {
-            correlationResult = dtSimulationService.processorDatasetCorrelation(modelSeq, correlationParam);
-            if (correlationResult != null) {
-                log.info("correlationResult -> {}", correlationResult);
-                result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
-                result.put("columns", columns);
-                result.put("headers", headers);
-                result.put("data", correlationResult.get("data"));
-            } else {
-                throw new RuntimeException();
-            }
-        } catch (org.json.simple.parser.ParseException e) {
-            throw new RuntimeException(e);
+        if (predictionViewParam != null) {
+            Map<String, Object> data = FileReader.getInstance().readCSV(systemProperties.getDtMetaFilePath() + predictionViewParam.get("augment_file_path"));
+            result.put("data", data);
+            result.put("code", GlobalConstant.API_STATUS.SUCCESS);
+        } else {
+            result.put("message", "추론된 파일이 없습니다.");
+            result.put("code", GlobalConstant.API_STATUS.FAIL);
         }
         return result;
     }
@@ -460,21 +303,29 @@ public class DTSimulationController extends BaseController {
         Map<String, Object> result = new HashMap<>();
         int augmentSeq = Integer.parseInt(params.get("augmentSeq").toString());
         List<Map<String, Object>> fileList = dtSimulationService.getDTSimulationFileList(augmentSeq);
+        log.info("fileList -> {}, {}", fileList, fileList.isEmpty());
+        if (fileList.isEmpty()) {
+            result.put("result_code", GlobalConstant.API_STATUS.FAIL);
+            result.put("message", "추론된 파일이 없습니다.");
+            return result;
+        }
+
         Map<String, Object> fileInfo = fileList.get(0);
         String filePath = systemProperties.getDtMetaFilePath() + fileInfo.get("file_path").toString();
         String fileName = fileInfo.get("file_nm").toString();
         log.info("insertSimulationViewResult filePath -> {}, fileName -> {}", filePath, fileName);
-        List<Map<String, String>> readCSVResult = null;
-        List<String> headers = new ArrayList<>();
         try {
-            readCSVResult = FileReader.getInstance().readCSVToListStringMap(filePath + File.separator + fileName);
-            headers = FileReader.getInstance().readHeaders(filePath + File.separator + fileName, 1);
+            List<Map<String, Object>> readCSVResult = FileReader.getInstance().readCSVToListObjectMap(filePath + File.separator + fileName);
+            List<String> headers = FileReader.getInstance().readHeaders(filePath + File.separator + fileName, 1);
+            result.put("data", readCSVResult);
+            result.put("headers", headers);
+            result.put("index_trgt_col", ConvertUtil.findDateColumn(readCSVResult));
+            result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
+            result.put("result_code", GlobalConstant.API_STATUS.FAIL);
+            result.put("message", "CSV 형태로 읽을 수 없습니다.");
         }
-        result.put("data", readCSVResult);
-        result.put("headers", headers);
-        result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
         return result;
     }
 
@@ -483,6 +334,7 @@ public class DTSimulationController extends BaseController {
     public Map<String, Object> getModelList(@RequestBody Map<String, Object> param) throws Exception {
         Map<String, Object> result = new HashMap<>();
         log.info("getModelList param -> {}", param.toString());
+        param.put("userSeq", authenticationFacade.getLoginUserSeq());
         List<Map<String, Object>> model_list = dtSimulationService.getSimulationSetModelList(param);
         result.put("code", GlobalConstant.API_STATUS.SUCCESS);
         result.put("count", model_list.size());
@@ -500,9 +352,9 @@ public class DTSimulationController extends BaseController {
         result.put("data", property);
 
         return result;
-
     }
 
+    @Transactional(DatabaseConfig.PRIMARY_TRANSACTION_MANAGER)
     @PostMapping(value = "/save/augment")
     @ResponseBody
     public Map<String, Object> saveAugment(@RequestBody Map<String, Object> param) throws Exception {
@@ -540,6 +392,10 @@ public class DTSimulationController extends BaseController {
         param.put("use_yn", use_yn);
         String rls_yn = param.get("rls_yn").toString();
         param.put("rls_yn", rls_yn);
+        if (Objects.equals(param.get("cycle_tp").toString(), "ETC")) {
+            param.put("data_crt_intvl_tp", param.get("etc_time_tp").toString());
+            param.put("data_crt_intvl_value", param.get("etc_time_intvl").toString());
+        }
 
         /**
          * 2024-07-10
@@ -548,7 +404,19 @@ public class DTSimulationController extends BaseController {
          * 증강 모델 생성 SEQ 가져와서 바로 Select 차후 로직 실행
          * @author kimwoosik
          * */
-        dtSimulationService.getSimulationSaveAugment(param);
+        int augmentSeq = dtSimulationService.getSimulationSaveAugment(param);
+
+        /**
+         * 2025-03-14
+         * 증강 생성시 데이터 증강 도구에 이력 남기기
+         * */
+        ModelReferenceLog modelReferenceLog = new ModelReferenceLog();
+        modelReferenceLog.setRefSimulationSeq(augmentSeq);
+        modelReferenceLog.setModelSeq(modelSeq);
+        modelReferenceLog.setRegUserSeq(authenticationFacade.getLoginUserSeq());
+        modelReferenceLog.setRegIp(authenticationFacade.getLoginUserIp());
+        logService.insertDtModelReferenceLog(modelReferenceLog);
+
         result.put("code", GlobalConstant.API_STATUS.SUCCESS);
         return result;
     }

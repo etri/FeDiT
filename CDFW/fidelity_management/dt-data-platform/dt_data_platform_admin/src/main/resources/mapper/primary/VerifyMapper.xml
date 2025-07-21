@@ -5,13 +5,13 @@
 
 	<select id="getVerifyMasterList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
 		/* file : VerifyMapper.xml, id : getVerifyMasterList */
-		  SELECT A.*
-		       , DATE_FORMAT(A.REG_DT, '%Y-%m-%d') AS REG_DT
-		    FROM TB_CODE_DTL A
-		   WHERE A.DEL_YN = 'N'
-		     AND A.GRP_CD='VERIFY_TYPE'		
+		SELECT A.*
+			 , DATE_FORMAT(A.REG_DT, '%Y-%m-%d') AS REG_DT
+		FROM TB_CODE_DTL A
+		WHERE A.DEL_YN = 'N'
+		  AND A.GRP_CD = 'VERIFY_TYPE'
 		ORDER BY ORDBY
-	/*||ORDER BY GRP_CD||*/
+		/*||ORDER BY GRP_CD||*/
 	</select>
 
 	<select id="getVerifyMaster" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">

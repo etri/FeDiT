@@ -288,6 +288,8 @@ public class BoardController extends BaseController {
                                            @RequestParam("title") String title,
                                            @RequestParam("description") String description,
                                            @RequestParam("rlsYn") String rlsYn,
+                                           @Nullable @RequestParam("originFileNm") String originFileNm,
+                                           @Nullable @RequestParam("originFileCheck") String originFileCheck,
                                            @Nullable @RequestParam("file") MultipartFile file,
                                            @PathVariable String type, @PathVariable String board_no) {
         Map<String, Object> result = new HashMap<>();
@@ -320,10 +322,14 @@ public class BoardController extends BaseController {
         boardService.updateBoard(board);
 
         log.info("boardUpdate -> {}", board);
+
+        log.info("originFileCheck -> {}", originFileCheck);
+        log.info("originFileNm -> {}", originFileNm);
+
         //파일 등록
         try {
             Files files = filesService.getBoardFile(board.getBoardSeq());
-            if (files != null && file != null && file.getSize() > 0) {
+            if ((files != null && file != null && file.getSize() > 0) || (originFileCheck != null && originFileCheck.equals("true") && originFileNm == null)) {
                 files.setDelIp(board.getMdfcnIp());
                 files.setDelYn("Y");
                 files.setDelUserSeq(board.getMdfcnUserSeq());

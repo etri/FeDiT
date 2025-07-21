@@ -1,33 +1,30 @@
 package com.stoneitgt.dt.data.platform.admin.controller;
 
-import java.io.File;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
-
-import com.stoneitgt.dt.data.platform.admin.properties.SystemProperties;
-import com.stoneitgt.dt.data.platform.domain.DigitalObjectInfo;
-import com.stoneitgt.dt.data.platform.util.ConvertUtil;
-import com.stoneitgt.dt.data.platform.util.file.FileReader;
-import com.stoneitgt.dt.data.platform.util.file.FileUtil;
-import com.stoneitgt.dt.data.platform.util.JSONParser;
-import com.stoneitgt.dt.data.platform.util.file.FileWriter;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
-import lombok.extern.slf4j.Slf4j;
-
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stoneitgt.common.GlobalConstant;
 import com.stoneitgt.dt.data.platform.admin.config.WebConfig;
 import com.stoneitgt.dt.data.platform.admin.service.DTModelApiService;
 import com.stoneitgt.dt.data.platform.admin.service.DTModelService;
+import com.stoneitgt.dt.data.platform.domain.DigitalObjectInfo;
+import com.stoneitgt.dt.data.platform.enums.ModelType;
+import com.stoneitgt.dt.data.platform.util.ConvertUtil;
+import com.stoneitgt.dt.data.platform.util.JSONParser;
+import com.stoneitgt.dt.data.platform.util.TimeUtil;
+import com.stoneitgt.dt.data.platform.util.file.FileReader;
+import com.stoneitgt.dt.data.platform.util.file.FileUtil;
+import com.stoneitgt.dt.data.platform.util.file.FileWriter;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 @Slf4j
@@ -39,10 +36,7 @@ public class DTMetaApiController extends BaseController {
     private DTModelApiService dtModelApiService;
 
     @Autowired
-    private DTModelService dTModelService;
-
-    @Autowired
-    private SystemProperties systemProperties;
+    private DTModelService dtModelService;
 
     @PostMapping(value = "/api/v1/resource/dts")
     @ResponseBody
@@ -131,43 +125,29 @@ public class DTMetaApiController extends BaseController {
 
         result.put("data", digitalObjectInfo);
         result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-        log.info("result -> {}", result);
+        //log.info("result -> {}", result);
         return result;
     }
 
-    @PostMapping(value = "/api/v1/resource/objects/detail/set/file")
+    @PostMapping(value = "/api/v1/resource/objects/detail/set/file/{type}")
     @ResponseBody
-    public Map<String, Object> getBaseData(@RequestBody Map<String, Object> param) throws Exception {
+    public Map<String, Object> getBaseData(@RequestBody Map<String, Object> param, @PathVariable ModelType type) throws Exception {
         Map<String, Object> result = new HashMap<>();
         log.info("getBaseData -> " + param.toString());
         Map<String, Object> findParsingParam = new HashMap<>();
         int limit = systemProperties.getLimitCsvRowCount();
         findParsingParam.put("limit", limit);
-        //컬럼 정보
-        //column_depth_1,column_depth_2,data_depth_1,data_depth_2, data_time_yn
-        Map<String, Object> getMetaDepth = dTModelService.getMetaDataJsonDepth(param);
-        log.info("getMetaDepth:col depth::" + getMetaDepth.get("column_depth_2").toString());
-        log.info("getMetaDepth:data depth::" + getMetaDepth.get("data_depth_1").toString());
-
-        String columnDepth = getMetaDepth.get("column_depth_2").toString();
-        String dataDepth = getMetaDepth.get("data_depth_1").toString();
-        String dataTimeYn = getMetaDepth.get("data_time_yn").toString();
-
-        findParsingParam.put("column_depth", columnDepth);
-        findParsingParam.put("data_depth", dataDepth);
-        findParsingParam.put("data_time_yn", dataTimeYn);
+        Map<String, Object> metaDepth = dtModelService.getMetaDataJsonDepth(param);
         findParsingParam.put("digital_twins", param.get("digital_twins").toString());
-        //api 초기 개발이랑 파라미터 달라서 통일 시킬 필요있음
         findParsingParam.put("digital_objects", param.get("digital_objects").toString());
         findParsingParam.put("object_id", param.get("digital_objects").toString());
         findParsingParam.put("target_row_count", param.get("target_row_count") != null ? param.get("target_row_count").toString() : limit);
 
-        //List<String> headerList = getFindMetaColumnParsing(findParsingParam);
-        List<Map<String, Object>> data = getFindMetaDataParsing(findParsingParam);
+        List<Map<String, Object>> data = dtModelApiService.getResourceObjectDataAndParse(findParsingParam, metaDepth);
         //data 정보
         param.put("data", data);
-        param.put("user_tmp_key", WebConfig.getSessionInfo().getUserId() + currentTimeMillis());
-        ResponseEntity<?> resultOriginFileSet = dtModelApiService.makeBaseDataFile(param);
+        param.put("user_tmp_key", WebConfig.getSessionInfo().getUserId() + TimeUtil.getCurrentTimeMillis());
+        ResponseEntity<?> resultOriginFileSet = dtModelApiService.makeBaseDataFile(type, param);
 
         //결과 json을 먼저 풀고
         Map<String, Object> resultJson = extractDataKeyValues(resultOriginFileSet);
@@ -185,7 +165,13 @@ public class DTMetaApiController extends BaseController {
         log.info("indexColumn -> {}", indexColumn);
 
         if (indexColumn != null) {
-            JSONParser.isDuplicateDataByKey(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name"), indexColumn);
+            List<Map<String, Object>> readTempData = FileReader.getInstance().readCSVToListObjectMap(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name"));
+            String findColumnKey = indexColumn;
+            boolean duplicateDataCheck = JSONParser.isDuplicateDataByKey(readTempData, findColumnKey);
+            if (duplicateDataCheck) {
+                List<Map<String, Object>> removedDuplicatedData = JSONParser.removeDuplicateDataByKey(readTempData, findColumnKey);
+                FileWriter.getInstance().writeCSV(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name"), removedDuplicatedData);
+            }
         }
 
         resultCsv = fileReader.readCSVWithLimit(resultJson.get("file_path") + File.separator + resultJson.get("file_name"), limit);
@@ -212,12 +198,13 @@ public class DTMetaApiController extends BaseController {
         result.put("file_name", resultJson.get("file_name").toString());
         result.put("file_path", resultJson.get("file_path").toString());
         result.put("limit", limit);
+        result.put("target_row_count", findParsingParam.get("target_row_count").toString());
         return result;
     }
 
-    @PostMapping(value = "/api/v1/resource/objects/detail/reset/file")
+    @PostMapping(value = "/api/v1/resource/objects/detail/reset/file/{type}")
     @ResponseBody
-    public Map<String, Object> reGetBaseData(@RequestBody Map<String, Object> param) throws Exception {
+    public Map<String, Object> reGetBaseData(@RequestBody Map<String, Object> param, @PathVariable ModelType type) throws Exception {
         Map<String, Object> result = new HashMap<>();
         result.put("code", GlobalConstant.API_STATUS.SUCCESS);
         log.info("reGetBaseData -> " + param.toString());
@@ -236,7 +223,8 @@ public class DTMetaApiController extends BaseController {
              * 디렉토리 삭제 후 조회 다시 원본 파일 생성
              * 이후 조회 버튼 로직 그대로 수행하게된다.
              * */
-            File directory = new File(systemProperties.getDtMetaFilePath().replace("\\", File.separator) + File.separator + "tmp" + File.separator + param.get("base_file_path").toString());
+            String filePath = type == ModelType.META_MODEL ? systemProperties.getDtMetaFilePath() : systemProperties.getDtEtcMetaFilePath();
+            File directory = new File(filePath.replace("\\", File.separator) + File.separator + "tmp" + File.separator + param.get("base_file_path").toString());
             log.info("Delete to " + directory.getAbsolutePath() + " directory");
             if (FileUtil.deleteDirectory(directory)) {
                 log.info("Directory deleted successfully.");
@@ -246,39 +234,26 @@ public class DTMetaApiController extends BaseController {
 
             //디지털 트윈 데이터
             //컬럼 정보
-            Map<String, Object> getMetaDepth = dTModelService.getMetaDataJsonDepth(param);
-            log.info("getMetaDepth:col depth::" + getMetaDepth.get("column_depth_2").toString());
-            log.info("getMetaDepth:data depth::" + getMetaDepth.get("data_depth_1").toString());
-
-            String columnDepth = getMetaDepth.get("column_depth_2").toString();
-            String dataDepth = getMetaDepth.get("data_depth_1").toString();
-            String dataTimeYn = getMetaDepth.get("data_time_yn").toString();
-
-            findParsingParam.put("column_depth", columnDepth);
-            findParsingParam.put("data_depth", dataDepth);
-            findParsingParam.put("data_time_yn", dataTimeYn);
+            Map<String, Object> metaDepth = dtModelService.getMetaDataJsonDepth(param);
             findParsingParam.put("digital_twins", param.get("digital_twins").toString());
-            //api 초기 개발이랑 파라미터 달라서 통일 시킬 필요있음
             findParsingParam.put("digital_objects", param.get("digital_objects").toString());
             findParsingParam.put("object_id", param.get("digital_objects").toString());
             findParsingParam.put("target_row_count", param.get("target_row_count") != null ? param.get("target_row_count").toString() : limit);
             findParsingParam.put("target_start_date", param.get("target_start_date") != null ? param.get("target_start_date").toString() : null);
             findParsingParam.put("target_end_date", param.get("target_end_date") != null ? param.get("target_end_date").toString() : null);
 
-            //List<String> headerList = getFindMetaColumnParsing(findParsingParam);
-            List<Map<String, Object>> data = getFindMetaDataParsing(findParsingParam);
+            List<Map<String, Object>> data = dtModelApiService.getResourceObjectDataAndParse(findParsingParam, metaDepth);
 
             param.put("data", data);
-            param.put("user_tmp_key", WebConfig.getSessionInfo().getUserId() + currentTimeMillis());
-            ResponseEntity<?> resultOriginFileSet = dtModelApiService.makeBaseDataFile(param);
+            param.put("user_tmp_key", WebConfig.getSessionInfo().getUserId() + TimeUtil.getCurrentTimeMillis());
+            ResponseEntity<?> resultOriginFileSet = dtModelApiService.makeBaseDataFile(type, param);
 
             //결과 json을 먼저 풀고
             Map<String, Object> resultJson = extractDataKeyValues(resultOriginFileSet);
 
             //csv를 읽어들인다
             //가져올 갯수 0은 전체, 나머지는 환경세팅에서
-            FileReader fileReader = FileReader.getInstance();
-            Map<String, Object> resultCsv = fileReader.readCSVWithLimit(resultJson.get("file_path") + File.separator + resultJson.get("file_name"), limit);
+            Map<String, Object> resultCsv = FileReader.getInstance().readCSVWithLimit(resultJson.get("file_path") + File.separator + resultJson.get("file_name"), limit);
 
             /**
              * 가져온 데이터 날짜 중복 제거
@@ -288,10 +263,16 @@ public class DTMetaApiController extends BaseController {
             log.info("indexColumn -> {}", indexColumn);
 
             if (indexColumn != null) {
-                JSONParser.isDuplicateDataByKey(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name").toString(), indexColumn);
+                List<Map<String, Object>> readTempData = FileReader.getInstance().readCSVToListObjectMap(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name").toString());
+                String findColumnKey = indexColumn;
+                boolean duplicateDataCheck = JSONParser.isDuplicateDataByKey(readTempData, findColumnKey);
+                if (duplicateDataCheck) {
+                    List<Map<String, Object>> removedDuplicatedData = JSONParser.removeDuplicateDataByKey(readTempData, findColumnKey);
+                    FileWriter.getInstance().writeCSV(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name").toString(), removedDuplicatedData);
+                }
             }
 
-            resultCsv = fileReader.readCSVWithLimit(resultJson.get("file_path") + File.separator + resultJson.get("file_name"), limit);
+            resultCsv = FileReader.getInstance().readCSVWithLimit(resultJson.get("file_path") + File.separator + resultJson.get("file_name"), limit);
 
             /**
              * 2024-07-26 정렬 로직 추가
@@ -314,16 +295,18 @@ public class DTMetaApiController extends BaseController {
             result.put("base_dir", resultJson.get("base_dir").toString());
             result.put("file_name", resultJson.get("file_name").toString());
             result.put("file_path", resultJson.get("file_path").toString());
+            result.put("target_row_count", param.get("target_row_count") != null ? Math.min(Integer.parseInt(param.get("target_row_count").toString()), limit) : limit);
         } else {
             //파일 업로드 데이터
             //컬럼 정보
-            String file_path = systemProperties.getDtMetaFilePath() + File.separator + "tmp" + File.separator + param.get("base_file_path") + File.separator + param.get("base_file_name");
-            log.info("file_path -> {}", file_path);
+            String filePath = type == ModelType.META_MODEL ? systemProperties.getDtMetaFilePath() : systemProperties.getDtEtcMetaFilePath();
+            filePath = filePath.replace("\\", File.separator) + File.separator + "tmp" + File.separator + param.get("base_file_path") + File.separator + param.get("base_file_name");
+            log.info("filePath -> {}", filePath);
 
-            List<Map<String, Object>> data = FileReader.getInstance().readCSVToListObjectMap(file_path);
+            List<Map<String, Object>> data = FileReader.getInstance().readCSVToListObjectMap(filePath);
             param.put("data", data);
-            param.put("user_tmp_key", WebConfig.getSessionInfo().getUserId() + currentTimeMillis());
-            ResponseEntity<?> resultOriginFileSet = dtModelApiService.makeBaseDataFile(param);
+            param.put("user_tmp_key", WebConfig.getSessionInfo().getUserId() + TimeUtil.getCurrentTimeMillis());
+            ResponseEntity<?> resultOriginFileSet = dtModelApiService.makeBaseDataFile(type, param);
 
             //결과 json을 먼저 풀고
             Map<String, Object> resultJson = extractDataKeyValues(resultOriginFileSet);
@@ -332,6 +315,7 @@ public class DTMetaApiController extends BaseController {
             //가져올 갯수 0은 전체, 나머지는 환경세팅에서
             FileReader fileReader = FileReader.getInstance();
             Map<String, Object> resultCsv = fileReader.readCSVWithLimit(resultJson.get("file_path") + File.separator + resultJson.get("file_name"), limit);
+
             /**
              * 2024-07-26 정렬 로직 추가
              * */
@@ -347,90 +331,8 @@ public class DTMetaApiController extends BaseController {
             result.put("base_dir", resultJson.get("base_dir").toString());
             result.put("file_name", resultJson.get("file_name").toString());
             result.put("file_path", resultJson.get("file_path").toString());
+            result.put("target_row_count", param.get("target_row_count") != null ? Math.min(Integer.parseInt(param.get("target_row_count").toString()), ((List<List<String>>) resultCsv.get("data_list")).size()) : Math.min(((List<List<String>>) resultCsv.get("data_list")).size(), limit));
         }
         return result;
-    }
-
-    private List<Map<String, Object>> getFindMetaDataParsing(Map<String, Object> findParsingParam) throws Exception {
-        /**
-         * 2024-07-15 getFindMetaDataParsing 데이터 파싱 부분 날짜 조정 해야됩니다.
-         * AE Model 생성 시 데이터 설정을 날짜가 미정이면 최근 일부터 limit개 가져오는 걸로 변경합니다.
-         * */
-        log.info("getFindMetaDataParsing -> " + findParsingParam.toString());
-        ResponseEntity<?> resultResourceObjectData = dtModelApiService.getResourceObjectDataMetaFirst(findParsingParam);
-        log.info("getFindMetaDataParsing data end of part -> {}", resultResourceObjectData.getBody().toString().substring(Math.max(0, resultResourceObjectData.getBody().toString().length() - 100))); // 마지막 100자 출력
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode rootNodePath = objectMapper.readTree(resultResourceObjectData.getBody().toString());
-
-        String col_depth = findParsingParam.get("data_depth").toString();
-        String[] depthKeys = col_depth.split("\\.");
-        List<JsonNode> nodesToProcess = new ArrayList<>();
-
-        if (rootNodePath.isArray()) {
-            for (JsonNode arrayItem : rootNodePath) {
-                nodesToProcess.add(arrayItem);
-            }
-        } else {
-            nodesToProcess.add(rootNodePath);
-        }
-
-        for (String key : depthKeys) {
-            List<JsonNode> nextNodesToProcess = new ArrayList<>();
-
-            for (JsonNode node : nodesToProcess) {
-                JsonNode nextNode = node.path(key);
-                if (!nextNode.isMissingNode()) {
-                    nextNodesToProcess.add(nextNode);
-                }
-            }
-
-            nodesToProcess = nextNodesToProcess;
-        }
-
-        List<Map<String, Object>> resultList = new ArrayList<>();
-
-        for (int i = 0; i < nodesToProcess.size(); i++) {
-            JsonNode finalNode = nodesToProcess.get(i); // nodesToProcess의 i번째 노드 가져오기
-            JsonNode rootNode = rootNodePath.get(i);
-            if (finalNode.isArray()) {
-                for (JsonNode arrayItem : finalNode) {
-                    Map<String, Object> map = objectMapper.convertValue(arrayItem, new TypeReference<Map<String, Object>>() {
-                    });
-
-                    if ("N".equals(findParsingParam.get("data_time_yn"))) {
-                        String rowtime = arrayItem.path("rowtime").asText();
-                        if (rowtime.isEmpty()) {
-                            rowtime = ketiTimeFormatSetDefault(rootNode.path("rowtime").asText());
-                        }
-                        map.put("rowtime", rowtime);
-                    }
-
-                    resultList.add(map);
-                }
-            } else {
-                Map<String, Object> map = objectMapper.convertValue(finalNode, new TypeReference<Map<String, Object>>() {
-                });
-
-                if ("N".equals(findParsingParam.get("data_time_yn"))) {
-                    String rowtime = finalNode.path("rowtime").asText();
-                    if (rowtime.isEmpty()) {
-                        rowtime = ketiTimeFormatSetDefault(rootNode.path("rowtime").asText());
-                    }
-                    map.put("rowtime", rowtime);
-                }
-                resultList.add(map);
-            }
-        }
-        return resultList;
-    }
-
-    private String ketiTimeFormatSetDefault(String input) {
-        // ZonedDateTime으로 파싱
-        ZonedDateTime zonedDateTime = ZonedDateTime.parse(input);
-        // 포맷 지정
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        // 포맷 적용하여 문자열로 변환
-        String formattedDateTime = zonedDateTime.format(formatter);
-        return formattedDateTime;
     }
 }

@@ -1,42 +1,36 @@
 package com.stoneitgt.dt.data.platform.admin.service;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import com.stoneitgt.common.GlobalConstant;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stoneitgt.dt.data.platform.admin.config.DatabaseConfig;
 import com.stoneitgt.dt.data.platform.admin.controller.DTModelController;
+import com.stoneitgt.dt.data.platform.admin.mapper.DTSimulationMapper;
 import com.stoneitgt.dt.data.platform.domain.*;
 import com.stoneitgt.dt.data.platform.enums.TimeUnit;
 import com.stoneitgt.dt.data.platform.util.ConvertUtil;
+import com.stoneitgt.dt.data.platform.util.JSONParser;
+import com.stoneitgt.dt.data.platform.util.MetaRelateUtil;
+import com.stoneitgt.dt.data.platform.util.TimeUtil;
 import com.stoneitgt.dt.data.platform.util.file.FileReader;
+import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 import com.stoneitgt.dt.data.platform.util.file.FileWriter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.HashedMap;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stoneitgt.dt.data.platform.admin.config.DatabaseConfig;
-import com.stoneitgt.dt.data.platform.admin.mapper.DTSimulationMapper;
-import com.stoneitgt.dt.data.platform.util.JSONParser;
-import com.stoneitgt.dt.data.platform.util.MetaRelateUtil;
-
-import lombok.extern.slf4j.Slf4j;
+import java.io.File;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -64,7 +58,7 @@ public class DTSimulationService extends BaseService {
     private MakeMetaModelSchedulerService makeMetaModelSchedulerService;
 
     @Autowired
-    private APIService apiService;
+    private JSONPropertyService jsonPropertyService;
 
     public List<Map<String, Object>> getDTSimulationList(Map<String, Object> params, Paging paging) {
         return dtSimulationMapper.getDTSimulationList(params, paging.getPaging());
@@ -108,9 +102,9 @@ public class DTSimulationService extends BaseService {
         String DIGITAL_TWIN_OBJECT_ID = targetModel.get("sdt_obj_id").toString();
         if (!DIGITAL_TWIN_ID.isEmpty() && !DIGITAL_TWIN_OBJECT_ID.isEmpty()) {
             JSONObject jsonObject = JSONParser.formatDigitalTwinObjectCreated(is_full, DIGITAL_TWIN_ID, DIGITAL_TWIN_OBJECT_ID, dtAugment.getAugmentSeq(), dtAugment.getTitle());
-            JSONParser.sendDigitalTwinObjectCreated(systemProperties, DIGITAL_TWIN_ID, jsonObject);
+            dtModelApiService.sendDigitalTwinObjectCreated(DIGITAL_TWIN_ID, jsonObject);
         }
-        //JSONParser.sendDigitalTwinObjectDelete(systemproperties, DIGITAL_TWIN_ID, DIGITAL_TWIN_OBJECT_ID, dtAugment.getAugmentSeq());
+        //dtModelApiService.sendDigitalTwinObjectDelete(DIGITAL_TWIN_ID, DIGITAL_TWIN_OBJECT_ID, dtAugment.getAugmentSeq());
         return dtAugment.getAugmentSeq();
     }
 
@@ -265,6 +259,11 @@ public class DTSimulationService extends BaseService {
                 }
                 case 4: {
                     augmentSet = dtModelApiService.makeContinuousNBeatsAugmentRepeatInterpolationSet(params);
+                    break;
+                }
+                case 5: {
+                    augmentSet = dtModelApiService.makeContinuousSEGRNNAugmentRepeatInterpolationSet(params);
+                    break;
                 }
             }
             ObjectMapper mapper = new ObjectMapper();
@@ -300,7 +299,7 @@ public class DTSimulationService extends BaseService {
         return dtSimulationMapper.updateSimulationInfo(simulationModel);
     }
 
-    public HashMap<String, Object> makePreProcessContinuousInterpolationAugment(String twin_id, String obj_id, String full_json, String base_dir, String file_path, String file_name, String index_trgt_col, String user_id, int model_seq, int augment_seq, String from_date, String to_date, String data_crt_last_hr, List<String> originTimeData, int stepCount) throws IOException {
+    public HashMap<String, Object> makePreProcessContinuousInterpolationAugment(String twin_id, String obj_id, DTModelJsonProperty dtModelJsonProperty, String base_dir, String file_path, String file_name, String index_trgt_col, String user_id, int model_seq, int augment_seq, String from_date, String to_date, String data_crt_last_hr, List<String> originTimeData, int stepCount) throws IOException {
         String errorcheckBody = null;
         String originFileName = file_name;
         String originFilePath = file_path;
@@ -310,37 +309,18 @@ public class DTSimulationService extends BaseService {
         DecisionTreeOption decisionTreeOption = null;
         String decisionKey = null;
         ArrayList<String> decisionLabels = new ArrayList<>();
-        log.info("makePreProcessContinuousAugment 초기 타겟 파일 -> {}", resultTargetFileName);
-        log.info("makePreProcessContinuousAugment 초기 원본 파일 -> {}", prev_file_name);
-        log.info("makePreProcessContinuousAugment 초기 이전 파일 -> {}", prev_file_name);
+        log.info("makePreProcessContinuousAugment 초기 타겟 파일 -> {}, makePreProcessContinuousAugment 초기 원본 파일 -> {}, makePreProcessContinuousAugment 초기 이전 파일 -> {}", resultTargetFileName, prev_file_name, prev_file_name);
 
         //유효성 맵
-        List<Map<String, Object>> validationList = new ArrayList<>();
-        Map<String, Object> validation = new HashMap<>();
-
+        List<Map<String, Object>> validations = new ArrayList<>();
         //이상치 맵
-        List<Map<String, Object>> outlierList = new ArrayList<>();
-        Map<String, Object> outlier = new HashMap<>();
-
+        List<Map<String, Object>> outliers = new ArrayList<>();
         //변환 데이터 맵 - 연계 처리 후
         List<Map<String, Object>> resultDataList = new ArrayList<>();
         Map<String, Object> resultData = new HashMap<>();
 
-        //에러 맵 - 연계 처리 후
-        //List<Map<String, Object>> errorInfoList = new ArrayList<>();
-        //Map<String, Object> errorInfo = new HashMap<>();
-
         String origin_from = from_date;
         String origin_to = to_date;
-
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode rootNode = mapper.readTree(full_json);
-        JsonNode preprocProperty = rootNode.get("preproc_property_info").get(0).get("preproc_property");
-
-        JsonNode preprocPropertyInfo = rootNode.path("preproc_property_info").get(0);
-        String twinid = preprocPropertyInfo.path("twin_id").asText();
-        String objid = preprocPropertyInfo.path("twin_obj_id").asText();
-        String index_col = preprocPropertyInfo.path("index_trgt_col").asText();
 
         LocalDateTime now = LocalDateTime.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -356,492 +336,482 @@ public class DTSimulationService extends BaseService {
             setParam.put("index_trgt_col", index_trgt_col);
 
             MetaSimulationModel metaSimulationModel = new MetaSimulationModel();
-
-            for (int j = 0; j < preprocProperty.size(); j++) {
-                int preproc_order = Integer.parseInt(preprocProperty.get(j).get("preproc_order").toString());
+            List<DTModelJsonPropertySub> dtModelJsonPropertySubs = dtModelJsonProperty.getPreproc_property_info().get(0).getPreproc_property();
+            for (DTModelJsonPropertySub dtModelJsonPropertySub : dtModelJsonPropertySubs) {
+                int step = dtModelJsonPropertySub.getPreproc_order();
                 setParam.put("file_path", file_path);
-                setParam.put("preproc_order", preproc_order);
-                if (preproc_order == 1) {
-                    String targetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + "_valid" + ".csv";
-                    if (preprocProperty.get(j).get("preproc_set").size() > 0) {
-                        JsonNode preprocSetArray = preprocProperty.get(j).get("preproc_set");
-
-                        for (int p1 = 0; p1 < preprocSetArray.size(); p1++) {
-                            if (p1 == 0) {
+                setParam.put("preproc_order", step);
+                switch (step) {
+                    case 1: {
+                        log.info("===========================유효성 검증 로직 시작===========================");
+                        int subStepCount = 0;
+                        String targetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + "_valid" + ".csv";
+                        List<DTModelJsonPropertySubSet> subSteps = dtModelJsonPropertySub.getPreproc_set();
+                        for (DTModelJsonPropertySubSet subStep : subSteps) {
+                            if (subStepCount == 0) {
                                 setParam.put("file_name", file_name);
                             }
 
                             setParam.put("target_file_name", targetFileName);
-                            setParam.put("vrfc_trgt_col", preprocSetArray.get(p1).get("trgt_col").asText());
-                            setParam.put("set_order", preprocSetArray.get(p1).get("set_order").asText());
-                            Map<String, Object> verify_option = verifyService.getVerifyOption(Integer.parseInt(preprocSetArray.get(p1).get("vrfc_sub_tp").asText()));
-                            setParam.put("vrfc_tp", verify_option.get("vrfc_tp").toString());
-
-                            if (verify_option.get("rule_value_1") != null) {
-                                if (!verify_option.get("rule_value_1").toString().equals("")) {
-                                    setParam.put("rule1", verify_option.get("rule_value_1").toString());
-                                } else {
-                                    setParam.put("rule1", null);
-                                }
-                            }
-                            if (verify_option.get("rule_value_2") != null) {
-                                if (!verify_option.get("rule_value_2").toString().equals("")) {
-                                    setParam.put("rule2", verify_option.get("rule_value_2").toString());
-                                } else {
-                                    setParam.put("rule2", null);
-                                }
-                            }
-                            if (verify_option.get("rule_value_3") != null) {
-                                if (!verify_option.get("rule_value_3").toString().equals("")) {
-                                    setParam.put("rule3", verify_option.get("rule_value_3").toString());
-                                } else {
-                                    setParam.put("rule3", null);
-                                }
-                            }
-                            if (verify_option.get("rule_value_4") != null) {
-                                if (!verify_option.get("rule_value_4").toString().equals("")) {
-                                    setParam.put("rule4", verify_option.get("rule_value_4").toString());
-                                } else {
-                                    setParam.put("rule4", null);
-                                }
-                            }
-
-                            /**
-                             * 특수한 로직 상태 처리
-                             * 타입이 범위이고 최소와 최대가 존재할때,
-                             * */
-                            if (verify_option.get("vrfc_tp") != null && Objects.equals(verify_option.get("vrfc_tp").toString(), "RG")) {
-                                if ((verify_option.get("rule_value_2") != null && Objects.equals(verify_option.get("rule_value_2").toString(), "MIN")) && (verify_option.get("rule_value_3") != null && Objects.equals(verify_option.get("rule_value_3").toString(), "MAX"))) {
-                                    setParam.put("rule2", preprocSetArray.get(p1).get("rule2").toString().replaceAll("\"", ""));
-                                    setParam.put("rule3", preprocSetArray.get(p1).get("rule3").toString().replaceAll("\"", ""));
-                                }
-                            }
-
+                            setParam.put("set_order", subStep.getSet_order());
                             setParam.put("is_create", "Y");
-
-                            setParam.put("vrfc_clear_type", preprocSetArray.get(p1).get("vrfc_clear_tp").asText());
                             setParam.put("index_trgt_col", index_trgt_col);
-                            /*if (Objects.equals(verify_option.get("vrfc_tp").toString().toUpperCase(), "DT") && Objects.equals(preprocSetArray.get(p1).get("vrfc_clear_tp").asText(), "O")) {
-                                try {
-                                    List<Map<String, String>> data = com.stoneitgt.dt.data.platform.util.JSONParser.readCsv(file_path + File.separator + file_name);
-                                    List<Map<String, String>> temp = new ArrayList<>();
-                                    String vrfc_trgt_col = setParam.get("vrfc_trgt_col").toString();
-                                    for (Map<String, String> map : data) {
-                                        String colValueTemp = map.get(vrfc_trgt_col);
-                                        Integer colValueInt = -1;
-                                        try {
-                                            colValueInt = Integer.parseInt(colValueTemp);
-                                            map.put(vrfc_trgt_col, colValueInt.toString());
-                                        } catch (Exception e) {
-                                            try {
-                                                Float calValueFloat = Float.parseFloat(colValueTemp);
-                                                map.put(vrfc_trgt_col, calValueFloat.toString());
-                                            } catch (Exception ex) {
-                                                map.put(vrfc_trgt_col, "");
-                                            }
-                                        }
-                                        temp.add(map);
-                                    }
-                                    com.stoneitgt.dt.data.platform.util.JSONParser.writeCsv(file_path + File.separator + file_name, temp);
-                                } catch (Exception e) {
-                                    throw new RuntimeException(e);
-                                }
-                            }*/
-                            log.info("validSet setParam ->" + setParam.toString());
+
+                            setParam.put("vrfc_tp", subStep.getVrfc_tp());
+                            setParam.put("vrfc_trgt_col", subStep.getTrgt_col());
+                            setParam.put("vrfc_clear_type", subStep.getVrfc_clear_tp());
+
+                            Map<String, Object> verify_option = verifyService.getVerifyOption(Integer.parseInt(subStep.getVrfc_sub_tp()));
+                            Map<String, Object> rule = processFindVerifyRule(verify_option, subStep);
+                            setParam.putAll(rule);
+
+                            log.info("Validate Parameter -> {}", setParam);
                             ResponseEntity<?> validSet = dtModelApiService.makeValidateSet(setParam);
                             log.info("validSet -> {}", validSet);
                             errorcheckBody = validSet.getBody().toString();
                             log.info("validSet errorcheckBody -> {}", errorcheckBody);
-                            setParam = new HashMap<String, Object>();
-                            setParam.put("file_name", getResponseTargetFileName(validSet.getBody().toString()));
-                            setParam.put("file_path", file_path);
-                            setParam.put("index_trgt_col", index_trgt_col);
+
                             lastFileName = getResponseTargetFileName(validSet.getBody().toString());
-                            validation = new HashMap<>();
-                            validation.put("set_order", preprocSetArray.get(p1).get("set_order"));
-                            validation.put("valid_tp1", preprocSetArray.get(p1).get("vrfc_tp").toString().toUpperCase());
-                            validation.put("valid_tp2", preprocSetArray.get(p1).get("vrfc_clear_tp").toString().toUpperCase());
-                            validation.put("col", preprocSetArray.get(p1).get("trgt_col").toString().toUpperCase());
-                            /**
-                             * TODO Python
-                             * frontName = 'valid_' + str(paramData['set_order']) + '_'
-                             * verifyFilterFile = os.path.join(paramData['file_path'],  frontName + paramData['target_file_name'])
-                             * */
-                            resultTargetFileName = lastFileName;
 
-                            validation.put("file_path", file_path + "/" + "valid_" + preprocSetArray.get(p1).get("set_order") + "_" + lastFileName);
-                            validationList.add(validation);
-                            prev_file_name = setParam.get("file_name").toString();
-                        }
-                    }
-                    log.info("유효성 검증 로직 종료");
-                }
-
-                if (preproc_order == 2) {
-                    if (preprocProperty.get(j).get("preproc_set").size() > 0) {
-                        String targetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + "_outlier" + ".csv";
-                        JsonNode preprocSetArray = preprocProperty.get(j).get("preproc_set");
-                        for (int p2 = 0; p2 < preprocSetArray.size(); p2++) {
-                            //log.info("" + preprocSetArray.get(p2).get("set_order"));
-                            //같다면 validate 로직 타고온것
-                            setParam.put("file_name", Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName);
-
-                            setParam.put("feature", preprocSetArray.get(p2).get("trgt_col"));
-                            setParam.put("freq", Integer.parseInt(preprocSetArray.get(p2).get("freq").toString().replaceAll("\"", "")));
-                            setParam.put("isCreate", "Y");
-                            setParam.put("set_order", preprocSetArray.get(p2).get("set_order"));
-
-                            String outlier_tp = preprocSetArray.get(p2).get("outlier_tp").toString().replaceAll("\"", "");
-                            setParam.put("target_file_name", targetFileName);
-                            if ("standard".equals(outlier_tp)) {
-                                setParam.put("p_value", Float.parseFloat(preprocSetArray.get(p2).get("p_value").toString().replaceAll("\"", "")));
-                            } else if ("kmean".equals(outlier_tp)) {
-                                setParam.put("n_clusters", Integer.parseInt(preprocSetArray.get(p2).get("n_clusters").toString().replaceAll("\"", "")));
-                                setParam.put("n_clusters_lable", 4);
-                                setParam.put("n_count", Integer.parseInt(preprocSetArray.get(p2).get("n_count").toString().replaceAll("\"", "")));
-                            } else if ("dbscan".equals(outlier_tp)) {
-                                setParam.put("eps", Float.parseFloat(preprocSetArray.get(p2).get("eps").toString().replaceAll("\"", "")));
-                                setParam.put("min_samples", Integer.parseInt(preprocSetArray.get(p2).get("min_samples").toString().replaceAll("\"", "")));
-                            } else {
-                                Map<String, Object> modelParams = new HashMap<String, Object>();
-                                modelParams.put("etc_model_seq", Integer.parseInt(preprocSetArray.get(p2).get("etc_model_seq").toString().replaceAll("\"", "")));
-
-                                Map<String, Object> model_info = dtModelService.getEtcModelInfo(modelParams);
-
-                                setParam.put("model_file_path", systemProperties.getDtEtcMetaFilePath() + model_info.get("file_path").toString());
-                                setParam.put("model_file_name", model_info.get("file_nm").toString());
-                                setParam.put("etc_model_seq", Integer.parseInt(preprocSetArray.get(p2).get("etc_model_seq").toString().replaceAll("\"", "")));
-
-                                String[] output_cols = {preprocSetArray.get(p2).get("trgt_col").toString().replaceAll("\"", "")};
-                                setParam.put("output_cols", output_cols);
-                                setParam.put("window_size", Integer.parseInt(preprocSetArray.get(p2).get("window_size").toString().replaceAll("\"", "")));
-                                setParam.put("threshold", Float.parseFloat(preprocSetArray.get(p2).get("threshold").toString().replaceAll("\"", "")));
-                            }
-                            ResponseEntity<?> outlierSet = dtModelApiService.makeOutlierSet(setParam, outlier_tp);
-                            errorcheckBody = outlierSet.getBody().toString();
-                            setParam = new HashMap<String, Object>();
-                            setParam.put("file_name", getResponseTargetFileName(outlierSet.getBody().toString()));
+                            setParam.clear();
+                            setParam.put("file_name", lastFileName);
                             setParam.put("file_path", file_path);
                             setParam.put("index_trgt_col", index_trgt_col);
+
+                            // 동기화 엔진에 업로드할 Validation 데이터 설정 부분
+                            Map<String, Object> validation = processMakeValidate(subStep, file_path + "/" + "valid_" + subStep.getSet_order() + "_" + lastFileName);
+                            validations.add(validation);
+
+                            //Validate 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
+                            resultTargetFileName = lastFileName;
+                            subStepCount++;
+                        }
+                        log.info("===========================유효성 검증 로직 종료===========================");
+                        break;
+                    }
+                    case 2: {
+                        log.info("===========================이상치 검증 로직 시작===========================");
+                        String targetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + "_outlier" + ".csv";
+                        List<DTModelJsonPropertySubSet> subSteps = dtModelJsonPropertySub.getPreproc_set();
+                        for (DTModelJsonPropertySubSet subStep : subSteps) {
+                            //resultTargetFileName Validate 결과 파일
+                            //lastFileName 프로세스의 마지막 결과 파일
+                            //두개가 같다면 Validate 결과 파일과 프로세스의 마지막 결과 파일이 같으므로 Validate 프로세스를 타고 온것으로 간주
+                            setParam.put("file_name", Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName);
+                            setParam.put("target_file_name", targetFileName);
+                            setParam.put("set_order", subStep.getSet_order());
+                            setParam.put("isCreate", "Y");
+                            setParam.put("feature", subStep.getTrgt_col());
+                            setParam.put("freq", Integer.parseInt(subStep.getFreq().replaceAll("\"", "")));
+
+                            String outlierType = subStep.getOutlier_tp();
+                            log.info("outlierType -> {}", outlierType);
+                            switch (outlierType.toUpperCase()) {
+                                case "STANDARD": {
+                                    setParam.put("p_value", Float.parseFloat(subStep.getP_value().replaceAll("\"", "")));
+                                    break;
+                                }
+                                case "KMEAN": {
+                                    setParam.put("n_clusters", Integer.parseInt(subStep.getN_clusters().replaceAll("\"", "")));
+                                    setParam.put("n_clusters_lable", 4);
+                                    setParam.put("n_count", Integer.parseInt(subStep.getN_count().replaceAll("\"", "")));
+                                    break;
+                                }
+                                case "DBSCAN": {
+                                    setParam.put("eps", Float.parseFloat(subStep.getEps().replaceAll("\"", "")));
+                                    setParam.put("min_samples", Integer.parseInt(subStep.getMin_samples().replaceAll("\"", "")));
+                                    break;
+                                }
+                                default: {
+                                    // Auto Encoder Model 정보 찾기
+                                    Map<String, Object> modelInfo = dtModelService.getEtcModelInfo(Integer.parseInt(subStep.getEtc_model_seq()));
+                                    // Auto Encoder Model 정보 담기
+                                    Map<String, Object> modelParams = processFindAutoEncoder(subStep, modelInfo);
+                                    setParam.putAll(modelParams);
+                                    break;
+                                }
+                            }
+                            log.info("Outlier Parameter -> {}", setParam);
+                            ResponseEntity<?> outlierSet = dtModelApiService.makeOutlierSet(setParam, outlierType);
+                            log.info("outlierSet -> {}", outlierSet);
+                            errorcheckBody = outlierSet.getBody().toString();
+                            log.info("outlierSet errorcheckBody -> {}", errorcheckBody);
+
                             lastFileName = getResponseTargetFileName(outlierSet.getBody().toString());
 
-                            outlier = new HashMap<>();
-                            outlier.put("set_order", preprocSetArray.get(p2).get("set_order"));
-                            outlier.put("outlier_tp", outlier_tp.toUpperCase());
-                            outlier.put("col", preprocSetArray.get(p2).get("trgt_col").toString().toUpperCase());
-                            outlier.put("file_path", file_path + "/" + "outlier_" + preprocSetArray.get(p2).get("set_order") + "_" + lastFileName);
+                            setParam.clear();
+                            setParam.put("file_name", lastFileName);
+                            setParam.put("file_path", file_path);
+                            setParam.put("index_trgt_col", index_trgt_col);
 
-                            outlierList.add(outlier);
+                            // 동기화 엔진에 업로드할 Outlier 데이터 설정 부분
+                            Map<String, Object> outlier = processMakeOutlier(subStep, file_path + "/" + "outlier_" + subStep.getSet_order() + "_" + lastFileName);
+                            outliers.add(outlier);
+
+                            //Outlier 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
                             resultTargetFileName = lastFileName;
+                            //이전 파일 정보 추가로 저장
                             prev_file_name = setParam.get("file_name").toString();
                         }
+                        log.info("===========================이상치 검증 로직 종료===========================");
+                        break;
                     }
-                    log.info("이상치 로직 종료");
-                }
-
-                if (preproc_order == 3) {
-                    if (preprocProperty.get(j).get("preproc_set").size() > 0) {
+                    case 3: {
+                        log.info("===========================결측/보간 로직 시작===========================");
+                        int subStepCount = 0;
                         String targetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + "_interpolate" + ".csv";
-                        JsonNode preprocSetArray = preprocProperty.get(j).get("preproc_set");
-                        for (int p3 = 0; p3 < preprocSetArray.size(); p3++) {
+                        List<DTModelJsonPropertySubSet> subSteps = dtModelJsonPropertySub.getPreproc_set();
+                        for (DTModelJsonPropertySubSet subStep : subSteps) {
+                            //resultTargetFileName Outlier 결과 파일
+                            //lastFileName 프로세스의 마지막 결과 파일
+                            //두개가 같다면 Outlier 결과 파일과 프로세스의 마지막 결과 파일이 같으므로 Outlier 프로세스를 타고 온것으로 간주
                             setParam.put("file_name", Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName);
                             setParam.put("target_file_name", targetFileName);
-                            setParam.put("interpl_tp", preprocSetArray.get(p3).get("interpl_tp").asText());
-                            log.info("interpolateSet setParam -> {}", setParam);
-                            ResponseEntity<?> interpolateSet = null;
-                            if (Objects.equals(setParam.get("interpl_tp"), "decisiontree")) {
-                                isDecisionTree = true;
-                                setParam.put("prev_file_name", file_path + File.separator + prev_file_name);
-                                setParam.put("index_column", index_trgt_col);
-                                setParam.put("set_order", (p3 + 1));
-                                setParam.put("isCreate", "Y");
-                                setParam.put("model_path", "");
-                                setParam.put("feature", preprocSetArray.get(p3).get("interpl_feature").toString().replaceAll("\"", ""));
-                                decisionKey = setParam.get("feature").toString();
-                                Iterator<JsonNode> elements = preprocSetArray.get(p3).get("interpl_outputs").elements();
-                                ArrayList<String> outputs = new ArrayList<>();
-                                while (elements.hasNext()) {
-                                    outputs.add(elements.next().asText());
+                            String interpolationType = subStep.getInterpl_tp();
+                            setParam.put("interpl_tp", interpolationType);
+                            switch (interpolationType.toUpperCase()) {
+                                case "DECISIONTREE": {
+                                    //동기화 엔진 데이터 업로드 프로세스에서 사용할 변수 수정
+                                    isDecisionTree = true;
+                                    decisionKey = subStep.getInterpl_feature().replaceAll("\"", "");
+
+                                    setParam.put("prev_file_name", file_path + File.separator + prev_file_name);
+                                    setParam.put("index_column", index_trgt_col);
+                                    setParam.put("set_order", (subStepCount + 1));
+                                    setParam.put("isCreate", "Y");
+                                    setParam.put("model_path", "");
+                                    setParam.put("feature", decisionKey);
+                                    setParam.put("outputs", subStep.getInterpl_outputs());
+
+                                    log.info("Interpolate -> {}", setParam);
+                                    ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSet(setParam, interpolationType.toUpperCase());
+                                    log.info("interpolateSet -> {}", interpolateSet);
+                                    errorcheckBody = interpolateSet.getBody().toString();
+                                    log.info("interpolateSet errorcheckBody -> {}", errorcheckBody);
+
+                                    Map<String, Object> resultMap = DTModelController.extractDecisionDataKeyValues(interpolateSet);
+                                    decisionLabels.addAll((ArrayList<String>) resultMap.get("labels"));
+                                    lastFileName = FileUtil.getExtractFileNameToFilePath(resultMap.get("target_file_name").toString());
+
+                                    setParam.clear();
+                                    setParam.put("file_name", lastFileName);
+                                    setParam.put("file_path", file_path);
+                                    setParam.put("index_trgt_col", index_trgt_col);
+
+                                    // 동기화 엔진에 업로드할 Interpolation 데이터 설정 부분
+                                    // 업음
+
+                                    //Interpolation 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
+                                    resultTargetFileName = lastFileName;
+
+                                    //DecisionTree를 사용하였다면 Interval Conversion 프로세스 진행 시 Decision Tree Interval Conversion 프로세스 실행
+                                    //그전 사전 준비, 어떤 Decision Tree 옵션을 사용했는지에 대한 설정
+                                    if (decisionTreeOption == null) {
+                                        decisionTreeOption = new DecisionTreeOption(setParam.get("file_path").toString(), null, lastFileName,
+                                                null, index_trgt_col, (ArrayList<String>) subStep.getInterpl_outputs(), subStep.getDecision_model_file_path() + subStep.getDecision_model_file_name(),
+                                                subStep.getInterpl_feature().replaceAll("\"", ""), String.valueOf(subStepCount + 1), "Y");
+                                    }
+                                    break;
                                 }
-                                setParam.put("outputs", outputs);
-                                log.info("interpolate decision tree setParam -> {}", setParam);
-                                interpolateSet = dtModelApiService.makeInterpolateDecisionSet(setParam);
-                                log.info("interpolateSet -> {}", interpolateSet);
-                                /*TODO 2024-08-26 DECISION TREE Interval Conversion 로직 수행 할 때*/
-                                Map<String, Object> resultMap = DTModelController.extractDecisionDataKeyValues(interpolateSet);
-                                log.info("resultMap -> {}", resultMap);
-                                decisionLabels = (ArrayList<String>) resultMap.get("labels");
-                                log.info("decisionLabels -> {}", decisionLabels);
-                                errorcheckBody = interpolateSet.getBody().toString();
-                                setParam = new HashMap<String, Object>();
-                                // Path 객체 생성
-                                Path path = Paths.get((String) resultMap.get("target_file_name"));
+                                case "RANDOM FOREST": {
+                                    setParam.put("outputs", subStep.getInterpl_outputs());
+                                    setParam.put("features", subStep.getInterpl_labels());
+                                    setParam.put("model_file_path", subStep.getInterpl_etc_model_file_path());
+                                    setParam.put("model_file_name", subStep.getInterpl_etc_model_file_name());
+                                    setParam.put("model_use_file_path", file_path);
+                                    setParam.put("model_use_file_name", setParam.get("file_name"));
+                                    setParam.put("output_file", file_path + File.separator + setParam.get("target_file_name").toString());
+                                    setParam.put("index_column", index_trgt_col);
+                                    setParam.put("trgt_col_list", "");
 
-                                // 파일명 추출
-                                String fileName = path.getFileName().toString();
+                                    log.info("Interpolate -> {}", setParam);
+                                    ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSet(setParam, interpolationType.toUpperCase());
+                                    log.info("interpolateSet -> {}", interpolateSet);
+                                    errorcheckBody = interpolateSet.getBody().toString();
+                                    log.info("interpolateSet errorcheckBody -> {}", errorcheckBody);
 
-                                lastFileName = fileName;
-                                setParam.put("file_name", fileName);
-                                setParam.put("file_path", file_path);
-                                setParam.put("index_trgt_col", index_trgt_col);
-                                resultTargetFileName = fileName;
-                                if (decisionTreeOption == null) {
-                                    decisionTreeOption = new DecisionTreeOption(setParam.get("file_path").toString(), null, lastFileName, null, index_trgt_col, outputs, preprocSetArray.get(p3).get("decision_model_file_path").asText() + preprocSetArray.get(p3).get("decision_model_file_name").asText(), preprocSetArray.get(p3).get("interpl_feature").toString().replaceAll("\"", ""), String.valueOf((p3 + 1)), "Y");
+                                    lastFileName = setParam.get("target_file_name").toString();
+
+                                    setParam.clear();
+                                    setParam.put("file_name", lastFileName);
+                                    setParam.put("file_path", file_path);
+                                    setParam.put("index_trgt_col", index_trgt_col);
+
+                                    // 동기화 엔진에 업로드할 Interpolation 데이터 설정 부분
+                                    // 업음
+
+                                    //Interpolation 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
+                                    resultTargetFileName = lastFileName;
+                                    break;
                                 }
-                            } else if (Objects.equals(setParam.get("interpl_tp"), "random forest")) {
-                                Iterator<JsonNode> elements = preprocSetArray.get(p3).get("interpl_outputs").elements();
-                                ArrayList<String> outputs = new ArrayList<>();
-                                while (elements.hasNext()) {
-                                    outputs.add(elements.next().asText());
+                                case "BRITS": {
+                                    setParam.put("outputs", subStep.getInterpl_outputs());
+                                    setParam.put("model_file_path", subStep.getInterpl_etc_model_file_path());
+                                    setParam.put("model_file_name", subStep.getInterpl_etc_model_file_name());
+                                    setParam.put("model_use_file_path", file_path);
+                                    setParam.put("model_use_file_name", setParam.get("file_name"));
+                                    setParam.put("output_file", file_path + File.separator + setParam.get("target_file_name").toString());
+                                    setParam.put("index_column", index_trgt_col);
+                                    setParam.put("trgt_col_list", subStep.getInterpl_outputs());
+
+                                    log.info("Interpolate -> {}", setParam);
+                                    ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSet(setParam, interpolationType.toUpperCase());
+                                    log.info("interpolateSet -> {}", interpolateSet);
+                                    errorcheckBody = interpolateSet.getBody().toString();
+                                    log.info("interpolateSet errorcheckBody -> {}", errorcheckBody);
+
+                                    lastFileName = setParam.get("target_file_name").toString();
+
+                                    setParam.clear();
+                                    setParam.put("file_name", lastFileName);
+                                    setParam.put("file_path", file_path);
+                                    setParam.put("index_trgt_col", index_trgt_col);
+
+                                    // 동기화 엔진에 업로드할 Interpolation 데이터 설정 부분
+                                    // 업음
+
+                                    //Interpolation 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
+                                    resultTargetFileName = lastFileName;
+                                    break;
                                 }
-                                elements = preprocSetArray.get(p3).get("interpl_labels").elements();
-                                ArrayList<String> features = new ArrayList<>();
-                                while (elements.hasNext()) {
-                                    features.add(elements.next().asText());
+                                case "NAOMI": {
+                                    setParam.put("outputs", subStep.getInterpl_outputs());
+                                    setParam.put("model_file_path", subStep.getInterpl_etc_model_file_path());
+                                    setParam.put("model_file_name", subStep.getInterpl_etc_model_file_name());
+                                    setParam.put("windowSize", subStep.getInterpl_window_size());
+                                    setParam.put("model_use_file_path", file_path);
+                                    setParam.put("model_use_file_name", setParam.get("file_name"));
+                                    setParam.put("output_file", file_path + File.separator + setParam.get("target_file_name").toString());
+                                    setParam.put("index_column", index_trgt_col);
+                                    setParam.put("trgt_col_list", subStep.getInterpl_outputs());
+
+                                    log.info("Interpolate -> {}", setParam);
+                                    ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSet(setParam, interpolationType.toUpperCase());
+                                    log.info("interpolateSet -> {}", interpolateSet);
+                                    errorcheckBody = interpolateSet.getBody().toString();
+                                    log.info("interpolateSet errorcheckBody -> {}", errorcheckBody);
+
+                                    lastFileName = setParam.get("target_file_name").toString();
+
+                                    setParam.clear();
+                                    setParam.put("file_name", lastFileName);
+                                    setParam.put("file_path", file_path);
+                                    setParam.put("index_trgt_col", index_trgt_col);
+
+                                    // 동기화 엔진에 업로드할 Interpolation 데이터 설정 부분
+                                    // 업음
+
+                                    //Interpolation 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
+                                    resultTargetFileName = lastFileName;
+                                    break;
                                 }
-                                setParam.put("outputs", outputs);
-                                setParam.put("features", features);
-                                setParam.put("model_file_path", preprocSetArray.get(p3).get("interpl_etc_model_file_path").asText());
-                                setParam.put("model_file_name", preprocSetArray.get(p3).get("interpl_etc_model_file_name").asText());
-                                setParam.put("model_use_file_path", file_path);
-                                setParam.put("model_use_file_name", setParam.get("file_name"));
-                                setParam.put("output_file", file_path + File.separator + setParam.get("target_file_name").toString());
-                                setParam.put("index_column", index_trgt_col);
-                                setParam.put("trgt_col_list", "");
+                                default: {
+                                    setParam.put("index_trgt_col", index_trgt_col);
 
-                                log.info("makeInterpolateRF setParam -> {}", setParam);
-                                interpolateSet = dtModelApiService.makeInterpolateSetRF(setParam);
-                                log.info("makeInterpolateRF Set -> {}", interpolateSet);
-                                errorcheckBody = interpolateSet.getBody().toString();
-                                lastFileName = setParam.get("target_file_name").toString();
-                                setParam = new HashMap<String, Object>();
-                                setParam.put("file_name", lastFileName);
-                                setParam.put("file_path", file_path);
-                                setParam.put("index_trgt_col", index_trgt_col);
-                                resultTargetFileName = lastFileName;
-                            } else if (Objects.equals(setParam.get("interpl_tp"), "brits")) {
-                                Iterator<JsonNode> elements = preprocSetArray.get(p3).get("interpl_outputs").elements();
-                                ArrayList<String> outputs = new ArrayList<>();
-                                while (elements.hasNext()) {
-                                    outputs.add(elements.next().asText());
+                                    log.info("Interpolate -> {}", setParam);
+                                    ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSet(setParam, interpolationType.toUpperCase());
+                                    log.info("interpolateSet -> {}", interpolateSet);
+                                    errorcheckBody = interpolateSet.getBody().toString();
+                                    log.info("interpolateSet errorcheckBody -> {}", errorcheckBody);
+
+                                    lastFileName = getResponseTargetFileName(interpolateSet.getBody().toString());
+
+                                    setParam.clear();
+                                    setParam.put("file_name", lastFileName);
+                                    setParam.put("file_path", file_path);
+                                    setParam.put("index_trgt_col", index_trgt_col);
+                                    // 동기화 엔진에 업로드할 Interpolation 데이터 설정 부분
+                                    // 업음
+
+                                    //Interpolation 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
+                                    resultTargetFileName = lastFileName;
+                                    break;
                                 }
-
-                                setParam.put("outputs", outputs);
-                                setParam.put("model_file_path", preprocSetArray.get(p3).get("interpl_etc_model_file_path").asText());
-                                setParam.put("model_file_name", preprocSetArray.get(p3).get("interpl_etc_model_file_name").asText());
-                                setParam.put("model_use_file_path", file_path);
-                                setParam.put("model_use_file_name", setParam.get("file_name"));
-                                setParam.put("output_file", file_path + File.separator + setParam.get("target_file_name").toString());
-                                setParam.put("index_column", index_trgt_col);
-                                setParam.put("trgt_col_list", outputs);
-
-                                log.info("makeInterpolateBrits setParam -> {}", setParam);
-                                interpolateSet = dtModelApiService.makeInterpolateSetBrits(setParam);
-                                log.info("makeInterpolateBrits Set -> {}", interpolateSet);
-                                errorcheckBody = interpolateSet.getBody().toString();
-                                lastFileName = setParam.get("target_file_name").toString();
-                                setParam = new HashMap<String, Object>();
-                                setParam.put("file_name", lastFileName);
-                                setParam.put("file_path", file_path);
-                                setParam.put("index_trgt_col", index_trgt_col);
-                                resultTargetFileName = lastFileName;
-                            } else if (Objects.equals(setParam.get("interpl_tp"), "naomi")) {
-                                Iterator<JsonNode> elements = preprocSetArray.get(p3).get("interpl_outputs").elements();
-                                ArrayList<String> outputs = new ArrayList<>();
-                                while (elements.hasNext()) {
-                                    outputs.add(elements.next().asText());
-                                }
-
-                                setParam.put("outputs", outputs);
-                                setParam.put("model_file_path", preprocSetArray.get(p3).get("interpl_etc_model_file_path").asText());
-                                setParam.put("model_file_name", preprocSetArray.get(p3).get("interpl_etc_model_file_name").asText());
-                                setParam.put("windowSize", preprocSetArray.get(p3).get("interpl_window_size").asInt());
-                                setParam.put("model_use_file_path", file_path);
-                                setParam.put("model_use_file_name", setParam.get("file_name"));
-                                setParam.put("output_file", file_path + File.separator + setParam.get("target_file_name").toString());
-                                setParam.put("index_column", index_trgt_col);
-                                setParam.put("trgt_col_list", outputs);
-
-                                log.info("makeInterpolateSetNaomi setParam -> {}", setParam);
-                                interpolateSet = dtModelApiService.makeInterpolateSetNaomi(setParam);
-                                log.info("makeInterpolateSetNaomi Set -> {}", interpolateSet);
-                                errorcheckBody = interpolateSet.getBody().toString();
-                                lastFileName = setParam.get("target_file_name").toString();
-                                setParam = new HashMap<String, Object>();
-                                setParam.put("file_name", lastFileName);
-                                setParam.put("file_path", file_path);
-                                setParam.put("index_trgt_col", index_trgt_col);
-                                resultTargetFileName = lastFileName;
-                            } else {
-                                setParam.put("index_trgt_col", index_trgt_col);
-                                interpolateSet = dtModelApiService.makeInterpolateSet(setParam);
-                                log.info("interpolateSet -> {}", interpolateSet);
-                                errorcheckBody = interpolateSet.getBody().toString();
-                                setParam = new HashMap<String, Object>();
-                                lastFileName = getResponseTargetFileName(interpolateSet.getBody().toString());
-                                setParam.put("file_name", lastFileName);
-                                setParam.put("file_path", file_path);
-                                setParam.put("index_trgt_col", index_trgt_col);
-                                resultTargetFileName = lastFileName;
                             }
                             prev_file_name = setParam.get("file_name").toString();
+                            subStepCount++;
                         }
-                    }
-                    /**
-                     * 결측 로직 끝난 즉시 원본 필터링 대체
-                     * */
-                    if (originTimeData != null && !originTimeData.isEmpty()) {
-                        log.info("다시 쓰는 파일 -> {}", file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
-                        List<Map<String, String>> readData = FileReader.getInstance().readCSVToListStringMap(file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
-                        log.info("originTimeData -> {}", originTimeData);
-                        List<Map<String, String>> originData = originDataFilter(originTimeData, readData, index_trgt_col);
-                        log.info("필터링 종료 -> originData : {}", originData);
-                        /**
-                         * 원본 데이터와 보조 데이터가 서로 일치 하는것이 없다면 긁어온 데이터가 의미 없음 전처리 종료
-                         * 사이즈 부족하다는 에러 남기고 로직 종료
-                         * */
-                        if (originData.isEmpty()) {
-                            log.info("원본 데이터와 보조데이터가 서로 일치하는것이 없습니다.");
-                            HashMap<String, Object> resultHashMap = new HashMap<>();
-                            resultHashMap.put("status", false);
-                            resultHashMap.put("isSizeAvailable", false);
-                            return resultHashMap;
-                        }
-                        FileWriter.getInstance().writeCSV(file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName), originData);
-                        log.info("파일 덮어 쓰기 종료 -> filePath : {}, fileName : {}", file_path, (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
-                    } else {
-                        log.info("데이터가 최초 데이터에서 다 이루어졋습니다.");
-                    }
-                    log.info("결측/보간 로직 종료");
-                }
 
-                if (preproc_order == 4) {
-                    if (preprocProperty.get(j).get("preproc_set").size() > 0) {
+                        // 결측 로직 끝난 직후 원본 필터링 대체 작업 시작
+                        // 원본 데이터와 보조 데이터가 서로 일치하는것이 없다면 긁어온 데이터가 이미 전처리되어져있어 전처리 중복을 의미
+                        // OriginTimeData 출처 = 처음 긁어온 데이터 양의 시간값만 있는 배열
+                        // 처음 긁어온 데이터에서 데이터 부족시 더 많은 데이터를 긁어올때 처음 원본 데이터의 시간값 배열
+                        if (originTimeData != null && !originTimeData.isEmpty()) {
+                            log.info("원본 데이터 (OriginTimeData) 필터링 시작");
+                            log.info("다시 쓰는 파일 -> {}", file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
+                            List<Map<String, Object>> readData = FileReader.getInstance().readCSVToListObjectMap(file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
+                            //log.info("originTimeData -> {}", originTimeData);
+                            List<Map<String, Object>> filteredOriginData = originDataFilter(originTimeData, readData, index_trgt_col);
+                            log.info("필터링 종료 -> filteredOriginData : {}", filteredOriginData);
+                            log.info("원본 데이터 (OriginTimeData) 필터링 종료");
+
+                            if (filteredOriginData.isEmpty()) {
+                                log.info("원본 데이터와 보조데이터가 서로 일치하는것이 없습니다.");
+                                HashMap<String, Object> resultHashMap = new HashMap<>();
+                                resultHashMap.put("status", false);
+                                resultHashMap.put("isSizeAvailable", false);
+                                return resultHashMap;
+                            }
+
+                            FileWriter.getInstance().writeCSV(file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName), filteredOriginData);
+                            log.info("파일 덮어 쓰기 종료 -> filePath : {}, fileName : {}", file_path, (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
+                        } else {
+                            log.info("데이터가 최초 데이터에서 다 이루어졋습니다.");
+                        }
+                        log.info("===========================결측/보간 로직 종료===========================");
+                        break;
+                    }
+                    case 4: {
+                        log.info("===========================리샘플링 로직 시작===========================");
                         String targetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + "_interval" + ".csv";
-                        JsonNode preprocSetArray = preprocProperty.get(j).get("preproc_set");
-                        for (int p4 = 0; p4 < preprocSetArray.size(); p4++) {
-                            /**
-                             * 리샘플링 로직 수정
-                             * [기능] 전처리
-                             * [메뉴] Data Twin Model
-                             * [동작] U
-                             * [작업내용]
-                             * 시간의 단위를 판별해서 해당 시간 단위의 최저 값으로 먼저 샘플링 작업을 실행하여 최저 시간으로 인해 늘어난 데이터 중 원본데이터를 최대한 유지하는 로직으로 수정합니다.
-                             * EX) 시간 단위 데이터 1시간 단위로, 분 단위 데이터 1분 단위로, 초 단위 데이터 1초 단위로
-                             *
-                             * 프리컨디션
-                             * resampling 함수화 및 데이터의 파일을 어떻게 할건지 JSON에서 파일에 관련된 수정사항이 필요.
-                             *
-                             * 프로세스
-                             * 1. 파일을 읽어드린다.
-                             * 2. 파일의 데이터에서 일부 데이터만을 얻고 시계열 컬럼만 뽑아온 데이터를 얻어온다. (index_trgt_col 참조)
-                             * 3. 시계열 컬럼만 얻어온 데이터에서 시간이 초단위인지 분단위인지 시간단위인지 일단위인지 얻는다. (time_rule과 resmpl_tp 지정)
-                             * 4. 얻은 time_rule, resmpl_tp 파라미터로 resampling 로직을 굴린다.
-                             * 5. 원래 클라이언트에게 받은 파라미터로 resampling 로직을 굴린다.
-                             * */
 
-                            /**
-                             * 시간 구분 로직
-                             * */
+                        //리샘플링 로직
+                        //시간의 단위를 판별해서 해당 시간 단위의 최저 값으로 먼저 샘플링 작업을 실행하여 최저 시간으로 인해 늘어난 데이터 중 원본데이터를 최대한 유지하는 로직
+                        //EX) 시간 단위 데이터 1시간 단위로, 분 단위 데이터 1분 단위로, 초 단위 데이터 1초 단위로
+
+                        //파일을 읽어드린다.
+                        //파일의 데이터에서 일부 데이터만을 얻고 시계열 컬럼만 뽑아온 데이터를 얻어온다. (index_trgt_col 참조)
+                        //시계열 컬럼만 얻어온 데이터에서 시간이 초단위인지 분단위인지 시간단위인지 일단위인지 얻는다. (time_rule과 resmpl_tp 지정)
+                        //얻은 time_rule, resmpl_tp 파라미터로 resampling 로직을 굴린다.
+                        //원래 클라이언트에게 받은 파라미터로 resampling 로직을 굴린다.
+
+                        //시간 구분 로직
+                        //원본 파일에서 파악한 데이터 시간의 기본값을 확인
+
+                        List<DTModelJsonPropertySubSet> subSteps = dtModelJsonPropertySub.getPreproc_set();
+                        for (DTModelJsonPropertySubSet subStep : subSteps) {
                             String dateKey = index_trgt_col;
                             Map<String, Object> prevResultCsv = FileReader.getInstance().readCSV(file_path + File.separator + file_name);
                             List<String> timeIndicatorHeaders = (List<String>) prevResultCsv.get("header_list");
                             List<List<String>> prevResultDataList = (List<List<String>>) prevResultCsv.get("data_list");
-                            TimeUnit unit = dtModelApiService.reSampleTimeDivider(dateKey, timeIndicatorHeaders, prevResultDataList);
-                            /**
-                             * 데이터 유효성 유지 하면서 리샘플 로직
-                             * */
-                            String prevTargetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + "_prev_interval" + ".csv";
-                            {
-                                JsonNode jsonNode = null;
-                                ResponseEntity<?> resampleSet = null;
-                                ResponseEntity<?> prevResampleSet = null;
-                                log.info("Base Unit -> {}", unit);
-                                //시간 구문 후 생성할 파일
-                                Map<String, Object> setBaseParam = new HashMap<>();
-                                setBaseParam.put("file_path", file_path);
-                                setBaseParam.put("file_name", Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName);
-                                setBaseParam.put("index_trgt_col", dateKey);
-                                setBaseParam.put("target_file_name", prevTargetFileName);
-                                setBaseParam.put("resmpl_tp", unit.getResampleType());
-                                setBaseParam.put("time_rule", ("1" + unit.getResampleType()));
+                            HashMap<String, Object> unitParam = dtModelApiService.dataTimeDivider(dateKey, timeIndicatorHeaders, prevResultDataList);
+                            TimeUnit unit = (TimeUnit) unitParam.get("unit");
+                            int delta = ((Double) unitParam.get("delta")).intValue();
 
-                                log.info("prevResampleSet setBaseParam -> {}", setBaseParam);
-                                prevResampleSet = dtModelApiService.makeResampleSet(setBaseParam);
-                                errorcheckBody = prevResampleSet.getBody().toString();
-                                log.info("prevResampleSet errorcheckBody -> " + errorcheckBody);
-                                lastFileName = getResponseTargetFileName(prevResampleSet.getBody().toString());
-                                setParam.put("file_name", lastFileName);
-                                setParam.put("target_file_name", targetFileName);
-                            }
-                            setParam.put("resmpl_tp", preprocSetArray.get(p4).get("resmpl_tp").toString().replaceAll("\"", ""));
-                            setParam.put("time_rule", preprocSetArray.get(p4).get("resmpl_intvl_value").toString().replaceAll("\"", "").trim() + preprocSetArray.get(p4).get("resmpl_tp").toString().replaceAll("\"", ""));
+                            log.info("Base Delta -> {}, Base Unit -> {}", delta, unit);
+
+                            //데이터 시간의 기본값으로 리샘플링할 타겟 파일 이름
+                            String prevTargetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + "_prev_interval" + ".csv";
+
+                            Map<String, Object> setPrevParam = new HashMap<>();
+                            setPrevParam.put("file_path", file_path);
+                            setPrevParam.put("file_name", Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName);
+                            setPrevParam.put("index_trgt_col", dateKey);
+                            setPrevParam.put("target_file_name", prevTargetFileName);
+                            setPrevParam.put("resmpl_tp", unit.getResampleType());
+                            setPrevParam.put("time_rule", ("1" + unit.getResampleType()));
+
+                            log.info("PrevResample -> {}", setPrevParam);
+                            ResponseEntity<?> prevResampleSet = dtModelApiService.makeResampleSet(setPrevParam);
+                            log.info("prevResampleSet -> {}", prevResampleSet);
+                            errorcheckBody = prevResampleSet.getBody().toString();
+                            log.info("prevResampleSet errorcheckBody -> {}", errorcheckBody);
+
+                            lastFileName = getResponseTargetFileName(prevResampleSet.getBody().toString());
+
+                            setParam.clear();
+                            setParam.put("file_name", lastFileName);
+
+                            setParam.put("file_path", file_path);
                             setParam.put("index_trgt_col", index_trgt_col);
-                            log.info("resampleSet setParam -> " + setParam.toString());
+
+                            //리샘플링을 설정 옵션으로 한번 더 진행해야되므로 타겟 파일 이름 설정
+                            setParam.put("target_file_name", targetFileName);
+
+                            // 동기화 엔진에 업로드할 Resample 데이터 설정 부분
+                            // 업음
+
+                            //Resample 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
+                            resultTargetFileName = lastFileName;
+
+                            setParam.put("resmpl_tp", subStep.getResmpl_tp().replaceAll("\"", ""));
+                            setParam.put("time_rule", subStep.getResmpl_intvl_value().replaceAll("\"", "") + subStep.getResmpl_tp().replaceAll("\"", ""));
+
+                            log.info("Resample -> {}", setParam);
                             ResponseEntity<?> resampleSet = dtModelApiService.makeResampleSet(setParam);
+                            log.info("resampleSet -> {}", resampleSet);
                             errorcheckBody = resampleSet.getBody().toString();
-                            log.info("resampleSet errorcheckBody -> " + errorcheckBody);
-                            setParam = new HashMap<String, Object>();
+                            log.info("resampleSet errorcheckBody -> {}", errorcheckBody);
+
                             lastFileName = getResponseTargetFileName(resampleSet.getBody().toString());
+
+                            setParam.clear();
                             setParam.put("file_name", lastFileName);
                             setParam.put("file_path", file_path);
                             setParam.put("index_trgt_col", index_trgt_col);
-                            metaSimulationModel.setResmplIntvlTp(preprocSetArray.get(p4).get("resmpl_tp").toString().replaceAll("\"", ""));
-                            metaSimulationModel.setResmplIntvlValue(Integer.parseInt(preprocSetArray.get(p4).get("resmpl_intvl_value").toString().replaceAll("\"", "").trim()));
+                            // 동기화 엔진에 업로드할 Resample 데이터 설정 부분
+                            // 업음
+
+                            //Resample 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
                             resultTargetFileName = lastFileName;
+
+                            //Decision Tree 사용했을 시 Decision Tree 전용 Resample 사용
+                            metaSimulationModel.setResmplIntvlTp(subStep.getResmpl_tp().replaceAll("\"", ""));
+                            metaSimulationModel.setResmplIntvlValue(Integer.parseInt(subStep.getResmpl_intvl_value().replaceAll("\"", "").trim()));
                             if (isDecisionTree) {
-                                log.info("decisionTreeOption -> {}", decisionTreeOption);
+                                String decisionTargetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_dt_resample_" + TimeUtil.getCurrentTimeMillis() + ".csv";
+                                log.info("Decision Tree 전용 로직 시작");
+                                log.info("Decision Tree Option -> {}", decisionTreeOption);
                                 Map<String, Object> decisionTreeSetParam = decisionTreeOption.decisionTreeSetParam();
                                 decisionTreeSetParam.put("file_name", lastFileName);
-                                String decisionTargetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_dt_resample_" + System.currentTimeMillis() + ".csv";
                                 decisionTreeSetParam.put("target_file_name", decisionTargetFileName);
-                                log.info("decisionTreeSetParam -> {}", decisionTreeSetParam);
 
-                                /**
-                                 * 2024-08-26 DECISION TREE Interval Conversion 로직 수행 할 때
-                                 * */
-                                ResponseEntity<?> interpolateModelDecisionSet = dtModelApiService.makeInterpolateModelDecisionSet(decisionTreeSetParam);
-                                log.info("interpolateModelDecisionSet -> {}", interpolateModelDecisionSet);
-                                Map<String, Object> resultMap = DTModelController.extractDecisionDataKeyValues(interpolateModelDecisionSet);
-                                log.info("resultMap -> {}", resultMap);
+                                log.info("DecisionTree Resample -> {}", decisionTreeSetParam);
+                                ResponseEntity<?> decisionTreeResampleSet = dtModelApiService.makeInterpolateModelDecisionSet(decisionTreeSetParam);
+                                log.info("decisionTreeResampleSet -> {}", decisionTreeResampleSet);
+                                errorcheckBody = decisionTreeResampleSet.getBody().toString();
+                                log.info("decisionTreeResampleSet errorcheckBody -> {}", errorcheckBody);
+
+                                //Resample 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
                                 lastFileName = decisionTargetFileName;
-                                log.info("DECISION TREE Interval Conversion lastFileName -> {}", lastFileName);
+                                setParam.clear();
+                                setParam.put("file_name", lastFileName);
+                                setParam.put("file_path", file_path);
+                                setParam.put("index_trgt_col", index_trgt_col);
+
                                 resultTargetFileName = lastFileName;
+                                log.info("Decision Tree 전용 로직 종료");
                             }
                         }
+                        log.info("===========================리샘플링 로직 종료===========================");
+                        break;
                     }
-                    log.info("리샘플 로직 종료");
-                }
-
-                if (preproc_order == 5) {
-                    if (preprocProperty.get(j).get("preproc_set").size() > 0) {
+                    case 5: {
+                        log.info("===========================단위 변환 로직 시작===========================");
                         String targetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + "_unit" + ".csv";
-                        JsonNode preprocSetArray = preprocProperty.get(j).get("preproc_set");
-                        for (int p5 = 0; p5 < preprocSetArray.size(); p5++) {
+                        List<DTModelJsonPropertySubSet> subSteps = dtModelJsonPropertySub.getPreproc_set();
+                        for (DTModelJsonPropertySubSet subStep : subSteps) {
                             setParam.put("file_name", Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName);
                             setParam.put("target_file_name", targetFileName);
-                            Map<String, Object> params = new HashMap<String, Object>();
-                            params.put("unit_tp", preprocSetArray.get(p5).get("unit_tp").toString().replaceAll("\"", ""));
-                            params.put("unit_seq", Integer.parseInt(preprocSetArray.get(p5).get("unit_cd_1").toString().replaceAll("\"", "")));
-                            String unitFormula = dtModelService.getUnitFormula(params);
 
-                            setParam.put("unit_trgt_col", preprocSetArray.get(p5).get("trgt_col").toString().replaceAll("\"", ""));
+                            //단위 변환 공식 가져오기
+                            Map<String, Object> params = new HashMap<String, Object>();
+                            params.put("unit_tp", subStep.getUnit_tp().replaceAll("\"", ""));
+                            params.put("unit_seq", Integer.parseInt(subStep.getUnit_cd_1().replaceAll("\"", "")));
+                            String unitFormula = dtModelService.getUnitFormula(params);
+                            setParam.put("unit_trgt_col", subStep.getTrgt_col().replaceAll("\"", ""));
                             setParam.put("unit_formula", unitFormula);
-                            setParam.put("index_trgt_col", index_trgt_col);
-                            log.info("unitSet setParam -> " + setParam.toString());
+
+                            log.info("Unit -> {}", setParam);
                             ResponseEntity<?> unitSet = dtModelApiService.makeUnitSet(setParam);
                             log.info("unitSet -> {}", unitSet);
                             errorcheckBody = unitSet.getBody().toString();
                             log.info("unitSet errorcheckBody -> {}", errorcheckBody);
-                            setParam = new HashMap<String, Object>();
-                            setParam.put("file_name", getResponseTargetFileName(unitSet.getBody().toString()));
+                            lastFileName = getResponseTargetFileName(unitSet.getBody().toString());
+
+                            setParam.clear();
+                            setParam.put("file_name", lastFileName);
                             setParam.put("file_path", file_path);
                             setParam.put("index_trgt_col", index_trgt_col);
-                            lastFileName = getResponseTargetFileName(unitSet.getBody().toString());
+                            // 동기화 엔진에 업로드할 Resample 데이터 설정 부분
+                            // 업음
+
+                            //Resample 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
                             resultTargetFileName = lastFileName;
                         }
+                        log.info("===========================단위 변환 로직 종료===========================");
+                        break;
                     }
-                    log.info("단위 변환 로직 종료");
                 }
             }
 
@@ -851,12 +821,7 @@ public class DTSimulationService extends BaseService {
             metaSimulationModel.setModelSeq(model_seq);
             metaSimulationModel.setBasePath(base_dir);
 
-            // 날짜 범위 설정
-            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            Calendar calendar = Calendar.getInstance();
             log.info("metaSimulationModel -> {}", metaSimulationModel);
-
-            JsonNode json_target_cols = rootNode.get("preproc_property_info").get(0).get("preproc_trgt_col");
 
             /**
              * 2024-09-10
@@ -887,7 +852,7 @@ public class DTSimulationService extends BaseService {
 
             log.info("stepCount -> {}", stepCount);
             Map<String, Object> aug_api = null;
-            int windowSize = Integer.parseInt(rootNode.get("preproc_property_info").get(0).get("model_property").get(0).get("hyperparam").get("window_size").asText().replaceAll("\"", ""));
+            int windowSize = Integer.parseInt(dtModelJsonProperty.getPreproc_property_info().get(0).getModel_property().get(0).getHyperparam().getWindow_size());
 
             //WindowSize에 맞춰서 짜르기
             boolean isCut = dtSimulationService.dataFinalCut(file_path + File.separator + lastFileName, windowSize);
@@ -906,13 +871,28 @@ public class DTSimulationService extends BaseService {
             Map<String, Object> lastRowData = FileReader.getInstance().readCSVLastRowObjectData(file_path, lastFileName);
             log.info("lastRowData -> {}, {}, {}", lastRowData, index_trgt_col, lastRowData.get(index_trgt_col));
             String lastRowDataTime = lastRowData.get(index_trgt_col).toString().replaceAll("\"", "");
-            JsonNode intervalNode = preprocProperty.get(3).get("preproc_set");
-            int resampleType = TimeUnit.getTimeType(String.valueOf(intervalNode.get(0).get("resmpl_tp").asText()));
-            int resampleValue = Integer.parseInt(String.valueOf(intervalNode.get(0).get("resmpl_intvl_value").asText()));
+            DTModelJsonPropertySubSet intervalPropertySubSet = jsonPropertyService.getIntervalProperty(dtModelJsonProperty);
+            int resampleType = TimeUnit.getTimeType(intervalPropertySubSet.getResmpl_tp());
+            int resampleValue = Integer.parseInt(intervalPropertySubSet.getResmpl_intvl_value());
             log.info("lastRowDataTime -> {}", lastRowDataTime);
-            LocalDateTime targetStartDateTime = LocalDateTime.parse(lastRowDataTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")).plusSeconds(resampleValue * resampleType);
+
+
+            String format = ConvertUtil.tryParseFindFormat(ConvertUtil.DATEFORMATS, lastRowDataTime);
+            log.info("format -> {}", format);
+
+            LocalDateTime targetStartDateTime = null;
+            if (format.length() > 10) {
+                targetStartDateTime = LocalDateTime.parse(lastRowDataTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")).plusSeconds(resampleValue * resampleType);
+            } else {
+                // 날짜만 있을 때
+                targetStartDateTime = LocalDate.parse(
+                        lastRowDataTime,
+                        DateTimeFormatter.ofPattern(format)
+                ).atStartOfDay().plusSeconds(resampleValue * resampleType);
+            }
             String target_start_date = targetStartDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            log.info("targetStartDateTime -> {}", targetStartDateTime);
+            data_crt_last_hr = target_start_date;
+            log.info("data_crt_last_hr -> {}", data_crt_last_hr);
 
             /**
              * stepCount가 10이 넘어가면 서버 퍼포먼스 제한
@@ -959,35 +939,28 @@ public class DTSimulationService extends BaseService {
 
             int fileSeq = filesService.saveAugmentFiles(sourceDirectory, base_dir, fileName, augment_seq);
 
-            Map<String, Object> logParams = new HashMap<String, Object>();
-            logParams.put("err_tp", null);
-            logParams.put("err_cd", null);
-            logParams.put("err_nm", null);
-            logParams.put("err_cn", null);
-            logParams.put("augment_seq", augment_seq);
-            logParams.put("model_seq", model_seq);
-            logParams.put("augment_status", "C");
-            logParams.put("file_seq", fileSeq);
-            logParams.put("data_crt_last_hr", data_crt_last_hr);
-
-            makeMetaSimulationSchedulerService.saveAugmentLog(logParams);
+            DTAugmentLog.DTAugmentLogBuilder errorLogBuilder = DTAugmentLog.builder();
+            makeMetaSimulationSchedulerService.saveAugmentLog(errorLogBuilder.errTp(null).errCd(null).errNm(null).errCn(null)
+                    .augmentSeq(augment_seq).modelSeq(model_seq)
+                    .augmentStatus("C").fileSeq(fileSeq).dataCrtLastHr(data_crt_last_hr)
+                    .build());
 
             /**
              * 결과 데이터 관련
              * */
             JSONArray formattedIndividuallyDataArray = JSONParser.formatIndividuallyData(resultDataList);
-            List<Map<String, String>> csvData = FileReader.getInstance().readCSVToListStringMap(file_path + File.separator + lastFileName);
+            List<Map<String, Object>> csvData = FileReader.getInstance().readCSVToListObjectMap(file_path + File.separator + lastFileName);
             //log.info("augmentOriginCsvData -> {}", csvData);
             //log.info("formattedIndividuallyDataArray -> {}", formattedIndividuallyDataArray);
             JSONArray recoveredDataFormatArray = JSONParser.recoveredDataFormat(formattedIndividuallyDataArray, csvData);
             recoveredDataFormatArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, recoveredDataFormatArray);
             //log.info("recoveredDataFormatArray -> {}", recoveredDataFormatArray);
-            List<Map<String, String>> augmentData = JSONParser.convertJsonArrayToListOfMaps(recoveredDataFormatArray);
+            List<Map<String, Object>> augmentData = JSONParser.convertJsonArrayToListOfMaps(recoveredDataFormatArray);
             //기존 증강 파일 또는 전처리 파일을 원본 데이터 형태로 다시 파일 쓰기
             FileWriter.getInstance().writeCSV(resultData.get("file_path").toString(), augmentData);
 
             //데이터 시간을 마지막 증강 데이터의 시간으로 변경
-            data_crt_last_hr = augmentData.get(augmentData.size() - 1).get(index_trgt_col).replaceAll("\"", "");
+            data_crt_last_hr = augmentData.get(augmentData.size() - 1).get(index_trgt_col).toString().replaceAll("\"", "");
 
             //2024-07-15 유효성 검증이나 이상치에 대한 데이터 파일 및 데이터 확인
             if (twin_id != null || obj_id != null) {
@@ -998,40 +971,64 @@ public class DTSimulationService extends BaseService {
                 JSONObject validationUploadJson = new JSONObject();
                 validationUploadJson.put("status", "success");
                 validationUploadJson.put("type", "augment");
-                validationUploadJson.put("twin_id", twinid);
-                validationUploadJson.put("obj_id", objid);
-                validationUploadJson.put("index_col", index_col);
+                validationUploadJson.put("twin_id", twin_id);
+                validationUploadJson.put("obj_id", obj_id);
+                validationUploadJson.put("index_col", index_trgt_col);
                 validationUploadJson.put("origin_from", origin_from);
                 validationUploadJson.put("origin_to", origin_to);
                 validationUploadJson.put("notification_time", notification_time);
-                JSONArray validationDataJsonArray = JSONParser.formatValidationData(validationList, originTimeData);
+                JSONArray validationDataJsonArray = JSONParser.formatValidationData(validations, originTimeData);
                 validationDataJsonArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, validationDataJsonArray);
                 validationUploadJson.put("validation", validationDataJsonArray);
-                //log.info("validationUploadJson -> {}", validationUploadJson);
-                JSONParser.sendValidationData(systemProperties, validationUploadJson);
+                // 저장할 파일 경로
+                String validationFilePath = "C:\\Users\\dev\\Desktop\\temp\\" + notification_time.replaceAll("[ :]", "") + " validation.json";
+                try (java.io.FileWriter fileWriter = new java.io.FileWriter(validationFilePath)) {
+                    fileWriter.write(validationUploadJson.toString());
+                    System.out.println("JSON 저장 완료: " + validationFilePath);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                dtModelApiService.sendValidationData(validationUploadJson);
 
                 /*Outlier 데이터 업로드*/
                 JSONObject outlierUploadJson = new JSONObject();
                 outlierUploadJson.put("status", "success");
                 outlierUploadJson.put("type", "augment");
-                outlierUploadJson.put("twin_id", twinid);
-                outlierUploadJson.put("obj_id", objid);
-                outlierUploadJson.put("index_col", index_col);
+                validationUploadJson.put("error", new ArrayList<>());
+                outlierUploadJson.put("twin_id", twin_id);
+                outlierUploadJson.put("obj_id", obj_id);
+                outlierUploadJson.put("index_col", index_trgt_col);
                 outlierUploadJson.put("origin_from", origin_from);
                 outlierUploadJson.put("origin_to", origin_to);
                 outlierUploadJson.put("notification_time", notification_time);
-                JSONArray outlierDataJsonArray = JSONParser.formatOutlierData(outlierList);
+                JSONArray outlierDataJsonArray = JSONParser.formatOutlierData(outliers);
                 outlierDataJsonArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, outlierDataJsonArray);
                 outlierUploadJson.put("outlier", outlierDataJsonArray);
                 //log.info("outlierUploadJson -> {}", outlierUploadJson);
-                JSONParser.sendOutlierData(systemProperties, outlierUploadJson);
+                // 저장할 파일 경로
+                String outlierFilePath = "C:\\Users\\dev\\Desktop\\temp\\" + notification_time.replaceAll("[ :]", "") + " outlier.json";
+                try (java.io.FileWriter fileWriter = new java.io.FileWriter(outlierFilePath)) {
+                    fileWriter.write(outlierUploadJson.toString());
+                    System.out.println("JSON 저장 완료: " + outlierFilePath);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                dtModelApiService.sendOutlierData(outlierUploadJson);
 
+                // 저장할 파일 경로
+                String dataFilePath = "C:\\Users\\dev\\Desktop\\temp\\" + notification_time.replaceAll("[ :]", "") + " data.json";
+                try (java.io.FileWriter fileWriter = new java.io.FileWriter(dataFilePath)) {
+                    fileWriter.write(recoveredDataFormatArray.toString());
+                    System.out.println("JSON 저장 완료: " + dataFilePath);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 //증강 결과 데이터 업로드
-                JSONParser.sendIndividuallyData(systemProperties, augment_seq, twin_id, obj_id, recoveredDataFormatArray, 1);
+                dtModelApiService.sendIndividuallyData(augment_seq, twin_id, obj_id, recoveredDataFormatArray, 1);
                 /**
                  * 데이터 여러건 업로드
                  * */
-                //JSONParser.sendIndividuallyData(systemProperties, augment_seq, twin_id, obj_id, recoveredDataFormatArray, 5);
+                // dtModelApiService.sendIndividuallyData(augment_seq, twin_id, obj_id, recoveredDataFormatArray, 5);
             }
             HashMap<String, Object> resultHashMap = new HashMap<>();
             resultHashMap.put("data_crt_last_hr", data_crt_last_hr);
@@ -1041,24 +1038,18 @@ public class DTSimulationService extends BaseService {
             e.printStackTrace();
             Map<String, Object> errorParams = errorMessageSave(errorcheckBody, augment_seq);
             try {
-                errorParams.put("err_tp", "P");
-                errorParams.put("err_cd", errorParams.get("code").toString());
-                errorParams.put("err_nm", errorParams.get("message").toString());
-                errorParams.put("err_cn", errorParams.get("detail").toString());
-                errorParams.put("augment_seq", augment_seq);
-                errorParams.put("model_seq", model_seq);
-                errorParams.put("augment_status", "E");
-                errorParams.put("file_seq", null);
-                errorParams.put("data_crt_last_hr", data_crt_last_hr);
-
-                log.info("errorParams -> {}", errorParams);
-                makeMetaSimulationSchedulerService.saveAugmentLog(errorParams);
+                DTAugmentLog.DTAugmentLogBuilder errorLogBuilder = DTAugmentLog.builder();
+                makeMetaSimulationSchedulerService.saveAugmentLog(errorLogBuilder.errTp("P")
+                        .errCd(errorParams.get("code").toString()).errNm(errorParams.get("message").toString()).errCn(errorParams.get("detail").toString())
+                        .augmentSeq(augment_seq).modelSeq(model_seq)
+                        .augmentStatus("E").dataCrtLastHr(data_crt_last_hr)
+                        .build());
                 if (twin_id != null || obj_id != null) {
                     Map<String, Object> errorInfo = new LinkedHashMap<>();
                     errorInfo.put("status", "fail");
-                    errorInfo.put("twin_id", twinid);
-                    errorInfo.put("obj_id", objid);
-                    errorInfo.put("index_col", index_col);
+                    errorInfo.put("twin_id", twin_id);
+                    errorInfo.put("obj_id", obj_id);
+                    errorInfo.put("index_col", index_trgt_col);
                     errorInfo.put("origin_from", origin_from);
                     errorInfo.put("origin_to", origin_to);
                     errorInfo.put("notification_time", notification_time);
@@ -1070,7 +1061,7 @@ public class DTSimulationService extends BaseService {
                     /**
                      * 에러 데이터 업로드
                      * */
-                    JSONParser.sendErrorToJson(systemProperties, errorInfo);
+                    dtModelApiService.sendErrorData(errorInfo);
                 }
             } catch (Exception e1) {
                 e1.printStackTrace();
@@ -1083,10 +1074,10 @@ public class DTSimulationService extends BaseService {
 
     private boolean dataFinalCut(String filePath, int windowSize) throws Exception {
         log.info("dataFinalCut -> {}, {}", filePath, windowSize);
-        List<Map<String, String>> data = FileReader.getInstance().readCSVToListStringMap(filePath);
+        List<Map<String, Object>> data = FileReader.getInstance().readCSVToListObjectMap(filePath);
         if (data.size() > windowSize) {
             Collections.reverse(data);
-            List<Map<String, String>> cutData = data.subList(0, windowSize + 1);
+            List<Map<String, Object>> cutData = data.subList(0, windowSize + 1);
             Collections.reverse(cutData);
             FileWriter.getInstance().writeCSV(filePath, cutData);
             return true;
@@ -1096,12 +1087,12 @@ public class DTSimulationService extends BaseService {
 
     private boolean dataFinalDateCut(String filePath, String timeIndex, String toDate) throws Exception {
         log.info("dataFinalDateCut -> {}, {}, {}", filePath, timeIndex, toDate);
-        List<Map<String, String>> data = FileReader.getInstance().readCSVToListStringMap(filePath);
+        List<Map<String, Object>> data = FileReader.getInstance().readCSVToListObjectMap(filePath);
         Date cutoffDate = ConvertUtil.tryParse(ConvertUtil.DATEFORMATS, toDate);
         // 데이터를 필터링하여 timeIndex로 지정된 날짜가 toDate 이전인 항목들만 남김
-        List<Map<String, String>> filteredData = data.stream().filter(row -> {
+        List<Map<String, Object>> filteredData = data.stream().filter(row -> {
             try {
-                String dateString = row.get(timeIndex);
+                String dateString = row.get(timeIndex).toString();
                 Date rowDate = ConvertUtil.tryParse(ConvertUtil.DATEFORMATS, dateString);
                 return rowDate.before(cutoffDate);
             } catch (Exception e) {
@@ -1117,7 +1108,7 @@ public class DTSimulationService extends BaseService {
         return !filteredData.isEmpty();
     }
 
-    public HashMap<String, Object> makePreProcess(String twin_id, String obj_id, String full_json, String base_dir, String file_path, String file_name, String index_trgt_col, String user_id, int model_seq, int augment_seq, String from_date, String to_date, String data_crt_last_hr, List<String> originTimeData) throws IOException {
+    public HashMap<String, Object> makePreprocess(String twin_id, String obj_id, DTModelJsonProperty dtModelJsonProperty, String base_dir, String file_path, String file_name, String index_trgt_col, String user_id, int model_seq, int augment_seq, String from_date, String to_date, String data_crt_last_hr, List<String> originTimeData) throws IOException {
         String errorcheckBody = null;
         String resultTargetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + ".csv";
         String prev_file_name = file_name;
@@ -1125,37 +1116,18 @@ public class DTSimulationService extends BaseService {
         DecisionTreeOption decisionTreeOption = null;
         String decisionKey = null;
         ArrayList<String> decisionLabels = new ArrayList<>();
-        log.info("makePreProcess 초기 타겟 파일 -> {}", resultTargetFileName);
-        log.info("makePreProcess 초기 원본 파일 -> {}", prev_file_name);
-        log.info("makePreProcess 초기 이전 파일 -> {}", prev_file_name);
+        log.info("makePreprocess 초기 타겟 파일 -> {}, makePreprocess 초기 원본 파일 -> {}, makePreprocess 초기 이전 파일 -> {}", resultTargetFileName, prev_file_name, prev_file_name);
 
         //유효성 맵
-        List<Map<String, Object>> validationList = new ArrayList<>();
-        Map<String, Object> validation = new HashMap<>();
-
+        List<Map<String, Object>> validations = new ArrayList<>();
         //이상치 맵
-        List<Map<String, Object>> outlierList = new ArrayList<>();
-        Map<String, Object> outlier = new HashMap<>();
-
+        List<Map<String, Object>> outliers = new ArrayList<>();
         //변환 데이터 맵 - 연계 처리 후
         List<Map<String, Object>> resultDataList = new ArrayList<>();
         Map<String, Object> resultData = new HashMap<>();
 
-        //에러 맵 - 연계 처리 후
-        //List<Map<String, Object>> errorInfoList = new ArrayList<>();
-        //Map<String, Object> errorInfo = new HashMap<>();
-
         String origin_from = from_date;
         String origin_to = to_date;
-
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode rootNode = mapper.readTree(full_json);
-        JsonNode preprocProperty = rootNode.get("preproc_property_info").get(0).get("preproc_property");
-
-        JsonNode preprocPropertyInfo = rootNode.path("preproc_property_info").get(0);
-        String twinid = preprocPropertyInfo.path("twin_id").asText();
-        String objid = preprocPropertyInfo.path("twin_obj_id").asText();
-        String index_col = preprocPropertyInfo.path("index_trgt_col").asText();
 
         LocalDateTime now = LocalDateTime.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -1170,496 +1142,480 @@ public class DTSimulationService extends BaseService {
             setParam.put("file_path", file_path);
             setParam.put("index_trgt_col", index_trgt_col);
 
-            MetaSimulationModel metaSimulationModel = new MetaSimulationModel();
-
-            for (int j = 0; j < preprocProperty.size(); j++) {
-                int preproc_order = Integer.parseInt(preprocProperty.get(j).get("preproc_order").toString());
+            List<DTModelJsonPropertySub> dtModelJsonPropertySubs = dtModelJsonProperty.getPreproc_property_info().get(0).getPreproc_property();
+            for (DTModelJsonPropertySub dtModelJsonPropertySub : dtModelJsonPropertySubs) {
+                int step = dtModelJsonPropertySub.getPreproc_order();
                 setParam.put("file_path", file_path);
-                setParam.put("preproc_order", preproc_order);
-                if (preproc_order == 1) {
-                    String targetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + "_valid" + ".csv";
-                    if (preprocProperty.get(j).get("preproc_set").size() > 0) {
-                        JsonNode preprocSetArray = preprocProperty.get(j).get("preproc_set");
-
-                        for (int p1 = 0; p1 < preprocSetArray.size(); p1++) {
-                            if (p1 == 0) {
+                setParam.put("preproc_order", step);
+                switch (step) {
+                    case 1: {
+                        log.info("===========================유효성 검증 로직 시작===========================");
+                        int subStepCount = 0;
+                        String targetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + "_valid" + ".csv";
+                        List<DTModelJsonPropertySubSet> subSteps = dtModelJsonPropertySub.getPreproc_set();
+                        for (DTModelJsonPropertySubSet subStep : subSteps) {
+                            if (subStepCount == 0) {
                                 setParam.put("file_name", file_name);
                             }
 
                             setParam.put("target_file_name", targetFileName);
-                            setParam.put("vrfc_trgt_col", preprocSetArray.get(p1).get("trgt_col").asText());
-                            setParam.put("set_order", preprocSetArray.get(p1).get("set_order").asText());
-                            Map<String, Object> verify_option = verifyService.getVerifyOption(Integer.parseInt(preprocSetArray.get(p1).get("vrfc_sub_tp").asText()));
-                            setParam.put("vrfc_tp", verify_option.get("vrfc_tp").toString());
-
-                            if (verify_option.get("rule_value_1") != null) {
-                                if (!verify_option.get("rule_value_1").toString().equals("")) {
-                                    setParam.put("rule1", verify_option.get("rule_value_1").toString());
-                                } else {
-                                    setParam.put("rule1", null);
-                                }
-                            }
-                            if (verify_option.get("rule_value_2") != null) {
-                                if (!verify_option.get("rule_value_2").toString().equals("")) {
-                                    setParam.put("rule2", verify_option.get("rule_value_2").toString());
-                                } else {
-                                    setParam.put("rule2", null);
-                                }
-                            }
-                            if (verify_option.get("rule_value_3") != null) {
-                                if (!verify_option.get("rule_value_3").toString().equals("")) {
-                                    setParam.put("rule3", verify_option.get("rule_value_3").toString());
-                                } else {
-                                    setParam.put("rule3", null);
-                                }
-                            }
-                            if (verify_option.get("rule_value_4") != null) {
-                                if (!verify_option.get("rule_value_4").toString().equals("")) {
-                                    setParam.put("rule4", verify_option.get("rule_value_4").toString());
-                                } else {
-                                    setParam.put("rule4", null);
-                                }
-                            }
-
-                            /**
-                             * 특수한 로직 상태 처리
-                             * 타입이 범위이고 최소와 최대가 존재할때,
-                             * */
-                            if (verify_option.get("vrfc_tp") != null && Objects.equals(verify_option.get("vrfc_tp").toString(), "RG")) {
-                                if ((verify_option.get("rule_value_2") != null && Objects.equals(verify_option.get("rule_value_2").toString(), "MIN")) && (verify_option.get("rule_value_3") != null && Objects.equals(verify_option.get("rule_value_3").toString(), "MAX"))) {
-                                    setParam.put("rule2", preprocSetArray.get(p1).get("rule2").toString().replaceAll("\"", ""));
-                                    setParam.put("rule3", preprocSetArray.get(p1).get("rule3").toString().replaceAll("\"", ""));
-                                }
-                            }
-
+                            setParam.put("set_order", subStep.getSet_order());
                             setParam.put("is_create", "Y");
-
-                            setParam.put("vrfc_clear_type", preprocSetArray.get(p1).get("vrfc_clear_tp").asText());
                             setParam.put("index_trgt_col", index_trgt_col);
-                            log.info("validSet setParam ->" + setParam.toString());
-                            /*if (Objects.equals(verify_option.get("vrfc_tp").toString().toUpperCase(), "DT") && Objects.equals(preprocSetArray.get(p1).get("vrfc_clear_tp").asText(), "O")) {
-                                try {
-                                    List<Map<String, String>> data = com.stoneitgt.dt.data.platform.util.JSONParser.readCsv(file_path + File.separator + file_name);
-                                    List<Map<String, String>> temp = new ArrayList<>();
-                                    String vrfc_trgt_col = setParam.get("vrfc_trgt_col").toString();
-                                    for (Map<String, String> map : data) {
-                                        String colValueTemp = map.get(vrfc_trgt_col);
-                                        Integer colValueInt = -1;
-                                        try {
-                                            colValueInt = Integer.parseInt(colValueTemp);
-                                            map.put(vrfc_trgt_col, colValueInt.toString());
-                                        } catch (Exception e) {
-                                            try {
-                                                Float calValueFloat = Float.parseFloat(colValueTemp);
-                                                map.put(vrfc_trgt_col, calValueFloat.toString());
-                                            } catch (Exception ex) {
-                                                map.put(vrfc_trgt_col, "");
-                                            }
-                                        }
-                                        temp.add(map);
-                                    }
-                                    com.stoneitgt.dt.data.platform.util.JSONParser.writeCsv(file_path + File.separator + file_name, temp);
-                                } catch (Exception e) {
-                                    throw new RuntimeException(e);
-                                }
-                            }*/
+
+                            setParam.put("vrfc_tp", subStep.getVrfc_tp());
+                            setParam.put("vrfc_trgt_col", subStep.getTrgt_col());
+                            setParam.put("vrfc_clear_type", subStep.getVrfc_clear_tp());
+
+                            Map<String, Object> verify_option = verifyService.getVerifyOption(Integer.parseInt(subStep.getVrfc_sub_tp()));
+                            Map<String, Object> rule = processFindVerifyRule(verify_option, subStep);
+                            setParam.putAll(rule);
+
+                            log.info("Validate Parameter -> {}", setParam);
                             ResponseEntity<?> validSet = dtModelApiService.makeValidateSet(setParam);
                             log.info("validSet -> {}", validSet);
                             errorcheckBody = validSet.getBody().toString();
                             log.info("validSet errorcheckBody -> {}", errorcheckBody);
-                            setParam = new HashMap<String, Object>();
-                            setParam.put("file_name", getResponseTargetFileName(validSet.getBody().toString()));
-                            setParam.put("file_path", file_path);
-                            setParam.put("index_trgt_col", index_trgt_col);
+
                             lastFileName = getResponseTargetFileName(validSet.getBody().toString());
-                            validation = new HashMap<>();
-                            validation.put("set_order", preprocSetArray.get(p1).get("set_order"));
-                            validation.put("valid_tp1", preprocSetArray.get(p1).get("vrfc_tp").toString().toUpperCase());
-                            validation.put("valid_tp2", preprocSetArray.get(p1).get("vrfc_clear_tp").toString().toUpperCase());
-                            validation.put("col", preprocSetArray.get(p1).get("trgt_col").toString().toUpperCase());
-                            /**
-                             * TODO Python
-                             * frontName = 'valid_' + str(paramData['set_order']) + '_'
-                             * verifyFilterFile = os.path.join(paramData['file_path'],  frontName + paramData['target_file_name'])
-                             * */
-                            resultTargetFileName = lastFileName;
 
-                            validation.put("file_path", file_path + "/" + "valid_" + preprocSetArray.get(p1).get("set_order") + "_" + lastFileName);
-                            validationList.add(validation);
-                            prev_file_name = setParam.get("file_name").toString();
-                        }
-                    }
-                    log.info("유효성 검증 로직 종료");
-                }
-
-                if (preproc_order == 2) {
-                    if (preprocProperty.get(j).get("preproc_set").size() > 0) {
-                        String targetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + "_outlier" + ".csv";
-                        JsonNode preprocSetArray = preprocProperty.get(j).get("preproc_set");
-                        for (int p2 = 0; p2 < preprocSetArray.size(); p2++) {
-                            //log.info("" + preprocSetArray.get(p2).get("set_order"));
-                            //같다면 validate 로직 타고온것
-                            setParam.put("file_name", Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName);
-
-                            setParam.put("feature", preprocSetArray.get(p2).get("trgt_col"));
-                            setParam.put("freq", Integer.parseInt(preprocSetArray.get(p2).get("freq").toString().replaceAll("\"", "")));
-                            setParam.put("isCreate", "Y");
-                            setParam.put("set_order", preprocSetArray.get(p2).get("set_order"));
-
-                            String outlier_tp = preprocSetArray.get(p2).get("outlier_tp").toString().replaceAll("\"", "");
-                            setParam.put("target_file_name", targetFileName);
-                            if ("standard".equals(outlier_tp)) {
-                                setParam.put("p_value", Float.parseFloat(preprocSetArray.get(p2).get("p_value").toString().replaceAll("\"", "")));
-                            } else if ("kmean".equals(outlier_tp)) {
-                                setParam.put("n_clusters", Integer.parseInt(preprocSetArray.get(p2).get("n_clusters").toString().replaceAll("\"", "")));
-                                setParam.put("n_clusters_lable", 4);
-                                setParam.put("n_count", Integer.parseInt(preprocSetArray.get(p2).get("n_count").toString().replaceAll("\"", "")));
-                            } else if ("dbscan".equals(outlier_tp)) {
-                                setParam.put("eps", Float.parseFloat(preprocSetArray.get(p2).get("eps").toString().replaceAll("\"", "")));
-                                setParam.put("min_samples", Integer.parseInt(preprocSetArray.get(p2).get("min_samples").toString().replaceAll("\"", "")));
-                            } else {
-                                Map<String, Object> modelParams = new HashMap<String, Object>();
-                                modelParams.put("etc_model_seq", Integer.parseInt(preprocSetArray.get(p2).get("etc_model_seq").toString().replaceAll("\"", "")));
-
-                                Map<String, Object> model_info = dtModelService.getEtcModelInfo(modelParams);
-
-                                setParam.put("model_file_path", systemProperties.getDtEtcMetaFilePath() + model_info.get("file_path").toString());
-                                setParam.put("model_file_name", model_info.get("file_nm").toString());
-                                setParam.put("etc_model_seq", Integer.parseInt(preprocSetArray.get(p2).get("etc_model_seq").toString().replaceAll("\"", "")));
-
-                                String[] output_cols = {preprocSetArray.get(p2).get("trgt_col").toString().replaceAll("\"", "")};
-                                setParam.put("output_cols", output_cols);
-                                setParam.put("window_size", Integer.parseInt(preprocSetArray.get(p2).get("window_size").toString().replaceAll("\"", "")));
-                                setParam.put("threshold", Float.parseFloat(preprocSetArray.get(p2).get("threshold").toString().replaceAll("\"", "")));
-                            }
-                            ResponseEntity<?> outlierSet = dtModelApiService.makeOutlierSet(setParam, outlier_tp);
-                            errorcheckBody = outlierSet.getBody().toString();
-                            setParam = new HashMap<String, Object>();
-                            setParam.put("file_name", getResponseTargetFileName(outlierSet.getBody().toString()));
+                            setParam.clear();
+                            setParam.put("file_name", lastFileName);
                             setParam.put("file_path", file_path);
                             setParam.put("index_trgt_col", index_trgt_col);
+
+                            // 동기화 엔진에 업로드할 Validation 데이터 설정 부분
+                            Map<String, Object> validation = processMakeValidate(subStep, file_path + "/" + "valid_" + subStep.getSet_order() + "_" + lastFileName);
+                            validations.add(validation);
+
+                            //Validate 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
+                            resultTargetFileName = lastFileName;
+                            subStepCount++;
+                        }
+                        log.info("===========================유효성 검증 로직 종료===========================");
+                        break;
+                    }
+                    case 2: {
+                        log.info("===========================이상치 검증 로직 시작===========================");
+                        String targetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + "_outlier" + ".csv";
+                        List<DTModelJsonPropertySubSet> subSteps = dtModelJsonPropertySub.getPreproc_set();
+                        for (DTModelJsonPropertySubSet subStep : subSteps) {
+                            //resultTargetFileName Validate 결과 파일
+                            //lastFileName 프로세스의 마지막 결과 파일
+                            //두개가 같다면 Validate 결과 파일과 프로세스의 마지막 결과 파일이 같으므로 Validate 프로세스를 타고 온것으로 간주
+                            setParam.put("file_name", Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName);
+                            setParam.put("target_file_name", targetFileName);
+                            setParam.put("set_order", subStep.getSet_order());
+                            setParam.put("isCreate", "Y");
+                            setParam.put("feature", subStep.getTrgt_col());
+                            setParam.put("freq", Integer.parseInt(subStep.getFreq().replaceAll("\"", "")));
+
+                            String outlierType = subStep.getOutlier_tp();
+                            log.info("outlierType -> {}", outlierType);
+                            switch (outlierType.toUpperCase()) {
+                                case "STANDARD": {
+                                    setParam.put("p_value", Float.parseFloat(subStep.getP_value().replaceAll("\"", "")));
+                                    break;
+                                }
+                                case "KMEAN": {
+                                    setParam.put("n_clusters", Integer.parseInt(subStep.getN_clusters().replaceAll("\"", "")));
+                                    setParam.put("n_clusters_lable", 4);
+                                    setParam.put("n_count", Integer.parseInt(subStep.getN_count().replaceAll("\"", "")));
+                                    break;
+                                }
+                                case "DBSCAN": {
+                                    setParam.put("eps", Float.parseFloat(subStep.getEps().replaceAll("\"", "")));
+                                    setParam.put("min_samples", Integer.parseInt(subStep.getMin_samples().replaceAll("\"", "")));
+                                    break;
+                                }
+                                default: {
+                                    // Auto Encoder Model 정보 찾기
+                                    Map<String, Object> modelInfo = dtModelService.getEtcModelInfo(Integer.parseInt(subStep.getEtc_model_seq()));
+                                    // Auto Encoder Model 정보 담기
+                                    Map<String, Object> modelParams = processFindAutoEncoder(subStep, modelInfo);
+                                    setParam.putAll(modelParams);
+                                    break;
+                                }
+                            }
+                            log.info("Outlier Parameter -> {}", setParam);
+                            ResponseEntity<?> outlierSet = dtModelApiService.makeOutlierSet(setParam, outlierType);
+                            log.info("outlierSet -> {}", outlierSet);
+                            errorcheckBody = outlierSet.getBody().toString();
+                            log.info("outlierSet errorcheckBody -> {}", errorcheckBody);
+
                             lastFileName = getResponseTargetFileName(outlierSet.getBody().toString());
 
-                            outlier = new HashMap<>();
-                            outlier.put("set_order", preprocSetArray.get(p2).get("set_order"));
-                            outlier.put("outlier_tp", outlier_tp.toUpperCase());
-                            outlier.put("col", preprocSetArray.get(p2).get("trgt_col").toString().toUpperCase());
-                            outlier.put("file_path", file_path + "/" + "outlier_" + preprocSetArray.get(p2).get("set_order") + "_" + lastFileName);
+                            setParam.clear();
+                            setParam.put("file_name", lastFileName);
+                            setParam.put("file_path", file_path);
+                            setParam.put("index_trgt_col", index_trgt_col);
 
-                            outlierList.add(outlier);
+                            // 동기화 엔진에 업로드할 Outlier 데이터 설정 부분
+                            Map<String, Object> outlier = processMakeOutlier(subStep, file_path + "/" + "outlier_" + subStep.getSet_order() + "_" + lastFileName);
+                            outliers.add(outlier);
+
+                            //Outlier 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
                             resultTargetFileName = lastFileName;
+                            //이전 파일 정보 추가로 저장
                             prev_file_name = setParam.get("file_name").toString();
                         }
+                        log.info("===========================이상치 검증 로직 종료===========================");
+                        break;
                     }
-                    log.info("이상치 로직 종료");
-                }
-
-                if (preproc_order == 3) {
-                    if (preprocProperty.get(j).get("preproc_set").size() > 0) {
+                    case 3: {
+                        log.info("===========================결측/보간 로직 시작===========================");
+                        int subStepCount = 0;
                         String targetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + "_interpolate" + ".csv";
-                        JsonNode preprocSetArray = preprocProperty.get(j).get("preproc_set");
-                        for (int p3 = 0; p3 < preprocSetArray.size(); p3++) {
+                        List<DTModelJsonPropertySubSet> subSteps = dtModelJsonPropertySub.getPreproc_set();
+                        for (DTModelJsonPropertySubSet subStep : subSteps) {
+                            //resultTargetFileName Outlier 결과 파일
+                            //lastFileName 프로세스의 마지막 결과 파일
+                            //두개가 같다면 Outlier 결과 파일과 프로세스의 마지막 결과 파일이 같으므로 Outlier 프로세스를 타고 온것으로 간주
                             setParam.put("file_name", Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName);
                             setParam.put("target_file_name", targetFileName);
-                            setParam.put("interpl_tp", preprocSetArray.get(p3).get("interpl_tp").asText());
-                            ResponseEntity<?> interpolateSet = null;
-                            if (Objects.equals(setParam.get("interpl_tp"), "decisiontree")) {
-                                isDecisionTree = true;
-                                setParam.put("prev_file_name", file_path + File.separator + prev_file_name);
-                                setParam.put("index_column", index_trgt_col);
-                                setParam.put("set_order", (p3 + 1));
-                                setParam.put("isCreate", "Y");
-                                setParam.put("model_path", "");
-                                setParam.put("feature", preprocSetArray.get(p3).get("interpl_feature").toString().replaceAll("\"", ""));
-                                decisionKey = setParam.get("feature").toString();
-                                Iterator<JsonNode> elements = preprocSetArray.get(p3).get("interpl_outputs").elements();
-                                ArrayList<String> outputs = new ArrayList<>();
-                                while (elements.hasNext()) {
-                                    outputs.add(elements.next().asText());
+                            String interpolationType = subStep.getInterpl_tp();
+                            setParam.put("interpl_tp", interpolationType);
+                            switch (interpolationType.toUpperCase()) {
+                                case "DECISIONTREE": {
+                                    //동기화 엔진 데이터 업로드 프로세스에서 사용할 변수 수정
+                                    isDecisionTree = true;
+                                    decisionKey = subStep.getInterpl_feature().replaceAll("\"", "");
+
+                                    setParam.put("prev_file_name", file_path + File.separator + prev_file_name);
+                                    setParam.put("index_column", index_trgt_col);
+                                    setParam.put("set_order", (subStepCount + 1));
+                                    setParam.put("isCreate", "Y");
+                                    setParam.put("model_path", "");
+                                    setParam.put("feature", decisionKey);
+                                    setParam.put("outputs", subStep.getInterpl_outputs());
+
+                                    log.info("Interpolate -> {}", setParam);
+                                    ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSet(setParam, interpolationType.toUpperCase());
+                                    log.info("interpolateSet -> {}", interpolateSet);
+                                    errorcheckBody = interpolateSet.getBody().toString();
+                                    log.info("interpolateSet errorcheckBody -> {}", errorcheckBody);
+
+                                    Map<String, Object> resultMap = DTModelController.extractDecisionDataKeyValues(interpolateSet);
+                                    decisionLabels.addAll((ArrayList<String>) resultMap.get("labels"));
+                                    lastFileName = FileUtil.getExtractFileNameToFilePath(resultMap.get("target_file_name").toString());
+
+                                    setParam.clear();
+                                    setParam.put("file_name", lastFileName);
+                                    setParam.put("file_path", file_path);
+                                    setParam.put("index_trgt_col", index_trgt_col);
+
+                                    // 동기화 엔진에 업로드할 Interpolation 데이터 설정 부분
+                                    // 업음
+
+                                    //Interpolation 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
+                                    resultTargetFileName = lastFileName;
+
+                                    //DecisionTree를 사용하였다면 Interval Conversion 프로세스 진행 시 Decision Tree Interval Conversion 프로세스 실행
+                                    //그전 사전 준비, 어떤 Decision Tree 옵션을 사용했는지에 대한 설정
+                                    if (decisionTreeOption == null) {
+                                        decisionTreeOption = new DecisionTreeOption(setParam.get("file_path").toString(), null, lastFileName,
+                                                null, index_trgt_col, (ArrayList<String>) subStep.getInterpl_outputs(), subStep.getDecision_model_file_path() + subStep.getDecision_model_file_name(),
+                                                subStep.getInterpl_feature().replaceAll("\"", ""), String.valueOf(subStepCount + 1), "Y");
+                                    }
+                                    break;
                                 }
-                                setParam.put("outputs", outputs);
-                                log.info("interpolate decision tree setParam -> {}", setParam);
-                                interpolateSet = dtModelApiService.makeInterpolateDecisionSet(setParam);
-                                log.info("interpolateSet -> {}", interpolateSet);
-                                /**
-                                 * 2024-08-26 DECISION TREE Interval Conversion 로직 수행 할 때
-                                 * */
-                                Map<String, Object> resultMap = DTModelController.extractDecisionDataKeyValues(interpolateSet);
-                                log.info("resultMap -> {}", resultMap);
-                                decisionLabels = (ArrayList<String>) resultMap.get("labels");
-                                log.info("decisionLabels -> {}", decisionLabels);
-                                errorcheckBody = interpolateSet.getBody().toString();
-                                setParam = new HashMap<String, Object>();
-                                // Path 객체 생성
-                                Path path = Paths.get((String) resultMap.get("target_file_name"));
+                                case "RANDOM FOREST": {
+                                    setParam.put("outputs", subStep.getInterpl_outputs());
+                                    setParam.put("features", subStep.getInterpl_labels());
+                                    setParam.put("model_file_path", subStep.getInterpl_etc_model_file_path());
+                                    setParam.put("model_file_name", subStep.getInterpl_etc_model_file_name());
+                                    setParam.put("model_use_file_path", file_path);
+                                    setParam.put("model_use_file_name", setParam.get("file_name"));
+                                    setParam.put("output_file", file_path + File.separator + setParam.get("target_file_name").toString());
+                                    setParam.put("index_column", index_trgt_col);
+                                    setParam.put("trgt_col_list", "");
 
-                                // 파일명 추출
-                                String fileName = path.getFileName().toString();
+                                    log.info("Interpolate -> {}", setParam);
+                                    ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSet(setParam, interpolationType.toUpperCase());
+                                    log.info("interpolateSet -> {}", interpolateSet);
+                                    errorcheckBody = interpolateSet.getBody().toString();
+                                    log.info("interpolateSet errorcheckBody -> {}", errorcheckBody);
 
-                                lastFileName = fileName;
-                                setParam.put("file_name", fileName);
-                                setParam.put("file_path", file_path);
-                                setParam.put("index_trgt_col", index_trgt_col);
-                                resultTargetFileName = fileName;
-                                if (decisionTreeOption == null) {
-                                    decisionTreeOption = new DecisionTreeOption(setParam.get("file_path").toString(), null, lastFileName, null, index_trgt_col, outputs, preprocSetArray.get(p3).get("decision_model_file_path").asText() + preprocSetArray.get(p3).get("decision_model_file_name").asText(), preprocSetArray.get(p3).get("interpl_feature").toString().replaceAll("\"", ""), String.valueOf((p3 + 1)), "Y");
+                                    lastFileName = setParam.get("target_file_name").toString();
+
+                                    setParam.clear();
+                                    setParam.put("file_name", lastFileName);
+                                    setParam.put("file_path", file_path);
+                                    setParam.put("index_trgt_col", index_trgt_col);
+
+                                    // 동기화 엔진에 업로드할 Interpolation 데이터 설정 부분
+                                    // 업음
+
+                                    //Interpolation 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
+                                    resultTargetFileName = lastFileName;
+                                    break;
                                 }
-                            } else if (Objects.equals(setParam.get("interpl_tp"), "random forest")) {
-                                Iterator<JsonNode> elements = preprocSetArray.get(p3).get("interpl_outputs").elements();
-                                ArrayList<String> outputs = new ArrayList<>();
-                                while (elements.hasNext()) {
-                                    outputs.add(elements.next().asText());
+                                case "BRITS": {
+                                    setParam.put("outputs", subStep.getInterpl_outputs());
+                                    setParam.put("model_file_path", subStep.getInterpl_etc_model_file_path());
+                                    setParam.put("model_file_name", subStep.getInterpl_etc_model_file_name());
+                                    setParam.put("model_use_file_path", file_path);
+                                    setParam.put("model_use_file_name", setParam.get("file_name"));
+                                    setParam.put("output_file", file_path + File.separator + setParam.get("target_file_name").toString());
+                                    setParam.put("index_column", index_trgt_col);
+                                    setParam.put("trgt_col_list", subStep.getInterpl_outputs());
+
+                                    log.info("Interpolate -> {}", setParam);
+                                    ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSet(setParam, interpolationType.toUpperCase());
+                                    log.info("interpolateSet -> {}", interpolateSet);
+                                    errorcheckBody = interpolateSet.getBody().toString();
+                                    log.info("interpolateSet errorcheckBody -> {}", errorcheckBody);
+
+                                    lastFileName = setParam.get("target_file_name").toString();
+
+                                    setParam.clear();
+                                    setParam.put("file_name", lastFileName);
+                                    setParam.put("file_path", file_path);
+                                    setParam.put("index_trgt_col", index_trgt_col);
+
+                                    // 동기화 엔진에 업로드할 Interpolation 데이터 설정 부분
+                                    // 업음
+
+                                    //Interpolation 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
+                                    resultTargetFileName = lastFileName;
+                                    break;
                                 }
-                                elements = preprocSetArray.get(p3).get("interpl_labels").elements();
-                                ArrayList<String> features = new ArrayList<>();
-                                while (elements.hasNext()) {
-                                    features.add(elements.next().asText());
+                                case "NAOMI": {
+                                    setParam.put("outputs", subStep.getInterpl_outputs());
+                                    setParam.put("model_file_path", subStep.getInterpl_etc_model_file_path());
+                                    setParam.put("model_file_name", subStep.getInterpl_etc_model_file_name());
+                                    setParam.put("windowSize", subStep.getInterpl_window_size());
+                                    setParam.put("model_use_file_path", file_path);
+                                    setParam.put("model_use_file_name", setParam.get("file_name"));
+                                    setParam.put("output_file", file_path + File.separator + setParam.get("target_file_name").toString());
+                                    setParam.put("index_column", index_trgt_col);
+                                    setParam.put("trgt_col_list", subStep.getInterpl_outputs());
+
+                                    log.info("Interpolate -> {}", setParam);
+                                    ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSet(setParam, interpolationType.toUpperCase());
+                                    log.info("interpolateSet -> {}", interpolateSet);
+                                    errorcheckBody = interpolateSet.getBody().toString();
+                                    log.info("interpolateSet errorcheckBody -> {}", errorcheckBody);
+
+                                    lastFileName = setParam.get("target_file_name").toString();
+
+                                    setParam.clear();
+                                    setParam.put("file_name", lastFileName);
+                                    setParam.put("file_path", file_path);
+                                    setParam.put("index_trgt_col", index_trgt_col);
+
+                                    // 동기화 엔진에 업로드할 Interpolation 데이터 설정 부분
+                                    // 업음
+
+                                    //Interpolation 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
+                                    resultTargetFileName = lastFileName;
+                                    break;
                                 }
-                                setParam.put("outputs", outputs);
-                                setParam.put("features", features);
-                                setParam.put("model_file_path", preprocSetArray.get(p3).get("interpl_etc_model_file_path").asText());
-                                setParam.put("model_file_name", preprocSetArray.get(p3).get("interpl_etc_model_file_name").asText());
-                                setParam.put("model_use_file_path", file_path);
-                                setParam.put("model_use_file_name", setParam.get("file_name"));
-                                setParam.put("output_file", file_path + File.separator + setParam.get("target_file_name").toString());
-                                setParam.put("index_column", index_trgt_col);
-                                setParam.put("trgt_col_list", "");
+                                default: {
+                                    setParam.put("index_trgt_col", index_trgt_col);
 
-                                log.info("makeInterpolateRF setParam -> {}", setParam);
-                                interpolateSet = dtModelApiService.makeInterpolateSetRF(setParam);
-                                log.info("makeInterpolateRF Set -> {}", interpolateSet);
-                                errorcheckBody = interpolateSet.getBody().toString();
-                                lastFileName = setParam.get("target_file_name").toString();
-                                setParam = new HashMap<String, Object>();
-                                setParam.put("file_name", lastFileName);
-                                setParam.put("file_path", file_path);
-                                setParam.put("index_trgt_col", index_trgt_col);
-                                resultTargetFileName = lastFileName;
-                            } else if (Objects.equals(setParam.get("interpl_tp"), "brits")) {
-                                Iterator<JsonNode> elements = preprocSetArray.get(p3).get("interpl_outputs").elements();
-                                ArrayList<String> outputs = new ArrayList<>();
-                                while (elements.hasNext()) {
-                                    outputs.add(elements.next().asText());
+                                    log.info("Interpolate -> {}", setParam);
+                                    ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSet(setParam, interpolationType.toUpperCase());
+                                    log.info("interpolateSet -> {}", interpolateSet);
+                                    errorcheckBody = interpolateSet.getBody().toString();
+                                    log.info("interpolateSet errorcheckBody -> {}", errorcheckBody);
+
+                                    lastFileName = getResponseTargetFileName(interpolateSet.getBody().toString());
+
+                                    setParam.clear();
+                                    setParam.put("file_name", lastFileName);
+                                    setParam.put("file_path", file_path);
+                                    setParam.put("index_trgt_col", index_trgt_col);
+                                    // 동기화 엔진에 업로드할 Interpolation 데이터 설정 부분
+                                    // 업음
+
+                                    //Interpolation 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
+                                    resultTargetFileName = lastFileName;
+                                    break;
                                 }
-
-                                setParam.put("outputs", outputs);
-                                setParam.put("model_file_path", preprocSetArray.get(p3).get("interpl_etc_model_file_path").asText());
-                                setParam.put("model_file_name", preprocSetArray.get(p3).get("interpl_etc_model_file_name").asText());
-                                setParam.put("model_use_file_path", file_path);
-                                setParam.put("model_use_file_name", setParam.get("file_name"));
-                                setParam.put("output_file", file_path + File.separator + setParam.get("target_file_name").toString());
-                                setParam.put("index_column", index_trgt_col);
-                                setParam.put("trgt_col_list", outputs);
-
-                                log.info("makeInterpolateBrits setParam -> {}", setParam);
-                                interpolateSet = dtModelApiService.makeInterpolateSetBrits(setParam);
-                                log.info("makeInterpolateBrits Set -> {}", interpolateSet);
-                                errorcheckBody = interpolateSet.getBody().toString();
-                                lastFileName = setParam.get("target_file_name").toString();
-                                setParam = new HashMap<String, Object>();
-                                setParam.put("file_name", lastFileName);
-                                setParam.put("file_path", file_path);
-                                setParam.put("index_trgt_col", index_trgt_col);
-                                resultTargetFileName = lastFileName;
-                            } else if (Objects.equals(setParam.get("interpl_tp"), "naomi")) {
-                                Iterator<JsonNode> elements = preprocSetArray.get(p3).get("interpl_outputs").elements();
-                                ArrayList<String> outputs = new ArrayList<>();
-                                while (elements.hasNext()) {
-                                    outputs.add(elements.next().asText());
-                                }
-
-                                setParam.put("outputs", outputs);
-                                setParam.put("model_file_path", preprocSetArray.get(p3).get("interpl_etc_model_file_path").asText());
-                                setParam.put("model_file_name", preprocSetArray.get(p3).get("interpl_etc_model_file_name").asText());
-                                setParam.put("windowSize", preprocSetArray.get(p3).get("interpl_window_size").asInt());
-                                setParam.put("model_use_file_path", file_path);
-                                setParam.put("model_use_file_name", setParam.get("file_name"));
-                                setParam.put("output_file", file_path + File.separator + setParam.get("target_file_name").toString());
-                                setParam.put("index_column", index_trgt_col);
-                                setParam.put("trgt_col_list", outputs);
-
-                                log.info("makeInterpolateSetNaomi setParam -> {}", setParam);
-                                interpolateSet = dtModelApiService.makeInterpolateSetNaomi(setParam);
-                                log.info("makeInterpolateSetNaomi Set -> {}", interpolateSet);
-                                errorcheckBody = interpolateSet.getBody().toString();
-                                lastFileName = setParam.get("target_file_name").toString();
-                                setParam = new HashMap<String, Object>();
-                                setParam.put("file_name", lastFileName);
-                                setParam.put("file_path", file_path);
-                                setParam.put("index_trgt_col", index_trgt_col);
-                                resultTargetFileName = lastFileName;
-                            } else {
-                                setParam.put("index_trgt_col", index_trgt_col);
-                                interpolateSet = dtModelApiService.makeInterpolateSet(setParam);
-                                log.info("interpolateSet -> {}", interpolateSet);
-                                errorcheckBody = interpolateSet.getBody().toString();
-                                setParam = new HashMap<String, Object>();
-                                lastFileName = getResponseTargetFileName(interpolateSet.getBody().toString());
-                                setParam.put("file_name", lastFileName);
-                                setParam.put("file_path", file_path);
-                                setParam.put("index_trgt_col", index_trgt_col);
-                                resultTargetFileName = lastFileName;
                             }
                             prev_file_name = setParam.get("file_name").toString();
+                            subStepCount++;
                         }
-                    }
-                    /**
-                     * 결측 로직 끝난 즉시 원본 필터링 대체
-                     * */
-                    if (originTimeData != null && !originTimeData.isEmpty()) {
-                        log.info("다시 쓰는 파일 -> {}", file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
-                        List<Map<String, String>> readData = FileReader.getInstance().readCSVToListStringMap(file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
-                        log.info("originTimeData -> {}", originTimeData);
-                        List<Map<String, String>> originData = originDataFilter(originTimeData, readData, index_trgt_col);
-                        log.info("필터링 종료 -> originData : {}", originData);
-                        /**
-                         * 원본 데이터와 보조 데이터가 서로 일치 하는것이 없다면 긁어온 데이터가 의미 없음 전처리 종료
-                         * 사이즈 부족하다는 에러 남기고 로직 종료
-                         * */
-                        if (originData.isEmpty()) {
-                            log.info("원본 데이터와 보조데이터가 서로 일치하는것이 없습니다.");
-                            HashMap<String, Object> resultHashMap = new HashMap<>();
-                            resultHashMap.put("status", false);
-                            resultHashMap.put("isSizeAvailable", false);
-                            return resultHashMap;
-                        }
-                        FileWriter.getInstance().writeCSV(file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName), originData);
-                        log.info("파일 덮어 쓰기 종료 -> filePath : {}, fileName : {}", file_path, (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
-                    } else {
-                        log.info("데이터가 최초 데이터에서 다 이루어졋습니다.");
-                    }
-                    log.info("결측/보간 로직 종료");
-                }
 
-                if (preproc_order == 4) {
-                    if (preprocProperty.get(j).get("preproc_set").size() > 0) {
+                        // 결측 로직 끝난 직후 원본 필터링 대체 작업 시작
+                        // 원본 데이터와 보조 데이터가 서로 일치하는것이 없다면 긁어온 데이터가 이미 전처리되어져있어 전처리 중복을 의미
+                        // OriginTimeData 출처 = 처음 긁어온 데이터 양의 시간값만 있는 배열
+                        // 처음 긁어온 데이터에서 데이터 부족시 더 많은 데이터를 긁어올때 처음 원본 데이터의 시간값 배열
+                        if (originTimeData != null && !originTimeData.isEmpty()) {
+                            log.info("원본 데이터 (OriginTimeData) 필터링 시작");
+                            log.info("다시 쓰는 파일 -> {}", file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
+                            List<Map<String, Object>> readData = FileReader.getInstance().readCSVToListObjectMap(file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
+                            //log.info("originTimeData -> {}", originTimeData);
+                            List<Map<String, Object>> filteredOriginData = originDataFilter(originTimeData, readData, index_trgt_col);
+                            //log.info("필터링 종료 -> filteredOriginData : {}", filteredOriginData);
+                            log.info("원본 데이터 (OriginTimeData) 필터링 종료");
+
+                            if (filteredOriginData.isEmpty()) {
+                                log.info("원본 데이터와 보조데이터가 서로 일치하는것이 없습니다.");
+                                HashMap<String, Object> resultHashMap = new HashMap<>();
+                                resultHashMap.put("status", false);
+                                resultHashMap.put("isSizeAvailable", false);
+                                return resultHashMap;
+                            }
+
+                            FileWriter.getInstance().writeCSV(file_path + File.separator + (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName), filteredOriginData);
+                            log.info("파일 덮어 쓰기 종료 -> filePath : {}, fileName : {}", file_path, (Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName));
+                        } else {
+                            log.info("데이터가 최초 데이터에서 다 이루어졋습니다.");
+                        }
+                        log.info("===========================결측/보간 로직 종료===========================");
+                        break;
+                    }
+                    case 4: {
+                        log.info("===========================리샘플링 로직 시작===========================");
                         String targetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + "_interval" + ".csv";
-                        JsonNode preprocSetArray = preprocProperty.get(j).get("preproc_set");
-                        for (int p4 = 0; p4 < preprocSetArray.size(); p4++) {
-                            /**
-                             * 리샘플링 로직 수정
-                             * [기능] 전처리
-                             * [메뉴] Data Twin Model
-                             * [동작] U
-                             * [작업내용]
-                             * 시간의 단위를 판별해서 해당 시간 단위의 최저 값으로 먼저 샘플링 작업을 실행하여 최저 시간으로 인해 늘어난 데이터 중 원본데이터를 최대한 유지하는 로직으로 수정합니다.
-                             * EX) 시간 단위 데이터 1시간 단위로, 분 단위 데이터 1분 단위로, 초 단위 데이터 1초 단위로
-                             *
-                             * 프리컨디션
-                             * resampling 함수화 및 데이터의 파일을 어떻게 할건지 JSON에서 파일에 관련된 수정사항이 필요.
-                             *
-                             * 프로세스
-                             * 1. 파일을 읽어드린다.
-                             * 2. 파일의 데이터에서 일부 데이터만을 얻고 시계열 컬럼만 뽑아온 데이터를 얻어온다. (index_trgt_col 참조)
-                             * 3. 시계열 컬럼만 얻어온 데이터에서 시간이 초단위인지 분단위인지 시간단위인지 일단위인지 얻는다. (time_rule과 resmpl_tp 지정)
-                             * 4. 얻은 time_rule, resmpl_tp 파라미터로 resampling 로직을 굴린다.
-                             * 5. 원래 클라이언트에게 받은 파라미터로 resampling 로직을 굴린다.
-                             * */
 
-                            /**
-                             * 시간 구분 로직
-                             * */
+                        //리샘플링 로직
+                        //시간의 단위를 판별해서 해당 시간 단위의 최저 값으로 먼저 샘플링 작업을 실행하여 최저 시간으로 인해 늘어난 데이터 중 원본데이터를 최대한 유지하는 로직
+                        //EX) 시간 단위 데이터 1시간 단위로, 분 단위 데이터 1분 단위로, 초 단위 데이터 1초 단위로
+
+                        //파일을 읽어드린다.
+                        //파일의 데이터에서 일부 데이터만을 얻고 시계열 컬럼만 뽑아온 데이터를 얻어온다. (index_trgt_col 참조)
+                        //시계열 컬럼만 얻어온 데이터에서 시간이 초단위인지 분단위인지 시간단위인지 일단위인지 얻는다. (time_rule과 resmpl_tp 지정)
+                        //얻은 time_rule, resmpl_tp 파라미터로 resampling 로직을 굴린다.
+                        //원래 클라이언트에게 받은 파라미터로 resampling 로직을 굴린다.
+
+                        //시간 구분 로직
+                        //원본 파일에서 파악한 데이터 시간의 기본값을 확인
+
+                        List<DTModelJsonPropertySubSet> subSteps = dtModelJsonPropertySub.getPreproc_set();
+                        for (DTModelJsonPropertySubSet subStep : subSteps) {
                             String dateKey = index_trgt_col;
                             Map<String, Object> prevResultCsv = FileReader.getInstance().readCSV(file_path + File.separator + file_name);
                             List<String> timeIndicatorHeaders = (List<String>) prevResultCsv.get("header_list");
                             List<List<String>> prevResultDataList = (List<List<String>>) prevResultCsv.get("data_list");
-                            TimeUnit unit = dtModelApiService.reSampleTimeDivider(dateKey, timeIndicatorHeaders, prevResultDataList);
-                            /**
-                             * 데이터 유효성 유지 하면서 리샘플 로직
-                             * */
-                            String prevTargetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + "_prev_interval" + ".csv";
-                            {
-                                JsonNode jsonNode = null;
-                                ResponseEntity<?> resampleSet = null;
-                                ResponseEntity<?> prevResampleSet = null;
-                                log.info("Base Unit -> {}", unit);
-                                //시간 구문 후 생성할 파일
-                                Map<String, Object> setBaseParam = new HashMap<>();
-                                setBaseParam.put("file_path", file_path);
-                                setBaseParam.put("file_name", Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName);
-                                setBaseParam.put("index_trgt_col", dateKey);
-                                setBaseParam.put("target_file_name", prevTargetFileName);
-                                setBaseParam.put("resmpl_tp", unit.getResampleType());
-                                setBaseParam.put("time_rule", ("1" + unit.getResampleType()));
+                            HashMap<String, Object> unitParam = dtModelApiService.dataTimeDivider(dateKey, timeIndicatorHeaders, prevResultDataList);
+                            TimeUnit unit = (TimeUnit) unitParam.get("unit");
+                            int delta = ((Double) unitParam.get("delta")).intValue();
 
-                                log.info("prevResampleSet setBaseParam -> {}", setBaseParam);
-                                prevResampleSet = dtModelApiService.makeResampleSet(setBaseParam);
-                                errorcheckBody = prevResampleSet.getBody().toString();
-                                log.info("prevResampleSet errorcheckBody -> " + errorcheckBody);
-                                lastFileName = getResponseTargetFileName(prevResampleSet.getBody().toString());
-                                setParam.put("file_name", lastFileName);
-                                setParam.put("target_file_name", targetFileName);
-                            }
-                            setParam.put("resmpl_tp", preprocSetArray.get(p4).get("resmpl_tp").toString().replaceAll("\"", ""));
-                            setParam.put("time_rule", preprocSetArray.get(p4).get("resmpl_intvl_value").toString().replaceAll("\"", "").trim() + preprocSetArray.get(p4).get("resmpl_tp").toString().replaceAll("\"", ""));
+                            log.info("Base Delta -> {}, Base Unit -> {}", delta, unit);
+
+                            //데이터 시간의 기본값으로 리샘플링할 타겟 파일 이름
+                            String prevTargetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + "_prev_interval" + ".csv";
+
+                            Map<String, Object> setPrevParam = new HashMap<>();
+                            setPrevParam.put("file_path", file_path);
+                            setPrevParam.put("file_name", Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName);
+                            setPrevParam.put("index_trgt_col", dateKey);
+                            setPrevParam.put("target_file_name", prevTargetFileName);
+                            setPrevParam.put("resmpl_tp", unit.getResampleType());
+                            setPrevParam.put("time_rule", ("1" + unit.getResampleType()));
+
+                            log.info("PrevResample -> {}", setPrevParam);
+                            ResponseEntity<?> prevResampleSet = dtModelApiService.makeResampleSet(setPrevParam);
+                            log.info("prevResampleSet -> {}", prevResampleSet);
+                            errorcheckBody = prevResampleSet.getBody().toString();
+                            log.info("prevResampleSet errorcheckBody -> {}", errorcheckBody);
+
+                            lastFileName = getResponseTargetFileName(prevResampleSet.getBody().toString());
+
+                            setParam.clear();
+                            setParam.put("file_name", lastFileName);
+
+                            setParam.put("file_path", file_path);
                             setParam.put("index_trgt_col", index_trgt_col);
-                            log.info("resampleSet setParam -> " + setParam.toString());
+
+                            //리샘플링을 설정 옵션으로 한번 더 진행해야되므로 타겟 파일 이름 설정
+                            setParam.put("target_file_name", targetFileName);
+
+                            // 동기화 엔진에 업로드할 Resample 데이터 설정 부분
+                            // 업음
+
+                            //Resample 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
+                            resultTargetFileName = lastFileName;
+
+                            setParam.put("resmpl_tp", subStep.getResmpl_tp().replaceAll("\"", ""));
+                            setParam.put("time_rule", subStep.getResmpl_intvl_value().replaceAll("\"", "") + subStep.getResmpl_tp().replaceAll("\"", ""));
+
+                            log.info("Resample -> {}", setParam);
                             ResponseEntity<?> resampleSet = dtModelApiService.makeResampleSet(setParam);
+                            log.info("resampleSet -> {}", resampleSet);
                             errorcheckBody = resampleSet.getBody().toString();
-                            log.info("resampleSet errorcheckBody -> " + errorcheckBody);
-                            setParam = new HashMap<String, Object>();
+                            log.info("resampleSet errorcheckBody -> {}", errorcheckBody);
+
                             lastFileName = getResponseTargetFileName(resampleSet.getBody().toString());
+
+                            setParam.clear();
                             setParam.put("file_name", lastFileName);
                             setParam.put("file_path", file_path);
                             setParam.put("index_trgt_col", index_trgt_col);
-                            metaSimulationModel.setResmplIntvlTp(preprocSetArray.get(p4).get("resmpl_tp").toString().replaceAll("\"", ""));
-                            metaSimulationModel.setResmplIntvlValue(Integer.parseInt(preprocSetArray.get(p4).get("resmpl_intvl_value").toString().replaceAll("\"", "").trim()));
+                            // 동기화 엔진에 업로드할 Resample 데이터 설정 부분
+                            // 업음
+
+                            //Resample 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
                             resultTargetFileName = lastFileName;
+
+                            //Decision Tree 사용했을 시 Decision Tree 전용 Resample 사용
                             if (isDecisionTree) {
-                                log.info("decisionTreeOption -> {}", decisionTreeOption);
+                                String decisionTargetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_dt_resample_" + TimeUtil.getCurrentTimeMillis() + ".csv";
+                                log.info("Decision Tree 전용 로직 시작");
+                                log.info("Decision Tree Option -> {}", decisionTreeOption);
                                 Map<String, Object> decisionTreeSetParam = decisionTreeOption.decisionTreeSetParam();
                                 decisionTreeSetParam.put("file_name", lastFileName);
-                                String decisionTargetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_dt_resample_" + System.currentTimeMillis() + ".csv";
                                 decisionTreeSetParam.put("target_file_name", decisionTargetFileName);
-                                log.info("decisionTreeSetParam -> {}", decisionTreeSetParam);
 
-                                /**
-                                 * 2024-08-26 DECISION TREE Interval Conversion 로직 수행 할 때
-                                 * */
-                                ResponseEntity<?> interpolateModelDecisionSet = dtModelApiService.makeInterpolateModelDecisionSet(decisionTreeSetParam);
-                                log.info("interpolateModelDecisionSet -> {}", interpolateModelDecisionSet);
-                                Map<String, Object> resultMap = DTModelController.extractDecisionDataKeyValues(interpolateModelDecisionSet);
-                                log.info("resultMap -> {}", resultMap);
+                                log.info("DecisionTree Resample -> {}", decisionTreeSetParam);
+                                ResponseEntity<?> decisionTreeResampleSet = dtModelApiService.makeInterpolateModelDecisionSet(decisionTreeSetParam);
+                                log.info("decisionTreeResampleSet -> {}", decisionTreeResampleSet);
+                                errorcheckBody = decisionTreeResampleSet.getBody().toString();
+                                log.info("decisionTreeResampleSet errorcheckBody -> {}", errorcheckBody);
+
+                                //Resample 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
                                 lastFileName = decisionTargetFileName;
-                                log.info("DECISION TREE Interval Conversion lastFileName -> {}", lastFileName);
+                                setParam.clear();
+                                setParam.put("file_name", lastFileName);
+                                setParam.put("file_path", file_path);
+                                setParam.put("index_trgt_col", index_trgt_col);
+
                                 resultTargetFileName = lastFileName;
+                                log.info("Decision Tree 전용 로직 종료");
                             }
                         }
+                        log.info("===========================리샘플링 로직 종료===========================");
+                        break;
                     }
-                    log.info("리샘플 로직 종료");
-                }
-
-                if (preproc_order == 5) {
-                    if (preprocProperty.get(j).get("preproc_set").size() > 0) {
+                    case 5: {
+                        log.info("===========================단위 변환 로직 시작===========================");
                         String targetFileName = augment_seq + "_" + model_seq + "_" + user_id + "_" + MetaRelateUtil.generateFileNameTime("H") + "_unit" + ".csv";
-                        JsonNode preprocSetArray = preprocProperty.get(j).get("preproc_set");
-                        for (int p5 = 0; p5 < preprocSetArray.size(); p5++) {
+                        List<DTModelJsonPropertySubSet> subSteps = dtModelJsonPropertySub.getPreproc_set();
+                        for (DTModelJsonPropertySubSet subStep : subSteps) {
                             setParam.put("file_name", Objects.equals(resultTargetFileName, lastFileName) ? resultTargetFileName : lastFileName);
                             setParam.put("target_file_name", targetFileName);
+
+                            //단위 변환 공식 가져오기
                             Map<String, Object> params = new HashMap<String, Object>();
-                            params.put("unit_tp", preprocSetArray.get(p5).get("unit_tp").toString().replaceAll("\"", ""));
-                            params.put("unit_seq", Integer.parseInt(preprocSetArray.get(p5).get("unit_cd_1").toString().replaceAll("\"", "")));
+                            params.put("unit_tp", subStep.getUnit_tp().replaceAll("\"", ""));
+                            params.put("unit_seq", Integer.parseInt(subStep.getUnit_cd_1().replaceAll("\"", "")));
                             String unitFormula = dtModelService.getUnitFormula(params);
-
-                            //setParam.put("target_file_name", "unit_" + currentTimeMillis() + ".csv");
-
-                            setParam.put("unit_trgt_col", preprocSetArray.get(p5).get("trgt_col").toString().replaceAll("\"", ""));
+                            setParam.put("unit_trgt_col", subStep.getTrgt_col().replaceAll("\"", ""));
                             setParam.put("unit_formula", unitFormula);
-                            setParam.put("index_trgt_col", index_trgt_col);
-                            log.info("unitSet setParam -> " + setParam.toString());
+
+                            log.info("Unit -> {}", setParam);
                             ResponseEntity<?> unitSet = dtModelApiService.makeUnitSet(setParam);
                             log.info("unitSet -> {}", unitSet);
                             errorcheckBody = unitSet.getBody().toString();
                             log.info("unitSet errorcheckBody -> {}", errorcheckBody);
-                            setParam = new HashMap<String, Object>();
-                            setParam.put("file_name", getResponseTargetFileName(unitSet.getBody().toString()));
+                            lastFileName = getResponseTargetFileName(unitSet.getBody().toString());
+
+                            setParam.clear();
+                            setParam.put("file_name", lastFileName);
                             setParam.put("file_path", file_path);
                             setParam.put("index_trgt_col", index_trgt_col);
-                            lastFileName = getResponseTargetFileName(unitSet.getBody().toString());
+                            // 동기화 엔진에 업로드할 Resample 데이터 설정 부분
+                            // 업음
+
+                            //Resample 결과 파일을 다음 프로세스 타겟 파일이름으로 지정
                             resultTargetFileName = lastFileName;
                         }
+                        log.info("===========================단위 변환 로직 종료===========================");
+                        break;
                     }
-                    log.info("단위 변환 로직 종료");
                 }
             }
 
@@ -1673,55 +1629,59 @@ public class DTSimulationService extends BaseService {
 
             int fileSeq = filesService.saveAugmentFiles(sourceDirectory, base_dir, fileName, augment_seq);
 
-            Map<String, Object> logParams = new HashMap<String, Object>();
-            logParams.put("err_tp", null);
-            logParams.put("err_cd", null);
-            logParams.put("err_nm", null);
-            logParams.put("err_cn", null);
-            logParams.put("augment_seq", augment_seq);
-            logParams.put("model_seq", model_seq);
-            logParams.put("augment_status", "C");
-            logParams.put("file_seq", fileSeq);
-            logParams.put("data_crt_last_hr", data_crt_last_hr);
-
-            makeMetaSimulationSchedulerService.saveAugmentLog(logParams);
+            DTAugmentLog.DTAugmentLogBuilder errorLogBuilder = DTAugmentLog.builder();
+            makeMetaSimulationSchedulerService.saveAugmentLog(errorLogBuilder.errTp(null)
+                    .errCd(null).errNm(null).errCn(null)
+                    .augmentSeq(augment_seq).modelSeq(model_seq)
+                    .augmentStatus("C").fileSeq(fileSeq).dataCrtLastHr(data_crt_last_hr)
+                    .build());
 
             /**
              * 결과 데이터 관련
              * */
             JSONArray formattedIndividuallyDataArray = JSONParser.formatIndividuallyData(resultDataList);
-            List<Map<String, String>> csvData = FileReader.getInstance().readCSVToListStringMap(file_path + File.separator + lastFileName);
+            List<Map<String, Object>> csvData = FileReader.getInstance().readCSVToListObjectMap(file_path + File.separator + lastFileName);
             JSONArray recoveredDataFormatArray = JSONParser.recoveredDataFormat(formattedIndividuallyDataArray, csvData);
             recoveredDataFormatArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, recoveredDataFormatArray);
 
-            List<Map<String, String>> preprocessData = JSONParser.convertJsonArrayToListOfMaps(recoveredDataFormatArray);
+            List<Map<String, Object>> preprocessData = JSONParser.convertJsonArrayToListOfMaps(recoveredDataFormatArray);
             //기존 증강 파일 또는 전처리 파일을 원본 데이터 형태로 다시 파일 쓰기
             FileWriter.getInstance().writeCSV(resultData.get("file_path").toString(), preprocessData);
 
             //평균 시간 뽑기(기존 로직 유지하기 위해서 나중에는 지워도 된다.)
-            HashMap<String, Object> unitParam = dtSimulationService.getTimeUnitStringMap(index_trgt_col, preprocessData);
+            HashMap<String, Object> unitParam = dtSimulationService.getTimeUnit(index_trgt_col, preprocessData);
             TimeUnit unit = (TimeUnit) unitParam.get("unit");
             int delta = ((Double) unitParam.get("delta")).intValue();
 
             log.info("unit -> {}, delta -> {}", unit, delta);
 
             //데이터 시간을 마지막 전처리 데이터의 시간으로 변경
-            String lastRowDataTime = preprocessData.get(preprocessData.size() - 1).get(index_trgt_col);
-            JsonNode intervalNode = preprocProperty.get(3).get("preproc_set");
-
             int resampleType = TimeUnit.getTimeType(unit.getResampleType());
             int resampleValue = delta;
-
-            if (intervalNode.size() != 0 && intervalNode.get(0).get("resmpl_tp") != null) {
-                resampleType = TimeUnit.getTimeType(String.valueOf(intervalNode.get(0).get("resmpl_tp").asText()));
-                resampleValue = Integer.parseInt(String.valueOf(intervalNode.get(0).get("resmpl_intvl_value").asText()));
+            String lastRowDataTime = preprocessData.get(preprocessData.size() - 1).get(index_trgt_col).toString();
+            List<DTModelJsonPropertySubSet> dtModelJsonPropertySubSets = dtModelJsonProperty.getPreproc_property_info().get(0).getPreproc_property().get(3).getPreproc_set();
+            if (dtModelJsonPropertySubSets.size() != 0 && dtModelJsonPropertySubSets.get(0).getResmpl_tp() != null) {
+                resampleType = TimeUnit.getTimeType(dtModelJsonPropertySubSets.get(0).getResmpl_tp());
+                resampleValue = Integer.parseInt(dtModelJsonPropertySubSets.get(0).getResmpl_intvl_value());
             }
 
             log.info("lastRowDataTime -> {}", lastRowDataTime);
-            LocalDateTime targetStartDateTime = LocalDateTime.parse(lastRowDataTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")).plusSeconds(resampleValue * resampleType);
+
+            String format = ConvertUtil.tryParseFindFormat(ConvertUtil.DATEFORMATS, lastRowDataTime);
+            log.info("format -> {}", format);
+
+            LocalDateTime targetStartDateTime = null;
+            if (format.length() > 10) {
+                targetStartDateTime = LocalDateTime.parse(lastRowDataTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")).plusSeconds(resampleValue * resampleType);
+            } else {
+                // 날짜만 있을 때
+                targetStartDateTime = LocalDate.parse(
+                        lastRowDataTime,
+                        DateTimeFormatter.ofPattern(format)
+                ).atStartOfDay().plusSeconds(resampleValue * resampleType);
+            }
             String target_start_date = targetStartDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             data_crt_last_hr = target_start_date;
-
             //2024-07-15 유효성 검증이나 이상치에 대한 데이터 파일 및 데이터 확인
             if (twin_id != null || obj_id != null) {
                 /*Validation 데이터 업로드*/
@@ -1731,40 +1691,41 @@ public class DTSimulationService extends BaseService {
                 JSONObject validationUploadJson = new JSONObject();
                 validationUploadJson.put("status", "success");
                 validationUploadJson.put("type", "preproc");
-                validationUploadJson.put("twin_id", twinid);
-                validationUploadJson.put("obj_id", objid);
-                validationUploadJson.put("index_col", index_col);
+                validationUploadJson.put("twin_id", twin_id);
+                validationUploadJson.put("obj_id", obj_id);
+                validationUploadJson.put("index_col", index_trgt_col);
                 validationUploadJson.put("origin_from", origin_from);
                 validationUploadJson.put("origin_to", origin_to);
                 validationUploadJson.put("notification_time", notification_time);
-                JSONArray validationDataJsonArray = JSONParser.formatValidationData(validationList, originTimeData);
+                JSONArray validationDataJsonArray = JSONParser.formatValidationData(validations, originTimeData);
                 validationDataJsonArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, validationDataJsonArray);
                 validationUploadJson.put("validation", validationDataJsonArray);
                 //log.info("validationUploadJson -> {}", validationUploadJson);
-                JSONParser.sendValidationData(systemProperties, validationUploadJson);
+
+                dtModelApiService.sendValidationData(validationUploadJson);
 
                 /*Outlier 데이터 업로드*/
                 JSONObject outlierUploadJson = new JSONObject();
                 outlierUploadJson.put("status", "success");
                 outlierUploadJson.put("type", "preproc");
-                outlierUploadJson.put("twin_id", twinid);
-                outlierUploadJson.put("obj_id", objid);
-                outlierUploadJson.put("index_col", index_col);
+                outlierUploadJson.put("twin_id", twin_id);
+                outlierUploadJson.put("obj_id", obj_id);
+                outlierUploadJson.put("index_col", index_trgt_col);
                 outlierUploadJson.put("origin_from", origin_from);
                 outlierUploadJson.put("origin_to", origin_to);
                 outlierUploadJson.put("notification_time", notification_time);
-                JSONArray outlierDataJsonArray = JSONParser.formatOutlierData(outlierList);
+                JSONArray outlierDataJsonArray = JSONParser.formatOutlierData(outliers);
                 outlierDataJsonArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, outlierDataJsonArray);
                 outlierUploadJson.put("outlier", outlierDataJsonArray);
                 //log.info("outlierUploadJson -> {}", outlierUploadJson);
-                JSONParser.sendOutlierData(systemProperties, outlierUploadJson);
+                dtModelApiService.sendOutlierData(outlierUploadJson);
 
                 //증강 결과 데이터 업로드
-                JSONParser.sendIndividuallyData(systemProperties, augment_seq, twin_id, obj_id, recoveredDataFormatArray, 1);
+                dtModelApiService.sendIndividuallyData(augment_seq, twin_id, obj_id, recoveredDataFormatArray, 1);
                 /**
                  * 데이터 여러건 업로드
                  * */
-                //JSONParser.sendIndividuallyData(systemProperties, augment_seq, twin_id, obj_id, recoveredDataFormatArray, 5);
+                //dtModelApiService.sendIndividuallyData(systemProperties, augment_seq, twin_id, obj_id, recoveredDataFormatArray, 5);
             }
             HashMap<String, Object> resultHashMap = new HashMap<>();
             resultHashMap.put("data_crt_last_hr", data_crt_last_hr);
@@ -1775,24 +1736,18 @@ public class DTSimulationService extends BaseService {
             HashMap<String, Object> resultHashMap = new HashMap<>();
             Map<String, Object> errorParams = errorMessageSave(errorcheckBody, augment_seq);
             try {
-                errorParams.put("err_tp", "P");
-                errorParams.put("err_cd", errorParams.get("code").toString());
-                errorParams.put("err_nm", errorParams.get("message").toString());
-                errorParams.put("err_cn", errorParams.get("detail").toString());
-                errorParams.put("augment_seq", augment_seq);
-                errorParams.put("model_seq", model_seq);
-                errorParams.put("augment_status", "E");
-                errorParams.put("file_seq", null);
-                errorParams.put("data_crt_last_hr", data_crt_last_hr);
-
-                log.info("errorParams:::" + errorParams);
-                makeMetaSimulationSchedulerService.saveAugmentLog(errorParams);
+                DTAugmentLog.DTAugmentLogBuilder errorLogBuilder = DTAugmentLog.builder();
+                makeMetaSimulationSchedulerService.saveAugmentLog(errorLogBuilder.errTp("P")
+                        .errCd(errorParams.get("code").toString()).errNm(errorParams.get("message").toString()).errCn(errorParams.get("detail").toString())
+                        .augmentSeq(augment_seq).modelSeq(model_seq)
+                        .augmentStatus("E").dataCrtLastHr(data_crt_last_hr)
+                        .build());
                 if (twin_id != null || obj_id != null) {
                     Map<String, Object> errorInfo = new LinkedHashMap<>();
                     errorInfo.put("status", "fail");
-                    errorInfo.put("twin_id", twinid);
-                    errorInfo.put("obj_id", objid);
-                    errorInfo.put("index_col", index_col);
+                    errorInfo.put("twin_id", twin_id);
+                    errorInfo.put("obj_id", obj_id);
+                    errorInfo.put("index_col", index_trgt_col);
                     errorInfo.put("origin_from", origin_from);
                     errorInfo.put("origin_to", origin_to);
                     errorInfo.put("notification_time", notification_time);
@@ -1804,7 +1759,7 @@ public class DTSimulationService extends BaseService {
                     /**
                      * 에러 데이터 업로드
                      * */
-                    JSONParser.sendErrorToJson(systemProperties, errorInfo);
+                    dtModelApiService.sendErrorData(errorInfo);
                 }
             } catch (Exception e1) {
                 e1.printStackTrace();
@@ -1814,7 +1769,7 @@ public class DTSimulationService extends BaseService {
         }
     }
 
-    public String getResponseTargetFileName(String jsonBody) throws JsonParseException, JsonMappingException, IOException {
+    public String getResponseTargetFileName(String jsonBody) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
         Map<String, Object> responseMap = objectMapper.readValue(jsonBody, new TypeReference<Map<String, Object>>() {
         });
@@ -1857,7 +1812,7 @@ public class DTSimulationService extends BaseService {
     }
 
     public List<String> extractTimeData(JsonNode dataNode) {
-        log.info("extractTimeData dataNode -> {}", dataNode);
+        //log.info("extractTimeData dataNode -> {}", dataNode);
         int dateColumnIndex = 0; //헤더 시간값 인덱스
         JsonNode firstObject = dataNode.get(0);
         Iterator<String> keys = firstObject.fieldNames();
@@ -1903,8 +1858,8 @@ public class DTSimulationService extends BaseService {
         return timeData;
     }
 
-    public static List<Map<String, String>> originDataFilter(List<String> originTimeData, List<Map<String, String>> supplyAgainData, String index_trgt_col) {
-        List<Map<String, String>> filterData = new ArrayList<>();
+    public static List<Map<String, Object>> originDataFilter(List<String> originTimeData, List<Map<String, Object>> supplyAgainData, String index_trgt_col) {
+        List<Map<String, Object>> filterData = new ArrayList<>();
         // Create a set of originTimeData for quick lookup
         for (int i = 0; i < supplyAgainData.size(); i++) {
             for (String time : originTimeData) {
@@ -1939,45 +1894,6 @@ public class DTSimulationService extends BaseService {
         return dtModelApiService.dataTimeDivider(dateKey, keys, datas);
     }
 
-    public HashMap<String, Object> getTimeUnitStringMap(String dateKey, List<Map<String, String>> data) {
-        List<String> keys = new ArrayList<>();
-        List<List<String>> datas = new ArrayList<>();
-        boolean check = false;
-        for (Map<String, String> map : data) {
-            List<String> oneData = new ArrayList<>();
-            for (Map.Entry<String, String> entry : map.entrySet()) {
-                if (!check) {
-                    keys.add(entry.getKey().replace("\"", ""));
-                }
-                oneData.add(entry.getValue().toString().replace("\"", ""));
-            }
-            check = true;
-            datas.add(oneData);
-        }
-        log.info("keys -> {}", keys);
-        return dtModelApiService.dataTimeDivider(dateKey, keys, datas);
-    }
-
-    public HashMap<String, Object> processorDatasetCorrelation(int modelSeq, Map<String, Object> correlationParam) throws ParseException {
-        HashMap<String, Object> result = new HashMap<>();
-        String processorDatasetCorrelationResult = apiService.requestPythonApi("/dt/newpreproc/processorDatasetCorrelation/", correlationParam);
-        org.json.simple.JSONObject correlationObj = (org.json.simple.JSONObject) new org.json.simple.parser.JSONParser().parse(processorDatasetCorrelationResult);
-        if (Integer.parseInt(correlationObj.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
-            result.put("data", correlationObj.get("data"));
-            return result;
-        } else {
-            return null;
-        }
-    }
-
-    public List<Map<String, Object>> getModelColumns(int modelSeq) {
-        return dtSimulationMapper.getModelColumns(modelSeq);
-    }
-
-    public List<String> getTargetColumnInfo(int modelSeq) {
-        return dtSimulationMapper.getTargetColumnInfo(modelSeq);
-    }
-
     public boolean checkUseDTModel(int modelSeq) {
         return dtSimulationMapper.checkUseDTModel(modelSeq);
     }
@@ -1986,19 +1902,90 @@ public class DTSimulationService extends BaseService {
         dtSimulationMapper.deleteDTSimulation(parameters);
     }
 
-    public List<Map<String, Object>> getDTSimulationListBySimTp(Map<String, Object> params, Paging paging) {
-        return dtSimulationMapper.getDTSimulationListBySimTp(params, paging.getPaging());
-    }
-
-    public List<Map<String, Object>> getDTSimulationListSetUserSeqBySimTp(Map<String, Object> params, Paging paging) {
-        return dtSimulationMapper.getDTSimulationListSetUserSeqBySimTp(params, paging.getPaging());
-    }
-
-    public List<Map<String, Object>> getDTSimulationSharedListBySimTp(Map<String, Object> params, Paging paging) {
-        return dtSimulationMapper.getDTSimulationSharedListBySimTp(params, paging.getPaging());
-    }
-
     public boolean checkUseRemakeDTModel(int modelSeq) {
         return dtSimulationMapper.checkUseRemakeDTModel(modelSeq);
+    }
+
+    public int countMetaSimulation() {
+        return dtSimulationMapper.countMetaSimulation();
+    }
+
+    public List<Map<String, Object>> getModelDataTerm() {
+        return dtSimulationMapper.getModelDataTerm();
+    }
+
+    public Map<String, Object> processFindVerifyRule(Map<String, Object> verifyOption, DTModelJsonPropertySubSet subStep) {
+        Map<String, Object> result = new HashMap<>();
+        if (verifyOption.get("rule_value_1") != null) {
+            if (!verifyOption.get("rule_value_1").toString().equals("")) {
+                result.put("rule1", verifyOption.get("rule_value_1").toString());
+            } else {
+                result.put("rule1", null);
+            }
+        }
+        if (verifyOption.get("rule_value_2") != null) {
+            if (!verifyOption.get("rule_value_2").toString().equals("")) {
+                result.put("rule2", verifyOption.get("rule_value_2").toString());
+            } else {
+                result.put("rule2", null);
+            }
+        }
+        if (verifyOption.get("rule_value_3") != null) {
+            if (!verifyOption.get("rule_value_3").toString().equals("")) {
+                result.put("rule3", verifyOption.get("rule_value_3").toString());
+            } else {
+                result.put("rule3", null);
+            }
+        }
+        if (verifyOption.get("rule_value_4") != null) {
+            if (!verifyOption.get("rule_value_4").toString().equals("")) {
+                result.put("rule4", verifyOption.get("rule_value_4").toString());
+            } else {
+                result.put("rule4", null);
+            }
+        }
+        /**
+         * 특수한 로직 상태 처리
+         * 타입이 범위이고 최소와 최대가 존재할때,
+         * */
+        if (verifyOption.get("vrfc_tp") != null && Objects.equals(verifyOption.get("vrfc_tp").toString(), "RG")) {
+            if ((verifyOption.get("rule_value_2") != null && Objects.equals(verifyOption.get("rule_value_2").toString(), "MIN")) && (verifyOption.get("rule_value_3") != null && Objects.equals(verifyOption.get("rule_value_3").toString(), "MAX"))) {
+                result.put("rule2", subStep.getRule2().replaceAll("\"", ""));
+                result.put("rule3", subStep.getRule3().replaceAll("\"", ""));
+            }
+        }
+        return result;
+    }
+
+    public Map<String, Object> processFindAutoEncoder(DTModelJsonPropertySubSet subStep, Map<String, Object> modelInfo) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("model_file_path", systemProperties.getDtEtcMetaFilePath() + modelInfo.get("file_path").toString());
+        result.put("model_file_name", modelInfo.get("file_nm").toString());
+        result.put("etc_model_seq", Integer.parseInt(subStep.getEtc_model_seq()));
+        result.put("output_cols", new String[]{subStep.getTrgt_col().replaceAll("\"", "")});
+        result.put("window_size", Integer.parseInt(subStep.getWindow_size().replaceAll("\"", "")));
+        result.put("threshold", Float.parseFloat(subStep.getThreshold().replaceAll("\"", "")));
+        return result;
+    }
+
+    /*synchronization engine data upload*/
+    public Map<String, Object> processMakeValidate(DTModelJsonPropertySubSet subStep, String validate_file_path) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("set_order", subStep.getSet_order());
+        result.put("valid_tp1", subStep.getVrfc_tp().toUpperCase());
+        result.put("valid_tp2", subStep.getVrfc_clear_tp().toUpperCase());
+        result.put("col", subStep.getTrgt_col().toUpperCase());
+        result.put("file_path", validate_file_path);
+        return result;
+    }
+
+    /*synchronization engine data upload*/
+    public Map<String, Object> processMakeOutlier(DTModelJsonPropertySubSet subStep, String outlier_file_path) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("set_order", subStep.getSet_order());
+        result.put("outlier_tp", subStep.getOutlier_tp());
+        result.put("col", subStep.getTrgt_col().toUpperCase());
+        result.put("file_path", outlier_file_path);
+        return result;
     }
 }

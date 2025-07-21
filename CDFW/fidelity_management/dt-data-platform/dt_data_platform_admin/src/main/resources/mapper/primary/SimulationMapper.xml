@@ -4,16 +4,16 @@
 <mapper namespace="com.stoneitgt.dt.data.platform.admin.mapper.SimulationMapper">
 	<select id="getModelDataTerm" resultType="com.stoneitgt.common.LowerKeyMap">
 		/* file : AugmentModelMapper.xml, id : getAlgolithmCodeList */
-		  SELECT DTL_CD
-		       , DTL_CD_NM
-		       , REF_CD
-		       , REF_CLASS
-		       , REF_VALUE
-		       , ORDBY
-		    FROM TB_CODE_DTL
-		   WHERE GRP_CD = 'MODEL_TERM'
-		     AND DEL_YN = 'N'
-		     AND USE_YN = 'Y'
+		SELECT DTL_CD
+			 , DTL_CD_NM
+			 , REF_CD
+			 , REF_CLASS
+			 , REF_VALUE
+			 , ORDBY
+		FROM TB_CODE_DTL
+		WHERE GRP_CD = 'MODEL_TERM'
+		  AND DEL_YN = 'N'
+		  AND USE_YN = 'Y'
 		ORDER BY ORDBY, DTL_CD_NM
 	</select>
 </mapper>

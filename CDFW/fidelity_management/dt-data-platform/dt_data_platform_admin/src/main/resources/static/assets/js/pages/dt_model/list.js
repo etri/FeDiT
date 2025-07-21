@@ -1,10 +1,47 @@
 document.addEventListener('DOMContentLoaded', function () {
+    /**
+     * 데이터 증강 도구 Search Event
+     * */
+    let fieldInitializeElem = document.querySelector('span.filter-value[data-initialize]');
+    if (fieldInitializeElem) {
+        let type = fieldInitializeElem.dataset.initialize;
+        let filterLayerBox = fieldInitializeElem.closest('.filter-layer-box');
+        let input = filterLayerBox.querySelector(`input[type="radio"][value="${type}"]`);
+        let label = filterLayerBox.querySelector(`label[for="${input.id}"]`);
+        fieldInitializeElem.innerHTML = `${label.textContent.trim()}`;
+    }
+    let filterKeyword = document.querySelector('#filterKeyword');
+    if (filterKeyword) {
+        filterKeyword.addEventListener('keyup', function (event) {
+            if (event.key === 'Enter' || event.code === 'Enter') {
+                let filterKeywordAction = document.querySelector('#filterKeywordAction');
+                if (filterKeywordAction) {
+                    filterKeywordAction.click();
+                }
+            }
+        });
+    }
+    let filterKeywordAction = document.querySelector('#filterKeywordAction');
+    if (filterKeywordAction) {
+        filterKeywordAction.addEventListener('click', function (event) {
+            let keywordElem = document.querySelector('#filterKeyword');
+            let keyword = keywordElem.value;
+            let hiddenKeyword = document.querySelector('#keyword');
+            hiddenKeyword.value = keyword;
+
+            let fieldElem = document.querySelector('input[name="searchType"]:checked');
+            let field = fieldElem.value;
+            let hiddenField = document.querySelector('#field');
+            hiddenField.value = field;
+
+            let search = document.querySelector('button[type="submit"].btn-search');
+            search.click();
+        });
+    }
+
     modelListCommonSearchPaging();
-    console.log('list event register');
-    let listItems = document.querySelectorAll('[action-type="delete"]');
-    console.log('listItems', listItems);
+    let listItems = document.querySelectorAll('[data-action-type="delete"]');
     listItems?.forEach(function (item) {
-        console.log('item', item);
         item.addEventListener('click', function (event) {
             let model_seq = this.dataset.number;
             let data = {
@@ -76,8 +113,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 errCnElement.innerHTML = `${errCn.dataset.value}`;
                 errRegDtElement.innerHTML = `${errRegDt.dataset.value}`;
 
-                console.log('errorModal', errorModal);
-                $(errorModal).modal('show');
+                if (!errorModal.classList.contains('is-open')) {
+                    errorModal.classList.add('is-open');
+                }
             }
         });
     });

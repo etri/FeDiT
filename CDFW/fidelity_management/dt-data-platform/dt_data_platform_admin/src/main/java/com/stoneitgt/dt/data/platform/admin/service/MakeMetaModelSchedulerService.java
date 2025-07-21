@@ -1,8 +1,6 @@
 package com.stoneitgt.dt.data.platform.admin.service;
 
-import java.util.List;
-import java.util.Map;
-
+import com.stoneitgt.dt.data.platform.admin.mapper.MakeMetaModelSchedulerMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -12,9 +10,11 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
-import com.stoneitgt.dt.data.platform.admin.mapper.MakeMetaModelSchedulerMapper;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -25,6 +25,10 @@ public class MakeMetaModelSchedulerService extends BaseService {
 
     public List<Map<String, Object>> getMakeModelDoingList(Map<String, Object> targetParams) {
         return makeMetaModelSchedulerMapper.getMakeModelDoingList(targetParams);
+    }
+
+    public List<Map<String, Object>> getMakeModelDoingListAll() {
+        return makeMetaModelSchedulerMapper.getMakeModelDoingListAll();
     }
 
     public List<Map<String, Object>> setMakeModelOutputColumns(Map<String, Object> checkParams) {
@@ -43,8 +47,11 @@ public class MakeMetaModelSchedulerService extends BaseService {
         return makeMetaModelSchedulerMapper.setMakeModelFiles(checkParams);
     }
 
-    public int finishMakeModel(Map<String, Object> checkParams) {
-        return makeMetaModelSchedulerMapper.finishMakeModel(checkParams);
+    public int finishMakeModel(int modelSeq, String status) {
+        Map<String, Object> statusParams = new HashMap<>();
+        statusParams.put("model_seq", modelSeq);
+        statusParams.put("model_status", status);
+        return makeMetaModelSchedulerMapper.finishMakeModel(statusParams);
     }
 
     public void deleteSetRemodel(Map<String, Object> checkParams) {
@@ -129,7 +136,35 @@ public class MakeMetaModelSchedulerService extends BaseService {
         return result;
     }
 
+    /**
+     * SEG RNN
+     * */
+    public JSONObject createMetaSEG_RNNModel(Map<String, Object> requestBody) throws ParseException {
+        RestTemplate restTemplate = new RestTemplate();
+
+        String url = systemProperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater_SEG_RNN/";
+        String contentType = "application/json";
+        String authKey = "Token " + systemProperties.getDtApiKey();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Type", contentType);
+        headers.add("Authorization", authKey);
+        log.info("createMetaModel, /dt/metalearning/createModelGenerater_SEG_RNN/, requestBody -> {}", requestBody);
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+
+        ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
+        String responseBody = response.getBody();
+
+        JSONParser parser = new JSONParser();
+        JSONObject result = (JSONObject) parser.parse(responseBody);
+        return result;
+    }
+
     public boolean checkStatus(int modelSeq, String status) {
         return makeMetaModelSchedulerMapper.checkStatus(modelSeq, status);
+    }
+
+    public List<Map<String, Object>> getMakeModelDoingToWaitListAll() {
+        return makeMetaModelSchedulerMapper.getMakeModelDoingToWaitListAll();
     }
 }
