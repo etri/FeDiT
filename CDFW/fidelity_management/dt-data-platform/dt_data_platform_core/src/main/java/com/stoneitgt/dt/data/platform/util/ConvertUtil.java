@@ -1,20 +1,14 @@
 package com.stoneitgt.dt.data.platform.util;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.*;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.stoneitgt.dt.data.platform.domain.Paging;
-
 import lombok.extern.slf4j.Slf4j;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 @Slf4j
 public class ConvertUtil {
@@ -24,9 +18,10 @@ public class ConvertUtil {
             "yyyy/MM/dd HH:mm:ss",
             "dd-MM-yyyy HH:mm:ss",
             "MM/dd/yyyy HH:mm:ss",
-            "yyyy-MM-dd",
             "yyyy-MM-dd'T'HH:mm:ss",
-            "yyyy-MM-dd'T'HH:mm:ssZ"
+            "yyyy-MM-dd'T'HH:mm:ssZ",
+            "yyyy-MM-dd",
+            "yyyy/MM/dd"
     };
 
     public static JsonNode requestBodyParsing(String body) {
@@ -53,6 +48,28 @@ public class ConvertUtil {
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static String findDateColumn(List<Map<String, Object>> datas) {
+        // 날짜를 파싱할 수 있는 형식을 찾는 함수
+        // 'rowtime'의 인덱스를 찾기 (여기서는 첫 번째 날짜 인덱스를 찾기)
+        if (datas == null || datas.isEmpty()) {
+            return null;
+        }
+        String key = null;
+        Map<String, Object> firstRow = datas.get(0);
+
+        for (Map.Entry<String, Object> entry : firstRow.entrySet()) {
+            if (entry.getValue() != null && tryParse(DATEFORMATS, entry.getValue().toString()) != null) {
+                key = entry.getKey();
+                break;
+            }
+        }
+
+        if (key == null) {
+            return null;
+        }
+        return key;
     }
 
     public static String findDateColumn(List<String> headers, List<List<String>> datas) {
@@ -137,16 +154,33 @@ public class ConvertUtil {
         return hashMap;
     }
 
+    public static String tryParseFindFormat(String[] dateFormats, String dateString) {
+        for (String format : dateFormats) {
+            try {
+                if (dateString != null && dateString.length() != 0) {
+                    dateString = dateString.replaceAll("\"", "");
+                    new SimpleDateFormat(format).parse(dateString);
+                    return format;
+                }
+            } catch (ParseException e) {
+                // 무시하고 다음 형식 시도
+                continue;
+            }
+        }
+        // 어떤 형식에도 맞지 않으면 null 반환
+        return null;
+    }
+
     public static Date tryParse(String[] dateFormats, String dateString) {
         for (String format : dateFormats) {
             try {
                 if (dateString != null && dateString.length() != 0) {
                     dateString = dateString.replaceAll("\"", "");
+                    return new SimpleDateFormat(format).parse(dateString);
                 }
-                return new SimpleDateFormat(format).parse(dateString);
             } catch (ParseException e) {
                 // 무시하고 다음 형식 시도
-                return null;
+                continue;
             }
         }
         // 어떤 형식에도 맞지 않으면 null 반환
@@ -176,5 +210,13 @@ public class ConvertUtil {
             }
         }
         return dataMap;
+    }
+
+    public static Long extractAndConvertToLong(String dateString) {
+        String numericOnly = dateString.replaceAll("[^\\d]", ""); // 숫자만 추출
+        if (numericOnly.isEmpty()) {
+            return 0L; // 또는 날짜가 유효하지 않을 경우 처리할 값 (예: null, 예외 처리 등)
+        }
+        return Long.parseLong(numericOnly);
     }
 }

@@ -2,15 +2,19 @@ package com.stoneitgt.dt.data.platform.util.file;
 
 
 import com.opencsv.CSVReader;
+import com.stoneitgt.dt.data.platform.util.ConvertUtil;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * 파일을 읽는것과 연관된 클래스
@@ -75,9 +79,7 @@ public class FileReader {
                 if (values.length != headers.length) {
                     continue; // 헤더와 데이터의 길이가 맞지 않을 경우 무시
                 }
-                Map<String, Object> row = IntStream.range(0, headers.length)
-                        .boxed()
-                        .collect(Collectors.toMap(i -> headers[i], i -> values[i]));
+                Map<String, Object> row = IntStream.range(0, headers.length).boxed().collect(Collectors.toMap(i -> headers[i], i -> values[i]));
                 csvData.add(row);
             }
         }
@@ -188,20 +190,52 @@ public class FileReader {
      * @throws IOException 파일 읽기 오류 발생 시
      */
     public Map<String, Object> readCSV(String filePath) throws IOException {
-        log.info("readCSV -> " + filePath);
-
         List<String> headerList = new ArrayList<>();
         List<List<String>> dataList = new ArrayList<>();
 
-        try (BufferedReader reader = new BufferedReader(new java.io.FileReader(filePath))) {
+        try (Stream<String> lines = Files.lines(Paths.get(filePath))) {
+            Iterator<String> iterator = lines.iterator();
+            if (iterator.hasNext()) {
+                // 첫 번째 줄: 헤더 처리
+                headerList = parseHeader(iterator.next().split(",", -1));
+            }
+            while (iterator.hasNext()) {
+                // 나머지 줄: 데이터 처리
+                dataList.add(parseRow(iterator.next().split(",", -1)));
+            }
+        }
+
+        Map<String, Object> resultMap = new HashMap<>();
+        resultMap.put("header_list", headerList);
+        resultMap.put("data_list", dataList);
+        return resultMap;
+    }
+
+    /**
+     * CSV 파일을 읽어 헤더와 데이터를 {@link Map} 형태로 반환합니다.
+     *
+     * <p>
+     * 이 메서드는 CSV 파일을 읽고, 첫 번째 행을 헤더로 사용하며,
+     * 나머지 행을 데이터로 처리하여 {@link Map}에 저장합니다.
+     * </p>
+     *
+     * @param multipartFile {@link MultipartFile} 파일 타입
+     * @return 헤더와 데이터를 포함하는 {@link Map}, "header_list"와 "data_list" 키를 포함
+     * @throws IOException 파일 읽기 오류 발생 시
+     */
+    public Map<String, Object> readCSV(MultipartFile multipartFile) throws IOException {
+        List<String> headerList = new ArrayList<>();
+        List<List<String>> dataList = new ArrayList<>();
+
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(multipartFile.getInputStream(), StandardCharsets.UTF_8))) {
             String line;
             boolean isFirstLine = true;
-
-            while ((line = reader.readLine()) != null) {
-                String[] values = line.split(","); // CSV 파일을 쉼표로 분리하여 배열에 저장
-
+            while ((line = br.readLine()) != null) {
+                String[] values = line.split(",", -1); // CSV 파일을 쉼표로 분리하여 배열에 저장
                 if (isFirstLine) {
-                    headerList = parseHeader(values);
+                    for (String value : values) {
+                        headerList.add(value.replaceAll("\"", "")); // 첫 번째 행은 헤더로 저장
+                    }
                     isFirstLine = false;
                 } else {
                     dataList.add(parseRow(values));
@@ -230,8 +264,6 @@ public class FileReader {
      * @throws IOException 파일 읽기 오류 발생 시
      */
     public Map<String, Object> readCSVWithLimit(String filePath, int limit) throws IOException {
-        log.info("readCSVWithLimit -> " + filePath + " with limit " + limit);
-
         List<String> headerList = new ArrayList<>();
         List<List<String>> dataList = new ArrayList<>();
 
@@ -241,11 +273,10 @@ public class FileReader {
             int rowCount = 0;
 
             while ((line = reader.readLine()) != null) {
-                if (limit > 0 && rowCount >= limit) {
-                    break; // 지정된 limit에 도달하면 종료
-                }
+                if (limit > 0 && rowCount >= limit) break;
 
-                String[] values = line.split(","); // CSV 파일을 쉼표로 분리하여 배열에 저장
+                // ✔ trailing empty 값 유지
+                String[] values = line.split(",", -1);
 
                 if (isFirstLine) {
                     headerList = parseHeader(values);
@@ -344,6 +375,39 @@ public class FileReader {
         return headers;
     }
 
+    /**
+     * CSV 파일의 헤더를 읽어 반환합니다.
+     *
+     * <p>
+     * 이 메서드는 주어진 CSV 파일의 첫 번째 행을 헤더로 읽어 반환합니다.
+     * 지정된 {@code limitCsvRowCount} 값에 따라 최대 {@code limitCsvRowCount}개의 행만 읽습니다.
+     * </p>
+     *
+     * @param multipartFile    {@link MultipartFile} 파일 타입
+     * @param limitCsvRowCount 읽을 최대 행 수 (0 또는 음수 값은 모든 행을 읽음)
+     * @return CSV 파일의 헤더 리스트
+     * @throws IOException 파일 읽기 오류 발생 시
+     */
+    public List<String> readHeaders(MultipartFile multipartFile, int limitCsvRowCount) throws IOException {
+        List<String> headers = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(multipartFile.getInputStream(), "UTF-8"))) {
+            String line;
+            int rowCount = 0;
+
+            while ((line = br.readLine()) != null && rowCount < limitCsvRowCount) {
+                // 첫 번째 줄만 헤더로 처리
+                if (headers.isEmpty()) {
+                    String[] headerArray = line.split(",", -1);
+                    for (String header : headerArray) {
+                        headers.add(header.replace("\"", ""));
+                    }
+                }
+                rowCount++;
+            }
+        }
+        return headers;
+    }
+
     public Map<String, Object> filteredValidReadCSV(String filePath, String fileName, String originFileName, String index_target_col, String vrfc_trgt_col) throws IOException {
         String csvFile = Paths.get(filePath, fileName).toString();
         log.info("filteredValidReadCSV -> {}", csvFile);
@@ -358,13 +422,8 @@ public class FileReader {
         // Read CSV file and process
         int dateIndex = 0;
         try (BufferedReader br = Files.newBufferedReader(Paths.get(csvFile))) {
-            headerList = Arrays.stream(br.readLine().split(","))
-                    .map(header -> header.replaceAll("\"", ""))
-                    .collect(Collectors.toList());
-            headerIndexMap = IntStream.range(0, headerList.size())
-                    .boxed()
-                    .collect(Collectors.toMap(headerList::get, i -> i));
-            log.info("headerIndexMap -> {}", headerIndexMap);
+            headerList = Arrays.stream(br.readLine().split(",", -1)).map(header -> header.replaceAll("\"", "")).collect(Collectors.toList());
+            headerIndexMap = IntStream.range(0, headerList.size()).boxed().collect(Collectors.toMap(headerList::get, i -> i));
             int targetIndex = headerIndexMap.getOrDefault(vrfc_trgt_col, -1);
             dateIndex = headerIndexMap.getOrDefault(index_target_col, -1);
 
@@ -372,15 +431,9 @@ public class FileReader {
                 throw new IllegalArgumentException("Target column not found.");
             }
 
-            dataList = br.lines()
-                    .map(line -> Arrays.stream(line.split(","))
-                            .map(value -> value.replaceAll("\"", "").trim())
-                            .collect(Collectors.toList()))
-                    .collect(Collectors.toList());
+            dataList = br.lines().map(line -> Arrays.stream(line.split(",", -1)).map(value -> value.replaceAll("\"", "").trim()).collect(Collectors.toList())).collect(Collectors.toList());
 
-            removedList = dataList.stream()
-                    .filter(row -> row.get(targetIndex).isEmpty())
-                    .collect(Collectors.toList());
+            removedList = dataList.stream().filter(row -> row.get(targetIndex).isEmpty()).collect(Collectors.toList());
 
             //dataList.removeAll(removedList); // Keep only non-removed data
         }
@@ -391,10 +444,8 @@ public class FileReader {
         Map<String, Integer> originHeaderIndexMap;
 
         try (BufferedReader br = Files.newBufferedReader(Paths.get(originCsvFile))) {
-            originHeaderList = Arrays.asList(br.readLine().split(","));
-            originHeaderIndexMap = IntStream.range(0, originHeaderList.size())
-                    .boxed()
-                    .collect(Collectors.toMap(i -> originHeaderList.get(i).replaceAll("\"", ""), i -> i));
+            originHeaderList = Arrays.asList(br.readLine().split(",", -1));
+            originHeaderIndexMap = IntStream.range(0, originHeaderList.size()).boxed().collect(Collectors.toMap(i -> originHeaderList.get(i).replaceAll("\"", ""), i -> i));
             int targetDateIndex = originHeaderIndexMap.getOrDefault(index_target_col, -1);
 
             if (targetDateIndex == -1) {
@@ -403,19 +454,18 @@ public class FileReader {
 
             List<List<String>> finalRemovedList = removedList;
             int finalDateIndex = dateIndex;
-            originList = br.lines()
-                    .map(line -> Arrays.asList(line.split(",")))
-                    .filter(row -> finalRemovedList.stream()
-                            .anyMatch(removedRow -> removedRow.get(finalDateIndex).equals(row.get(targetDateIndex))))
-                    .collect(Collectors.toList());
+
+            originList = br.lines().map(line -> Arrays.asList(line.split(",", -1))) // CSV 파일의 각 행을 리스트로 변환
+                    .map(row -> row.stream() // 각 요소에서 따옴표 제거
+                            .map(element -> element.replaceAll("\"", "")).collect(Collectors.toList())).filter(row -> finalRemovedList.stream().anyMatch(removedRow -> {
+                        Long removedDateNum = ConvertUtil.extractAndConvertToLong(removedRow.get(finalDateIndex));
+                        Long originDateNum = ConvertUtil.extractAndConvertToLong(row.get(targetDateIndex));
+                        return removedDateNum.equals(originDateNum);
+                    })).collect(Collectors.toList());
         }
 
         // Sort originList based on headerList order
-        List<List<String>> sortedOriginList = originList.stream()
-                .map(row -> headerList.stream()
-                        .map(header -> row.get(originHeaderIndexMap.get(header.replaceAll("\"", ""))))
-                        .collect(Collectors.toList()))
-                .collect(Collectors.toList());
+        List<List<String>> sortedOriginList = originList.stream().map(row -> headerList.stream().map(header -> row.get(originHeaderIndexMap.get(header.replaceAll("\"", "")))).collect(Collectors.toList())).collect(Collectors.toList());
 
         // Prepare result
         Map<String, Object> resultMap = new HashMap<>();
@@ -429,27 +479,73 @@ public class FileReader {
         return resultMap;
     }
 
-    public List<Map<String, String>> readCSVToListStringMap(String filePath) throws Exception {
-        List<Map<String, String>> csvData = new ArrayList<>();
+    public Map<String, Object> filteredValidReadCSVWithSize(String filePath, String fileName, String originFileName, String index_target_col, String vrfc_trgt_col, int size) throws IOException {
+        String csvFile = Paths.get(filePath, fileName).toString();
+        log.info("filteredValidReadCSV -> {}", csvFile);
+        log.info("index_target_col -> {}, vrfc_trgt_col -> {}", index_target_col, vrfc_trgt_col);
 
-        java.io.File file = new java.io.File(filePath);
-        if (!file.exists()) {
-            return null; // Return null if file does not exist
-        }
+        List<String> headerList;
+        List<List<String>> dataList = new ArrayList<>();
+        List<List<String>> removedList = new ArrayList<>();
+        List<List<String>> originList = new ArrayList<>();
+        Map<String, Integer> headerIndexMap = new HashMap<>();
 
-        try (CSVReader csvReader = new CSVReader(new java.io.FileReader(filePath))) {
-            String[] headers = csvReader.readNext();
-            String[] values;
+        // Read CSV file and process
+        int dateIndex = 0;
+        try (BufferedReader br = Files.newBufferedReader(Paths.get(csvFile))) {
+            headerList = Arrays.stream(br.readLine().split(",", -1)).map(header -> header.replaceAll("\"", "")).collect(Collectors.toList());
+            headerIndexMap = IntStream.range(0, headerList.size()).boxed().collect(Collectors.toMap(headerList::get, i -> i));
+            int targetIndex = headerIndexMap.getOrDefault(vrfc_trgt_col, -1);
+            dateIndex = headerIndexMap.getOrDefault(index_target_col, -1);
 
-            while ((values = csvReader.readNext()) != null) {
-                Map<String, String> row = new HashMap<>();
-                for (int i = 0; i < headers.length; i++) {
-                    row.put(headers[i], values[i]);
-                }
-                csvData.add(row);
+            if (targetIndex == -1 || dateIndex == -1) {
+                throw new IllegalArgumentException("Target column not found.");
             }
+
+            dataList = br.lines().map(line -> Arrays.stream(line.split(",", -1)).map(value -> value.replaceAll("\"", "").trim()).collect(Collectors.toList())).collect(Collectors.toList());
+
+            removedList = dataList.stream().filter(row -> row.get(targetIndex).isEmpty()).collect(Collectors.toList());
+
+            //dataList.removeAll(removedList); // Keep only non-removed data
         }
-        return csvData;
+
+        // Read origin file
+        String originCsvFile = Paths.get(filePath, originFileName).toString();
+        List<String> originHeaderList;
+        Map<String, Integer> originHeaderIndexMap;
+
+        try (BufferedReader br = Files.newBufferedReader(Paths.get(originCsvFile))) {
+            originHeaderList = Arrays.asList(br.readLine().split(",", -1));
+            originHeaderIndexMap = IntStream.range(0, originHeaderList.size()).boxed().collect(Collectors.toMap(i -> originHeaderList.get(i).replaceAll("\"", ""), i -> i));
+            int targetDateIndex = originHeaderIndexMap.getOrDefault(index_target_col, -1);
+
+            if (targetDateIndex == -1) {
+                throw new IllegalArgumentException("Index target column not found in origin file.");
+            }
+
+            List<List<String>> finalRemovedList = removedList;
+            int finalDateIndex = dateIndex;
+
+            originList = br.lines().map(line -> Arrays.asList(line.split(",", -1))) // CSV 파일의 각 행을 리스트로 변환
+                    .map(row -> row.stream() // 각 요소에서 따옴표 제거
+                            .map(element -> element.replaceAll("\"", "")).collect(Collectors.toList())).filter(row -> finalRemovedList.stream().anyMatch(removedRow -> {
+                        return removedRow.get(finalDateIndex).equals(row.get(targetDateIndex));
+                    })).collect(Collectors.toList());
+        }
+
+        // Sort originList based on headerList order
+        List<List<String>> sortedOriginList = originList.stream().map(row -> headerList.stream().map(header -> row.get(originHeaderIndexMap.get(header.replaceAll("\"", "")))).collect(Collectors.toList())).collect(Collectors.toList());
+
+        // Prepare result
+        Map<String, Object> resultMap = new HashMap<>();
+        resultMap.put("header_list", headerList);
+        resultMap.put("data_list", dataList);
+        resultMap.put("origin_list", sortedOriginList);
+        resultMap.put("removed_count", removedList.size());
+        resultMap.put("removed_data_list", removedList);
+        resultMap.put("row_count", dataList.size());
+
+        return resultMap;
     }
 
     public List<Map<String, Object>> readCSVToListObjectMap(String filePath) throws Exception {
@@ -461,6 +557,23 @@ public class FileReader {
         }
 
         try (CSVReader csvReader = new CSVReader(new java.io.FileReader(filePath))) {
+            String[] headers = csvReader.readNext();
+            String[] values;
+
+            while ((values = csvReader.readNext()) != null) {
+                Map<String, Object> row = new HashMap<>();
+                for (int i = 0; i < headers.length; i++) {
+                    row.put(headers[i], values[i]);
+                }
+                csvData.add(row);
+            }
+        }
+        return csvData;
+    }
+
+    public List<Map<String, Object>> readCSVToListObjectMap(MultipartFile multipartFile) throws Exception {
+        List<Map<String, Object>> csvData = new ArrayList<>();
+        try (CSVReader csvReader = new CSVReader(new java.io.InputStreamReader(multipartFile.getInputStream()))) {
             String[] headers = csvReader.readNext();
             String[] values;
 
@@ -487,7 +600,7 @@ public class FileReader {
             String line;
             boolean isFirstLine = true;
             while ((line = br.readLine()) != null) {
-                String[] values = line.split(","); // CSV 파일을 쉼표로 분리하여 배열에 저장
+                String[] values = line.split(",", -1); // CSV 파일을 쉼표로 분리하여 배열에 저장
                 if (isFirstLine) {
                     for (String value : values) {
                         headerList.add(value.replaceAll("\"", "")); // 첫 번째 행은 헤더로 저장
@@ -540,11 +653,8 @@ public class FileReader {
      * @return 처리된 헤더 리스트
      */
     private List<String> parseHeader(String[] values) {
-        List<String> headers = new ArrayList<>();
-        for (String value : values) {
-            headers.add(value.replace("\"", "")); // 불필요한 쌍따옴표 제거
-        }
-        return headers;
+        return Arrays.stream(values).map(value -> value.replace("\"", "")) // 스트림에서 바로 변환
+                .collect(Collectors.toList());
     }
 
     /**
@@ -554,11 +664,7 @@ public class FileReader {
      * @return 처리된 데이터 행 리스트
      */
     private List<String> parseRow(String[] values) {
-        List<String> rowData = new ArrayList<>();
-        for (String value : values) {
-            rowData.add(value.replace("\"", "")); // 불필요한 쌍따옴표 제거
-        }
-        return rowData;
+        return Arrays.stream(values).map(value -> value.replace("\"", "")).collect(Collectors.toList());
     }
 
     /**
@@ -588,7 +694,7 @@ public class FileReader {
      */
     private List<String[]> readCSVLines(String filePath) throws IOException {
         try (BufferedReader br = new BufferedReader(new java.io.FileReader(filePath))) {
-            return br.lines().map(line -> line.split(",")).collect(Collectors.toList());
+            return br.lines().map(line -> line.split(",", -1)).collect(Collectors.toList());
         }
     }
 
@@ -671,10 +777,6 @@ public class FileReader {
             headerIndexMap.put(headerList.get(i), i);
         }
 
-        return originList.stream()
-                .map(row -> originHeaderList.stream()
-                        .map(header -> row.get(headerIndexMap.getOrDefault(header, -1)))
-                        .collect(Collectors.toList()))
-                .collect(Collectors.toList());
+        return originList.stream().map(row -> originHeaderList.stream().map(header -> row.get(headerIndexMap.getOrDefault(header, -1))).collect(Collectors.toList())).collect(Collectors.toList());
     }
 }

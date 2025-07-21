@@ -1,11 +1,47 @@
 document.addEventListener('DOMContentLoaded', () => {
-    modelListCommonSearchPaging();
+    /**
+     * 데이터 증강 도구 Search Event
+     * */
+    let fieldInitializeElem = document.querySelector('span.filter-value[data-initialize]');
+    if (fieldInitializeElem) {
+        let type = fieldInitializeElem.dataset.initialize;
+        let filterLayerBox = fieldInitializeElem.closest('.filter-layer-box');
+        let input = filterLayerBox.querySelector(`input[type="radio"][value="${type}"]`);
+        let label = filterLayerBox.querySelector(`label[for="${input.id}"]`);
+        fieldInitializeElem.innerHTML = `${label.textContent.trim()}`;
+    }
+    let filterKeyword = document.querySelector('#filterKeyword');
+    if (filterKeyword) {
+        filterKeyword.addEventListener('keyup', function (event) {
+            if (event.key === 'Enter' || event.code === 'Enter') {
+                let filterKeywordAction = document.querySelector('#filterKeywordAction');
+                if (filterKeywordAction) {
+                    filterKeywordAction.click();
+                }
+            }
+        });
+    }
+    let filterKeywordAction = document.querySelector('#filterKeywordAction');
+    if (filterKeywordAction) {
+        filterKeywordAction.addEventListener('click', function (event) {
+            let keywordElem = document.querySelector('#filterKeyword');
+            let keyword = keywordElem.value;
+            let hiddenKeyword = document.querySelector('#keyword');
+            hiddenKeyword.value = keyword;
 
-    console.log('list event register');
-    let listItems = document.querySelectorAll('[action-type="delete"]');
-    console.log('listItems', listItems);
+            let fieldElem = document.querySelector('input[name="searchType"]:checked');
+            let field = fieldElem.value;
+            let hiddenField = document.querySelector('#field');
+            hiddenField.value = field;
+
+            let search = document.querySelector('button[type="submit"].btn-search');
+            search.click();
+        });
+    }
+
+    modelListCommonSearchPaging();
+    let listItems = document.querySelectorAll('[data-action-type="delete"]');
     listItems?.forEach(function (item) {
-        console.log('item', item);
         item.addEventListener('click', function (event) {
             let augment_seq = this.dataset.number;
             let data = {
@@ -46,31 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert('에러가 발생하였습니다. 관리자에게 문의하십시오.');
                 }
             });
-        });
-    });
-
-    $(document).on('click', '.schd-test', function () {
-        $('.wrap-loading').removeClass('display-none');
-        $.ajax({
-            type: "POST",
-            //async: false,
-            url: '/dt/sch/sim/test',
-            //data: JSON.stringify(data),
-            contentType: "application/json; charset=utf-8;",
-            dataType: "json",
-            success: function (result) {
-                $('.wrap-loading').addClass('display-none');
-                if (result.code == 200) {
-                    console.log(result);
-                } else {
-                    alert('API 내 에러 발생');
-                }
-            },
-            error: function (xhr, status, error) {
-                $('.wrap-loading').addClass('display-none');
-                console.error('error : ', error);
-                alert('에러가 발생하였습니다. 관리자에게 문의하십시오.');
-            }
         });
     });
 });

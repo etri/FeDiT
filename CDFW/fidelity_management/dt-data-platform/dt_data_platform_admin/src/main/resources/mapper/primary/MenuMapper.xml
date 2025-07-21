@@ -6,14 +6,13 @@
 	<select id="getBreadcrumb" parameterType="string" resultType="com.stoneitgt.common.LowerKeyMap">
 		/* file : MenuMapper.xml, id : getBreadcrumb */
 		SELECT A.MENU_CD
-		     , A.MENU_NM
-		     , (SELECT MENU_NM
-		          FROM TB_MENU B
-		         WHERE B.MENU_CD = A.UP_MENU_CD
-		       ) AS PARENT_MENU_NM
-		  FROM TB_MENU A
-		 WHERE A.MENU_CD = #{menuCd}
-		   AND A.DEL_YN  = 'N'
+			 , A.MENU_NM
+			 , (SELECT MENU_NM
+				FROM TB_MENU B
+				WHERE B.MENU_CD = A.UP_MENU_CD) AS PARENT_MENU_NM
+		FROM TB_MENU A
+		WHERE A.MENU_CD = #{menuCd}
+		  AND A.DEL_YN = 'N'
 	</select>
 
 	<select id="getUserMenuList" parameterType="string" resultType="com.stoneitgt.common.LowerKeyMap">

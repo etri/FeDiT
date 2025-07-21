@@ -10,5 +10,5 @@ public interface ErrorMapper {
 
     int saveErrorLog(ErrorLog errorLog);
 
-    ErrorLog getErrorLog(@Param("etcModelSeq") int etcModelSeq, @Param("ERROR_LCT") String ERROR_LCT);
+    ErrorLog getErrorLog(@Param("modelSeq") int modelSeq, @Param("ERROR_LCT") String ERROR_LCT);
 }

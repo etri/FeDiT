@@ -1,10 +1,10 @@
 package com.stoneitgt.dt.data.platform.admin.mapper;
 
-import java.util.List;
-import java.util.Map;
-
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface MakeMetaModelSchedulerMapper {
@@ -34,4 +34,8 @@ public interface MakeMetaModelSchedulerMapper {
 	int updateLearningDndDt(Map<String, Object> checkParams);
 
 	boolean checkStatus(@Param("model_seq") int modelSeq, @Param("model_status") String status);
+
+    List<Map<String, Object>> getMakeModelDoingListAll();
+
+	List<Map<String, Object>> getMakeModelDoingToWaitListAll();
 }

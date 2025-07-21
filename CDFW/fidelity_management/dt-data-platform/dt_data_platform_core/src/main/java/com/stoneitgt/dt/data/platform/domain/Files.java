@@ -35,6 +35,8 @@ public class Files {
     // 파일 크기 
     private long fileSz;
 
+    private String changedFileSize;
+
     // 파일 길이 
     private int fileLen;
 
@@ -94,7 +96,8 @@ public class Files {
 	private String loginUserIp;
 	private String loginUserId;
 	private int modelSeq;
+    private int etcModelSeq;
 	private String pprcsTp;
 	
-	
+	private String fileSzSrt;
 }

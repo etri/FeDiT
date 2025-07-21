@@ -1,21 +1,9 @@
 package com.stoneitgt.common;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
-
 public class GlobalConstant {
     public static final String SESSION_ADMIN_KEY = "ss_admin";
     public static final String SESSION_USER_KEY = "ss_user";
-    public static List<Map<String, Object>> ALLOWED_IP_ADDRESS = new ArrayList<>();
     public static final String[] BLACK_ID_LIST = {"admin", "super", "root"};
-
-    public static final class PAGE_SIZE {
-        public static final int DEFAULT_SIZE = 10;
-        public static final int MYPAGE_HISTORY = 5;
-    }
 
     public static final class API_STATUS {
         public static final int SUCCESS = 200;
@@ -50,13 +38,11 @@ public class GlobalConstant {
         public static final String AUGMENT = "augment";
         public static final String ONETIME = "onetime";
         public static final String CYCLE = "cycle";
-    }
 
-    public static final class PLAN_USER_STATUS {
-        public static final String REGISTER = "A";
-        public static final String APPROVE = "B";
-        public static final String CERTIFICATE = "C";
-        public static final String CANCEL = "F";
-        public static final String ATTEND = "G";
+        public static final class XAI {
+            public static final String PLOT = "plot";
+            public static final String WATERFALL = "waterfall";
+            public static final String BAR = "bar";
+        }
     }
 }

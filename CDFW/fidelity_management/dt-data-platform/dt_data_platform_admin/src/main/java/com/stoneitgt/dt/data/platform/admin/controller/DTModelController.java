@@ -1,15 +1,11 @@
 package com.stoneitgt.dt.data.platform.admin.controller;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.*;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stoneitgt.common.GlobalConstant;
+import com.stoneitgt.common.GlobalConstant.FILE_REF_TYPE;
 import com.stoneitgt.dt.data.platform.admin.properties.SystemProperties;
 import com.stoneitgt.dt.data.platform.admin.service.*;
 import com.stoneitgt.dt.data.platform.domain.*;
@@ -18,6 +14,8 @@ import com.stoneitgt.dt.data.platform.util.*;
 import com.stoneitgt.dt.data.platform.util.file.FileReader;
 import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 import com.stoneitgt.dt.data.platform.util.file.FileWriter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.map.HashedMap;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -25,24 +23,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.*;
 
-import lombok.extern.slf4j.Slf4j;
-
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stoneitgt.common.GlobalConstant;
-import com.stoneitgt.common.GlobalConstant.FILE_REF_TYPE;
-import com.stoneitgt.dt.data.platform.admin.config.WebConfig;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Controller
@@ -71,70 +59,10 @@ public class DTModelController extends BaseController {
     private DTSimulationService dtSimulationService;
 
     @Autowired
-    private APIService apiService;
-
-    /**
-     * getModelList(), getSharedModelList() 한세트
-     */
-    @GetMapping("/preprocess/list")
-    public String getPreprocessModelList(@ModelAttribute BaseParameter params, Model model, HttpServletRequest request, HttpServletResponse response) {
-        log.info("params -> {}", params);
-        log.info("model -> {}", model);
-        Paging paging = new Paging();
-        paging.setPage(params.getPage());
-        paging.setSize(params.getSize());
-
-        Map<String, Object> paramsMap = StoneUtil.convertObjectToMap(params);
-
-        List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
-        if (authenticationFacade.getAuth().equals("AU00")) {
-            list = dtModelService.getDTModelList(paramsMap, paging);
-        } else {
-            paramsMap.put("user_seq", authenticationFacade.getLoginUserSeq());
-            list = dtModelService.getDTModelListSetUserSeq(paramsMap, paging);
-        }
-
-        for (Map<String, Object> map : list) {
-            ErrorLog errorLog = errorService.getErrorLog(Integer.parseInt(map.get("model_seq").toString()), "Make Data Twin Model");
-            if (errorLog != null) {
-                map.put("ERR_TP", errorLog.getErrTp());
-                map.put("ERR_CD", errorLog.getErrCd());
-                map.put("ERR_NM", errorLog.getErrNm());
-                map.put("ERR_LCT", errorLog.getErrLct());
-                map.put("ERR_CN", errorLog.getErrCn());
-                map.put("ERRREGDT", errorLog.getRegDt());
-            } else {
-                map.put("ERR_TP", "PLATFORM");
-                map.put("ERR_CD", "500");
-                map.put("ERR_NM", "INTERNAL_SERVER_ERROR");
-                map.put("ERR_LCT", "Make Data Twin Model");
-                map.put("ERR_CN", "java.lang.RuntimeException");
-                map.put("ERRREGDT", "날짜 미정");
-            }
-        }
-
-        model.addAttribute("list", list);
-        model.addAttribute("paging", StoneUtil.setTotalPaging(list, paging));
-        model.addAttribute("params", params);
-
-        Paging subPaging = new Paging();
-        subPaging.setPage(params.getSubPage());
-        subPaging.setSize(params.getSubSize());
-        Map<String, Object> subParamsMap = StoneUtil.convertObjectToMap(params);
-        List<Map<String, Object>> share_list = dtModelService.getDTModelSharedList(subParamsMap, subPaging);
-
-        model.addAttribute("share_list", share_list);
-        model.addAttribute("subPaging", StoneUtil.setTotalPaging(share_list, subPaging));
-        model.addAttribute("subParams", params);
-
-        model.addAttribute("pageParams", getBaseParameterString(params));
-        model.addAttribute("breadcrumb", getBreadcrumb(params.getMenuCd()));
-        return "pages/dt_model/preprocess-list";
-    }
+    private MakeMetaModelSchedulerService makeMetaModelSchedulerService;
 
     @GetMapping("/model/list")
     public String getModelList(@ModelAttribute BaseParameter params, Model model, HttpServletRequest request, HttpServletResponse response) {
-        log.info("getModelList params -> {}, model -> {}", params, model);
         Paging paging = new Paging();
         paging.setPage(params.getPage());
         paging.setSize(params.getSize());
@@ -151,6 +79,14 @@ public class DTModelController extends BaseController {
         }
 
         for (Map<String, Object> map : list) {
+            Map<String, Object> checkParams = new HashedMap<String, Object>();
+            checkParams.put("model_seq", Integer.parseInt(map.get("model_seq").toString()));
+            List<Map<String, Object>> setMakeModelOutputColumns = makeMetaModelSchedulerService.setMakeModelOutputColumns(checkParams);
+            List<String> outputs = setMakeModelOutputColumns.stream().map(featureMap -> featureMap.get("model_col_nm").toString()).collect(Collectors.toList());
+            List<Map<String, Object>> setMakeModelFeatureColumns = makeMetaModelSchedulerService.setMakeModelFeatureColumns(checkParams);
+            List<String> features = setMakeModelFeatureColumns.stream().map(featureMap -> featureMap.get("model_col_nm").toString()).collect(Collectors.toList());
+            map.put("outputs", String.join(", ", outputs));
+            map.put("features", String.join(", ", features));
             ErrorLog errorLog = errorService.getErrorLog(Integer.parseInt(map.get("model_seq").toString()), "Make Data Twin Model");
             if (errorLog != null) {
                 map.put("ERR_TP", errorLog.getErrTp());
@@ -188,68 +124,8 @@ public class DTModelController extends BaseController {
         return "pages/dt_model/model-list";
     }
 
-    @GetMapping("/shared/preprocess/list")
-    public String getSharedPreprocessModelList(@ModelAttribute BaseParameter params, Model model, HttpServletRequest request, HttpServletResponse response) {
-        log.info("getSharedPreprocessModelList params -> {}, model -> {}", params, model);
-
-        Paging paging = new Paging();
-        paging.setPage(params.getPage());
-        paging.setSize(params.getSize());
-
-        Paging subPaging = new Paging();
-        subPaging.setPage(params.getSubPage());
-        subPaging.setSize(params.getSubSize());
-
-        Map<String, Object> paramsMap = StoneUtil.convertObjectToMap(params);
-        Map<String, Object> subParamsMap = StoneUtil.convertObjectToMap(params);
-
-        List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
-
-        if (authenticationFacade.getAuth().equals("AU00")) {
-            list = dtModelService.getDTModelList(subParamsMap, subPaging);
-        } else {
-            subParamsMap.put("user_seq", authenticationFacade.getLoginUserSeq());
-            list = dtModelService.getDTModelListSetUserSeq(subParamsMap, subPaging);
-        }
-
-        for (Map<String, Object> map : list) {
-            ErrorLog errorLog = errorService.getErrorLog(Integer.parseInt(map.get("model_seq").toString()), "Make Data Twin Model");
-            if (errorLog != null) {
-                map.put("ERR_TP", errorLog.getErrTp());
-                map.put("ERR_CD", errorLog.getErrCd());
-                map.put("ERR_NM", errorLog.getErrNm());
-                map.put("ERR_LCT", errorLog.getErrLct());
-                map.put("ERR_CN", errorLog.getErrCn());
-                map.put("ERRREGDT", errorLog.getRegDt());
-            } else {
-                map.put("ERR_TP", "PLATFORM");
-                map.put("ERR_CD", "500");
-                map.put("ERR_NM", "INTERNAL_SERVER_ERROR");
-                map.put("ERR_LCT", "Make Data Twin Model");
-                map.put("ERR_CN", "java.lang.RuntimeException");
-                map.put("ERRREGDT", "날짜 미정");
-            }
-        }
-        paramsMap.put("job_level", "P");
-        List<Map<String, Object>> share_list = dtModelService.getDTModelSharedListByJobLevel(paramsMap, paging);
-
-        model.addAttribute("share_list", list);
-        model.addAttribute("subPaging", StoneUtil.setTotalPaging(list, subPaging));
-        model.addAttribute("subParams", params);
-
-        model.addAttribute("list", share_list);
-        model.addAttribute("paging", StoneUtil.setTotalPaging(share_list, paging));
-        model.addAttribute("params", params);
-
-        model.addAttribute("pageParams", getBaseParameterString(params));
-        model.addAttribute("breadcrumb", getBreadcrumb(params.getMenuCd()));
-        return "pages/dt_model/shared-preprocess-list";
-    }
-
     @GetMapping("/shared/model/list")
     public String getSharedModelList(@ModelAttribute BaseParameter params, Model model, HttpServletRequest request, HttpServletResponse response) {
-        log.info("getSharedModelList params -> {}, model -> {}", params, model);
-
         Paging paging = new Paging();
         paging.setPage(params.getPage());
         paging.setSize(params.getSize());
@@ -271,6 +147,14 @@ public class DTModelController extends BaseController {
         }
 
         for (Map<String, Object> map : list) {
+            Map<String, Object> checkParams = new HashedMap<String, Object>();
+            checkParams.put("model_seq", Integer.parseInt(map.get("model_seq").toString()));
+            List<Map<String, Object>> setMakeModelOutputColumns = makeMetaModelSchedulerService.setMakeModelOutputColumns(checkParams);
+            List<String> outputs = setMakeModelOutputColumns.stream().map(featureMap -> featureMap.get("model_col_nm").toString()).collect(Collectors.toList());
+            List<Map<String, Object>> setMakeModelFeatureColumns = makeMetaModelSchedulerService.setMakeModelFeatureColumns(checkParams);
+            List<String> features = setMakeModelFeatureColumns.stream().map(featureMap -> featureMap.get("model_col_nm").toString()).collect(Collectors.toList());
+            map.put("outputs", String.join(", ", outputs));
+            map.put("features", String.join(", ", features));
             ErrorLog errorLog = errorService.getErrorLog(Integer.parseInt(map.get("model_seq").toString()), "Make Data Twin Model");
             if (errorLog != null) {
                 map.put("ERR_TP", errorLog.getErrTp());
@@ -289,6 +173,32 @@ public class DTModelController extends BaseController {
             }
         }
         List<Map<String, Object>> share_list = dtModelService.getDTAllSharedList(paramsMap, paging);
+        for (Map<String, Object> map : share_list) {
+            Map<String, Object> checkParams = new HashedMap<String, Object>();
+            checkParams.put("model_seq", Integer.parseInt(map.get("model_seq").toString()));
+            List<Map<String, Object>> setMakeModelOutputColumns = makeMetaModelSchedulerService.setMakeModelOutputColumns(checkParams);
+            List<String> outputs = setMakeModelOutputColumns.stream().map(featureMap -> featureMap.get("model_col_nm").toString()).collect(Collectors.toList());
+            List<Map<String, Object>> setMakeModelFeatureColumns = makeMetaModelSchedulerService.setMakeModelFeatureColumns(checkParams);
+            List<String> features = setMakeModelFeatureColumns.stream().map(featureMap -> featureMap.get("model_col_nm").toString()).collect(Collectors.toList());
+            map.put("outputs", String.join(", ", outputs));
+            map.put("features", String.join(", ", features));
+            ErrorLog errorLog = errorService.getErrorLog(Integer.parseInt(map.get("model_seq").toString()), "Make Data Twin Model");
+            if (errorLog != null) {
+                map.put("ERR_TP", errorLog.getErrTp());
+                map.put("ERR_CD", errorLog.getErrCd());
+                map.put("ERR_NM", errorLog.getErrNm());
+                map.put("ERR_LCT", errorLog.getErrLct());
+                map.put("ERR_CN", errorLog.getErrCn());
+                map.put("ERRREGDT", errorLog.getRegDt());
+            } else {
+                map.put("ERR_TP", "PLATFORM");
+                map.put("ERR_CD", "500");
+                map.put("ERR_NM", "INTERNAL_SERVER_ERROR");
+                map.put("ERR_LCT", "Make Data Twin Model");
+                map.put("ERR_CN", "java.lang.RuntimeException");
+                map.put("ERRREGDT", "날짜 미정");
+            }
+        }
 
         model.addAttribute("share_list", list);
         model.addAttribute("subPaging", StoneUtil.setTotalPaging(list, subPaging));
@@ -313,10 +223,11 @@ public class DTModelController extends BaseController {
 
         Map<String, Object> param = StoneUtil.convertObjectToMap(params);
         model.addAttribute("formType", "I");
+        model.addAttribute("share", false);
         int limit = systemProperties.getLimitCsvRowCount();
         model.addAttribute("limit", limit);
 
-        //TB_MODEL_META_ITEM
+        //TB_META_MODEL_ITEM
         List<Map<String, Object>> algorithm_list = dtModelService.getAlgolithmList();
         model.addAttribute("algorithm_list", algorithm_list);
 
@@ -326,8 +237,8 @@ public class DTModelController extends BaseController {
         model.addAttribute("interp_type_list", getCodeList2("INTERP_TYPE", false));
         model.addAttribute("resamp_type_list", getCodeList("RESAMP_TYPE", false));
         model.addAttribute("unit_type_list", getCodeList("UNIT_TYPE", false));
-
         model.addAttribute("valid_mater_list", getCodeList("VERIFY_TYPE", false));
+
         if (authenticationFacade.getAuth().equals("AU00")) {
             model.addAttribute("GRANT", true);
         } else {
@@ -338,65 +249,7 @@ public class DTModelController extends BaseController {
                 model.addAttribute("GRANT", true);
             }
         }
-        return "pages/dt_model/form";
-    }
-
-    /**
-     * modelView(), sharedModelView() 한세트
-     */
-    @GetMapping("/preprocess/{modelSeq}")
-    public String preprocessModelView(@PathVariable int modelSeq, @ModelAttribute BaseParameter params, Model model) throws Exception {
-        DTModel dtModel = new DTModel();
-        DTModelMetaUserItem dtModelMetaUserItem = new DTModelMetaUserItem();
-
-        //TB_MODEL_META_ITEM
-        List<Map<String, Object>> algorithm_list = dtModelService.getAlgolithmList();
-        model.addAttribute("algorithm_list", algorithm_list);
-
-        model.addAttribute("menuCd", params.getMenuCd());
-
-        model.addAttribute("breadcrumb", getBreadcrumb(params.getMenuCd()));
-        model.addAttribute("formType", "U");
-
-        dtModel = dtModelService.selectMetaModel(modelSeq);
-        dtModelMetaUserItem = dtModelService.selectMetaUserItem(modelSeq);
-
-        Files files = dtModelService.getDtPreprocLastFile(modelSeq);
-
-        model.addAttribute("dtModel", dtModel);
-        model.addAttribute("dtModelMetaUserItem", dtModelMetaUserItem);
-        model.addAttribute("dtModelMetaUserItem", dtModelMetaUserItem);
-        model.addAttribute("lastFilePath", files.getFilePath());
-
-        if ("DONE".equals(dtModel.getModelStatus())) {
-            List<Map<String, Object>> list_loss = dtModelService.getModelLossList(modelSeq);
-            List<Map<String, Object>> list_fid = dtModelService.getModelFIDList(modelSeq);
-
-            model.addAttribute("list_loss", list_loss);
-            model.addAttribute("list_fid", list_fid);
-
-            List<Map<String, Object>> predictionFileList = getDtMetaFileList(FILE_REF_TYPE.PREDICTION, modelSeq);
-            model.addAttribute("predictionFileList", predictionFileList);
-            model.addAttribute("predictionFileListCount", predictionFileList.size());
-            model.addAttribute("pathLength", systemProperties.getDtMetaFilePath().length());
-        } else if (Objects.equals("FAIL", dtModel.getModelStatus())) {
-            /**
-             * 해당 모델과 관련된 에러 최신 로그 가져오기
-             * */
-            ErrorLog errorLog = errorService.getErrorLog(dtModel.getModelSeq(), "Make Data Twin Model");
-            log.info("errorLog -> {}", errorLog);
-            model.addAttribute("errorLog", errorLog);
-        }
-        if (authenticationFacade.getAuth().equals("AU00")) {
-            model.addAttribute("GRANT", true);
-        } else {
-            if (authenticationFacade.getLoginUserSeq() == dtModel.getRegUserSeq()) {
-                model.addAttribute("GRANT", true);
-            } else {
-                model.addAttribute("GRANT", false);
-            }
-        }
-        return "pages/dt_model/form";
+        return "pages/dt_model/platform_form";
     }
 
     @GetMapping("/model/{modelSeq}")
@@ -404,7 +257,7 @@ public class DTModelController extends BaseController {
         DTModel dtModel = new DTModel();
         DTModelMetaUserItem dtModelMetaUserItem = new DTModelMetaUserItem();
 
-        //TB_MODEL_META_ITEM
+        //TB_META_MODEL_ITEM
         List<Map<String, Object>> algorithm_list = dtModelService.getAlgolithmList();
         model.addAttribute("algorithm_list", algorithm_list);
 
@@ -412,6 +265,7 @@ public class DTModelController extends BaseController {
 
         model.addAttribute("breadcrumb", getBreadcrumb(params.getMenuCd()));
         model.addAttribute("formType", "U");
+        model.addAttribute("share", false);
 
         dtModel = dtModelService.selectMetaModel(modelSeq);
         dtModelMetaUserItem = dtModelService.selectMetaUserItem(modelSeq);
@@ -420,8 +274,8 @@ public class DTModelController extends BaseController {
 
         model.addAttribute("dtModel", dtModel);
         model.addAttribute("dtModelMetaUserItem", dtModelMetaUserItem);
-        model.addAttribute("dtModelMetaUserItem", dtModelMetaUserItem);
         model.addAttribute("lastFilePath", files.getFilePath());
+        model.addAttribute("dataFile", files);
 
         if ("DONE".equals(dtModel.getModelStatus())) {
             List<Map<String, Object>> list_loss = dtModelService.getModelLossList(modelSeq);
@@ -430,9 +284,22 @@ public class DTModelController extends BaseController {
             model.addAttribute("list_loss", list_loss);
             model.addAttribute("list_fid", list_fid);
 
-            List<Map<String, Object>> predictionFileList = getDtMetaFileList(FILE_REF_TYPE.PREDICTION, modelSeq);
+            List<Map<String, Object>> predictionFileList = filesService.getDtMetaFileList(FILE_REF_TYPE.PREDICTION, modelSeq);
             model.addAttribute("predictionFileList", predictionFileList);
             model.addAttribute("predictionFileListCount", predictionFileList.size());
+
+            List<Map<String, Object>> plotFileList = filesService.getDtMetaFileList(FILE_REF_TYPE.XAI.PLOT, modelSeq);
+            model.addAttribute("plotFileList", plotFileList);
+            model.addAttribute("plotFileListCount", plotFileList.size());
+
+            List<Map<String, Object>> waterfallFileList = filesService.getDtMetaFileList(FILE_REF_TYPE.XAI.WATERFALL, modelSeq);
+            model.addAttribute("waterfallFileList", waterfallFileList);
+            model.addAttribute("waterfallFileListCount", waterfallFileList.size());
+
+            List<Map<String, Object>> barFileList = filesService.getDtMetaFileList(FILE_REF_TYPE.XAI.BAR, modelSeq);
+            model.addAttribute("barFileList", barFileList);
+            model.addAttribute("barFileListCount", barFileList.size());
+
             model.addAttribute("pathLength", systemProperties.getDtMetaFilePath().length());
         } else if (Objects.equals("FAIL", dtModel.getModelStatus())) {
             ErrorLog errorLog = errorService.getErrorLog(dtModel.getModelSeq(), "Make Data Twin Model");
@@ -448,7 +315,7 @@ public class DTModelController extends BaseController {
                 model.addAttribute("GRANT", false);
             }
         }
-        return "pages/dt_model/form";
+        return "pages/dt_model/platform_form";
     }
 
     @GetMapping("/shared/preprocess/{modelSeq}")
@@ -456,7 +323,7 @@ public class DTModelController extends BaseController {
         DTModel dtModel = new DTModel();
         DTModelMetaUserItem dtModelMetaUserItem = new DTModelMetaUserItem();
 
-        //TB_MODEL_META_ITEM
+        //TB_META_MODEL_ITEM
         List<Map<String, Object>> algorithm_list = dtModelService.getAlgolithmList();
         model.addAttribute("algorithm_list", algorithm_list);
 
@@ -482,9 +349,22 @@ public class DTModelController extends BaseController {
             model.addAttribute("list_loss", list_loss);
             model.addAttribute("list_fid", list_fid);
 
-            List<Map<String, Object>> predictionFileList = getDtMetaFileList(FILE_REF_TYPE.PREDICTION, modelSeq);
+            List<Map<String, Object>> predictionFileList = filesService.getDtMetaFileList(FILE_REF_TYPE.PREDICTION, modelSeq);
             model.addAttribute("predictionFileList", predictionFileList);
             model.addAttribute("predictionFileListCount", predictionFileList.size());
+
+            List<Map<String, Object>> plotFileList = filesService.getDtMetaFileList(FILE_REF_TYPE.XAI.PLOT, modelSeq);
+            model.addAttribute("plotFileList", plotFileList);
+            model.addAttribute("plotFileListCount", plotFileList.size());
+
+            List<Map<String, Object>> waterfallFileList = filesService.getDtMetaFileList(FILE_REF_TYPE.XAI.WATERFALL, modelSeq);
+            model.addAttribute("waterfallFileList", waterfallFileList);
+            model.addAttribute("waterfallFileListCount", waterfallFileList.size());
+
+            List<Map<String, Object>> barFileList = filesService.getDtMetaFileList(FILE_REF_TYPE.XAI.BAR, modelSeq);
+            model.addAttribute("barFileList", barFileList);
+            model.addAttribute("barFileListCount", barFileList.size());
+
             model.addAttribute("pathLength", systemProperties.getDtMetaFilePath().length());
         } else if (Objects.equals("FAIL", dtModel.getModelStatus())) {
             /**
@@ -503,7 +383,7 @@ public class DTModelController extends BaseController {
                 model.addAttribute("GRANT", false);
             }
         }
-        return "pages/dt_model/form";
+        return "pages/dt_model/platform_form";
     }
 
     @GetMapping("/shared/model/{modelSeq}")
@@ -511,7 +391,7 @@ public class DTModelController extends BaseController {
         DTModel dtModel = new DTModel();
         DTModelMetaUserItem dtModelMetaUserItem = new DTModelMetaUserItem();
 
-        //TB_MODEL_META_ITEM
+        //TB_META_MODEL_ITEM
         List<Map<String, Object>> algorithm_list = dtModelService.getAlgolithmList();
         model.addAttribute("algorithm_list", algorithm_list);
 
@@ -519,6 +399,7 @@ public class DTModelController extends BaseController {
 
         model.addAttribute("breadcrumb", getBreadcrumb(params.getMenuCd()));
         model.addAttribute("formType", "U");
+        model.addAttribute("share", true);
 
         dtModel = dtModelService.selectMetaModel(modelSeq);
         dtModelMetaUserItem = dtModelService.selectMetaUserItem(modelSeq);
@@ -527,8 +408,8 @@ public class DTModelController extends BaseController {
 
         model.addAttribute("dtModel", dtModel);
         model.addAttribute("dtModelMetaUserItem", dtModelMetaUserItem);
-        model.addAttribute("dtModelMetaUserItem", dtModelMetaUserItem);
         model.addAttribute("lastFilePath", files.getFilePath());
+        model.addAttribute("dataFile", files);
 
         if ("DONE".equals(dtModel.getModelStatus())) {
             List<Map<String, Object>> list_loss = dtModelService.getModelLossList(modelSeq);
@@ -537,9 +418,22 @@ public class DTModelController extends BaseController {
             model.addAttribute("list_loss", list_loss);
             model.addAttribute("list_fid", list_fid);
 
-            List<Map<String, Object>> predictionFileList = getDtMetaFileList(FILE_REF_TYPE.PREDICTION, modelSeq);
+            List<Map<String, Object>> predictionFileList = filesService.getDtMetaFileList(FILE_REF_TYPE.PREDICTION, modelSeq);
             model.addAttribute("predictionFileList", predictionFileList);
             model.addAttribute("predictionFileListCount", predictionFileList.size());
+
+            List<Map<String, Object>> plotFileList = filesService.getDtMetaFileList(FILE_REF_TYPE.XAI.PLOT, modelSeq);
+            model.addAttribute("plotFileList", plotFileList);
+            model.addAttribute("plotFileListCount", plotFileList.size());
+
+            List<Map<String, Object>> waterfallFileList = filesService.getDtMetaFileList(FILE_REF_TYPE.XAI.WATERFALL, modelSeq);
+            model.addAttribute("waterfallFileList", waterfallFileList);
+            model.addAttribute("waterfallFileListCount", waterfallFileList.size());
+
+            List<Map<String, Object>> barFileList = filesService.getDtMetaFileList(FILE_REF_TYPE.XAI.BAR, modelSeq);
+            model.addAttribute("barFileList", barFileList);
+            model.addAttribute("barFileListCount", barFileList.size());
+
             model.addAttribute("pathLength", systemProperties.getDtMetaFilePath().length());
         } else if (Objects.equals("FAIL", dtModel.getModelStatus())) {
             /**
@@ -558,232 +452,7 @@ public class DTModelController extends BaseController {
                 model.addAttribute("GRANT", false);
             }
         }
-        return "pages/dt_model/form";
-    }
-
-    @PostMapping(value = "/csvFileUpload")
-    @ResponseBody
-    public Map<String, Object> csvFileUpload(@ModelAttribute AugmentModel augmentModel, HttpServletRequest request) throws Exception {
-        Map<String, Object> result = new HashMap<>();
-        Map<String, Object> param = new HashMap<>();
-        //modal 에서 선택한 인덱스컬럼, 시간값을 python 에 보낸 후 가상으로 셀렉트 해온 데이터를 생성, 파일명은 java에서 우선 보냄
-
-        log.info("csvFileUpload augmentModel -> {}", augmentModel);
-
-        String user_tmp_key = WebConfig.getSessionInfo().getUserId() + currentTimeMillis();
-        if (augmentModel.getAttachFilesCsv() != null && augmentModel.getAttachFilesCsv().size() > 0) {
-            MultipartFile attachFile = augmentModel.getAttachFilesCsv().get(0);
-            param = filesService.saveNewDtFiles(attachFile, user_tmp_key);
-        }
-
-        param.put("user_tmp_key", user_tmp_key);
-        ResponseEntity<?> resultOriginFileSet = dtModelApiService.makeUserUploadBaseDataFile(param);
-
-        //결과 json을 먼저 풀고
-        Map<String, Object> resultJson = extractDataKeyValues(resultOriginFileSet);
-        //csv를 읽어들인다
-        //가져올 갯수 0은 전체, 나머지는 환경세팅에서
-        int limit = systemProperties.getLimitCsvRowCount();
-        FileReader fileReader = FileReader.getInstance();
-        Map<String, Object> resultCsv = fileReader.readCSV(resultJson.get("file_path") + File.separator + resultJson.get("file_name"));
-
-        result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-        result.put("base_dir", resultJson.get("base_dir").toString());
-        result.put("file_name", resultJson.get("file_name").toString());
-        result.put("file_path", resultJson.get("file_path").toString());
-        result.put("header_list", resultCsv.get("header_list"));
-        result.put("data_list", resultCsv.get("data_list"));
-        result.put("target_row_count", limit);
-        return result;
-    }
-
-    @PostMapping(value = "/getBaseData")
-    @ResponseBody
-    public Map<String, Object> getBaseData(@RequestBody Map<String, Object> param) throws Exception {
-        Map<String, Object> result = new HashMap<>();
-        //modal 에서 선택한 인덱스컬럼, 시간값을 python 에 보낸 후 가상으로 셀렉트 해온 데이터를 생성, 파일명은 java에서 우선 보냄
-
-        param.put("user_tmp_key", WebConfig.getSessionInfo().getUserId() + currentTimeMillis());
-        ResponseEntity<?> resultOriginFileSet = dtModelApiService.makeBaseDataFile(param);
-
-        //결과 json을 먼저 풀고
-        Map<String, Object> resultJson = extractDataKeyValues(resultOriginFileSet);
-
-        //csv를 읽어들인다
-        //가져올 갯수 0은 전체, 나머지는 환경세팅에서
-        int limit = systemProperties.getLimitCsvRowCount();
-        FileReader fileReader = FileReader.getInstance();
-        Map<String, Object> resultCsv = fileReader.readCSVWithLimit(resultJson.get("file_path") + File.separator + resultJson.get("file_name"), limit);
-
-        result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-        result.put("base_dir", resultJson.get("base_dir").toString());
-        result.put("file_name", resultJson.get("file_name").toString());
-        result.put("file_path", resultJson.get("file_path").toString());
-        result.put("header_list", resultCsv.get("header_list"));
-        result.put("data_list", resultCsv.get("data_list"));
-
-        return result;
-    }
-
-    @PostMapping(value = "/checkIndexTimeColumn")
-    @ResponseBody
-    public Map<String, Object> checkIndexTimeColumn(@RequestBody Map<String, Object> param) throws Exception {
-        Map<String, Object> result = new HashMap<>();
-        log.info("checkIndexTimeColumn param : " + param.toString());
-        ResponseEntity<?> checkIndexTimeColumn = dtModelApiService.checkIndexTimeColumn(param);
-
-        String responseBody = checkIndexTimeColumn.getBody().toString();
-
-        // JSON 문자열을 Map으로 변환
-        ObjectMapper objectMapper = new ObjectMapper();
-        Map<String, Object> responseMap = objectMapper.readValue(responseBody, Map.class);
-
-        // 결과를 저장할 Map 생성
-        result.put("data", responseMap);
-        result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-        return result;
-    }
-
-    @PostMapping(value = "/getBaseDataSetRangeRow")
-    @ResponseBody
-    public Map<String, Object> getBaseDataSetRangeRow(@RequestBody Map<String, Object> param) throws Exception {
-        Map<String, Object> result = new HashMap<>();
-        ResponseEntity<?> resultBaseDataSetRangeRow = dtModelApiService.makeBaseDataSetRangeRow(param);
-
-        //결과 json을 먼저 풀고
-        Map<String, Object> resultJson = extractDataKeyValues(resultBaseDataSetRangeRow);
-
-        //csv를 읽어들인다
-        //가져올 갯수 0은 전체, 나머지는 환경세팅에서
-        FileReader fileReader = FileReader.getInstance();
-        Map<String, Object> resultCsv = fileReader.readCSV(resultJson.get("file_path") + File.separator + resultJson.get("base_file_nm_set_range_row"));
-
-        result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-
-        result.put("index_trgt_col", resultJson.get("index_trgt_col").toString());
-        result.put("target_start_date", resultJson.get("target_start_date").toString());
-        result.put("target_end_date", resultJson.get("target_end_date").toString());
-        result.put("target_row_count", resultJson.get("target_row_count").toString());
-        result.put("base_file_nm_set_range_row", resultJson.get("base_file_nm_set_range_row").toString());
-        result.put("header_list", resultCsv.get("header_list"));
-        result.put("data_list", resultCsv.get("data_list"));
-
-        return result;
-    }
-
-    @PostMapping(value = "/getBaseDataSetRangeCol")
-    @ResponseBody
-    public Map<String, Object> getBaseDataSetRangeCol(@RequestBody Map<String, Object> param) throws Exception {
-        Map<String, Object> result = new HashMap<>();
-        Map<String, Object> paramSet = propertyJsonParsingInfo(param.get("param").toString());
-        paramSet.put("form_type", param.get("form_type").toString());
-        paramSet.put("last_file_path", param.get("last_file_path").toString());
-        try {
-            ResponseEntity<?> resultBaseDataSetRangeCol = dtModelApiService.makeBaseDataSetRangeCol(paramSet);
-
-            //결과 json을 먼저 풀고
-            Map<String, Object> resultJson = extractDataKeyValues(resultBaseDataSetRangeCol);
-            FileReader fileReader = FileReader.getInstance();
-            Map<String, Object> resultCsv = fileReader.readCSV(resultJson.get("file_path") + File.separator + resultJson.get("base_file_nm_set_range_col"));
-
-            result.put("base_file_nm_set_range_col", resultJson.get("preproc_trgt_col").toString());
-            result.put("base_file_nm_set_range_col", resultJson.get("base_file_nm_set_range_col").toString());
-            result.put("header_list", resultCsv.get("header_list"));
-            result.put("data_list", resultCsv.get("data_list"));
-            result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-        } catch (Exception e) {
-            e.printStackTrace();
-            /**
-             * 에러 타입 errTp
-             * 에러코드 errCd
-             * 에러이름 errNm
-             * 에러영역 errLct
-             * 에러 날짜 errRegDt
-             * 에러 내용 errCn
-             * */
-            result.put("result_code", GlobalConstant.API_STATUS.FAIL);
-            result.put("errTp", "PLATFORM");
-            result.put("errCd", GlobalConstant.API_STATUS.INTERNAL_SERVER_ERROR);
-            result.put("errNm", "INTERNAL_SERVER_ERROR");
-            result.put("errLct", "BaseDataSetRangeCol");
-            result.put("errRegDt", TimeUtil.getCurrentDateTime());
-            result.put("errCn", e.getMessage());
-        }
-        return result;
-    }
-
-    @PostMapping(value = "/getDataSetInfo")
-    @ResponseBody
-    public Map<String, Object> getDataSetInfo(@RequestBody Map<String, Object> param) throws Exception {
-        Map<String, Object> result = new HashMap<>();
-
-        try {
-            ResponseEntity<?> resultDataSetColumnListInfo = dtModelApiService.getDataSetColumnListInfo(param);
-            if (param.get("proc_type") != null && "outlier".equals(param.get("proc_type"))) {
-                Map<String, Object> etcParams = new HashMap<String, Object>();
-                etcParams.put("session_userseq", String.valueOf(authenticationFacade.getLoginUserSeq()));
-                List<Map<String, Object>> etc_outlier_list = dtEtcModelService.getEtcAEModelList(etcParams);
-                result.put("etc_outlier_list", etc_outlier_list);
-            }
-
-            if (param.get("proc_type") != null && "interpolate".equals(param.get("proc_type"))) {
-                Map<String, Object> etcParams = new HashMap<String, Object>();
-                etcParams.put("session_userseq", String.valueOf(authenticationFacade.getLoginUserSeq()));
-                List<Map<String, Object>> etc_interpolate_list = new ArrayList<>();
-
-                List<Map<String, Object>> etc_rf_interpolate_list = dtEtcModelService.getEtcRFModelList(etcParams);
-                for (Map<String, Object> map : etc_rf_interpolate_list) {
-                    DTModelEtcMetaUserItem item = dtEtcModelService.selectMetaUserItem(Integer.parseInt(map.get("etc_model_seq").toString()));
-                    map.put("user_pprcs_full_stng_value", item.getUserPprcsFullStngValue());
-                }
-
-                // etc_rf_interpolate_list를 etc_interpolate_list에 추가
-                etc_interpolate_list.addAll(etc_rf_interpolate_list);
-
-                List<Map<String, Object>> etc_brits_interpolate_list = dtEtcModelService.getEtcBritsModelList(etcParams);
-                for (Map<String, Object> map : etc_brits_interpolate_list) {
-                    DTModelEtcMetaUserItem item = dtEtcModelService.selectMetaUserItem(Integer.parseInt(map.get("etc_model_seq").toString()));
-                    map.put("user_pprcs_full_stng_value", item.getUserPprcsFullStngValue());
-                }
-
-                // etc_brits_interpolate_list를 etc_interpolate_list에 추가
-                etc_interpolate_list.addAll(etc_brits_interpolate_list);
-
-                // etc_naomi_interpolate_list를 etc_interpolate_list에 추가
-                List<Map<String, Object>> etc_naomi_interpolate_list = dtEtcModelService.getEtcNaomiModelList(etcParams);
-                for (Map<String, Object> map : etc_naomi_interpolate_list) {
-                    DTModelEtcMetaUserItem item = dtEtcModelService.selectMetaUserItem(Integer.parseInt(map.get("etc_model_seq").toString()));
-                    map.put("user_pprcs_full_stng_value", item.getUserPprcsFullStngValue());
-                }
-
-                // etc_brits_interpolate_list를 etc_interpolate_list에 추가
-                etc_interpolate_list.addAll(etc_naomi_interpolate_list);
-
-                result.put("etc_interpolate_list", etc_interpolate_list);
-            }
-
-            result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-            result.put("data", resultDataSetColumnListInfo.getBody());
-        } catch (Exception e) {
-            e.printStackTrace();
-            /**
-             * 에러 타입 errTp
-             * 에러코드 errCd
-             * 에러이름 errNm
-             * 에러영역 errLct
-             * 에러 날짜 errRegDt
-             * 에러 내용 errCn
-             * */
-            result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-            result.put("result_code", GlobalConstant.API_STATUS.FAIL);
-            result.put("errTp", "PLATFORM");
-            result.put("errCd", GlobalConstant.API_STATUS.INTERNAL_SERVER_ERROR);
-            result.put("errNm", "INTERNAL_SERVER_ERROR");
-            result.put("errLct", "DataSet Info");
-            result.put("errRegDt", TimeUtil.getCurrentDateTime());
-            result.put("errCn", e.getMessage());
-        }
-        return result;
+        return "pages/dt_model/platform_form";
     }
 
     @PostMapping("/make/select_valid_detail_tp")
@@ -830,7 +499,7 @@ public class DTModelController extends BaseController {
         Map<String, Object> setParam = new HashMap<String, Object>();
         setParam.put("file_path", file_path);
         setParam.put("file_name", file_name);
-        setParam.put("target_file_name", StringUtil.changeFileName(file_name.toString(), "_" + currentTimeMillis()));
+        setParam.put("target_file_name", StringUtil.changeFileName(file_name.toString(), "_" + TimeUtil.getCurrentTimeMillis()));
 
         setParam.put("vrfc_trgt_col", params.get("verifyColumn").toString());
 
@@ -921,7 +590,7 @@ public class DTModelController extends BaseController {
         Map<String, Object> setParam = new HashMap<String, Object>();
         setParam.put("file_path", file_path);
         setParam.put("file_name", file_name);
-        setParam.put("target_file_name", params.get("file_path").toString() + "_" + currentTimeMillis() + ".csv");
+        setParam.put("target_file_name", params.get("file_path").toString() + "_" + TimeUtil.getCurrentTimeMillis() + ".csv");
         setParam.put("vrfc_trgt_col", params.get("verifyColumn").toString());
 
         Map<String, Object> verify_option = verifyService.getVerifyOption(Integer.parseInt(params.get("verifyType").toString()));
@@ -1013,6 +682,7 @@ public class DTModelController extends BaseController {
             result.put("code", GlobalConstant.API_STATUS.SUCCESS);
             result.put("data", validSet.getBody());
             result.put("param", resultJson);
+            result.put("fileResult", resultJson);
             result.put("header_list", resultCsv.get("header_list"));
             result.put("data_list", resultCsv.get("data_list"));
             result.put("removed_count", resultCsv.get("removed_count"));
@@ -1045,88 +715,108 @@ public class DTModelController extends BaseController {
     public Map<String, Object> getOutlierInfo(@RequestBody Map<String, Object> params) throws JsonParseException, JsonMappingException, IOException, ParseException {
         Map<String, Object> result = new HashMap<String, Object>();
 
-        Map<String, Object> correlationParam = new HashMap<String, Object>();
+        Map<String, Object> outlierParameters = new HashMap<String, Object>();
         if (params.get("file_path") != null) {
-            correlationParam.put("file", params.get("file_path").toString());
+            outlierParameters.put("file", params.get("file_path").toString());
         }
         if (params.get("index_target_col") != null) {
-            correlationParam.put("index_trgt_col", params.get("index_target_col").toString());
+            outlierParameters.put("index_trgt_col", params.get("index_target_col").toString());
         }
         if (params.get("outlier_target_col") != null) {
-            correlationParam.put("feature", params.get("outlier_target_col").toString());
+            outlierParameters.put("feature", params.get("outlier_target_col").toString());
         }
         if (params.get("freq") != null) {
-            correlationParam.put("freq", Integer.parseInt(params.get("freq").toString()));
+            outlierParameters.put("freq", Integer.parseInt(params.get("freq").toString()));
         }
         if (params.get("file_path") != null) {
-            correlationParam.put("file_path", systemProperties.getDtMetaFilePath() + "/tmp/" + params.get("file_path").toString());
+            outlierParameters.put("file_path", systemProperties.getDtMetaFilePath() + "/tmp/" + params.get("file_path").toString());
         }
         if (params.get("file_name") != null) {
-            correlationParam.put("file_name", params.get("file_name").toString());
+            outlierParameters.put("file_name", params.get("file_name").toString());
         }
         if (params.get("file_name") != null) {
-            correlationParam.put("target_file_name", params.get("file_name").toString());
+            outlierParameters.put("target_file_name", params.get("file_name").toString());
         }
 
-        correlationParam.put("isCreate", "N");
+        outlierParameters.put("isCreate", "N");
+
+        /**
+         * 날짜 형식 원본 복구
+         * */
+        String dateKey = params.get("index_target_col").toString();
+        String origin_file_path = (String) outlierParameters.get("file_path");
+        String origin_file_name = (String) outlierParameters.get("file_name");
+        Map<String, Object> prevResultCsv = FileReader.getInstance().readCSVWithLimit(origin_file_path + File.separator + origin_file_name, 10);
+        log.info("getOutlierInfo prevResultCsv -> {}", prevResultCsv);
+        List<String> originHeaders = (List<String>) prevResultCsv.get("header_list");
+        List<List<String>> originDatas = (List<List<String>>) prevResultCsv.get("data_list");
+        int dateIndex = MetaRelateUtil.findDateIndex(originHeaders, dateKey);
+        String dateFormat = null;
+        for (List<String> row : originDatas) {
+            String dateStr = row.get(dateIndex);
+            dateFormat = ConvertUtil.tryParseFindFormat(ConvertUtil.DATEFORMATS, dateStr);
+            if (dateFormat != null) {
+                break;
+            }
+        }
+
+        log.info("getOutlierInfo dateFormat -> {}", dateFormat);
 
         String outlier_type = params.get("outlier_type").toString();
 
-        ResponseEntity<?> correlationSet = null;
+        ResponseEntity<?> outlierSet = null;
 
         switch (outlier_type) {
             case "standard":
-                correlationParam.put("p_value", Float.parseFloat(params.get("p_value").toString()));
-                correlationSet = dtModelApiService.correlation(correlationParam, outlier_type);
+                outlierParameters.put("p_value", Float.parseFloat(params.get("p_value").toString()));
+                outlierSet = dtModelApiService.detectOutlier(outlierParameters, outlier_type);
                 break;
             case "kmean":
-                correlationParam.put("n_clusters", Integer.parseInt(params.get("n_clusters").toString()));
-                correlationParam.put("n_count", Integer.parseInt(params.get("n_count").toString()));
-                correlationParam.put("n_clusters_lable", 4);
-                correlationSet = dtModelApiService.correlation(correlationParam, outlier_type);
+                outlierParameters.put("n_clusters", Integer.parseInt(params.get("n_clusters").toString()));
+                outlierParameters.put("n_count", Integer.parseInt(params.get("n_count").toString()));
+                outlierParameters.put("n_clusters_lable", 4);
+                outlierSet = dtModelApiService.detectOutlier(outlierParameters, outlier_type);
                 break;
             case "dbscan":
-                correlationParam.put("eps", Float.parseFloat(params.get("eps").toString()));
-                correlationParam.put("min_samples", Integer.parseInt(params.get("min_samples").toString()));
-                correlationSet = dtModelApiService.correlation(correlationParam, outlier_type);
+                outlierParameters.put("eps", Float.parseFloat(params.get("eps").toString()));
+                outlierParameters.put("min_samples", Integer.parseInt(params.get("min_samples").toString()));
+                outlierSet = dtModelApiService.detectOutlier(outlierParameters, outlier_type);
                 break;
             case "autoencoder":
             case "AutoEncoder":
             case "auto encoder":
             case "Auto Encoder":
-                Map<String, Object> model_info = dtModelService.getEtcModelInfo(params);
+                Map<String, Object> outlier_model_info = dtModelService.getEtcModelInfo(params);
 
-                correlationParam.put("model_file_path", systemProperties.getDtEtcMetaFilePath() + model_info.get("file_path").toString());
-                correlationParam.put("model_file_name", model_info.get("file_nm").toString());
+                outlierParameters.put("model_file_path", systemProperties.getDtEtcMetaFilePath() + outlier_model_info.get("file_path").toString());
+                outlierParameters.put("model_file_name", outlier_model_info.get("file_nm").toString());
 
                 String[] output_cols = {params.get("outlier_target_col").toString()};
-                correlationParam.put("output_cols", output_cols);
-                correlationParam.put("window_size", Integer.parseInt(params.get("window_size").toString()));
-                correlationParam.put("threshold", Float.parseFloat(params.get("threshold").toString()));
-                correlationSet = dtModelApiService.correlation(correlationParam, outlier_type);
+                outlierParameters.put("output_cols", output_cols);
+                outlierParameters.put("window_size", Integer.parseInt(params.get("window_size").toString()));
+                outlierParameters.put("threshold", Float.parseFloat(params.get("threshold").toString()));
+                outlierSet = dtModelApiService.detectOutlier(outlierParameters, outlier_type);
                 break;
             default:
                 return null;
         }
 
-        log.info("correlationSet -> {}", correlationSet);
+        log.info("getOutlierInfo outlierSet -> {}", outlierSet);
 
-        JSONObject correlationObj = (JSONObject) new JSONParser().parse(correlationSet.getBody().toString());
-        log.info("correlationObj -> {}", correlationObj);
-        JsonNode jsonNode = new ObjectMapper().readTree(correlationSet.getBody().toString());
-        JsonNode histNode = jsonNode.path("data").path("hist");
-        JsonNode infoNode = jsonNode.path("data").path("info");
-        log.info("jsonNode -> {}", jsonNode);
+        JSONObject outlierJSONObject = (JSONObject) new JSONParser().parse(outlierSet.getBody().toString());
+        log.info("getOutlierInfo outlierJSONObject -> {}", outlierJSONObject);
         try {
+            JsonNode jsonNode = new ObjectMapper().readTree(outlierSet.getBody().toString());
+            JsonNode histNode = jsonNode.path("data").path("hist");
+            JsonNode infoNode = jsonNode.path("data").path("info");
             switch (outlier_type) {
                 case "standard":
                 case "auto encoder":
                 case "AUTO ENCODER":
                 case "AUTOENCODER":
                 case "autoencoder": {
-                    HashMap<String, Object> normalizeParams = dtModelApiService.makeDataNormalize(infoNode);
-                    log.info("normalizeParams -> {}", normalizeParams);
-                    if (Integer.parseInt(correlationObj.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
+                    HashMap<String, Object> normalizeParams = dtModelApiService.makeDataNormalize(infoNode, dateFormat);
+                    if (Integer.parseInt(outlierJSONObject.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
                         result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
                         result.put("hist", histNode.toString());
                         result.put("info", infoNode);
@@ -1137,9 +827,8 @@ public class DTModelController extends BaseController {
                     break;
                 }
                 case "kmean": {
-                    HashMap<String, Object> makeDataNormalizeKMean = dtModelApiService.makeDataNormalizeKMean(infoNode, "max");
-                    log.info("normalizeParams -> {}", makeDataNormalizeKMean);
-                    if (Integer.parseInt(correlationObj.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
+                    HashMap<String, Object> makeDataNormalizeKMean = dtModelApiService.makeDataNormalizeKMean(infoNode, "max", dateFormat);
+                    if (Integer.parseInt(outlierJSONObject.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
                         result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
                         result.put("info", infoNode);
                         List<String> headers = (List<String>) makeDataNormalizeKMean.get("headers");
@@ -1157,9 +846,8 @@ public class DTModelController extends BaseController {
                     break;
                 }
                 case "dbscan": {
-                    HashMap<String, Object> makeDataNormalizeDBSCAN = dtModelApiService.makeDataNormalizeDBSCAN(infoNode);
-                    log.info("normalizeParams -> {}", makeDataNormalizeDBSCAN);
-                    if (Integer.parseInt(correlationObj.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
+                    HashMap<String, Object> makeDataNormalizeDBSCAN = dtModelApiService.makeDataNormalizeDBSCAN(infoNode, dateFormat);
+                    if (Integer.parseInt(outlierJSONObject.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
                         result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
                         result.put("info", infoNode);
                         List<String> headers = (List<String>) makeDataNormalizeDBSCAN.get("headers");
@@ -1183,10 +871,8 @@ public class DTModelController extends BaseController {
             result.put("code", GlobalConstant.API_STATUS.SUCCESS);
         } catch (Exception e) {
             e.printStackTrace();
-            log.info("실패 -> {}", correlationObj);
-            insertErrorLog(0, 0, "PYTHON", "processorOutlier" + outlier_type, correlationObj.get("code").toString(), correlationObj.get("message").toString(), correlationObj.get("detail").toString(), authenticationFacade.getLoginUserSeq(), authenticationFacade.getLoginUserIp());
-            result.put("hist", histNode.toString());
-            result.put("info", correlationObj.get("detail"));
+            log.info("getOutlierInfo 실패 -> {}", outlierJSONObject);
+            errorService.saveErrorLog(ErrorLog.builder().modelSeq(0).augmentSeq(0).errTp("PYTHON").errLct("processorOutlier" + outlier_type).errCd(outlierJSONObject.get("code").toString()).errNm(outlierJSONObject.get("message").toString()).errCn(outlierJSONObject.get("detail").toString()).loginUserSeq(authenticationFacade.getLoginUserSeq()).loginUserIp(authenticationFacade.getLoginUserIp()).status("FAIL").build());
 
             /**
              * 에러 타입 errTp
@@ -1213,6 +899,7 @@ public class DTModelController extends BaseController {
     public Map<String, Object> makeOutlier(@RequestBody Map<String, Object> params) throws Exception {
         Map<String, Object> result = new HashMap<String, Object>();
         Map<String, Object> setParam = new HashMap<String, Object>();
+
         if (params.get("file_path") != null) {
             setParam.put("file", params.get("file_path").toString());
         }
@@ -1231,7 +918,7 @@ public class DTModelController extends BaseController {
             setParam.put("file_name", params.get("file_name").toString());
         }
         if (params.get("file_path") != null) {
-            setParam.put("target_file_name", params.get("file_path").toString() + "_" + currentTimeMillis() + ".csv");
+            setParam.put("target_file_name", params.get("file_path").toString() + "_" + TimeUtil.getCurrentTimeMillis() + ".csv");
         }
         if (params.get("set_order") != null) {
             setParam.put("set_order", Integer.parseInt(params.get("set_order").toString()));
@@ -1249,10 +936,7 @@ public class DTModelController extends BaseController {
             setParam.put("eps", Float.parseFloat(params.get("eps").toString()));
             setParam.put("min_samples", Integer.parseInt(params.get("min_samples").toString()));
         }
-        if ("autoencoder".equals(outlier_type)
-                || "autoencoder".equalsIgnoreCase(outlier_type)
-                || "auto encoder".equals(outlier_type)
-                || "auto encoder".equalsIgnoreCase(outlier_type)) {
+        if ("autoencoder".equals(outlier_type) || "autoencoder".equalsIgnoreCase(outlier_type) || "auto encoder".equals(outlier_type) || "auto encoder".equalsIgnoreCase(outlier_type)) {
             Map<String, Object> model_info = dtModelService.getEtcModelInfo(params);
             setParam.put("model_file_path", systemProperties.getDtEtcMetaFilePath() + model_info.get("file_path").toString());
             setParam.put("model_file_name", model_info.get("file_nm").toString());
@@ -1263,19 +947,65 @@ public class DTModelController extends BaseController {
             setParam.put("threshold", Float.parseFloat(params.get("threshold").toString()));
         }
         setParam.put("isCreate", "Y");
+
+        Map<String, Object> justOneResult = FileReader.getInstance().readCSVWithLimit(setParam.get("file_path").toString() + File.separator + setParam.get("file_name").toString(), 1);
+        List<List<String>> oneData = (List<List<String>>) justOneResult.get("data_list");
+        String format = ConvertUtil.tryParseFindFormat(ConvertUtil.DATEFORMATS, oneData.get(0).get(0));
+        log.info("format -> {}", format);
+
+        //KETI DIGITAL TWIN OBJECT DATETIME 이 아니라면, Python에서 date 파싱 안함 (형태 유지 위해서)
+        if (!Objects.equals(ConvertUtil.DATEFORMATS[0], format)) {
+            setParam.put("parse_dates", false);
+        }
+
         try {
             ResponseEntity<?> outlierSet = dtModelApiService.makeOutlierSet(setParam, outlier_type);
 
             log.info("outlierSet -> {}", outlierSet);
 
+            /**
+             * 날짜 형식 원본 복구
+             * */
+            String dateKey = params.get("index_trgt_col").toString();
+            String origin_file_path = setParam.get("file_path").toString();
+            String origin_file_name = setParam.get("file_name").toString();
+            Map<String, Object> prevResultCsv = FileReader.getInstance().readCSVWithLimit(origin_file_path + File.separator + origin_file_name, 10);
+            log.info("prevResultCsv -> {}", prevResultCsv);
+            List<String> originHeaders = (List<String>) prevResultCsv.get("header_list");
+            List<List<String>> originDatas = (List<List<String>>) prevResultCsv.get("data_list");
+            int dateIndex = MetaRelateUtil.findDateIndex(originHeaders, dateKey);
+            String dateFormat = null;
+            for (List<String> row : originDatas) {
+                String dateStr = row.get(dateIndex);
+                dateFormat = ConvertUtil.tryParseFindFormat(ConvertUtil.DATEFORMATS, dateStr);
+                if (dateFormat != null) {
+                    break;
+                }
+            }
+
+            log.info("dateFormat -> {}", dateFormat);
+
             //결과 json을 먼저 풀고
             Map<String, Object> resultJson = extractDataKeyValues(outlierSet);
             FileReader fileReader = FileReader.getInstance();
             Map<String, Object> resultCsv = fileReader.readCSV(resultJson.get("file_path") + File.separator + resultJson.get("target_file_name"));
+            List<String> headerList = (List<String>) resultCsv.get("header_list");
+            List<List<String>> dataList = (List<List<String>>) resultCsv.get("data_list");
+            int resultDataIndex = MetaRelateUtil.findDateIndex(headerList, dateKey);
+            for (List<String> row : dataList) {
+                String dateString = row.get(resultDataIndex);
+                String detectedFormat = ConvertUtil.tryParseFindFormat(ConvertUtil.DATEFORMATS, dateString);
+                SimpleDateFormat inputFormat = new SimpleDateFormat(detectedFormat);
+                SimpleDateFormat outputFormat = new SimpleDateFormat(dateFormat); // 원하는 출력 형식
+                Date parsedDate = inputFormat.parse(dateString);
+                row.set(resultDataIndex, outputFormat.format(parsedDate));
+            }
 
             result.put("code", GlobalConstant.API_STATUS.SUCCESS);
             result.put("data", outlierSet.getBody());
+            result.put("dateFormat", dateFormat);
             result.put("param", setParam);
+            result.put("fileResult", resultJson);
             result.put("header_list", resultCsv.get("header_list"));
             result.put("data_list", resultCsv.get("data_list"));
         } catch (Exception e) {
@@ -1310,11 +1040,11 @@ public class DTModelController extends BaseController {
         Map<String, Object> setParam = new HashMap<String, Object>();
         setParam.put("file_path", systemProperties.getDtMetaFilePath() + "/tmp/" + params.get("file_path").toString());
         setParam.put("file_name", params.get("file_name").toString());
-        setParam.put("target_file_name", params.get("file_path").toString() + "_" + currentTimeMillis() + ".csv");
+        setParam.put("target_file_name", params.get("file_path").toString() + "_" + TimeUtil.getCurrentTimeMillis() + ".csv");
         setParam.put("index_trgt_col", params.get("index_trgt_col").toString());
         setParam.put("unit_trgt_col", params.get("unit_target_col").toString());
         setParam.put("unit_formula", unitFormula);
-
+        log.info("makeUnit setParam -> {}", setParam);
         try {
             ResponseEntity<?> unitSet = dtModelApiService.makeUnitSet(setParam);
 
@@ -1328,6 +1058,8 @@ public class DTModelController extends BaseController {
             result.put("param", setParam);
             result.put("header_list", resultCsv.get("header_list"));
             result.put("data_list", resultCsv.get("data_list"));
+            result.put("file_path", resultJson.get("file_path"));
+            result.put("file_name", resultJson.get("target_file_name"));
         } catch (Exception e) {
             result.put("code", GlobalConstant.API_STATUS.FAIL);
             e.printStackTrace();
@@ -1358,17 +1090,27 @@ public class DTModelController extends BaseController {
         String file_path = systemProperties.getDtMetaFilePath() + "/tmp/" + params.get("file_path").toString();
         String file_name = params.get("file_name").toString();
 
+        Map<String, Object> justOneResult = FileReader.getInstance().readCSVWithLimit(file_path + File.separator + file_name, 1);
+        List<List<String>> oneData = (List<List<String>>) justOneResult.get("data_list");
+        String format = ConvertUtil.tryParseFindFormat(ConvertUtil.DATEFORMATS, oneData.get(0).get(0));
+        log.info("format -> {}", format);
+
         Map<String, Object> setParam = new HashMap<String, Object>();
+        //KETI DIGITAL TWIN OBJECT DATETIME 이 아니라면, Python에서 date 파싱 안함 (형태 유지 위해서)
+        if (!Objects.equals(ConvertUtil.DATEFORMATS[0], format)) {
+            setParam.put("parse_dates", true);
+            setParam.put("date_format", format);
+        }
         setParam.put("file_path", file_path);
         setParam.put("file_name", file_name);
-        setParam.put("target_file_name", params.get("file_path").toString() + "_" + currentTimeMillis() + ".csv");
+        setParam.put("target_file_name", params.get("file_path").toString() + "_" + TimeUtil.getCurrentTimeMillis() + ".csv");
         setParam.put("index_trgt_col", params.get("index_trgt_col").toString());
         String interpolate_option = params.get("interpolate_option").toString();
         setParam.put("interpl_tp", interpolate_option);
 
         log.info("makeInterpolate setParam -> {}", setParam);
         try {
-            ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSet(setParam);
+            ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSet(setParam, "DEFAULT");
 
             log.info("interpolateSet -> {}", interpolateSet);
 
@@ -1380,6 +1122,8 @@ public class DTModelController extends BaseController {
             result.put("code", GlobalConstant.API_STATUS.SUCCESS);
             result.put("data", interpolateSet.getBody());
             result.put("param", setParam);
+            result.put("file_name", resultJson.get("target_file_name"));
+            result.put("file_path", resultJson.get("file_path"));
             result.put("header_list", resultCsv.get("header_list"));
             result.put("data_list", resultCsv.get("data_list"));
         } catch (Exception e) {
@@ -1417,7 +1161,7 @@ public class DTModelController extends BaseController {
 
         setParam.put("file_path", file_path);
         setParam.put("file_name", file_name);
-        String fileTempName = params.get("file_path").toString() + "_" + currentTimeMillis();
+        String fileTempName = params.get("file_path").toString() + "_" + TimeUtil.getCurrentTimeMillis();
         setParam.put("target_file_name", fileTempName + ".csv");
         setParam.put("index_trgt_col", params.get("index_trgt_col").toString());
         String interpolate_option = params.get("interpolate_option").toString();
@@ -1441,13 +1185,13 @@ public class DTModelController extends BaseController {
 
         log.info("makeInterpolate setParam -> {}", setParam);
         try {
-            ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateDecisionSet(setParam);
+            ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSet(setParam, interpolate_option);
             log.info("interpolateSet -> {}", interpolateSet);
             //결과 json을 먼저 풀고
             Map<String, Object> resultMap = extractDecisionDataKeyValues(interpolateSet);
             log.info("resultMap -> {}", resultMap);
 
-            List<Map<String, String>> readData = FileReader.getInstance().readCSVToListStringMap(resultMap.get("target_file_name").toString());
+            List<Map<String, Object>> readData = FileReader.getInstance().readCSVToListObjectMap(resultMap.get("target_file_name").toString());
             FileWriter.getInstance().writeCSV(resultMap.get("target_file_name").toString(), readData);
             Map<String, Object> resultCsv = FileReader.getInstance().readCSV(resultMap.get("target_file_name").toString());
 
@@ -1455,6 +1199,22 @@ public class DTModelController extends BaseController {
              * 2024-08-19 정렬 로직 추가
              * */
             HashMap<String, Object> convertHashMap = ConvertUtil.moveAndReOrderHeaderDatas((List<String>) resultCsv.get("header_list"), (List<List<String>>) resultCsv.get("data_list"));
+            /**
+             * 2025-04-25
+             * 정렬 후 파일로 덮어쓰기 저장
+             * 비동기 Thread
+             * */
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        FileWriter.getInstance().writeCSV(resultMap.get("target_file_name").toString(), (ArrayList<String>) convertHashMap.get("headers"), (List<List<String>>) convertHashMap.get("datas"));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }).start();
+
             if (convertHashMap != null) {
                 result.put("header_list", convertHashMap.get("headers"));
                 result.put("data_list", convertHashMap.get("datas"));
@@ -1462,6 +1222,8 @@ public class DTModelController extends BaseController {
                 result.put("header_list", resultCsv.get("header_list"));
                 result.put("data_list", resultCsv.get("data_list"));
             }
+            result.put("file_path", file_path);
+            result.put("file_name", setParam.get("target_file_name").toString());
             result.put("code", GlobalConstant.API_STATUS.SUCCESS);
             result.put("data", interpolateSet.getBody());
             result.put("param", setParam);
@@ -1495,7 +1257,16 @@ public class DTModelController extends BaseController {
         String file_path = systemProperties.getDtMetaFilePath() + "/tmp/" + params.get("file_path").toString();
         String file_name = params.get("file_name").toString();
 
+        Map<String, Object> justOneResult = FileReader.getInstance().readCSVWithLimit(file_path + File.separator + file_name, 1);
+        List<List<String>> oneData = (List<List<String>>) justOneResult.get("data_list");
+        String format = ConvertUtil.tryParseFindFormat(ConvertUtil.DATEFORMATS, oneData.get(0).get(0));
+        log.info("format -> {}", format);
+
         Map<String, Object> setParam = new HashMap<String, Object>();
+        //KETI DIGITAL TWIN OBJECT DATETIME 이 아니라면, Python에서 date 파싱 안함 (형태 유지 위해서)
+        if (!Objects.equals(ConvertUtil.DATEFORMATS[0], format)) {
+            setParam.put("parse_dates", false);
+        }
         int etc_model_seq = Integer.parseInt(params.get("etc_model_seq").toString());
         Map<String, Object> etcModelParams = new HashMap<String, Object>();
         etcModelParams.put("etc_model_seq", etc_model_seq);
@@ -1505,7 +1276,7 @@ public class DTModelController extends BaseController {
         setParam.put("model_file_name", etcModelInfo.get("file_nm").toString());
         setParam.put("model_use_file_path", file_path);
         setParam.put("model_use_file_name", file_name);
-        String fileTempName = params.get("file_path").toString() + "_" + currentTimeMillis() + ".csv";
+        String fileTempName = params.get("file_path").toString() + "_" + TimeUtil.getCurrentTimeMillis() + ".csv";
         setParam.put("output_file", file_path + File.separator + fileTempName);
 
         ArrayList<String> features = (ArrayList<String>) params.get("features");
@@ -1518,7 +1289,7 @@ public class DTModelController extends BaseController {
         log.info("makeInterpolateRF setParam -> {}", setParam);
 
         try {
-            ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSetRF(setParam);
+            ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSet(setParam, "random forest");
 
             log.info("interpolateSet -> {}", interpolateSet);
 
@@ -1532,6 +1303,9 @@ public class DTModelController extends BaseController {
             result.put("param", setParam);
             result.put("header_list", resultCsv.get("header_list"));
             result.put("data_list", resultCsv.get("data_list"));
+            result.put("file_path", file_path);
+            result.put("file_name", fileTempName);
+
         } catch (Exception e) {
             e.printStackTrace();
             result.put("result_code", GlobalConstant.API_STATUS.FAIL);
@@ -1544,7 +1318,6 @@ public class DTModelController extends BaseController {
         }
         return result;
     }
-
 
     @PostMapping("/make/interpolate_set/brits")
     @ResponseBody
@@ -1564,7 +1337,7 @@ public class DTModelController extends BaseController {
         setParam.put("model_file_name", etcModelInfo.get("file_nm").toString());
         setParam.put("model_use_file_path", file_path);
         setParam.put("model_use_file_name", file_name);
-        String fileTempName = params.get("file_path").toString() + "_" + currentTimeMillis() + ".csv";
+        String fileTempName = params.get("file_path").toString() + "_" + TimeUtil.getCurrentTimeMillis() + ".csv";
         setParam.put("output_file", file_path + File.separator + fileTempName);
         ArrayList<String> outputs = (ArrayList<String>) params.get("outputs");
         setParam.put("outputs", outputs);
@@ -1574,7 +1347,7 @@ public class DTModelController extends BaseController {
         log.info("makeInterpolateBrits setParam -> {}", setParam);
 
         try {
-            ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSetBrits(setParam);
+            ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSet(setParam, "brits");
 
             log.info("interpolateSet -> {}", interpolateSet);
 
@@ -1589,6 +1362,8 @@ public class DTModelController extends BaseController {
             result.put("param", setParam);
             result.put("header_list", resultCsv.get("header_list"));
             result.put("data_list", resultCsv.get("data_list"));
+            result.put("file_path", file_path);
+            result.put("file_name", fileTempName);
         } catch (Exception e) {
             e.printStackTrace();
             result.put("result_code", GlobalConstant.API_STATUS.FAIL);
@@ -1628,7 +1403,7 @@ public class DTModelController extends BaseController {
         setParam.put("model_file_name", etcModelInfo.get("file_nm").toString());
         setParam.put("model_use_file_path", file_path);
         setParam.put("model_use_file_name", file_name);
-        String fileTempName = params.get("file_path").toString() + "_" + currentTimeMillis() + ".csv";
+        String fileTempName = params.get("file_path").toString() + "_" + TimeUtil.getCurrentTimeMillis() + ".csv";
         setParam.put("output_file", file_path + File.separator + fileTempName);
         ArrayList<String> outputs = (ArrayList<String>) params.get("outputs");
         setParam.put("outputs", outputs);
@@ -1638,7 +1413,7 @@ public class DTModelController extends BaseController {
         log.info("makeInterpolateNaomi setParam -> {}", setParam);
 
         try {
-            ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSetNaomi(setParam);
+            ResponseEntity<?> interpolateSet = dtModelApiService.makeInterpolateSet(setParam, "naomi");
 
             log.info("interpolateSet -> {}", interpolateSet);
 
@@ -1653,6 +1428,8 @@ public class DTModelController extends BaseController {
             result.put("param", setParam);
             result.put("header_list", resultCsv.get("header_list"));
             result.put("data_list", resultCsv.get("data_list"));
+            result.put("file_path", file_path);
+            result.put("file_name", fileTempName);
         } catch (Exception e) {
             e.printStackTrace();
             result.put("result_code", GlobalConstant.API_STATUS.FAIL);
@@ -1712,10 +1489,12 @@ public class DTModelController extends BaseController {
             String dateKey = params.get("index_trgt_col").toString();
 
             Map<String, Object> prevResultCsv = FileReader.getInstance().readCSVWithLimit(file_path + File.separator + file_name, 100);
+            log.info("prevResultCsv -> {}", prevResultCsv);
             List<String> timeIndicatorHeaders = (List<String>) prevResultCsv.get("header_list");
             List<List<String>> prevResultDataList = (List<List<String>>) prevResultCsv.get("data_list");
-
-            TimeUnit unit = dtModelApiService.reSampleTimeDivider(dateKey, timeIndicatorHeaders, prevResultDataList);
+            HashMap<String, Object> unitParam = dtModelApiService.dataTimeDivider(dateKey, timeIndicatorHeaders, prevResultDataList);
+            TimeUnit unit = (TimeUnit) unitParam.get("unit");
+            int delta = ((Double) unitParam.get("delta")).intValue();
 
             /**
              * 데이터 유효성 유지 하면서 리샘플 로직
@@ -1725,7 +1504,7 @@ public class DTModelController extends BaseController {
                 ResponseEntity<?> resampleSet = null;
                 log.info("unit -> {}", unit);
 
-                setBaseParam.put("target_file_name", params.get("file_path").toString() + "_prevResample_" + currentTimeMillis() + ".csv");
+                setBaseParam.put("target_file_name", params.get("file_path").toString() + "_prevResample_" + TimeUtil.getCurrentTimeMillis() + ".csv");
                 setBaseParam.put("resmpl_tp", unit.getResampleType());
                 setBaseParam.put("time_rule", ("1" + unit.getResampleType()));
 
@@ -1734,7 +1513,7 @@ public class DTModelController extends BaseController {
                 resampleSet = dtModelApiService.makeResampleSet(setBaseParam);
                 jsonNode = ConvertUtil.requestBodyParsing(resampleSet.getBody().toString());
                 setParam.put("file_name", jsonNode.get("target_file_name").asText());
-                setParam.put("target_file_name", params.get("file_path").toString() + "_resample_" + currentTimeMillis() + ".csv");
+                setParam.put("target_file_name", params.get("file_path").toString() + "_resample_" + TimeUtil.getCurrentTimeMillis() + ".csv");
                 setParam.put("origin_file_name", file_name);
                 setParam.put("prev_file_name", jsonNode.get("target_file_name").asText());
             }
@@ -1764,7 +1543,7 @@ public class DTModelController extends BaseController {
                     decisionTreeSetParam.put("file_path", jsonNode.get("file_path").asText());
                     decisionTreeSetParam.put("file_name", jsonNode.get("target_file_name").asText());
                     decisionTreeSetParam.put("prev_file_name", decisionFileName);
-                    String targetFileName = params.get("file_path").toString() + "_dt_resample_" + currentTimeMillis() + ".csv";
+                    String targetFileName = params.get("file_path").toString() + "_dt_resample_" + TimeUtil.getCurrentTimeMillis() + ".csv";
                     decisionTreeSetParam.put("target_file_name", targetFileName);
                     decisionTreeSetParam.put("index_column", index_column);
                     decisionTreeSetParam.put("outputs", outputs);
@@ -1803,6 +1582,8 @@ public class DTModelController extends BaseController {
                 result.put("data_list", resultCsv.get("data_list"));
                 result.put("prev_header_list", prevResultCsv.get("header_list"));
                 result.put("prev_data_list", prevResultCsv.get("data_list"));
+                result.put("file_path", jsonNode.get("file_path").asText());
+                result.put("file_name", jsonNode.get("target_file_name").asText());
 
                 HashMap<String, Object> convertHashMap = ConvertUtil.moveAndReOrderHeaderDatas((List<String>) prevResultCsv.get("header_list"), (List<List<String>>) compareData.get("added_data"));
                 result.put("added_data", convertHashMap.get("datas"));
@@ -1831,48 +1612,6 @@ public class DTModelController extends BaseController {
         return result;
     }
 
-    @PostMapping("/getDataTimeCheck")
-    @ResponseBody
-    public Map<String, Object> getDataTimeCheck(@RequestBody Map<String, Object> params) throws Exception {
-        Map<String, Object> result = new HashMap<String, Object>();
-
-        String file_path = systemProperties.getDtMetaFilePath() + "/tmp/" + params.get("file_path").toString();
-        String file_name = params.get("file_name").toString();
-
-        Map<String, Object> setParam = new HashMap<String, Object>();
-        setParam.put("file_path", file_path);
-        setParam.put("file_name", file_name);
-        setParam.put("index_trgt_col", params.get("index_trgt_col").toString());
-
-        try {
-            log.info("getDataTimeCheck setParam -> {}", setParam);
-            ResponseEntity<?> checkTime = dtModelApiService.getIndexColumnTimeCheck(setParam);
-
-            result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-            result.put("data", checkTime.getBody());
-        } catch (Exception e) {
-            result.put("code", GlobalConstant.API_STATUS.FAIL);
-            e.printStackTrace();
-            /**
-             * 에러 타입 errTp
-             * 에러코드 errCd
-             * 에러이름 errNm
-             * 에러영역 errLct
-             * 에러 날짜 errRegDt
-             * 에러 내용 errCn
-             * */
-            result.put("result_code", GlobalConstant.API_STATUS.FAIL);
-            result.put("errTp", "PLATFORM");
-            result.put("errCd", GlobalConstant.API_STATUS.INTERNAL_SERVER_ERROR);
-            result.put("errNm", "INTERNAL_SERVER_ERROR");
-            result.put("errLct", "DataTimeCheck");
-            result.put("errRegDt", TimeUtil.getCurrentDateTime());
-            result.put("errCn", e.getMessage());
-        }
-
-        return result;
-    }
-
     @PostMapping("/make/select_unit_tp")
     @ResponseBody
     public Map<String, Object> selectUnitTp(@RequestBody Map<String, Object> params) {
@@ -1896,40 +1635,6 @@ public class DTModelController extends BaseController {
             result.put("errCd", GlobalConstant.API_STATUS.INTERNAL_SERVER_ERROR);
             result.put("errNm", "INTERNAL_SERVER_ERROR");
             result.put("errLct", "Unit Type");
-            result.put("errRegDt", TimeUtil.getCurrentDateTime());
-            result.put("errCn", e.getMessage());
-        }
-        return result;
-    }
-
-    @PostMapping("/delete/files")
-    @ResponseBody
-    public Map<String, Object> deleteFiles(@RequestBody Map<String, Object> request) {
-        Map<String, Object> result = new HashMap<String, Object>();
-
-        List<String> filesList = (List<String>) request.get("files");
-        String base_dir = systemProperties.getDtMetaFilePath() + "/tmp/" + request.get("file_path").toString();
-
-        try {
-            for (int i = 0; i < filesList.size(); i++) {
-                FileUtil.delete(base_dir + "/" + filesList.get(i).toString());
-            }
-            result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
-        } catch (Exception e) {
-            e.printStackTrace();
-            /**
-             * 에러 타입 errTp
-             * 에러코드 errCd
-             * 에러이름 errNm
-             * 에러영역 errLct
-             * 에러 날짜 errRegDt
-             * 에러 내용 errCn
-             * */
-            result.put("result_code", GlobalConstant.API_STATUS.FAIL);
-            result.put("errTp", "PLATFORM");
-            result.put("errCd", GlobalConstant.API_STATUS.INTERNAL_SERVER_ERROR);
-            result.put("errNm", "INTERNAL_SERVER_ERROR");
-            result.put("errLct", "Delete Reference Temp File");
             result.put("errRegDt", TimeUtil.getCurrentDateTime());
             result.put("errCn", e.getMessage());
         }
@@ -1968,76 +1673,22 @@ public class DTModelController extends BaseController {
         return stringBuilder.toString();
     }
 
-
-    @PostMapping("/load/preprocFile")
-    @ResponseBody
-    public Map<String, Object> loadPreprocFile(@RequestBody Map<String, Object> params) throws Exception {
-        Map<String, Object> result = new HashMap<String, Object>();
-
-        String formType = params.get("form_type").toString();
-        String file_path = null;
-
-        if ("I".equals(formType)) {
-            file_path = systemProperties.getDtMetaFilePath().replace("\\", "/") + "/tmp/" + params.get("file_path").toString();
-        } else {
-            file_path = systemProperties.getDtMetaFilePath().replace("\\", "/") + File.separator + params.get("file_path").toString();
-        }
-        FileReader fileReader = FileReader.getInstance();
-        Map<String, Object> resultCsv = fileReader.readCSV(file_path + File.separator + params.get("file_name"));
-
-        result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-        result.put("header_list", resultCsv.get("header_list"));
-        result.put("data_list", resultCsv.get("data_list"));
-
-        return result;
-    }
-
     @PostMapping("/make/algorithm_set")
     @ResponseBody
     public Map<String, Object> makeAlgorithmSet(@RequestBody Map<String, Object> params) throws ParseException {
-        String[] checkHeader = params.get("checkHeader").toString().replace("[", "").replace("]", "").split(", ");
-        List<String> checkHeaderList = new ArrayList<String>();
-
-        for (int ch = 0; ch < checkHeader.length; ch++) {
-            checkHeaderList.add(checkHeader[ch]);
-        }
-
         Map<String, Object> result = new HashMap<String, Object>();
         int modelSeq = Integer.parseInt(params.get("model_seq").toString());
-
         DTModel dtModel = new DTModel();
         dtModel = dtModelService.getAugmentModel(modelSeq);
-
-        Map<String, Object> correlationParam = new HashMap<String, Object>();
-        correlationParam.put("file_path", systemProperties.getDtMetaFilePath().replace("\\", "/") + dtModel.getFilePath());
-        correlationParam.put("file_name", params.get("file_name").toString());
-        correlationParam.put("index_trgt_col", params.get("index_trgt_col").toString());
-        correlationParam.put("columns", checkHeaderList);
-
-        log.info("correlationParam -> {}", correlationParam);
-        String correlationString = apiService.requestPythonApi("/dt/newpreproc/processorDatasetCorrelation/", correlationParam);
-
-        JSONParser correlationParser = new JSONParser();
-        JSONObject correlationObj = (JSONObject) correlationParser.parse(correlationString);
-        log.info("correlationObj -> {}", correlationObj);
-
-        if (Integer.parseInt(correlationObj.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
-            result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
-            result.put("job_level", dtModel.getJobLevel());
-            result.put("model_status", dtModel.getModelStatus());
-            result.put("correlation_data", correlationObj.get("data"));
-            result.put("check_header_data", checkHeaderList);
-        } else {
-            log.info("FAIL -> {}", correlationObj);
-            insertErrorLog(modelSeq, 0, "PYTHON", "datasetCorrelation", correlationObj.get("code").toString(), correlationObj.get("message").toString(), correlationObj.get("detail").toString(), authenticationFacade.getLoginUserSeq(), authenticationFacade.getLoginUserIp());
-        }
+        result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
+        result.put("job_level", dtModel.getJobLevel());
+        result.put("model_status", dtModel.getModelStatus());
         return result;
     }
 
-
     @PostMapping("/make/algorithm_meta_set")
     @ResponseBody
-    public Map<String, Object> algorithmMeatSet(@RequestBody Map<String, Object> params) {
+    public Map<String, Object> algorithmMetaSet(@RequestBody Map<String, Object> params) {
         Map<String, Object> result = new HashMap<String, Object>();
         log.info("algorithmMeatSet -> {}", params);
         Map<String, Object> map = new HashMap<String, Object>();
@@ -2050,7 +1701,6 @@ public class DTModelController extends BaseController {
         List<Map<String, Object>> algorithm_param_template_set = new ArrayList<>();
 
         for (Map<String, Object> algorithmMetaItem : algorithm_meta_item_list) {
-            log.info("algorithmMetaItem -> {}", algorithmMetaItem);
             Map<String, Object> defaultItem = new HashMap<>();
             defaultItem.put(algorithmMetaItem.get("model_params_item").toString(), algorithmMetaItem.get("model_params_item_crtr_1"));
             algorithm_param_template_set.add(defaultItem);
@@ -2075,6 +1725,10 @@ public class DTModelController extends BaseController {
             loss_list = dtModelService.getAlgolithmCodeList("NBEATS_LOSS");
             meterics_list = dtModelService.getAlgolithmCodeList("NBEATS_METERICS");
             optimizer_list = dtModelService.getAlgolithmCodeList("NBEATS_OPTIMIZER");
+        } else if (model_algrm_seq == 5) {
+            loss_list = dtModelService.getAlgolithmCodeList("SEG_RNN_LOSS");
+            meterics_list = dtModelService.getAlgolithmCodeList("SEG_RNN_METERICS");
+            optimizer_list = dtModelService.getAlgolithmCodeList("SEG_RNN_OPTIMIZER");
         } else {
             loss_list = new ArrayList<Map<String, Object>>();
             meterics_list = new ArrayList<Map<String, Object>>();
@@ -2156,11 +1810,28 @@ public class DTModelController extends BaseController {
                     property.setDecision_model_file_name(property.getInterpl_decision_model_file_name());
                 }
                 //Data Twin Model 생성 중 필요한 Data 담았던 것을 초기화
-                property.setValidate_data(new ArrayList<>());
-                property.setOutlier_data(new ArrayList<>());
-                property.setMissing_data(new ArrayList<>());
-                property.setResmpl_removed_data(new ArrayList<>());
-                property.setResmpl_added_data(new ArrayList<>());
+                /* 2025-06-10 데이터 적재 시스템 고도화에 따른 코드 주석처리*/
+                //property.setValidate_data(new ArrayList<>());
+                //property.setOutlier_data(new ArrayList<>());
+                //property.setMissing_data(new ArrayList<>());
+                //property.setResmpl_removed_data(new ArrayList<>());
+                //property.setResmpl_added_data(new ArrayList<>());
+
+                if (property.getValidate_data() == null || property.getValidate_data().isEmpty()) {
+                    property.setValidate_data(new ArrayList<>());
+                }
+                if (property.getOutlier_data() == null || property.getOutlier_data().isEmpty()) {
+                    property.setOutlier_data(new ArrayList<>());
+                }
+                if (property.getMissing_data() == null || property.getMissing_data().isEmpty()) {
+                    property.setMissing_data(new ArrayList<>());
+                }
+                if (property.getResmpl_removed_data() == null || property.getResmpl_removed_data().isEmpty()) {
+                    property.setResmpl_removed_data(new ArrayList<>());
+                }
+                if (property.getResmpl_added_data() == null || property.getResmpl_added_data().isEmpty()) {
+                    property.setResmpl_added_data(new ArrayList<>());
+                }
             }
         }
         param.put("user_pprcs_full_stng_value", new org.json.JSONObject(sss).toString());
@@ -2240,11 +1911,28 @@ public class DTModelController extends BaseController {
                     property.setDecision_model_file_name(property.getInterpl_decision_model_file_name());
                 }
                 //Data Twin Model 생성 중 필요한 Data 담았던 것을 초기화
-                property.setValidate_data(new ArrayList<>());
-                property.setOutlier_data(new ArrayList<>());
-                property.setMissing_data(new ArrayList<>());
-                property.setResmpl_removed_data(new ArrayList<>());
-                property.setResmpl_added_data(new ArrayList<>());
+                /* 2025-06-10 데이터 적재 시스템 고도화에 따른 코드 주석처리*/
+                //property.setValidate_data(new ArrayList<>());
+                //property.setOutlier_data(new ArrayList<>());
+                //property.setMissing_data(new ArrayList<>());
+                //property.setResmpl_removed_data(new ArrayList<>());
+                //property.setResmpl_added_data(new ArrayList<>());
+
+                if (property.getValidate_data() == null || property.getValidate_data().isEmpty()) {
+                    property.setValidate_data(new ArrayList<>());
+                }
+                if (property.getOutlier_data() == null || property.getOutlier_data().isEmpty()) {
+                    property.setOutlier_data(new ArrayList<>());
+                }
+                if (property.getMissing_data() == null || property.getMissing_data().isEmpty()) {
+                    property.setMissing_data(new ArrayList<>());
+                }
+                if (property.getResmpl_removed_data() == null || property.getResmpl_removed_data().isEmpty()) {
+                    property.setResmpl_removed_data(new ArrayList<>());
+                }
+                if (property.getResmpl_added_data() == null || property.getResmpl_added_data().isEmpty()) {
+                    property.setResmpl_added_data(new ArrayList<>());
+                }
             }
         }
         param.put("user_pprcs_full_stng_value", new org.json.JSONObject(sss).toString());
@@ -2258,6 +1946,8 @@ public class DTModelController extends BaseController {
          * */
         dtModelService.deleteModelLoss(Integer.parseInt(params.get("model_seq").toString()));
         dtModelService.deleteModelFid(Integer.parseInt(params.get("model_seq").toString()));
+        dtModelService.deleteModelXAI(Integer.parseInt(params.get("model_seq").toString()), FILE_REF_TYPE.XAI.PLOT);
+        dtModelService.deleteModelXAI(Integer.parseInt(params.get("model_seq").toString()), FILE_REF_TYPE.XAI.WATERFALL);
         return result;
     }
 
@@ -2325,8 +2015,8 @@ public class DTModelController extends BaseController {
         int modelSeq = Integer.parseInt(params.get("modelSeq").toString());
         int count = Integer.parseInt(params.get("count").toString());
 
-        List<Map<String, Object>> predFileList = getDtMetaFileList(FILE_REF_TYPE.PREDICTION, modelSeq);
-        List<Map<String, Object>> testFileList = getDtMetaFileList(FILE_REF_TYPE.TEST, modelSeq);
+        List<Map<String, Object>> predFileList = filesService.getDtMetaFileList(FILE_REF_TYPE.PREDICTION, modelSeq);
+        List<Map<String, Object>> testFileList = filesService.getDtMetaFileList(FILE_REF_TYPE.TEST, modelSeq);
 
         String prctFilePath = systemProperties.getDtMetaFilePath() + predFileList.get(0).get("file_path").toString() + predFileList.get(0).get("file_nm").toString();
         String testFilePath = systemProperties.getDtMetaFilePath() + testFileList.get(0).get("file_path").toString() + testFileList.get(0).get("file_nm").toString();
@@ -2360,6 +2050,22 @@ public class DTModelController extends BaseController {
         map.put("result_code", result);
         map.put("test", r);
 
+        return map;
+    }
+
+
+    @PostMapping("/xai")
+    @ResponseBody
+    public Map<String, Object> getXAI(@RequestBody Map<String, Object> params) throws IOException {
+        int result = 1;
+        int modelSeq = Integer.parseInt(params.get("modelSeq").toString());
+        Map<String, Object> xai_data = dtModelService.getModelXAI(modelSeq);
+        DTModelMetaUserItem metaUserItem = dtModelService.selectMetaUserItem(modelSeq);
+
+        HashMap<String, Object> map = new HashMap<String, Object>();
+        map.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
+        map.put("xai_data", xai_data);
+        map.put("meta_user_item", metaUserItem);
         return map;
     }
 
@@ -2541,5 +2247,185 @@ public class DTModelController extends BaseController {
             e.printStackTrace();
         }
         return resultMap;
+    }
+
+    /*/dt/model/load/preprocess/filtered/visual*/
+    @PostMapping(value = "/load/preprocess/filtered/visual")
+    @ResponseBody
+    public Map<String, Object> getPreprocessFilteredVisualData(@RequestBody Map<String, Object> param) throws Exception {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            int modelSeq = Integer.parseInt(param.get("modelSeq").toString());
+            int preprocess = Integer.parseInt(param.get("preprocess").toString());
+            int preprocessIndex = Integer.parseInt(param.get("preprocessIndex").toString());
+            String column = param.get("column").toString();
+            String originFileName = param.get("originFileName").toString();
+            String originFilePath = param.get("originFilePath").toString();
+            DTModelJsonProperty sss = dtModelService.findPreprocessJSONByModelSeq(modelSeq);
+            ArrayList<String> headers = new ArrayList<>();
+            headers.add(sss.getPreproc_property_info().get(0).getIndex_trgt_col());
+            List<String> preprocessSelectedColumns = sss.getPreproc_property_info().get(0).getPreproc_trgt_col();
+            headers.addAll(preprocessSelectedColumns);
+            switch (preprocess) {
+                case 1: {
+                    /**
+                     * Scatter Data Set
+                     * */
+                    List<List<String>> validate_data = sss.getPreproc_property_info().get(0).getPreproc_property().get(preprocess - 1).getPreproc_set().get(preprocessIndex - 1).getValidate_data();
+                    int columnIndex = headers.indexOf(column);
+                    HashMap<String, Object> columnHistogramData = new HashMap<>();
+                    for (List<String> row : validate_data) {
+                        String rowValue = row.get(columnIndex);
+                        String rowDate = row.get(0);
+                        columnHistogramData.put(rowDate, rowValue);
+                    }
+                    HashMap<String, HashMap<String, Object>> histogramData = new HashMap<>();
+                    histogramData.put(column, columnHistogramData);
+                    result.put("data", histogramData);
+                    result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
+                    break;
+                }
+                case 2: {
+                    /**
+                     * Scatter Data Set
+                     * */
+                    List<List<String>> outlier_data = sss.getPreproc_property_info().get(0).getPreproc_property().get(preprocess - 1).getPreproc_set().get(preprocessIndex - 1).getOutlier_data();
+                    int columnIndex = headers.indexOf(column);
+                    HashMap<String, Object> columnHistogramData = new HashMap<>();
+                    for (List<String> row : outlier_data) {
+                        String rowValue = row.get(columnIndex);
+                        String rowDate = row.get(0);
+                        columnHistogramData.put(rowDate, rowValue);
+                    }
+                    HashMap<String, HashMap<String, Object>> histogramData = new HashMap<>();
+                    histogramData.put(column, columnHistogramData);
+                    result.put("data", histogramData);
+                    result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
+                    break;
+                }
+                case 3: {
+                    /**
+                     * Scatter Data Set
+                     * {missing_data} 에서 날짜만 추출 후 오리진 파일에서 해당 날짜 되는것들 다 data에 넣는다.
+                     * */
+                    /**
+                     * 날짜 형식 원본 복구
+                     * */
+                    Map<String, Object> prevResultCsv = FileReader.getInstance().readCSVWithLimit(systemProperties.getDtMetaFilePath() + originFilePath + originFileName, 0);
+                    List<String> originHeaders = (List<String>) prevResultCsv.get("header_list");
+                    List<List<String>> originDatas = (List<List<String>>) prevResultCsv.get("data_list");
+                    String dateFormat = null;
+                    for (List<String> row : originDatas) {
+                        String dateStr = row.get(0);
+                        dateFormat = ConvertUtil.tryParseFindFormat(ConvertUtil.DATEFORMATS, dateStr);
+                        if (dateFormat != null) {
+                            break;
+                        }
+                    }
+
+                    List<List<String>> missing_data = sss.getPreproc_property_info().get(0).getPreproc_property().get(preprocess - 1).getPreproc_set().get(preprocessIndex - 1).getMissing_data();
+                    Set<String> uniqueDates = new HashSet<>();
+                    List<String> dates = new ArrayList<>();
+
+                    for (List<String> row : missing_data) {
+                        if (!row.isEmpty()) {
+                            String date = row.get(0); // 날짜는 각 내부 List의 첫 번째 요소에 있다고 가정
+                            if (uniqueDates.add(date)) {
+                                String detectedFormat = ConvertUtil.tryParseFindFormat(ConvertUtil.DATEFORMATS, date);
+                                SimpleDateFormat inputFormat = new SimpleDateFormat(detectedFormat);
+                                SimpleDateFormat outputFormat = new SimpleDateFormat(dateFormat); // 원하는 출력 형식
+                                Date parsedDate = inputFormat.parse(date);
+                                dates.add(outputFormat.format(parsedDate));
+                            }
+                        }
+                    }
+
+                    Set<String> datesSet = new HashSet<>(dates); // 비교를 위해 List를 Set으로 변환
+                    missing_data = new ArrayList<>();
+
+                    for (List<String> row : originDatas) {
+                        if (!row.isEmpty()) {
+                            String date = row.get(0); // 날짜는 각 내부 List의 첫 번째 요소에 있다고 가정
+                            if (datesSet.contains(date)) {
+                                missing_data.add(row);
+                            }
+                        }
+                    }
+
+                    HashMap<String, HashMap<String, Object>> histogramData = new HashMap<>();
+                    log.info("Column type is -> {}", column);
+                    if (Objects.equals("all", column)) {
+                        for (int i = 1; i < headers.size(); i++) {
+                            HashMap<String, Object> columnHistogramData = new HashMap<>();
+                            String header = headers.get(i);
+                            for (List<String> row : missing_data) {
+                                String rowValue = row.get(i);
+                                String rowDate = row.get(0);
+                                columnHistogramData.put(rowDate, rowValue);
+                            }
+                            histogramData.put(header, columnHistogramData);
+                        }
+                    } else {
+                        int columnIndex = headers.indexOf(column);
+                        HashMap<String, Object> columnHistogramData = new HashMap<>();
+                        for (List<String> row : missing_data) {
+                            String rowValue = row.get(columnIndex);
+                            String rowDate = row.get(0);
+                            columnHistogramData.put(rowDate, rowValue);
+                        }
+                        histogramData.put(column, columnHistogramData);
+                    }
+                    result.put("data", histogramData);
+                    result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
+                    break;
+                }
+                case 4: {
+                    /**
+                     * Double Scatter Data Set
+                     * */
+                    List<List<String>> added_data = sss.getPreproc_property_info().get(0).getPreproc_property().get(preprocess - 1).getPreproc_set().get(preprocessIndex - 1).getResmpl_added_data();
+                    HashMap<String, HashMap<String, HashMap<String, Object>>> histogramsData = new HashMap<>();
+                    HashMap<String, HashMap<String, Object>> AddedhistogramData = new HashMap<>();
+                    for (int i = 1; i < headers.size(); i++) {
+                        HashMap<String, Object> columnHistogramData = new HashMap<>();
+                        String header = headers.get(i);
+                        for (List<String> row : added_data) {
+                            String rowValue = row.get(i);
+                            String rowDate = row.get(0);
+                            columnHistogramData.put(rowDate, rowValue);
+                        }
+                        if (!columnHistogramData.isEmpty()) {
+                            AddedhistogramData.put(header, columnHistogramData);
+                        }
+                    }
+                    histogramsData.put("ADDED_DATA", AddedhistogramData);
+
+                    List<List<String>> removed_data = sss.getPreproc_property_info().get(0).getPreproc_property().get(preprocess - 1).getPreproc_set().get(preprocessIndex - 1).getResmpl_removed_data();
+                    HashMap<String, HashMap<String, Object>> removedHistogramData = new HashMap<>();
+                    for (int i = 1; i < headers.size(); i++) {
+                        HashMap<String, Object> columnHistogramData = new HashMap<>();
+                        String header = headers.get(i);
+                        for (List<String> row : removed_data) {
+                            String rowValue = row.get(i);
+                            String rowDate = row.get(0);
+                            columnHistogramData.put(rowDate, rowValue);
+                        }
+                        if (!columnHistogramData.isEmpty()) {
+                            removedHistogramData.put(header, columnHistogramData);
+                        }
+                    }
+                    histogramsData.put("REMOVED_DATA", removedHistogramData);
+
+                    result.put("data", histogramsData);
+                    result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
+                    break;
+                }
+                default:
+                    throw new Exception("preprocess is mismatched");
+            }
+        } catch (Exception e) {
+            result.put("result_code", GlobalConstant.API_STATUS.FAIL);
+        }
+        return result;
     }
 }
