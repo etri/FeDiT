@@ -129,6 +129,62 @@ class Manager:
             result.append(window)
         return np.array(result)        
 
+    def generate_missing_ranges_auto_ex(self, dataLen, testSizePerDataLength, testSize, window_size):
+        np.random.seed(123)  # 재현성을 위해 시드 설정
+        
+        if testSize <= 0 or testSize >= 1:
+            return [(0, 0)]
+        
+        # 총 결측값 개수 계산 (전체 데이터의 testSize 비율)
+        total_missing = int(dataLen * testSize)
+        
+        # 결측 구간 수 자동 계산 (전체 데이터 길이에 비례하게)
+        missingGroup = max(1, int(1 / testSizePerDataLength))
+        
+        # 구간당 평균 길이 계산
+        avg_range = total_missing // missingGroup
+        
+        # 각 구간의 최대 길이 및 최소 길이 설정
+        segment_length = dataLen // missingGroup
+        min_range = max(1, int(avg_range * 0.5))
+        max_range = min(segment_length, int(avg_range * 1.2))
+        
+        missing_ranges = []
+        remaining_length = total_missing
+        last_end = -window_size  # 초기값으로 설정해 첫 구간에서도 간격이 유지되도록 함
+
+        for i in range(missingGroup):
+            # 남은 길이를 확인하고, 필요한 경우 구간 수를 줄임
+            if remaining_length < window_size * (missingGroup - i):
+                missingGroup -= 1
+                continue
+            
+            # 마지막 구간에서는 남은 길이를 모두 사용
+            if i == missingGroup - 1:
+                range_size = remaining_length
+            else:
+                max_possible = min(max_range, remaining_length - (missingGroup - i - 1))
+                range_size = np.random.randint(min_range, max_possible + 1)
+            
+            # 구간이 너무 길어서 간격을 유지하기 어려운 경우 길이를 줄임
+            while remaining_length - range_size < window_size * (missingGroup - i - 1) and range_size > min_range:
+                range_size -= 1
+            
+            if range_size <= 0:
+                break
+            
+            # 시작점 설정: 이전 구간의 끝에서 window_size 이상의 간격 유지
+            start_min = max(last_end + window_size, i * segment_length)
+            max_start = min((i + 1) * segment_length - range_size, (i + 1) * segment_length - 1)
+            start = np.random.randint(start_min, max_start + 1)
+            
+            end = start + range_size
+            missing_ranges.append((start, end))
+            remaining_length -= range_size
+            last_end = end  # 마지막 끝 지점을 업데이트하여 다음 구간과 간격 유지
+        
+        return missing_ranges
+
 
     def generate_missing_ranges_auto(self, dataLen, testSizePerDataLength, testSize):
         np.random.seed(123)  # 재현성을 위해 시드 설정
@@ -280,8 +336,9 @@ class Manager:
 
             #결측구간 생성
             #missing_range = self.generate_missing_ranges(dataLen=len(df_output), missingGroup=missingGroup, missingRange=missingRange)
+            #missing_range = self.generate_missing_ranges_auto(dataLen=len(df_output), testSizePerDataLength=testSizePerDataLength, testSize=self.test_size)
+            missing_range = self.generate_missing_ranges_auto_ex(dataLen=len(df_output), testSizePerDataLength=testSizePerDataLength, testSize=self.test_size, window_size=self.window_size)
 
-            missing_range = self.generate_missing_ranges_auto(dataLen=len(df_output), testSizePerDataLength=testSizePerDataLength, testSize=self.test_size)
 
             # 결측 구간이 [(0, 0)]인지 확인하여, 유효한 경우에만 NaN 할당
             if missing_range == [(0, 0)]:
@@ -488,9 +545,9 @@ class Manager:
 
             device = torch.device("cuda") if use_gpu else torch.device("cpu")
 
-            print("--------E", use_gpu)
+            print("--------E", self.data[scale_cols], self.window_size)
 
-            df, data, scaler, data_batch = makeBatch_ex(self.data[scale_cols], scaler, self.window_size)
+            df, data, scaler = makeBatch_predict(self.data[scale_cols], scaler)
 
  
             print("--------F", data)
@@ -577,14 +634,31 @@ def makeBatch_ex2(df, scaler, window_size, columns):
     print("Data Batches:\n", data_batch)
 
     return df, all_data, scaler, data_batch
+
 '''
+
+def makeBatch_predict(df, scaler):
+    
+    #df = df[[indexColumn, valueColumn]]
+    column_name = df.columns[0]  # 첫 번째 컬럼 이름을 가져옴
+    df[column_name] = scaler.fit_transform(df[column_name].values.reshape(-1,1))
+
+    print('1', df[column_name])    
+
+    missing_list = df.isnull()[column_name]
+
+    print('2', missing_list)    
+
+    data = df[column_name].to_numpy()
+
+    return df, data, scaler
 
 def makeBatch_ex(df, scaler, window_size):
     
     #df = df[[indexColumn, valueColumn]]
     column_name = df.columns[0]  # 첫 번째 컬럼 이름을 가져옴
     df[column_name] = scaler.fit_transform(df[column_name].values.reshape(-1,1))
-    
+
     missing_list = df.isnull()[column_name]
 
     data = df[column_name].to_numpy()
@@ -593,13 +667,17 @@ def makeBatch_ex(df, scaler, window_size):
     datas = []
     for index,val in enumerate(data):
         if missing_list[index]:
+            print('missing', index, val)
             datas=[]
             continue
         datas.append(val)         
+        print('loop', index, val, datas)
         if len(datas)==window_size:
             data_batch.append(datas.copy())
             datas.pop(0)
+   
     data_batch = np.array(data_batch)
+
     data_batch = data_batch.reshape(data_batch.shape[0], data_batch.shape[1], 1)
 
     return df,data,scaler,data_batch

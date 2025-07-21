@@ -1395,8 +1395,24 @@ class exampleService(object):
             outputs = paramData["outputs"]
             feature = paramData["feature"]
             is_create =  paramData['isCreate']
+            
+            parse_dates = paramData.get('parse_dates')
+            if parse_dates is not None:
+                print("parse_dates:", parse_dates)
+                df = pd.read_csv(
+                    dataFile,
+                    header=0,
+                    parse_dates=parse_dates
+                )
+            else:
+                print("parse_dates is None")
+                df = pd.read_csv(
+                    dataFile,
+                    header=0,
+                    parse_dates=True
+                )
 
-            df=pd.read_csv(dataFile, header=0, parse_dates=True)#, encoding='cp949')
+            #df=pd.read_csv(dataFile, header=0, parse_dates=True)#, encoding='cp949')
 
             #print('*******************************************************')
             #print(df.head(30))

@@ -20,8 +20,10 @@ model_parameters = [
     'min_samples_split',      #노드를 분할하기 위해 필요한 최소한의 샘플 개수 (int or float, default=2)
     'max_features',            #노드를 분할할 때 고려할 특성의 무작위 하위 집합의 크기. 회귀: {“sqrt”, “log2”, None}, int or float, default=1.0 분류: {“sqrt”, “log2”, None}, int or float, default="sqrt"
     'max_depth',              #트리의 최대 깊이(int, default=None)
+    'num_segments',
+    'segment_len',
     ]
-model_parameters_value = [MD_TYPE.LSTM, 10, 32, 16, 0.2, 100, 10, MD_LOSS.MSE, MD_METRICS.MAE, MD_OTMZ.ADAM, 0.0005, 100, 100, 1, 2, 1, None]
+model_parameters_value = [MD_TYPE.LSTM, 10, 32, 16, 0.2, 100, 10, MD_LOSS.MSE, MD_METRICS.MAE, MD_OTMZ.ADAM, 0.0005, 100, 100, 1, 2, 1, None, 4, 8]
 ModelParameters = namedtuple('ModelParameters', model_parameters, defaults=model_parameters_value)
 
 #입력파라메터

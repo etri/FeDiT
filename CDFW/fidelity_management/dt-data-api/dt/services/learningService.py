@@ -86,6 +86,8 @@ class learningService(object):
             modelType = MD_TYPE.GRU
         elif str(modelType).lower() == MD_TYPE.GAN.value:
             modelType = MD_TYPE.GAN
+        elif str(modelType).lower() == MD_TYPE.SEG_RNN.value:
+            modelType = MD_TYPE.SEG_RNN
         else:
             modelType = MD_TYPE.LSTM
 
@@ -128,7 +130,7 @@ class learningService(object):
         try:
             #if modelType=='lstm':
             m = rnnGenerater.Manager(data=df, modelArgs=modelArgs, inputArgs=inputArgs)
-
+            
             r = m.modelTrainning()
 
             #모델평가
