@@ -1,9 +1,5 @@
 FROM node:lts-alpine as build-stage
 
-LABEL name djko
-LABEL email djko@n2m.co.kr
-
-
 # COPY package*.json ./
 # RUN npm install --production
 # COPY . .
