@@ -1,41 +1,26 @@
 package com.stoneitgt.dt.data.platform.admin.service;
 
+import com.stoneitgt.dt.data.platform.admin.config.DatabaseConfig;
+import com.stoneitgt.dt.data.platform.admin.mapper.DTEtcModelMapper;
+import com.stoneitgt.dt.data.platform.domain.*;
+import com.stoneitgt.dt.data.platform.util.file.FileUtil;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.stoneitgt.dt.data.platform.admin.config.DatabaseConfig;
-import com.stoneitgt.dt.data.platform.admin.mapper.DTEtcModelMapper;
-import com.stoneitgt.dt.data.platform.domain.DTModelEtc;
-import com.stoneitgt.dt.data.platform.domain.DTModelEtcColumn;
-import com.stoneitgt.dt.data.platform.domain.DTModelEtcMetaUserItem;
-import com.stoneitgt.dt.data.platform.domain.DTModelEtcParams;
-import com.stoneitgt.dt.data.platform.domain.DTModelJsonPropertyMain;
-import com.stoneitgt.dt.data.platform.domain.Files;
-import com.stoneitgt.dt.data.platform.domain.Paging;
-
-import lombok.extern.slf4j.Slf4j;
-
 @Slf4j
 @Service
-public class DTEtcModelService extends BaseService{
+public class DTEtcModelService extends BaseService {
 
     @Autowired
     private DTEtcModelMapper dtEtcModelMapper;
-
-    public List<Map<String, Object>> getDTEtcModelList(Map<String, Object> params, Paging paging) {
-        return dtEtcModelMapper.getDTEtcModelList(params, paging.getPaging());
-    }
-
-    public List<Map<String, Object>> getDTEtcModelListSetUserSeq(Map<String, Object> params, Paging paging) {
-        return dtEtcModelMapper.getDTEtcModelListSetUserSeq(params, paging.getPaging());
-    }
 
     public List<Map<String, Object>> getAlgolithmList() {
         return dtEtcModelMapper.getAlgolithmList();
@@ -61,7 +46,7 @@ public class DTEtcModelService extends BaseService{
         dtModelEtcMetaUserItem.setEtcModelSeq(dtEtcModel.getEtcModelSeq());
         dtModelEtcMetaUserItem.setUserPprcsFullStngValue(jsonString);
 
-        if (info.getTwin_id() != null) {
+        if (info.getTwin_id() != null && info.getTwin_obj_id() != null) {
             dtModelEtcMetaUserItem.setTwinId(info.getTwin_id());
             dtModelEtcMetaUserItem.setTwinObjId(info.getTwin_obj_id());
         } else {
@@ -121,7 +106,11 @@ public class DTEtcModelService extends BaseService{
     }
 
     public Files getDtPreprocLastFile(int modelSeq) {
-        return dtEtcModelMapper.getDtPreprocLastFile(modelSeq);
+        Files files = dtEtcModelMapper.getDtPreprocLastFile(modelSeq);
+        if (files != null) {
+            files.setFileSzSrt(FileUtil.formatFileSize(files.getFileSz()));
+        }
+        return files;
     }
 
     public int updateAlgorithmSeq(Map<String, Object> requestBody) {
@@ -269,7 +258,16 @@ public class DTEtcModelService extends BaseService{
     public List<Map<String, Object>> getEtcBritsModelList(Map<String, Object> etcParams) {
         return dtEtcModelMapper.getEtcBritsModelList(etcParams);
     }
+
     public List<Map<String, Object>> getEtcNaomiModelList(Map<String, Object> etcParams) {
         return dtEtcModelMapper.getEtcNaomiModelList(etcParams);
+    }
+
+    public int countEtcModel() {
+        return dtEtcModelMapper.countEtcModel();
+    }
+
+    public int countEtcModel(int modelAlgrmSeq) {
+        return dtEtcModelMapper.countEtcModelByAlgrmSeq(modelAlgrmSeq);
     }
 }

@@ -38,7 +38,7 @@ public class FileWriter {
         return instance;
     }
 
-    public void writeCSV(String filePath, List<Map<String, String>> csvData) throws IOException {
+    public void writeCSV(String filePath, List<Map<String, Object>> csvData) throws IOException {
         try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(Files.newOutputStream(Paths.get(filePath)), StandardCharsets.UTF_8))) {
             if (csvData.isEmpty()) {
                 return;
@@ -58,9 +58,9 @@ public class FileWriter {
             bw.newLine();
 
             // 데이터 쓰기
-            for (Map<String, String> map : csvData) {
+            for (Map<String, Object> map : csvData) {
                 String line = headers.stream().map(header -> {
-                    String value = map.get(header);
+                    String value = map.get(header).toString();
                     // 값이 이미 쌍따옴표로 감싸져 있는지 확인
                     if (value.contains("\"")) {
                         return value;

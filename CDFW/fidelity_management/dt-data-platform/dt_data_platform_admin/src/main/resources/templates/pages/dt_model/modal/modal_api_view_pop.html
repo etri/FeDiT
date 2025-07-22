@@ -1,97 +1,80 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
-    <div class="modal fade bd-example-modal-lg" id="modalApiView" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">메타 정보</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                
-                <div class="modal-body">
-						<div class="form-group row">
-							<div class="col-lg-3">
-								<label class="col-form-label">메타 모델</label>
-							</div>
-							<div class="col-lg-8">
-								<input class="form-control sdt_uniq_id" type="text" readonly="readonly" id="metaModel">
-							</div>
-						</div>
-						
-						<div class="form-group row">
-							<div class="col-lg-3">
-								<label class="col-form-label">트윈 아이디</label>
-							</div>
-							<div class="col-lg-8">
-								<input class="form-control sdt_twin_id" type="text" readonly="readonly" id="digitalTwinId">
-							</div>
-						</div>						
-						
-						<div class="form-group row">
-							<div class="col-lg-3">
-								<label class="col-form-label">오브젝트 아이디</label>
-							</div>
-							<div class="col-lg-8">
-								<input class="form-control sdt_object_id" type="text" readonly="readonly" id="digitalObjectId">
-							</div>
-						</div>							
-						
-						<div class="form-group row">
-							<div class="col-lg-3">
-								<label class="col-form-label">디지털 객체명</label>
-							</div>
-							<div class="col-lg-8">
-								<input class="form-control sdt_nm" type="text" readonly="readonly" id="digitalObjectName">
-							</div>
-						</div>
-						<div class="form-group row">
-							<div class="col-lg-3">
-								<label class="col-form-label">디지털 객체 데이터 url</label>
-							</div>
-							<div class="col-lg-8">
-								<input class="form-control sdt_data_url" type="text" readonly="readonly" id="digitalObjectDataSourceUrl">
-							</div>
-						</div>
-						<div class="form-group row">
-							<div class="col-lg-3">
-								<label class="col-form-label">디지털 객체 설명</label>
-							</div>
-							<div class="col-lg-8">
-								<input class="form-control sdt_desc" type="text" readonly="readonly" id="description">
-							</div>
-						</div>							
-						<div class="form-group mb-0 row">
-							<div class="col-lg-3">
-								<label class="col-form-label">digital object data model</label>
-							</div>
-							<div class="col-lg-8">
-								<textarea id="digitalObjectDataModel" class="form-control model_full_text sdt_full_text" rows="30" readonly="readonly"></textarea>
-							</div>
-						</div>
-						<div class="form-group mb-0 row">
-							<div class="col-lg-3">
-								<label class="col-form-label">digital object data sample</label>
-							</div>
-							<div class="col-lg-8">
-								<textarea id="digitalObjectDataSample" class="form-control model_full_text sdt_full_text" rows="30" readonly="readonly"></textarea>
-							</div>
-						</div>						
-						
-                </div>
-                
-				<div class="row">
-					<div id="metaJsonSampleDataTable" style="width: 100%;"></div>
-				</div>		                
-                
-                
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary " data-dismiss="modal">닫기</button>
-                    <button type="button" class="btn btn-secondary btn-get-meta-all-info">가져오기</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+	  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<body>
+<!-- MODAL POPUP -->
+<div class="modal-popup-wrap" id="modalApiView"> <!-- is-open -->
+	<div class="modal-popup">
+		<div class="modal-popup-header">
+			<p class="title">메타 정보</p>
+			<button type="button" class="btn-popup-close right" data-popup-id="modalApiView">
+				<svg aria-label="닫기" role="img" viewBox="0 0 12 12" preserveAspectRatio="xMidYMid meet"
+					 xmlns="http://www.w3.org/2000/svg" fill="none">
+					<g clip-path="url(#a)">
+						<path fill="#C7C7C7"
+							  d="m7.409 6 4.295-4.287a1.003 1.003 0 0 0-1.418-1.42L6 4.59 1.714.294A1.003 1.003 0 1 0 .296 1.713L4.59 5.999.296 10.286a1 1 0 0 0 0 1.418 1 1 0 0 0 1.418 0L6 7.408l4.286 4.296a.998.998 0 0 0 1.418 0 1 1 0 0 0 0-1.418L7.41 5.999Z"/>
+					</g>
+					<defs>
+						<clipPath id="a">
+							<path fill="#fff" d="M0 0h12v12H0z"/>
+						</clipPath>
+					</defs>
+				</svg>
+			</button>
+		</div>
+		<div class="modal-popup-body">
+			<!-- contents -->
+			<div class="form-control-wrap">
+				<label id="digitalTwinId_label" class="form-label" for="digitalTwinId">트윈 아이디</label>
+				<input type="text" id="digitalTwinId" readonly="readonly" class="form-control sm"
+					   placeholder="트윈 아이디를 입력해주세요" aria-labelledby="digitalTwinId_label">
+			</div>
+			<div class="form-control-wrap">
+				<label id="digitalObjectId_label" class="form-label" for="digitalObjectId">오브젝트 아이디</label>
+				<input type="text" id="digitalObjectId" readonly="readonly" class="form-control sm"
+					   placeholder="오브젝트 아이디를 입력해주세요" aria-labelledby="digitalObjectId_label">
+			</div>
+			<div class="form-control-wrap">
+				<label id="digitalObjectName_label" class="form-label" for="digitalObjectName">디지털 객체명</label>
+				<input type="text" id="digitalObjectName" readonly="readonly" class="form-control sm"
+					   placeholder="디지털 객체명을 입력해주세요" aria-labelledby="digitalObjectName_label">
+			</div>
+			<div class="form-control-wrap">
+				<label id="digitalObjectDataSourceUrl_label" class="form-label" for="digitalObjectDataSourceUrl">디지털 객체
+					데이터 URL</label>
+				<input type="text" id="digitalObjectDataSourceUrl" readonly="readonly" class="form-control sm"
+					   placeholder="디지털 객체 데이터 URL을 입력해주세요" aria-labelledby="digitalObjectDataSourceUrl_label">
+			</div>
+			<div class="form-control-wrap">
+				<label id="description_label" class="form-label" for="description">디지털 객체 설명</label>
+				<textarea id="description" readonly="readonly" rows="5" class="form-control sm"
+						  placeholder="디지털 객체 설명을 입력해주세요."></textarea>
+			</div>
+			<div class="form-control-wrap">
+				<label id="digitalObjectDataModel_label" class="form-label" for="digitalObjectDataModel">디지털 오브젝트 데이터
+					모델</label>
+				<textarea id="digitalObjectDataModel" readonly="readonly" rows="5" class="form-control sm"
+						  placeholder="디지털 오브젝트 데이터 모델을 입력해주세요."></textarea>
+			</div>
+			<div class="form-control-wrap">
+				<label id="digitalObjectDataSample_label" class="form-label" for="digitalObjectDataSample">디지털 오브젝트 데이터
+					샘플</label>
+				<textarea id="digitalObjectDataSample" readonly="readonly" rows="5" class="form-control sm"
+						  placeholder="디지털 오브젝트 데이터 샘플을 입력해주세요."></textarea>
+			</div>
+			<!-- contents end -->
+		</div>
+		<div class="modal-popup-footer buttons">
+			<button type="button" class="ui-button sm outline-primary btn-cancel btn-popup-close"
+					data-popup-id="modalApiView">닫기
+			</button>
+			<button type="button" class="ui-button sm primary btn-popup-save btn-popup-close btn-get-meta-all-info"
+					data-popup-id="modalApiView">가져오기
+			</button>
+		</div>
+	</div>
+	<div class="modal-popup-mask"></div>
+</div>
+<!-- MODAL POPUP end // -->
+</body>
 </html>

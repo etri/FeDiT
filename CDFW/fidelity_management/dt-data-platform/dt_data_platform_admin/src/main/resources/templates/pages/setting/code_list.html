@@ -1,221 +1,137 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/layout}">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/platform_layout}">
 
 <head>
     <title th:text="${breadcrumb.menu_nm}">코드관리</title>
 </head>
+
 <div layout:fragment="content">
-    <nav th:replace="fragments/page_breadcrumb"></nav>
-    <div class="row">
-        <div class="col-5 grid-margin grid-margin-xl-0 stretch-card">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-baseline mb-2">
-                        <h6 class="card-title mb-0">그룹 코드</h6>
-                        <div>
-                            <!--
-                            <a th:href="@{/setting/code(menuCd=${params.menuCd})}" class="btn btn-primary btn-icon-text mr-2">
-                                <i class="btn-icon-prepend" data-feather="search"></i>조회
-                            </a>
-                            -->
-                            <button type="button" class="btn btn-secondary btn-icon-text btn-add-master">
-                                <i class="btn-icon-prepend" data-feather="edit"></i>등록
-                            </button>
+    <div class="page-title">
+        <div class="contain">
+            <h1 th:text="${breadcrumb.menu_nm}">코드 관리</h1>
+        </div>
+    </div>
+
+    <section class="data-section">
+        <div class="contain">
+            <div class="row">
+                <div class="col-6">
+                    <div class="row">
+                        <div class="col-12 pt-3">
+                            <div style="display: flex; justify-content: space-between;">
+                                <label class="col-form-label">그룹 코드</label>
+                                <button type="button" class="ui-button primary sm btn-add-master">
+                                    등록
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="d-flex flex-column">
-                        <div class="table-responsive table-no-paging">
-                            <table class="table table-hover code-master">
-                                <colgroup>
-                                    <col style="width: 30%;">
-                                    <col style="width: 35%;">
-                                    <col style="width: 35%;">
-                                </colgroup>
-                                <thead>
+                        <div class="col-12 pt-3">
+                            <div class="table-box" style="max-height: 590px; height: 100%; overflow-y: auto;">
+                                <table class="data-table">
+                                    <colgroup>
+                                        <col style="width: 30%;">
+                                        <col>
+                                        <col style="width: 35%;">
+                                    </colgroup>
+                                    <thead>
                                     <tr>
                                         <th>그룹 코드</th>
                                         <th>그룹 코드명</th>
-                                        <th></th>
+                                        <th class="ta-r">기능</th>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    <tr th:each="item : ${masterList}" th:class="${item.grp_cd} == ${grpCd} ? 'table-info'" th:data-group-code="${item.grp_cd}">
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="item : ${masterList}"
+                                        th:class="${item.grp_cd} == ${grpCd} ? 'table-info' : ''"
+                                        th:data-group-code="${item.grp_cd}">
                                         <td th:text="${item.grp_cd}">code</td>
                                         <td>
-                                            <a th:href="@{/setting/code(grpCd=${item.grp_cd},menuCd=${params.menuCd})}" th:text="${item.grp_cd_nm}">grp_cd_nm</a>
+                                            <a th:href="@{/setting/code(grpCd=${item.grp_cd},menuCd=${params.menuCd})}"
+                                               th:text="${item.grp_cd_nm}">grp_cd_nm</a>
                                         </td>
-                                        <td class="text-right">
-                                            <button type="button" class="btn btn-outline-primary btn-sm mr-2 btn-modify-master" th:data-group-code="${item.grp_cd}">수정</button>
-                                            <button type="button" class="btn btn-outline-danger btn-sm btn-delete-master" th:data-group-code="${item.grp_cd}">삭제</button>
+                                        <td class="ta-r">
+                                            <button type="button"
+                                                    class="ui-button primary sm btn-modify-master"
+                                                    th:data-group-code="${item.grp_cd}">수정
+                                            </button>
+                                            <button type="button" class="ui-button danger sm btn-delete-master"
+                                                    th:data-group-code="${item.grp_cd}">삭제
+                                            </button>
                                         </td>
                                     </tr>
-                                </tbody>
-                            </table>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        <div class="col-7 grid-margin grid-margin-xl-0 stretch-card">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-baseline mb-2">
-                        <h6 class="card-title mb-0 ml-4">상세 코드</h6>
-                        <button type="button" class="btn btn-secondary btn-icon-text btn-add-detail">
-                            <i class="btn-icon-prepend" data-feather="edit"></i>등록
-                        </button>
-                    </div>
-                    <div class="table-responsive table-no-paging">
-                        <table class="table table-hover">
-                            <colgroup>
-                                <col style="width: 5%;">
-                                <col style="width: 17%;">
-                                <col style="width: 30%;">
-                                <col style="width: 12%;">
-                                <col style="width: 15%;">
-                                <col style="width: 21%;">
-                            </colgroup>
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>코드</th>
-                                    <th>코드명</th>
-                                    <th>사용여부</th>
-                                    <th>등록일</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <th:block th:include="fragments/table_empty:: table_empty(6)" th:if="${#lists.isEmpty(detailList)}"></th:block>
-                                <tr th:each="item, row : ${detailList}" th:unless="${#lists.isEmpty(detailList)}">
-                                    <td th:text="${row.index + 1}"></td>
-                                    <td th:text="${item.dtl_cd}">code</td>
-                                    <td th:text="${item.dtl_cd_nm}">dtl_cd_nm</td>
-                                    <td th:text="${item.use_yn == 'Y'} ? '사용' : '미사용'">use_yn</td>
-                                    <td th:text="${item.reg_dt}">reg_dt</td>
-                                    <td class="text-right">
-                                        <button type="button" class="btn btn-outline-primary btn-sm mr-2 btn-modify-detail" th:data-group-code="${item.grp_cd}" th:data-code="${item.dtl_cd}">수정</button>
-                                        <button type="button" class="btn btn-outline-danger btn-sm btn-delete-detail" th:data-group-code="${item.grp_cd}" th:data-code="${item.dtl_cd}">삭제</button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Modal -->
-    <div class="modal" id="modal-group" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">그룹 코드</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
+                <div class="col-6">
                     <div class="row">
-                        <div class="col-12">
-                            <form id="groupForm" method="post">
-                                <div class="form-group row">
-                                    <label class="col-sm-3 col-form-label required">그룹 코드</label>
-                                    <div class="col-sm-9">
-                                        <input type="text" class="form-control" id="grp_cd" maxlength="20" placeholder="" required="required">
-                                    </div>
-                                </div>
-                                <div class="form-group row">
-                                    <label class="col-sm-3 col-form-label required">그룹 코드명</label>
-                                    <div class="col-sm-9">
-                                        <input type="text" class="form-control" id="grp_cd_nm" maxlength="50" placeholder="" required="required">
-                                    </div>
-                                </div>
-                            </form>
+                        <div class="col-12 pt-3">
+                            <div style="display: flex; justify-content: space-between;">
+                                <label class="col-form-label">상세 코드</label>
+                                <button type="button" class="ui-button primary sm btn-add-detail">등록
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-12 pt-3">
+                            <div class="table-box" style="max-height: 590px; height: 100%; overflow-y: auto;">
+                                <table class="data-table">
+                                    <colgroup>
+                                        <col style="width: 5%;">
+                                        <col>
+                                        <col style="width: 15%;">
+                                        <col style="width: 10%;">
+                                        <col style="width: 20%;">
+                                        <col>
+                                    </colgroup>
+                                    <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>코드</th>
+                                        <th>코드명</th>
+                                        <th>사용여부</th>
+                                        <th>등록일</th>
+                                        <th class="ta-r">기능</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <th:block th:include="fragments/table_empty:: table_empty(6)"
+                                              th:if="${#lists.isEmpty(detailList)}"></th:block>
+                                    <tr th:each="item, row : ${detailList}"
+                                        th:unless="${#lists.isEmpty(detailList)}">
+                                        <td th:text="${row.index + 1}"></td>
+                                        <td th:text="${item.dtl_cd}">code</td>
+                                        <td th:text="${item.dtl_cd_nm}">dtl_cd_nm</td>
+                                        <td th:text="${item.use_yn == 'Y'} ? '사용' : '미사용'">use_yn</td>
+                                        <td th:text="${item.reg_dt}">reg_dt</td>
+                                        <td class="ta-r">
+                                            <button type="button"
+                                                    class="ui-button primary sm btn-modify-detail"
+                                                    th:data-group-code="${item.grp_cd}"
+                                                    th:data-code="${item.dtl_cd}">수정
+                                            </button>
+                                            <button type="button"
+                                                    class="ui-button danger sm btn-delete-detail"
+                                                    th:data-group-code="${item.grp_cd}"
+                                                    th:data-code="${item.dtl_cd}">삭제
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-dark btn-icon-text mr-2 btn-register-master">
-                        <i class="btn-icon-prepend" data-feather="edit"></i>저장
-                    </button>
-                    <button type="button" class="btn btn-secondary btn-icon-text" data-dismiss="modal">
-                        <i class="btn-icon-prepend" data-feather="x-square"></i>닫기
-                    </button>
-                </div>
             </div>
+            <th:block th:include="fragments/modal/admin-modal-group"></th:block>
         </div>
-    </div>
-    <!-- // modal -->
-    <!-- Modal -->
-    <div class="modal" id="modal-detail" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">상세 코드</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-12">
-                            <form id="editForm" method="post">
-                                <div class="form-group row">
-                                    <label class="col-sm-3 col-form-label required">그룹 코드</label>
-                                    <div class="col-sm-9">
-                                        <select class="form-control" id="grp_cd_dtl" required="required">
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-group row">
-                                    <label class="col-sm-3 col-form-label required">코드</label>
-                                    <div class="col-sm-9">
-                                        <input type="text" class="form-control" id="dtl_cd_dtl" maxlength="50" placeholder="" required="required">
-                                    </div>
-                                </div>
-                                <div class="form-group row">
-                                    <label class="col-sm-3 col-form-label required">코드명</label>
-                                    <div class="col-sm-9">
-                                        <input type="text" class="form-control" id="dtl_cd_nm_dtl" maxlength="50" placeholder="" required="required">
-                                    </div>
-                                </div>
-                                <div class="form-group row">
-                                    <label class="col-sm-3 col-form-label required">정렬순서</label>
-                                    <div class="col-sm-9">
-                                        <input type="number" class="form-control" id="ordby" maxlength="2" placeholder="">
-                                    </div>
-                                </div>
-                                <div class="form-group row">
-                                    <label class="col-sm-3 col-form-label required">사용여부</label>
-                                    <div class="col-sm-9">
-                                        <input type="checkbox" id="use_yn" data-toggle="toggle" data-size="small" data-on="사용" data-off="미사용" data-width="80">
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-dark btn-icon-text mr-2 btn-register-detail">
-                        <i class="btn-icon-prepend" data-feather="edit"></i>저장
-                    </button>
-                    <button type="button" class="btn btn-secondary btn-icon-text" data-dismiss="modal">
-                        <i class="btn-icon-prepend" data-feather="x-square"></i>닫기
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- // modal -->
+    </section>
 </div>
+
 <th:block layout:fragment="custom_css">
-    <style type="text/css">
-    .table-no-paging {
-        height: 650px;
-        overflow-x: hidden;
-    }
-    </style>
 </th:block>
 <th:block layout:fragment="custom_js">
     <script th:src="@{/assets/js/pages/setting/code_list.js}"></script>

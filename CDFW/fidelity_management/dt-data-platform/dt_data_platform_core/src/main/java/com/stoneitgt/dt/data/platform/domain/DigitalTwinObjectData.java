@@ -1,9 +1,6 @@
 package com.stoneitgt.dt.data.platform.domain;
 
 import lombok.Data;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
 
 @Data
 public class DigitalTwinObjectData {

@@ -1,32 +1,57 @@
 (function () {
     'use strict'
     $(document).ready(function () {
+        let simTp = document.querySelector('#simTp');
+        if (simTp) {
+            observeDataValueChange(simTp, function (targetElement, newValue) {
+                console.log('observeDataValueChange Callback', targetElement, newValue);
+                $('#simulation_model_nm').val('');
+                $('#search_simulation_list_table').empty();
+                $("#cycle_tp_check").prop("checked", false);  //체크해제하기
+                //file_upload_range
+                let augmentTp = document.querySelector('#augmentTp');
+                let dropdownBox = augmentTp.closest('.dropdown-box');
+                let firstSelected = dropdownBox.querySelector('ul.option-list li')
+                if (firstSelected) {
+                    firstSelected.querySelector('label').click();
+                }
+            });
+        }
 
-        $(document).on('change', '#simTp', function () {
-            $('#simulation_model_nm').val('');
-            $('#search_simulation_list_table').empty();
-            $("#cycle_tp_check").prop("checked", false);  //체크해제하기
-            //file_upload_range
-            let simulationType = $('#simTp option:selected').val();
-            let augmentType = $('#augmentTp option:selected').val();
-            simulationFormChanger(simulationType, augmentType);
+        let augmentTp = document.querySelector('#augmentTp');
+        if (augmentTp) {
+            observeDataValueChange(augmentTp, function (targetElement, newValue) {
+                console.log('observeDataValueChange Callback', targetElement, newValue);
+                $('#simulation_model_nm').val('');
+                $('#search_simulation_list_table').empty();
+                $("#cycle_tp_check").prop("checked", false);
+                let simTp = document.querySelector('#simTp');
+                let simTpType = simTp.dataset.value;
+                simulationFormChanger(simTpType, newValue);
+            });
+        }
+
+        $(document).on('input', '#modelSearch', function (e) {
+            console.log('this', this);
+            console.log('e', e);
+            let tableContainer = document.querySelector('#search_simulation_list_table');
+            let searchInput = tableContainer.querySelector('input[type="search"]');
+            if (searchInput) {
+                $(searchInput).val(this.value).trigger('input');
+            }
         });
 
-        $(document).on('change', '#augmentTp', function () {
-            $('#simulation_model_nm').val('');
-            $('#search_simulation_list_table').empty();
-            $("#cycle_tp_check").prop("checked", false);
-            let simulationType = $('#simTp option:selected').val();
-            let augmentType = $('#augmentTp option:selected').val();
-            simulationFormChanger(simulationType, augmentType);
-        });
-
-        $(document).on('click', '.btn-search-model-list', function () {
-            let simTp = $('#simTp option:selected').val();
-            let augmentTp = $('#augmentTp option:selected').val();
+        $(document).on('click', '.btn-search-model-list', function (e) {
+            let simTp = document.querySelector('#simTp').dataset.value;
+            let augmentTp = document.querySelector('#augmentTp').dataset.value;
             let simulation_model_nm = $('#simulation_model_nm').val();
-            if (simTp == 0) {
+            if (simTp === 0 || simTp === '0') {
                 alert('시뮬레이션 유형을 선택 하세요.');
+                return false;
+            }
+
+            if (augmentTp === 0 || augmentTp === '0') {
+                alert('증강 유형을 선택 하세요.');
                 return false;
             }
 
@@ -56,14 +81,33 @@
                             console.log('result.data', result.data);
                             makeSimulationModelListTable(result.data, 'search_simulation_list_table', 'simulationModelListDataTable');
                             $('#simulationModelListDataTable').DataTable({
-                                "order": [[0, "asc"]],
-                                "searching": true,
-                                "info": false,
-                                "lengthChange": false,
-                                "autoWidth": true,
-                                "lengthMenu": [[10], [10]]
+                                order: [[0, "asc"]],
+                                searching: true,
+                                info: false,
+                                lengthChange: false,
+                                autoWidth: true,
+                                lengthMenu: [[10], [10]],
+                                scrollX: true,
+                                oLanguage: {
+                                    sZeroRecords: '조회 결과가 없습니다.'
+                                },
+                                initComplete: function () {
+                                    /**
+                                     * Search Input Custom
+                                     * */
+                                    let tableContainer = document.querySelector('#search_simulation_list_table');
+                                    let searchInput = tableContainer.querySelector('input[type="search"]');
+                                    searchInput.classList.forEach(className => searchInput.classList.remove(className));
+                                    ['form-control', 'sm'].forEach(function (className) {
+                                        searchInput.classList.add(className);
+                                    });
+                                    searchInput.style.display = 'none';
+                                }
                             });
-                            $('#dataTwinModelListModal').modal('show');
+                            console.log('document.querySelector(\'.btn-search-model-list\')', document.querySelector('.btn-search-model-list'));
+                            const modalPopupId = document.querySelector('.btn-search-model-list').dataset.popupId;
+                            console.log('modalPopupId', modalPopupId);
+                            document.getElementById(modalPopupId).classList.add('is-open');
                         }
                     } else {
                         alert('API 내 에러 발생');
@@ -79,10 +123,10 @@
         $(document).on('click', '.btn-select-simulation-model', function () {
             var model_seq = $(this).data("model-seq");
             var model_nm = $(this).data("model-nm");
+            let _this = this;
 
             $('#modelSeq').val(model_seq);
             $('#set_model_name').val(model_nm);
-            $('#search_simulation_list_table').empty();
             $('#simulation_model_nm').val(model_nm);
 
             /**
@@ -105,78 +149,50 @@
                 contentType: "application/json; charset=utf-8;",
                 dataType: "json",
                 success: function (result) {
-                    if (result.code == 200) {
-
+                    if (result.code === 200) {
                         $('#preprocProPerty').val(result.data.user_pprcs_full_stng_value);
                         $('.preprocProPerty').val(prettyJson(result.data.user_pprcs_full_stng_value));
 
-                        let simTp = $('#simTp option:selected').val();
-                        let augmentTp = $('#augmentTp option:selected').val();
+                        let simTp = document.querySelector('#simTp').dataset.value;
+                        let augmentTp = document.querySelector('#augmentTp').dataset.value;
                         let preProcData = JSON.parse($('#preprocProPerty').val());
                         let model_property = preProcData.preproc_property_info[0].model_property[0];
                         console.log('model_property', model_property);
-                        if (simTp === 'A' && augmentTp === 'O') {
-                            let resample_property = preProcData.preproc_property_info[0].preproc_property[3].preproc_set[0];
-                            //console.log(preProcData.preproc_property_info[0].preproc_property[3].preproc_set[0])
-
+                        console.log('simTp', simTp, 'augmentTp', augmentTp);
+                        let resample_property = preProcData.preproc_property_info[0].preproc_property[3].preproc_set[0];
+                        console.log('resample_property', resample_property);
+                        if (simTp === 'A' && (augmentTp === 'O' || augmentTp === 'F')) {
                             let resmplIntvlTp;
                             let resmplIntvlValue;
                             if (typeof resample_property === 'undefined') {
-                                //console.log('empty')
                                 resmplIntvlTp = null;
                                 resmplIntvlValue = null;
                             } else {
                                 resmplIntvlTp = resample_property.resmpl_tp;
                                 resmplIntvlValue = resample_property.resmpl_intvl_value;
-                                //console.log(resample_property.resmpl_intvl_value)
-                                //console.log(resample_property.resmpl_tp)
-                                //console.log(resample_property.resmpl_tp_nm)
                             }
 
-                            if (resmplIntvlTp == 'D') {
-                                //hideOptionByValue('data_crt_intvl_tp', valuesToHide);
-                                $('#data_crt_intvl_tp').find('[value=S]').hide();
-                                $('#data_crt_intvl_tp').find('[value=T]').hide();
-                                $('#data_crt_intvl_tp').find('[value=H]').hide();
-                                $('#data_crt_intvl_tp').find('[value=D]').show();
-                            } else if (resmplIntvlTp == 'H') {
-                                $('#data_crt_intvl_tp').find('[value=S]').hide();
-                                $('#data_crt_intvl_tp').find('[value=T]').hide();
-                                $('#data_crt_intvl_tp').find('[value=H]').show();
-                                $('#data_crt_intvl_tp').find('[value=D]').show();
-                            } else if (resmplIntvlTp == 'T') {
-                                $('#data_crt_intvl_tp').find('[value=S]').hide();
-                                $('#data_crt_intvl_tp').find('[value=T]').show();
-                                $('#data_crt_intvl_tp').find('[value=H]').show();
-                                $('#data_crt_intvl_tp').find('[value=D]').show();
+                            let data_crt_intvl_tp = document.querySelector('#data_crt_intvl_tp');
+                            let dropdownBox = data_crt_intvl_tp.closest('.dropdown-box');
+                            if (data_crt_intvl_tp && resmplIntvlTp) {
+                                let findInput = dropdownBox.querySelector(`ul.option-list li input[value="${resmplIntvlTp}"]`);
+                                let findLabel = dropdownBox.querySelector(`ul.option-list li label[for="${findInput.id}"]`);
+                                findLabel.click();
                             } else {
-                                $('#data_crt_intvl_tp').find('[value=S]').show();
-                                $('#data_crt_intvl_tp').find('[value=T]').show();
-                                $('#data_crt_intvl_tp').find('[value=H]').show();
-                                $('#data_crt_intvl_tp').find('[value=D]').show();
+                                let firstInput = dropdownBox.querySelector(`ul.option-list li:first-child input`);
+                                let firstLabel = dropdownBox.querySelector(`ul.option-list li:first-child label`);
+                                firstLabel.click();
                             }
 
-                            $("#data_crt_intvl_tp").val(resmplIntvlTp).prop("selected", true);
                             $('#data_crt_intvl_value').val(resmplIntvlValue);
-
                             $('.reset-cal-term').trigger("click");
-                            //var preproc_trgt_col = preProcData.preproc_property_info[0].preproc_trgt_col;
-                            //var index_trgt_col = preProcData.preproc_property_info[0].index_trgt_col;
                         }
-
                         if (simTp === 'A' && augmentTp === 'R') {
-                            console.log('$(\'#windowSize\')', $('#windowSize'));
+                            console.log('windowSize', model_property.hyperparam.window_size);
                             $('#windowSize').val(model_property.hyperparam.window_size);
                         }
                         let url = contextPath + `/dt/model/`;
-                        console.log('result', result);
-                        if (result.data.job_level === 'P') {
-                            url += `preprocess/${model_seq}?menuCd=${menu_cd}`;
-                        } else if (result.data.job_level === 'M') {
-                            url += `model/${model_seq}?menuCd=${menu_cd}`;
-                        } else {
-                            url += `model/${model_seq}?menuCd=${menu_cd}`;
-                        }
+                        url += `model/${model_seq}?menuCd=${menu_cd}`;
                         $("#go_model_btn_range").show();
                         let goModelBtnRange = document.querySelector('#go_model_btn_range');
                         if (goModelBtnRange) {
@@ -186,10 +202,11 @@
                             }
                         }
                         $("#go_model_page").attr("href", url);
+                        _this.closest('.modal-popup').querySelector('.btn-popup-close[data-popup-id]').click();
+                        $('#search_simulation_list_table').empty();
                     } else {
                         alert('API 내 에러 발생');
                     }
-                    $('#dataTwinModelListModal').modal('hide');
                 },
                 error: function (xhr, status, error) {
                     console.error('error : ', error);
@@ -199,38 +216,31 @@
         });
 
         $(document).on('click', '.reset-cal-term', function () {
-            var data_crt_intvl_tp = $("#data_crt_intvl_tp option:selected").val();
+            let data_crt_intvl_tp = document.querySelector('#data_crt_intvl_tp').dataset.value;
             var data_crt_intvl_value = $("#data_crt_intvl_value").val();
             var model_name = $('#set_model_name').val();
 
             var get_resmpl_intvl_tp = $("#get_resmpl_intvl_tp").val();
             var get_resmpl_intvl_value = $("#get_resmpl_intvl_value").val();
 
-            if (model_name.length == 0) {
+            if (model_name.length === 0) {
                 alert('모델을 선택하세요');
                 $('#data_crt_intvl_value').val(1);
                 return false;
             }
 
-            if (data_crt_intvl_tp.length == 0) {
+            if (data_crt_intvl_tp.length === 0) {
                 alert('자료생성간격범위를 지정해주세요');
                 return false;
             }
 
-            if (data_crt_intvl_tp == get_resmpl_intvl_tp) {
+            if (data_crt_intvl_tp === get_resmpl_intvl_tp) {
                 if (parseInt(data_crt_intvl_value) < parseInt(get_resmpl_intvl_value)) {
                     alert('모델과 같은 단위를 선택시 최소값보다 작습니다.');
                     $('#data_crt_intvl_value').val(get_resmpl_intvl_value);
                     return false;
                 }
             }
-
-            /*
-            if (isNaN(value)) {
-                alert('숫자값 필수입니다')
-                $('#data_crt_intvl_value').val(1);
-            }
-            */
 
             if (data_crt_intvl_value > 50) {
                 alert('50이하로 설정해주세요')
@@ -239,9 +249,7 @@
             }
 
             if (data_crt_intvl_value.length > 0) {
-                var data = calDateTerm(data_crt_intvl_tp, data_crt_intvl_value);
-                //console.log('----result----')
-                //console.log(data['target_start_date']);
+                let data = calDateTerm(data_crt_intvl_tp, data_crt_intvl_value);
                 $('#target_start_date').val(data['target_start_date']);
                 $('#target_last_date').val(data['target_last_date']);
             }
@@ -254,8 +262,8 @@
 
             var title = $('#title').val();
             var derpn = $('#derpn').val();
-            var simTp = $('#simTp option:selected').val();
-            var augmentTp = $('#augmentTp option:selected').val();
+            var simTp = document.querySelector('#simTp').dataset.value;
+            var augmentTp = document.querySelector('#augmentTp').dataset.value;
             var set_model_name = $('#set_model_name').val();
             var use_yn = $('input[name="useYn"]:checked').val();
             let rls_yn = document.querySelector('input[name="rlsYn"]:checked').value;
@@ -265,13 +273,13 @@
                 return false;
             }
 
-            if (simTp === 0) {
+            if (simTp === 0 || simTp === '0') {
                 alert('시뮬레이션 유형을 선택하세요');
                 return false;
             }
 
-            if (augmentTp === 0) {
-                alert('처리 유형을 선택하세요.');
+            if (augmentTp === 0 || augmentTp === '0') {
+                alert('증강 유형을 선택하세요.');
                 return false;
             }
 
@@ -352,7 +360,7 @@
                         window.location.href = contextPath + "/dt/simulation/augment/list?menuCd=" + menuCd;
                     } else {
                         closeProgressBar({element: null, process_id: 'process-48'});
-                        alert('모델에 사용하는 헤더와 일치하지 않습니다.');
+                        alert(`${message}`);
                     }
                 }, error: function (xhr, status, error) {
                     console.error('error : ', error);
@@ -368,8 +376,8 @@
 
             var title = $('#title').val();
             var derpn = $('#derpn').val();
-            var simTp = $('#simTp option:selected').val();
-            var augmentTp = $('#augmentTp option:selected').val();
+            var simTp = document.querySelector('#simTp').dataset.value;
+            var augmentTp = document.querySelector('#augmentTp').dataset.value;
             var set_model_name = $('#set_model_name').val();
             var use_yn = $('input[name="useYn"]:checked').val();
             let rls_yn = document.querySelector('input[name="rlsYn"]:checked').value;
@@ -379,12 +387,12 @@
                 return false;
             }
 
-            if (simTp === 0) {
+            if (simTp === 0 || simTp === '0') {
                 alert('시뮬레이션 유형을 선택하세요');
                 return false;
             }
 
-            if (augmentTp === 0) {
+            if (augmentTp === 0 || augmentTp === '0') {
                 alert('처리 유형을 선택하세요.');
                 return false;
             }
@@ -397,7 +405,7 @@
             // #cycleEndDsgnYmd 요소의 값 가져오기
             var cycleBgngDsgnYmdValue = $("#target_start_date").val();
             var cycleEndDsgnYmdValue = $("#target_last_date").val();
-            var dataCrtIntvlTp = $('#data_crt_intvl_tp').val();
+            var dataCrtIntvlTp = document.querySelector('#data_crt_intvl_tp').dataset.value;
             var dataCrtIntvlValue = $("#data_crt_intvl_value").val();
 
             if (dataCrtIntvlValue.length === 0) {
@@ -448,7 +456,7 @@
                         window.location.href = contextPath + "/dt/simulation/augment/list?menuCd=" + menuCd;
                     } else {
                         closeProgressBar({element: null, process_id: 'process-49'});
-                        alert('에러가 발생하였습니다. 관리자에게 문의하십시오.');
+                        alert(`${message}`);
                     }
                 },
                 error: function (xhr, status, error) {
@@ -464,8 +472,8 @@
             var menuCd = $('#menuCd').val();
             var title = $('#title').val();
             var derpn = $('#derpn').val();
-            var simTp = $('#simTp option:selected').val();
-            var augmentTp = $('#augmentTp option:selected').val();
+            var simTp = document.querySelector('#simTp').dataset.value;
+            var augmentTp = document.querySelector('#augmentTp').dataset.value;
             var cycleTp = $('input[name="cycleTp"]:checked').val();
             var useYn = $('input[name="useYn"]:checked').val();
             let input_data_max_limit_cnt = document.querySelector('#dataMaxLimitCnt');
@@ -477,14 +485,32 @@
                 return false;
             }
 
-            if (simTp === 0) {
+            if (simTp === 0 || simTp === '0') {
                 alert('시뮬레이션 유형을 선택하세요');
                 return false;
             }
 
-            if (augmentTp === 0) {
+            if (augmentTp === 0 || augmentTp === '0') {
                 alert('처리 유형을 선택하세요.');
                 return false;
+            }
+
+            let etc = null
+            if (cycleTp === 'ETC') {
+                let etc_time_intvl_value = document.querySelector('#etc_time_intvl').value;
+                try {
+                    if (parseInt(etc_time_intvl_value) <= 0) {
+                        alert('시간 간격을 0 이상을 입력해주세요.');
+                    }
+                } catch (e) {
+                    alert('시간 간격을 숫자형태로 입력해주세요.');
+                    return;
+                }
+                let etc_time_tp_value = document.querySelector('#etc_time_tp').dataset.value;
+                etc = {
+                    etc_time_tp: etc_time_tp_value,
+                    etc_time_intvl: etc_time_intvl_value
+                };
             }
 
             if (!$.isNumeric(data_max_limit_cnt)) {
@@ -606,7 +632,11 @@
                 rls_yn: rls_yn,
                 augment_status: augmentStatus,
                 data_max_limit_cnt: data_max_limit_cnt,
-                data_crt_last_hr: dataCrtLastHrValue,
+                data_crt_last_hr: dataCrtLastHrValue
+            }
+            if (cycleTp === 'ETC') {
+                data.etc_time_tp = etc.etc_time_tp;
+                data.etc_time_intvl = etc.etc_time_intvl;
             }
             console.log('data', data);
             showProgressBar({element: null, process_id: 'process-50'});
@@ -633,19 +663,30 @@
             });
         });
 
-        $(document).on('change', '#data_crt_intvl_tp', function () {
-            var model_name = $('#set_model_name').val();
-
-            if (model_name.length == 0) {
-                alert('모델을 선택하세요');
-                $("#data_crt_intvl_tp").val('').prop("selected", true);
-                $('#data_crt_intvl_value').val(1);
-                return false;
-            } else {
-                $('.reset-cal-term').trigger("click");
-            }
-
-        });
+        let dataCrtIntvlTp = document.querySelector('#data_crt_intvl_tp');
+        if (dataCrtIntvlTp) {
+            observeDataValueChange(dataCrtIntvlTp, function (targetElement, newValue) {
+                console.log('observeDataValueChange Callback', targetElement, newValue);
+                let dataCrtIntvlTp = document.querySelector('#data_crt_intvl_tp');
+                let dropdownBox = dataCrtIntvlTp.closest('.dropdown-box');
+                let firstInput = dropdownBox.querySelector('ul.option-list li:first-child input');
+                let firstLabel = dropdownBox.querySelector('ul.option-list li:first-child label');
+                if (!newValue || newValue === '선택 없음' || newValue === '0' || newValue === '') {
+                    return;
+                }
+                let model_name = $('#set_model_name').val();
+                if (model_name.length === 0) {
+                    alert('모델을 선택하세요');
+                    let processClearButton = document.querySelector('#processRange [data-action="clear"]');
+                    let dataClearButton = document.querySelector('#dataRange [data-action="clear"]');
+                    processClearButton.click();
+                    dataClearButton.click();
+                    firstLabel.click();
+                } else {
+                    $('.reset-cal-term').trigger('click');
+                }
+            });
+        }
 
         let processClearButton = document.querySelector('#processRange [data-action="clear"]');
         processClearButton.addEventListener('click', function (event) {
@@ -660,6 +701,27 @@
             let dataInput = document.querySelector('#dataCrtLastHr');
             dataInput.value = '';
         });
+
+        let cycleTpRange = document.querySelector('#cycle_tp_range');
+        if (cycleTpRange) {
+            const radios = cycleTpRange.querySelectorAll('input[type="radio"][name="cycleTp"]');
+
+            radios.forEach(function (radio) {
+                radio.addEventListener("change", function () {
+                    console.log("선택된 주기 유형:", this.value);
+                    $('#etc_time_tp_selection ul.option-list li:first-child label').click();
+                    $('#etc_time_intvl').val('');
+                    //ETC 로직만 예외 처리
+                    if (this.value === 'ETC') {
+                        let etcRange = document.querySelector('[aria-labelledby="ETC"]');
+                        etcRange.style.display = 'block';
+                    } else {
+                        let etcRange = document.querySelector('[aria-labelledby="ETC"]');
+                        etcRange.style.display = 'none';
+                    }
+                });
+            });
+        }
     });
 })();
 
@@ -688,18 +750,22 @@ function simulationFormChanger(simulationType, augmentType) {
     $('#AugmentNeedRange').hide();
 
     //증강일때만 추론 열린다.
-    let options = document.querySelectorAll('#augmentTp option');
-    options.forEach(item => {
+    let augmentTp = document.querySelector('#augmentTp');
+    let dropdownBox = augmentTp.closest('.dropdown-box');
+    let options = dropdownBox.querySelectorAll('ul.option-list li');
+
+    options.forEach(option => {
         if (simulationType === 'A') {
-            if (item.value === 'F' || item.innerHTML.trim() === '추론') {
-                item.style.display = 'block';
+            if (option.querySelector('input').value === 'F' || option.querySelector('label').innerHTML.trim() === '추론') {
+                option.style.display = 'block';
             }
         } else {
-            if (item.value === 'F' || item.innerHTML.trim() === '추론') {
-                item.style.display = 'none';
+            if (option.querySelector('input') === 'F' || option.querySelector('label').innerHTML.trim() === '추론') {
+                option.style.display = 'none';
             }
         }
     });
+
     switch (simulationType) {
         case 'P': {
             switch (augmentType) {
@@ -806,6 +872,7 @@ function simulationFormChanger(simulationType, augmentType) {
                     $('#row_limit_yn').show();
 
                     //개수
+                    $('#preprocessNeedRange').show();
                     $('#AugmentNeedRange').show();
                     break;
                 }
@@ -821,92 +888,6 @@ function simulationFormChanger(simulationType, augmentType) {
             break;
         }
     }
-}
-
-function chgAddFilePc(obj, e) {
-
-    var fileValue = obj.val().split("\\");
-    var fileName = fileValue[fileValue.length - 1]; // 파일명
-    var ext = fileName.substring(fileName.lastIndexOf('.') + 1, fileName.length);
-    ext = ext.toLowerCase();
-
-    if (ext != 'csv') {
-        alert("확장자가 csv인  파일만 첨부가능합니다.");
-        window.location.reload();
-
-    } else {
-        uploadFile();
-    }
-}
-
-function uploadFile() {
-    var form = $('#editForm')[0];
-    var indexTrgtCol = $('#indexTrgtCol').val();
-    var form = $('#editForm')[0];
-    //console.log(form)
-    var formData = new FormData(form);
-    //formData.append('file', $('#attachFiles')[0].files[0]);
-    showProgressBar({element: null, process_id: 'process-54'});
-    $.ajax({
-        type: 'POST', //enctype: 'multipart/form-data',
-        url: '/dt/model/csvFileUpload',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function (result) {
-            var strHTML = '';
-            //var resultData = result.result_data[0];
-            if (result.code == 200) {
-                var header_list = result.header_list;
-                var data_list = result.data_list;
-
-                if (header_list.length === 0 || data_list.length === 0) {
-                    alert('선택하신 파일에 가져올 데이터가 없습니다.');
-                    closeProgressBar({element: null, process_id: 'process-54'});
-                    return;
-                }
-
-                var preProcData = preProcTemplate();
-                preProcData.preproc_property_info[0].base_dir = result.base_dir;
-                preProcData.preproc_property_info[0].base_file_nm = result.file_name;
-
-                preProcData.preproc_property_info[0].data_use_tp = 'F';
-                //preProcData.preproc_property_info[0].index_trgt_col = result.data.index_trgt_col;
-                $('#preprocProPerty').val(JSON.stringify(preProcData));
-                $('.preprocProPerty').val(prettyJson(JSON.stringify(preProcData)));
-
-                //결과값으로  테이블 만들기
-                makeHtmlTable(header_list, data_list, 'csvUpRange', 'Y', 'csvUpRangeDataTable');
-
-                $('#tab_getdata_range').hide();
-                $('#tab_info_range').show();
-                $('#tab_preview_range').show();
-
-                $('#tab_getdata').attr('class', 'nav-link');
-                $('#tab_info').attr('class', 'nav-link active');
-                $('#tab_column_info').attr('class', 'nav-link');
-                $('#tab_preproc').attr('class', 'nav-link');
-                $('#tab_getalgo').attr('class', 'nav-link');
-                $('#tab_savemodel').attr('class', 'nav-link');
-
-
-                $('#next_button_info_range').show();
-
-                $('#csvUpRangeDataTable').DataTable({
-                    "order": [[0, "asc"]],
-                    "searching": false,
-                    "info": false,
-                    "lengthChange": false,
-                    "autoWidth": false,
-                    "lengthMenu": [[5], [5]]
-                });
-                $('#loading').hide();
-            } else {
-                console.error('error : ', result);
-                alert('API 에러가 발생하였습니다. 관리자에게 문의하십시오.');
-            }
-        }
-    });
 }
 
 function calDateTerm(data_crt_intvl_tp, data_crt_intvl_value) {
@@ -944,6 +925,13 @@ function calDateTerm(data_crt_intvl_tp, data_crt_intvl_value) {
         last_date = day;
     }
 
+    if (data_crt_intvl_tp === 'M') {
+        //월단위
+        var mon = new Date(now);
+        mon.setMonth(mon.getMonth() + parseInt(data_crt_intvl_value));
+        last_date = mon;
+    }
+
     return {
         "target_start_date": dateFormat(now), "target_last_date": dateFormat(last_date)
     };
@@ -965,5 +953,3 @@ function dateFormat(date) {
 
     return date.getFullYear() + '-' + month + '-' + day + ' ' + hour + ':' + minute + ':' + second;
 }
-
-

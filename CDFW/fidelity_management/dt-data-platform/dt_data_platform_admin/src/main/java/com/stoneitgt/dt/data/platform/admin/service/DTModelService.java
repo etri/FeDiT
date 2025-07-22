@@ -1,21 +1,21 @@
 package com.stoneitgt.dt.data.platform.admin.service;
 
-import java.io.IOException;
-import java.util.*;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stoneitgt.common.GlobalConstant;
+import com.stoneitgt.dt.data.platform.admin.config.DatabaseConfig;
+import com.stoneitgt.dt.data.platform.admin.mapper.DTEtcModelMapper;
+import com.stoneitgt.dt.data.platform.admin.mapper.DTModelMapper;
+import com.stoneitgt.dt.data.platform.admin.mapper.LogMapper;
 import com.stoneitgt.dt.data.platform.domain.*;
 import com.stoneitgt.dt.data.platform.util.file.FileUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stoneitgt.dt.data.platform.admin.config.DatabaseConfig;
-import com.stoneitgt.dt.data.platform.admin.mapper.DTModelMapper;
-
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -23,6 +23,12 @@ public class DTModelService extends BaseService {
 
     @Autowired
     private DTModelMapper dtModelMapper;
+
+    @Autowired
+    private DTEtcModelMapper dtEtcModelMapper;
+
+    @Autowired
+    private LogMapper logMapper;
 
     public List<Map<String, Object>> getDTModelList(Map<String, Object> params, Paging paging) {
         return dtModelMapper.getDTModelList(params, paging.getPaging());
@@ -77,7 +83,7 @@ public class DTModelService extends BaseService {
 
         dtModelMetaUserItem.setModelSeq(dtModel.getModelSeq());
 
-        if (info.getTwin_id() != null) {
+        if (info.getTwin_id() != null && info.getTwin_obj_id() != null) {
             dtModelMetaUserItem.setTwinId(info.getTwin_id());
             dtModelMetaUserItem.setTwinObjId(info.getTwin_obj_id());
         } else {
@@ -86,6 +92,9 @@ public class DTModelService extends BaseService {
         }
         String addDirectory = FileUtil.getUploadDtFilePath(GlobalConstant.FILE_REF_TYPE.DATA, dtModel.getModelSeq());
         String moveDirectory = systemProperties.getDtMetaFilePath() + addDirectory;
+
+        ArrayList<Integer> integers = new ArrayList<>();
+
         ObjectMapper objectMapper = new ObjectMapper();
         DTModelJsonProperty sss = objectMapper.readValue(jsonString, DTModelJsonProperty.class);
         for (DTModelJsonPropertySub step : sss.getPreproc_property_info().get(0).getPreproc_property()) {
@@ -94,17 +103,43 @@ public class DTModelService extends BaseService {
                     property.setDecision_model_file_path(moveDirectory);
                     property.setDecision_model_file_name(property.getInterpl_decision_model_file_name());
                 }
+
+                // 유효성 검증 모델 사용 이력 남기기 위한 로직
+                if ((property.getEtc_model_seq() != null && Integer.parseInt(property.getEtc_model_seq()) != 0) || (property.getInterpl_etc_model_seq() != 0)) {
+                    //integers.add(Integer.parseInt(property.getEtc_model_seq()) != 0 ? Integer.parseInt(property.getEtc_model_seq()) : property.getInterpl_etc_model_seq());
+                    integers.add(property.getInterpl_etc_model_seq() != 0 ? property.getInterpl_etc_model_seq() : Integer.parseInt(property.getEtc_model_seq()));
+                }
                 //Data Twin Model 생성 중 필요한 Data 담았던 것을 초기화
-                property.setValidate_data(new ArrayList<>());
-                property.setOutlier_data(new ArrayList<>());
-                property.setMissing_data(new ArrayList<>());
-                property.setResmpl_removed_data(new ArrayList<>());
-                property.setResmpl_added_data(new ArrayList<>());
+                if (property.getValidate_data() == null || property.getValidate_data().isEmpty()) {
+                    property.setValidate_data(new ArrayList<>());
+                }
+                if (property.getOutlier_data() == null || property.getOutlier_data().isEmpty()) {
+                    property.setOutlier_data(new ArrayList<>());
+                }
+                if (property.getMissing_data() == null || property.getMissing_data().isEmpty()) {
+                    property.setMissing_data(new ArrayList<>());
+                }
+                if (property.getResmpl_removed_data() == null || property.getResmpl_removed_data().isEmpty()) {
+                    property.setResmpl_removed_data(new ArrayList<>());
+                }
+                if (property.getResmpl_added_data() == null || property.getResmpl_added_data().isEmpty()) {
+                    property.setResmpl_added_data(new ArrayList<>());
+                }
             }
         }
         dtModelMetaUserItem.setUserPprcsFullStngValue(new JSONObject(sss).toString());
         dtModelMapper.insertDTModelMetaUserItem(dtModelMetaUserItem);
 
+        integers.forEach(integer -> {
+            DTModelEtc dtEtcModel = dtEtcModelMapper.selectMetaModel(integer);
+            ModelReferenceLog modelReferenceLog = new ModelReferenceLog();
+            modelReferenceLog.setRefModelSeq(dtModel.getModelSeq());
+            modelReferenceLog.setModelSeq(dtEtcModel.getEtcModelSeq());
+            modelReferenceLog.setModelAlgrmSeq(dtEtcModel.getModelAlgrmSeq());
+            modelReferenceLog.setRegUserSeq(info.getLoginUserSeq());
+            modelReferenceLog.setRegIp(info.getLoginUserIp());
+            logMapper.insertDtEtcModelReferenceLog(modelReferenceLog);
+        });
 
         //전처리5단계중
         for (int i = 0; i < preproc_property.size(); i++) {
@@ -206,7 +241,11 @@ public class DTModelService extends BaseService {
     }
 
     public Files getDtPreprocLastFile(int modelSeq) {
-        return dtModelMapper.getDtPreprocLastFile(modelSeq);
+        Files files = dtModelMapper.getDtPreprocLastFile(modelSeq);
+        if (files != null) {
+            files.setFileSzSrt(FileUtil.formatFileSize(files.getFileSz()));
+        }
+        return files;
     }
 
     public DTModel getAugmentModel(int modelSeq) {
@@ -378,6 +417,12 @@ public class DTModelService extends BaseService {
         return dtModelMapper.getEtcModelInfo(params);
     }
 
+    public Map<String, Object> getEtcModelInfo(int etc_model_seq) {
+        Map<String, Object> params = new HashMap<String, Object>();
+        params.put("etc_model_seq", etc_model_seq);
+        return dtModelMapper.getEtcModelInfo(params);
+    }
+
     public Map<String, Object> getMetaDataJsonDepth(Map<String, Object> param) {
         return dtModelMapper.getMetaDataJsonDepth(param);
     }
@@ -392,10 +437,6 @@ public class DTModelService extends BaseService {
 
     public boolean checkUseRFModel(int rf_model_seq) {
         return dtModelMapper.checkUseRFModel(rf_model_seq);
-    }
-
-    public List<Map<String, Object>> getDTModelSharedListByJobLevel(Map<String, Object> params, Paging paging) {
-        return dtModelMapper.getDTModelSharedListByJobLevel(params, paging.getPaging());
     }
 
     public void deleteModelLoss(int modelSeq) {
@@ -416,5 +457,38 @@ public class DTModelService extends BaseService {
 
     public List<Map<String, Object>> getDTAllSharedList(Map<String, Object> params, Paging paging) {
         return dtModelMapper.getDTAllSharedList(params, paging.getPaging());
+    }
+
+    public int getCountXAIFileInfo(Map<String, Object> xaiParams) {
+        return dtModelMapper.getCountXAIFileInfo(xaiParams);
+    }
+
+    public int insertXAIFileInfo(Map<String, Object> xaiParams) {
+        return dtModelMapper.insertXAIFileInfo(xaiParams);
+    }
+
+    public int updateXAIFileInfo(Map<String, Object> xaiParams) {
+        return dtModelMapper.updateXAIFileInfo(xaiParams);
+    }
+
+    public void deleteModelXAI(int modelSeq, String ref_tp) {
+        dtModelMapper.deleteModelXAI(modelSeq, ref_tp);
+    }
+
+    public Map<String, Object> getModelXAI(int modelSeq) {
+        Map<String, Object> modelXAI = dtModelMapper.getModelXAI(modelSeq);
+        return modelXAI;
+    }
+
+    public int countMetaModel() {
+        return dtModelMapper.countMetaModel();
+    }
+
+    public int countMetaModel(int modelAlgrmSeq) {
+        return dtModelMapper.countMetaModelByAlgrmSeq(modelAlgrmSeq);
+    }
+
+    public DTModelJsonProperty findPreprocessJSONByModelSeq(int modelSeq) throws IOException {
+        return new ObjectMapper().readValue(dtModelMapper.findPreprocessJSONByModelSeq(modelSeq), DTModelJsonProperty.class);
     }
 }

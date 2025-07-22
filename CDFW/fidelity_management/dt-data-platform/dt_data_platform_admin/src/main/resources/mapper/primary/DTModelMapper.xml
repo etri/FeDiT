@@ -380,26 +380,6 @@
         </if>
         ORDER BY REG_DT DESC
     </select>
-    <!--List<Map<String, Object>> getDTModelSharedListByJobLevel(Map<String, Object> params, RowBounds paging);-->
-    <select id="getDTModelSharedListByJobLevel" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
-        /* file : DTModelMapper.xml, id : getDTModelSharedList */
-        SELECT *
-        FROM (
-        SELECT A.*
-        , (SELECT DTL_CD_NM FROM TB_CODE_DTL T WHERE T.DEL_YN = 'N' AND T.GRP_CD = 'STATUS' AND T.DTL_CD =
-        A.MODEL_STATUS) STATUS_NM
-        , (SELECT USER_ID FROM TB_USER U WHERE U.DEL_YN = 'N' AND U.USER_SEQ = A.REG_USER_SEQ) USER_ID
-        FROM TB_META_MODEL A
-        WHERE A.DEL_YN = 'N'
-        AND A.USE_YN = 'Y'
-        AND A.RLS_YN = 'Y'
-        AND A.MODEL_STATUS = 'DONE'
-        ) TB WHERE JOB_LEVEL = #{job_level}
-        <if test="keyword != null and keyword != ''">
-            AND MODEL_NM LIKE CONCAT('%', #{keyword}, '%')
-        </if>
-        ORDER BY REG_DT DESC
-    </select>
 
     <select id="getDTAllSharedList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
         /* file : DTModelMapper.xml, id : getDTModelSharedList */
@@ -909,4 +889,106 @@
             USE_YN = 'N'
         WHERE MODEL_SEQ = #{modelSeq}
     </update>
+    <!--void deleteModelXAI(int modelSeq, String ref_tp);-->
+    <update id="deleteModelXAI">
+        UPDATE TB_META_MODEL_FILES
+        SET DEL_YN = 'Y',
+            USE_YN = 'N'
+        WHERE MODEL_SEQ = #{modelSeq}
+          AND REF_TP = #{ref_tp}
+    </update>
+
+    <!--int getCountXAIFileInfo(Map<String, Object> xaiParams);-->
+    <select id="getCountXAIFileInfo" parameterType="map" resultType="int">
+        /* file : DTModelMapper.xml, id : getCountTestFileInfo */
+        SELECT COUNT(*)
+        FROM TB_META_MODEL_FILES A
+                 JOIN TB_META_MODEL B ON A.MODEL_SEQ = B.MODEL_SEQ AND B.DEL_YN = 'N' AND B.USE_YN = 'Y'
+            AND A.DEL_YN = 'N'
+            AND A.MODEL_SEQ = B.MODEL_SEQ
+            AND B.MODEL_SEQ = #{model_seq}
+            AND A.REF_TP = #{ref_tp}
+    </select>
+
+    <!--void insertXAIFileInfo(Map<String, Object> xaiParams);-->
+    <insert id="insertXAIFileInfo" parameterType="map">
+        /* file : DTModelMapper.xml, id : insertTestFileInfo */
+        INSERT
+        INTO TB_META_MODEL_FILES (
+        FILE_SEQ
+        , MODEL_SEQ
+        , REF_TP
+        , FILE_NM
+        , FILE_PATH
+        , FILE_EXTN
+        , FILE_SZ
+        , REG_USER_SEQ
+        , REG_IP
+        )
+        VALUES (
+        #{fileSeq}
+        , #{model_seq}
+        , #{ref_tp}
+        , #{file_nm}
+        , #{file_path}
+        , #{file_extn}
+        , #{file_size}
+        , #{reg_user_seq}
+        , #{reg_ip}
+        )
+        <selectKey resultType="int" keyProperty="fileSeq" order="AFTER">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+    </insert>
+
+    <!--int updateXAIFileInfo(Map<String, Object> xaiParams);-->
+    <update id="updateXAIFileInfo" parameterType="map">
+        /* file : DTModelMapper.xml, id : updateTestFileInfo */
+        UPDATE TB_META_MODEL_FILES
+        SET FILE_NM        = #{file_nm}
+          , FILE_PATH      = #{file_path}
+          , FILE_EXTN      = #{file_extn}
+          , FILE_SZ        = #{file_size}
+          , MDFCN_USER_SEQ = #{reg_user_seq}
+          , MDFCN_DT       = CURRENT_TIMESTAMP
+          , MDFCN_IP       = #{reg_ip}
+        WHERE MODEL_SEQ = #{model_seq}
+          AND REF_TP = #{ref_tp}
+    </update>
+
+    <!--Map<String, Object> getModelXAI(@Param("modelSeq") int modelSeq);-->
+    <select id="getModelXAI" parameterType="int" resultType="com.stoneitgt.common.LowerKeyMap">
+        /* file : AIModelMapper.xml, id : getModelFID */
+        SELECT *
+        FROM TB_META_MODEL_XAI
+        WHERE MODEL_SEQ = #{modelSeq}
+          AND DEL_YN = 'N'
+          AND USE_YN = 'Y'
+        ORDER BY REG_DT DESC
+        LIMIT 1;
+    </select>
+
+    <!--int countMetaModel();-->
+    <select id="countMetaModel" resultType="int">
+        SELECT COUNT(*)
+        FROM TB_META_MODEL
+        WHERE USE_YN = 'Y'
+          AND DEL_YN = 'N'
+          AND MODEL_STATUS = 'DONE'
+    </select>
+    <!--int countMetaModelByAlgrmSeq(int modelAlgrmSeq);-->
+    <select id="countMetaModelByAlgrmSeq" parameterType="int" resultType="int">
+        SELECT COUNT(*)
+        FROM TB_META_MODEL
+        WHERE USE_YN = 'Y'
+          AND DEL_YN = 'N'
+          AND MODEL_ALGRM_SEQ = #{modelAlgrmSeq}
+          AND MODEL_STATUS = 'DONE'
+    </select>
+    <!--String findPreprocessJSONByModelSeq(int modelSeq);-->
+    <select id="findPreprocessJSONByModelSeq" parameterType="int" resultType="String">
+        SELECT USER_PPRCS_FULL_STNG_VALUE
+        FROM TB_META_USER_ITEM
+        WHERE MODEL_SEQ = #{modelSeq};
+    </select>
 </mapper>

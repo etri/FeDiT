@@ -1,104 +1,198 @@
-(function() {
+(function () {
     'use strict'
-    $(document).ready(function() {
-
+    $(document).ready(function () {
         // 그룹 코드 삭제
-        $('.btn-delete-master').on('click', function() {
+        $('.btn-delete-master').on('click', function () {
             if (confirm('해당 그룹 코드를 삭제하시겠습니까?\n그룹 코드 삭제시 상세 코드도 같이 삭제됩니다.')) {
                 deleteCode('M', $(this).data('group-code'));
             }
         });
 
         // 상세 코드 삭제
-        $('.btn-delete-detail').on('click', function() {
+        $('.btn-delete-detail').on('click', function () {
             if (confirm('해당 코드를 삭제하시겠습니까?')) {
                 deleteCode('D', $(this).data('group-code'), $(this).data('code'));
             }
         });
 
         // 그룹 코드 등록
-        $('.btn-add-master').on('click', function() {
-            $('#grp_cd').val('');
-            $('#grp_cd_nm').val('');
-            $('#modal-group').modal('show');
+        $('.btn-add-master').on('click', function () {
+            let groupModal = document.querySelector('#modal-group');
+            let grp_cd = groupModal.querySelector('#grp_cd');
+            let grp_cd_nm = groupModal.querySelector('#grp_cd_nm');
+            grp_cd.value = '';
+            grp_cd_nm.value = '';
+            if (!groupModal.classList.contains('is-open')) {
+                groupModal.classList.add('is-open');
+            }
         });
 
         // 상세 코드 등록
-        $('.btn-add-detail').on('click', function() {
-            openCodeDeailModal();
+        $('.btn-add-detail').on('click', function () {
+            openCodeDetailModal();
         });
 
         // 그룹 코드 조회
-        $('.btn-modify-master').on('click', function() {
+        $('.btn-modify-master').on('click', function () {
             getCodeInfo('M', $(this).data('group-code'));
         });
 
         // 상세 코드 조회
-        $('.btn-modify-detail').on('click', function() {
-            var grp_code = $(this).data('group-code');
-            var code = $(this).data('code');
-            openCodeDeailModal(grp_code, code);
+        $('.btn-modify-detail').on('click', function () {
+            let grp_code = $(this).data('group-code');
+            let code = $(this).data('code');
+            openCodeDetailModal(grp_code, code);
         });
 
-        $('.btn-register-master').on('click', function() {
+        $('.btn-register-master').on('click', function () {
             saveCodeMaster();
         });
 
-        $('.btn-register-detail').on('click', function() {
+        $('.btn-register-detail').on('click', function () {
             saveCodeDetail();
         });
 
-        function openCodeDeailModal(grp_code, code) {
-
-            ajaxPost('/setting/code/master', {}, function(result) {
-                $('#grp_cd_dtl').empty();
-                $.each(result.data, function(index, item) {
-                    $('#grp_cd_dtl').append($('<option value="' + item.grp_cd + '">' + item.grp_cd_nm + '</option>'))
+        function openCodeDetailModal(grp_code, code) {
+            ajaxPost('/setting/code/master', {}, function (result) {
+                let container = document.querySelector('#grp_cd_dtl_label').parentElement;
+                let dropdownWrapper = container.querySelector('.dropdown-wrapper');
+                dropdownWrapper.innerHTML = ``;
+                let dropdown = document.createElement('div');
+                ['dropdown-box'].forEach(function (className) {
+                    dropdown.classList.add(className);
                 });
+
+                let dropdownButton = document.createElement('button');
+                dropdownButton.setAttribute('type', 'button');
+                ['form-control', 'sm', 'dropdown-toggle'].forEach(function (className) {
+                    dropdownButton.classList.add(className);
+                });
+                dropdownButton.id = 'grp_cd_dtl';
+
+                dropdownButton.addEventListener('click', dropdownToggleButtonClickEventListener);
+                dropdown.appendChild(dropdownButton);
+
+                let dropdownLayer = document.createElement('div');
+                ['dropdown-layer'].forEach(function (className) {
+                    dropdownLayer.classList.add(className);
+                });
+                dropdownLayer.id = 'grp_cd_dtl_selection';
+                dropdownLayer.style.maxHeight = '220px';
+
+                let optionUl = document.createElement('ul');
+                ['option-list'].forEach(function (className) {
+                    optionUl.classList.add(className);
+                });
+
+                result.data.forEach(function (data) {
+                    let optionLi = document.createElement('li');
+                    let label = document.createElement('label');
+                    label.setAttribute('for', `input_grp_cd_dtl_${data.grp_cd}`);
+                    label.addEventListener('click', labelClickEventListener);
+                    label.innerHTML = `${data.grp_cd_nm}`;
+
+                    let input = document.createElement('input');
+                    input.setAttribute('type', 'radio');
+                    input.id = `input_grp_cd_dtl_${data.grp_cd}`;
+                    input.name = `grp_cd_dtl_input`;
+                    input.value = `${data.grp_cd}`;
+                    if (data.grp_cd === '0') {
+                        input.checked = true;
+                        dropdownButton.innerHTML = `${data.grp_cd_nm}`;
+                        dropdownButton.dataset.value = `${data.grp_cd}`;
+                    }
+
+                    optionLi.appendChild(input);
+                    optionLi.appendChild(label);
+                    optionUl.appendChild(optionLi);
+                });
+                dropdownLayer.appendChild(optionUl);
+                dropdown.appendChild(dropdownLayer);
+                dropdownWrapper.appendChild(dropdown);
+                container.appendChild(dropdownWrapper);
+                closeLayerOnOutsideClick(Array.from(dropdown ? [dropdown] : []), '.dropdown-layer');
                 if (grp_code) {
                     // 수정인 경우
                     getCodeInfo('D', grp_code, code);
                 } else {
                     // 등록
-                    var group_code = $('.code-master').find('.table-info').data('group-code');
+                    let group_code = $('.code-master').find('.table-info').data('group-code');
                     if (group_code) {
                         $('#grp_cd').val(group_code);
                     }
-                    $('#dtl_cd').val('');
-                    $('#dtl_cd_nm').val('');
-                    $('#ordby').val('');
-                    $('#use_yn').prop('checked', true).change();
-                    $('#modal-detail').modal('show');
+                    let detailModal = document.querySelector('#modal-detail');
+                    let dtl_cd_dtl = detailModal.querySelector('#dtl_cd_dtl');
+                    let dtl_cd_nm_dtl = detailModal.querySelector('#dtl_cd_nm_dtl');
+                    let ordby = detailModal.querySelector('#ordby');
+                    dtl_cd_dtl.value = ``;
+                    dtl_cd_nm_dtl.value = ``;
+                    ordby.value = ``;
+
+                    if (result.data.use_yn === 'Y') {
+                        // '사용' 라디오 버튼 선택
+                        const useY = document.querySelector('#useY');
+                        useY.checked = true;
+                        useY.dispatchEvent(new Event('change')); // change 이벤트 트리거
+                    } else {
+                        // '미사용' 라디오 버튼 선택
+                        const useN = document.querySelector('#useN');
+                        useN.checked = true;
+                        useN.dispatchEvent(new Event('change')); // change 이벤트 트리거
+                    }
+                    if (!detailModal.classList.contains('is-open')) {
+                        detailModal.classList.add('is-open');
+                    }
                 }
             });
         }
 
         function getCodeInfo(type, grp_code, code) {
-            var data = {
-                type: type,
-                grpCd: grp_code,
-                dtlCd: code
+            let data = {
+                type: type, grpCd: grp_code, dtlCd: code
             };
 
-            ajaxPost('/setting/code/load', data, function(result) {
+            ajaxPost('/setting/code/load', data, function (result) {
                 if (type === 'M') {
-                    $('#grp_cd').val(result.data.grp_cd);
-                    $('#grp_cd_nm').val(result.data.grp_cd_nm);
-                    $('#modal-group').modal('show');
-                } else {
-                    $('#grp_cd_dtl').val(result.data.grp_cd);
-                    $('#dtl_cd_dtl').val(result.data.dtl_cd);
-                    $('#dtl_cd_nm_dtl').val(result.data.dtl_cd_nm);
-                    $('#ordby').val(result.data.ordby);
-                    
-                    //$('#use_yn').prop('checked', result.data.use_yn).change();
-                    if (result.data.use_yn == 'Y') {
-                    	$('#use_yn').prop('checked', 1).change()
-                    } else {
-                    	$('#use_yn').prop('checked', 0).change()
+                    let groupModal = document.querySelector('#modal-group');
+                    let grp_cd = groupModal.querySelector('#grp_cd');
+                    let grp_cd_nm = groupModal.querySelector('#grp_cd_nm');
+                    grp_cd.value = `${result.data.grp_cd}`;
+                    grp_cd_nm.value = `${result.data.grp_cd_nm}`;
+                    if (!groupModal.classList.contains('is-open')) {
+                        groupModal.classList.add('is-open');
                     }
-                    
-                    $('#modal-detail').modal('show');
+                } else {
+                    console.log('result', result);
+                    let detailModal = document.querySelector('#modal-detail');
+                    let grp_cd_dtl = detailModal.querySelector('#grp_cd_dtl');
+                    let dropdownBox = grp_cd_dtl.closest('.dropdown-box');
+                    let targetInput = dropdownBox.querySelector(`ul.option-list li input[value="${result.data.grp_cd}"]`);
+                    let targetLabel = dropdownBox.querySelector(`ul.option-list li label[for="${targetInput.id}"]`);
+                    targetLabel.click();
+
+                    let dtl_cd_dtl = detailModal.querySelector('#dtl_cd_dtl');
+                    let dtl_cd_nm_dtl = detailModal.querySelector('#dtl_cd_nm_dtl');
+                    let ordby = detailModal.querySelector('#ordby');
+
+                    dtl_cd_dtl.value = `${result.data.dtl_cd}`;
+                    dtl_cd_nm_dtl.value = `${result.data.dtl_cd_nm}`;
+                    ordby.value = `${result.data.ordby}`;
+
+                    if (result.data.use_yn === 'Y') {
+                        // '사용' 라디오 버튼 선택
+                        const useY = document.querySelector('#useY');
+                        useY.checked = true;
+                        useY.dispatchEvent(new Event('change')); // change 이벤트 트리거
+                    } else {
+                        // '미사용' 라디오 버튼 선택
+                        const useN = document.querySelector('#useN');
+                        useN.checked = true;
+                        useN.dispatchEvent(new Event('change')); // change 이벤트 트리거
+                    }
+
+                    if (!detailModal.classList.contains('is-open')) {
+                        detailModal.classList.add('is-open');
+                    }
                 }
             });
         }
@@ -118,11 +212,10 @@
             }
 
             var data = {
-                grpCd: grp_code,
-                grpCdNm: grp_code_name
+                grpCd: grp_code, grpCdNm: grp_code_name
             };
 
-            ajaxPost('/setting/code/register/master', data, function(result) {
+            ajaxPost('/setting/code/register/master', data, function (result) {
                 if (result.result_code === 200) {
                     //showAlert('4');                    
                     window.location.reload();
@@ -131,11 +224,12 @@
         }
 
         function saveCodeDetail() {
-            var grp_code = $('#grp_cd_dtl').val();
-            var code = $('#dtl_cd_dtl').val();
-            var code_name = $('#dtl_cd_nm_dtl').val();
-            var ordby = $('#ordby').val();
-            var use_flag = $('#use_yn').is(':checked') ? 'Y' : 'N';
+            let detailModal = document.querySelector('#modal-detail');
+            let grp_code = detailModal.querySelector('#grp_cd_dtl').dataset.value;
+            let code = detailModal.querySelector('#dtl_cd_dtl').value;
+            let code_name = detailModal.querySelector('#dtl_cd_nm_dtl').value;
+            let ordby = detailModal.querySelector('#ordby').value;
+            let use_flag = detailModal.querySelector('input[name="whetherToUse"]:checked').id === 'useY' ? 'Y' : 'N';
 
             if (grp_code === '') {
                 alert('그룹 코드를 선택하세요.');
@@ -152,32 +246,24 @@
                 return false;
             }
 
-            var data = {
-                grpCd: grp_code,
-                dtlCd: code,
-                dtlCdNm: code_name,
-                ordby: ordby ? ordby : null,
-                useYn: use_flag
+            let data = {
+                grpCd: grp_code, dtlCd: code, dtlCdNm: code_name, ordby: ordby ? ordby : null, useYn: use_flag
             };
 
-            ajaxPost('/setting/code/register/detail', data, function(result) {
+            ajaxPost('/setting/code/register/detail', data, function (result) {
                 if (result.result_code === 200) {
-                    //showAlert('4');
                     window.location.reload();
                 }
             });
         }
 
         function deleteCode(type, grp_code, code) {
-            var data = {
-                type: type,
-                grpCd: grp_code,
-                dtlCd: code
+            let data = {
+                type: type, grpCd: grp_code, dtlCd: code
             };
 
-            ajaxPost('/setting/code/delete', data, function(result) {
+            ajaxPost('/setting/code/delete', data, function (result) {
                 if (result.result_code === 200) {
-                    //showAlert('3');
                     window.location.reload();
                 }
             });

@@ -1,14 +1,13 @@
 package com.stoneitgt.dt.data.platform.admin.mapper;
 
-import java.util.List;
-import java.util.Map;
-
+import com.stoneitgt.dt.data.platform.domain.DTAugment;
+import com.stoneitgt.dt.data.platform.domain.SimulationModel;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.session.RowBounds;
 
-import com.stoneitgt.dt.data.platform.domain.DTAugment;
-import com.stoneitgt.dt.data.platform.domain.SimulationModel;
+import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface DTSimulationMapper {
@@ -51,11 +50,9 @@ public interface DTSimulationMapper {
 
     void deleteDTSimulation(Map<String, Object> parameters);
 
-    List<Map<String, Object>> getDTSimulationListBySimTp(Map<String, Object> params, RowBounds paging);
-
-    List<Map<String, Object>> getDTSimulationListSetUserSeqBySimTp(Map<String, Object> params, RowBounds paging);
-
-    List<Map<String, Object>> getDTSimulationSharedListBySimTp(Map<String, Object> params, RowBounds paging);
-
     boolean checkUseRemakeDTModel(@Param("model_seq") int modelSeq);
+
+    int countMetaSimulation();
+
+    List<Map<String, Object>> getModelDataTerm();
 }

@@ -2,37 +2,30 @@
     'use strict'
     $(document).ready(function () {
         $('#historyLogTable').DataTable({
-            "order": [[5, "desc"]],
-            "searching": false,
-            "info": false,
-            "lengthChange": false,
-            "autoWidth": false,
-            "lengthMenu": [[5], [5]]
-            /*
-            ,
-            "columnDefs": [
-                { "width": "20%", "targets": 0 },
-                { "width": "5%", "targets": 1 },
-                { "width": "10%", "targets": 2 },
-                { "width": "25%", "targets": 3 },
-                { "width": "25%", "targets": 4 },
-                { "width": "15%", "targets": 5 }
-            ]
-            */
+            order: [[0, "asc"]],
+            searching: false,
+            info: false,
+            lengthChange: false,
+            autoWidth: true,
+            destroy: true
         });
         $(document).on('click', '.simulation-update', function () {
-            var title = $('#title').val();
-            var derpn = $('#derpn').val();
-            var useYn = $('input[name="useYn"]:checked').val();
-            var data_max_limit_cnt = $('#dataMaxLimitCnt').val();
+            let title = $('#title').val();
+            let derpn = $('#derpn').val();
+            let useYn = $('input[name="useYn"]:checked').val();
+            let data_max_limit_cnt = $('#dataMaxLimitCnt').val();
 
-            if (title.length == 0) {
+            if (title.length === 0) {
                 alert('제목 입력하세요.');
+                return false;
+            }
+            if (derpn.length === 0) {
+                alert('설명을 입력하세요.');
                 return false;
             }
 
             if (confirm('수정 하시겠습니까?')) {
-                var form = document.forms.editForm;
+                let form = document.forms.editForm;
                 // 기본 리다이렉트 URL
                 let action = '/dt/simulation/';
                 if (window.location.pathname.includes("preprocess")) {
@@ -49,51 +42,55 @@
         /**
          * Prediction
          * */
-        let augmentTpOptions = document.querySelectorAll('#augmentTp option');
-        let augmentTp;
-        augmentTpOptions.forEach(function (option) {
-            if (option.getAttribute('selected')) {
-                augmentTp = option.value;
-            }
-        });
+        let augmentTp = document.querySelector('#augmentTp').dataset.value;
         if (augmentTp === 'F') {
             let augmentSeq = document.querySelector('#augmentSeq').value;
             console.log('augmentSeq', augmentSeq);
-            getSimulationPredictionView(augmentSeq, function (data) {
-                console.log('data', data);
-                let predictionResultTable = document.querySelector('#predictionResultTable');
-                predictionResultTable.style.display = 'block';
-                predictionResultTable.innerHTML = '';
-                const newHeaderList = data.header_list.map(value => {
-                    return value.replaceAll('\"', '');
-                });
-                const newDataList = data.data_list.map(row => {
-                    return row.map(value => {
+            getSimulationPredictionView(augmentSeq, function (data, error) {
+                if (data) {
+                    console.log('data', data);
+                    let predictionContainer = document.querySelector('#predictionRange');
+                    predictionContainer.style.display = 'block';
+                    let predictionResultTable = document.querySelector('#predictionResultTable');
+                    predictionResultTable.innerHTML = '';
+                    const newHeaderList = data.header_list.map(value => {
                         return value.replaceAll('\"', '');
                     });
-                });
-                preProcessMakeHTMLExcludeDataTable('#predictionResultTable', 'predictionResultTableInner', newHeaderList, newDataList, `<p class="card-description">추론결과</p>`, function (wrapper, headers, datas) {
-                    console.log('wrapper', wrapper);
-                    console.log('preProcessMakeHTMLExcludeDataTable is completed');
-                    $('#predictionResultTableInner').DataTable({
-                        order: [[0, "asc"]],
-                        searching: false,
-                        info: false,
-                        lengthChange: false,
-                        autoWidth: false,
-                        lengthMenu: [[10], [10]],
-                        initComplete: function (settings, json) {
-                            console.log('DataTable has finished its initialisation.');
-                            wrapper.parentElement.style.display = 'block';
-                        }
+                    const newDataList = data.data_list.map(row => {
+                        return row.map(value => {
+                            return value.replaceAll('\"', '');
+                        });
                     });
-                });
+                    preProcessMakeHTMLExcludeDataTable('#predictionResultTable', 'predictionResultTableInner', newHeaderList, newDataList, null, function (wrapper, headers, datas) {
+                        console.log('wrapper', wrapper);
+                        console.log('preProcessMakeHTMLExcludeDataTable is completed');
+                        $('#predictionResultTableInner').DataTable({
+                            order: [[0, "asc"]],
+                            searching: false,
+                            info: false,
+                            lengthChange: false,
+                            autoWidth: false,
+                            lengthMenu: [[10], [10]],
+                            initComplete: function (settings, json) {
+                                console.log('DataTable has finished its initialisation.');
+                                wrapper.parentElement.style.display = 'block';
+                            }
+                        });
+                    });
+                }
+                if (error) {
+                    console.error(error);
+                }
             });
-            insertSimulationViewResult(augmentSeq, function (data) {
-                document.querySelector('#predictionResultChart').style.display = 'flex';
-                if (data) {
+            insertSimulationViewResult(augmentSeq, function (result, error) {
+                if (result) {
                     //결과차트
-                    makeResultDataChart(data);
+                    let predictionContainer = document.querySelector('#predictionRange');
+                    predictionContainer.style.display = 'block';
+                    makeResultDataChart(result.data, result.index_trgt_col);
+                }
+                if (error) {
+                    console.error(error);
                 }
             });
         }
@@ -109,36 +106,14 @@
             success: function (result) {
                 console.log('getSimulationPredictionView', result);
                 if (result.code === 200) {
-                    callback(result.data);
+                    callback(result.data, null);
+                } else {
+                    callback(null, result.message);
                 }
             },
             error: function (xhr, status, error) {
                 console.error('error : ', error);
                 alert('에러가 발생하였습니다. 관리자에게 문의하십시오.');
-            }
-        });
-    }
-
-    function getCorrelation(augmentSeq, callback) {
-        let data = {
-            augmentSeq
-        }
-        $.ajax({
-            type: "POST",
-            url: '/dt/simulation/make/correlation',
-            data: JSON.stringify(data),
-            contentType: "application/json; charset=utf-8;",
-            dataType: "json",
-            success: function (result) {
-                console.log('result', result);
-                if (result.result_code === 200) {
-                    callback(result, null);
-                }
-            },
-            error: function (xhr, status, error) {
-                console.error('error : ', error);
-                alert('에러가 발생하였습니다. 관리자에게 문의하십시오.');
-                callback(null, error);
             }
         });
     }
@@ -156,7 +131,9 @@
             dataType: "json",
             success: function (result) {
                 if (result.result_code === 200) {
-                    callback(result.data, null);
+                    callback(result, null);
+                } else {
+                    callback(null, result.message);
                 }
             },
             error: function (xhr, status, error) {
@@ -167,7 +144,7 @@
         });
     }
 
-    function makeResultDataChart(data) {
+    function makeResultDataChart(data, dateKey) {
         const xData = [];
         const seriesData = [];
 
@@ -176,20 +153,26 @@
 
             //첫 번째 항목을 x축 데이터로 사용
             if (keys.length > 0) {
-                const xKey = keys[0];
-                xData.push(item[xKey]);
+                const xKey = keys.filter(key => {
+                    if (key === dateKey) {
+                        return true;
+                    }
+                });
 
                 // x축 데이터가 아닌 나머지 항목들을 시리즈로 추가
                 for (let i = 1; i < keys.length; i++) {
                     const yKey = keys[i];
-                    //if (yKey !== 'yyyymmdd') {
+
                     if (yKey !== keys[0]) {
-                        const dataIndex = seriesData.findIndex(seriesItem => seriesItem.name === yKey);
+                        const dataIndex = seriesData.findIndex(seriesItem => {
+                            return seriesItem.name === yKey
+                        });
                         if (dataIndex === -1) {
                             let data = {
                                 name: yKey,
                                 //type: 'line',
                                 chart: 'line',
+                                unit: '',
                                 data: [{name: item[xKey], value: parseFloat(item[yKey])}]
                             }
                             seriesData.push(data);

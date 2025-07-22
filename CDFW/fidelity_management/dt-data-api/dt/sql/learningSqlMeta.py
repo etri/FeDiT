@@ -58,3 +58,30 @@ class learningQueryMeta():
             self.query.execute_bulk(queryData, dt)
         except Exception as e:
             raise e        
+        
+
+    def xaiSave(self, modelID=None, data=None):
+        """
+        학습 결과 저장
+        Args:
+            modelID (int): 모델 ID
+            data (str): 데이터 값
+        """
+        try:
+            if modelID is None or data is None:
+                raise ValueError("modelID와 data는 필수 입력값입니다.")
+            
+            # 데이터 준비
+            dt = [(data, modelID)]
+
+            # SQL 쿼리 정의
+            queryData = '''
+                INSERT INTO TB_META_MODEL_XAI (SHAP, MODEL_SEQ, USE_YN, DEL_YN) 
+                VALUES (%s, %s, 'Y', 'N')
+            '''
+
+            self.query.execute_bulk(queryData, dt)
+
+        except Exception as e:
+            print(f"데이터 저장 중 오류 발생: {e}")
+            raise  # 에러 재발생

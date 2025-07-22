@@ -1,22 +1,12 @@
 package com.stoneitgt.dt.data.platform.admin.mapper;
 
-import java.util.List;
-import java.util.Map;
-
+import com.stoneitgt.dt.data.platform.domain.*;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.session.RowBounds;
 
-import com.stoneitgt.dt.data.platform.domain.DTModel;
-import com.stoneitgt.dt.data.platform.domain.DTModelColumn;
-import com.stoneitgt.dt.data.platform.domain.DTModelMetaUserItem;
-import com.stoneitgt.dt.data.platform.domain.DTModelMetaUserItemPreprocessMapInterpl;
-import com.stoneitgt.dt.data.platform.domain.DTModelMetaUserItemPreprocessMapOutlr;
-import com.stoneitgt.dt.data.platform.domain.DTModelMetaUserItemPreprocessMapResmpl;
-import com.stoneitgt.dt.data.platform.domain.DTModelMetaUserItemPreprocessMapUnit;
-import com.stoneitgt.dt.data.platform.domain.DTModelMetaUserItemPreprocessMapVrfc;
-import com.stoneitgt.dt.data.platform.domain.DTModelParams;
-import com.stoneitgt.dt.data.platform.domain.Files;
+import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface DTModelMapper {
@@ -107,8 +97,6 @@ public interface DTModelMapper {
 
     boolean checkUseRFModel(@Param("model_seq") int rfModelSeq);
 
-    List<Map<String, Object>> getDTModelSharedListByJobLevel(Map<String, Object> params, RowBounds paging);
-
     void deleteModelLoss(int modelSeq);
 
     void deleteModelFid(int modelSeq);
@@ -118,4 +106,20 @@ public interface DTModelMapper {
     boolean checkUseNaomiModel(@Param("model_seq") int naomiModelSeq);
 
     List<Map<String, Object>> getDTAllSharedList(Map<String, Object> params, RowBounds paging);
+
+    int getCountXAIFileInfo(Map<String, Object> xaiParams);
+
+    int insertXAIFileInfo(Map<String, Object> xaiParams);
+
+    int updateXAIFileInfo(Map<String, Object> xaiParams);
+
+    void deleteModelXAI(int modelSeq, String ref_tp);
+
+    Map<String, Object> getModelXAI(@Param("modelSeq") int modelSeq);
+
+    int countMetaModel();
+
+    int countMetaModelByAlgrmSeq(int modelAlgrmSeq);
+
+    String findPreprocessJSONByModelSeq(int modelSeq);
 }

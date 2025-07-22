@@ -203,11 +203,12 @@ class learningViewSet(viewsets.ViewSet):
         #outputs = (['LRAIN'] if req_outputs==None else req_outputs)
         #features = (['w20'] if req_features==None else req_features)
         features = ([] if req_features==None else req_features)
-        modelType = ('lstm' if req_modelType==None else req_modelType)
+        #modelType = ('lstm' if req_modelType==None else req_modelType)
+        modelType = ('seg_rnn' if req_modelType==None else req_modelType)
         windowSize = (8 if req_windowSize==None else req_windowSize)
         batchSize = (16 if req_batchSize==None else req_batchSize)
         testSize = (0.2 if req_testSize==None else req_testSize)
-        epochs = (50 if req_epochs==None else req_epochs)
+        epochs = (10 if req_epochs==None else req_epochs)
         loss = ('hub' if req_loss==None else req_loss)
         #loss = ('mse' if req_loss==None else req_loss)
         #meterics = ('mse' if req_meterics==None else req_meterics)
@@ -218,7 +219,7 @@ class learningViewSet(viewsets.ViewSet):
         modelID = (9999 if req_modelID==None else req_modelID)
         indexColumn = (0 if req_indexColumn==None else req_indexColumn)
         dataSize = (100 if req_dataSize==None else req_dataSize)
-        targetColList = ([] if req_features==None else req_targetColList)
+        targetColList = (['w60'] if req_features==None else req_targetColList)
 
 
         data = self.service.createModelGenerater(

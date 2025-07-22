@@ -1,7 +1,5 @@
 package com.stoneitgt.dt.data.platform.domain;
 
-import java.util.List;
-
 import lombok.Data;
 
 @Data
@@ -25,5 +23,7 @@ public class DTModelMetaUserItem {
     
     private String twinId;
     private String twinObjId;
-    
+
+    private String sdtId;
+    private String sdtObjId;
 }

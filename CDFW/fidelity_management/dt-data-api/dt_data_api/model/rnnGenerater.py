@@ -62,6 +62,10 @@ class Manager:
     optimizer_lr:None   #성능옵션 lr
     data_size:None      #fid 평가 데이터 수
 
+    #세그먼트
+    num_segments: None #int = 5
+    segment_len: None
+
     #입력파라메터
     filepath:None       #생성모델 경로
     filename:None       #생성모델 파일명
@@ -89,6 +93,10 @@ class Manager:
         self.optimizer = modelArgs.optimizer
         self.optimizer_lr = modelArgs.optimizer_lr
         self.data_size = modelArgs.data_size
+        
+        #세그먼트
+        self.num_segments = 4        
+        self.segment_len = 8
 
         self.filepath = inputArgs.filepath
         self.filename = inputArgs.filename
@@ -473,7 +481,9 @@ class Manager:
 
             print('------------------I')
             #모델저장
-            model.save(modelFile)
+            print(modelFile)
+            #model.save(modelFile)
+            model.save("segrnn_model", save_format="tf")
 
             scalerFile = os.path.join(self.filepath, self.filename.split('.')[0] + '_scaler.pkl')
             with open(scalerFile, 'wb') as f:
@@ -556,6 +566,37 @@ class Manager:
                     Dense(units, activation="relu"),
                     Dense(outputs)
                 ])
+            elif self.model_type == MD_TYPE.SEG_RNN:
+                #SEG_RNN
+                # assert self.window_size % self.num_segments == 0, "window_size must be divisible by num_segments"
+                # segment_len = self.window_size // self.num_segments
+                # input_dim = len(self.feature_cols) if self.is_indpds else len(self.output_cols)
+                # output_dim = len(self.output_cols)                
+                # model = build_segrnn_model(
+                #     input_dim=input_dim,
+                #     hidden_dim=self.units,
+                #     segment_len=segment_len,
+                #     num_segments=self.num_segments,
+                #     output_dim=output_dim
+                # )
+
+
+
+                input_dim = len(self.feature_cols) if self.is_indpds else len(self.output_cols)
+                output_dim = len(self.output_cols)
+
+                model, segment_len, num_segments = build_segrnn_model(
+                    input_dim=input_dim,
+                    hidden_dim=self.units,
+                    output_dim=output_dim,
+                    window_size=self.window_size
+                )
+
+                self.segment_len = segment_len
+                self.num_segments = num_segments
+
+                model.build(input_shape=(None, window_size, input_dim))                
+                #model.build(input_shape=(self.batch_size, window_size, input_dim))
             else:
                 #LSTM
                 model = Sequential([
@@ -1844,3 +1885,66 @@ class Manager:
             raise e            
         return result
 
+
+
+
+def build_segrnn_model(input_dim, hidden_dim, output_dim, window_size):
+    import tensorflow as tf
+    from tensorflow.keras import layers, models
+    import math
+
+    # window_size를 기반으로 자동으로 segment_len과 num_segments 설정
+    # segment_len은 최소 4 이상으로, 가장 가까운 약수로 설정
+    def auto_segment_params(window_size):
+        candidates = [i for i in range(4, window_size + 1) if window_size % i == 0]
+        if not candidates:
+            raise ValueError("No valid segment_len found. Choose a larger window_size.")
+        segment_len = max(candidates)  # 가장 큰 약수 선택
+        num_segments = window_size // segment_len
+        return segment_len, num_segments
+
+    segment_len, num_segments = auto_segment_params(window_size)
+
+    class SegRNN(tf.keras.Model):
+        def __init__(self):
+            super(SegRNN, self).__init__()
+            self.segment_len = segment_len
+            self.num_segments = num_segments
+            self.input_dim = input_dim
+            self.hidden_dim = hidden_dim
+
+            # 세그먼트 처리용 RNN (GRU)
+            self.segment_rnn = layers.GRU(hidden_dim, return_sequences=False)
+
+            # 세그먼트별 representation 통합
+            self.fc1 = layers.Dense(hidden_dim, activation='relu')
+            self.fc2 = layers.Dense(output_dim)
+
+        def call(self, inputs):
+            # inputs: [batch_size, seq_len, input_dim]
+            batch_size = tf.shape(inputs)[0]
+            seq_len = tf.shape(inputs)[1]
+
+            # 시퀀스 길이 체크
+            expected_len = self.segment_len * self.num_segments
+            #assert seq_len == expected_len, f"Sequence length ({seq_len}) must be {expected_len} (segment_len × num_segments)"
+            tf.debugging.assert_equal(
+                seq_len, expected_len,
+                message=f"Sequence length ({seq_len}) must be {expected_len} (segment_len × num_segments)"
+            )
+
+            # 세그먼트 분할
+            x = tf.reshape(inputs, [batch_size * self.num_segments, self.segment_len, self.input_dim])  # [B*S, L, D]
+
+            # GRU 처리 (세그먼트 단위)
+            h = self.segment_rnn(x)  # [B*S, H]
+
+            # 세그먼트별 출력 병합
+            h = tf.reshape(h, [batch_size, self.num_segments * self.hidden_dim])  # [B, S*H]
+
+            # 예측
+            out = self.fc1(h)
+            out = self.fc2(out)
+            return out
+
+    return SegRNN(), segment_len, num_segments

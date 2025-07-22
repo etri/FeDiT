@@ -3,17 +3,17 @@
 
 <mapper namespace="com.stoneitgt.dt.data.platform.admin.mapper.MakeMetaSimulationSchedulerMapper">
 
-    <select id="getJobList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+    <select id="getJobList" resultType="com.stoneitgt.common.LowerKeyMap">
         /* file : MakeMetaSimulationSchedulerMapper.xml, id : getJobList */
         SELECT *, (SELECT USER_ID FROM TB_USER A WHERE U.REG_USER_SEQ = A.USER_SEQ LIMIT 1) USER_ID
         FROM TB_META_AUGMENT U
-        WHERE U.AUGMENT_TP = #{augment_tp}
-          AND U.AUGMENT_STATUS = #{augment_status}
-          AND U.CYCLE_TP = #{cycle_tp}
+        WHERE U.AUGMENT_TP = 'R'
+          AND U.AUGMENT_STATUS = 'T'
+          AND (U.CYCLE_TP = 'H' OR U.CYCLE_TP = 'D' OR U.CYCLE_TP = 'W' OR U.CYCLE_TP = 'M' OR U.CYCLE_TP = 'T' OR
+               U.CYCLE_TP = 'ETC')
           AND U.DEL_YN = 'N'
           AND U.USE_YN = 'Y'
         ORDER BY MDFCN_DT ASC, U.MODEL_SEQ ASC
-        LIMIT #{limitCnt}
     </select>
 
     <select id="getTargetModel" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
@@ -31,7 +31,8 @@
         LIMIT 1
     </select>
 
-    <insert id="saveAugmentLog" parameterType="map">
+    <!--int saveAugmentLog(DTAugmentLog dtAugmentLog);-->
+    <insert id="saveAugmentLog" parameterType="com.stoneitgt.dt.data.platform.domain.DTAugmentLog">
         /* file : FilesMapper.xml, id : saveAugmentLog */
         INSERT
         INTO TB_META_AUGMENT_LOG ( AUGMENT_LOG_SEQ
@@ -44,16 +45,16 @@
                                  , ERR_NM
                                  , ERR_CN
                                  , DATA_CRT_LAST_HR)
-        VALUES ( #{augment_log_seq}
-               , #{augment_seq}
-               , #{model_seq}
-               , #{file_seq}
-               , #{augment_status}
-               , #{err_tp}
-               , #{err_cd}
-               , #{err_nm}
-               , #{err_cn}
-               , #{data_crt_last_hr})
+        VALUES ( #{augmentLogSeq}
+               , #{augmentSeq}
+               , #{modelSeq}
+               , #{fileSeq}
+               , #{augmentStatus}
+               , #{errTp}
+               , #{errCd}
+               , #{errNm}
+               , #{errCn}
+               , #{dataCrtLastHr})
     </insert>
 
     <update id="updateAugmentMain" parameterType="map">
@@ -70,6 +71,18 @@
     <update id="finishAugmentStatus">
         UPDATE TB_META_AUGMENT
         SET AUGMENT_STATUS = #{augmentStatus}
+        WHERE AUGMENT_SEQ = #{augmentSeq};
+    </update>
+    <!--void updateAugmentCrtBgng(@Param("augmentSeq") int augmentSeq, @Param("datetime") String datetime);-->
+    <update id="updateAugmentCrtBgng">
+        UPDATE TB_META_AUGMENT
+        SET AUGMENT_CRT_BGNG = #{datetime}
+        WHERE AUGMENT_SEQ = #{augmentSeq};
+    </update>
+    <!--void updateAugmentCrtEnd(@Param("augmentSeq") int augmentSeq, @Param("datetime") String datetime);-->
+    <update id="updateAugmentCrtEnd">
+        UPDATE TB_META_AUGMENT
+        SET AUGMENT_CRT_END = #{datetime}
         WHERE AUGMENT_SEQ = #{augmentSeq};
     </update>
 </mapper>

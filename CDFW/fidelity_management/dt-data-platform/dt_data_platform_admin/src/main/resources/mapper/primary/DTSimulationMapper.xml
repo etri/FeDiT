@@ -24,29 +24,6 @@
         /*||ORDER BY REG_DT DESC||*/
     </select>
 
-    <!--List<Map<String, Object>> getDTSimulationListBySimTp(Map<String, Object> params, RowBounds paging);-->
-    <select id="getDTSimulationListBySimTp" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
-        /* file : DTSimulationMapper.xml, id : getDTSimulationList */
-        SELECT *
-        FROM (
-        SELECT A.*
-        , (SELECT DTL_CD_NM FROM TB_CODE_DTL T WHERE T.DEL_YN = 'N' AND T.GRP_CD = 'SIM_TYPE' AND T.DTL_CD = A.SIM_TP)
-        SIM_TP_NM
-        , (SELECT DTL_CD_NM FROM TB_CODE_DTL T WHERE T.DEL_YN = 'N' AND T.GRP_CD = 'AUGMENT_STATUS' AND T.DTL_CD =
-        A.AUGMENT_STATUS) AUGMENT_STATUS_NM
-        , (SELECT DTL_CD_NM FROM TB_CODE_DTL T WHERE T.DEL_YN = 'N' AND T.GRP_CD = 'AUGMENT_TYPE' AND T.DTL_CD =
-        A.AUGMENT_TP) AUGMENT_TP_NM
-        , (SELECT USER_ID FROM TB_USER U WHERE U.DEL_YN = 'N' AND U.USER_SEQ = A.REG_USER_SEQ) USER_ID
-        FROM TB_META_AUGMENT A
-        WHERE A.DEL_YN = 'N'
-        ) TB WHERE SIM_TP = #{sim_tp}
-        <if test="keyword != null and keyword != ''">
-            AND TITLE LIKE CONCAT('%', #{keyword}, '%')
-        </if>
-        ORDER BY REG_DT DESC
-        /*||ORDER BY REG_DT DESC||*/
-    </select>
-
     <select id="getDTSimulationListSetUserSeq" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
         SELECT *
         FROM (SELECT A.*
@@ -65,30 +42,6 @@
         AND A.REG_USER_SEQ = #{user_seq}) TB
         <if test="keyword != null and keyword != ''">
             WHERE TITLE LIKE CONCAT('%', #{keyword}, '%')
-        </if>
-        /*||ORDER BY REG_DT DESC||*/
-    </select>
-
-    <!--List<Map<String, Object>> getDTSimulationListSetUserSeqBySimTp(Map<String, Object> params, RowBounds paging);-->
-    <select id="getDTSimulationListSetUserSeqBySimTp" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
-        SELECT *
-        FROM (SELECT A.*
-        , (SELECT DTL_CD_NM
-        FROM TB_CODE_DTL T
-        WHERE T.DEL_YN = 'N' AND T.GRP_CD = 'SIM_TYPE' AND T.DTL_CD = A.SIM_TP) SIM_TP_NM
-        , (SELECT DTL_CD_NM
-        FROM TB_CODE_DTL T
-        WHERE T.DEL_YN = 'N' AND T.GRP_CD = 'AUGMENT_STATUS' AND T.DTL_CD = A.AUGMENT_STATUS) AUGMENT_STATUS_NM
-        , (SELECT DTL_CD_NM
-        FROM TB_CODE_DTL T
-        WHERE T.DEL_YN = 'N' AND T.GRP_CD = 'AUGMENT_TYPE' AND T.DTL_CD = A.AUGMENT_TP) AUGMENT_TP_NM
-        , (SELECT USER_ID FROM TB_USER U WHERE U.DEL_YN = 'N' AND U.USER_SEQ = A.REG_USER_SEQ) USER_ID
-        FROM TB_META_AUGMENT A
-        WHERE A.DEL_YN = 'N'
-        AND A.REG_USER_SEQ = #{user_seq}) TB
-        WHERE SIM_TP = #{sim_tp}
-        <if test="keyword != null and keyword != ''">
-            AND TITLE LIKE CONCAT('%', #{keyword}, '%')
         </if>
         /*||ORDER BY REG_DT DESC||*/
     </select>
@@ -119,33 +72,6 @@
         /*||ORDER BY REG_DT DESC||*/
     </select>
 
-    <!--List<Map<String, Object>> getDTSimulationSharedListBySimTp(Map<String, Object> params, RowBounds paging);-->
-    <select id="getDTSimulationSharedListBySimTp" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
-        /* file : DTSimulationMapper.xml, id : getDTSimulationSharedList */
-        SELECT *
-        FROM (
-        SELECT A.*,
-        (SELECT DTL_CD_NM
-        FROM TB_CODE_DTL T
-        WHERE T.DEL_YN = 'N'
-        AND T.GRP_CD = 'SIM_TYPE'
-        AND T.DTL_CD = A.SIM_TP) SIM_TP_NM
-        , (SELECT DTL_CD_NM FROM TB_CODE_DTL T WHERE T.DEL_YN = 'N' AND T.GRP_CD = 'AUGMENT_STATUS' AND T.DTL_CD =
-        A.AUGMENT_STATUS) AUGMENT_STATUS_NM
-        , (SELECT DTL_CD_NM FROM TB_CODE_DTL T WHERE T.DEL_YN = 'N' AND T.GRP_CD = 'AUGMENT_TYPE' AND T.DTL_CD =
-        A.AUGMENT_TP) AUGMENT_TP_NM
-        , (SELECT USER_ID FROM TB_USER U WHERE U.DEL_YN = 'N' AND U.USER_SEQ = A.REG_USER_SEQ) USER_ID
-        FROM TB_META_AUGMENT A
-        WHERE A.DEL_YN = 'N'
-        AND A.RLS_YN = 'Y'
-        AND (A.AUGMENT_STATUS = 'C' OR A.AUGMENT_STATUS = 'T' OR A.AUGMENT_STATUS = 'S')
-        ) TB WHERE SIM_TP = #{sim_tp}
-        <if test="keyword != null and keyword != ''">
-            AND TITLE LIKE CONCAT('%', #{keyword}, '%')
-        </if>
-        /*||ORDER BY REG_DT DESC||*/
-    </select>
-
     <select id="getSimulationSetModelList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
         /* file : DTSimulationMapper.xml, id : getSimulationSetModelList */
         SELECT *,
@@ -159,7 +85,7 @@
         FROM TB_META_MODEL A
         LEFT OUTER JOIN TB_META_USER_ITEM B
         ON A.MODEL_SEQ = B.MODEL_SEQ
-        WHERE A.DEL_YN = 'N'
+        WHERE A.DEL_YN = 'N' AND (A.RLS_YN = 'Y' OR A.REG_USER_SEQ = #{userSeq})
         <choose>
             <when test="type == 'all'">
                 AND 1=1  <!-- 기본 조건, 모든 행 선택 -->
@@ -216,6 +142,8 @@
                              , CYCLE_BGNG_DSGN_YMD
                              , REG_USER_SEQ
                              , REG_IP
+                             , DATA_CRT_INTVL_TP
+                             , DATA_CRT_INTVL_VALUE
                              , DATA_CRT_LAST_HR
                              , USE_YN
                              , RLS_YN
@@ -234,6 +162,8 @@
                , #{cycle_bgng_dsgn_ymd}
                , #{user_seq}
                , #{user_ip}
+               , #{data_crt_intvl_tp}
+               , #{data_crt_intvl_value}
                , #{data_crt_last_hr}
                , #{use_yn}
                , #{rls_yn}
@@ -412,5 +342,29 @@
             DEL_DT = now(),
             DEL_IP = #{user_ip}
         WHERE AUGMENT_SEQ = #{augment_seq}
+    </select>
+
+    <!--int countMetaSimulation();-->
+    <select id="countMetaSimulation" resultType="int">
+        SELECT COUNT(*)
+        FROM TB_META_AUGMENT
+        WHERE USE_YN = 'Y'
+          AND DEL_YN = 'N'
+          AND (AUGMENT_STATUS = 'S' OR AUGMENT_STATUS = 'T' OR AUGMENT_STATUS = 'C')
+    </select>
+
+    <select id="getModelDataTerm" resultType="com.stoneitgt.common.LowerKeyMap">
+        /* file : AugmentModelMapper.xml, id : getAlgolithmCodeList */
+        SELECT DTL_CD
+             , DTL_CD_NM
+             , REF_CD
+             , REF_CLASS
+             , REF_VALUE
+             , ORDBY
+        FROM TB_CODE_DTL
+        WHERE GRP_CD = 'MODEL_TERM'
+          AND DEL_YN = 'N'
+          AND USE_YN = 'Y'
+        ORDER BY ORDBY, DTL_CD_NM
     </select>
 </mapper>
