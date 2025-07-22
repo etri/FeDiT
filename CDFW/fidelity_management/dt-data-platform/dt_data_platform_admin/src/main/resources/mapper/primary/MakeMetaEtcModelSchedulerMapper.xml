@@ -5,13 +5,6 @@
 
     <select id="getMakeModelDoingList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
         /* file : MakeMetaModelSchedulerMapper.xml, id : getMakeModelDoingList */
-        <!--
-        SELECT *
-          FROM TB_META_MODEL U
-         WHERE U.USE_YN = 'Y' AND U.DEL_YN = 'N'
-           AND U.MODEL_STATUS = 'DOING'
-          ORDER BY MDFCN_DT ASC, MODEL_SEQ ASC LIMIT #{limitCnt}
-        -->
         SELECT U.*, B.USER_PPRCS_FULL_STNG_VALUE
         FROM TB_META_ETC_MODEL U
         LEFT OUTER JOIN TB_META_ETC_USER_ITEM B
@@ -19,6 +12,30 @@
         WHERE U.USE_YN = 'Y' AND U.DEL_YN = 'N'
         AND U.MODEL_STATUS = 'WAIT'
         ORDER BY MDFCN_DT ASC, U.ETC_MODEL_SEQ ASC LIMIT #{limitCnt}
+    </select>
+
+    <!--List<Map<String, Object>> getMakeModelDoingListAll();-->
+    <select id="getMakeModelDoingListAll" resultType="com.stoneitgt.common.LowerKeyMap">
+        SELECT U.*, B.USER_PPRCS_FULL_STNG_VALUE
+        FROM TB_META_ETC_MODEL U
+                 LEFT OUTER JOIN TB_META_ETC_USER_ITEM B
+                                 ON U.ETC_MODEL_SEQ = B.ETC_MODEL_SEQ
+        WHERE U.USE_YN = 'Y'
+          AND U.DEL_YN = 'N'
+          AND U.MODEL_STATUS = 'WAIT'
+        ORDER BY MDFCN_DT ASC, U.ETC_MODEL_SEQ ASC;
+    </select>
+
+    <!--List<Map<String, Object>> getMakeModelDoingToWaitListAll();-->
+    <select id="getMakeModelDoingToWaitListAll" resultType="com.stoneitgt.common.LowerKeyMap">
+        SELECT U.*, B.USER_PPRCS_FULL_STNG_VALUE
+        FROM TB_META_ETC_MODEL U
+                 LEFT OUTER JOIN TB_META_ETC_USER_ITEM B
+                                 ON U.ETC_MODEL_SEQ = B.ETC_MODEL_SEQ
+        WHERE U.USE_YN = 'Y'
+          AND U.DEL_YN = 'N'
+          AND U.MODEL_STATUS = 'DOING'
+        ORDER BY MDFCN_DT ASC, U.ETC_MODEL_SEQ ASC;
     </select>
 
     <select id="setMakeModelOutputColumns" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">

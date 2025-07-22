@@ -1,7 +1,9 @@
 package com.stoneitgt.dt.data.platform.admin.config;
 
-import javax.servlet.Filter;
-
+import com.stoneitgt.dt.data.platform.admin.converter.ModelTypeConverter;
+import com.stoneitgt.dt.data.platform.admin.properties.SystemProperties;
+import com.stoneitgt.dt.data.platform.domain.User;
+import nz.net.ultraq.thymeleaf.LayoutDialect;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
@@ -10,21 +12,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.format.FormatterRegistry;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.Validator;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 import org.springframework.web.filter.CharacterEncodingFilter;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.EnableWebMvc;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.config.annotation.*;
 
-import com.stoneitgt.dt.data.platform.admin.properties.SystemProperties;
-import com.stoneitgt.dt.data.platform.domain.User;
-
-import nz.net.ultraq.thymeleaf.LayoutDialect;
+import javax.servlet.Filter;
 
 @Configuration
 @EnableWebMvc
@@ -98,5 +94,10 @@ public class WebConfig implements WebMvcConfigurer {
 	public static User getSessionInfo() {
 		User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 		return user;
+	}
+
+	@Override
+	public void addFormatters(FormatterRegistry registry) {
+		registry.addConverter(new ModelTypeConverter());
 	}
 }

@@ -1,0 +1,115 @@
+<!-- HEADER -->
+<header class="header">
+    <div class="contain-lg">
+        <div class="top-cont">
+            <div class="logo">
+                <a href="/main"><img src="/assets/images/logo-white.png" alt="연합트윈 증강플랫폼"></a>
+            </div>
+            <ul class="user-section">
+                <li class="user-info">
+                    <!-- <a href="#" class="btn-login">로그인</a> -->
+                    <button type="button" class="btn-user-profile mb-0"
+                            th:text="${session.ss_admin.username} + ' | ' + (${session.ss_admin.id} != null ? ${session.ss_admin.id} : 'ID 없음')">
+                        사용자 이름 | 사용자 아이디
+                    </button>
+                </li>
+                <li class="logout">
+                    <button type="button" data-href="/logout" class="btn-logout">로그아웃</button>
+                </li>
+            </ul>
+        </div>
+        <div class="top-cont-fedit-theme">
+            <div class="title">
+                유효성 검증 및 데이터 증강 도구 관리
+            </div>
+        </div>
+        <div class="side-menu"> <!-- class="is-open" -->
+            <div class="inner-cont">
+                <div class="menu-toggle-btn" onclick="toggleMenu()">
+                    <span class="icon"></span>
+                </div>
+                <nav class="menu-nav">
+                    <!-- 현재페이지 .current class 추가-->
+                    <ul id="gnb" class="gnb depth1" th:with="menu=${session.ss_admin.authMenu}">
+                        <th:block th:each="item : ${menu}">
+                            <li th:if="${item.up_menu_cd == 'TOP'}">
+                                <th:block th:if="${#strings.isEmpty(item.menu_url)}">
+                                    <strong th:utext="'<i><img src=&quot;/assets/images/platform/' + ${item.menu_icon} + '&quot; alt=&quot;&quot;></i> ' + ${item.menu_nm}">상위
+                                        메뉴</strong>
+                                    <ul th:data="${item.menu_icon}" class="depth2">
+                                        <th:block th:each="sub : ${menu}">
+                                            <th:block
+                                                    th:if="${#strings.isEmpty(sub.menu_url) && sub.up_menu_cd != 'TOP' && sub.up_menu_cd == item.menu_cd}">
+                                                <li th:data-left-url-info="@{${sub.menu_url}(menuCd=${sub.menu_cd})}"
+                                                    th:if="${item.menu_cd == sub.up_menu_cd}">
+                                                    <strong th:text="${sub.menu_nm}">중위 메뉴</strong>
+                                                    <ul class="depth3">
+                                                        <th:block th:each="ssub : ${menu}">
+                                                            <li th:data-left-url-info="@{${ssub.menu_url}(menuCd=${ssub.menu_cd})}"
+                                                                th:if="${sub.menu_cd == ssub.up_menu_cd}">
+                                                                <a th:href="@{${ssub.menu_url}(menuCd=${ssub.menu_cd})}"
+                                                                   th:text="${ssub.menu_nm}">하위 메뉴</a>
+                                                            </li>
+                                                        </th:block>
+                                                    </ul>
+                                                </li>
+                                            </th:block>
+                                            <th:block
+                                                    th:unless="${#strings.isEmpty(sub.menu_url) && sub.up_menu_cd != 'TOP' && sub.up_menu_cd == item.menu_cd}">
+                                                <li th:data-left-url-info="@{${sub.menu_url}(menuCd=${sub.menu_cd})}"
+                                                    th:if="${item.menu_cd == sub.up_menu_cd}">
+                                                    <a th:href="@{${sub.menu_url}(menuCd=${sub.menu_cd})}"
+                                                       th:text="${sub.menu_nm}">하위 메뉴</a>
+                                                </li>
+                                            </th:block>
+                                        </th:block>
+                                    </ul>
+                                </th:block>
+                                <th:block th:unless="${#strings.isEmpty(item.menu_url)}">
+                                    <strong th:utext="'<i><img src=&quot;/assets/images/platform/' + ${item.menu_icon} + '&quot; alt=&quot;&quot;></i> ' + ${item.menu_nm}">상위
+                                        메뉴</strong>
+                                    <ul th:data="${item.menu_icon}" class="depth2">
+                                        <li th:data-left-url-info="@{${item.menu_url}(menuCd=${item.menu_cd})}">
+                                            <a th:href="@{${item.menu_url}(menuCd=${item.menu_cd})}"
+                                               th:text="${item.menu_nm}">하위 메뉴</a>
+                                        </li>
+                                    </ul>
+                                </th:block>
+                            </li>
+                        </th:block>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        <div class="flat-menu">
+            <div class="filter-wrap" th:with="menu=${session.ss_admin.authMenu}">
+                <th:block th:each="item : ${menu}">
+                    <th:block th:if="${item.up_menu_cd == 'TOP'}">
+                        <div class="filter-layer-box">
+                            <button type="button" class="filter-toggle"
+                                    th:utext="${item.menu_nm}">
+                                상위 메뉴
+                            </button>
+                            <div class="filter-layer" aria-expanded="true"
+                                 style="position: absolute; top: calc(100% + 2px);">
+                                <ul class="option-list">
+                                    <th:block th:each="sub : ${menu}">
+                                        <li th:data-left-url-info="@{${sub.menu_url}(menuCd=${sub.menu_cd})}"
+                                            th:if="${item.menu_cd == sub.up_menu_cd}">
+                                            <input disabled="disabled" type="radio" th:id="'filter-' + ${sub.menu_cd}"
+                                                   th:name="'filterType-' + ${item.menu_cd}">
+                                            <label th:for="'filter-'+${sub.menu_cd}">
+                                                <a th:href="@{${sub.menu_url}(menuCd=${sub.menu_cd})}"
+                                                   th:text="${sub.menu_nm}">하위 메뉴</a>
+                                            </label>
+                                        </li>
+                                    </th:block>
+                                </ul>
+                            </div>
+                        </div>
+                    </th:block>
+                </th:block>
+            </div>
+        </div>
+    </div>
+</header>

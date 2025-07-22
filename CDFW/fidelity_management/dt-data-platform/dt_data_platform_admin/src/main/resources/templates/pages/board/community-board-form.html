@@ -1,126 +1,92 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/layout}">
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/platform_layout}">
 
 <head>
     <title th:text="${breadcrumb.menu_nm}">게시판</title>
-    <!--임시css-->
-    <!-- <link rel="stylesheet" href="../../../assets/css/temp.css"> -->
-
-    <style>
-        .table-responsive-meta {
-            max-height: 400px;
-            /* overflow-y: auto; */
-        }
-
-        #dynamic-card-body {
-            height: auto; /* 고정된 높이를 제거합니다. */
-            min-height: 100px; /* 필요한 경우 최소 높이를 설정합니다. */
-        }
-
-        .table-responsive {
-            max-height: fit-content !important;
-        }
-
-        .custom-file-label::after {
-            display: none;
-        }
-    </style>
 </head>
 <div layout:fragment="content">
-    <div id="loading" style="margin-left: 0px;display: none;">
-        <img th:src="@{/assets/images/ajax-loading.gif}">
+    <div class="page-title">
+        <div class="contain">
+            <h1 th:text="${breadcrumb.menu_nm}">커뮤니티</h1>
+        </div>
     </div>
-    <nav th:replace="fragments/page_breadcrumb"></nav>
-    <div class="row">
-        <div class="col-12">
-            <div class="card stretch-card">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-12 mb-3">
-                            <h4 class="card-title">게시판 정보 등록</h4>
-                            <!--<p class="d-block">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Assumenda
-                                commodi cum, est,
-                                facere illo in libero nam provident quisquam sapiente vel voluptate. Ad deserunt eos
-                                expedita pariatur praesentium quasi voluptatem?</p>-->
+
+    <section class="data-edit-section">
+        <div class="contain-sm">
+            <div class="form-frame" data-action-container="register">
+                <div class="form-frame-header">
+                    <h2 class="title" th:text="${breadcrumb.menu_nm} + ' 등록'">커뮤니티 등록</h2>
+                </div>
+                <div class="form-frame-body">
+                    <!---- form 내용 ---->
+                    <div class="form-wrap">
+                        <div class="form-control-wrap">
+                            <label id="title_label" class="form-label" for="title">제목 <span
+                                    class="badge required">필수</span></label>
+                            <input type="text" id="title" class="form-control sm" placeholder="제목을 입력해주세요"
+                                   aria-labelledby="title_label">
                         </div>
-                        <div class="col-12" data-action-container="register">
-                            <div class="form-group row">
-                                <div class="col-lg-2 col-md-4 col-sm-12">
-                                    <label for="title" class="col-form-label">게시판 제목</label>
-                                </div>
-                                <div class="col-lg-10 col-md-8 col-sm-12">
-                                    <input class="form-control" name="title" id="title"
-                                           type="text" placeholder="게시판 제목을 입력해주세요.">
-                                </div>
-                            </div>
-                            <div class="form-group row">
-                                <div class="col-lg-2 col-md-4 col-sm-12">
-                                    <label for="description" class="col-form-label">게시판 내용</label>
-                                </div>
-                                <div class="col-lg-10 col-md-8 col-sm-12">
-                                    <textarea id="description" class="form-control"
-                                              name="description" rows="24" placeholder="게시판 내용을 입력해주세요."></textarea>
-                                </div>
-                            </div>
-                            <div class="form-group row">
-                                <div class="col-lg-2 col-md-4 col-sm-12">
-                                    <label for="file" class="col-form-label">게시판 파일</label>
-                                </div>
-                                <div class="col-lg-10 col-md-8 col-sm-12">
+                        <div class="form-control-wrap">
+                            <label id="description_label" class="form-label" for="description">내용 <span
+                                    class="badge required">필수</span></label>
+                            <textarea id="description" rows="5" class="form-control sm"
+                                      placeholder="내용을 입력해주세요"></textarea>
+                        </div>
+                        <div class="form-control-wrap">
+                            <label id="attachFiles_label" class="form-label" for="attach_files">게시판 파일</label>
+                            <div class="form-group attach-file-group" style="padding-top: 0; padding-bottom: 0;">
+                                <div class="attach-file pt-0" style="display: flex;">
+                                    <input type="file" name="attach_files" class="file-upload-default" id="attach_files"
+                                           style="display: none;">
                                     <div class="input-group">
-                                        <div class="custom-file">
-                                            <input type="file" class="custom-file-input" id="file" name="file" required>
-                                            <label class="custom-file-label" data-placeholder-color="#C9C8C8" for="file" style="color: #C9C8C8;">클릭하여 파일을
-                                                업로드 해주세요.</label>
-                                        </div>
-                                        <div class="input-group-append">
-                                            <button class="btn btn-outline-secondary" id="clearButton" name="clearButton" style="height: 35px;"
-                                                    type="button">초기화
-                                            </button>
-                                        </div>
+                                        <input type="text" id="attach_files_input" disabled="disabled"
+                                               class="form-control sm file-upload-title" style="margin-top: 0;" placeholder="파일을 선택해주세요">
+                                        <button type="button" class="form-right-action sm file-upload-browse"
+                                                style="z-index: 999 !important;">파일선택
+                                        </button>
                                     </div>
-                                </div>
-                            </div>
-                            <div class="form-group row">
-                                <div class="col-lg-2 col-md-4 col-sm-12">
-                                    <label class="col-form-label">공개여부</label><br>
-                                </div>
-                                <div class="col-lg-10 col-md-8 col-sm-12">
-                                    <div class="form-check form-check-inline">
-                                        <label class="form-check-label">
-                                            <input type="radio" class="form-check-input" name="rlsYn" value="N"
-                                                   data-label="비공개" checked="checked">비공개
-                                            <i class="input-frame"></i>
-                                            <i class="input-frame"></i></label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <label class="form-check-label">
-                                            <input type="radio" class="form-check-input" name="rlsYn" value="Y"
-                                                   data-label="공개">공개
-                                            <i class="input-frame"></i>
-                                            <i class="input-frame"></i></label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-sm-12">
-                                    <a class="btn btn-primary btn-icon-text"
-                                       th:href="|/dt/board/community/list?menuCd=${menuCd}|">목록</a>
-                                    <button type="button" class="btn btn-primary btn-icon-text"
-                                            data-action="register"
-                                            data-type="COMMUNITY"
-                                            style="">등록
+                                    <button type="button" name="clearButton" id="clearButton" class="ui-button primary" style="margin-left: 8px;">초기화
                                     </button>
                                 </div>
                             </div>
                         </div>
+                        <div class="form-control-wrap">
+                            <span class="form-label">사용 여부 <span class="badge required">필수</span></span>
+                            <ul class="form-checkbox-list">
+                                <li class="form-checkbox">
+                                    <input type="radio" name="rlsYn" id="useY" class="ui-check"
+                                           value="N"
+                                           data-label="비공개"
+                                           aria-labelledby="useN_label">
+                                    <label class="form-label" for="useY" id="useN_label">비공개</label>
+                                </li>
+                                <li class="form-checkbox">
+                                    <input type="radio" name="rlsYn" id="useN" class="ui-check"
+                                           value="Y"
+                                           data-label="공개"
+                                           aria-labelledby="useY_label" checked>
+                                    <label class="form-label" for="useN" id="useY_label">공개</label>
+                                </li>
+                            </ul>
+                        </div>
+
                     </div>
+                    <!---- form 내용 END ---->
+                </div>
+                <div class="form-frame-footer buttons">
+                    <a class="ui-button sm primary"
+                       th:href="|/dt/board/community/list?menuCd=${menuCd}|">목록</a>
+                    <button type="button" class="ui-button sm primary"
+                            data-action="register"
+                            data-type="COMMUNITY"
+                            style="">등록
+                    </button>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 </div>
 <th:block layout:fragment="custom_css">
     <link rel="stylesheet" th:href="@{/assets/css/codemirror.css}"/>
@@ -129,8 +95,6 @@
 </th:block>
 <th:block layout:fragment="custom_js">
     <script th:src="@{/assets/js/file-upload.js}"></script>
-    <script th:src="@{/assets/js/pages/dt_etc_model/common/progress.js}"></script>
-    <script th:src="@{/assets/js/browser_event.js}"></script>
     <script th:src="@{/assets/js/pages/board/board-form.js}"></script>
 </th:block>
 </html>

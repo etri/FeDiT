@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from dt.models.responseData import responseData
 from dt.services.metaPreProcessService import metaPreProcessService
+from dt.services.correlationService import correlationService
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from dt_data_api.common.lib import (
@@ -22,6 +23,7 @@ class metaPreProcessViewSet(viewsets.ViewSet):
     
     #서비스 객체 생성
     service = metaPreProcessService()
+    correlationService = correlationService()
 
 
     @action(detail=False, methods=['POST', 'GET'])
@@ -421,6 +423,21 @@ class metaPreProcessViewSet(viewsets.ViewSet):
             }
 
         data = self.service.processorDatasetCorrelation(paramData=paramData)        
+        if data['result']:
+            rd = responseData(code=status.HTTP_200_OK, message='OK', data=data['resultMessage'])            
+        else:
+            rd = responseData(code=ERROR_CODE.PRE_PROCESS.value + '-0012' , message='Processor Dataset Correlation Error', detail=data['resultMessage'])
+        return Response(rd.getJson())
+    
+    @action(detail=False, methods=['POST', 'GET'])
+    def processorDatasetCorrelationOption(self, request):
+        '''
+        데이터셋 상관관계 (다양한 상관관계 함수들)
+        '''
+        parameters = request.data
+        print('parameters', parameters)
+        
+        data = self.correlationService.processorDatasetCorrelation(parameters)
         if data['result']:
             rd = responseData(code=status.HTTP_200_OK, message='OK', data=data['resultMessage'])            
         else:

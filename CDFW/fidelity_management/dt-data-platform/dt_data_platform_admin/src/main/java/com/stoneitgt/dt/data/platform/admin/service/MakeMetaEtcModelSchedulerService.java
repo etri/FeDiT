@@ -1,17 +1,17 @@
 package com.stoneitgt.dt.data.platform.admin.service;
 
-import java.util.List;
-import java.util.Map;
-
+import com.stoneitgt.dt.data.platform.admin.mapper.MakeMetaEtcModelSchedulerMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
-import com.stoneitgt.dt.data.platform.admin.mapper.MakeMetaEtcModelSchedulerMapper;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -50,8 +50,11 @@ public class MakeMetaEtcModelSchedulerService extends BaseService {
 
     }
 
-    public int finishMakeModel(Map<String, Object> checkParams) {
-        return makeMetaEtcModelSchedulerMapper.finishMakeModel(checkParams);
+    public int finishMakeModel(int modelSeq, String status) {
+        Map<String, Object> statusParams = new HashMap<>();
+        statusParams.put("etc_model_seq", modelSeq);
+        statusParams.put("model_status", status);
+        return makeMetaEtcModelSchedulerMapper.finishMakeModel(statusParams);
     }
 
     public int getCountModelFileInfo(Map<String, Object> modelParam) {
@@ -156,5 +159,13 @@ public class MakeMetaEtcModelSchedulerService extends BaseService {
 
     public boolean checkStatus(int modelSeq, String status) {
         return makeMetaEtcModelSchedulerMapper.checkStatus(modelSeq, status);
+    }
+
+    public List<Map<String, Object>> getMakeModelDoingListAll() {
+        return makeMetaEtcModelSchedulerMapper.getMakeModelDoingListAll();
+    }
+
+    public List<Map<String, Object>> getMakeModelDoingToWaitListAll() {
+        return makeMetaEtcModelSchedulerMapper.getMakeModelDoingToWaitListAll();
     }
 }

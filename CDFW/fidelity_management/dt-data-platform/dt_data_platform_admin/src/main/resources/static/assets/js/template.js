@@ -8,7 +8,7 @@
         var navbar = $('.navbar').not('.top-navbar');
 
         // Enable feather-icons with SVG markup
-        feather.replace();
+        //feather.replace();
 
         // initializing bootstrap tooltip
         $('[data-toggle="tooltip"]').tooltip();

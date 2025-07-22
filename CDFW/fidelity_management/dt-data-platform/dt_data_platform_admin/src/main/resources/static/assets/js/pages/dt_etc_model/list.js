@@ -1,10 +1,127 @@
 document.addEventListener('DOMContentLoaded', function () {
+    /**
+     * 유효성 검증 도구 Search Event
+     * */
+    let fieldInitializeElems = document.querySelectorAll('span.filter-value[data-initialize]');
+    fieldInitializeElems.forEach(function (fieldInitializeElem) {
+        let type = fieldInitializeElem.dataset.initialize;
+        let filterLayerBox = fieldInitializeElem.closest('.filter-layer-box');
+        let input = filterLayerBox.querySelector(`input[type="radio"][value="${type}"]`);
+        let label = filterLayerBox.querySelector(`label[for="${input.id}"]`);
+        fieldInitializeElem.innerHTML = `${label.textContent.trim()}`;
+    });
+    let filterKeyword = document.querySelector('#filterKeyword');
+    if (filterKeyword) {
+        filterKeyword.addEventListener('keyup', function (event) {
+            if (event.key === 'Enter' || event.code === 'Enter') {
+                let filterKeywordAction = document.querySelector('#filterKeywordAction');
+                if (filterKeywordAction) {
+                    filterKeywordAction.click();
+                }
+            }
+        });
+    }
+    let filterKeywordAction = document.querySelector('#filterKeywordAction');
+    if (filterKeywordAction) {
+        filterKeywordAction.addEventListener('click', function (event) {
+            let keywordElem = document.querySelector('#filterKeyword');
+            let keyword = keywordElem.value;
+            let hiddenKeyword = document.querySelector('#keyword');
+            hiddenKeyword.value = keyword;
+
+            let fieldElem = document.querySelector('input[name="searchType"]:checked');
+            let field = fieldElem.value;
+            let hiddenField = document.querySelector('#field');
+            hiddenField.value = field;
+
+            /*SubKeyword & SubField*/
+            /*let subKeywordElem = document.querySelector('#filterSubKeyword');
+            let subKeyword = subKeywordElem.value;
+            let hiddenSubKeyword = document.querySelector('#subKeyword');
+            hiddenSubKeyword.value = subKeyword;
+
+            let subFieldElem = document.querySelector('input[name="subSearchType"]:checked');
+            let subField = subFieldElem.value;
+            let hiddenSubField = document.querySelector('#subField');
+            hiddenSubField.value = subField;*/
+
+            let search = document.querySelector('button[type="submit"].btn-search');
+            search.click();
+        });
+    }
+
+    let filterSubKeyword = document.querySelector('#filterSubKeyword');
+    if (filterSubKeyword) {
+        filterSubKeyword.addEventListener('keyup', function (event) {
+            if (event.key === 'Enter' || event.code === 'Enter') {
+                let filterSubKeywordAction = document.querySelector('#filterSubKeywordAction');
+                if (filterSubKeywordAction) {
+                    filterSubKeywordAction.click();
+                }
+            }
+        });
+    }
+    let filterSubKeywordAction = document.querySelector('#filterSubKeywordAction');
+    if (filterSubKeywordAction) {
+        filterSubKeywordAction.addEventListener('click', function (event) {
+            /*let keywordElem = document.querySelector('#filterKeyword');
+            let keyword = keywordElem.value;
+            let hiddenKeyword = document.querySelector('#keyword');
+            hiddenKeyword.value = keyword;
+
+            let fieldElem = document.querySelector('input[name="searchType"]:checked');
+            let field = fieldElem.value;
+            let hiddenField = document.querySelector('#field');
+            hiddenField.value = field;*/
+
+            /*SubKeyword & SubField*/
+            let subKeywordElem = document.querySelector('#filterSubKeyword');
+            let subKeyword = subKeywordElem.value;
+            let hiddenSubKeyword = document.querySelector('#subKeyword');
+            hiddenSubKeyword.value = subKeyword;
+
+            let subFieldElem = document.querySelector('input[name="subSearchType"]:checked');
+            let subField = subFieldElem.value;
+            let hiddenSubField = document.querySelector('#subField');
+            hiddenSubField.value = subField;
+
+            let search = document.querySelector('button[type="submit"].btn-search');
+            search.click();
+        });
+    }
+
+    let resetKeyword = document.querySelector('#resetKeyword');
+    if (resetKeyword) {
+        resetKeyword.addEventListener('click', function (event) {
+            let keywordElem = document.querySelector('#filterKeyword');
+            let keyword = keywordElem.value;
+            let hiddenKeyword = document.querySelector('#keyword');
+            hiddenKeyword.value = keyword;
+
+            let fieldElem = document.querySelector('input[name="searchType"]:checked');
+            let field = fieldElem.value;
+            let hiddenField = document.querySelector('#field');
+            hiddenField.value = field;
+
+            /*SubKeyword & SubField*/
+            let subKeywordElem = document.querySelector('#filterSubKeyword');
+            let subKeyword = subKeywordElem.value;
+            let hiddenSubKeyword = document.querySelector('#subKeyword');
+            hiddenSubKeyword.value = subKeyword;
+
+            let subFieldElem = document.querySelector('input[name="subSearchType"]:checked');
+            let subField = subFieldElem.value;
+            let hiddenSubField = document.querySelector('#subField');
+            hiddenSubField.value = subField;
+
+            let search = document.querySelector('button[type="submit"].btn-search');
+            search.click();
+        });
+    }
+
     modelListCommonSearchPaging();
-    console.log('list event register');
-    let listItems = document.querySelectorAll('[action-type="delete"]');
-    console.log('listItems', listItems);
+    let listItems = document.querySelectorAll('[data-action-type="delete"]');
     listItems?.forEach(function (item) {
-        console.log('item', item);
         item.addEventListener('click', function (event) {
             let model_seq = this.dataset.number;
             let data = {
@@ -43,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                     case 'NAOMI':
                                         alert('보간 옵션에서 사용되는 Data Twin Model이 존재합니다.\n삭제할 수 없습니다.');
                                         break;
-                                    default:{
+                                    default: {
                                         alert('다른 옵션에서 사용되는 Data Twin Model이 존재합니다.\n삭제할 수 없습니다.');
                                     }
                                 }
@@ -91,8 +208,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 errCnElement.innerHTML = `${errCn.dataset.value}`;
                 errRegDtElement.innerHTML = `${errRegDt.dataset.value}`;
 
-                console.log('errorModal', errorModal);
-                $(errorModal).modal('show');
+                if (!errorModal.classList.contains('is-open')) {
+                    errorModal.classList.add('is-open');
+                }
             }
         });
     });

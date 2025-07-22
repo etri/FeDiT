@@ -17,6 +17,8 @@ public class DTModelJsonHyperParamSubSet {
     private String optimizer_lr;
     private String test_size;
     private String data_size;
+    private String num_segments;
+    private String segment_len;
     
 	/*
     private int preprocOrder;

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<th:block th:fragment="select_algorithm">
+    <div id="next_button_getalgo_range">
+        <!-- 알고리즘 선택  상단 -->
+        <div class="row" id="tab_getalgo_range">
+            <div class="col-12 pt-3" id="tab_getalgo_range_top">
+                <div class="row">
+                    <div class="col-4" data-id="output_range"
+                         data-type="선택, Auto Encoder, Random Forest, Brits, Naomi">
+                        <div class="row">
+                            <div class="col-12">
+                                <ul class="mb-3" data-id="column_description"
+                                    data-type="Auto Encoder, Random Forest, Brits, Naomi">
+                                    <li>
+                                        <div class="bg-box">
+                                            <p class="dot-desc">단일 컬럼만 지정 가능합니다.</p>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="col-12">
+                                <label class="col-form-label">컬럼 선택</label>
+                                <div id="algorithmOutputRange"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4" data-id="feature_range" data-type="선택, Random Forest">
+                        <div class="row">
+                            <div class="col-12">
+                                <ul class="mb-3" data-id="column_description"
+                                    data-type="Random Forest">
+                                    <li>
+                                        <div class="bg-box">
+                                            <p class="dot-desc">복수 컬럼 선택 가능합니다.</p>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="col-12">
+                                <label class="col-form-label">독립 변수</label>
+                                <div id="algorithmFeatureRange"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4" data-id="correlation_range">
+                        <label class="col-form-label">Correlation analysis(상관분석)</label>
+                        <div class="filter-layer-box mb-2">
+                            <!-- 옵션 선택시 :: is-selected 클래스 추가 -->
+                            <button type="button" class="filter-toggle">유형<span class="filter-value">피어슨 (Pandas)</span>
+                            </button>
+                            <div class="filter-layer" aria-expanded="false"
+                                 style="position: absolute; top: calc(100% + 2px);">
+                                <ul class="option-list">
+                                    <li>
+                                        <input id="pandas-pearson" type="radio" name="correlationOption"
+                                               data-type="pandas"
+                                               data-method="pearson" checked="checked">
+                                        <label for="pandas-pearson">피어슨 (Pandas)</label>
+                                    </li>
+                                    <li>
+                                        <input id="pandas-spearman" type="radio" name="correlationOption"
+                                               data-type="pandas"
+                                               data-method="spearman">
+                                        <label for="pandas-spearman">스피어맨 (Pandas)</label>
+                                    </li>
+                                    <li>
+                                        <input id="pandas-kendall" type="radio" name="correlationOption"
+                                               data-type="pandas"
+                                               data-method="kendall">
+                                        <label for="pandas-kendall">켄달 (Pandas)</label>
+                                    </li>
+                                    <li>
+                                        <input id="ddtw" type="radio" name="correlationOption" data-type="ddtw">
+                                        <label for="ddtw">도함수 동적 타임 워핑 (dDTW)</label>
+                                    </li>
+                                    <li>
+                                        <input id="granger" type="radio" name="correlationOption" data-type="granger"
+                                               data-maxlag="3">
+                                        <label for="granger">그레인저 인과관계 검정 (Granger)</label>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div id="view4"
+                             style="width:100%; height:400px; border-style:solid;border-width:1px;border-color:#eee;"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- 알고리즘 선택  하단 -->
+            <div class="col-12 pt-3" id="tab_getalgo_range_bottom">
+                <div class="row">
+                    <div class="col-6">
+                        <label class="col-form-label">알고리즘 선택</label>
+                        <div style="width: 60%;">
+                            <div class="dropdown-wrapper">
+                                <div class="dropdown-box">
+                                    <button id="select_algorithm" type="button" class="form-control sm dropdown-toggle"
+                                            data-value="0">선택 없음
+                                    </button>
+                                    <div class="dropdown-layer" id="select_algorithm_selection" aria-expanded="false">
+                                        <ul class="option-list">
+                                            <li>
+                                                <input type="radio" id="input_" name="select_algorithm_input" value="0">
+                                                <label for="input_">선택 없음</label>
+                                            </li>
+                                            <li th:each="item : ${algorithm_list}">
+                                                <input type="radio"
+                                                       th:id="${'input_'+item.model_algrm+'_'+item.model_algrm_seq}"
+                                                       name="select_algorithm_input"
+                                                       th:value="${item.model_algrm_seq}">
+                                                <label th:for="${'input_'+item.model_algrm+'_'+item.model_algrm_seq}"
+                                                       th:text="${item.model_algrm}">선택</label>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pt-3" style="width:60%;">
+                            <div style="height: auto; border-style:solid;border-width:1px;border-color:#eee;">
+                                <div id="algorithm_img_box" class="background-image"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div id="algorithm_meta_item_list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <th:block th:if="${formType == 'I'}">
+            <div class="row">
+                <div class="col-12 pt-3">
+                    <button type="button" class="ui-button primary sm make-model">등록
+                    </button>
+                </div>
+            </div>
+        </th:block>
+    </div>
+</th:block>
+</html>

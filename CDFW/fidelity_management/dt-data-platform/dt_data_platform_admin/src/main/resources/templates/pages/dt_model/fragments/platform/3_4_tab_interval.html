@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<th:block th:fragment="tab_interval">
+    <!-- 데이터 전처리 Interval Converter Tab Contents-->
+    <div id="tab_interval_range" class="col-12 pt-3">
+        <div class="row">
+            <div class="col-12">
+                <label class="col-form-label">날짜 컬럼의 간격을 변환할 수 있습니다. </label>
+            </div>
+            <div class="col-12 pt-3">
+                <div class="row">
+                    <div class="col-12">
+                        <label class="col-form-label">데이터 간격</label>
+                    </div>
+                    <div class="col-12">
+                        <div id="select_origin_term" style="font-size: 13px;">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-6">
+                        <label for="select_resample" class="col-form-label">데이터 간격 변환</label>
+                        <div class="dropdown-wrapper">
+                            <div class="dropdown-box">
+                                <button type="button" class="form-control sm dropdown-toggle"
+                                        id="select_resample" data-value="O">현재간격유지
+                                </button>
+                                <div class="dropdown-layer" id="select_resample_selection"
+                                     aria-expanded="false">
+                                    <ul class="option-list">
+                                        <li th:each="item : ${resamp_type_list}">
+                                            <input type="radio"
+                                                   th:id="${'input_' + 'select_resample' + '_' + item.dtl_cd}"
+                                                   name="select_resample_input"
+                                                   th:value="${item.dtl_cd}">
+                                            <label th:for="${'input_' + 'select_resample' + '_' + item.dtl_cd}"
+                                                   th:text="${item.dtl_cd_nm}">선택</label>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6" id="intvl_term">
+                        <label for="resmpl_intvl_value" class="col-form-label">데이터 간격 수치</label>
+                        <input id="resmpl_intvl_value" type="number"
+                               placeholder="데이터 간격 수치를 입력해주세요."
+                               class="form-control sm number_only resmpl_intvl_value">
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 pt-3">
+                <button type="button" class="ui-button primary sm btn-make-resample">변환</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 업로드 테이블-->
+    <th:block th:if="${formType == 'I'}">
+        <div class="col-12">
+            <div id="preprocTableExcludeAddedRangeResample" class="pt-3" style="display: none;"></div>
+            <div id="preprocTableExcludeRemovedRangeResample" class="pt-3" style="display: none;"></div>
+            <div id="preprocTableRangeResample" class="pt-3" style="display: none;"></div>
+        </div>
+    </th:block>
+
+    <div id="next_button_resample_range" class="col-12 pt-3" style="display: none; text-align: end;">
+        <button type="button" class="ui-button primary sm prev-preproc-interpolate-step">
+            이전
+        </button>
+        <button type="button" class="ui-button primary sm next-preproc-unit-step">
+            다음(unit)
+        </button>
+    </div>
+</th:block>
+</html>

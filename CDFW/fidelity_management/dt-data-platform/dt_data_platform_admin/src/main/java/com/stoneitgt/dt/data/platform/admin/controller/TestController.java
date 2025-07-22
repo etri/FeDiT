@@ -1,24 +1,25 @@
 package com.stoneitgt.dt.data.platform.admin.controller;
 
+import com.stoneitgt.dt.data.platform.admin.service.DTModelApiService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.json.simple.parser.ParseException;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
 @Controller
 @RequestMapping("/test")
-public class TestController extends BaseController {
-    public static void main(String[] args) {
-        
+@RequiredArgsConstructor
+public class TestController {
+    private final DTModelApiService dtModelApiService;
+
+    @GetMapping("/test")
+    @ResponseBody
+    public Map<String, Object> test() throws Exception {
+        return null;
     }
 }

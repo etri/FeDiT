@@ -2,11 +2,16 @@ package com.stoneitgt.dt.data.platform.util;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 
 public class TimeUtil {
     public static String getCurrentDateTime() {
         return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    }
+
+    public static long getCurrentTimeMillis() {
+        return System.currentTimeMillis();
     }
 
     public static String parseToYYYYMMDDHHMMSSFromZoneDateTime(String yyyyMMddHHmmss) {
@@ -23,6 +28,9 @@ public class TimeUtil {
     }
 
     public static String parseToYYYYMMDDHHMMSS(boolean endOfDay, String yyyyMMdd) {
+        if (Objects.equals("yyyy-MM-dd HH:mm:ss", ConvertUtil.tryParseFindFormat(ConvertUtil.DATEFORMATS, yyyyMMdd))) {
+            return yyyyMMdd;
+        }
         // yyyy-MM-dd 형태의 String을 LocalDate 객체로 변환
         LocalDate date = LocalDate.parse(yyyyMMdd);
         LocalDateTime dateTime;
@@ -58,6 +66,15 @@ public class TimeUtil {
         return formattedDateTime;
     }
 
+    public static String formatZonedDateTimeStringToDateTimeFormat(String yyyyMMddTHHmmssZ) {
+        // ZonedDateTime으로 파싱
+        ZonedDateTime zonedDateTime = ZonedDateTime.parse(yyyyMMddTHHmmssZ);
+        // 포맷 지정
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        // 포맷 적용하여 문자열로 변환
+        return zonedDateTime.format(formatter);
+    }
+
     /**
      * 두 날짜 문자열을 비교하여 toDate가 compareDate와 같거나 이후인지 확인하는 메서드.
      *
@@ -79,5 +96,88 @@ public class TimeUtil {
         } else {
             return true;
         }
+    }
+
+    public static String minusTime(String format, String inputTime, String timeType, int interval) {
+        if (format == null || format.isEmpty()) {
+            format = "yyyy-MM-dd HH:mm:ss";
+        }
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+        ZonedDateTime zonedDateTime = ZonedDateTime.parse(inputTime, formatter.withZone(ZoneId.systemDefault()));
+
+        switch (timeType) {
+            case "MS":
+                zonedDateTime = zonedDateTime.minusNanos(interval);
+                break;
+            case "S":
+                zonedDateTime = zonedDateTime.minusSeconds(interval);
+                break;
+            case "M":
+            case "T":
+                zonedDateTime = zonedDateTime.minusMinutes(interval);
+                break;
+            case "H":
+                zonedDateTime = zonedDateTime.minusHours(interval);
+                break;
+            case "D":
+                zonedDateTime = zonedDateTime.minusDays(interval);
+                break;
+            case "m":
+                zonedDateTime = zonedDateTime.minusMonths(interval);
+                break;
+            default:
+                System.out.println("Unsupported type");
+                break;
+        }
+        return formatter.format(zonedDateTime);
+    }
+
+    public static String plusTime(String format, String inputTime, String timeType, int interval) {
+        if (format == null || format.isEmpty()) {
+            format = "yyyy-MM-dd HH:mm:ss";
+        }
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+        ZonedDateTime zonedDateTime = ZonedDateTime.parse(inputTime, formatter.withZone(ZoneId.systemDefault()));
+
+        switch (timeType) {
+            case "MS":
+                zonedDateTime = zonedDateTime.plus(interval, ChronoUnit.MILLIS);
+                break;
+            case "S":
+                zonedDateTime = zonedDateTime.plus(interval, ChronoUnit.SECONDS);
+                break;
+            case "M":
+            case "T":
+                zonedDateTime = zonedDateTime.plus(interval, ChronoUnit.MINUTES);
+                break;
+            case "H":
+                zonedDateTime = zonedDateTime.plus(interval, ChronoUnit.HOURS);
+                break;
+            case "D":
+                zonedDateTime = zonedDateTime.plus(interval, ChronoUnit.DAYS);
+                break;
+            default:
+                System.out.println("Unsupported type");
+                break;
+        }
+        return formatter.format(zonedDateTime);
+    }
+
+    public static long getDuration(String current, String compare, DateTimeFormatter formatter) {
+        if (formatter == null) {
+            formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        }
+        LocalDateTime currentDateTime = LocalDateTime.parse(current, formatter);
+        LocalDateTime compareDateTime = LocalDateTime.parse(compare, formatter);
+        return Duration.between(currentDateTime, compareDateTime).getSeconds();
+    }
+
+    public static long getPastDuration(String pastCompare, DateTimeFormatter formatter) {
+        if (formatter == null) {
+            formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        }
+        LocalDateTime currentDateTime = LocalDateTime.now();
+        LocalDateTime compareDateTime = LocalDateTime.parse(pastCompare, formatter);
+        return Duration.between(compareDateTime, currentDateTime).getSeconds();
     }
 }

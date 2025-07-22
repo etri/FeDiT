@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<th:block th:fragment="history_list">
+    <div class="row" th:if="${dtModelMetaUserItem != null}">
+        <!--2025-03-12 추가 사항 데이터 및 디지털 트윈 정보-->
+        <!--메타 연계 데이터 이력 영역-->
+        <div class="col-12 pt-3" id="data-meta-info-range" style="display: none;">
+            <th:block
+                    th:if="${(dtModelMetaUserItem.sdtId != null and dtModelMetaUserItem.sdtObjId != null) and (dtModelMetaUserItem.sdtId != 'None' and dtModelMetaUserItem.sdtObjId != 'None') and (dtModelMetaUserItem.sdtId != '' and dtModelMetaUserItem.sdtObjId != '')}">
+                <label class="col-form-label">메타 연계 데이터</label>
+                <div class="bg-box">
+                    <p class="dot-desc">
+                            <span>디지털 트윈 ID : <strong><span
+                                    th:text="${dtModelMetaUserItem.sdtId}"></span></strong></span>
+                        <br><span>디지털 트윈 오브젝트 ID :  <strong><span
+                            th:text="${dtModelMetaUserItem.sdtObjId}"></span></strong></span>
+                    </p>
+                    <th:block th:if="${dataFile != null}">
+                        <div class="attachment-files">
+                            <div class="file-box">
+                                <div class="cont">
+                                        <span class="file-name">
+                                            <a th:href="@{|/file/download/dt/${dataFile.fileSeq}|}"
+                                               target="_blank"
+                                               title="파일 다운로드"
+                                               th:text="${dataFile.fileNm}">File Name</a>
+                                        </span>
+                                    <span class="desc-message"
+                                          th:utext="${dataFile.fileSzSrt} + ', ' + ${dataFile.regDt}">0 KB, 2025-03-12</span>
+                                </div>
+                                <div class="buttons">
+                                    <a th:href="@{|/file/download/dt/${dataFile.fileSeq}|}" class="btn-download"
+                                       target="_blank" title="파일 다운로드">파일 다운로드</a>
+                                </div>
+                            </div>
+                        </div>
+                    </th:block>
+                </div>
+            </th:block>
+            <th:block
+                    th:unless="${(dtModelMetaUserItem.sdtId != null and dtModelMetaUserItem.sdtObjId != null) and (dtModelMetaUserItem.sdtId != 'None' and dtModelMetaUserItem.sdtObjId != 'None') and (dtModelMetaUserItem.sdtId != '' and dtModelMetaUserItem.sdtObjId != '')}">
+                <label class="col-form-label">업로드 데이터</label>
+                <div class="bg-box">
+                    <p class="dot-desc">업로드 데이터 형태가 파일입니다.<br/>파일 다운로드만 진행 가능합니다.</p>
+                    <th:block th:if="${dataFile != null}">
+                        <div class="attachment-files">
+                            <div class="file-box">
+                                <div class="cont">
+                                        <span class="file-name">
+                                            <a th:href="@{|/file/download/dt/${dataFile.fileSeq}|}"
+                                               target="_blank"
+                                               title="파일 다운로드"
+                                               th:text="${dataFile.fileNm}">File Name</a>
+                                        </span>
+                                    <span class="desc-message"
+                                          th:utext="${dataFile.fileSzSrt} + ', ' + ${dataFile.regDt}">0 KB, 2025-03-12</span>
+                                </div>
+                                <div class="buttons">
+                                    <a th:href="@{|/file/download/dt/${dataFile.fileSeq}|}" class="btn-download"
+                                       target="_blank" title="파일 다운로드">파일 다운로드</a>
+                                </div>
+                            </div>
+                        </div>
+                    </th:block>
+                </div>
+            </th:block>
+        </div>
+        <div class="col-12 pt-3" id="data-meta-info-history-range" style="display: none;">
+            <th:block th:if="${(dtModelMetaUserItem.sdtId != null and dtModelMetaUserItem.sdtObjId != null) and (dtModelMetaUserItem.sdtId != 'None' and dtModelMetaUserItem.sdtObjId != 'None') and (dtModelMetaUserItem.sdtId != '' and dtModelMetaUserItem.sdtObjId != '')}">
+                <label class="col-form-label">메타 연계 데이터 이력</label>
+                <ul style="max-height: 200px; height: 100%; overflow-y: auto;">
+                    <li>
+                        <div class="bg-box">
+                            <p class="dot-desc">
+                                이력
+                            </p>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="bg-box">
+                            <p class="dot-desc">
+                                이력
+                            </p>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="bg-box">
+                            <p class="dot-desc">
+                                이력
+                            </p>
+                        </div>
+                    </li>
+                </ul>
+            </th:block>
+            <th:block th:unless="${(dtModelMetaUserItem.sdtId != null and dtModelMetaUserItem.sdtObjId != null) and (dtModelMetaUserItem.sdtId != 'None' and dtModelMetaUserItem.sdtObjId != 'None') and (dtModelMetaUserItem.sdtId != '' and dtModelMetaUserItem.sdtObjId != '')}">
+                <label class="col-form-label">파일 데이터 이력</label>
+                <ul style="max-height: 200px; height: 100%; overflow-y: auto;">
+                    <li>
+                        <div class="bg-box">
+                            <p class="dot-desc">
+                                이력
+                            </p>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="bg-box">
+                            <p class="dot-desc">
+                                이력
+                            </p>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="bg-box">
+                            <p class="dot-desc">
+                                이력
+                            </p>
+                        </div>
+                    </li>
+                </ul>
+            </th:block>
+        </div>
+
+        <!--모델 이력 영역-->
+        <div class="col-12 pt-3" id="model-info-history-range" style="display: none;">
+            <label class="col-form-label">모델 이력</label>
+            <ul style="max-height: 200px; height: 100%; overflow-y: auto;">
+                <li>
+                    <div class="bg-box">
+                        <p class="dot-desc">
+                            이력
+                        </p>
+                    </div>
+                </li>
+                <li>
+                    <div class="bg-box">
+                        <p class="dot-desc">
+                            이력
+                        </p>
+                    </div>
+                </li>
+                <li>
+                    <div class="bg-box">
+                        <p class="dot-desc">
+                            이력
+                        </p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <!--다운로드 및 모델 사용 이력 그래프 영역-->
+        <div class="col-12 pt-3" id="history-graph-range">
+            <label class="col-form-label">다운로드 및 모델 사용 이력 그래프</label>
+            <div class="row" id="date-container">
+                <div class="col-auto form-control-wrap" style="min-width: 200px;">
+                    <label id="date_select_label" class="form-label" for="date_select">연도</label>
+                    <select id="date_select" class="form-control sm" aria-labelledby="date_select_label">
+                        <option value="2022-04">2023년 04월</option>
+                        <option value="2023-05">2023년 05월</option>
+                        <option value="2024-01">2024년 01월</option>
+                        <option value="2025-02">2025년 02월</option>
+                    </select>
+                </div>
+                <div class="col-auto mt-auto">
+                    <button type="button" class="ui-button primary sm">보기</button>
+                </div>
+            </div>
+            <div class="row mt-3" id="graph-container" style="position: relative; width: 100%; padding-bottom: 40%; height: 0;">
+            </div>
+        </div>
+    </div>
+</th:block>
+</html>

@@ -1,94 +1,29 @@
 package com.stoneitgt.dt.data.platform.util;
 
-import java.util.*;
-
-import com.stoneitgt.dt.data.platform.properties.BaseSystemProperties;
-import com.stoneitgt.dt.data.platform.util.file.FileWriter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stoneitgt.dt.data.platform.util.file.FileReader;
+import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.springframework.http.*;
-import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
+import java.util.*;
 
 @Slf4j
 public class JSONParser {
-
-    private String json;
-
-    public JSONParser(String json) {
-        this.json = json;
-    }
-
-    public String getFirstNodeProcInfo(String key) {
-        JSONObject jsonObject = new JSONObject(json);
-        JSONArray preprocPropertyInfo = jsonObject.getJSONArray("preproc_property_info");
-        JSONObject firstElement = preprocPropertyInfo.getJSONObject(0); // Assuming only one element in preproc_property_info
-
-        return firstElement.optString(key, null);
-    }
-
-    public JSONArray getPreprocProperty(String key) {
-        JSONObject jsonObject = new JSONObject(json);
-        JSONArray preprocPropertyInfo = jsonObject.getJSONArray("preproc_property_info");
-        JSONObject firstElement = preprocPropertyInfo.getJSONObject(0); // Assuming only one element in preproc_property_info
-
-        return firstElement.getJSONArray(key);
-    }
-
-    public static void sendValidationData(BaseSystemProperties properties, JSONObject jsonObject) {
-        log.info("sendValidationData");
-        RestTemplate restTemplate = new RestTemplate();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        String url = properties.getDtKetiApiUrl() + "/fedit/v1/validations";
-        log.info("url -> {}", url);
-        HttpEntity<String> request = new HttpEntity<>(jsonObject.toString(), headers);
-        //String response = restTemplate.postForObject(url, request, String.class);
-        //log.info("sendValidationData -> {}", response);
-    }
-
-    public static void sendOutlierData(BaseSystemProperties properties, JSONObject jsonObject) {
-        log.info("sendOutlierData");
-        RestTemplate restTemplate = new RestTemplate();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        String url = properties.getDtKetiApiUrl() + "/fedit/v1/outliers";
-        log.info("url -> {}", url);
-        HttpEntity<String> request = new HttpEntity<>(jsonObject.toString(), headers);
-        //String response = restTemplate.postForObject(url, request, String.class);
-        //log.info("sendOutlierData -> {}", response);
-    }
-
-    public static void sendErrorToJson(BaseSystemProperties properties, Map<String, Object> errorInfo) throws Exception {
-        log.info("sendErrorToJson");
-        Map<String, Object> result = new HashMap<>();
-        RestTemplate restTemplate = new RestTemplate();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        String url = properties.getDtKetiApiUrl() + "/fedit/v1/errors";
-        log.info("url -> {}", url);
-        HttpEntity<String> request = new HttpEntity<>(convertToJson(errorInfo).toString(), headers);
-        //String response = restTemplate.postForObject(url, request, String.class);
-        //log.info("sendErrorToJson -> {}", response);
-    }
-
-    public static boolean isDuplicateDataByKey(String filePath, String findKey) throws Exception {
-        List<Map<String, String>> csvData = com.stoneitgt.dt.data.platform.util.file.FileReader.getInstance().readCSVToListStringMap(filePath);
-        if (csvData == null) {
-            System.out.println("File not found or empty");
+    public static boolean isDuplicateDataByKey(List<Map<String, Object>> data, String findKey) throws Exception {
+        if (data == null) {
+            log.info("isDuplicateDataByKey -> {}", "File not found or empty");
             return false;
         }
 
         Set<String> seenKeys = new HashSet<>();
-        ListIterator<Map<String, String>> iterator = csvData.listIterator();
+        ListIterator<Map<String, Object>> iterator = data.listIterator();
 
         boolean hasDuplicates = false;
 
         while (iterator.hasNext()) {
-            Map<String, String> map = iterator.next();
-            String keyValue = map.get(findKey);
+            Map<String, Object> map = iterator.next();
+            String keyValue = map.get(findKey).toString();
             if (seenKeys.contains(keyValue)) {
                 iterator.remove();
                 hasDuplicates = true;
@@ -96,22 +31,17 @@ public class JSONParser {
                 seenKeys.add(keyValue);
             }
         }
-        if (hasDuplicates) {
-            FileWriter.getInstance().writeCSV(filePath, csvData);
-        }
         return hasDuplicates;
     }
 
-    public static List<Map<String, Object>> isDuplicateDataByKey(List<Map<String, Object>> data, String findKey) throws Exception {
-        List<Map<String, Object>> csvData = data;
-        log.info("origin data size -> {}, {}", data.size(), findKey);
-        if (csvData == null) {
-            System.out.println("File not found or empty");
+    public static List<Map<String, Object>> removeDuplicateDataByKey(List<Map<String, Object>> data, String findKey) throws Exception {
+        if (data == null) {
+            log.info("removeDuplicateDataByKey -> {}", "File not found or empty");
             return data;
         }
 
         Set<String> seenKeys = new HashSet<>();
-        ListIterator<Map<String, Object>> iterator = csvData.listIterator();
+        ListIterator<Map<String, Object>> iterator = data.listIterator();
 
         while (iterator.hasNext()) {
             Map<String, Object> map = iterator.next();
@@ -122,11 +52,10 @@ public class JSONParser {
                 seenKeys.add(keyValue);
             }
         }
-        log.info("removed data size -> {}", data.size());
         return data;
     }
 
-    public static String convertToJson(Map<String, Object> data) throws Exception {
+    public static String convertToJsonString(Map<String, Object> data) throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.writeValueAsString(data);
     }
@@ -158,47 +87,6 @@ public class JSONParser {
     }
 
     /**
-     * sendDigitalTwinObjectCreatedData
-     *
-     * @param DIGITAL_TWINS_ID 디지털 트윈 아이디
-     * @param createdJSONData  디지털 트윈 객체 생성 데이터
-     *                         {"digital_object_identifier":"KR-light", "digital_object_name":"test"}
-     * @apiNote http://{IP}:{PORT}/fedit/light/digital-twins/{DIGITAL_TWINS_ID}/digital-objects
-     * @author kimwoosik
-     */
-    public static void sendDigitalTwinObjectCreated(BaseSystemProperties properties, String DIGITAL_TWINS_ID, JSONObject createdJSONData) {
-        log.info("sendDigitalTwinCreatedData : " + ", DIGITAL_TWINS_ID : " + DIGITAL_TWINS_ID + ", createdJSONData : " + createdJSONData);
-        RestTemplate restTemplate = new RestTemplate();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        //KETI DigitalObjects Created Data Upload Url
-        String url = properties.getDtKetiApiUrl() + "/fedit/light/digital-twins/" + DIGITAL_TWINS_ID + "/digital-objects";
-        HttpEntity<String> request = new HttpEntity<>(createdJSONData.toString(), headers);
-        //ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, request, String.class);
-        //log.info("sendDigitalTwinObjectCreatedData response : " + response.getBody());
-    }
-
-    /**
-     * sendDigitalTwinObjectDeleteData
-     *
-     * @param
-     * @apiNote http://{IP}:{PORT}/fedit/light/digital-twins/{DIGITAL_TWINS_ID}/digital-objects/{DIGITAL_TWINS_OBJECT_ID + _AUGMENT_SEQ}
-     */
-    public static void sendDigitalTwinObjectDelete(BaseSystemProperties properties, String DIGITAL_TWINS_ID, String DIGITAL_OBJECT_ID, int augment_seq) {
-        log.info("sendDigitalTwinObjectDelete : " + ", DIGITAL_TWINS_ID : " + DIGITAL_TWINS_ID + ", DIGITAL_OBJECT_ID : " + DIGITAL_OBJECT_ID + ", augment_seq : " + augment_seq);
-        RestTemplate restTemplate = new RestTemplate();
-        HttpHeaders headers = new HttpHeaders();
-        //headers.setBearerAuth("AUTH_KEY");
-
-        //KETI DigitalObjects Delete Url
-        String url = properties.getDtKetiApiUrl() + "/fedit/light/digital-twins/" + DIGITAL_TWINS_ID + "/digital-objects/" + DIGITAL_OBJECT_ID + "_" + augment_seq;
-        HttpEntity<String> request = new HttpEntity<>(headers);
-        //ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.DELETE, request, String.class);
-        //log.info("sendDigitalTwinObjectDelete response : " + response.getBody());
-    }
-
-    /**
      * formatIndividuallyData
      *
      * @param resultDataList 전체 데이터
@@ -215,16 +103,15 @@ public class JSONParser {
             // 항목 출력
             // 항목의 각 엔트리 순회
             for (Map.Entry<String, Object> entry : resultData.entrySet()) {
-                String key = entry.getKey();
                 String value = (String) entry.getValue();
                 String filePath = value;
-                List<Map<String, String>> datas = com.stoneitgt.dt.data.platform.util.file.FileReader.getInstance().readCSVToListStringMap(filePath);
+                List<Map<String, Object>> datas = FileReader.getInstance().readCSVToListObjectMap(filePath);
                 // 데이터 리스트를 순회하며 각 변수들을 뽑아내기
                 if (dataJsonArray.isEmpty() || dataJsonArray.length() == 0) {
-                    for (Map<String, String> data : datas) {
+                    for (Map<String, Object> data : datas) {
                         // entrySet을 이용하여 순회
                         JSONObject jsonObject = new JSONObject();
-                        for (Map.Entry<String, String> dataEntry : data.entrySet()) {
+                        for (Map.Entry<String, Object> dataEntry : data.entrySet()) {
                             String dataKey = dataEntry.getKey();
                             Object dataValue = dataEntry.getValue();
                             jsonObject.put(dataKey, dataValue);
@@ -235,6 +122,7 @@ public class JSONParser {
                     break;
                 }
             }
+            //log.info("formatIndividuallyData -> {}", dataJsonArray);
         } else {
             log.warn("resultDataList is either null or empty");
         }
@@ -250,21 +138,22 @@ public class JSONParser {
             jsonObject.put("valid_tp1", map.get("valid_tp1").toString().replaceAll("\"", ""));
             jsonObject.put("valid_tp2", map.get("valid_tp2").toString().replaceAll("\"", ""));
             try {
-                List<Map<String, String>> csvData = com.stoneitgt.dt.data.platform.util.file.FileReader.getInstance().readCSVToListStringMap(map.get("file_path").toString());
+                List<Map<String, Object>> csvData = FileReader.getInstance().readCSVToListObjectMap(map.get("file_path").toString());
                 JSONArray dataJsonArray = new JSONArray();
                 if (csvData != null) { //Validation을 했지만 그대로 인것도 있음 그 부분은 건너 뛰기
                     //데이터 넣는 부분
-                    for (Map<String, String> dataMap : csvData) {
+                    for (Map<String, Object> data : csvData) {
+                        // entrySet을 이용하여 순회
                         JSONObject dataJsonObject = new JSONObject();
-                        dataMap.keySet().forEach(key -> {
-                            dataJsonObject.put(key, dataMap.get(key).toString());
-                        });
+                        for (Map.Entry<String, Object> dataEntry : data.entrySet()) {
+                            String dataKey = dataEntry.getKey();
+                            Object dataValue = dataEntry.getValue();
+                            dataJsonObject.put(dataKey, dataValue);
+                        }
                         dataJsonArray.put(dataJsonObject);
                     }
-                    jsonObject.put("data", dataJsonArray);
-                } else {
-                    jsonObject.put("data", dataJsonArray);
                 }
+                jsonObject.put("data", dataJsonArray);
                 validationDataJsonArray.put(jsonObject);
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -281,83 +170,28 @@ public class JSONParser {
             jsonObject.put("col", map.get("col").toString().replaceAll("\"", ""));
             jsonObject.put("outlier_tp", map.get("outlier_tp").toString().replaceAll("\"", ""));
             try {
-                List<Map<String, String>> csvData = com.stoneitgt.dt.data.platform.util.file.FileReader.getInstance().readCSVToListStringMap(map.get("file_path").toString());
+                List<Map<String, Object>> csvData = FileReader.getInstance().readCSVToListObjectMap(map.get("file_path").toString());
                 JSONArray dataJsonArray = new JSONArray();
                 if (csvData != null) { //Outlier를 했지만 그대로 인것도 있음 그 부분은 건너 뛰기
                     //데이터 넣는 부분
-                    for (Map<String, String> dataMap : csvData) {
+                    for (Map<String, Object> data : csvData) {
+                        // entrySet을 이용하여 순회
                         JSONObject dataJsonObject = new JSONObject();
-                        dataMap.keySet().forEach(key -> {
-                            dataJsonObject.put(key, dataMap.get(key).toString());
-                        });
+                        for (Map.Entry<String, Object> dataEntry : data.entrySet()) {
+                            String dataKey = dataEntry.getKey();
+                            Object dataValue = dataEntry.getValue();
+                            dataJsonObject.put(dataKey, dataValue);
+                        }
                         dataJsonArray.put(dataJsonObject);
                     }
-                    jsonObject.put("data", dataJsonArray);
-                } else {
-                    jsonObject.put("data", dataJsonArray);
                 }
+                jsonObject.put("data", dataJsonArray);
                 outlierDataJsonArray.put(jsonObject);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
         return outlierDataJsonArray;
-    }
-
-    /**
-     * sendIndividuallyData
-     *
-     * @param DIGITAL_TWINS_ID  디지털 트윈 아이디
-     * @param DIGITAL_OBJECT_ID 디지털 오브젝트 아이디
-     * @param count             한번 KETI에 올릴 데이터 업로드할 개수
-     * @param array             보낼 데이터 JSONArray
-     * @param AUGMENT_SEQ       증강 SEQ NUMBER
-     *                          "data":[{date,m10,m20,m30},{...},{...}]
-     * @apiNote http://{IP}:{PORT}/fedit/v1/digital-twins/{DIGITAL_TWINS_ID}/digital-objects/{DIGITAL_OBJECT_ID}/data
-     */
-    public static void sendIndividuallyData(BaseSystemProperties properties, int AUGMENT_SEQ, String DIGITAL_TWINS_ID, String DIGITAL_OBJECT_ID, JSONArray array, int count) {
-        log.info("DIGITAL_TWINS_ID : " + DIGITAL_TWINS_ID);
-        log.info("DIGITAL_OBJECT_ID : " + DIGITAL_OBJECT_ID);
-        log.info("AUGMENT_SEQ : " + AUGMENT_SEQ);
-        if (array == null) {
-            log.info("Failed Condition");
-            return;
-        }
-        RestTemplate restTemplate = new RestTemplate();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        //KETI DigitalObjects Data Upload Url
-        String url = properties.getDtKetiApiUrl() + "/fedit/v1/digital-twins/" + DIGITAL_TWINS_ID + "/digital-objects/" + DIGITAL_OBJECT_ID + "_" + AUGMENT_SEQ + "/data";
-        log.info("url -> {}", url);
-
-        if (count <= 1) {
-            for (int i = 0; i < array.length(); i++) {
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put("data", array.get(i));
-                HttpEntity<String> request = new HttpEntity<>(jsonObject.toString(), headers);
-                //String response = restTemplate.postForObject(url, request, String.class);
-                //log.info("response : " + response);
-            }
-            log.info("DIGITAL_TWINS_ID : " + DIGITAL_TWINS_ID + ", DIGITAL_OBJECT_ID : " + DIGITAL_OBJECT_ID + ", AUGMENT_SEQ : " + AUGMENT_SEQ + ", Success KETI Server Data Upload");
-        } else {
-            // count 개수만큼 데이터를 묶어서 처리
-            for (int i = 0; i < array.length(); i += count) {
-                JSONObject jsonObject = new JSONObject();
-                JSONArray dataBatch = new JSONArray();
-
-                // count 개수만큼 데이터를 dataBatch에 추가
-                for (int j = 0; j < count && i + j < array.length(); j++) {
-                    dataBatch.put(array.get(i + j));
-                }
-
-                jsonObject.put("data", dataBatch);
-                HttpEntity<String> request = new HttpEntity<>(jsonObject.toString(), headers);
-                //String response = restTemplate.postForObject(url, request, String.class);
-                //log.info("response : " + response);
-                log.info("DIGITAL_TWINS_ID : " + DIGITAL_TWINS_ID + ", DIGITAL_OBJECT_ID : " + DIGITAL_OBJECT_ID + ", AUGMENT_SEQ : " + AUGMENT_SEQ + ", Success KETI Server Data Upload");
-            }
-        }
     }
 
     // 값을 대체하는 재귀적 메서드입니다.
@@ -404,7 +238,7 @@ public class JSONParser {
         return resultArray;
     }
 
-    public static JSONArray recoveredDataFormat(JSONArray formattedIndividuallyDataArray, List<Map<String, String>> csvData) {
+    public static JSONArray recoveredDataFormat(JSONArray formattedIndividuallyDataArray, List<Map<String, Object>> csvData) {
         JSONArray jsonArray = new JSONArray();
         // 모든 데이터를 순회하며 jsonObject를 생성하고 jsonArray에 추가
         if (formattedIndividuallyDataArray.length() > csvData.size()) {
@@ -472,12 +306,12 @@ public class JSONParser {
         return jsonArray;
     }
 
-    public static List<Map<String, String>> convertJsonArrayToListOfMaps(JSONArray jsonArray) {
-        List<Map<String, String>> listOfMaps = new ArrayList<>();
+    public static List<Map<String, Object>> convertJsonArrayToListOfMaps(JSONArray jsonArray) {
+        List<Map<String, Object>> listOfMaps = new ArrayList<>();
 
         for (int i = 0; i < jsonArray.length(); i++) {
             JSONObject jsonObject = jsonArray.getJSONObject(i);
-            Map<String, String> map = new HashMap<>();
+            Map<String, Object> map = new HashMap<>();
 
             for (String key : jsonObject.keySet()) {
                 map.put(key, jsonObject.getString(key));
@@ -487,5 +321,23 @@ public class JSONParser {
         }
 
         return listOfMaps;
+    }
+
+    public static JSONObject convertMapToJson(Map<String, Object> map) {
+        JSONObject json = new JSONObject();
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            String key = entry.getKey().replace("\"", "");
+            Object value = entry.getValue().toString().replace("\"", "");
+            json.put(key, value);
+        }
+        return json;
+    }
+
+    public static JSONArray convertListMapToJson(List<Map<String, Object>> listMap) {
+        JSONArray jsonArray = new JSONArray();
+        for (Map<String, Object> map : listMap) {
+            jsonArray.put(convertMapToJson(map));
+        }
+        return jsonArray;
     }
 }

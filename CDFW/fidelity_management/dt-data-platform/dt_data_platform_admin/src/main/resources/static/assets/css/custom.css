@@ -83,10 +83,6 @@ code {
     border-radius: 4px;
 }
 
-.unit-select-box {
-    width: 147px !important;
-}
-
 canvas {
     width: 100%;
 }
@@ -102,14 +98,12 @@ canvas {
 }
 
 .select-with-text {
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
+    display: block;
 }
 
 .text-next-to-select {
-    margin-left: 10px; /* 원하는 여백 설정 */
-    font-size: 11px;
+    margin-top: 10px;
+    font-size: 13px;
 }
 
 
@@ -141,12 +135,23 @@ canvas {
 }
 
 .table-scroll-parent {
-    overflow: hidden;
+    /*overflow: hidden;*/
 }
 
-/*
-.table-scroll-parent .dataTables_scrollBody .table.dataTable,
-.table-scroll-parent .dataTables_scrollHead .dataTables_scrollHeadInner,
-.table-scroll-parent .dataTables_scrollHead .dataTables_scrollHeadInner .table.dataTable {
-    width: 100% !important;
-}*/
+.filter-data-table-container,
+.table-scroll-parent.filter-data-table-container {
+    overflow: visible;
+}
+
+.attach-file-group > .attach-file:not(:first-child) {
+    padding-top: 1rem;
+}
+
+/*Chart Container*/
+.chart-view-container {
+    width: 100%;
+    height: auto;
+    border-style: solid;
+    border-width: 1px;
+    border-color: #eee;
+}

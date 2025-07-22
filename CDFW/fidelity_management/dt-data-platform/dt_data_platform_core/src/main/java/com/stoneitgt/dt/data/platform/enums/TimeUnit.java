@@ -49,6 +49,9 @@ public enum TimeUnit {
             case "D":
                 timeType = 3600 * 24;
                 break;
+            case "M":
+                timeType = 3600 * 24 * 30;
+                break;
         }
         return timeType;
     }

@@ -1,61 +1,76 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/layout}">
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/platform_layout}">
 
 <head>
     <title th:text="${breadcrumb.menu_nm}">메뉴관리</title>
 </head>
+
 <div layout:fragment="content">
-    <nav th:replace="fragments/page_breadcrumb"></nav>
-    <div class="row">
-        <div class="col-12 col-xl-12 grid-margin stretch-card">
-            <div class="card">
-                <div class="card-body">
-                    <form name="searchForm" th:action="@{/setting/menu(menuCd=${params.menuCd})}" th:object="${params}"
-                          method="get">
-                        <th:block th:include="fragments/search_hidden"></th:block>
-                        <div class="row">
-                            <div class="col-sm">
-                                <div class="form-group row">
-                                    <div class="col-sm-auto">
-                                        <select th:field="*{field}" class="form-control">
-                                            <option value="menu_nm">메뉴명</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-sm">
-                                        <input type="text" th:field="*{keyword}" class="form-control"
-                                               placeholder="검색어를 입력하세요">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-sm-auto">
-                                <div class="form-group row">
-                                    <div class="col-sm">
-                                        <button type="submit" class="btn btn-primary mr-2 btn-icon-text btn-search">
-                                            <i class="btn-icon-prepend" data-feather="search"></i>조회
-                                        </button>
-                                        <button type="button" class="btn btn-secondary btn-icon-text btn-add-menu">
-                                            <i class="btn-icon-prepend" data-feather="edit"></i>등록
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
+    <div class="page-title">
+        <div class="contain">
+            <h1 th:text="${breadcrumb.menu_nm}">사용자관리</h1>
+        </div>
+    </div>
+    <div class="list-top">
+        <div class="contain">
+            <form name="searchForm" th:action="@{/setting/menu(menuCd=${params.menuCd})}"
+                  th:object="${params}"
+                  method="GET" style="display: none;">
+                <input type="hidden" th:field="*{menuCd}">
+                <input type="hidden" id="pagingPage" name="page" th:value="${paging.page}">
+                <input type="hidden" id="pagingSize" name="size" th:value="${paging.size}">
+                <input type="hidden" th:field="*{sortName}">
+                <input type="hidden" th:field="*{sortType}">
+                <input type="hidden" th:field="*{field}"/>
+                <input type="hidden" th:field="*{keyword}"/>
+                <button type="submit" class="ui-button primary btn-search">조회</button>
+            </form>
+            <div class="filter-wrap">
+                <!-- 유형 -->
+                <div class="filter-layer-box"><!-- 옵션 선택시 :: is-selected 클래스 추가 -->
+                    <button type="button" class="filter-toggle">유형<span class="filter-value"
+                                                                        th:data-initialize="${params.field}">메뉴명</span>
+                    </button>
+                    <div class="filter-layer" aria-expanded="false" style="position: absolute; top: calc(100% + 2px);">
+                        <ul class="option-list">
+                            <li>
+                                <input type="radio" id="searchType1" name="searchType" value="menu_nm"
+                                       th:checked="${params.field == 'menu_nm' or params.field == null}">
+                                <label for="searchType1">메뉴명</label>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
+                <!-- 검색어 -->
+                <div class="filter-layer-box">
+                    <button type="button" class="filter-toggle">검색어<span class="filter-value"
+                                                                         th:if="${params.keyword != null && params.keyword != ''}"
+                                                                         th:text="${params.keyword}"></span></button>
+                    <div class="filter-layer exclude-layer form-control-wrap"
+                         style="position: absolute; top: calc(100% + 2px);"
+                         aria-expanded="false">
+                        <div class="input-group">
+                            <input type="text" id="filterKeyword" class="form-control md" placeholder="검색어를 입력해주세요">
+                            <button type="button" class="form-right-action" id="filterKeywordAction">입력</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="buttons-group">
+                <button type="button"
+                        class="ui-button xs primary ico btn-add-menu">
+                    <img src="/assets/images/platform/ico_add_wh.svg" alt="">등록
+                </button>
             </div>
         </div>
     </div>
-    <div class="row">
-        <div class="col-12 col-xl-12 grid-margin stretch-card">
-            <div class="card">
-                <div class="card-body">
-                    <p class="card-description">
-                        <th:block th:include="fragments/paging_result:: paging_result('')"></th:block>
-                    </p>
-                    <p class="card-description"></p>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
+    <section class="data-section">
+        <div class="contain">
+            <div class="row">
+                <div class="col-12">
+                    <div class="table-box">
+                        <table class="data-table">
                             <colgroup>
                                 <col style="width: 5%;">
                                 <col style="width: 15%;">
@@ -71,9 +86,9 @@
                                 <th>메뉴코드</th>
                                 <th>메뉴명</th>
                                 <th>상위 메뉴</th>
-                                <th>메뉴 링크</th>
+                                <th>메뉴 경로</th>
                                 <th>등록일</th>
-                                <th></th>
+                                <th class="ta-r">기능</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -83,24 +98,28 @@
                                 <td th:text="${paging.total - rows.index}">1</td>
                                 <td th:switch="${item.level}">
                                     <th:block th:case="1" th:utext="'&nbsp;' + ${item.menu_cd}"></th:block>
-                                    <th:block th:case="2" th:utext="'&nbsp;&nbsp;&nbsp;&nbsp;' + ${item.menu_cd}"></th:block>
-                                    <th:block th:case="3" th:utext="'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + ${item.menu_cd}"></th:block>
+                                    <th:block th:case="2"
+                                              th:utext="'&nbsp;&nbsp;&nbsp;&nbsp;' + ${item.menu_cd}"></th:block>
+                                    <th:block th:case="3"
+                                              th:utext="'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + ${item.menu_cd}"></th:block>
                                     <th:block th:case="*" th:utext="${item.menu_cd}"></th:block>
                                 </td>
                                 <td th:switch="${item.level}">
                                     <th:block th:case="1" th:utext="'&nbsp;' + ${item.menu_nm}"></th:block>
-                                    <th:block th:case="2" th:utext="'&nbsp;&nbsp;&nbsp;&nbsp;ㄴ&nbsp;' + ${item.menu_nm}"></th:block>
-                                    <th:block th:case="3" th:utext="'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ㄴ&nbsp;' + ${item.menu_nm}"></th:block>
+                                    <th:block th:case="2"
+                                              th:utext="'&nbsp;&nbsp;&nbsp;&nbsp;ㄴ&nbsp;' + ${item.menu_nm}"></th:block>
+                                    <th:block th:case="3"
+                                              th:utext="'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ㄴ&nbsp;' + ${item.menu_nm}"></th:block>
                                     <th:block th:case="*" th:utext="${item.menu_cd}"></th:block>
                                 </td>
                                 <td th:text="${item.up_menu_cd}">parent_menu_code</td>
                                 <td th:text="${item.menu_url}">parent_menu_code</td>
                                 <td th:text="${item.reg_dt}">등록일</td>
-                                <td class="text-right">
-                                    <button type="button" class="btn btn-outline-primary btn-sm mr-2 btn-modify"
+                                <td class="ta-r">
+                                    <button type="button" class="ui-button primary sm btn-modify"
                                             th:data-menu-code="${item.menu_cd}">수정
                                     </button>
-                                    <button type="button" class="btn btn-outline-danger btn-sm btn-delete"
+                                    <button type="button" class="ui-button danger sm btn-delete"
                                             th:data-menu-code="${item.menu_cd}"
                                             th:data-parent-menu-code="${item.up_menu_cd}">삭제
                                     </button>
@@ -111,85 +130,14 @@
                     </div>
                 </div>
             </div>
+            <th:block th:include="fragments/modal/admin-modal-menu"></th:block>
         </div>
-    </div>
-    <!-- Modal -->
-    <div class="modal" id="modal-menu" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">메뉴</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-12">
-                            <form id="editForm" method="post">
-                                <div class="form-group row">
-                                    <label class="col-sm-3 col-form-label required">상위메뉴</label>
-                                    <div class="col-sm-9">
-                                        <select class="form-control" id="parent_menu_code" required="required">
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-group row">
-                                    <label class="col-sm-3 col-form-label required">메뉴코드</label>
-                                    <div class="col-sm-9">
-                                        <input type="text" class="form-control" id="menu_code" maxlength="10"
-                                               placeholder="" required="required">
-                                    </div>
-                                </div>
-                                <div class="form-group row">
-                                    <label class="col-sm-3 col-form-label required">메뉴명</label>
-                                    <div class="col-sm-9">
-                                        <input type="text" class="form-control" id="menu_name" maxlength="50"
-                                               placeholder="" required="required">
-                                    </div>
-                                </div>
-                                <div class="form-group row">
-                                    <label class="col-sm-3 col-form-label">링크</label>
-                                    <div class="col-sm-9">
-                                        <input type="text" class="form-control" id="menu_link" maxlength="50"
-                                               placeholder="" required="required">
-                                    </div>
-                                </div>
-                                <div class="form-group row">
-                                    <label class="col-sm-3 col-form-label">아이콘</label>
-                                    <div class="col-sm-9">
-                                        <input type="text" class="form-control" id="menu_icon" maxlength="20"
-                                               placeholder="" required="required">
-                                    </div>
-                                </div>
-                                <div class="form-group row">
-                                    <label class="col-sm-3 col-form-label required">정렬순서</label>
-                                    <div class="col-sm-9">
-                                        <input type="number" class="form-control" id="ordby" maxlength="2"
-                                               placeholder="">
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-dark btn-icon-text mr-2 btn-register">
-                        <i class="btn-icon-prepend" data-feather="edit"></i>저장
-                    </button>
-                    <button type="button" class="btn btn-secondary btn-icon-text" data-dismiss="modal">
-                        <i class="btn-icon-prepend" data-feather="x-square"></i>닫기
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- // modal -->
+    </section>
 </div>
+
 <th:block layout:fragment="custom_css">
 </th:block>
 <th:block layout:fragment="custom_js">
     <script th:src="@{/assets/js/pages/setting/menu_list.js}"></script>
 </th:block>
-
 </html>
