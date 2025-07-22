@@ -1,1 +1,0 @@
-class MeshBlock{constructor(a,b){let c=this;d();function d(){}this['Clear']=function(){};}}export default MeshBlock;
