@@ -42,7 +42,7 @@ def pipeline():
 					pipeline = yaml.load(f, Loader=yaml.FullLoader)
 			except:
 				pass
-    
+
 			#print('list_datasets', list_datasets())
 			print(pipeline)
 
