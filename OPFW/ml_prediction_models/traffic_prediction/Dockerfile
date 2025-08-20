@@ -46,14 +46,11 @@ RUN mkdir -p /home/$USER/.local /home/$USER/.vnc $WORKSPACE /home/$USER/traffic-
 
 ENV PATH=/home/${USER}/.local/bin:$PATH
 
-RUN sudo apt install -y mariadb-client
-
 RUN pip install -U Cython glances[gpu] nodejs npm ujson wget Flask requests
 RUN pip install -U pillow matplotlib einops pandas pyyaml joblib
-RUN pip install -U scikit-learn scikit-image seaborn netifaces schedule 
+RUN pip install -U scikit-learn scikit-image seaborn netifaces schedule
 
-ADD app.py /home/$USER/traffic-prediction
-ADD configs.yaml /home/$USER/traffic-prediction
+ADD app.py configs.yaml fdo_status_tracker.py /home/$USER/traffic-prediction
 
 #################################################################################
 
@@ -72,7 +69,3 @@ RUN sudo rm -rf /home/$USER/.temp/ /var/lib/apt/lists/*
 ENTRYPOINT /home/$USER/.local/entrypoint.sh
 
 #################################################################################
-
-
-
-
