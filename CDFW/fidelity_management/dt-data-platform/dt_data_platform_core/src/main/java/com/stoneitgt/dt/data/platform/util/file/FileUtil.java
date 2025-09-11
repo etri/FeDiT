@@ -1,30 +1,25 @@
 package com.stoneitgt.dt.data.platform.util.file;
 
-import com.stoneitgt.dt.data.platform.util.StringUtil;
-import eu.bitwalker.useragentutils.Browser;
-import eu.bitwalker.useragentutils.UserAgent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.compress.utils.FileNameUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.tika.Tika;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.FileCopyUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
+import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -305,7 +300,7 @@ public class FileUtil extends FilenameUtils {
         return encodedBase64;
     }
 
-    public static String getFileContentType(File file) {
+    /*public static String getFileContentType(File file) {
 //		return new MimetypesFileTypeMap().getContentType(file);
         Tika tika = new Tika();
         String mimeType = "";
@@ -315,7 +310,7 @@ public class FileUtil extends FilenameUtils {
             log.error("", e);
         }
         return mimeType;
-    }
+    }*/
 
     public static File multipartToFile(MultipartFile multipart) throws IllegalStateException, IOException {
         String filename = multipart.getOriginalFilename();
@@ -327,12 +322,12 @@ public class FileUtil extends FilenameUtils {
         return null;
     }
 
-    public static String getContentType(MultipartFile multipart) throws IllegalStateException, IOException {
+    /*public static String getContentType(MultipartFile multipart) throws IllegalStateException, IOException {
         return getFileContentType(multipartToFile(multipart));
-    }
+    }*/
 
     public static String getFileExtension(String filename) {
-        String extension = FileNameUtils.getExtension(filename);
+        String extension = FilenameUtils.getExtension(filename);
         return extension != null ? extension.toLowerCase() : null;
     }
 
@@ -413,13 +408,13 @@ public class FileUtil extends FilenameUtils {
         return encodedFilename;
     }
 
-    public static String getContentType(File file) throws IOException {
+    /*public static String getContentType(File file) throws IOException {
         return new Tika().detect(file);
-    }
+    }*/
 
-    public static String getContentType(InputStream is) throws IOException {
+    /*public static String getContentType(InputStream is) throws IOException {
         return new Tika().detect(is);
-    }
+    }*/
 
     public static File uploadFile(String filepath, MultipartFile source) throws IOException {
         File file = new File(filepath);
@@ -452,8 +447,8 @@ public class FileUtil extends FilenameUtils {
         }
 
         try {
-            if (StringUtil.isBlank(response.getContentType())) {
-                response.setContentType(getContentType(file));
+            if (StringUtils.isBlank(response.getContentType())) {
+                response.setContentType(detectContentType(file)); // getContentType(file) 대체
             }
 
             String encodeFilename = encodeFilename(filename, request);
@@ -476,40 +471,54 @@ public class FileUtil extends FilenameUtils {
     }
 
     public static String encodeFilename(String filename, HttpServletRequest request) {
-        UserAgent userAgent = UserAgent.parseUserAgentString(request.getHeader("User-Agent"));
-        String encodeFilename = FileNameEncoder.encode(userAgent.getBrowser(), filename);
-        return encodeFilename;
+        String ua = request.getHeader("User-Agent");
+        BrowserGroup group = detectBrowserGroup(ua);
+        return FileNameEncoder.encode(group, filename);
+    }
+
+    enum BrowserGroup {IE, CHROMIUM, FIREFOX, SAFARI, OPERA, UNKNOWN}
+
+    static BrowserGroup detectBrowserGroup(String ua) {
+        String s = ua == null ? "" : ua.toLowerCase();
+        if (s.contains("trident") || s.contains("msie")) return BrowserGroup.IE;
+        if (s.contains("edg") || s.contains("chrome") || s.contains("chromium") || s.contains("crios"))
+            return BrowserGroup.CHROMIUM;
+        if (s.contains("firefox")) return BrowserGroup.FIREFOX;
+        if (s.contains("opera") || s.contains("opr")) return BrowserGroup.OPERA;
+        if (s.contains("safari")) return BrowserGroup.SAFARI;
+        return BrowserGroup.UNKNOWN;
     }
 
     private enum FileNameEncoder {
-        IE(Browser.IE, it -> {
+        IE(BrowserGroup.IE, it -> {
             try {
                 return URLEncoder.encode(it, StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20");
             } catch (UnsupportedEncodingException e) {
                 return it;
             }
         }),
+        FIREFOX(BrowserGroup.FIREFOX, getDefaultEncodeOperator()),
+        OPERA(BrowserGroup.OPERA, getDefaultEncodeOperator()),
+        CHROMIUM(BrowserGroup.CHROMIUM, getDefaultEncodeOperator()),
+        SAFARI(BrowserGroup.SAFARI, getDefaultEncodeOperator()),
+        UNKNOWN(BrowserGroup.UNKNOWN, UnaryOperator.identity());
 
-        FIREFOX(Browser.FIREFOX, getDefaultEncodeOperator()), OPERA(Browser.OPERA, getDefaultEncodeOperator()),
-        CHROME(Browser.CHROME, getDefaultEncodeOperator()), SAFARI(Browser.SAFARI, getDefaultEncodeOperator()),
-        UNKNOWN(Browser.UNKNOWN, UnaryOperator.identity());
+        private final BrowserGroup browser;
+        private final UnaryOperator<String> encodeOperator;
 
-        private final Browser browser;
-        private UnaryOperator<String> encodeOperator;
-
-        private static final Map<Browser, Function<String, String>> FILE_NAME_ENCODER_MAP;
+        private static final Map<BrowserGroup, Function<String, String>> FILE_NAME_ENCODER_MAP;
 
         static {
             FILE_NAME_ENCODER_MAP = EnumSet.allOf(FileNameEncoder.class).stream()
                     .collect(Collectors.toMap(FileNameEncoder::getBrowser, FileNameEncoder::getEncodeOperator));
         }
 
-        FileNameEncoder(Browser browser, UnaryOperator<String> encodeOperator) {
+        FileNameEncoder(BrowserGroup browser, UnaryOperator<String> encodeOperator) {
             this.browser = browser;
             this.encodeOperator = encodeOperator;
         }
 
-        protected Browser getBrowser() {
+        protected BrowserGroup getBrowser() {
             return browser;
         }
 
@@ -518,54 +527,13 @@ public class FileUtil extends FilenameUtils {
         }
 
         private static UnaryOperator<String> getDefaultEncodeOperator() {
+            // 크롬/파폭/사파리/오페라: ISO-8859-1로 바이트 캐스팅
             return it -> new String(it.getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1);
         }
 
-        public static String encode(Browser browser, String fileName) {
-            String result = "";
-            if (FILE_NAME_ENCODER_MAP.get(browser.getGroup()) != null) {
-                result = FILE_NAME_ENCODER_MAP.get(browser.getGroup()).apply(fileName);
-            } else {
-                result = getFilename(fileName, browser.getName());
-            }
-            return result;
-        }
-
-        public static String getFilename(String filename, String agent) {
-            String encodeFilename = "";
-            String header = agent.toLowerCase();
-            try {
-                if (header.contains("msie") || header.contains("trident") || header.contains("firefox")) {
-                    encodeFilename = URLEncoder.encode(filename, StandardCharsets.UTF_8.name()).replaceAll("\\+",
-                            "%20");
-                } else if (header.contains("chrome")) {
-                    StringBuffer sb = new StringBuffer();
-                    int len = filename.length();
-                    for (int i = 0; i < len; i++) {
-                        char c = filename.charAt(i);
-                        if (c > '~') {
-                            sb.append(URLEncoder.encode("" + c, StandardCharsets.UTF_8.name()));
-                        } else {
-                            sb.append(c);
-                        }
-                    }
-                    encodeFilename = "\"" + sb.toString() + "\"";
-                } else {
-                    encodeFilename = "\""
-                            + new String(filename.getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1) + "\"";
-                    encodeFilename = URLEncoder.encode(encodeFilename, StandardCharsets.UTF_8.name()).replaceAll("\\+",
-                            "%20");
-                }
-            } catch (Exception e) {
-                log.error("", e);
-                encodeFilename = filename;
-            }
-
-            if (log.isInfoEnabled()) {
-                log.info("encoded file name : " + encodeFilename);
-            }
-
-            return encodeFilename;
+        public static String encode(BrowserGroup browser, String fileName) {
+            Function<String, String> f = FILE_NAME_ENCODER_MAP.get(browser);
+            return (f != null) ? f.apply(fileName) : fileName;
         }
     }
 
@@ -590,6 +558,122 @@ public class FileUtil extends FilenameUtils {
             return filePath;
         }
     }
+
+    private static String detectContentType(File file) {
+        final String DEFAULT = "application/octet-stream";
+
+        if (file == null || !file.exists()) {
+            return DEFAULT;
+        }
+
+        final Path path = file.toPath();
+
+        // 1) OS/JDK 연동 MIME 탐지 (가장 우선)
+        try {
+            String type = Files.probeContentType(path);
+            if (StringUtils.isNotBlank(type)) {
+                return type;
+            }
+        } catch (IOException ignored) {
+        }
+
+        // 2) 이름/내용 기반 JDK 추측 (가벼운 휴리스틱)
+        try {
+            String typeByName = URLConnection.guessContentTypeFromName(file.getName());
+            if (StringUtils.isNotBlank(typeByName)) {
+                return typeByName;
+            }
+        } catch (Exception ignored) {
+        }
+
+        // (선택) 내용 기반은 스트림을 여니 비용/부작용이 싫다면 주석 처리 가능
+        try (InputStream is = Files.newInputStream(path)) {
+            String typeByStream = URLConnection.guessContentTypeFromStream(is);
+            if (StringUtils.isNotBlank(typeByStream)) {
+                return typeByStream;
+            }
+        } catch (IOException ignored) {
+        }
+
+        // 3) 확장자 매핑 폴백 (경량 사전)
+        String ext = FilenameUtils.getExtension(file.getName());
+        if (ext != null) {
+            ext = ext.toLowerCase(Locale.ROOT);
+            String mapped = EXT_TO_MIME.get(ext);
+            if (mapped != null) {
+                return mapped;
+            }
+        }
+
+        return DEFAULT;
+    }
+
+    /**
+     * 최소필수 확장자 매핑(원하시면 계속 추가 가능)
+     */
+    private static final Map<String, String> EXT_TO_MIME = new HashMap<String, String>() {{
+        // text
+        put("txt", "text/plain");
+        put("csv", "text/csv");
+        put("tsv", "text/tab-separated-values");
+        put("html", "text/html");
+        put("htm", "text/html");
+        put("css", "text/css");
+        put("js", "application/javascript");
+        put("json", "application/json");
+        put("xml", "application/xml");
+
+        // images
+        put("png", "image/png");
+        put("jpg", "image/jpeg");
+        put("jpeg", "image/jpeg");
+        put("gif", "image/gif");
+        put("bmp", "image/bmp");
+        put("webp", "image/webp");
+        put("svg", "image/svg+xml");
+        put("ico", "image/x-icon");
+
+        // documents
+        put("pdf", "application/pdf");
+        put("rtf", "application/rtf");
+        put("md", "text/markdown");
+
+        // MS Office OOXML
+        put("docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        put("xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        put("pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
+
+        // MS Office (legacy)
+        put("doc", "application/msword");
+        put("xls", "application/vnd.ms-excel");
+        put("ppt", "application/vnd.ms-powerpoint");
+
+        // archives
+        put("zip", "application/zip");
+        put("gz", "application/gzip");
+        put("tar", "application/x-tar");
+        put("7z", "application/x-7z-compressed");
+        put("rar", "application/vnd.rar");
+
+        // fonts
+        put("ttf", "font/ttf");
+        put("otf", "font/otf");
+        put("woff", "font/woff");
+        put("woff2", "font/woff2");
+
+        // audio
+        put("mp3", "audio/mpeg");
+        put("wav", "audio/wav");
+        put("ogg", "audio/ogg");
+        put("m4a", "audio/mp4");
+
+        // video
+        put("mp4", "video/mp4");
+        put("webm", "video/webm");
+        put("ogv", "video/ogg");
+        put("mov", "video/quicktime");
+        put("avi", "video/x-msvideo");
+    }};
 }
 
 

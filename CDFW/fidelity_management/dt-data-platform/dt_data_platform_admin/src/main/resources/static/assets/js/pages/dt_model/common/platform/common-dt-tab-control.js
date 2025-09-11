@@ -87,7 +87,7 @@ $(document).ready(function () {
 
             //메뉴 완료 후 통합
             $('#csvUpRange2').empty();
-            $('#csvUpRange3').empty();
+            $('#csvUpRange3 .table-scroll-parent').empty();
             $('#dataSetInfoRange').empty();
             $('#dataSetStatisticsRange').empty();
             $('#dataSetHistogramRange').empty();

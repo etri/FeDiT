@@ -10,12 +10,11 @@ import com.stoneitgt.dt.data.platform.domain.ErrorLog;
 import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.HashedMap;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+import org.json.JSONObject;
 import java.io.File;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -125,8 +124,9 @@ public class MetaDTEtcModelScheduler extends BaseController {
                     makeMetaEtcModelSchedulerService.updateLearningBgngDt(checkParams);
                     try {
                         String responseBody = makeMetaEtcModelSchedulerService.createModelGenerater_randomForest(requestBody);
-                        JSONParser parser = new JSONParser();
-                        JSONObject result = (JSONObject) parser.parse(responseBody);
+                        JSONObject result = new JSONObject(responseBody);
+                        //JSONParser parser = new JSONParser();
+                        //JSONObject result = (JSONObject) parser.parse(responseBody);
                         if (Integer.parseInt(result.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
                             log.info("responseBody -> {}", responseBody);
                             log.info("AI 모델 {}번 생성 성공", modelSeq);
@@ -200,8 +200,9 @@ public class MetaDTEtcModelScheduler extends BaseController {
 
                     try {
                         String responseBody = makeMetaEtcModelSchedulerService.processorCreateAELearningModel(requestBody);
-                        JSONParser parser = new JSONParser();
-                        JSONObject result = (JSONObject) parser.parse(responseBody);
+                        //JSONParser parser = new JSONParser();
+                        //JSONObject result = (JSONObject) parser.parse(responseBody);
+                        JSONObject result = new JSONObject(responseBody);
                         if (Integer.parseInt(result.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
                             log.info("responseBody -> {}", responseBody);
                             log.info("AI 모델 {}번 생성 성공", modelSeq);
@@ -300,8 +301,9 @@ public class MetaDTEtcModelScheduler extends BaseController {
                     makeMetaEtcModelSchedulerService.updateLearningBgngDt(checkParams);
                     try {
                         String responseBody = makeMetaEtcModelSchedulerService.createModelGenerater_brits_ori(requestBody);
-                        JSONParser parser = new JSONParser();
-                        JSONObject result = (JSONObject) parser.parse(responseBody);
+                        //JSONParser parser = new JSONParser();
+                        //JSONObject result = (JSONObject) parser.parse(responseBody);
+                        JSONObject result = new JSONObject(responseBody);
                         if (Integer.parseInt(result.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
                             log.info("responseBody -> {}", responseBody);
                             log.info("AI 모델 {}번 생성 성공", modelSeq);
@@ -410,8 +412,9 @@ public class MetaDTEtcModelScheduler extends BaseController {
                     makeMetaEtcModelSchedulerService.updateLearningBgngDt(checkParams);
                     try {
                         String responseBody = makeMetaEtcModelSchedulerService.createModelGenerater_naomi(requestBody);
-                        JSONParser parser = new JSONParser();
-                        JSONObject result = (JSONObject) parser.parse(responseBody);
+                        //JSONParser parser = new JSONParser();
+                        //JSONObject result = (JSONObject) parser.parse(responseBody);
+                        JSONObject result = new JSONObject(responseBody);
                         if (Integer.parseInt(result.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
                             log.info("responseBody -> {}", responseBody);
                             log.info("AI 모델 {}번 생성 성공", modelSeq);

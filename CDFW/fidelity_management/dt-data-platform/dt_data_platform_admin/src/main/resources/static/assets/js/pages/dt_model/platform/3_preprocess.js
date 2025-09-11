@@ -4044,6 +4044,16 @@ function reInitializeOutlierExecute() {
         //autoencoder
     }
     let p_value = $('#p_value').val();
+    /**
+     * -------------------------
+     *  2025-08-18, Outlier STANDARD 옵션 버그 수정
+     * -------------------------
+     * */
+    if (p_value < 0.05) {
+        alert('정규분포 경계(p-value)는 0.05 이상이어야 합니다.');
+        return false;
+    }
+
     let eps = $('#eps').val();
     let min_samples = $('#min_samples').val();
 

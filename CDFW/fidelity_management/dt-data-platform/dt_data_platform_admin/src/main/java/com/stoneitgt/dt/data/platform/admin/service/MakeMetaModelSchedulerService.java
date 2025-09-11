@@ -2,9 +2,8 @@ package com.stoneitgt.dt.data.platform.admin.service;
 
 import com.stoneitgt.dt.data.platform.admin.mapper.MakeMetaModelSchedulerMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -73,7 +72,7 @@ public class MakeMetaModelSchedulerService extends BaseService {
         return makeMetaModelSchedulerMapper.updateLearningDndDt(checkParams);
     }
 
-    public JSONObject createMetaBasicModel(Map<String, Object> requestBody) throws ParseException {
+    public JSONObject createMetaBasicModel(Map<String, Object> requestBody) throws JSONException {
         RestTemplate restTemplate = new RestTemplate();
 
         String url = systemProperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater/";
@@ -89,12 +88,13 @@ public class MakeMetaModelSchedulerService extends BaseService {
         ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
         String responseBody = response.getBody();
 
-        JSONParser parser = new JSONParser();
-        JSONObject result = (JSONObject) parser.parse(responseBody);
+        //JSONParser parser = new JSONParser();
+        //JSONObject result = (JSONObject) parser.parse(responseBody);
+        JSONObject result = new JSONObject(responseBody);
         return result;
     }
 
-    public JSONObject createMetaDeepARModel(Map<String, Object> requestBody) throws ParseException {
+    public JSONObject createMetaDeepARModel(Map<String, Object> requestBody) throws JSONException {
         RestTemplate restTemplate = new RestTemplate();
 
         String url = systemProperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater_deepAR/";
@@ -110,12 +110,13 @@ public class MakeMetaModelSchedulerService extends BaseService {
         ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
         String responseBody = response.getBody();
 
-        JSONParser parser = new JSONParser();
-        JSONObject result = (JSONObject) parser.parse(responseBody);
+        //JSONParser parser = new JSONParser();
+        //JSONObject result = (JSONObject) parser.parse(responseBody);
+        JSONObject result = new JSONObject(responseBody);
         return result;
     }
 
-    public JSONObject createMetaNBeatsModel(Map<String, Object> requestBody) throws ParseException {
+    public JSONObject createMetaNBeatsModel(Map<String, Object> requestBody) throws JSONException {
         RestTemplate restTemplate = new RestTemplate();
 
         String url = systemProperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater_nbeats/";
@@ -131,15 +132,16 @@ public class MakeMetaModelSchedulerService extends BaseService {
         ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
         String responseBody = response.getBody();
 
-        JSONParser parser = new JSONParser();
-        JSONObject result = (JSONObject) parser.parse(responseBody);
+        //JSONParser parser = new JSONParser();
+        //JSONObject result = (JSONObject) parser.parse(responseBody);
+        JSONObject result = new JSONObject(responseBody);
         return result;
     }
 
     /**
      * SEG RNN
      * */
-    public JSONObject createMetaSEG_RNNModel(Map<String, Object> requestBody) throws ParseException {
+    public JSONObject createMetaSEG_RNNModel(Map<String, Object> requestBody) throws JSONException {
         RestTemplate restTemplate = new RestTemplate();
 
         String url = systemProperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater_SEG_RNN/";
@@ -155,8 +157,9 @@ public class MakeMetaModelSchedulerService extends BaseService {
         ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
         String responseBody = response.getBody();
 
-        JSONParser parser = new JSONParser();
-        JSONObject result = (JSONObject) parser.parse(responseBody);
+        //JSONParser parser = new JSONParser();
+        //JSONObject result = (JSONObject) parser.parse(responseBody);
+        JSONObject result = new JSONObject(responseBody);
         return result;
     }
 
