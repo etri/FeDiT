@@ -13,6 +13,7 @@ import com.stoneitgt.dt.data.platform.util.TimeUtil;
 import com.stoneitgt.dt.data.platform.util.file.FileReader;
 import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.json.JSONException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
@@ -282,7 +283,7 @@ public class DTSimulationController extends BaseController {
 
     @PostMapping(value = "/{augmentSeq}/prediction")
     @ResponseBody
-    public Map<String, Object> getSimulationPredictionView(HttpServletRequest request, @PathVariable String augmentSeq) throws IOException, org.json.simple.parser.ParseException {
+    public Map<String, Object> getSimulationPredictionView(HttpServletRequest request, @PathVariable String augmentSeq) throws IOException, JSONException {
         Map<String, Object> result = new HashMap<>();
         Map<String, Object> predictionViewParam = dtSimulationService.getSimulationPredictionView(Integer.parseInt(augmentSeq));
         log.info("predictionViewParam -> {}", predictionViewParam);
@@ -299,7 +300,7 @@ public class DTSimulationController extends BaseController {
 
     @PostMapping(value = "/insertSimulationViewResult")
     @ResponseBody
-    public Map<String, Object> insertSimulationViewResult(@RequestBody Map<String, Object> params, HttpServletRequest request) throws IOException, org.json.simple.parser.ParseException {
+    public Map<String, Object> insertSimulationViewResult(@RequestBody Map<String, Object> params, HttpServletRequest request) throws IOException, JSONException {
         Map<String, Object> result = new HashMap<>();
         int augmentSeq = Integer.parseInt(params.get("augmentSeq").toString());
         List<Map<String, Object>> fileList = dtSimulationService.getDTSimulationFileList(augmentSeq);

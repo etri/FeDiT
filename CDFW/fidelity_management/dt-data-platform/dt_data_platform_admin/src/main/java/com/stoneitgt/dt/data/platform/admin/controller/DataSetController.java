@@ -11,8 +11,7 @@ import com.stoneitgt.dt.data.platform.util.file.FileReader;
 import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
+import org.json.JSONObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -486,7 +485,7 @@ public class DataSetController extends BaseController {
         }
 
         if (correlationSet != null && correlationSet.getBody() != null) {
-            correlationObj = (JSONObject) new JSONParser().parse(Objects.requireNonNull(correlationSet.getBody()).toString());
+            correlationObj = new JSONObject(Objects.requireNonNull(correlationSet.getBody()).toString());
         }
 
         if (Integer.parseInt(correlationObj.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
