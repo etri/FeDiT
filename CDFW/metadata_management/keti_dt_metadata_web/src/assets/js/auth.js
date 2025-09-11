@@ -9,7 +9,7 @@ import { Base64 } from 'js-base64';
 import { isEmpty } from "@/assets/js/common.js";
 import router from '@/router'
 
-const enable_logging = true;
+const enable_logging = false;
 
 var _axios = axios.create({
     baseURL: process.env.VUE_APP_N2M_AUTH_URI
@@ -41,6 +41,9 @@ const getAuth = async (code) => {
     cookie.set('token', response.data.access_token, { expires:  new Date(response.data.expires_in * 1000) });
     // cookie.set('refresh_token', response.data.refresh_token, { expires: response.data.refresh_expires_in });
 
+    // TODO 2024-11-20 고객 요청 임시 로그인 패스용
+    if (enable_logging) console.log('sessionStorage token - remove3!');
+    sessionStorage.removeItem("meta-tk"); // 정상적인 로그인 경우 삭제
     
     let data = {
         refreshToken : response.data.refresh_token,
@@ -89,7 +92,7 @@ export const hasRefreshToken =async () => {
 }
 
 export const isAuthenticated = async() => {
-    return (!isEmpty(cookie.get("token")));  //토큰이 비어있는가? yes ->false
+    return (!isEmpty(getToken()));  //토큰이 비어있는가? yes ->false
 }
 
 export const redirectLoginView = () => {
@@ -101,16 +104,16 @@ export const redirectLoginView = () => {
 }
 
 export const requestAuthToken = async (code) => {
-    let token = cookie.get("token");
+    let token = getToken();
 
-    if (typeof token == 'undefined' || token == '') {
+    if (isEmpty(token)) {
         if (code) {
             if (enable_logging) console.log('Get Token')
             try {
                 //새로운 token정보를 가져오는 것이 아닌 백엔드에서 access token정보를 가져와야함.
                 const authInfo = await getAuth(code);
                 if (enable_logging) console.log(authInfo)
-                token = cookie.get('token');
+                token = getToken();
             }
             catch (error) {
                 console.log('Get Token Error')
@@ -122,9 +125,9 @@ export const requestAuthToken = async (code) => {
 }
 
 export const setAccessToken = async () => {
-    let token = cookie.get("token");
+    let token = getToken();
 
-    if (typeof token == 'undefined' || token == '') {
+    if (isEmpty(token)) {
         try{
             let checkRefreshToken = await hasRefreshToken();
             if(checkRefreshToken){    
@@ -149,7 +152,7 @@ export const setAccessToken = async () => {
 }
 
 export const getLoginUserId = () => {
-    let token = cookie.get('token');
+    let token = getToken();
 
     if (isEmpty(token)) return '';
 
@@ -160,9 +163,9 @@ export const getLoginUserId = () => {
 }
 
 export const checkToken = async () => {
-    let token = cookie.get('token');
+    let token = getToken();
 
-    if (typeof token == 'undefined' || token == '') { return ''; }
+    if (isEmpty(token)) { return ''; }
     else {
         const info = jwt(token);
         if (enable_logging) console.log(info);
@@ -176,7 +179,7 @@ export const checkToken = async () => {
 
             try {
                 const authInfo = await getRefreshAuth();
-                token = cookie.get('token');
+                token = getToken();
             }
             catch (error) {
                 console.log('refresh')
@@ -190,70 +193,120 @@ export const checkToken = async () => {
 }
 
 export const logout = async (flagMove) => {
-    
-    let deleteRefreshToken = await axios.delete('/api/admin/session/logout');
-    console.log(deleteRefreshToken);
-    
-    if(deleteRefreshToken) {
-        try {
-            if(cookie.get('token') != null) {
-                const info = jwt( cookie.get('token') );
-                console.log('Logout: ' + info.userId)
-        
-                let body = { userId: info.userId, }
-                await _axios.post('/security/logout', body, {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + cookie.get('token')
-                    },
-                    timeout: 60 * 1000,
-                })
-                
-                cookie.remove('token')
-                let pairs = document.cookie.split(";");
-                let cookies = {};
-                for (let i=0; i<pairs.length; i++){
-                    let pair = pairs[i].split("=");
-                    cookies[(pair[0]+'').trim()] = unescape(pair.slice(1).join('='));
-                }
-                
-                for (let cookieKey in cookies) {
-                    if (cookies.hasOwnProperty(cookieKey)) {
-                      // Remove the cookie by setting its expiration to a past date
-                      document.cookie = cookieKey + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                    }
-                  }           
+    console.log('logout called');
+    // TODO 2024-11-20 고객 요청 임시 로그인 패스용
+    if (enable_logging) console.log('sessionStorage token - remove1!');
+    sessionStorage.removeItem("meta-tk");
 
-                
-                if (flagMove) { router.push('/logout') }
+    try {
+        let deleteRefreshToken = await axios.delete('/api/admin/session/logout');
+        //if (enable_logging) console.log(deleteRefreshToken);    
+        if(deleteRefreshToken) {
+            if (enable_logging) console.log('logout - deleteRefreshToken 존재');    
+            try {
+                if(getToken() != null) {
+                    const info = jwt( getToken() );
+                    console.log('Logout: ' + info.userId)
+            
+                    let body = { userId: info.userId, }
+                    await _axios.post('/security/logout', body, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + getToken()
+                        },
+                        timeout: 60 * 1000,
+                    })
+                    
+                    cookie.remove('token')
+                    let pairs = document.cookie.split(";");
+                    let cookies = {};
+                    for (let i=0; i<pairs.length; i++){
+                        let pair = pairs[i].split("=");
+                        cookies[(pair[0]+'').trim()] = unescape(pair.slice(1).join('='));
+                    }
+                    
+                    for (let cookieKey in cookies) {
+                        if (cookies.hasOwnProperty(cookieKey)) {
+                        // Remove the cookie by setting its expiration to a past date
+                        document.cookie = cookieKey + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                        }
+                    }           
+
+                    
+                    if (flagMove) { redirectLoginView(); }
+                }
+            } catch (error) {
+                console.log('Logout error1')
+                console.log(error)
+                if(getToken() != null) {
+                    cookie.remove('token')
+                }
+                if (flagMove) { redirectLoginView(); }
             }
-        } catch (error) {
-            console.log('Logout error')
-            console.log(error)
-            if(cookie.get('token') != null) {
-                cookie.remove('token')
-            }
-            if (flagMove) { router.push('/logout') }
+        } else {
+            if (flagMove) { redirectLoginView(); }
         }
-    } else {
-        if (flagMove) { router.push('/logout') }
-    }
+
+    } catch (error) {
+        console.log('Logout error')
+        console.log(error)
+        if(getToken() != null) {
+            cookie.remove('token')
+        }
+        if (flagMove) { redirectLoginView(); }
+    }        
 }
 
+// 2024-11-20 cookie.get('token') 대신 함수 사용
 export const getToken = () => {
-    return cookie.get('token')
+    //return cookie.get('token')
+    let token = cookie.get('token') || null;
+
+    //if (enable_logging) console.log(`cookie.get('token') : ${cookie.get('token')}`);
+    // TODO 2024-11-20 고객 요청 임시 로그인 패스용
+    if (!token && process.env.VUE_APP_METADATA_TEMP_LOGIN_PASS_YN === 'Y' && process.env.VUE_APP_METADATA_TEMP_LOGIN_USER_ID) {
+        //if (enable_logging) console.log(`sessionStorage token - get! : ${sessionStorage.getItem("meta-tk")}`);
+        token = sessionStorage.getItem("meta-tk");
+        if (!validateToken(token)) {
+            token = null;
+        }
+    }
+    if (sessionStorage.getItem("meta-tk") && (process.env.VUE_APP_METADATA_TEMP_LOGIN_PASS_YN !== 'Y' || !process.env.VUE_APP_METADATA_TEMP_LOGIN_USER_ID)) {
+        if (enable_logging) console.log('sessionStorage token - remove!');
+        sessionStorage.removeItem("meta-tk");
+    }
+
+    return token;
+}
+
+// 2024-11-20 token 유효일시 확인. 토큰에 있으면 자연 삭제될 테지만, 스토리지 넣는 경우 체크.
+export const validateToken = (token) => {
+    if (isEmpty(token)) return false;
+
+    const info = jwt(token);
+    if (!info) return false;
+
+    const exp = info.exp;
+    const curr = (new Date().getTime() + 1) / 1000;
+    if (enable_logging) console.log(`exp: ${exp}  curr: ${curr}`);
+    if (exp < curr) {
+        if (enable_logging) console.log('Expired Token');
+        return false;
+    }
+
+    return true;
 }
 
 export const getUser = () => {
-    const info = jwt( cookie.get('token') );
+    const info = jwt( getToken() );
     return { id: info.userId, name: info.nickname }
 }
 
 export const getUsers = async () => {
     const { data } = await _axios.get('/security/users', {
         headers: {
-            'Authorization': 'Bearer ' + cookie.get('token')
+            'Authorization': 'Bearer ' + getToken()
         }
     });
     return data;
@@ -262,4 +315,55 @@ export const getUsers = async () => {
 export const setTokenFromRefreshToken = async() =>{
     const data = await getRefreshAuth();
     return data;
+}
+
+// TODO 2024-11-06 고객 요청 임시 로그인 패스용 !!!!!!!!!!!!!!!!! 나중에 삭제 할 것 !!!!!!!!!!!!!!!
+export const tempLoginPass = async () => {
+    if (enable_logging) console.log('tempLoginPass -----------------');
+    console.log(`VUE_APP_METADATA_TEMP_LOGIN_PASS_YN : ${process.env.VUE_APP_METADATA_TEMP_LOGIN_PASS_YN}`);
+    if (enable_logging) console.log(`VUE_APP_METADATA_TEMP_LOGIN_USER_ID : ${process.env.VUE_APP_METADATA_TEMP_LOGIN_USER_ID}`);
+
+    if (process.env.VUE_APP_METADATA_TEMP_LOGIN_PASS_YN !== 'Y') return;
+    if (process.env.VUE_APP_METADATA_TEMP_LOGIN_USER_ID) {
+
+        // 현재 로그인 되어 있다면 로그아웃 처리
+        await logout(false);
+        if (enable_logging) console.log('sessionStorage token - remove2!');
+        sessionStorage.removeItem("meta-tk");
+      
+        // 임시 로그인 처리
+        try {
+            const tempId = process.env.VUE_APP_METADATA_TEMP_LOGIN_USER_ID;
+            const response = await _axios.get(`/security/token/${tempId}`, { // TODO 2024-11-06 고객 요청 임시 로그인 패스용 !!!!!!!!!!!!!!!!! 나중에 삭제 할 것 !!!!!!!!!!!!!!!
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                timeout: 60 * 1000,
+            });
+        
+            if (enable_logging) console.log('Success Temp Token');
+            //if (enable_logging) console.log(response.data);
+        
+            cookie.set('token', response.data.access_token, { expires:  new Date(response.data.expire_time * 1000) });
+            if (enable_logging) console.log('sessionStorage token - set!');
+            sessionStorage.setItem("meta-tk", response.data.access_token);
+            if (enable_logging) console.log('cookie set');
+            //if (enable_logging) console.log(`cookie get : ${getToken()}`);
+
+            let data = {
+                refreshToken : response.data.refresh_token,
+                refreshExpires : response.data.refresh_expires_in,
+                userId : getLoginUserId(),
+                userNm : getUser().name,
+            }
+
+            let sendData = await axios.post('/api/admin/session/login',data);
+            console.log(`임시 로그인 처리`);
+
+        } catch (err) {
+            console.error(err);
+            console.log(`임시 로그인 처리 중 오류 발생!`);
+        }
+    } 
 }

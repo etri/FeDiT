@@ -3,7 +3,7 @@
     <div class="inline-area">
       <el-input style="width:200px;" v-model="value" disabled :placeholder="placeholder" />
       <el-button type="default" @click="clickSearchBtn" class="ml15 btn-label-color"><el-icon v-if="searchIconClass" :class="`icon ${searchIconClass}`" />{{ searchBtnLabel }}</el-button>
-      <el-button type="delete" @click="clickRefreshBtn" class="btn-label-color"><el-icon v-if="refreshIconClass" :class="`icon ${refreshIconClass}`" />{{ refreshBtnLabel }}</el-button>
+      <el-button type="default" class="el-button--delete btn-label-color" @click="clickRefreshBtn"><el-icon v-if="refreshIconClass" :class="`icon ${refreshIconClass}`" />{{ refreshBtnLabel }}</el-button>
     </div>
     <!--
     <el-row>

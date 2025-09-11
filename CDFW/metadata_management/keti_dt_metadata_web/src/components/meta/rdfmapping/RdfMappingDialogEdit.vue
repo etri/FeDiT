@@ -57,7 +57,7 @@
 </template>
 <script setup>
 import { reactive, defineExpose, onMounted, watch, ref } from "vue";
-import { getGlobalProperties, isWriteYn } from "@/assets/js/common.js";
+import { getGlobalProperties, isWriteYn, routerPush, getCookie } from "@/assets/js/common.js";
 import { useRouter, useRoute } from "vue-router";
 import util from "util";
 
@@ -165,10 +165,11 @@ const EditRdfMapping = () => {
   .post($apiUrls.meta.rdf.mapping.createMapping, rdfMappinginfo)
   .then((res) => {
     alert("저장되었습니다.");
-    router.push({ 
-      name: "meta_RefMappingDetailPage", 
-      query: { rdfMappgId: res.data.id }
-    });
+    
+    let platform = getCookie("pltfrmId");
+    let query = { rdfMappgId: res.data.id };
+    
+    routerPush(platform, "RefMappingDetailPage", query);
   })
   .catch((err) => {
     console.log(err);

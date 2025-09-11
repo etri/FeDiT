@@ -26,19 +26,21 @@
 				v-show="isAmdYn(route.meta.auth) && ('use' == medataSet.medataSetSttusMtcd || 'unused' == medataSet.medataSetSttusMtcd)"
 				@click="requestChangeSttus('disuse')" >폐기
 			</el-button>
-			<el-button type="primary" plain
+      <!-- 25.02.18 MetadataChangeHistory 를 MetadataDiffDialog로 교체 -->
+      <el-button type="primary" plain
 				v-show="'regist' != medataSet.medataSetSttusMtcd"
-				@click="dialogHistory" >변경이력
+				@click="goToDiffDialog" >변경이력
 			</el-button>			
 
 			<el-button type="default" @click="gotoList">목록</el-button>			
 		</div>
-
-		<el-dialog v-model="dialogVisibleHistory" title="변경이력 조회" :key="dialogKey">
-			<MetadataChangeHistory
-				:medataSetId="route.query.medataSetId" 
+    <!-- influx db diff dialog 조회 dialog로 변경 -->
+    <el-dialog v-model="dialogVisibleDiff" title="변경이력 Diff" :key="diffDialogKey">
+			<MetadataDiffDialog
+				:medataSetId="route.query.medataSetId"
+        :medataSetNm="medataSet.medataSetNm"
 				/>			
-		</el-dialog>		
+		</el-dialog>
 
 		<el-dialog v-model="dialogVisibleModify" title="메타데이터 셋 편집" @close="emitRefreshParent">
 			<MetadataSetDialogModify
@@ -111,6 +113,7 @@
 <script setup>
 import MetadataSetDialogModify from "@/components/meta/dataset/MetadataSetDialogModify.vue";
 import MetadataChangeHistory from "@/components/meta/dataset/MetadataChangeHistory.vue";
+import MetadataDiffDialog from "@/components/meta/dataset/MetadataDiffDialog.vue";
 import RdfViewPopupPage from "@/views/feature/meta/setting/rdfmapping/RdfViewPopupPage.vue";
 import MetadataPopover from "@/components/meta/dataset//MetadataPopover.vue";
 
@@ -167,6 +170,14 @@ const dialogHistory = ()=> {
 	dialogVisibleHistory.value = true;
 	dialogKey.value = nowTimestamp();
 }
+
+// diff dialog
+const dialogVisibleDiff = ref(false);
+const diffDialogKey = ref('');
+const goToDiffDialog = () => {
+  dialogVisibleDiff.value = true;
+  diffDialogKey.value = nowTimestamp();
+};
 
 const modifyMetadataSetInfo = () => {
 	dialogVisibleModify.value = false;

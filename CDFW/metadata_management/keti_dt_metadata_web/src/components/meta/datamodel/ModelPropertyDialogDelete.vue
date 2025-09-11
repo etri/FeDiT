@@ -14,27 +14,24 @@
         >
           <el-form-item prop="modelPrptyDelWhy" label="삭제사유" >
             <el-input style="fit-content" v-model="state.deleteProperty.modelPrptyDelWhy" @keydown.enter.prevent=""></el-input>
-          </el-form-item>          
+          </el-form-item>           
         </el-form>
-        <div class="taR">
-          <el-button type="primary" plain v-show="!deleteSuccess"   @click="deleteModelProperty">삭제</el-button>
-          <el-button type="default" v-show="!deleteSuccess"  @click="cancelDialog">취소</el-button>
-          <el-button type="default" v-show="deleteSuccess" @click="completeDialog" >확인</el-button>
-        </div>
-      </div>
-    </div>
-
-    <div class="boxLayout">
-      <div class="boxCnt">
-        <div class="ly-table">
-          <el-form label-position="right" label-width="100">
-            <el-form-item label="결과 메세지" style="height: 300px;">
-              <div v-html="state.resultMessage"></div>
-            </el-form-item>
+        <div class="ly-table mt10">
+          <el-form label-position="right" label-width="100" >
+            <el-form-item label="결과 메세지">
+              <div style="height: 150px;">
+                <p v-html="state.resultMessage"></p>
+              </div>
+            </el-form-item>             
           </el-form>
         </div>
       </div>
     </div>
+    <div class="btnSec taR mt10">
+      <el-button type="primary" plain v-show="!deleteSuccess"   @click="deleteModelProperty">삭제</el-button>
+      <el-button type="default" v-show="!deleteSuccess"  @click="cancelDialog">취소</el-button>
+      <el-button type="default" v-show="deleteSuccess" @click="completeDialog" >확인</el-button>
+    </div>    
   </div>  
 </template>
 <script setup>
@@ -45,7 +42,7 @@ import { ref, reactive } from "vue";
 const $axios = getGlobalProperties().$axios;
 const $apiUrls = getGlobalProperties().$apiUrls;
 const ruleFormRef = ref(null);
-const emits = defineEmits("cancelDialog");
+const emits = defineEmits("closeDialog");
 const deleteSuccess = ref(false);
 const props = defineProps({
   modelId:{
@@ -92,12 +89,12 @@ const deleteModelProperty = async () => {
           .delete(util.format($apiUrls.meta.data.typemodelproperty.deleteModelProperty, props.modelId),  { data: deleteList })
           .then((res) => {
             //console.log(res.data.updateId.length);
-            state.resultMessage = "<p>"+deleteList.length+"건 중"+res.data.deleteCount+"건이 삭제되었습니다.</p><br>";
+            state.resultMessage = deleteList.length+"건 중"+res.data.deleteCount+"건이 삭제되었습니다.<br>";
             if(deleteList.length != res.data.deleteCount) {
-              state.resultMessage += "<p>"+"다음 프라퍼티들은 이미 메타데이터에 사용되고 있어서 삭제처리됩니다.</p>";
+              state.resultMessage += "다음 프라퍼티들은 이미 메타데이터에 사용되고 있어서 삭제처리됩니다.<br>";
               res.data.updateId.map((id)=> {
                 if(id != null)
-                state.resultMessage += "<p>- "+ id+"</p>";
+                state.resultMessage += "- "+ id+"<br>";
               });
             }
 
@@ -120,13 +117,13 @@ const deleteModelProperty = async () => {
 }
 
 const cancelDialog = () =>{
-  emits("cancelDialog");
+  emits("closeDialog");
 }
 
 const completeDialog = () =>{
   state.resultMessage= "";
   state.modelPrptyDelWhy="";     
-  emits("completeDialog");
+  emits("closeDialog");
 }
 
 </script>

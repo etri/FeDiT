@@ -11,9 +11,10 @@ import {
   isAuthenticated,
   requestAuthToken,
   redirectLoginView,
+  tempLoginPass, // TODO 2024-11-06 고객 요청 임시 로그인 패스용
 } from "@/assets/js/auth.js";
 
-import { metaRoutes } from './router-meta.js';
+import { metaRoutes, externalRoutes } from './router-meta.js';
 
 const contenxtPath = "";
 
@@ -32,6 +33,7 @@ const routes = [
   },
 
   metaRoutes,
+  externalRoutes, //외부용 routes
 
   // router에 없는 url을 호출 했을 때 404 not found 처리
   {
@@ -87,13 +89,16 @@ const names = [
   "meta_ElasticsearchQueryResultPage",// Elasticsearch 결과 페이지
   "meta_ExSearchListPage",     // 검색. 디지털연합트윈 제공용 화면
   "meta_ExMetadataPage",       // 검색데이터. 디지털연합트윈 제공용 화면
-    
+  "meta_ExDigitalTwinListPage", // 디지털트윈 검색. 디지털연합트윈 제공용 화면
+  "meta_ExDigitalTwinDetailManagePage", // 디지털트윈 상세 관리. 디지털연합트윈 제공용 화면  
+  "meta_ExMedatagraphViewPage", // 메타데이터 시각그래프 . 디지털연합트윈 제공용 화면
 ];
 
 router.beforeEach(async (to, from, next) => {
   store.commit('MetaStore/closePopup');
-  // console.log(`beforeEach : ${to.name}`);
-  if (names.includes(to.name) && to.path !== "/redirect") {
+  //console.log(`beforeEach : ${to.name}, to.path : ${to.path}`);
+  //if (names.includes(to.name) && to.path !== "/redirect") {
+  if (names.includes(to.name) && to.path !== "/redirect" && to.path !== "/loginpass") { // TODO 2024-11-06 고객 요청 임시 로그인 패스용
     return next();
   }
   await checkSession(to, from, next);
@@ -103,19 +108,12 @@ router.beforeEach(async (to, from, next) => {
 });
 
 router.beforeResolve(async (to, from, next) => {
-  /*
-  1. to.path와 menuList를 조회해서 menuOid 찾기
-  2. menuOid의 개수가 여러개면 -> to.param 정보 추가 조회하여 menuOid 찾기
-  3. 이렇게 했는데도 한개 이상이면 첫번째 배열 값으로 menuOid 찾기
-  -> 이후 백엔드로 bread crumb 조회 요청, 배열 값 오면 meta에 데이터 전달 
-  + 메뉴마다 읽기 쓰기 수정 삭제 데이터 받아오기.
-  */
   if (names.includes(to.name) || to.path == "/") {
     return next();
   }
 
   let chkDefalutPltfrmPage = await checkPlatformDefaultPage(to);
-  if(chkDefalutPltfrmPage) return next();
+  if (chkDefalutPltfrmPage) return next();
 
   let menuList = store.getters["MenuStore/getUserMenuAllList"];
 
@@ -128,11 +126,21 @@ router.beforeResolve(async (to, from, next) => {
         readYn: "Y",
       },
     });
-
     menuList = data || [];
   }
-  let menuArr = [];
-  const menuInfo = findMenuInfo(menuArr, menuList, to.matched );
+
+  // 👉 external 경로인 경우 pathArr를 수동으로 분해
+  let pathArr = [];
+  if (to.path.startsWith("/meta/external")) {
+    const pathParts = to.path.replace("/meta/external", "/meta").split("/");
+    for (let i = 2; i <= pathParts.length; i++) {
+      pathArr.push({ path: pathParts.slice(0, i).join("/") });
+    }
+  } else {
+    pathArr = to.matched.map((r) => ({ path: r.path }));
+  }
+
+  const menuInfo = findMenuInfo([], menuList, pathArr);
 
   let menuOid = 0;
   let menuData = {};
@@ -148,9 +156,11 @@ router.beforeResolve(async (to, from, next) => {
       menuData = findMenuParam[0];
     }
   }
+
   if (menuInfo.length == 0) {
     return next({ name: "Forbidden" });
   }
+
   if (menuInfo.length > 0 && !checkUserAuth(menuData)) {
     return next({ name: "Forbidden" });
   }
@@ -164,6 +174,7 @@ router.beforeResolve(async (to, from, next) => {
           typeCd: "COD_00001",
         },
       });
+
       const breadcrumbList = data.breadCrumb || [];
       to.meta.navigator = breadcrumbList.map((obj) => {
         return {
@@ -181,37 +192,45 @@ router.beforeResolve(async (to, from, next) => {
         delYn: menuData.delYn,
       };
     } catch (e) {
-      // 오류 발생시에도 메인흐름에 영향을 주지 않도록 함.
       console.error(e);
     }
   }
+
   next();
 });
+
 
 const checkUserAuth = (menuData) => {
   if (menuData.readYn == "Y") return true;
   else return false;
 };
 
-
 const findMenuInfo = (menuArr, menuList, pathArr) => {
   for (let data of menuList) {
-    //부모일 경우 (url 없음 + 자식이 없는 경우는 패스)
-    if((data.url == "" || data.url == null) && data.children.length == 0) continue;
+    if ((data.url == "" || data.url == null) && data.children.length == 0) continue;
+
     let pathYN = false;
-    for(let pathObj of pathArr) {
-      if(data.url == pathObj.path) {
+
+    for (let pathObj of pathArr) {
+      let normalizedPath = pathObj.path.replace(/^\/meta\/external/, "/meta").replace(/\/:.*$/, "");
+
+      if (data.url === normalizedPath) {
+        console.log("hello? :D");
         pathYN = true;
         break;
-      }  
+      }
     }
-    if(pathYN == true) {
+
+    if (pathYN) {
       menuArr.push(data);
-    }else if (data.children.length > 0)
+    } else if (data.children.length > 0) {
       findMenuInfo(menuArr, data.children, pathArr);
+    }
   }
+
   return menuArr;
 };
+
 
 
 const checkSession = async (to, from, next) => {
@@ -222,7 +241,30 @@ const checkSession = async (to, from, next) => {
     if (to.path === '/redirect') {
       return next('/');
     }
+    // TODO 2024-11-06 고객 요청 임시 로그인 패스용
+    if (to.path === '/loginpass') {
+      // 누군가 이미 로그인해 있다면, 혹은 임시 로그인 패스로 로그인해 있다면, 그냥 처리
+      if (to.query && to.query.to) {
+        return next(to.query.to);
+      } else {
+        return next('/');
+      }
+    }
     return next();
+  }
+  // TODO 2024-11-06 고객 요청 임시 로그인 패스용
+  else if (to.path === '/loginpass') {
+    // 로그인 상태가 아닌 경우, 임시 로그인 처리
+    await tempLoginPass();
+    const checkAuthenticated2 = await isAuthenticated();
+    // console.log(`임시 로그인 처리 checkAuthenticated2: ${checkAuthenticated2}`);
+    if (checkAuthenticated2) {
+      if (to.query && to.query.to) {
+        return next(to.query.to);
+      } else {
+        return next('/');
+      }    
+    }
   }
 
   let accessToken;

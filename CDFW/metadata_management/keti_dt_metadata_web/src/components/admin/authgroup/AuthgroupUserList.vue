@@ -35,18 +35,20 @@
         <comn-list
           :tableHeader="tableHeader"
           :tableData="userList"
-          :height="250"
+          :height="300"
           @selectionChange="onSelectionChkbox"
         >
           <template v-slot:name="slotProps">
             <el-input v-model="slotProps.row.userID"> </el-input>
           </template>
         </comn-list>
-        <div class="mt10" style="float: right">
-          <el-button type="primary" @click="saveUser">선택</el-button>
-          <el-button plain type="primary" @click="cancelPopup">취소</el-button>
-        </div>
+
       </div>
+    </div>
+
+    <div class="btnSec taR mt10" >
+      <el-button type="primary" @click="saveUser">선택</el-button>
+      <el-button plain type="primary" @click="cancelPopup">취소</el-button>
     </div>
   </div>
 </template>

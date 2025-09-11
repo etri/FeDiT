@@ -62,7 +62,7 @@
 
 		<div class="boxLayout" v-for="prptyNm of state.jsonEtcPropertyNmList" :key="prptyNm">
 			<RetrievalGeneralProperty :generalProperty="state.arrayPropertyMap[prptyNm]" :medataSetId="medataSet.medataSetId"
-				:medataSet="medataSet" />
+				:medataSet="medataSet" @selectedProperty="selectedProperty" />
 		</div>
 
 		<div class="boxLayout" v-for="prptyNm of state.arrayPropertyNmList" :key="prptyNm">
@@ -71,6 +71,23 @@
 		</div>
 
 	</div>
+
+
+
+	<el-dialog v-model="dialogLogInfo" title="프라퍼티 정보">
+		<div class="dialog-area">
+			<JsonEditorVue class="dialog_jsonEditor_setting" v-model="selectedInfo" v-bind="{
+				readOnly: true,
+				mode: 'text',
+				theme: 'light',
+				mainMenuBar: false,
+				navigationBar: false,
+				parser: undefined,
+			}" />
+		</div>
+	</el-dialog>
+
+
 </template>
 <script setup>
 import UpperDigitalTwinList from "@/components/meta/dataset/UpperDigitalTwinList.vue";
@@ -93,6 +110,8 @@ const $emitter =
 const route = useRoute();
 const router = useRouter();
 
+const selectedInfo = ref({});
+const dialogLogInfo = ref(false);
 const medataSet = ref({});
 const dialogVisibleRdfSearch = ref(false);
 const emptyPrptyShowYn = ref("N");
@@ -235,6 +254,11 @@ const gotoList = () => {
 	let platform = getCookie("pltfrmId");
 	let query = null;
 	routerPush(platform, "RetrievalMetadataSetListPage", query);
+};
+
+const selectedProperty = (payload) => {
+	dialogLogInfo.value = true;
+	selectedInfo.value = payload;
 };
 
 </script>

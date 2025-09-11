@@ -1,7 +1,7 @@
 <template>
 	<div>
 
-		<div v-if="'geoJson' != props.rangeDataTypeMtcd && 'json' !== props.rangeDataTypeMtcd">
+		<div v-if="'geoJson' != props.rangeDataTypeMtcd && !metaConst.ARR_ETCJSON_DATATYPE.includes(props.rangeDataTypeMtcd)">
 			<comn-list
 				:tableHeader="tableHeader"
 				:tableData="metadataList"
@@ -21,7 +21,7 @@
 			<ComnPagination :totalPage="totalPage" :curPage="props.curPage" @pagemove="pagemove" />
 		</div>
 
-		<div v-if="'json' === props.rangeDataTypeMtcd">
+		<div v-if="metaConst.ARR_ETCJSON_DATATYPE.includes(props.rangeDataTypeMtcd)">
 			<comn-list
 				:tableHeader="tableHeaderForEtcJson"
 				:tableData="metadataList"
@@ -46,6 +46,7 @@ import {
   isReadYn 
 } from "@/assets/js/common.js";
 import util from "util";
+import metaConst from "@/assets/js/metaConst.js";
 
 const route = useRoute();
 const router = useRouter();

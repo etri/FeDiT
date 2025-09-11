@@ -656,6 +656,7 @@ input + label{cursor:pointer; vertical-align:middle; margin-left:5px;}
 .dialog-area .dataCheckTable thead th{background-color: #e1ddef; color: #36363b;}
 .dialog-area .dataCheckTable tbody tr{border-bottom:1px solid #ddd}
 .dialog-area .dataCheckTable tbody tr td{padding:10px;box-sizing:border-box;}
+.dialog-area .boxLayout:nth-of-type(n+2) {margin-top: 20px;}
 
 .dialog_jsonEditor_setting { min-height: 400px; height: 100%; }
 

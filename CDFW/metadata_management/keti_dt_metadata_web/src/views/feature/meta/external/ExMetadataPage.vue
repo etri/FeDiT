@@ -151,6 +151,8 @@ const initInfo = () => {
 	state.medataSetId = route.params.medataSetId;
 	getMetadataSetInfo(state.medataSetId);
 	const path = route.path
+
+	// TODO : 기존 router push는 남겨둔 상태로 external route 관련 적용 처리. 추후 수정 필요.
 	if(path.includes('exsearch')) {
 		backPageName.value = "ExMetadataPage"
 	}
@@ -256,13 +258,20 @@ const propertyListSetByPrptNm = (medataSetId, propertyNm, generalProperty) => {
 const goListPage = () => {
 	const path = route.path
 
+	// TODO : 기존 router push는 남겨둔 상태로 external route 관련 적용 처리. 추후 수정 필요.
 	if(path.includes('exsearch')) {
 		const query = route.query;
 		router.push({path: '/meta/exsearch/list', query: query});
 	}
 	else {
 		const query = route.query;
-		router.push({path: '/meta/search/intgrdata', query: query});
+		const isExternal = window.location.pathname.startsWith("/meta/external");
+		if(isExternal) {
+			router.push({path: '/meta/external/search/intgrdata', query: query});
+		}
+		else {
+			router.push({path: '/meta/search/intgrdata', query: query});
+		}
 	}
 };
 

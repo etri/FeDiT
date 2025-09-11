@@ -5,6 +5,10 @@
   },
   "id_schm_object": {
     "desc": "디지털트윈 연합 - 디지털 트윈 객체 식별체계",
-    "typeModelId" : "DigitalObject" 
+    "typeModelId" : "DigitalTwinObject" 
+  },
+  "id_schm_object_vm": {
+    "desc": "디지털트윈 연합 - 디지털 트윈 시각화모델 식별체계",
+    "typeModelId" : "VisualModel" 
   }
 }

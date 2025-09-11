@@ -72,6 +72,7 @@ const state = reactive({
     searchName:"",
     domnModelId:"",
     prptyDataSttusMtcd:"",
+    rangeModelId:"",
   },
 });
 
@@ -105,6 +106,7 @@ const searchPropertyList = (payload) => {
   state.pageInfo.searchName = payload.pageInfo.searchName;
   state.pageInfo.domnModelId = payload.pageInfo.domnModelId;
   state.pageInfo.prptyDataSttusMtcd = payload.pageInfo.prptyDataSttusMtcd;
+  state.pageInfo.rangeModelId = payload.pageInfo.rangeModelId;
   getPropertyList();
 };
 
@@ -118,6 +120,7 @@ const getPropertyList = () => {
         searchName: state.pageInfo.searchName,
         domnModelId: state.pageInfo.domnModelId,
         prptyDataSttusMtcd: state.pageInfo.prptyDataSttusMtcd,
+        rangeModelId: state.pageInfo.rangeModelId,
         sqlDateFormat: "YYYY-MM-DD",
       },
     })
@@ -158,7 +161,7 @@ const getMetaCodeGroupList = async () => {
   });
 };
 const metaCodeGroupList = computed(
-  () => store.getters["MetaStore/getSotreAllMetaCodeGroupList"]
+  () => store.getters["MetaStore/getStoreAllMetaCodeGroupList"]
 );
 
 const editPropertyInfo = () => {

@@ -25,24 +25,31 @@
 						<el-input v-model="state.metadataSet.modelNm" disabled></el-input>
 					</el-form-item>
 					
-					<el-form-item label="식별체계 - 국가코드" prop="idSchmCntryCd" v-show="IdSchmUseYn === 'Y' && metaIdSchmSettings.id_schm_object.typeModelId == state.metadataSet.typeModelId">
+					<el-form-item label="식별체계 - 국가코드" prop="idSchmCntryCd" v-show="IdSchmUseYn === 'Y' && idSchmTypeModelIds.includes(state.metadataSet.typeModelId)">
 						<div class="inline-area">
-							<el-input v-model="state.metadataSet.idSchmCntryCd" disabled style="width: 100px"></el-input>
-							<el-input v-model="state.metadataSet.idSchmCntryNm" disabled style="width: 250px; margin-left: 5px;"></el-input>
+							<el-input v-model="state.metadataSet.idSchmCntryCd" disabled style="width: 180px"></el-input>
+							<el-input v-model="state.metadataSet.idSchmCntryNm" disabled style="width: 300px; margin-left: 5px;"></el-input>
 						</div>
 					</el-form-item>
 
-					<el-form-item label="식별체계 - 분류코드 종류" prop="idSchmType" v-show="IdSchmUseYn === 'Y' && metaIdSchmSettings.id_schm_object.typeModelId == state.metadataSet.typeModelId">
-						<el-input v-model="state.metadataSet.idSchmType" disabled style="width: 100px"></el-input>
-						<el-input v-model="state.metadataSet.idSchmTypeNm" disabled style="width: 250px; margin-left: 5px;"></el-input>
+					<el-form-item label="식별체계 - 분류코드 종류" prop="idSchmType" v-show="IdSchmUseYn === 'Y' && idSchmTypeModelIds.includes(state.metadataSet.typeModelId)">
+						<el-input v-model="state.metadataSet.idSchmType" disabled style="width: 180px"></el-input>
+						<el-input v-model="state.metadataSet.idSchmTypeNm" disabled style="width: 300px; margin-left: 5px;"></el-input>
 					</el-form-item>
 
-					<el-form-item label="식별체계 - 코드" prop="idSchmCd" v-show="IdSchmUseYn === 'Y' && metaIdSchmSettings.id_schm_object.typeModelId == state.metadataSet.typeModelId">
+					<el-form-item label="식별체계 - 코드" prop="idSchmCd" v-show="IdSchmUseYn === 'Y' && idSchmTypeModelIds.includes(state.metadataSet.typeModelId)">
 						<div class="inline-area">
-							<el-input v-model="state.metadataSet.idSchmCd" disabled style="width: 100px"></el-input>
-							<el-input v-model="state.metadataSet.idSchmCdNm" disabled style="width: 250px; margin-left: 5px;"></el-input>
+							<el-input v-model="state.metadataSet.idSchmCd" disabled style="width: 180px"></el-input>
+							<el-input v-model="state.metadataSet.idSchmCdNm" disabled style="width: 300px; margin-left: 5px;"></el-input>
 						</div>
 					</el-form-item>
+
+					<el-form-item label="식별체계 - 3D 모델 객체 분류" prop="idSchmCd2" v-show="IdSchmUseYn === 'Y' && isIdSchmVmField">
+						<div class="inline-area">
+							<el-input v-model="state.metadataSet.idSchmCd2" disabled style="width: 180px"></el-input>
+							<el-input v-model="state.metadataSet.idSchmCd2Nm" disabled style="width: 300px; margin-left: 5px;"></el-input>
+						</div>
+					</el-form-item>							
 
 					<el-form-item label="메타데이터 셋 명" prop="medataSetNm">
 						<el-input v-model="state.metadataSet.medataSetNm"></el-input>
@@ -85,7 +92,7 @@
 							<el-button type="default" class="ml15" @click="popDialog('SearchMetadataSet')" v-show="props.cnctInfoDisabledYn !== 'Y'">
 								<el-icon class="icon icon-search"></el-icon>
 							</el-button>
-							<el-button type="delete" @click="refreshSearchMetadataSetInfo" v-show="props.cnctInfoDisabledYn !== 'Y'">
+							<el-button type="default" class="el-button--delete" @click="refreshSearchMetadataSetInfo" v-show="props.cnctInfoDisabledYn !== 'Y'">
 								<el-icon class="icon icon-refresh" />
 							</el-button>
 						</div>
@@ -135,12 +142,13 @@ import MetadataSetDialogSearch from "@/components/meta/dt/MetadataSetDialogSearc
 import DigitalTwinDialogUpperDigitalTwinList from "@/components/meta/dataset/DigitalTwinDialogUpperDigitalTwinList.vue";
 import metaIdSchmSettings from "@/assets/json/metaIdSchmSettings.json";
 
-import { ref, toRefs, defineProps, defineEmits, reactive, onMounted, watch, getCurrentInstance  } from "vue";
+import { ref, toRefs, defineProps, defineEmits, reactive, onMounted, watch, getCurrentInstance, computed } from "vue";
 import { useRoute } from "vue-router";
+import { useStore } from "vuex";
 import { isAmdYn, isDelYn, getGlobalProperties, isEmpty } from "@/assets/js/common.js";
 import util from 'util';
 
-//const store = useStore();
+const store = useStore();
 const route = useRoute();
 const $axios = getGlobalProperties().$axios;
 const $apiUrls = getGlobalProperties().$apiUrls;
@@ -150,6 +158,9 @@ const $emitter =
 const ruleFormRef = ref(null);
 const ruleFormRef2 = ref(null);
 const IdSchmUseYn = ref(process.env.VUE_APP_METADATA_ID_SCHM_USE_YN);
+const idSchmTypeModelIds = [metaIdSchmSettings.id_schm_object.typeModelId, metaIdSchmSettings.id_schm_object_vm.typeModelId];
+// 2025-09-09 시각화모델 일 때만 보이는 필드
+const isIdSchmVmField = computed(() => IdSchmUseYn.value === 'Y' && metaIdSchmSettings.id_schm_object_vm.typeModelId == state.metadataSet.typeModelId);
 
 const dialogVisibleModelSearch = ref(false);
 const searchSttusCd = "use"; //use 조건절 지정 (모델 검색 시 사용 상태만 select)
@@ -259,9 +270,23 @@ onMounted(() => {
 });
 
 const init = () => {
+	getMetaCodeList();
 	getMetadataSetDetail();
 	getUpperMetadataSetDtwListBySubSetId();
 }
+
+const getMetaCodeList = async () => {
+	await store.dispatch("MetaStore/getMetaCodeList", {
+		axios: $axios,
+		apiUrls: $apiUrls,
+		params: {
+			mtcdGrpIdList: ["MCG00030"],
+		},
+	});
+};
+const idSchm3dCdList = computed(() =>
+  store.getters["MetaStore/getStoreMetaCodeList"]("MCG00030")
+);
 
 const getMetadataSetDetail = () => {
 	let medataSetId = props.medataSetId;
@@ -269,12 +294,15 @@ const getMetadataSetDetail = () => {
 		.get(util.format($apiUrls.meta.resource.metadatasets.getMetadataSet, medataSetId))
 		.then((res) => {
 			state.metadataSet = res.data;
-			if(IdSchmUseYn.value === 'Y' && metaIdSchmSettings.id_schm_object.typeModelId == res.data.typeModelId) {
+			if(IdSchmUseYn.value === 'Y' && idSchmTypeModelIds.includes(state.metadataSet.typeModelId)) {
 				if(res.data.idSchmType === "1") {
 					getIdSchemeProductCode(res.data.idSchmCd);
 				}
 				if(res.data.idSchmType === "2") {
 					getIdSchemeFacilityCode(res.data.idSchmCd);
+				}
+				if(res.data.idSchmCd2) {
+					state.metadataSet.idSchmCd2Nm = idSchm3dCdList.value.find(x => x.mtcd === res.data.idSchmCd2)?.mtcdNm ?? '';
 				}
 			}
 		})

@@ -195,9 +195,9 @@ const goToBackPage = () => {
 	color: var(--el-text-color-regular);
 	line-height: 35px;
 
-	width: 200px;
+	width: 240px;
 	padding: 0 10px;
-	line-height: 35px;	
+	line-height: 35px;
 	height: auto;
 	margin-left: 0;
 	border-right: 1px solid #e5e5e5;

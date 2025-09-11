@@ -10,16 +10,17 @@
             <el-row>
               <el-table
                 row-key="treeId"
-                :data="state.modelPrptyList"
+                :data="state.treeNodeList"
                 :default-expand-all="true"
                 :highlight-current-row="true"
               >
                 <el-table-column label="" :min-width="20">
                   <template #default="{ row }">
                     <el-select
-                      v-model="row.treeId"
+                      v-model="row.valModelId"
                       placeholder="선택"
-                      @change="changeModel"
+                      @focus="row._prevValModelId = row.valModelId"
+                      @change="changeModel(row.valModelId, row)"
                       :style="{ width: '300px' }"
                       :disabled="row.comboYn == 'N' ? true : false"
                       >
@@ -32,6 +33,11 @@
                     </el-select>
                   </template>
                 </el-table-column>
+                <!-- 테스트용
+                <el-table-column label="" :min-width="20">
+                  <template #default="{ row }">{{ row.treeId }} / {{ row.valModelId }}  / {{ row.typeModelId }} / {{ row.children ? row.children.length : 0 }} </template>
+                </el-table-column>
+                -->
               </el-table>
             </el-row>
           </el-form>
@@ -58,8 +64,8 @@ const state = reactive({
   stdModelPropertyList: [],
   comboMap: new Map([]),
   metaDataModelList: [], // 전체 metaDataModel (콤보박스)
-  modelPrptyList: [], // 트리
-  treeDepth: 0,
+  treeNodeList: [], // 트리
+  //treeDepth: 0,
 });
 
 const getTypeModelList = () => {
@@ -109,55 +115,53 @@ const getMetaDataModelList = () => {
 
 const getModelPropertyList = (modelId) => {
   let root = {
-    treeId: modelId, // 트리 전용 modelId
-    rangeModelId: modelId,
-    typeModelId: modelId,
+    treeId: modelId + "-0", // 트리 전용
+    typeModelId: modelId,    
+    valModelId: modelId, // 콤보선택값
+    depth: 0,
     children: [], // 트리
     metaDataModelList: [], // 콤보박스
+    parentTypeModelIds: [],
   };
-  state.modelPrptyList.push(root);
-  state.treeDepth = 0;
-  makeTree(state.modelPrptyList[0], true, true, state.treeDepth);
+  state.treeNodeList.push(root);
+  makeTree(root);
 };
 
-const makeTree = (node, firstLoadingYn, checkComboListYn, depth) => {
+const makeTree = (node, onlyChildren = false) => {
   if (!node) {
     return;
   }
 
-  state.treeDepth = depth + 1;
+  if (!onlyChildren) {
+    setNode(node);
+    refreshTree();
+  }
 
+  if (node.comboYn == 'N') return; // 무한 루프 방지
+
+  // children 생성 위해. 모델의 모든 프라퍼티 목록 조회
   $axios
-    .get(util.format($apiUrls.meta.data.std.getStdModelPropertyList, node.treeId))
+    .get(util.format($apiUrls.meta.data.std.getStdModelPropertyList, node.valModelId))
     .then((res) => {
       // object 타입만 가져오기
       let tmpList = [];
-      res.data.list.map((data) => {
-        if (data.rangeModelTypeMtcd == "object_type") {
-          if (data.stdModelId) {
-            data.treeId = data.stdModelId;
-          } else {
-            data.treeId = data.rangeModelId;
-          }
-          tmpList.push(data);
+      let tmpCnt = 1;
+      res.data.list.forEach((childNode) => {
+        if (childNode.rangeModelTypeMtcd == "object_type") {
+          childNode.depth = node.depth + 1;
+          childNode.typeModelId = childNode.rangeModelId;       
+          childNode.treeId = node.treeId + '-' + (tmpCnt++);
+          childNode.parentTypeModelIds = node.parentTypeModelIds.concat(node.typeModelId);
+          tmpList.push(childNode);
+          //console.log('data: ', data);
         }
       });
 
-      if (firstLoadingYn == false && checkComboListYn == false) {
-        appendNode(node, tmpList, firstLoadingYn, false);
-      } else {
-        appendNode(node, tmpList, firstLoadingYn, true);
-      }
+      node.children = [...tmpList];
       for (let childNode of tmpList) {
-        childNode.comboYn = "Y";
-        if(childNode.treeId == "DigitalObject" && state.treeDepth > 1) {
-          childNode.treeId = childNode.prptyId + " " + childNode.prptyLogicNm;
-          childNode.comboYn = "N";
-        }
-        if(node.rangeModelId != childNode.rangeModelId) {
-          makeTree(childNode, firstLoadingYn, true, state.treeDepth);
-        }
+        makeTree(childNode);
       }
+
     })
     .catch((err) => {
       console.log(err);
@@ -178,67 +182,49 @@ onMounted(() => {
   });
 });
 
-const appendNode = (node, children, firstLoadingYn, checkComboListYn) => {
-  if (!node.children) {
-    node.children = [];
-  }
-  node.children = children;
-
-  if (firstLoadingYn == false && checkComboListYn == false) {
-    state.modelPrptyList = [...state.modelPrptyList];
-    return;
-  }
-
+const setNode = (node) => {
   let tmpList = [];
   let typeModel = {}; // 콤보박스의 첫 번째 값
   let stdModel = {};  // 콤보박스에서 기본적으로 선택되어있는 기본값
     
+  // 콤보 옵션 설정
   for (let model of state.metaDataModelList) {
-    if (model.typeModelId == node.rangeModelId) {
+    if (model.typeModelId == node.typeModelId) {
       tmpList.push(model);
       if (model.modelId == node.stdModelId) {
         stdModel = model;
       }
-      if (model.modelId == model.typeModelId) {
-        typeModel = model;
-      }
     }
   }
-  if (typeModel) {
-    let movedElement = tmpList.splice(tmpList.indexOf(typeModel), 1)[0];
-    tmpList.splice(0, 0, movedElement);
-  }
+  let movedElement = tmpList.splice(tmpList.indexOf(node.typeModelId), 1)[0];
+  tmpList.splice(0, 0, movedElement);
   if (tmpList) {
     node.metaDataModelList = tmpList;
   }
-  
+  // 콤보 값 설정
   if (stdModel.modelId !== undefined) {
-    node.rangeModelId = stdModel.modelId;
+    node.valModelId = stdModel.modelId;
+  } else {
+    node.valModelId = node.typeModelId;
   }
-  state.modelPrptyList = [...state.modelPrptyList];
+
+  // 무한 루프 방지. disabled 설정
+  if (node.parentTypeModelIds.includes(node.typeModelId)) {
+    node.comboYn = 'N'; 
+  }
 };
 
-const findNode = (children, id) => {
-  if (!children) {
-    return null;
-  }
-  for (let childNode of children) {
-    if (childNode.treeId == id) {
-      return childNode;
-    }
-    const foundNode = findNode(childNode.children, id);
-    if (foundNode) {
-      return foundNode;
-    }
-  }
-  return null;
+const changeModel = async (valModelId, row) => {
+  //console.log('changeModel : ' + valModelId);
+  //console.log(row);
+  // 자식 노드들을 새로 만들기
+  row.children = [];
+  makeTree(row, true);
 };
 
-const changeModel = async (data) => {
-  let node = findNode(state.modelPrptyList, data);
-  //console.log(node);
-  makeTree(node, false, false, 0);
-};
+const refreshTree = () => {
+  state.treeNodeList = [...state.treeNodeList]; // 새로고침?
+}
 </script>
 
 <style lang="scss"></style>

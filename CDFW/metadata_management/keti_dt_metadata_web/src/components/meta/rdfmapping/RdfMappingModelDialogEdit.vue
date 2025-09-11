@@ -28,7 +28,7 @@
                 <el-input style="width: 250px;" v-model="state.rdfClass" disabled	/>
                 <el-input style="width: 250px; margin-left: 5px;" v-model="state.rdfClassLgcNm" disabled	/>
                 <el-button type="default" class="ml15" @click="dialogVisibleClassSearch = true"><el-icon class="icon icon-search"/></el-button>
-                <el-button type="delete" @click="refreshRdfClass"><el-icon class="icon icon-refresh"/></el-button>
+                <el-button type="default" class="el-button--delete" @click="refreshRdfClass"><el-icon class="icon icon-refresh"/></el-button>
               </div>
               <el-dialog v-model="dialogVisibleClassSearch" title="RDF 클래스 검색">
                 <RdfClassListPopupPage
@@ -52,7 +52,7 @@
                 <el-input style="width: 250px;" v-model="state.condModelId" disabled	/>
                 <el-input style="width: 250px; margin-left: 5px;" v-model="state.condModelNm" disabled	/>
                 <el-button type="default" class="ml15" @click="dialogVisibleModelSearch = true"><el-icon class="icon icon-search"/></el-button>
-                <el-button type="delete" @click="refreshRangeModel"><el-icon class="icon icon-refresh"/></el-button>
+                <el-button type="default" class="el-button--delete" @click="refreshRangeModel"><el-icon class="icon icon-refresh"/></el-button>
               </div>
               <el-dialog v-model="dialogVisibleModelSearch" title="조건 메타데이터 모델 검색">
                 <MetaDataModelSearchPage
@@ -69,7 +69,7 @@
                 <el-input style="width: 250px;" v-model="state.condModelId" disabled	/>
                 <el-input style="width: 250px; margin-left: 5px;" v-model="state.condModelNm" disabled	/>
                 <el-button type="default" class="ml15" @click="dialogVisibleModelSearch = true"><el-icon class="icon icon-search"/></el-button>
-                <el-button type="delete" @click="refreshRangeModel"><el-icon class="icon icon-refresh"/></el-button>
+                <el-button type="default" class="el-button--delete" @click="refreshRangeModel"><el-icon class="icon icon-refresh"/></el-button>
               </div>
               <el-dialog v-model="dialogVisibleModelSearch" title="조건 메타데이터 모델 검색">
                 <MetaDataModelSearchPage

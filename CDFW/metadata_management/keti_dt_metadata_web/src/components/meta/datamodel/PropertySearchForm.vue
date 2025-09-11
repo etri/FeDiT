@@ -94,13 +94,38 @@
               </el-form-item>
             </el-col>
           </el-row>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="범위 모델">
+                <div class="inline-area">
+                  <el-input style="width: 250px;" v-model="pageInfo.rangeModelId" disabled	/>
+                  <el-button type="default" class="ml15" @click="dialogVisibleModelSearch = true"><el-icon class="icon icon-search"/></el-button>
+                  <el-button type="default" class="el-button--delete" @click="refreshRangeModel"><el-icon class="icon icon-refresh"/></el-button>
+                </div>				
+                <el-dialog v-model="dialogVisibleModelSearch" title="범위 모델 검색">
+                  <MetaDataModelSearchPage
+                    :searchSttusCd="searchSttusCd"
+                    :searchMode="searchMode"
+                    @selectedRow="selectedRangeModel"
+                  /> 
+                </el-dialog>	
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+            </el-col>
+          </el-row>
         </el-form>
       </div>
     </div>
   </div>
 </template>
 <script setup>
+import MetaDataModelSearchPage from "@/views/feature/meta/setting/datamodel/MetaDataModelSearchPage.vue";
 import { ref, reactive } from "vue";
+
+const dialogVisibleModelSearch = ref(false);
+const searchSttusCd = "";
+const searchMode = "range";
 
 const emits = defineEmits(["searchPropertyList"]);
 const props = defineProps({
@@ -120,6 +145,7 @@ const pageInfo = reactive({
   searchName: "",
   prptyDataSttusMtcd: "",
   domnModelId: "",
+  rangeModelId: ""
 });
 
 const getPropertyList = (data) => {
@@ -142,6 +168,7 @@ const refresh = () => {
   pageInfo.searchName = "";
   pageInfo.prptyDataSttusMtcd = "";
   pageInfo.domnModelId = "";
+  pageInfo.rangeModelId = "";
 };
 
 const disabledDate1 = (time) => {
@@ -155,5 +182,14 @@ const disabledDate2 = (time) => {
   return (
     time.getTime() < new Date(searchAmdStDt.setDate(searchAmdStDt.getDate()))
   );
+};
+
+const selectedRangeModel = (payload) => {
+	pageInfo.rangeModelId=payload.rowData.modelId;
+	dialogVisibleModelSearch.value = false;
+};
+
+const refreshRangeModel = () => {
+  pageInfo.rangeModelId = "";
 };
 </script>

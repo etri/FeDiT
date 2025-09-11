@@ -78,7 +78,7 @@
         </el-form>
       </div>
     </div>
-    <div class="taR">
+    <div class="btnSec taR mt20">
       <el-button type="primary" v-if="isAmdYn(route.meta.auth)" @click="modifyModel">저장</el-button>
       <el-button type="primary" plain v-if="isDelYn(route.meta.auth)" @click="deleteModel">삭제</el-button>
       <el-button type="default" @click="cancelDialog">취소</el-button>

@@ -6,7 +6,7 @@
       :amdDtVisibleYn="visibleY"
       @searchRdfPropertyList="searchRdfPropertyList"
     />
-    <div class="btnSec taR mb10">
+    <div class="btnSec taR mt10">
       <el-button type="primary" size="large"        
         v-show="isWriteYn(route.meta.auth)"        
         @click="() => handleClickEdit()"
@@ -129,7 +129,7 @@
                 <el-button type="default" class="ml15" @click="handleClickUpRdfProperty(true)"
                   ><el-icon class="icon icon-search"
                 /></el-button>
-                <el-button type="delete" class="ml15" @click="refreshUpRdfProperty(true)"
+                <el-button type="default" class="el-button--delete ml15" @click="refreshUpRdfProperty(true)"
                   ><el-icon class="icon icon-refresh"
                 /></el-button>
               </el-form-item>
@@ -233,7 +233,6 @@
   </el-dialog>
   <el-dialog v-model="dialogModify" title="RDF 프라퍼티 편집">
     <div class="dialog-area">
-      <div class="cntSec">
         <div class="boxLayout">
           <div class="boxTit"><h3>RDF 프라퍼티 정보</h3></div>
           <div class="boxCnt">
@@ -359,7 +358,7 @@
                       @click="handleClickUpRdfProperty(false)"
                       ><el-icon class="icon icon-search"
                     /></el-button>
-                    <el-button type="delete" class="ml15" @click="refreshUpRdfProperty(false)"
+                    <el-button type="default" class="el-button--delete ml15" @click="refreshUpRdfProperty(false)"
                       ><el-icon class="icon icon-refresh"
                     /></el-button>
                   </el-form-item>
@@ -445,7 +444,6 @@
             </el-tag>
           </div>
         </div>
-      </div>
     </div>
   </el-dialog>
   <el-dialog v-model="dialogVisibleClassSearch" title="RDF 클래스 검색">

@@ -177,6 +177,11 @@ const props = defineProps({
 		type: String,
 		required: false
 	},
+	params: { // 넘겨준 파라미터 그대로 selectedRow 에서 반환.
+		type: Object,
+		required: false,
+		default: {}
+	}
 });
 
 const state = reactive({
@@ -281,6 +286,7 @@ const searchMetadataSetList = (curPage) => {
 };
 
 const selectedRow = (payload) => {
+	payload.params = props.params;
 	emits("selectedRow", payload);
 };
 

@@ -39,6 +39,8 @@ import QnaModifyPage from "@/views/feature/admin/qna/QnaModifyPage.vue";
 import UserListPage from "@/views/feature/admin/user/UserListPage.vue";
 import RdfGraphManagePage from "@/views/feature/meta/system/rdfgraph/RdfGraphManagePage.vue";
 
+import CacheManagePage from "@/views/feature/meta/system/cache/CacheManagePage.vue";
+
 import MetaCodeGroupListPage from "@/views/feature/meta/setting/code/MetaCodeGroupListPage.vue";
 import AgentListPage from "@/views/feature/meta/stddata/agent/AgentListPage.vue";
 import CategoryListPage from "@/views/feature/meta/stddata/category/CategoryListPage.vue";
@@ -97,6 +99,8 @@ import RefMappingDetailPage from "@/views/feature/meta/setting/rdfmapping/RefMap
 import RdfGraphPage from "@/views/feature/meta/manage/rdfgraph/RdfGraphPage.vue";
 import MedataGraphPage from "@/views/feature/meta/manage/medatagraph/MedataGraphPage.vue";
 
+import MetadataInfluxdbRevisionListPage from "@/views/feature/meta/manage/revisions/MetadataInfluxdbRevisionListPage.vue";
+
 import KetidtInfoPage from "@/views/feature/meta/resource/KetidtInfoPage.vue";
 import KetidtskosInfoPage from "@/views/feature/meta/resource/KetidtskosInfoPage.vue";
 import MetadataSetPage from "@/views/feature/meta/resource/MetadataSetPage.vue";
@@ -106,9 +110,18 @@ import KsicCodeListPage from "@/views/feature/meta/stddata/ksiccode/KsicCodeList
 import PbrcCodeListPage from "@/views/feature/meta/stddata/pbrccode/PbrcCodeListPage.vue";
 import ProductCodeListPage from "@/views/feature/meta/stddata/productcode/ProductCodeListPage.vue";
 import FacilityCodeListPage from "@/views/feature/meta/stddata/facilitycode/FacilityCodeListPage.vue";
+import FeatureCodeListPage from "@/views/feature/meta/stddata/featurecode/FeatureCodeListPage.vue";
 
 import ExSearchListPage from "@/views/feature/meta/external/ExSearchListPage.vue";
 import ExMetadataPage from "@/views/feature/meta/external/ExMetadataPage.vue";
+
+import ExDigitalTwinListPage from "@/views/feature/meta/external/ExDigitalTwinListPage.vue";
+import ExDigitalTwinDetailManagePage from "@/views/feature/meta/external/ExDigitalTwinDetailManagePage.vue";
+
+import ExMedataGraphPage from "@/views/feature/meta/external/ExMedataGraphPage.vue";
+
+import KeywordChartPage from "@/views/feature/meta/search/keyword/KeywordChartPage.vue";
+
 
 const contenxtPath = "";
 const metaRootPath = "/meta";
@@ -162,6 +175,12 @@ export const metaRoutes = {
         },    
       ],
     }, 
+
+
+
+
+
+    
     // 디지털연합트윈 제공용 화면
     {
       path: "exsearch",
@@ -182,7 +201,56 @@ export const metaRoutes = {
           components: { default: ExMetadataPage },
         },           
       ],
-    },     
+    },   
+    {
+      path: "exmanage",
+      meta: { title: "디지털트윈 관리" },
+      component: () =>
+        import(
+          /* webpackChunkName "main" */ "@/views/layouts/ExternalPageLayout.vue"
+        ),
+      children: [
+        // 메타데이터 디지털트윈 관리
+        {
+          path: "dt",
+          name: "meta_ExDt",
+          meta: { title: "디지털트윈 관리" },
+          children: [
+            {
+              path: ":",
+              name: "meta_ExDigitalTwinListPage",
+              components: { default: ExDigitalTwinListPage },
+            },
+            {
+              path: "detail",
+              name: "meta_ExDigitalTwinDetailManagePage",
+              components: { default: ExDigitalTwinDetailManagePage },
+            }
+          ],
+        },        
+      ],
+    },  
+    {
+      path: "exmedatagraph",
+      meta: { title: "메타데이터 시각 그래프" },
+      component: () =>
+        import(
+          /* webpackChunkName "main" */ "@/views/layouts/ExternalPageLayout.vue"
+        ),   
+      children: [
+        {
+          path: ":",
+          name: "meta_ExMedatagraphViewPage",
+          components: { default: ExMedataGraphPage },
+        },
+      ],
+    },
+
+
+
+
+
+
     // 메타데이터 설정
     {
       path: "setting",
@@ -551,7 +619,21 @@ export const metaRoutes = {
               components: { default: ElasticsearchQueryPage },
             },
           ]
-        }
+        },
+        // 키워드 현황
+        // Elasticsearch 쿼리
+        {
+          path: "keywordchart",
+          name: "meta_KeywordChart",
+          meta: { title: "키워드 현황" },
+          children: [
+            {
+              path: ":",
+              name: "meta_KeywordChartPage",
+              components: { default: KeywordChartPage },
+            },
+          ]
+        }        
 			]
 		},
     // 새 창 검색 결과
@@ -650,6 +732,12 @@ export const metaRoutes = {
             },
           ],
 				},
+        //메타데이터 변경이력 조회
+        {
+          path: "influxdb-revision",
+          name: "meta_MetadataInfluxdbRevisionListPage",
+          components: { default: MetadataInfluxdbRevisionListPage },
+        }
 			]			
 		},
 
@@ -745,6 +833,18 @@ export const metaRoutes = {
               path: ":",
               name: "meta_FacilityCodeListPage",
               components: { default: FacilityCodeListPage },
+            }
+          ],					
+				},
+        {
+          path: "featurecode",
+          name: "meta_Featurecode",
+          meta: { title: "객체 - 지형지물 코드 관리" },
+          children: [
+            {
+              path: ":",
+              name: "meta_FeatureCodeListPage",
+              components: { default: FeatureCodeListPage },
             }
           ],					
 				}
@@ -1045,6 +1145,18 @@ export const metaRoutes = {
             },
           ],
         }, 
+        {
+          path: "cache",
+          name: "meta_Cache",
+          meta: { title: "캐시 관리"},
+          children: [
+            {
+              path: ":",
+              name: "meta_CacheManagePage",
+              components: { default: CacheManagePage },
+            },
+          ],
+        },
       ]
     },
 		//POP-UP (window.open)
@@ -1061,3 +1173,39 @@ export const metaRoutes = {
 		}
   ],
 };
+
+
+
+// 외부용 routes 설정
+export const externalRoutes = {
+  path: "/meta/external",
+  name: "external",
+  component: () =>
+    import("@/views/layouts/ExternalPageLayout.vue"),
+  children: flattenMetaRoutesAsChildren(metaRoutes.children),
+};
+
+function flattenMetaRoutesAsChildren(routes, parentPath = "") {
+  const flattenedRoutes = [];
+
+  routes.forEach(route => {
+    const fullPath = parentPath + "/" + (route.path || "").replace(/^\/+/, "");
+
+    if (route.components || route.component) {
+      flattenedRoutes.push({
+        path: fullPath.replace(/^\/+/, "").replace(/^meta\//, ""),
+        name: `external_${route.name || fullPath.replace(/\//g, "_")}`,
+        component: route.components?.default || route.component,
+      });
+    }
+
+    if (route.children) {
+      flattenedRoutes.push(...flattenMetaRoutesAsChildren(route.children, fullPath));
+    }
+  });
+
+  return flattenedRoutes;
+}
+
+
+

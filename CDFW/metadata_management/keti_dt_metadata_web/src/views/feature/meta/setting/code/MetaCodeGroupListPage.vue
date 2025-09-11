@@ -202,7 +202,7 @@ const getUpperMetaCodeGroupList = async () => {
 		apiUrls: $apiUrls
 	});
 
-	const UpperMetaCodeGroupList = store.getters["MetaStore/getSotreAllMetaCodeGroupList"]; //no parameter
+	const UpperMetaCodeGroupList = store.getters["MetaStore/getStoreAllMetaCodeGroupList"]; //no parameter
 	upperMetaCodeGroupList.value = UpperMetaCodeGroupList;
 };
 

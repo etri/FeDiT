@@ -28,18 +28,18 @@
 			</el-button>
 			<!-- 2023-06-14 사용 요청 을 할지 안할지... 안정해짐. 미구현! -->
 				<!-- v-show="isReadYn(route.meta.auth) && 'use' == medataSet.medataSetSttusMtcd"  -->
+
+      <!-- 25.02.18 MetadataChangeHistory 를 MetadataDiffDialog로 교체 -->
 			<el-button type="primary" plain
 				v-show="'regist' != medataSet.medataSetSttusMtcd"
-				@click="dialogHistory" >변경이력
+				@click="goToDiffDialog" >변경이력
 			</el-button>
 		  
-			<el-button type="default" @click="gotoList">목록</el-button>			
+			<el-button type="default" @click="gotoList">목록</el-button>
 		</div>
 
-		<el-dialog v-model="dialogVisibleHistory" title="변경이력 조회" :key="dialogKey">
-			<MetadataChangeHistory
-				:medataSetId="route.query.medataSetId" 
-				/>			
+		<el-dialog v-model="dialogVisibleDiff" title="diff" :key="diffDialogKey">
+			<MetadataDiffDialog :medataSetId="route.query.medataSetId" :medataSetNm="medataSet.medataSetNm" />		
 		</el-dialog>
 
 		<el-dialog v-model="dialogVisibleModify" title="디지털트윈 편집">
@@ -115,6 +115,7 @@
 <script setup>
 import DigitalTwinDialogModify from "@/components/meta/dt/DigitalTwinDialogModify.vue";
 import MetadataChangeHistory from "@/components/meta/dataset/MetadataChangeHistory.vue";
+import MetadataDiffDialog from "@/components/meta/dataset/MetadataDiffDialog.vue";
 import RdfViewPopupPage from "@/views/feature/meta/setting/rdfmapping/RdfViewPopupPage.vue";
 import MetadataPopover from "@/components/meta/dataset//MetadataPopover.vue";
 
@@ -167,6 +168,14 @@ const getRdfStr = () => {
 	dialogVisibleRdfSearch.value = true;
 };
 
+// diff dialog
+const dialogVisibleDiff = ref(false);
+const diffDialogKey = ref('');
+const goToDiffDialog = () => {
+  let medataSetId = props.medataSet.medataSetId;
+  dialogVisibleDiff.value = true;
+  diffDialogKey.value = nowTimestamp();
+};
 
 const dialogHistory = ()=> {
 	dialogVisibleHistory.value = true;

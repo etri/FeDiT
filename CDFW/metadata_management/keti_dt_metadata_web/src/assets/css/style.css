@@ -492,4 +492,11 @@ select:focus {
 .el-dialog__headerbtn:hover .el-dialog__close {
   color: #7da5d7 !important;
 }
-
+/* 디지털트윈 상세 팝업 */
+.custom-tag:hover{
+  background-color:#d5eaffb8 !important;
+}
+.custom-tag .selected-time-text{
+  color:#111 !important;
+  background-color:#d5eaffb8 !important;
+}

@@ -7,10 +7,10 @@
 			<!-- 10건 이상의 경우 페이징 처리를 위해, 상세 조회 modal 내에서 프라퍼티 목록을 조회. -->
 			<div v-if="generalProperty.propertyListCnt >= props.minCntToDisplayButton
 				&& 'geoJson' !== generalProperty.rangeDataTypeMtcd
-				&& 'json' !== generalProperty.rangeDataTypeMtcd" class="btnSec taR">
+				&& !metaConst.ARR_ETCJSON_DATATYPE.includes(generalProperty.rangeDataTypeMtcd) " class="btnSec taR">
 				<el-button type="primary" @click="dialogVisibleSearchMetadata = true">메타데이터 상세 조회</el-button>
 			</div>
-			<div v-if="'json' === generalProperty.rangeDataTypeMtcd && generalProperty.propertyListCnt > 0">
+			<div v-if="metaConst.ARR_ETCJSON_DATATYPE.includes(generalProperty.rangeDataTypeMtcd) && generalProperty.propertyListCnt > 0">
 				<el-button type="primary" @click="showJson(generalProperty.propertyList[0].medataVal)">JSON 보기</el-button>				
 			</div>
 		</div>
@@ -31,16 +31,16 @@
 				:rangeModelTypeMtcd="generalProperty.rangeModelTypeMtcd" :rangeDataTypeMtcd="generalProperty.rangeDataTypeMtcd" />
 		</el-dialog>
 
+		<!-- json 아닌 일반 data_type -->
 		<div class="boxCnt" v-if="'geoJson' !== generalProperty.rangeDataTypeMtcd
-			&& 'json' !== generalProperty.rangeDataTypeMtcd
+			&& !metaConst.ARR_ETCJSON_DATATYPE.includes(generalProperty.rangeDataTypeMtcd)
 			&& 'object_type' !== generalProperty.rangeModelTypeMtcd">
 			<comn-list :tableHeader="arrTypePropertyTableHeader" :tableData="generalProperty.propertyList" :minHeight="100">
 			</comn-list>
 		</div>
 
-		<div class="boxCnt" v-if="'geoJson' !== generalProperty.rangeDataTypeMtcd
-			&& 'json' !== generalProperty.rangeDataTypeMtcd
-			&& 'data_type' !== generalProperty.rangeModelTypeMtcd">
+		<!-- Object type -->
+		<div class="boxCnt" v-if="'object_type' === generalProperty.rangeModelTypeMtcd">
 			<comn-list :tableHeader="objTypePropertyTableHeader" :tableData="generalProperty.propertyList" :minHeight="100">
 				<template v-slot:medataVal="slotData">
 					<span @click="goToMetadataManagePage1(slotData.row)" class="link-text">
@@ -60,7 +60,7 @@
 		</div>
 
 		<!-- EtcJson type -->
-		<div class="boxCnt" v-if="'json' === generalProperty.rangeDataTypeMtcd" >
+		<div class="boxCnt" v-if="metaConst.ARR_ETCJSON_DATATYPE.includes(generalProperty.rangeDataTypeMtcd)" >
 			<div v-for="item of generalProperty.propertyList" :key="item">
 				<el-input	type="textarea"	v-model="item.medataVal" disabled :autosize="{ minRows: 4, maxRows: 10 }"></el-input>
 			</div>
@@ -75,6 +75,7 @@ import MetadataDialogSinglePropertyInfo from "@/components/meta/retrievaldt/Meta
 
 import { defineProps, nextTick, ref, onMounted, watch } from "vue";
 import metaCommon from "@/assets/js/metaCommon.js";
+import metaConst from "@/assets/js/metaConst.js";
 
 const dialogVisibleSearchMetadata = ref(false); //메타데이터 검색 modal 
 const dialogVisibleSingleInfoMetadata = ref(false); //메타데이터 단건 프라퍼티 정보 modal (test용)
