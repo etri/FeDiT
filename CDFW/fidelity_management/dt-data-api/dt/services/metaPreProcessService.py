@@ -511,20 +511,50 @@ class metaPreProcessService(object):
             
             feature = paramData['feature']
             freq = paramData['freq']
-            p_value = paramData['p_value']
             is_create =  paramData['isCreate']
 
             df.info()
             oul = outlier.Manager(df)
             oul.setData(df)
             t, s, r = oul.tsDecompose(feature=feature, freq=freq)
-
-
-            p = oul.zTest(r)
-            if p[0] < paramData['p_value']:
-                raise Exception(str.format('p-value {0} 이하로 정규분포를 적용할 수 없습니다.', p_value))
+            
+            # -------------------------
+            # 2025-08-18, Outlier STANDARD 옵션 버그 수정
+            # PP-standardDeviation : [Exception : p-value 0.05 이하로 정규분포를 적용할 수 없습니다.]
+            # -------------------------
+            
+            p = oul.zTest(r)  # 보통 (stat, p) 형태
+            # p-value 제대로 뽑기 (tuple/list면 p[1], 아니면 그대로 float 변환)
+            p_value_actual = p[1] if isinstance(p, (list, tuple)) and len(p) > 1 else float(p)
+            
+            # 임계값을 숫자로 보장
+            try:
+                p_thres = float(paramData['p_value'])
+            except Exception:
+                p_thres = 0.05  # 안전 기본값
                 
-            df_outlier = oul.standardDeviation(r, is_create)
+            
+            # >>> 기존의 raise 를 제거하고, 폴백으로 전환합니다.
+            if p_value_actual < p_thres:
+                # 정규성 불만족 → MAD/Hampel 전환
+                if hasattr(oul, 'mad'):
+                    # k: 민감도(3.0~3.5 권장), feature 꼭 지정
+                    df_outlier = oul.mad(r, is_create=is_create, feature=feature, k=3.5)
+                    used_method = 'MAD'
+                elif hasattr(oul, 'hampel'):
+                    # window: 이동창(예: 7), k: 임계(3.0~3.5)
+                    df_outlier = oul.hampel(r, is_create=is_create, feature=feature, window=7, k=3.0)
+                    used_method = 'HAMPEL'
+                else:
+                    raise Exception(
+                        f'정규성 불만족 (p={p_value_actual:.6g} < α={p_thres}), MAD/Hampel 메서드 없음'
+                    )
+            else:
+                df_outlier = oul.standardDeviation(r, is_create)
+                used_method = 'STD'
+                
+            print('used_method', used_method)
+            
             #df = df.reset_index()
             #print(df)
             result['result'] = True
