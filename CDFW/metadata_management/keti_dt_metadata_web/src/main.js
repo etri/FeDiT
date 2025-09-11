@@ -74,7 +74,7 @@ import PrimeVue from 'primevue/config'; // This imports the PrimeVue library.
 
 import "@/assets/css/default.css";
 //console.log(process.env.VUE_APP_METADATA_CSS_THEME);
-if (process.env.VUE_APP_METADATA_CSS_THEME === "JEJUTP") {
+if (process.env.VUE_APP_METADATA_CSS_THEME === "BLUEGRAY") {
   import("@/assets/css/style.css");
 }
 
