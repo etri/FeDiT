@@ -21,7 +21,7 @@
 						<div class="inline-area">
 							<el-input style="width: 250px;" v-model="state.category.upCtgryNm" disabled />
 							<el-button type="default" class="ml15" @click="dialogVisibleSearch = true"><el-icon class="icon icon-search"/></el-button>
-							<el-button type="delete" @click="refreshCategory"><el-icon class="icon icon-refresh"/></el-button>
+							<el-button type="default" class="el-button--delete" @click="refreshCategory"><el-icon class="icon icon-refresh"/></el-button>
 						</div>	
 						<el-dialog v-model="dialogVisibleSearch" title="카테고리 검색">
 							<CategoryDialogSearch @selectCategory="selectCategory" />

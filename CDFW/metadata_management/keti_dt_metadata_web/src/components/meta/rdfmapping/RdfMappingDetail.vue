@@ -144,7 +144,11 @@
           </el-table-column>
         </el-table>
       </div>
-    </div>
+
+      <div class="taL">
+        <span class="member-notice" style="vertical-align: middle;">※ 유형 프라퍼티 의 범위모델이 address 인 경우 schema:PostalAddress 객체로 매핑 됩니다. (schema:spatial, vcard:hasAddress 사용시)</span>
+      </div>        
+    </div>  
   </div>
 
   <div>
@@ -231,7 +235,7 @@
 import { defineProps, reactive, ref, onMounted } from "vue";
 import { useStore } from "vuex";
 import { useRouter, useRoute } from "vue-router";
-import { isWriteYn, isAmdYn, isReadYn, isDelYn, getGlobalProperties } from "@/assets/js/common.js";
+import { routerPush, getCookie, isWriteYn, isAmdYn, isReadYn, isDelYn, getGlobalProperties } from "@/assets/js/common.js";
 import RdfMappingDialogModify from "@/components/meta/rdfmapping/RdfMappingDialogModify.vue";
 import RdfMappingModelDialogEdit from "@/components/meta/rdfmapping/RdfMappingModelDialogEdit.vue";
 import RdfMappingModelDialogModify from "@/components/meta/rdfmapping/RdfMappingModelDialogModify.vue";
@@ -358,7 +362,10 @@ const cancelPopup = () => {
 };
 
 const goToList = () => {
-  router.push({ name: "meta_RefMappingListPage" });
+  let platform = getCookie("pltfrmId");
+	let query = { rdfMappgId: route.query.rdfMappgId, };
+
+  routerPush(platform, "RefMappingListPage", query);
 };
 
 

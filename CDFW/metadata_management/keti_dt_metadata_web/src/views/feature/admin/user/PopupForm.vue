@@ -7,15 +7,14 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
-import cookie from 'js-cookie'
+import { getToken } from "@/assets/js/auth.js";
 
 const route = useRoute();
-
 
 const form = ref(null);
 const userId = ref(route.query.userId);
 
-const token = ref('Bearer ' + cookie.get('token'));
+const token = ref('Bearer ' + getToken());
 let actionUrl = process.env.VUE_APP_N2M_AUTH_URI + '/signup';
 
 if (userId.value) {

@@ -50,7 +50,7 @@
               <div class="inline-area">
                 <el-input class="w-100 m-2" v-model="searchInfo.medataSetNm" disabled />
                 <el-button type="default" v-show="searchInfo.medataSetEnabled" class="ml15" @click="dialogVisibleSearchMetadataSet = true"><el-icon class="icon icon-search"/></el-button>
-                <el-button type="delete" v-show="searchInfo.medataSetEnabled" @click="refreshMedataSet"><el-icon class="icon icon-refresh"/></el-button>
+                <el-button type="default" class="el-button--delete" v-show="searchInfo.medataSetEnabled" @click="refreshMedataSet"><el-icon class="icon icon-refresh"/></el-button>
               </div>
             </el-form-item>
           </el-col>

@@ -169,7 +169,16 @@ const goToMetadataManagePage = ({medataSetId, typeModelId, backPageName}) => {
     } else if (retrievalPageNameArr.includes(backPageName)) { //검색용 메뉴 (디지털트윈 셋조회 상세)
       routerPush(platform, "RetrievalDigitalTwinDatasetPage", query);
     } else if (intgrdataPageNameArr.includes(backPageName)) { //메타데이터 통합 검색
-     router.push({path: `/meta/search/intgrdata/page/${medataSetId}`});
+
+      // TODO : 기존 router push는 남겨둔 상태로 external route 관련 적용 처리. 추후 수정 필요.
+      const isExternal = window.location.pathname.startsWith("/meta/external");
+      if(isExternal) {
+        router.push({path: `/meta/external/search/intgrdata/page/${medataSetId}`});
+      }
+      else {
+        router.push({path: `/meta/search/intgrdata/page/${medataSetId}`});
+      }
+
     } else { // 외부제공용
       router.push({ name: platform + "_" + backPageName, params: query });
     }
@@ -181,7 +190,16 @@ const goToMetadataManagePage = ({medataSetId, typeModelId, backPageName}) => {
     } else if (retrievalPageNameArr.includes(backPageName)) { //검색용 메뉴 (메타데이터셋 셋조회 상세)
       routerPush(platform, "RetrievalMetadataSetPage", query);
     } else if (intgrdataPageNameArr.includes(backPageName)) { //메타데이터 통합 검색
-      router.push({path: `/meta/search/intgrdata/page/${medataSetId}`});
+
+      // TODO : 기존 router push는 남겨둔 상태로 external route 관련 적용 처리. 추후 수정 필요.
+      const isExternal = window.location.pathname.startsWith("/meta/external");
+      if(isExternal) {
+        router.push({path: `/meta/external/search/intgrdata/page/${medataSetId}`});
+      }
+      else {
+        router.push({path: `/meta/search/intgrdata/page/${medataSetId}`});
+      }
+
     } else { // 외부제공용
       router.push({ name: platform + "_" + backPageName, params: query });
     }

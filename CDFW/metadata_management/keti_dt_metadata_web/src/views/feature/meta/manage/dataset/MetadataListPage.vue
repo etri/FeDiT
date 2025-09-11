@@ -19,7 +19,7 @@
 
 						<el-dialog v-model="dialogVisibleEditSet" title="메타데이터 셋 등록">
 							<MetadataSetDialogEdit :model="state.selectedModel" @cancelDialog="cancelDialogSet"
-								@editMetadataSetInfo="editMetadataSetInfo2" :countryCodeList="countryCodeList" :idSchmObjectList="idSchmObjectList" />
+								@editMetadataSetInfo="editMetadataSetInfo2" :countryCodeList="countryCodeList" :idSchmObjectList="idSchmObjectList" :idSchm3dCdList="idSchm3dCdList" />
 						</el-dialog>
 
 						<!-- tree list -->
@@ -70,7 +70,7 @@ import MetadataSetDialogEdit from "@/components/meta/dataset/MetadataSetDialogEd
 import MetadataModelList from '@/components/meta/dataset/MetadataModelList.vue';
 import MetadataSetSearchForm from '@/components/meta/dataset/MetadataSetSearchForm.vue';
 
-import { onMounted, reactive, ref, getCurrentInstance, defineProps } from "vue";
+import { onMounted, reactive, ref, getCurrentInstance, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useStore } from "vuex";
 import {
@@ -94,7 +94,6 @@ const $emitter =
 const dialogVisibleEditDt = ref(false);
 const dialogVisibleEditSet = ref(false);
 
-const dataStatusList = ref([]);
 const countryCodeList = ref([]);
 const idSchmDtList = ref([]);
 const idSchmObjectList = ref([]);
@@ -137,18 +136,20 @@ onMounted(() => {
 });
 
 const getMetaCodeList = async () => {
-
 	await store.dispatch("MetaStore/getMetaCodeList", {
 		axios: $axios,
 		apiUrls: $apiUrls,
 		params: {
-			mtcdGrpIdList: ["MCG00001"],
+			mtcdGrpIdList: ["MCG00001", "MCG00030"],
 		},
 	});
-
-	const List = store.getters["MetaStore/getStoreMetaCodeList"]("MCG00001");
-	dataStatusList.value = List;
 };
+const dataStatusList = computed(() =>
+  store.getters["MetaStore/getStoreMetaCodeList"]("MCG00001")
+);
+const idSchm3dCdList = computed(() =>
+  store.getters["MetaStore/getStoreMetaCodeList"]("MCG00030")
+);
 
 const getCountryCodeList = async () => {
   await store.dispatch("MetaStore/getCountryCodeList", {
@@ -234,11 +235,11 @@ const getMetadataSetList = () => {
 			},
 		})
 		.then((res) => {
+			state.pageInfo.totalListSize = res.data.page.totalListSize;			
 			state.metadataSetList = res.data.list.map((x) => {
 				x.medataSetAmdDt = dayjs(x.medataSetAmdDt).format('YYYY-MM-DD');
 				return x;
 			});
-			state.pageInfo.totalListSize = res.data.page.totalListSize;
 		})
 		.catch((err) => {
 			console.log(err);

@@ -356,13 +356,20 @@ export const getYm = (dt) => {
     else return false;
   }
 
-  export const routerPush = (platform, name, query) => {
-    if(platform == null) return redirectLoginView();
-    router.push({
-      name: platform + "_" + name,
-      query: query
-    });
+export const routerPush = (platform, name, query) => {
+  if (platform == null) return redirectLoginView();
+
+  const isExternal = window.location.pathname.startsWith("/meta/external");
+  let routeName = `${platform}_${name}`;
+
+  if (isExternal) {
+    routeName = `external_${routeName}`;
   }
+  router.push({
+    name: routeName,
+    query: query
+  });
+};
 
   export const getSuperAdmin = async (axios, url) => {
     let result = await axios.get(url);

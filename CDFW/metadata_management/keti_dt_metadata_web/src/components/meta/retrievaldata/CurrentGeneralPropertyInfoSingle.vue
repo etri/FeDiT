@@ -4,7 +4,7 @@
 		<!-- 단건 property 조회 (data_type) -->
 		<div v-if="'data_type' === props.generalProperty.rangeModelTypeMtcd
 			&& 'geoJson' !== props.generalProperty.rangeDataTypeMtcd
-			&& 'json' !== props.generalProperty.rangeDataTypeMtcd" class="ly-table">
+			&& !metaConst.ARR_ETCJSON_DATATYPE.includes(props.generalProperty.rangeDataTypeMtcd) " class="ly-table">
 			<el-form label-width="160px" label-position="right">
 				<el-row>
 					<el-col :span="24">
@@ -35,7 +35,7 @@
 
 		<!-- 단건 property 조회 (data_type) EtcJson -->
 		<div v-if="'data_type' === props.generalProperty.rangeModelTypeMtcd
-			&& 'json' == props.generalProperty.rangeDataTypeMtcd">
+			&& metaConst.ARR_ETCJSON_DATATYPE.includes(props.generalProperty.rangeDataTypeMtcd)">
 			<el-form label-position="right">
 				<el-row>
 					<el-col :span="24">
@@ -90,6 +90,7 @@
 import { reactive, defineProps, watch, onMounted } from "vue";
 import { getGlobalProperties } from "@/assets/js/common.js";
 import util from "util";
+import metaConst from "@/assets/js/metaConst.js";
 
 const $axios = getGlobalProperties().$axios;
 const $apiUrls = getGlobalProperties().$apiUrls;

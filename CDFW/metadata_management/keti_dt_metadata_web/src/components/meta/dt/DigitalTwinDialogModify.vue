@@ -22,22 +22,23 @@
 
 					<el-form-item label="식별체계 - 국가코드" prop="idSchmCntryCd" v-show="IdSchmUseYn === 'Y'">
 						<div class="inline-area">
-							<el-input v-model="state.metadataSet.idSchmCntryCd" disabled style="width: 100px"></el-input>
-							<el-input v-model="state.metadataSet.idSchmCntryNm" disabled style="width: 250px; margin-left: 5px;"></el-input>
+							<el-input v-model="state.metadataSet.idSchmCntryCd" disabled style="width: 180px"></el-input>
+							<el-input v-model="state.metadataSet.idSchmCntryNm" disabled style="width: 300px; margin-left: 5px;"></el-input>
 						</div>
 					</el-form-item>
 
 					<el-form-item label="식별체계 - 분류코드 종류" prop="idSchmType" v-show="IdSchmUseYn === 'Y'">
-						<el-input v-model="state.metadataSet.idSchmType" disabled style="width: 100px"></el-input>
-						<el-input v-model="state.metadataSet.idSchmTypeNm" disabled style="width: 250px; margin-left: 5px;"></el-input>
+						<el-input v-model="state.metadataSet.idSchmType" disabled style="width: 180px"></el-input>
+						<el-input v-model="state.metadataSet.idSchmTypeNm" disabled style="width: 300px; margin-left: 5px;"></el-input>
 					</el-form-item>
 
 					<el-form-item label="식별체계 - 코드" prop="idSchmCd" v-show="IdSchmUseYn === 'Y'">
 						<div class="inline-area">
-							<el-input v-model="state.metadataSet.idSchmCd" disabled style="width: 100px"></el-input>
-							<el-input v-model="state.metadataSet.idSchmCdNm" disabled style="width: 250px; margin-left: 5px;"></el-input>
+							<el-input v-model="state.metadataSet.idSchmCd" disabled style="width: 180px"></el-input>
+							<el-input v-model="state.metadataSet.idSchmCdNm" disabled style="width: 300px; margin-left: 5px;"></el-input>
 						</div>
 					</el-form-item>
+			
 
 					<el-form-item label="디지털트윈 명" prop="medataSetNm"><!-- 디지털트윈 명 (언어무관) -->
 						<el-input v-model="state.metadataSet.medataSetNm"></el-input>

@@ -71,7 +71,7 @@ const tableData = ref([]);
 const executeSparqlQuery = () => {
   let param = Object.assign({}, state.searchInfo);  // virtuoso 
   $axios
-    .get($apiUrls.meta.rdf.virtuoso.executeSparqlQuery, {
+    .get($apiUrls.meta.datastore.virtuoso.executeSparqlQuery, {
       params: param,
     })
     .then((res) => {

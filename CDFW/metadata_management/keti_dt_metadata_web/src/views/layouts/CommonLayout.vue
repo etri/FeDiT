@@ -264,7 +264,7 @@ const setPlatformList =  () => {
           if (route.path == '/') {
             setNavMenu(pltData.pltfrmId, pltData.mainScrnExistYn);
           } else {
-            setNavMenu();
+            setNavMenu(pltData.pltfrmId);
           }
           hasPopupNotice();
         }
@@ -314,6 +314,7 @@ const isPopupOpen = (data) => {
 };
 
 const clickPltfrm = (payload) =>{
+  //console.log(`clickPltfrm---`, payload);
   curPltfrm.value = payload;
 
   const pltfrmId = payload ? payload.pltfrmId : "";
@@ -347,6 +348,7 @@ const setPlatformValue = (data) => {
 }
 
 const setNavMenu = (pltfrmId, mainScrnExistYn) =>{
+  //console.log(`setNavMenu---  pltfrmId: ${pltfrmId}   curPltfrm.value.pltfrmId:${curPltfrm.value.pltfrmId}`);
   menu.value = [];
     store
     .dispatch("MenuStore/getUserMenuList", {
@@ -355,7 +357,7 @@ const setNavMenu = (pltfrmId, mainScrnExistYn) =>{
       params: {
         userId: getLoginUserId(),
         searchType: "tree",
-        pltfrmId: curPltfrm.value.pltfrmId,
+        pltfrmId: pltfrmId, // curPltfrm.value.pltfrmId,
         typeCd: "COD_00001",
         readYn: "Y",
       },
@@ -378,6 +380,7 @@ const setNavMenu = (pltfrmId, mainScrnExistYn) =>{
 }
 
 const setFirstMenu = (menuList) => {
+  // console.log(`setFirstMenu---`);
   if (!menuList && menuList.length == 0) return;
   let path = route.path;
   let curMenu = menuList.find(menu => {
@@ -453,6 +456,7 @@ const getAdminMenuList = (list) => {
 };
 
 const onItemClick = (item) => {
+  // console.log(`onItemClick---`, item);
   if (item.popupYn === "Y") {
     let _width = 1000;
     let _height = 800;
@@ -470,7 +474,7 @@ const onItemClick = (item) => {
       setCookie("pltfrmId", item ? item.pltfrmId : "");
       if (item.param) {
         router.push({ path: item.url, query: { param: item.param } });
-      } else {
+      } else if (item.url) {
         router.push({ path: item.url });
       }
     }

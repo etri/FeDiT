@@ -18,7 +18,7 @@
           </el-form-item>
 					<el-form-item label="모델 명(물리명)" prop="modelNm">
 						<div class="inline-area">
-							<el-input style="width: 250px;" v-model="state.dataTypeModel.modelNm" placeholder="(소문자로 시작)"
+							<el-input style="width: 250px;" v-model="state.dataTypeModel.modelNm" placeholder="(소문자로 시작 - 64자 이하)"
 								@input="changeModelNm" />
 							<el-button type="primary" class="ml15" @click="modelNameCheck('alert')" @keydown.enter.prevent="modelNameCheck('alert')" >중복확인</el-button>
 						</div>						
@@ -167,7 +167,12 @@ const state = reactive({
         required: true,
         message: "내용을 입력하세요.",
         trigger: "blur",
-      }
+      },
+	  {
+		max: 64,
+		message: "64자 이하만 가능합니다.",
+		trigger: "blur",		
+	  }
     ],
     modelLogicNm: [
       {
@@ -244,7 +249,16 @@ const editDataTypeInfo = async () => {
   });
 };
 
-const modelNameCheck = (check) => {
+const modelNameCheck = async (check) => {
+
+	let ruleForm = ruleFormRef.value;
+	try {
+		await ruleForm.validateField('modelNm');
+	} catch (e) {
+		ruleForm.scrollToField?.('modelNm');
+		return false;
+	}
+
 	if(state.dataTypeModel.modelNm == '') {
 		alert("물리명을 입력해주세요."); 
 		return false;

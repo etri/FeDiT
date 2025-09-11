@@ -39,7 +39,7 @@ const $axios = getGlobalProperties().$axios;
 const $apiUrls = getGlobalProperties().$apiUrls;
 const props = defineProps({
 	typeModelInfo: {
-		type: Array,
+		type: Object,
 		required: true
 	},
 });

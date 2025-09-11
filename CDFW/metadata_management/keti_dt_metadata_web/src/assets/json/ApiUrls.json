@@ -227,6 +227,20 @@
         "getPat"                 : "/api/meta/api/v1/portal/pats/%s",
         "deletePat"              : "/api/meta/api/v1/portal/pats/%s",
         "setPat"                 : "/api/meta/api/v1/portal/pats"
+      },
+      "cache": {
+        "removeModelListAll"                : "/api/meta/api/v1/portal/caches/modellist",
+        "removeTypeModelAllByDataUri"       : "/api/meta/api/v1/portal/caches/typemodel",
+        "removeModelInfoAll"                : "/api/meta/api/v1/portal/caches/model",
+
+        "removePropertyInfoAll"             : "/api/meta/api/v1/portal/caches/property",
+
+        "removeAllRdfMapping"               : "/api/meta/api/v1/portal/caches/property",
+        "removeAllRdfMappingModelList"      : "/api/meta/api/v1/portal/caches/property",
+        "removeAllRdfMappingRuleList"       : "/api/meta/api/v1/portal/caches/property",
+        "removeAllRdfNamespaceList"         : "/api/meta/api/v1/portal/caches/property",
+
+        "removeCodeGroupDtoAll"             : "/api/meta/api/v1/portal/caches/property"
       }
     },
     "resource": {
@@ -262,7 +276,8 @@
 				"putMetadatasetsForRelation" : "/api/meta/api/v1/resource/metadatasets/%s/relation",
 				"getMetadataModelsTree"      : "/api/meta/api/v1/schema/models/tree",
 				"getMetadataSetDtwListBySubSetId" : "/api/meta/api/v1/resource/metadatasets/%s/top-dts",
-        "getMetadataSetChgHstListBySetId" : "/api/meta/api/v1/resource/metadatasets/%s/histories"
+        "getMetadataSetChgHstListBySetId" : "/api/meta/api/v1/resource/metadatasets/%s/histories",
+        "checkMetadatasetsForFeatureCd"   : "/api/meta/api/v1/resource/metadatasets/check-id"
 			},
       "dashboard": {
         "getObject": "/api/meta/api/v1/resource/objects",
@@ -315,7 +330,9 @@
         "createMappingrule"                 : "/api/meta/api/v1/rdf/mappingrules",
         "modifyMappingrule"                 : "/api/meta/api/v1/rdf/mappingrules/%s",
         "deleteMappingrule"                 : "/api/meta/api/v1/rdf/mappingrules/%s"
-      },
+      }
+		},
+    "datastore": {
       "neo4j": {
         "getNeo4j"                  : "/api/meta/api/v1/rdf/graph/neo4j/data",
         "createRdfInfoToNeo4j"      : "/api/meta/api/v1/rdf/graph/neo4j/data/%s",
@@ -337,14 +354,25 @@
         "initializeSkosOfVirtuoso" : "/api/meta/api/v1/rdf/graph/virtuoso/data/category",
         "executeSparqlQuery"       : "/api/meta/api/v1/rdf/graph/virtuoso/sparql"
       },
-      "elastic" : {
+      "elastic": {
         "getKibanaUrl"              : "/api/meta/api/v1/search/elastic/kibana-url",
         "createElasticData"         : "/api/meta/api/v1/search/elastic/data/%s",
         "deleteElasticData"         : "/api/meta/api/v1/search/elastic/data/%s",
         "initializeElastic"         : "/api/meta/api/v1/search/elastic/data/init",
         "searchElasticsearch"       : "/api/meta/api/v1/search/elastic/data/json/enties"
+      },
+      "influxdb": {
+        "getInfluxDBUrl"            : "/api/meta/api/v1/datastore/influxdb/url",
+        "createInfluxDBKeyword"     : "/api/meta/api/v1/datastore/influxdb/keywords/%s",
+        "deleteInfluxDBKeyword"     : "/api/meta/api/v1/datastore/influxdb/keywords/%s",
+        "initializeInfluxDBKeyword" : "/api/meta/api/v1/datastore/influxdb/keywords/init",
+        "getInfluxDBCountByKeyword" : "/api/meta/api/v1/datastore/influxdb/count-by-keyword",
+        "getJsonMeasurementBySetId" : "/api/meta/api/v1/database/influxdb/data/%s",
+        "getLatestJsonMeasurementByMedataSetId" : "/api/meta/api/v1/database/influxdb/data/%s/latest",
+        "getJsonMeasurementData" : "/api/meta/api/v1/database/influxdb/data",
+        "getJsonMeasurementBySetIdAndTimestamp" : "/api/meta/api/v1/database/influxdb/data/%s/%s"
       }
-		},
+    },
 		"data": {
 			"datatype": {
 				"getDataTypeModelList"			: "/api/meta/api/v1/schema/datatypes",
@@ -417,12 +445,17 @@
         "getIdSchemeFacilityCodeList"       : "/api/meta/api/v1/schema/facilitycodes",
         "getIdSchemeFacilityCode"           : "/api/meta/api/v1/schema/facilitycodes/%s",
         "createFacilityCode"                : "/api/meta/api/v1/schema/facilitycodes",
-        "modifyFacilityCode"                : "/api/meta/api/v1/schema/facilitycodes/%s"
+        "modifyFacilityCode"                : "/api/meta/api/v1/schema/facilitycodes/%s",
+        "getIdSchemeFeatureCodeList"        : "/api/meta/api/v1/schema/featurecodes",
+        "getIdSchemeFeatureCode"            : "/api/meta/api/v1/schema/featurecodes/%s",
+        "createIdSchemeFeatureCode"         : "/api/meta/api/v1/schema/featurecodes",
+        "modifyIdSchemeFeatureCode"         : "/api/meta/api/v1/schema/featurecodes/%s",
+        "checkFeatureCode"                  : "/api/meta/api/v1/schema/featurecodes/%s/check"
       }
     },
     "search": {
       "metadata": {
-        "getMetadataList"  :  "/api/meta/api/v1/search/metadata"
+        "getMetadataList"                   :  "/api/meta/api/v1/search/metadata"
       }
     }
   }

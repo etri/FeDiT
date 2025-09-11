@@ -6,6 +6,9 @@
 				프라퍼티 (총 {{ generalProperty.propertyListCnt ? generalProperty.propertyListCnt : 0 }} 건)
 			</h3>
 			<div class="btnSec taR">
+				<el-button v-if="metaConst.ARR_ETCJSON_DATATYPE.includes(generalProperty.rangeDataTypeMtcd) && generalProperty.propertyListCnt > 0" type="primary" @click="showJson(generalProperty.propertyList[0].medataVal)">
+					JSON 보기
+				</el-button>				
 				<el-button type="primary" @click="dialogVisibleModifyMetadata = true">
 					값 {{ dataEditableYn == 'Y' ? '편집' : '조회' }}
 				</el-button>
@@ -42,16 +45,14 @@
 
 			<!-- json 형식이 아닌 array data type -->
 			<div class="mt10" v-if="'geoJson' !== generalProperty.rangeDataTypeMtcd
-				&& 'json' !== generalProperty.rangeDataTypeMtcd
+				&& !metaConst.ARR_ETCJSON_DATATYPE.includes(generalProperty.rangeDataTypeMtcd)
 				&& 'object_type' !== generalProperty.rangeModelTypeMtcd">
 				<comn-list :tableHeader="arrTypePropertyTableHeader" :tableData="generalProperty.propertyList" :minHeight="100">
 				</comn-list>
 			</div>
 
 			<!-- Object type -->
-			<div class="mt10" v-if="'geoJson' !== generalProperty.rangeDataTypeMtcd
-				&& 'json' !== generalProperty.rangeDataTypeMtcd
-				&& 'data_type' !== generalProperty.rangeModelTypeMtcd">
+			<div class="mt10" v-if="'object_type' === generalProperty.rangeModelTypeMtcd">
 				<comn-list :tableHeader="objTypePropertyTableHeader" :tableData="generalProperty.propertyList" :minHeight="100">
 					<template v-slot:medataVal="slotData">
 						<span @click="goToMetadataManagePage1(slotData.row)" class="link-text">
@@ -79,7 +80,7 @@
 			</div>
 
 			<!-- EtcJson type -->
-			<div v-if="'json' === generalProperty.rangeDataTypeMtcd" class="mt10">
+			<div v-if="metaConst.ARR_ETCJSON_DATATYPE.includes(generalProperty.rangeDataTypeMtcd)" class="mt10">
 				<div v-for="item of generalProperty.propertyList" :key="item">
 					<el-form label-position="right">
 						<el-row>
@@ -102,8 +103,9 @@ import MetadataArrayDialogModify from "@/components/meta/dt/MetadataArrayDialogM
 
 import { defineProps, reactive, ref, onMounted, getCurrentInstance, watch, nextTick } from "vue";
 import metaCommon from "@/assets/js/metaCommon.js";
+import metaConst from "@/assets/js/metaConst.js";
 
-const emits = defineEmits(["dataSaved"]);
+const emits = defineEmits(["dataSaved", "selectedProperty"]);
 
 const dialogVisibleModifyMetadata = ref(false); //메타데이터 배열 편집 팝업
 const dialogModifyMetadataRef = ref(null);
@@ -254,6 +256,10 @@ const onBeforeCloseDialogModifyMetadata = (done) => {
 	}
 	done(); // close
 }
+
+const showJson = (json) => {
+	emits("selectedProperty", JSON.parse(json));
+};
 
 </script>
 <style lang="scss" scoped></style>
