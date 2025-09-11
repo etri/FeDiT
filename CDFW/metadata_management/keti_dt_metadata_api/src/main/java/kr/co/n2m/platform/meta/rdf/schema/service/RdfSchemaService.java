@@ -127,6 +127,11 @@ public class RdfSchemaService {
 					resource.addProperty(RDFS.comment, model.createLiteral(propertyList.get(i).getRdfPrptyDesc(), "ko"));
 				}
 				
+				// TODO sub property of 를 하기가 쉽지 않을듯...
+//				if (!StringUtils.isEmpty(propertyList.get(i).getUpRdfPrpty())) {
+//					resource.addProperty(RDFS.subPropertyOf, ????));
+//				}
+				
 				RdfPropertyDefineSearchVo rdfPropertyDefineSearchVo = new RdfPropertyDefineSearchVo();
 				rdfPropertyDefineSearchVo.setRdfPrptyId(propertyList.get(i).getRdfPrptyId());
 				rdfPropertyDefineSearchVo.setDomnRangeDivMtcd("range");

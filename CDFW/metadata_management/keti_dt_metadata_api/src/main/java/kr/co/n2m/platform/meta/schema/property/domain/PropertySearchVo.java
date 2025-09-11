@@ -24,6 +24,7 @@ public class PropertySearchVo extends SearchVo {
 	private String prptyAmdStDt;
 	private String prptyAmdEnDt;
 	private String prptyDataSttusMtcd;
+	private String rangeModelId;
 	
 	private String domnModelId;
 	private String dataArrayYn;

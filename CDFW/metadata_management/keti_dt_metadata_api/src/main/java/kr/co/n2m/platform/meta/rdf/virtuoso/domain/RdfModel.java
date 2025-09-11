@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -84,6 +85,16 @@ public class RdfModel {
 	public enum RdfModelMakeMode {
 		ALL_SUB_RESOURSE, CURR_RESOURCE
 	}
+	
+	// 2025-08 주소 변환용. http://schema.org/PostalAddress 
+	public static final Set<String> ALLOWED_ADDRESS_KEYS = Set.of(
+	    "streetAddress",
+	    "addressLocality",
+	    "addressRegion",
+	    "addressCountry",
+	    "postalCode",
+	    "postOfficeBoxNumber"
+	);
 	
 	@Getter
 	private final String modelId;
@@ -557,6 +568,31 @@ public class RdfModel {
 			
 			// 프라퍼티 범위 모델(값 모델) 에 따라 리터럴 설정
 			RangeDataTypeMtcd dataTypeEnum = MetadataEnum.getValue(pDto.getRangeDataTypeMtcd(), RangeDataTypeMtcd.class);
+			
+			// 특수한 경우 하드코딩.
+			// 2025-08 유형 프라퍼티 의 범위모델이 address 인 경우 schema:PostalAddress 객체로 하드코딩. (schema:spatial, vcard:hasAddress 사용시)
+			if (RangeDataTypeMtcd.address.equals(dataTypeEnum)) {
+				if ("http://schema.org/spatial".equals(p.getURI()) || "http://www.w3.org/2006/vcard/ns#hasAddress".equals(p.getURI())) {
+					if (isArrayProperty) {
+						for (MetadataPropertyDto valDto : vallist) {
+							Resource addressRes = this.buildPostalAddressResource(valDto.getMedataVal());
+							if (addressRes != null) {
+								sbjtRi.addProperty(p, addressRes);
+							}
+						}
+					} else {
+						Resource addressRes = this.buildPostalAddressResource(valObj);
+						if (addressRes != null) {
+							sbjtRi.addProperty(p, addressRes);
+						}
+					}
+					
+					return valCount; // 여기서 끝.
+				} else {
+					// 그 외. address 지만 그냥 아래서 리터럴 로 취급.
+				}
+			}
+			
 			switch (dataTypeEnum) {
 			case langString :
 				if (isArrayProperty) {
@@ -602,14 +638,19 @@ public class RdfModel {
 			case updateDateTime :
 			case dateTime :
 				
+				// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
 				if (isArrayProperty) {
 					for (MetadataPropertyDto valDto : vallist) {
 						val = StringUtils.defaultString(valDto.getMedataVal());
 						if (StringUtils.isNotBlank(val)) {
+							// XSDdateTime 소수점 3자리 (밀리초)까지만 허용. 6자리 (마이크로초)는 에러날수 있다고 함. 소수점3자리 이후는 잘라버림.
+							val = val.replaceFirst("(\\.\\d{3})\\d{1,3}(Z|[+-]\\d{2}:?\\d{2})?", "$1$2");
 							sbjtRi.addProperty(p, val, XSDDatatype.XSDdateTime);
 						}
 					}
 				} else {
+					// XSDdateTime 소수점 3자리 (밀리초)까지만 허용. 6자리 (마이크로초)는 에러날수 있다고 함. 소수점3자리 이후는 잘라버림.
+					val = val.replaceFirst("(\\.\\d{3})\\d{1,3}(Z|[+-]\\d{2}:?\\d{2})?", "$1$2");
 					sbjtRi.addProperty(p, val, XSDDatatype.XSDdateTime);
 				}
 				break;
@@ -794,21 +835,27 @@ public class RdfModel {
 				} else {
 					sbjtRi.addProperty(p, val, XSDDatatype.XSDanyURI);
 				}
-				break;	
+				break;
 				
 			case json : 
+			case address : // 2025-07 표준문서 관련 데이터타입 추가. TODO 필요시 변경
+			case dataInfo : // 2025-07 표준문서 관련 데이터타입 추가. TODO 필요시 변경
 				
 				if (isArrayProperty) {
 					for (MetadataPropertyDto valDto : vallist) {
 						val = StringUtils.defaultString(valDto.getMedataVal());
 						if (StringUtils.isNotBlank(val)) {
+							// JSON 문자열에 포함된 "\n" 또는 실제 줄바꿈을 제거
+							//저장시 제거해서 막음. val = val.replaceAll("\\\\n", "").replace("\n", "");
 							sbjtRi.addProperty(p, val, RDF.dtRDFJSON);
 						}
 					}
 				} else {
+					// JSON 문자열에 포함된 "\n" 또는 실제 줄바꿈을 제거
+					//저장시 제거해서 막음. val = val.replaceAll("\\\\n", "").replace("\n", "");
 					sbjtRi.addProperty(p, val, RDF.dtRDFJSON);
 				}
-				break;					
+				break;	
 				
 			case geoJson : // http://www.opengis.net/ont/geosparql#geoJSONLiteral
 				
@@ -983,5 +1030,39 @@ public class RdfModel {
 		paramVo.setPrptyNm(prptyNm);
 		return metadataSetService.getMetadataListBySetPropertyNm(paramVo);
 	}
+	
+	/**
+	 * 2005-08 유형 프라퍼티 의 범위모델이 address 인 경우 schema:PostalAddress 객체로 하드코딩. (schema:spatial, vcard:hasAddress 사용시)
+	 */
+	@SuppressWarnings("unchecked")
+	private Resource buildPostalAddressResource(Object valObj) {
+		Resource addressRes = null;
+		Map<String, Object> addressMap = null;
+		
+		if (valObj instanceof Map) {
+			// { "addressCountry" : "KR", "addressRegion" : "제주도", "addressLocality" : "제주시" , "streetAddress": "광양9길 10" }
+			addressMap = (Map<String, Object>) valObj;
+		} else {
+			String val = StringUtils.defaultString((String) valObj);
+			// JSON 문자열에 포함된 "\n" 또는 실제 줄바꿈을 제거
+			//저장시 제거해서 막음. val = val.replaceAll("\\\\n", "").replace("\n", "");
+			addressMap = (Map<String, Object>) JsonUtil.toMap(val);
+		}
+		
+		if (addressMap != null) {
+		    addressRes = model.createResource();  // 빈 노드
+		    addressRes.addProperty(RDF.type, model.createResource("http://schema.org/PostalAddress"));
+	
+		    for (String key : ALLOWED_ADDRESS_KEYS) {
+		        Object value = addressMap.get(key);
+		        if (value != null && StringUtils.isNotBlank(value.toString())) {
+		            Property prop = model.createProperty("http://schema.org/" + key);
+		            addressRes.addProperty(prop, value.toString());
+		        }
+		    }
+		}
+
+	    return addressRes;
+	}	
 	
 }

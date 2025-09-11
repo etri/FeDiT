@@ -86,4 +86,23 @@ public interface MetadataApiMapper {
 	 */
 	public List<MetadataJsonMap> selectMetadataListBySetPropertyNm(MetadataApiSetPropertySearchVo metadataApiSetPropertySearchVo);
 	
+	/**
+	 * 레지스트리 API 용 메타데이터 목록 건수 조회
+	 * @Author      : heenim
+	 * @Date        : 2025. 08. 11.
+	 * @param metadataApiInnerSearchVo
+	 * @return
+	 */
+	public int selectMetadataSetCountForApi(MetadataApiInnerSearchVo metadataApiInnerSearchVo);
+
+	/**
+	 * 레지스트리 API 용 메타데이터 목록 조회 (배열은 건수와 10건 이하만) 하여 JSON to Map 으로 반환. 
+	 * 디지털트윈 목록의 경우 1depth 참조 object_type ID 는 JSON 으로 변환하여 반환.
+	 * @Author      : heenim
+	 * @Date        : 2025. 08. 11.
+	 * @param metadataApiInnerSearchVo
+	 * @return
+	 */
+	public List<MetadataJsonMap> selectMetadataSetListForApiWithChildren(MetadataApiInnerSearchVo metadataApiInnerSearchVo);
+	
 }

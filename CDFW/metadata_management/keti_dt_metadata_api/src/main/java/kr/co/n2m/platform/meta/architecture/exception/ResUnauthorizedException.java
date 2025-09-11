@@ -24,4 +24,13 @@ public class ResUnauthorizedException extends ResBaseRuntimeException {
 		super(HttpStatus.UNAUTHORIZED, reason, cause);
 	}
 	
+    // apiResCode 지정 생성자
+    public ResUnauthorizedException(int apiResCode, String reason) {
+        super(apiResCode, HttpStatus.UNAUTHORIZED, reason);
+    }
+
+    public ResUnauthorizedException(int apiResCode, String reason, Throwable cause) {
+        super(apiResCode, HttpStatus.UNAUTHORIZED, reason, cause);
+    }
+    
 }

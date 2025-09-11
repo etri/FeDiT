@@ -139,6 +139,8 @@ public class MetadataJsonMap extends ListOrderedMap {
 							
 							
 						case "json":
+						case "address" : // 2025-07 표준문서 관련 데이터타입 추가. TODO 필요시 변경
+						case "dataInfo" : // 2025-07 표준문서 관련 데이터타입 추가. TODO 필요시 변경							
 						case "geoJson":
 							JSONObject json = new JSONObject((Map) value);
 							value = json;

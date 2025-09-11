@@ -24,4 +24,13 @@ public class ResNotFoundException extends ResBaseRuntimeException {
 		super(HttpStatus.NOT_FOUND, reason, cause);
 	}
 	
+    // apiResCode 지정 생성자
+    public ResNotFoundException(int apiResCode, String reason) {
+        super(apiResCode, HttpStatus.NOT_FOUND, reason);
+    }
+
+    public ResNotFoundException(int apiResCode, String reason, Throwable cause) {
+        super(apiResCode, HttpStatus.NOT_FOUND, reason, cause);
+    }
+	
 }

@@ -428,7 +428,7 @@ public class ElasticSearchService {
 			log.info("[ElasticSearch에 카프카 전송된 메타데이터 셋 정보 등록/수정] 실패/오류 (정보성) : {}", e.getMessage());
 			throw e;
 		} catch (Exception e) {
-			log.error("[EElasticSearch에 카프카 전송된 메타데이터 셋 정보 등록/수정] 실패/오류", e);
+			log.error("[ElasticSearch에 카프카 전송된 메타데이터 셋 정보 등록/수정] 실패/오류", e);
 			throw new ResBaseRuntimeException(e);
 		}
         log.debug("[ElasticSearch에 카프카 전송된 메타데이터 셋 정보 등록/수정] 서비스 종료");

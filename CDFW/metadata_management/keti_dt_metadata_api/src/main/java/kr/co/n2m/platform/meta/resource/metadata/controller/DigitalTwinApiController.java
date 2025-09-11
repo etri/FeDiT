@@ -19,9 +19,13 @@ import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataApiSearchVo;
 import kr.co.n2m.platform.meta.resource.metadata.service.MetadataApiService;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * @deprecated 2025-07-24 데이터 모델 변경 및 API 변경
+ */
 @Tag(name = "디지털트윈 (외부 API용)", description = "디지털트윈 API (외부 API용)")
 @Slf4j
 @RestController
+@Deprecated
 public class DigitalTwinApiController extends ResponseComponent {
 	
 	@Autowired
@@ -32,6 +36,7 @@ public class DigitalTwinApiController extends ResponseComponent {
 	 * @Author      : tklee
 	 * @Date        : 2024. 03. 18.
 	 * @return
+ 	 * @deprecated 2025-07-24 데이터 모델 변경 및 API 변경
 	 */
 	@Operation(summary="디지털트윈 목록 조회."
 			, description="배열로 정의된 프라퍼티인 경우 값이 10건 이하로만 조회됨. " +
@@ -50,6 +55,7 @@ public class DigitalTwinApiController extends ResponseComponent {
 	 * @Date        : 2024. 03. 18.
 	 * @param digitalTwinId
 	 * @return
+	 * @deprecated 2025-07-24 데이터 모델 변경 및 API 변경
 	 */
 	@Operation(summary="디지털트윈 상세 조회")
 	@GetMapping("/api/v1/resource/dts/{digitalTwinId}")	
@@ -66,6 +72,7 @@ public class DigitalTwinApiController extends ResponseComponent {
 	 * @Author      : tklee
 	 * @Date        : 2024. 03. 19.
 	 * @return
+	 * @deprecated 2025-07-24 데이터 모델 변경 및 API 변경
 	 */
 	@Operation(summary="디지털객체 목록 조회"
 			, description="배열로 정의된 프라퍼티인 경우 값이 10건 이하로만 조회됨. " +
@@ -84,6 +91,7 @@ public class DigitalTwinApiController extends ResponseComponent {
 	 * @Date        : 2024. 03. 19.
 	 * @param digitalObjectId
 	 * @return
+	 * @deprecated 2025-07-24 데이터 모델 변경 및 API 변경
 	 */
 	@Operation(summary="디지털객체 상세 조회")
 	@GetMapping("/api/v1/resource/objects/{digitalObjectId}")	
@@ -101,6 +109,7 @@ public class DigitalTwinApiController extends ResponseComponent {
 	 * @Date        : 2024. 04. 26.
 	 * @param digitalObjectId
 	 * @return
+	 * @deprecated 2025-07-24 데이터 모델 변경 및 API 변경
 	 */
 	@Operation(summary="디지털객체 상세 조회 (full objects data)")
 	@GetMapping("/api/v1/resource/full-objects/{digitalObjectId}")	

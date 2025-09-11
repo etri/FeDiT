@@ -3,6 +3,7 @@ package kr.co.n2m.platform.meta.resource.metadata.domain;
 import java.io.Serializable;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.springframework.beans.BeanUtils;
@@ -64,8 +65,15 @@ public class MetadataApiInnerSearchVo extends MetadataApiSearchVo implements Ser
 	private String medataSetRegrId;
 	
 	@Schema(description="metaTypeModel 을 조회할지 여부")
-	private String metaTypeNodelShowYn = "N";
+	private String metaTypeModelShowYn = "N";
 	
+	@Schema(description="참조 object_type 검색조건 SQL (내부에서 동적 생성)", hidden=true)	
+	private String refObjFilterQuerySql;
+	
+	@Schema(description="참조 object_type 검색조건 SQL 존재 여부 (적용)", hidden=true)	
+	public boolean getApplyRefFilter() {
+		return StringUtils.isNotEmpty(refObjFilterQuerySql);
+	}
 	
 	public MetadataApiInnerSearchVo() { /* default 생성자 */ }
 	

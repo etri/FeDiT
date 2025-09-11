@@ -147,6 +147,18 @@ public class AuthUtil {
 		}
 	}
 	
+	/**
+	 * 현재 Request 의 tokenr 값 반환 (유효성 체크 와는 상관 없음)
+	 * @return
+	 */
+	public static String getCurrentJwtToken() {
+		HttpServletRequest request = getCurrentHttpServletRequest();
+	    String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+        	return bearerToken.substring(7);
+	    }
+	    return null;
+	}	
 }
 
 

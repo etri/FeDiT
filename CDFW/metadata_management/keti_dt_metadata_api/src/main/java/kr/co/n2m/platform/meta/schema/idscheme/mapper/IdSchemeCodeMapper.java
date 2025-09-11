@@ -87,4 +87,22 @@ public interface IdSchemeCodeMapper {
 	
 	// TODO 한번에 조회 할 수도 있음... 모든 테이블 UNION ???
 	
+	/** 식별체계 - 객체 -지형지물 코드 건수 조회 */
+	int selectIdSchemeFeatureCount(IdSchemeSearchVo searchVo);
+	
+	/** 식별체계 - 객체 - 지형지물 코드 목록 조회 */
+	List<IdSchemeCodeDto> selectIdSchemeFeatureList(IdSchemeSearchVo searchVo);
+	
+	/** 식별체계 - 객체 - 지형지물 코드 조회 */
+	IdSchemeCodeDto selectIdSchemeFeature(IdSchemeCodeVo idSchemeVo);
+	
+	/** 식별체계 - 객체 - 지형지물 코드 중복 존재 여부 조회 */
+	boolean isIdSchemeFeatureExists(IdSchemeSearchVo searchVo);
+	
+	/** 식별체계 - 객체 - 지형지물 코드 등록 */
+	int insertIdSchemeFeature(IdSchemeCodeVo idSchemeCodeVo);
+	
+	/** 식별체계 - 객체 - 지형지물 코드 수정 */
+	int updateIdSchemeFeature(IdSchemeCodeVo idSchemeCodeVo);
+	
 }

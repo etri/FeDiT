@@ -38,4 +38,7 @@ public class ElasticProperty {
 	@Value("${elastic.kibana-url}")
 	private String kibanaUrl;
 	
+    @Value("${elastic.vector-url}")
+    private String vectorUrl;
+	
 }
