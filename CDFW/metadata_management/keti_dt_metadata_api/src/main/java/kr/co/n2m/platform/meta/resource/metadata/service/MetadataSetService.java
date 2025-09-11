@@ -5,13 +5,15 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-
 
 import org.apache.commons.collections4.map.ListOrderedMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.json.simple.JSONObject;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,10 +36,17 @@ import kr.co.n2m.platform.meta.architecture.kafka.MyKafkaProducer;
 import kr.co.n2m.platform.meta.architecture.property.DtmetaProperty;
 import kr.co.n2m.platform.meta.architecture.util.AuthUtil;
 import kr.co.n2m.platform.meta.architecture.util.DateUtil;
+import kr.co.n2m.platform.meta.architecture.util.InfluxUtil;
 import kr.co.n2m.platform.meta.architecture.util.JsonUtil;
+import kr.co.n2m.platform.meta.architecture.util.MapperUtil;
 import kr.co.n2m.platform.meta.architecture.util.RdfUtil;
 import kr.co.n2m.platform.meta.architecture.util.SecurityUtil;
 import kr.co.n2m.platform.meta.architecture.util.ValueUtil;
+import kr.co.n2m.platform.meta.datastore.influxdb.domain.InfluxDbKeywordDto;
+import kr.co.n2m.platform.meta.datastore.influxdb.domain.InfluxDbKeywordVo;
+import kr.co.n2m.platform.meta.datastore.influxdb.domain.InfluxDbMetadataVo;
+import kr.co.n2m.platform.meta.datastore.influxdb.service.InfluxDbService;
+import kr.co.n2m.platform.meta.federation.api.domain.ApiDigitalTwinType;
 import kr.co.n2m.platform.meta.portal.code.service.CodeGroupService;
 import kr.co.n2m.platform.meta.rdf.neo4j.service.Neo4jService;
 import kr.co.n2m.platform.meta.rdf.virtuoso.service.VirtuosoService;
@@ -48,6 +57,7 @@ import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataChgHstSearchVo;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataChgHstVo;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataConnectDto;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataDto;
+import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataElasticJsonMap;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataPropertyDto;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataPropertySearchVo;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSaveDto;
@@ -65,6 +75,8 @@ import kr.co.n2m.platform.meta.schema.model.domain.ModelVo;
 import kr.co.n2m.platform.meta.schema.model.service.ModelService;
 import kr.co.n2m.platform.meta.schema.modelproperty.domain.ModelPropertyInfoDto;
 import kr.co.n2m.platform.meta.search.elasticsearch.service.ElasticSearchService;
+import kr.co.n2m.platform.meta.search.vector.domain.VectorStoreDto;
+import kr.co.n2m.platform.meta.search.vector.service.VectorSearchService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -106,6 +118,9 @@ public class MetadataSetService {
 	private Executor elasticSearchExecutor;
 	
 	@Autowired
+	private Executor influxExecutor;
+	
+	@Autowired(required = false)
 	private MyKafkaProducer myKafkaProducer;
 	
 	@Autowired
@@ -128,6 +143,15 @@ public class MetadataSetService {
 	public void setElasticSearchService (ElasticSearchService elasticSearchService) { // 순환참조 오류 방지
 		this.elasticSearchService = elasticSearchService;
 	}
+	
+	private InfluxDbService influxDbService; // 순환참조 오류 방지
+	
+	public void setInfluxDbService (InfluxDbService influxDbService) { // 순환참조 오류 방지
+		this.influxDbService = influxDbService;
+	}
+	
+	@Autowired
+	private VectorSearchService vectorSearchService;
 
 	/**
 	 * 메타데이터 셋의 모델 정보 조회
@@ -303,7 +327,7 @@ public class MetadataSetService {
 		try {
 			// 1. 유효성 체크
 			
-			if (metadataSetSaveDto == null) throw new ResBadRequestException("메타데이터 셋에 필요한 정보가 없습니다.");
+			if (metadataSetSaveDto == null) throw new ResBadRequestException(4000, "메타데이터 셋에 필요한 정보가 없습니다.");
 			
 			// 메타데이터 모델명 으로 메타데이터 모델 정보 조회
 			ModelInfoDto modelInfoDto = modelService.getModelInfoByIdFromCache(metadataSetSaveDto.getModelId());
@@ -320,6 +344,15 @@ public class MetadataSetService {
 			// 2. 메타데이터 셋을 등록하고 셋에 해당하는 특수 메타데이터들을 등록
 			medataSetId = this.createMetadataSetAndMetadataForSet(modelInfoDto, metadataSetSaveDto);
 			
+			// 새롭게 저장된 메타데이터 셋 조회
+			// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+			metadataSetSaveDto.setSqlDateFormat(SqlDatePart.iso6z.format());
+			MetadataSetDto metadataSetDto = metadataSetMapper.selectMetadataSet(metadataSetSaveDto);
+			
+			// 2-1. NOTE: 2025-07-28 표준문서 적용을 위한 하드 코딩.
+			// modelId 가 SingleDigitalTwin 단일디지털트윈, FederatedDigitalTwin 연합디지털트윈 경우만 type 강제 저장.
+			this.saveInitialDigitalTwinType(medataSetId, modelInfoDto, metadataSetDto);
+			
 			// 3. 연결 메타데이터 셋 프라퍼티 가 존재하면 연결 정보 등록 
 			if (StringUtils.isNotBlank(metadataSetSaveDto.getCnctMedataSetId()) || StringUtils.isNotBlank(metadataSetSaveDto.getCnctPrptyId())) {
 				if (StringUtils.isNotBlank(metadataSetSaveDto.getCnctMedataSetId()) && StringUtils.isNotBlank(metadataSetSaveDto.getCnctPrptyId()) ) {
@@ -331,12 +364,12 @@ public class MetadataSetService {
 					this.saveCnctMetadataSetProperty(metadataConnectDto);
 					
 				} else {
-					throw new ResBadRequestException("연결 메타데이터 셋과 연결 프라퍼티 정보가 모두 필요합니다.");					
+					throw new ResBadRequestException(4000, "연결 메타데이터 셋과 연결 프라퍼티 정보가 모두 필요합니다.");					
 				}
 			}
 			
 			// 4. 카프카 전송
-			this.sendMetadataViaKafka(KafkaConst.ACTION_CREATE, medataSetId, null, null);
+			this.sendMetadataViaKafka(KafkaConst.ACTION_CREATE, metadataSetDto, null, null);
 			
 		} catch (ResBadRequestException | ResBizInfoException e) {
 			log.info("[메타데이터 셋 등록 (from setVo)] 실패/오류 (정보성) : {}", e.getMessage());
@@ -386,7 +419,7 @@ public class MetadataSetService {
 	
 		try {
 			// 1. 유효성 체크
-			if (metadataSetSaveDto == null) throw new ResBadRequestException("메타데이터 셋에 필요한 정보가 없습니다.");
+			if (metadataSetSaveDto == null) throw new ResBadRequestException(4000, "메타데이터 셋에 필요한 정보가 없습니다.");
 			
 			String medataSetId = metadataSetSaveDto.getMedataSetId();
 			
@@ -411,12 +444,12 @@ public class MetadataSetService {
 					this.saveCnctMetadataSetProperty(metadataConnectDto);
 					
 				} else {
-					throw new ResBadRequestException("연결 메타데이터 셋과 연결 프라퍼티 정보가 모두 필요합니다.");					
+					throw new ResBadRequestException(4000, "연결 메타데이터 셋과 연결 프라퍼티 정보가 모두 필요합니다.");					
 				}
 			}
 			
 			// 4. 카프카 전송
-			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, medataSetId, null, null);		
+			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, prevSetDto, null, null);		
 			
 		} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 			log.info("[메타데이터 셋 수정 (from setVo)] 실패/오류 (정보성) : {}", e.getMessage());
@@ -444,14 +477,14 @@ public class MetadataSetService {
     	
 		try {
 			// 1. 유효성 체크
-			if (metadataConnectDto == null) throw new ResBadRequestException("메타데이터 셋에 필요한 정보가 없습니다.");
+			if (metadataConnectDto == null) throw new ResBadRequestException(4000, "메타데이터 셋에 필요한 정보가 없습니다.");
 	    	
 	    	// 필수 체크
 	    	if (StringUtils.isBlank(metadataConnectDto.getMedataSetId())) { sb.append("연결 메타데이터 셋 ID").append(ValueUtil.required()).append("\n"); }
 	    	if (StringUtils.isBlank(metadataConnectDto.getPrptyId())) { sb.append("연결 프라퍼티 ID").append(ValueUtil.required()).append("\n"); }
 	    	if (StringUtils.isBlank(metadataConnectDto.getMedataVal())) { sb.append("연결되는 값 메타데이터 셋 ID").append(ValueUtil.required()).append("\n"); }
 	    	
-	    	if (sb.length() > 0) throw new ResBadRequestException(sb.toString());		
+	    	if (sb.length() > 0) throw new ResBadRequestException(4000, sb.toString());		
 			
 	    	// 등록/미사용 상태만 수정 가능. 사용요청/사용/폐기 상태는 수정 불가능.
 			MetadataSetDto prevSetDto = this.checkEditableAndGetMetadataSetDto(metadataConnectDto.getMedataSetId(), Constant.SET_STATUS_REG, Constant.SET_STATUS_UN);
@@ -517,7 +550,7 @@ public class MetadataSetService {
 			}
 			
 			// 4. 카프카 전송
-			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, metadataConnectDto.getMedataSetId(), null, null);
+			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, prevSetDto, null, null);
 			
 		} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 			log.info("[메타데이터 셋 과 셋의 연결(관계) 메타데이터 등록] 실패/오류 (정보성) : {}", e.getMessage());
@@ -541,9 +574,10 @@ public class MetadataSetService {
 	 * @return
 	 */
 	public int deleteMetadataSetAndMetadataBySetId(String medataSetId, ModelVo typeModelVo, boolean checkTypeModel) {
-		log.debug("[메타데이터셋 과 메타데이터 삭제] 서비스 시작");
+		log.debug("[메타데이터셋 과 메타데이터 삭제] 서비스 시작 - {}", medataSetId);
 		int cnt = 0;
-    	StringBuilder sb = new StringBuilder();	
+    	StringBuilder sb = new StringBuilder();
+    	String logRegrId = AuthUtil.getLoginUserId();
     	
 		try {
 			// 1. 유효성 체크
@@ -551,7 +585,7 @@ public class MetadataSetService {
 	    	// 필수 체크
 	    	if (StringUtils.isBlank(medataSetId)) { sb.append("medataSetId").append(ValueUtil.required()).append("\n"); }
 	    	
-	    	if (sb.length() > 0) throw new ResBadRequestException(sb.toString());
+	    	if (sb.length() > 0) throw new ResBadRequestException(4000, sb.toString());
 			
 			// 등록 상태만 삭제 가능.
 	    	MetadataSetDto prevSetDto = this.checkEditableAndGetMetadataSetDto(medataSetId, Constant.SET_STATUS_REG);		
@@ -600,17 +634,28 @@ public class MetadataSetService {
 			cnt = metadataSetMapper.deleteMetadataSet(delParamVo);
 			
 			// 6. 카프카 전송
-			this.sendMetadataViaKafka(KafkaConst.ACTION_DELETE, medataSetId, delDataMap, delUpSetList);
-	
+			this.sendMetadataViaKafka(KafkaConst.ACTION_DELETE, prevSetDto, delDataMap, delUpSetList);
+			
+			// 7. influxDB에서 메타데이터 셋 키워드 삭제
+			CompletableFuture.runAsync(() -> { // 비동기 처리	
+				try {
+					influxDbService.deleteKeywordDataBySetId(medataSetId, logRegrId, prevSetDto.getMedataSetRegDt(), null);
+					log.debug("[메타데이터셋 과 메타데이터 삭제] influxDB에서 키워드 정보 삭제 : {}", medataSetId);
+					
+				} catch (Exception e) {
+					log.error("[메타데이터셋 과 메타데이터 삭제] influxDB에서 키워드 정보 삭제 실패/오류 (SKIP) : {}", medataSetId, e);
+				}
+			}, influxExecutor);
+			
 		} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
-			log.info("[메타데이터셋 과 메타데이터 삭제] 실패/오류 (정보성) : {}", e.getMessage());
+			log.info("[메타데이터셋 과 메타데이터 삭제] 실패/오류 (정보성) - {} : {}", medataSetId, e.getMessage());
 			throw e;			
 		} catch (Exception e) {
-			log.error("[메타데이터셋 과 메타데이터 삭제] 실패/오류", e);
+			log.error("[메타데이터셋 과 메타데이터 삭제] 실패/오류 - {}", medataSetId, e);
 			throw new ResBaseRuntimeException(e);
 		}		
 	
-		log.debug("[메타데이터셋 과 메타데이터 삭제] 서비스 종료");
+		log.debug("[메타데이터셋 과 메타데이터 삭제] 서비스 종료 - {}", medataSetId);
 		return cnt;
 	}
 		
@@ -637,11 +682,11 @@ public class MetadataSetService {
 			// 1. 유효성 체크
 			
 	    	// 필수 체크
-	    	if (metadataSetVo == null) throw new ResBadRequestException("메타데이터 셋에 필요한 정보가 없습니다.");
+	    	if (metadataSetVo == null) throw new ResBadRequestException(4000, "메타데이터 셋에 필요한 정보가 없습니다.");
 	    	if (StringUtils.isBlank(metadataSetVo.getMedataSetId())) { sb.append("medataSetId").append(ValueUtil.required()).append("\n"); } 	
 	    	if (StringUtils.isBlank(metadataSetVo.getMedataSetSttusMtcd())) { sb.append("medataSetSttusMtcd").append(ValueUtil.required()).append("\n"); }
 	    	
-	    	if (sb.length() > 0) throw new ResBadRequestException(sb.toString());
+	    	if (sb.length() > 0) throw new ResBadRequestException(4000, sb.toString());
 
 	    	String medataSetId = metadataSetVo.getMedataSetId();
 	    	
@@ -680,7 +725,7 @@ public class MetadataSetService {
 							} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 								log.error("[메타데이터 셋 상태 변경] 버투소 USE 그래프에 메타데이터 셋 정보 저장 실패/오류 (SKIP) : {} - {}", changedId, e.getReason());
 							} catch (Exception e) {
-								log.error("[메타데이터 셋 상태 변경] 버투소 USE 그래프에 메타데이터 셋 정보 저장 실패/오류 (SKIP) - {}", changedId, e);
+								log.error("[메타데이터 셋 상태 변경] 버투소 USE 그래프에 메타데이터 셋 정보 저장 실패/오류 (SKIP) : {}", changedId, e);
 							}
 						}, virtuosoExecutor);
 					}
@@ -695,7 +740,7 @@ public class MetadataSetService {
 							} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 								log.error("[메타데이터 셋 상태 변경] NEO4J에 메타데이터 셋 정보 저장 저장 실패/오류 (SKIP) : {} - {}", changedId, e.getReason());
 							} catch (Exception e) {
-								log.error("[메타데이터 셋 상태 변경] NEO4J에 메타데이터 셋 정보 저장 실패/오류 (SKIP) - {}", changedId, e);
+								log.error("[메타데이터 셋 상태 변경] NEO4J에 메타데이터 셋 정보 저장 실패/오류 (SKIP) : {}", changedId, e);
 							}
 						}, neo4jExecutor);
 					}
@@ -709,7 +754,7 @@ public class MetadataSetService {
 							} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 								log.error("[메타데이터 셋 상태 변경] ElasticSearch에 메타데이터 셋 정보 저장 저장 실패/오류 (SKIP) : {} - {}", changedId, e.getReason());
 							} catch (Exception e) {
-								log.error("[메타데이터 셋 상태 변경] ElasticSearch에 메타데이터 셋 정보 저장 실패/오류 (SKIP) - {}", changedId, e);
+								log.error("[메타데이터 셋 상태 변경] ElasticSearch에 메타데이터 셋 정보 저장 실패/오류 (SKIP) : {}", changedId, e);
 							}
 						}, elasticSearchExecutor);
 					}
@@ -745,7 +790,7 @@ public class MetadataSetService {
 			}
 			
 			// 3. 카프카 전송
-			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, medataSetId, null, null);			
+			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, prevSetDto, null, null);			
 	
 		} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 			log.info("[메타데이터 셋 상태 변경] 실패/오류 (정보성) : {}", e.getMessage());
@@ -770,7 +815,7 @@ public class MetadataSetService {
 	private String createMetadataSetAndMetadataForSet(ModelInfoDto modelInfoDto, MetadataSetSaveDto metadataSetSaveDto) {
 		
 		// ID 생성 로직 - 디지털트윈 식별체계 정보가 있을 경우 설정
-		if(StringUtils.equals("Y", metadataSetSaveDto.getIdSchmUseYn())){			
+		if (StringUtils.equals("Y", metadataSetSaveDto.getIdSchmUseYn())){			
 			this.setIdSchmPrefix(modelInfoDto.getTypeModelId(), metadataSetSaveDto);
 		}
 		
@@ -790,6 +835,73 @@ public class MetadataSetService {
 	}
 	
 	/**
+	 * modelId 가 SingleDigitalTwin 단일디지털트윈, FederatedDigitalTwin 연합디지털트윈 경우만 type 강제 저장 (하드코딩) (from setVo)
+	 * @Author      : heenim
+	 * @Date        : 2025. 07. 28.
+	 * @param medataSetId
+	 * @param modelInfoDto
+	 * @param metadataSetDto
+	 */
+	private void saveInitialDigitalTwinType(String medataSetId, ModelInfoDto modelInfoDto, MetadataSetDto metadataSetDto) {
+		// 특정 모델ID 인지 확인, 특정 프라퍼티 ID 인지 확인
+		if (modelInfoDto == null || !Constant.DIGITAL_TWIN_MODEL_NM.equals(modelInfoDto.getTypeModelId())) return;
+
+		String prptyId = modelInfoDto.getPropertyId(Constant.DIGITAL_TWIN_TYPE_PROPERTY_NM);
+		if (prptyId == null) return; // type 이라는 프라퍼티가 있어야 함.
+		
+		String typeVal = null;
+		try {
+			ApiDigitalTwinType enumType = ApiDigitalTwinType.fromModelId(modelInfoDto.getModelId());
+			typeVal = enumType.krCode();
+		} catch (IllegalArgumentException e) {
+			// 해당 사항 없음. 무시.
+			typeVal = null;
+		}
+		
+		if (typeVal == null) return;
+
+		// 저장
+		List<MetadataSaveDto> dataDtoList = new ArrayList<>();
+		MetadataSaveDto dataDto = new MetadataSaveDto();
+		dataDto.setPrptyId(prptyId);
+		dataDto.setMedataVal(typeVal);
+		dataDtoList.add(dataDto);
+		
+		this.saveMetadataSaveDtoList(modelInfoDto, metadataSetDto, dataDtoList, false, false);
+	}
+	
+	/**
+	 * modelId 가 SingleDigitalTwin 단일디지털트윈, FederatedDigitalTwin 연합디지털트윈 경우만 type 강제 설정 (하드코딩) (from dataMap)
+	 * @Author      : heenim
+	 * @Date        : 2025. 07. 28.
+	 * @param medataSetId
+	 * @param modelInfoDto
+	 * @param dataMap
+	 */
+	private void setInitialDigitalTwinType(String medataSetId, ModelInfoDto modelInfoDto, ListOrderedMap<String, Object> dataMap) {
+		// 특정 모델ID 인지 확인, 특정 프라퍼티 ID 인지 확인
+		if (modelInfoDto == null || !Constant.DIGITAL_TWIN_MODEL_NM.equals(modelInfoDto.getTypeModelId())) return;
+		
+		String typePrptyNm = Constant.DIGITAL_TWIN_TYPE_PROPERTY_NM;
+		String prptyId = modelInfoDto.getPropertyId(typePrptyNm);
+		if (prptyId == null) return; // type 이라는 프라퍼티가 있어야 함.
+		
+		String typeVal = null;
+		try {
+			ApiDigitalTwinType enumType = ApiDigitalTwinType.fromModelId(modelInfoDto.getModelId());
+			typeVal = enumType.krCode();
+		} catch (IllegalArgumentException e) {
+			// 해당 사항 없음. 무시.
+			typeVal = null;
+		}
+		
+		if (typeVal == null) return;
+		
+		// 값이 비어 있는 경우 강제 설정
+		dataMap.put(typePrptyNm, StringUtils.defaultIfBlank((String) dataMap.get(typePrptyNm), typeVal));
+	}	
+	
+	/**
 	 * 메타데이터 셋을 수정하고 셋에 해당하는 특수 메타데이터들을 저장
 	 * @Author      : heenim
 	 * @Date        : 2023. 05. 24.
@@ -803,7 +915,8 @@ public class MetadataSetService {
 		// 1. 수정 전 변경이력을 위한 셋 용 메타데이터 들 조회
 		MetadataSetVo idParamVo = new MetadataSetVo();
 		idParamVo.setMedataSetId(metadataSetVo.getMedataSetId());
-		idParamVo.setSqlDateFormat(SqlDatePart.isoz.format());		
+		// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+		idParamVo.setSqlDateFormat(SqlDatePart.iso6z.format());
 		List<MetadataChgHstSaveDto> prevSetValueList = metadataChgHstMapper.selectSelValueListBySetIdForChgHst(idParamVo);
 		
 		// 2. 메타데이터 셋 DB 수정
@@ -835,7 +948,8 @@ public class MetadataSetService {
 		// 1. 새롭게 저장된 메타데이터 셋 조회
 		MetadataSetVo paramVo1 = new MetadataSetVo();
 		paramVo1.setMedataSetId(medataSetId);
-		paramVo1.setSqlDateFormat(SqlDatePart.isoz.format());
+		// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+		paramVo1.setSqlDateFormat(SqlDatePart.iso6z.format());
 		MetadataSetDto metadataSetDto = metadataSetMapper.selectMetadataSet(paramVo1);
 		metadataSetDto.setAsyncUserVo(asyncUserVo);
 				
@@ -909,7 +1023,8 @@ public class MetadataSetService {
     		// 9. 수정 후 변경이력을 위한 셋 용 메타데이터 들 조회
     		MetadataSetVo idParamVo = new MetadataSetVo();
     		idParamVo.setMedataSetId(metadataSetDto.getMedataSetId());
-    		idParamVo.setSqlDateFormat(SqlDatePart.isoz.format());		    		
+    		// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+    		idParamVo.setSqlDateFormat(SqlDatePart.iso6z.format());	
     		List<MetadataChgHstSaveDto> currSetValueList = metadataChgHstMapper.selectSelValueListBySetIdForChgHst(idParamVo);
     		if (currSetValueList != null && currSetValueList.size() > 0) {
     			for (MetadataChgHstSaveDto currHstDto : currSetValueList) {
@@ -953,6 +1068,7 @@ public class MetadataSetService {
 		
 		String applyDtModelId  = dtmetaProperty.getIdSchmDigitalTwin();
 		String applyObjModelId = dtmetaProperty.getIdSchmDigitalTwinObject();
+		String applyObjVmModelId = dtmetaProperty.getIdSchmDigitalTwinObjectVm();
 		
 		if (StringUtils.equals(applyDtModelId, typeModelId)) {
 			/*
@@ -973,40 +1089,72 @@ public class MetadataSetService {
 			if (StringUtils.isBlank(metadataSetSaveDto.getIdSchmType())) { sb.append("디지털트윈 식별체계 분류코드 종류").append(ValueUtil.required()).append("\n"); }
 			if (StringUtils.isBlank(metadataSetSaveDto.getIdSchmCd())) { sb.append("디지털트윈 식별체계 코드").append(ValueUtil.required()).append("\n"); }
 			
-			// TODO 위 세 값이 옯은 값인지 체크
+			// TODO 위 세 값이 옯은 값인지 체크. NOTE: 우선 전체 코드값을 가지고 있지 않을 수 있기 때문에 체크하지 않는다.
 			
-	    	if (sb.length() > 0) throw new ResBadRequestException(sb.toString());
+	    	if (sb.length() > 0) throw new ResBadRequestException(4000, sb.toString());
 			
 			String prefix = metadataSetSaveDto.getIdSchmCntryCd() + "-" + metadataSetSaveDto.getIdSchmType() + "-" + metadataSetSaveDto.getIdSchmCd() + "-";
-			log.debug("디지털트윈 식별체계 prefix : {} {}", prefix, prefix.length() == 13 ? "OK" : "Not 13 lengths");
+			log.debug("디지털트윈 식별체계 prefix : {} {}", prefix, prefix.length() + "lengths");
 			metadataSetSaveDto.setIdSchmPrefix(prefix);
 			metadataSetSaveDto.setIdSchmYearUseYn("Y");
+			metadataSetSaveDto.setIdSchmSeqGenYn("Y");
 						
 		} else if (StringUtils.equals(applyObjModelId, typeModelId)) {
 		
 			/*
-			 * 디지털트윈 객체 식별체계 (14자리) -------------------------------------
+			 * 디지털트윈 객체 식별체계 (14자리 이상) -------------------------------------
 			 * 국가코드 (2자리) : ISO 3166-1 alpha-2 표준을 활용하며 알파벳 두 자리로 구성. ex) 대한민국=KR
-			 * 분류체계 코드 대분류 (1자리) : 1 물품 / 2 시설
-			 * 분류체계 코드 중분류 (5자리)
+			 * 분류체계 코드 대분류 (1자리) : 1 물품 / 2 시설 / 3 지형지물
+			 * 분류체계 코드 중분류 (5자리), 지형지물은 (16자리)
 			 * 일련번호 (4자리) // TODO 이슈!!! 4자리로 충분한가?!!!!!
 			 * 
-			 * ex) KR-101010-0001
+			 * ex) KR-101010-0001, KR-213000-0001, KR-3A001000012345678-0001
 			 */			
 			StringBuilder sb = new StringBuilder();
 			
 			if (StringUtils.isBlank(metadataSetSaveDto.getIdSchmCntryCd())) { sb.append("디지털트윈 객체 식별체계 국가코드").append(ValueUtil.required()).append("\n"); }
-			if (StringUtils.isBlank(metadataSetSaveDto.getIdSchmType())) { sb.append("디지털트윈 객체 식별체계 분류코드 대분류").append(ValueUtil.required()).append("\n"); }
-			if (StringUtils.isBlank(metadataSetSaveDto.getIdSchmCd())) { sb.append("디지털트윈 객체 식별체계 분류코드 중분류").append(ValueUtil.required()).append("\n"); }
+			if (StringUtils.isBlank(metadataSetSaveDto.getIdSchmType())) { sb.append("디지털트윈 객체 식별체계 분류코드 (대분류)").append(ValueUtil.required()).append("\n"); }
+			if (StringUtils.isBlank(metadataSetSaveDto.getIdSchmCd())) { sb.append("디지털트윈 객체 식별체계 분류코드 (중분류)").append(ValueUtil.required()).append("\n"); }
 			
-			// TODO 위 세 값이 옯은 값인지 체크
+			// TODO 위 세 값이 옯은 값인지 체크. NOTE: 우선 전체 코드값을 가지고 있지 않을 수 있기 때문에 체크하지 않는다.
 			
-	    	if (sb.length() > 0) throw new ResBadRequestException(sb.toString());
-			
+	    	if (sb.length() > 0) throw new ResBadRequestException(4000, sb.toString());
+
 			String prefix = metadataSetSaveDto.getIdSchmCntryCd() + "-" + metadataSetSaveDto.getIdSchmType() + metadataSetSaveDto.getIdSchmCd() + "-";
-			log.debug("디지털트윈 객체 식별체계 prefix : {} {}", prefix, prefix.length() == 10 ? "OK" : "Not 10 lengths");
+			log.debug("디지털트윈 객체 식별체계 prefix : {} {}", prefix, prefix.length() + "lengths");
 			metadataSetSaveDto.setIdSchmPrefix(prefix);
-			metadataSetSaveDto.setIdSchmYearUseYn("N");			
+			metadataSetSaveDto.setIdSchmYearUseYn("N");
+			metadataSetSaveDto.setIdSchmSeqGenYn("Y");
+			
+		} else if (StringUtils.equals(applyObjVmModelId, typeModelId)) {
+			
+			/*
+			 * 디지털트윈 시각화모델 식별체계 (16자리 이상) -------------------------------------
+			 * 국가코드 (2자리) : ISO 3166-1 alpha-2 표준을 활용하며 알파벳 두 자리로 구성. ex) 대한민국=KR
+			 * 분류체계 코드 대분류 (1자리) : 1 물품 / 2 시설 / 3 지형지물
+			 * 분류체계 코드 중분류 (5자리), 지형지물은 (16자리)
+			 * - 여기까지는 객체 식별체계와 동일...
+			 * 3D 모델 객체 분류코드 (1자리) : 1 Mesh / 2 CSG Primitive / 3 NURBS / M Mixed
+			 * 일련번호 (4자리) // TODO 이슈!!! 4자리로 충분한가?!!!!!
+			 * 
+			 * ex) KR-101010-1-0001, KR-213000-1-0001, KR-3A001000012345678-1-0001
+			 */			
+			StringBuilder sb = new StringBuilder();
+			
+			if (StringUtils.isBlank(metadataSetSaveDto.getIdSchmCntryCd())) { sb.append("디지털트윈 시각화모델 식별체계 국가코드").append(ValueUtil.required()).append("\n"); }
+			if (StringUtils.isBlank(metadataSetSaveDto.getIdSchmType())) { sb.append("디지털트윈 시각화모델 식별체계 분류코드 (대분류)").append(ValueUtil.required()).append("\n"); }
+			if (StringUtils.isBlank(metadataSetSaveDto.getIdSchmCd())) { sb.append("디지털트윈 시각화모델 식별체계 분류코드 (중분류)").append(ValueUtil.required()).append("\n"); }
+			if (StringUtils.isBlank(metadataSetSaveDto.getIdSchmCd2())) { sb.append("디지털트윈 시각화모델 식별체계 분류코드 (3D모델객체분류)").append(ValueUtil.required()).append("\n"); }
+			
+			// TODO 위 세 값이 옯은 값인지 체크. NOTE: 우선 전체 코드값을 가지고 있지 않을 수 있기 때문에 체크하지 않는다.
+			
+	    	if (sb.length() > 0) throw new ResBadRequestException(4000, sb.toString());
+
+			String prefix = metadataSetSaveDto.getIdSchmCntryCd() + "-" + metadataSetSaveDto.getIdSchmType() + metadataSetSaveDto.getIdSchmCd() + "-" + metadataSetSaveDto.getIdSchmCd2() + "-";
+			log.debug("디지털트윈 시각화모델 식별체계 prefix : {} {}", prefix, prefix.length() + "lengths");
+			metadataSetSaveDto.setIdSchmPrefix(prefix);
+			metadataSetSaveDto.setIdSchmYearUseYn("N");
+			metadataSetSaveDto.setIdSchmSeqGenYn("Y");
 			
 		}
 		
@@ -1024,7 +1172,7 @@ public class MetadataSetService {
     	StringBuilder sb = new StringBuilder();
     	
     	// 필수 체크
-    	if (metadataSetVo == null) throw new ResBadRequestException("메타데이터 셋에 필요한 정보가 없습니다.");
+    	if (metadataSetVo == null) throw new ResBadRequestException(4000, "메타데이터 셋에 필요한 정보가 없습니다.");
     	if (StringUtils.isBlank(metadataSetVo.getModelId())) { sb.append("modelId").append(ValueUtil.required()).append("\n"); } 	
     	if (StringUtils.isBlank(metadataSetVo.getMedataSetNm())) { sb.append("medataSetNm").append(ValueUtil.required()).append("\n"); } 
     	if (StringUtils.isNotBlank(metadataSetVo.getMedataSetSttusMtcd()) 
@@ -1032,7 +1180,7 @@ public class MetadataSetService {
     		sb.append("medataSetSttusMtcd").append(ValueUtil.invalid()).append("\n"); 
     	}
     	
-    	if (sb.length() > 0) throw new ResBadRequestException(sb.toString());
+    	if (sb.length() > 0) throw new ResBadRequestException(4000, sb.toString());
     	
     	// 기본값 설정
     	if (StringUtils.isBlank(metadataSetVo.getMedataSetLogicNm())) { 
@@ -1077,12 +1225,12 @@ public class MetadataSetService {
     	StringBuilder sb = new StringBuilder();
     	
     	// 필수 체크
-    	if (metadataSetVo == null) throw new ResBadRequestException("메타데이터 셋에 필요한 정보가 없습니다.");
+    	if (metadataSetVo == null) throw new ResBadRequestException(4000, "메타데이터 셋에 필요한 정보가 없습니다.");
     	if (StringUtils.isBlank(metadataSetVo.getMedataSetId())) { sb.append("medataSetId").append(ValueUtil.required()).append("\n"); }
     	if (StringUtils.isBlank(metadataSetVo.getModelId())) { sb.append("modelId").append(ValueUtil.required()).append("\n"); }
     	if (StringUtils.isBlank(metadataSetVo.getMedataSetNm())) { sb.append("medataSetNm").append(ValueUtil.required()).append("\n"); }
     	
-    	if (sb.length() > 0) throw new ResBadRequestException(sb.toString());
+    	if (sb.length() > 0) throw new ResBadRequestException(4000, sb.toString());
     	
     	// 기본값 설정
     	if (StringUtils.isBlank(metadataSetVo.getMedataSetLogicNm())) { 
@@ -1152,7 +1300,7 @@ public class MetadataSetService {
 		// 3. DataType 모델 데이터 유효성 체크 - 이미 저장된 DataType 모델의 데이터는 유효하다고 본다.
 		// nothing
 		
-		if (errCnt > 0) throw new ResBadRequestException(sb.toString());
+		if (errCnt > 0) throw new ResBadRequestException(4000, sb.toString());
 		
 		// 현재 메타데이터 셋 체크시 문제가 없다면 하위 메타데이터 셋들을 체크
 		
@@ -1255,7 +1403,8 @@ public class MetadataSetService {
 		// 2. 수정 전 변경이력을 위한 셋 용 메타데이터 들 조회
 		MetadataSetVo idParamVo = new MetadataSetVo();
 		idParamVo.setMedataSetId(medataSetId);
-		idParamVo.setSqlDateFormat(SqlDatePart.isoz.format());	
+		// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+		idParamVo.setSqlDateFormat(SqlDatePart.iso6z.format());
 		List<MetadataChgHstSaveDto> prevSetValueList = metadataChgHstMapper.selectSelValueListBySetIdForChgHst(idParamVo);		
 
 		// 메타데이터 셋 값 설정
@@ -1287,7 +1436,8 @@ public class MetadataSetService {
 		// 1. 수정 전 변경이력을 위한 셋 용 메타데이터 들 조회
 		MetadataSetVo idParamVo = new MetadataSetVo();
 		idParamVo.setMedataSetId(medataSetId);
-		idParamVo.setSqlDateFormat(SqlDatePart.isoz.format());
+		// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+		idParamVo.setSqlDateFormat(SqlDatePart.iso6z.format());
 		List<MetadataChgHstSaveDto> prevSetValueList = metadataChgHstMapper.selectSelValueListBySetIdForChgHst(idParamVo);		
 
 		// 메타데이터 셋 값 설정
@@ -1319,7 +1469,8 @@ public class MetadataSetService {
 		// 1. 수정 전 변경이력을 위한 셋 용 메타데이터 들 조회
 		MetadataSetVo idParamVo = new MetadataSetVo();
 		idParamVo.setMedataSetId(medataSetId);
-		idParamVo.setSqlDateFormat(SqlDatePart.isoz.format());	
+		// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+		idParamVo.setSqlDateFormat(SqlDatePart.iso6z.format());
 		List<MetadataChgHstSaveDto> prevSetValueList = metadataChgHstMapper.selectSelValueListBySetIdForChgHst(idParamVo);			
 
 		// 메타데이터 셋 값 설정
@@ -1403,7 +1554,7 @@ public class MetadataSetService {
 //		// 4. DataType 모델 데이터 유효성 체크 - 이미 저장된 DataType 모델의 데이터는 유효하다고 본다.
 //		// nothing
 //		
-//		if (sb.length() > 0) throw new ResBadRequestException(sb.toString());
+//		if (sb.length() > 0) throw new ResBadRequestException(4000, sb.toString());
 //	}
 	
 	/**
@@ -1568,7 +1719,12 @@ public class MetadataSetService {
 			}
 			
 			// 4. 카프카 전송
-			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, medataSetId, null, null);
+			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, prevSetDto, null, null);
+			
+			// 5. 키워드 프라퍼티가 존재하는 경우 influxDB에서 정크 키워드 제거
+			if (modelInfoDto.getKeywordPropertyNmList().size() > 0) {
+				this.removeJunkKeywordFromInfluxDb(prevSetDto);
+			}
     	
     		log.debug("[메타데이터 셋의 메타데이터 저장 (Multi)] 총 {}건 중 저장 성공 : {}건", dataDtoList.size(), cnt);
 		
@@ -1595,13 +1751,13 @@ public class MetadataSetService {
     	StringBuilder sb = new StringBuilder();
     	
     	// 필수 체크
-    	if (metadataVo == null) throw new ResBadRequestException("metadataVo 값이 null 입니다.");
+    	if (metadataVo == null) throw new ResBadRequestException(4000, "metadataVo 값이 null 입니다.");
     	if (StringUtils.isBlank(metadataVo.getMedataSetId())) { sb.append("medataSetId").append(ValueUtil.required()).append("\n"); } 	
     	if (StringUtils.isBlank(metadataVo.getPrptyId())) { sb.append("prptyId").append(ValueUtil.required()).append("\n"); } 
     	if (StringUtils.isBlank(metadataVo.getValModelId())) { sb.append("valModelId").append(ValueUtil.required()).append("\n"); }
     	if (StringUtils.isBlank(metadataVo.getModelPrptyId())) { sb.append("modelPrptyId").append(ValueUtil.required()).append("\n"); }
     	
-    	if (sb.length() > 0) throw new ResBadRequestException(sb.toString());
+    	if (sb.length() > 0) throw new ResBadRequestException(4000, sb.toString());
 
 		// 등록
 		return metadataMapper.insertMetadataAutoKey(metadataVo);
@@ -1618,11 +1774,11 @@ public class MetadataSetService {
     	StringBuilder sb = new StringBuilder();
     	
     	// 필수 체크
-    	if (metadataVo == null) throw new ResBadRequestException("metadataVo 값이 null 입니다.");
+    	if (metadataVo == null) throw new ResBadRequestException(4000, "metadataVo 값이 null 입니다.");
     	if (StringUtils.isBlank(metadataVo.getMedataId())) { sb.append("medataId").append(ValueUtil.required()).append("\n"); } 	
     	if (StringUtils.isBlank(metadataVo.getValModelId())) { sb.append("valModelId").append(ValueUtil.required()).append("\n"); }
     	
-    	if (sb.length() > 0) throw new ResBadRequestException(sb.toString());
+    	if (sb.length() > 0) throw new ResBadRequestException(4000, sb.toString());
 
 		// 수정
 		return metadataMapper.updateMetadata(metadataVo);
@@ -1652,7 +1808,7 @@ public class MetadataSetService {
 			if (checkAllValid) {
 				// 필수 체크
 				if (PropertyRequired.required.code().equals(pDto.getModelPrptyMandMtcd())) {
-					throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.required()).toString());
+					throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.required()).toString());
 	
 				}
 			}
@@ -1671,77 +1827,94 @@ public class MetadataSetService {
 					// { "language" : "ko", "value" : "홍길동" } 형식 체크
 					Map tMap = (Map) valObj;
 					if (StringUtils.isBlank((String) tMap.get("language")) || (StringUtils.isBlank((String) tMap.get("value")))) {
-						throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("{ \"language\" : \"ko\", \"value\" : \"홍길동\" }")).toString());
+						throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("{ \"language\" : \"ko\", \"value\" : \"홍길동\" }")).toString());
 					}
 				} else if (RdfUtil.isJson(val)) {
 					Map tMap = (Map) JsonUtil.toMap(val);
 					if (StringUtils.isBlank((String) tMap.get("language")) || (StringUtils.isBlank((String) tMap.get("value")))) {
-						throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("{ \"language\" : \"ko\", \"value\" : \"홍길동\" }")).toString());
+						throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("{ \"language\" : \"ko\", \"value\" : \"홍길동\" }")).toString());
 					}
 				}
 				
 			} else if (RangeDataTypeMtcd.date.code().equals(dataType) && ValueUtil.isInvalidDd(val)) {
-				throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("yyyy-MM-dd")).toString());
+				throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("yyyy-MM-dd")).toString());
 				
-			} else if (RangeDataTypeMtcd.dateTime.code().equals(dataType) && DateUtil.isISOTime(val)) {
-				throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("yyyy-MM-dd'T'HH:mm:ssXXX")).toString());
+			// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+			//} else if (RangeDataTypeMtcd.dateTime.code().equals(dataType) && !DateUtil.isISOTime(val)) {
+			//	throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("yyyy-MM-dd'T'HH:mm:ssXXX")).toString());
+			} else if (RangeDataTypeMtcd.dateTime.code().equals(dataType) && !DateUtil.isISO6Time(val)) {
+				throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXX")).toString()); // XXX 가 맞음. DateTimeFormatter.ofPattern("...") 쓸 경우 출력 포맷 XXXXX 로 쓰면 Z 도 표시됨.
 				
 			} else if (RangeDataTypeMtcd.year.code().equals(dataType) && ValueUtil.isInvalidYear(val)) {
-				throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("yyyy")).toString());
+				throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("yyyy")).toString());
 				
 			} else if (RangeDataTypeMtcd.yearMonth.code().equals(dataType) && ValueUtil.isInvalidYearMonth(val)) {
-				throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("yyyy-MM")).toString());
+				throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("yyyy-MM")).toString());
 				
 			} else if (RangeDataTypeMtcd.integer.code().equals(dataType) && !ValueUtil.isInteger(val)) {
-				throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("integer")).toString());
+				throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("integer")).toString());
 				
 			} else if (RangeDataTypeMtcd.long_.code().equals(dataType) && !ValueUtil.isLong(val)) {
-				throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("long")).toString());
+				throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("long")).toString());
 				
 			} else if (RangeDataTypeMtcd.positiveInteger.code().equals(dataType) && ( !ValueUtil.isInteger(val) || Integer.valueOf(val) <= 0 )) {
-				throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("positiveInteger")).toString());
+				throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("positiveInteger")).toString());
 				
 			} else if (RangeDataTypeMtcd.nonNegativeInteger.code().equals(dataType) && ( !ValueUtil.isInteger(val) || Integer.valueOf(val) < 0 )) {
-				throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("nonNegativeInteger")).toString());
+				throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("nonNegativeInteger")).toString());
 				
 			} else if (RangeDataTypeMtcd.nonPositiveInteger.code().equals(dataType) && ( !ValueUtil.isInteger(val) || Integer.valueOf(val) > 0 )) {
-				throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("nonPositiveInteger")).toString());
+				throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("nonPositiveInteger")).toString());
 				
 			} else if (RangeDataTypeMtcd.negativeInteger.code().equals(dataType) && ( !ValueUtil.isInteger(val) || Integer.valueOf(val) >= 0 )) {
-				throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("negativeInteger")).toString());
+				throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("negativeInteger")).toString());
 				
 			} else if (RangeDataTypeMtcd.float_.code().equals(dataType) && !ValueUtil.isFloat(val)) {
-				throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("float")).toString());
+				throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("float")).toString());
 				
 			} else if (RangeDataTypeMtcd.double_.code().equals(dataType) && !ValueUtil.isDouble(val)) {
-				throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("double")).toString());
+				throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("double")).toString());
 				
 			} else if (RangeDataTypeMtcd.boolean_.code().equals(dataType) && !ValueUtil.isBoolean(val)) {
-				throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("boolean")).toString());
+				throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("boolean")).toString());
 				
 			} else if (RangeDataTypeMtcd.anyURI.code().equals(dataType) && !RdfUtil.isAnyURI(val)) {
-				throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("URI")).toString());
+				throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("URI")).toString());
 				
 			} else if (RangeDataTypeMtcd.json.code().equals(dataType)) {
-				String jsonStr = this.toJsonStr(valObj); // FIXME : 우선 여기까지 온거면 Controller 제대로 파싱되었다는 거 아닐까? 필요없으면 주석 처리할 것.
+				String jsonStr = this.toJsonStr(valObj); // NOTE : 우선 여기까지 온거면 Controller 제대로 파싱되었다는 거 아닐까? 필요없으면 주석 처리할 것.
 				if (!RdfUtil.isJson(jsonStr)) {
-					throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("JSON")).toString());
+					throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("JSON")).toString());
+				}
+			
+			// 2025-07 표준문서 관련 데이터타입 추가. TODO 필요시 변경
+			} else if (RangeDataTypeMtcd.address.code().equals(dataType)) {
+				String jsonStr = this.toJsonStr(valObj); // NOTE : 우선 여기까지 온거면 Controller 제대로 파싱되었다는 거 아닐까? 필요없으면 주석 처리할 것.
+				if (!RdfUtil.isJson(jsonStr)) {
+					throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("JSON")).toString());
+				}
+			
+			// 2025-07 표준문서 관련 데이터타입 추가. TODO 필요시 변경
+			} else if (RangeDataTypeMtcd.dataInfo.code().equals(dataType)) { // 2025-07 표준문서 관련 데이터타입 추가. TODO 필요시 변경
+				String jsonStr = this.toJsonStr(valObj); // NOTE : 우선 여기까지 온거면 Controller 제대로 파싱되었다는 거 아닐까? 필요없으면 주석 처리할 것.
+				if (!RdfUtil.isJson(jsonStr)) {
+					throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("JSON")).toString());
 				}				
 				
 			} else if (RangeDataTypeMtcd.geoJson.code().equals(dataType)) {
 				String jsonStr = this.toJsonStr(valObj); // TODO : GeoJSON 형식이 개발 중 임시 가정한 geometry 값과 같은지 확인 필요
 				if (!RdfUtil.isGeoJson(jsonStr)) {
-					throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("GeoJSON")).toString());
+					throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.invalid("GeoJSON")).toString());
 				}
 				
 			} else if (RangeDataTypeMtcd.code_.code().equals(dataType) && StringUtils.isBlank(pDto.getRangeMtcdGrpId())) {
-				throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.notDefined("코드그룹ID")).toString());
+				throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.notDefined("코드그룹ID")).toString());
 				
 			} else if (RangeDataTypeMtcd.codeName.code().equals(dataType) && StringUtils.isBlank(pDto.getRangeRefPrptyNm())) {
-				throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.notDefined("참조 프라퍼티")).toString());
+				throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.notDefined("참조 프라퍼티")).toString());
 				
 			} else if (RangeDataTypeMtcd.categoryName.code().equals(dataType) && StringUtils.isBlank(pDto.getRangeRefPrptyNm())) {
-				throw new ResBadRequestException(new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.notDefined("참조 프라퍼티")).toString());
+				throw new ResBadRequestException(4000, new StringBuilder(pDto.getPrptyNm()).append(ValueUtil.notDefined("참조 프라퍼티")).toString());
 				
 			} else {
 				// 기타 데이터 유형은 필요할 때 추가.
@@ -1786,7 +1959,7 @@ public class MetadataSetService {
 			}				
 		}
 		
-    	if (sb.length() > 0) throw new ResBadRequestException(sb.toString());		
+    	if (sb.length() > 0) throw new ResBadRequestException(4000, sb.toString());		
 	}
 	
 	/**
@@ -1932,6 +2105,18 @@ public class MetadataSetService {
 			} else {
 				prevVo = this.getMetadata(medataId);
 			}
+			
+			// 키워드인 경우 저장 전 목록 조회
+			List<String> prevKeywordList = null;
+	    	if (RangeDataTypeMtcd.keywordsKo.code().equals(dataType) || RangeDataTypeMtcd.keywordsEn.code().equals(dataType)) {
+    			MetadataSearchVo paramVo = new MetadataSearchVo();
+    			paramVo.setMedataSetId(medataSetId);
+    			paramVo.setPrptyId(pDto.getPrptyId());
+	    		prevKeywordList = metadataMapper.selectKeywordListBySetId(paramVo);
+	    		if (prevKeywordList == null) {
+	    			prevKeywordList = new ArrayList<String>(); // not null
+	    		}
+	    	}
 	    	
 	    	if (StringUtils.isBlank(medataId)) {	    	
 	    		// 1-1. 등록
@@ -1969,7 +2154,17 @@ public class MetadataSetService {
 		    	
 		    	// 3. 키워드인 경우 따로 저장
 		    	if (RangeDataTypeMtcd.keywordsKo.code().equals(dataType) || RangeDataTypeMtcd.keywordsEn.code().equals(dataType)) {
+		    		// 3-1. 키워드만 따로 저장
 		    		keywordService.saveKeywordList(newVo.getMedataVal(), newVo.getLangMtcd());
+
+		    		// 3-2. influxDB에 키워드 저장
+		    		InfluxDbKeywordDto keywordDto = new InfluxDbKeywordDto();
+		    		keywordDto.setKeyword(newVo.getMedataVal());
+		    		keywordDto.setLangMtcd(newVo.getLangMtcd());
+		    		keywordDto.setPrptyId(tDto.getPrptyId());
+		    		keywordDto.setMedataSetId(medataSetId);
+		    		keywordDto.setDateTimeStr(metadataSetVo.getMedataSetAmdDt());
+		    		this.saveKeywordToInfluxDb(keywordDto, prevKeywordList);
 		    	}
 	    	}
 	    }
@@ -1980,7 +2175,8 @@ public class MetadataSetService {
     		// 4. 수정 전 변경이력을 위한 셋 용 메타데이터 들 조회
     		MetadataSetVo idParamVo = new MetadataSetVo();
     		idParamVo.setMedataSetId(medataSetId);
-    		idParamVo.setSqlDateFormat(SqlDatePart.isoz.format());    		
+    		// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+    		idParamVo.setSqlDateFormat(SqlDatePart.iso6z.format());
     		List<MetadataChgHstSaveDto> prevSetValueList = metadataChgHstMapper.selectSelValueListBySetIdForChgHst(idParamVo);	
     		
     		if (isIncreaseRevision) {
@@ -2056,7 +2252,7 @@ public class MetadataSetService {
 	    	// 필수 체크
 	    	if (StringUtils.isBlank(medataId)) { sb.append("medataId").append(ValueUtil.required()).append("\n"); }
 	    	
-	    	if (sb.length() > 0) throw new ResBadRequestException(sb.toString());
+	    	if (sb.length() > 0) throw new ResBadRequestException(4000, sb.toString());
 	    	
 	    	MetadataDto dataDto = this.getMetadata(medataId);
 	    	if (dataDto == null) throw new ResNotFoundException("해당 메타데이터가 존재하지 않습니다.");
@@ -2085,8 +2281,9 @@ public class MetadataSetService {
 	    		// 2. 수정 전 변경이력을 위한 셋 용 메타데이터 들 조회
 	    		MetadataSetVo idParamVo = new MetadataSetVo();
 	    		idParamVo.setMedataSetId(medataSetId);
-	    		idParamVo.setSqlDateFormat(SqlDatePart.isoz.format()); 	    		
-	    		List<MetadataChgHstSaveDto> prevSetValueList = metadataChgHstMapper.selectSelValueListBySetIdForChgHst(idParamVo);		    		
+	    		// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+	    		idParamVo.setSqlDateFormat(SqlDatePart.iso6z.format());
+	    		List<MetadataChgHstSaveDto> prevSetValueList = metadataChgHstMapper.selectSelValueListBySetIdForChgHst(idParamVo);
     			
 	    		// 3. 변경이력 등록
 				MetadataChgHstVo newHstVo = new MetadataChgHstVo();
@@ -2109,10 +2306,10 @@ public class MetadataSetService {
 				this.saveMetadataListForSet(modelInfoDto, medataSetId, prevSetValueList, false, null);
 	    	}
 			
-			// 5. 메타데이터 삭제
+			// 6. 메타데이터 삭제
 	    	cnt = metadataMapper.deleteMetadata(dataDto);
 	    	
-	    	// 6. 현재 프라퍼티를 참조하고 있는 프라퍼티가 있는 경우 같이 메타데이터 삭제, 위의 삭제 건수가 존재하는 경우만.
+	    	// 7. 현재 프라퍼티를 참조하고 있는 프라퍼티가 있는 경우 같이 메타데이터 삭제, 위의 삭제 건수가 존재하는 경우만.
 	    	if (modelInfoDto.getRefPropertyNmMap().containsKey(dataDto.getPrptyNm()) && cnt > 0) {
 		    	MetadataPropertySearchVo delSearchVo = new MetadataPropertySearchVo();
 		    	delSearchVo.setMedataSetId(medataSetId);
@@ -2120,7 +2317,7 @@ public class MetadataSetService {
 	    		metadataMapper.deleteMetadataAllByRefPropertyId(delSearchVo);
 	    	}
 	    	
-			// 7. 개수 프라퍼티 저장
+			// 8. 개수 프라퍼티 저장
 	    	if ("object_type".equals(dataDto.getValModelTypeMtcd())) {
 				List<MetadataSaveDto> cntPrptySaveDtoList = this.getCntPrptySaveDtoList(modelInfoDto, prevSetDto);
 				if (cntPrptySaveDtoList != null && cntPrptySaveDtoList.size() > 0) {
@@ -2128,8 +2325,14 @@ public class MetadataSetService {
 				}
 	    	}
 	    	
-			// 4. 카프카 전송
-			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, medataSetId, null, null);	    	
+			// 9. 카프카 전송
+			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, prevSetDto, null, null);
+			
+			// 10. 키워드 프라퍼티인 경우 influxDB에서 정크 키워드 제거
+			String dataType = dataDto.getDataTypeMtcd();
+			if (RangeDataTypeMtcd.keywordsKo.code().equals(dataType) || RangeDataTypeMtcd.keywordsEn.code().equals(dataType)) {
+				this.removeJunkKeywordFromInfluxDb(prevSetDto);
+			}
 	
 		} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 			log.info("[메타데이터 삭제] 실패/오류 (정보성) : {}", e.getMessage());
@@ -2152,7 +2355,7 @@ public class MetadataSetService {
 	 * @param checkTypeModel
 	 * @return
 	 */
-	public String createMetadataSetFromDataMap(ListOrderedMap<String, Object> dataMap, ModelVo typeModelVo, boolean checkTypeModel) {
+	public String createMetadataSetFromDataMap(ListOrderedMap<String, Object> dataMap, ModelVo typeModelVo, boolean checkTypeModel, boolean isKafkaSend) {
 		log.debug("[메타데이터 셋 등록 (from dataMap)] 서비스 시작");
 		String medataSetId = "";
 		
@@ -2161,7 +2364,10 @@ public class MetadataSetService {
 			
 			// 메타데이터 모델명 으로 메타데이터 모델 정보 조회
 			String modelNm = (String) dataMap.get(Constant.KEYWORD_META_MODEL);
-			if (StringUtils.isEmpty(modelNm)) modelNm = typeModelVo.getModelNm(); // 지정 모델명이 없으면 유형 모델로 설정.
+			if (StringUtils.isEmpty(modelNm)) {
+				if (typeModelVo == null) throw new ResBizInfoException("유형 모델이 지정되지 않았습니다.");
+				modelNm = typeModelVo.getModelNm(); // 지정 모델명이 없으면 유형 모델로 설정.
+			}
 			ModelInfoDto modelInfoDto = modelService.getModelInfoByNameFromCache(modelNm);
 			if (modelInfoDto == null) throw new ResBizInfoException("모델이 존재하지 않거나 사용할 수 없는 모델입니다.");
 			
@@ -2183,7 +2389,7 @@ public class MetadataSetService {
 
 			// 메타데이터 셋 설정
 			MetadataSetSaveDto metadataSetSaveDto = this.getMetadataSetSaveDtoFromMetadata(modelInfoDto, dataMap);
-			if (metadataSetSaveDto == null) throw new ResBadRequestException("메타데이터 셋에 필요한 정보가 없습니다.");
+			if (metadataSetSaveDto == null) throw new ResBadRequestException(4000, "메타데이터 셋에 필요한 정보가 없습니다.");
 			
 			// ID 생성 로직 - 디지털트윈 식별체계 정보가 있을 경우 설정
 			this.setIdSchmPrefix(modelInfoDto.getTypeModelId(), metadataSetSaveDto);
@@ -2192,18 +2398,23 @@ public class MetadataSetService {
 			medataSetId = this.createMetadataSet(metadataSetSaveDto, asyncUserVo);
 			
 			// 새롭게 저장된 메타데이터 셋 조회
-			metadataSetSaveDto.setSqlDateFormat(SqlDatePart.isoz.format());
+			// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+			metadataSetSaveDto.setSqlDateFormat(SqlDatePart.iso6z.format());
 			MetadataSetDto metadataSetDto = metadataSetMapper.selectMetadataSet(metadataSetSaveDto);
 			metadataSetDto.setAsyncUserVo(asyncUserVo);
 			
 			// 메타데이터 셋 특수 범위 모델의 프라퍼티들 값 설정
 			this.setMetadataSetValueToMetadata(metadataSetDto, modelInfoDto, dataMap);
 			
+			// 2-1. NOTE: 2025-07-28 표준문서 적용을 위한 하드 코딩.
+			// modelId 가 SingleDigitalTwin 단일디지털트윈, FederatedDigitalTwin 연합디지털트윈 경우만 type 강제 설정.
+			this.setInitialDigitalTwinType(medataSetId, modelInfoDto, dataMap);
+			
 			// 필수 체크
 			this.checkRequiredAndValidData(modelInfoDto, dataMap);
 			
 			// 3. 메타데이터 들 등록
-			this.createMetadataMulti(medataSetId, modelInfoDto, dataMap);
+			this.createMetadataMulti(metadataSetDto, modelInfoDto, dataMap);
 			
 			// 4. 개수 프라퍼티 저장
 			List<MetadataSaveDto> cntPrptySaveDtoList = this.getCntPrptySaveDtoList(modelInfoDto, metadataSetDto);
@@ -2212,7 +2423,9 @@ public class MetadataSetService {
 			}
 			
 			// 5. 카프카 전송
-			this.sendMetadataViaKafka(KafkaConst.ACTION_CREATE, medataSetId, null, null);
+			if (isKafkaSend) { // 2025-08-19 API 로 한번에 많은 SetID 를 생성할 경우 별도 작업
+				this.sendMetadataViaKafka(KafkaConst.ACTION_CREATE, metadataSetDto, null, null);
+			}
 
 			log.debug("[메타데이터 셋 등록 (from dataMap)] 등록 성공");		
 			
@@ -2229,7 +2442,7 @@ public class MetadataSetService {
 	}
 	
 	/**
-	 * 메타데이터 셋 수정 (from dataMap)
+	 * 메타데이터 셋 수정 (from dataMap) - 이 dataMap 에는 한 데이터 셋의 온전한 변경 목표 데이터가 있다. (셋 전체 데이터 변경)
 	 * @Author      : heenim
 	 * @Date        : 2023. 09. 05.
 	 * @param medataSetId
@@ -2261,7 +2474,7 @@ public class MetadataSetService {
 			
 			// 메타데이터 셋 설정
 			MetadataSetSaveDto metadataSetSaveDto = this.getMetadataSetSaveDtoFromMetadata(modelInfoDto, dataMap);
-			if (metadataSetSaveDto == null) throw new ResBadRequestException("메타데이터 셋에 필요한 정보가 없습니다.");
+			if (metadataSetSaveDto == null) throw new ResBadRequestException(4000, "메타데이터 셋에 필요한 정보가 없습니다.");
 			
 			// 2. 메타데이터 셋을 수정하고 셋에 해당하는 특수 메타데이터들을 저장
 			this.modifyMetadataSetAndMetadataForSet(modelInfoDto, metadataSetSaveDto);
@@ -2269,7 +2482,8 @@ public class MetadataSetService {
 			// 새롭게 저장된 메타데이터 셋 조회
 			MetadataSetVo paramVo2 = new MetadataSetVo();
 			paramVo2.setMedataSetId(medataSetId);
-			paramVo2.setSqlDateFormat(SqlDatePart.isoz.format());
+			// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+			paramVo2.setSqlDateFormat(SqlDatePart.iso6z.format());
 			MetadataSetDto metadataSetDto = metadataSetMapper.selectMetadataSet(paramVo2);
 			
 			int newRvsn = metadataSetDto.getMedataSetNwstRvsn();
@@ -2281,7 +2495,7 @@ public class MetadataSetService {
 			this.checkRequiredAndValidData(modelInfoDto, dataMap);
 						
 			// 3. 메타데이터 들 저장
-			this.modifyMetadataMulti(metadataSetDto, modelInfoDto, dataMap, newRvsn);
+			this.modifyMetadataMulti(metadataSetDto, modelInfoDto, dataMap, newRvsn, false);
 			
 			// 4. 개수 프라퍼티 저장
 			List<MetadataSaveDto> cntPrptySaveDtoList = this.getCntPrptySaveDtoList(modelInfoDto, metadataSetDto);
@@ -2290,7 +2504,12 @@ public class MetadataSetService {
 			}
 			
 			// 5. 카프카 전송
-			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, medataSetId, null, null);
+			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, metadataSetDto, null, null);
+
+			// 6. 키워드 프라퍼티가 존재하는 경우 influxDB에서 정크 키워드 제거
+			if (modelInfoDto.getKeywordPropertyNmList().size() > 0) {
+				this.removeJunkKeywordFromInfluxDb(metadataSetDto);
+			}
 			
 		} catch (ResBadRequestException | ResBizInfoException e) {
 			log.info("[메타데이터 셋 수정 (from dataMap)] 실패/오류 (정보성) : {}", e.getMessage());
@@ -2304,12 +2523,97 @@ public class MetadataSetService {
 	}
 	
 	/**
+	 * 메타데이터 셋 의 일부 데이터 수정 (from dataMap) - dataMap 에 포함된 프라퍼티(속성)에 대해서만 저장 (upsert)
+	 * 디지털 트윈 연합 레지스트리 관련 API 용.
+	 * @Author      : heenim
+	 * @Date        : 2025. 08. 21.
+	 * @param medataSetId
+	 * @param dataMap
+	 */
+	public void savePartialMetadataSetFromDataMap(String medataSetId, ListOrderedMap<String, Object> dataMap) {
+		log.debug("[메타데이터 셋 의 일부 데이터 수정 (from dataMap)] 서비스 시작");
+		int cnt = 0;
+		
+		try {
+			// 1. 유효성 체크
+			
+			// 등록/미사용 상태만 수정 가능. 사용요청/사용/폐기 상태는 수정 불가능.
+			MetadataSetDto prevSetDto = this.checkEditableAndGetMetadataSetDto(medataSetId, Constant.SET_STATUS_REG, Constant.SET_STATUS_UN);
+			
+			// 메타데이터 모델명 으로 메타데이터 모델 정보 조회
+			ModelInfoDto modelInfoDto = modelService.getModelInfoByIdFromCache(prevSetDto.getModelId());
+			if (modelInfoDto == null) throw new ResBizInfoException("모델이 존재하지 않거나 사용할 수 없는 모델입니다.");
+			
+			// 2. 메타데이터 셋 에 해당하는 프라퍼티가 있다면 저장
+			MetadataSetDto metadataSetDto = null;
+			
+			// 메타데이터 셋 설정
+			MetadataSetSaveDto metadataSetSaveDto = this.getMetadataSetSaveDtoFromMetadata(modelInfoDto, dataMap);
+			if (metadataSetSaveDto != null) { // null 아니면 해당 프라퍼티가 있는 것.
+			    String[] ignoreProps = MapperUtil.getNonNullPropertyNames(metadataSetSaveDto);
+			    BeanUtils.copyProperties(prevSetDto, metadataSetSaveDto, ignoreProps);
+			    
+				// 메타데이터 셋을 수정하고 셋에 해당하는 특수 메타데이터들을 저장
+			    cnt += this.modifyMetadataSetAndMetadataForSet(modelInfoDto, metadataSetSaveDto);
+			    log.debug("[메타데이터 셋 의 일부 데이터 수정 (from dataMap)] - {} 셋 정보 변경됨.", medataSetId);
+
+				// 새롭게 저장된 메타데이터 셋 조회
+				MetadataSetVo paramVo2 = new MetadataSetVo();
+				paramVo2.setMedataSetId(medataSetId);
+				// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+				paramVo2.setSqlDateFormat(SqlDatePart.iso6z.format());
+				metadataSetDto = metadataSetMapper.selectMetadataSet(paramVo2);
+			} else {
+				metadataSetDto = prevSetDto;
+			}
+			
+			// 일부 데이터만 저장하므로 필수 체크 안함
+			
+			int newRvsn = metadataSetDto.getMedataSetNwstRvsn();
+						
+			// 3. 메타데이터 들 저장 (dataMap에 key 값이 존재하는 것들만 저장)
+			cnt += this.modifyMetadataMulti(metadataSetDto, modelInfoDto, dataMap, newRvsn, true);
+			
+			// 변경된 것이 있다면
+			if (cnt > 0) {
+				// 4. 개수 프라퍼티 저장
+				List<MetadataSaveDto> cntPrptySaveDtoList = this.getCntPrptySaveDtoList(modelInfoDto, metadataSetDto);
+				if (cntPrptySaveDtoList != null && cntPrptySaveDtoList.size() > 0) {
+					this.saveMetadataSaveDtoList(modelInfoDto, metadataSetDto, cntPrptySaveDtoList, true, false);
+				}
+				
+				// 5. 카프카 전송
+				this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, metadataSetDto, null, null);
+	
+				// 6. 키워드 프라퍼티가 존재하는 경우 influxDB에서 정크 키워드 제거
+				if (modelInfoDto.getKeywordPropertyNmList().size() > 0) {
+					this.removeJunkKeywordFromInfluxDb(metadataSetDto);
+				}
+				
+				log.debug("[메타데이터 셋 의 일부 데이터 수정 (from dataMap)] - {} 변경됨.", medataSetId);				
+			} else {
+				log.debug("[메타데이터 셋 의 일부 데이터 수정 (from dataMap)] - {} 변경된 정보 없음.", medataSetId);
+			}
+			
+		} catch (ResBadRequestException | ResBizInfoException e) {
+			log.info("[메타데이터 셋 의 일부 데이터 수정 (from dataMap)] 실패/오류 (정보성) : {}", e.getMessage());
+			throw e;			
+		} catch (Exception e) {
+			log.error("[메타데이터 셋 의 일부 데이터 수정 (from dataMap)] 실패/오류", e);
+			throw new ResBaseRuntimeException(e);
+		}		
+		
+		log.debug("[메타데이터 셋 의 일부 데이터 수정 (from dataMap)] 서비스 종료");
+	}	
+	
+	/**
 	 * dataMap 에서 범위모델로 값을 추출하여 메타데이터 셋 저장용 Dto를 생성하고 값을 설정 후 반환.
 	 * @Author      : heenim
 	 * @Date        : 2023. 05. 11.
 	 * @param modelInfoDto
 	 * @param dataMap
 	 * @return
+	 * @modified 2025-08-26 savePartialMetadataSetFromDataMap 에서 사용시 dataMap 에 셋 칼럼의 일부만 들어올 수 있음. 필요한 프라퍼티 없는 경우 null 반환
 	 */
 	public MetadataSetSaveDto getMetadataSetSaveDtoFromMetadata(ModelInfoDto modelInfoDto, Map<String, Object> dataMap) {
 		if (modelInfoDto.getPropertyMap() == null || modelInfoDto.getPropertyMap().isEmpty()) {
@@ -2322,6 +2626,16 @@ public class MetadataSetService {
 		}
 		if (dataMap == null || dataMap.isEmpty()) {
 			log.debug("dataMap is empty.");
+			return null;
+		}
+	    // 2025-08-26 dataMap 에 셋 칼럼에 해당하는 프라퍼티가 없다면 null 반환
+	    // dataMap 에 기본 프라퍼티(idString 프라퍼티, metaModel 프라퍼티)만 있는 경우 null 반환
+	    // -> 셋 칼럼 프라퍼티 중에서 기본 프라퍼티를 제외하고 나머지 프라퍼티가 존재하는지 확인
+	    Set<String> keys = dataMap.keySet();		
+		Set<String> baseSet = Set.of(Constant.KEYWORD_META_MODEL, modelInfoDto.getSetIdPropertyNm());
+	    Set<String> allowedKeys = modelInfoDto.getPropertyNmToSetColMap().keySet();		
+	    allowedKeys.removeAll(baseSet);
+		if (java.util.Collections.disjoint(keys, allowedKeys)) { // 교집합이 없다면
 			return null;
 		}
 		
@@ -2402,7 +2716,7 @@ public class MetadataSetService {
 		try {		
 			// 1. 유효성 체크
 			
-			if (dataValList == null || dataValList.isEmpty()) throw new ResBadRequestException("메타데이터 정보가 없습니다.");
+			if (dataValList == null || dataValList.isEmpty()) throw new ResBadRequestException(4000, "메타데이터 정보가 없습니다.");
 			
 			// 등록/미사용 상태만 수정 가능. 사용요청/사용/폐기 상태는 수정 불가능.
 	    	MetadataSetDto prevSetDto = this.checkEditableAndGetMetadataSetDto(medataSetId, Constant.SET_STATUS_REG, Constant.SET_STATUS_UN);
@@ -2423,6 +2737,8 @@ public class MetadataSetService {
 			if (pDto == null) throw new ResBizInfoException("프라퍼티가 존재하지 않거나 사용할 수 없는 프라퍼티입니다.");
 			
 			if (PropertyRequired.readonly.code().equals(pDto.getModelPrptyMandMtcd())) throw new ResBizInfoException("조회전용 프라퍼티입니다.");
+			
+			String dataType = pDto.getRangeDataTypeMtcd();
 			
 			
 			// 셋 용 프라퍼티인 경우
@@ -2445,11 +2761,26 @@ public class MetadataSetService {
 				
 				this.checkRequiredAndValidDataByPropertyNm(sb, errCnt, pDto, prptyNm, dataValList);
 				
-				if (sb.length() > 0) throw new ResBadRequestException(sb.toString());
+				if (sb.length() > 0) {
+					this.trimLastNewline(sb);
+					throw new ResBadRequestException(4000, sb.toString());
+				}
+				
+				// 키워드인 경우 저장 전 목록 조회
+				List<String> prevKeywordList = null;
+		    	if (RangeDataTypeMtcd.keywordsKo.code().equals(dataType) || RangeDataTypeMtcd.keywordsEn.code().equals(dataType)) {
+	    			MetadataSearchVo paramVo = new MetadataSearchVo();
+	    			paramVo.setMedataSetId(medataSetId);
+	    			paramVo.setPrptyId(pDto.getPrptyId());
+		    		prevKeywordList = metadataMapper.selectKeywordListBySetId(paramVo);
+		    		if (prevKeywordList == null) {
+		    			prevKeywordList = new ArrayList<String>(); // not null
+		    		}
+		    	}
 				
 				// 2. 메타데이터 프라퍼티 명의 메타데이터들을 저장.
 				int newRvsn = prevSetDto.getMedataSetNwstRvsn() + 1;
-				cnt = this.saveMetadataValueListByPropertyNm(modelInfoDto, prevSetDto, prptyNm, dataValList, newRvsn);
+				cnt = this.saveMetadataValueListByPropertyNm(modelInfoDto, prevSetDto, prptyNm, dataValList, newRvsn, prevKeywordList);
 				
 				// 3. 개수 프라퍼티 저장
 				if ("object_type".equals(pDto.getRangeModelTypeMtcd())) {
@@ -2466,7 +2797,12 @@ public class MetadataSetService {
 			}
 						
 			// 5. 카프카 전송
-			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, medataSetId, null, null);
+			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, prevSetDto, null, null);
+			
+			// 6. 키워드 프라퍼티가 존재하는 경우 influxDB에서 정크 키워드 제거
+			if (modelInfoDto.getKeywordPropertyNmList().size() > 0) {
+				this.removeJunkKeywordFromInfluxDb(prevSetDto);
+			}
 		
 		} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 			log.info("[메타데이터 프라퍼티 명의 메타데이터 저장 (Multi) (with ValueList)] 실패/오류 (정보성) : {}", e.getMessage());
@@ -2555,7 +2891,13 @@ public class MetadataSetService {
 	    	this.modifyToIncreaseMetadataSetNwstRvsn(modelInfoDto, prevSetDto);
 	    	
 			// 5. 카프카 전송
-			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, medataSetId, null, null);
+			this.sendMetadataViaKafka(KafkaConst.ACTION_MODIFY, prevSetDto, null, null);
+			
+			// 6. 키워드 프라퍼티인 경우 influxDB에서 정크 키워드 제거
+			String dataType = pDto.getRangeDataTypeMtcd();
+			if (RangeDataTypeMtcd.keywordsKo.code().equals(dataType) || RangeDataTypeMtcd.keywordsEn.code().equals(dataType)) {
+				this.removeJunkKeywordFromInfluxDb(prevSetDto);
+			}
     	
 		} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 			log.info("[메타데이터 프라퍼티 명의 메타데이터 삭제] 실패/오류 (정보성) : {}", e.getMessage());
@@ -2679,9 +3021,10 @@ public class MetadataSetService {
 	 * @param prptyNm
 	 * @param dataValList
 	 * @param newRvsn
+	 * @param prevKeywordList
 	 * @return
 	 */
-	private int saveMetadataValueListByPropertyNm(ModelInfoDto modelInfoDto, MetadataSetDto metadataSetDto, String prptyNm, List<Object> dataValList, int newRvsn) {
+	private int saveMetadataValueListByPropertyNm(ModelInfoDto modelInfoDto, MetadataSetDto metadataSetDto, String prptyNm, List<Object> dataValList, int newRvsn, List<String> prevKeywordList) {
 		int cnt = 0;
 		
 		String medataSetId   = metadataSetDto.getMedataSetId();
@@ -2785,7 +3128,17 @@ public class MetadataSetService {
 		    	
 		    	// 3. 키워드인 경우 따로 저장
 		    	if (RangeDataTypeMtcd.keywordsKo.code().equals(dataType) || RangeDataTypeMtcd.keywordsEn.code().equals(dataType)) {
+		    		// 3-1. 키워드만 따로 저장
 		    		keywordService.saveKeywordList(newVo.getMedataVal(), newVo.getLangMtcd());
+
+		    		// 3-2. influxDB에 키워드 저장
+		    		InfluxDbKeywordDto keywordDto = new InfluxDbKeywordDto();
+		    		keywordDto.setKeyword(newVo.getMedataVal());
+		    		keywordDto.setLangMtcd(newVo.getLangMtcd());
+		    		keywordDto.setPrptyId(pDto.getPrptyId());
+		    		keywordDto.setMedataSetId(medataSetId);
+		    		keywordDto.setDateTimeStr(metadataSetDto.getMedataSetAmdDt());
+		    		this.saveKeywordToInfluxDb(keywordDto, prevKeywordList);
 		    	}
 	    	}
 	    }
@@ -2891,7 +3244,8 @@ public class MetadataSetService {
     		// 1. 수정 전 변경이력을 위한 셋 용 메타데이터 들 조회
     		MetadataSetVo idParamVo = new MetadataSetVo();
     		idParamVo.setMedataSetId(medataSetId);
-    		idParamVo.setSqlDateFormat(SqlDatePart.isoz.format());    		
+    		// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+    		idParamVo.setSqlDateFormat(SqlDatePart.iso6z.format());
     		List<MetadataChgHstSaveDto> prevSetValueList = metadataChgHstMapper.selectSelValueListBySetIdForChgHst(idParamVo);	    		
     		
 			// 2. 리비전 증가
@@ -2931,7 +3285,10 @@ public class MetadataSetService {
 
 		}
 		
-		if (sb.length() > 0) throw new ResBadRequestException(sb.toString());
+		if (sb.length() > 0) {
+			this.trimLastNewline(sb);
+			throw new ResBadRequestException(4000, sb.toString());
+		}
 	}
 	
 	/**
@@ -3020,6 +3377,14 @@ public class MetadataSetService {
 		
 		return errCnt;
 	}
+
+	/** 맨 끝의 \n 삭제 */
+	private void trimLastNewline(StringBuffer sb) {
+		int n = sb.length();
+		if (n > 0 && sb.charAt(n - 1) == '\n') {
+		    sb.setLength(n - 1);
+		}
+	}
 	
 	/**
 	 * 메타데이터 dataMap 에 참조 프라퍼티를 활용하여 조회전용 참조값 설정.
@@ -3069,16 +3434,21 @@ public class MetadataSetService {
 	 * 유효한 값을 가진 메타데이터 dataMap 에 있는 값들을 메타데이터 DB에 등록.
 	 * @Author      : heenim
 	 * @Date        : 2023. 05. 12.
-	 * @param medataSetId
+	 * @param metadataSetDto
 	 * @param modelInfoDto
 	 * @param dataMap
 	 * @return
 	 */
 	@SuppressWarnings("rawtypes")
-	private int createMetadataMulti(String medataSetId, ModelInfoDto modelInfoDto, Map<String, Object> dataMap) {
-		Assert.notNull(medataSetId, "medataSetId is empty.");
+	private int createMetadataMulti(MetadataSetDto metadataSetDto, ModelInfoDto modelInfoDto, Map<String, Object> dataMap) {
+		Assert.notNull(metadataSetDto, "metadataSetDto is null.");
+		Assert.notNull(metadataSetDto.getMedataSetId(), "medataSetId is empty.");
 		Assert.notNull(modelInfoDto, "modelInfoDto is null.");
 		Assert.notEmpty(dataMap, "dataMap is empty.");
+		String medataSetId = metadataSetDto.getMedataSetId();
+		
+		// 키워드인 경우 저장 전 목록를 위함
+		List<String> prevKeywordList = new ArrayList<String>(); // not null
 		
 		// 참조 프라퍼티를 활용하여 조회전용 참조값 설정.
 		this.setRefValToDataMap(modelInfoDto, dataMap);
@@ -3103,7 +3473,17 @@ public class MetadataSetService {
 							
 					    	// 키워드인 경우 따로 저장
 					    	if (RangeDataTypeMtcd.keywordsKo.code().equals(dataType) || RangeDataTypeMtcd.keywordsEn.code().equals(dataType)) {
+					    		// 키워드만 따로 저장
 					    		keywordService.saveKeywordList(newVo.getMedataVal(), newVo.getLangMtcd());
+
+					    		// influxDB에 키워드 저장
+					    		InfluxDbKeywordDto keywordDto = new InfluxDbKeywordDto();
+					    		keywordDto.setKeyword(newVo.getMedataVal());
+					    		keywordDto.setLangMtcd(newVo.getLangMtcd());
+					    		keywordDto.setPrptyId(pDto.getPrptyId());
+					    		keywordDto.setMedataSetId(medataSetId);
+					    		keywordDto.setDateTimeStr(metadataSetDto.getMedataSetAmdDt());
+					    		this.saveKeywordToInfluxDb(keywordDto, prevKeywordList);
 					    	}
 						}
 					}					
@@ -3117,8 +3497,18 @@ public class MetadataSetService {
 							
 					    	// 키워드인 경우 따로 저장
 					    	if (RangeDataTypeMtcd.keywordsKo.code().equals(dataType) || RangeDataTypeMtcd.keywordsEn.code().equals(dataType)) {
+					    		// 키워드만 따로 저장
 					    		keywordService.saveKeywordList(newVo.getMedataVal(), newVo.getLangMtcd());
-					    	}							
+
+					    		// influxDB에 키워드 저장
+					    		InfluxDbKeywordDto keywordDto = new InfluxDbKeywordDto();
+					    		keywordDto.setKeyword(newVo.getMedataVal());
+					    		keywordDto.setLangMtcd(newVo.getLangMtcd());
+					    		keywordDto.setPrptyId(pDto.getPrptyId());
+					    		keywordDto.setMedataSetId(medataSetId);
+					    		keywordDto.setDateTimeStr(metadataSetDto.getMedataSetAmdDt());
+					    		this.saveKeywordToInfluxDb(keywordDto, prevKeywordList);
+					    	}						
 						}
 					}
 				} 
@@ -3131,8 +3521,18 @@ public class MetadataSetService {
 					
 			    	// 키워드인 경우 따로 저장
 			    	if (RangeDataTypeMtcd.keywordsKo.code().equals(dataType) || RangeDataTypeMtcd.keywordsEn.code().equals(dataType)) {
+			    		// 키워드만 따로 저장
 			    		keywordService.saveKeywordList(newVo.getMedataVal(), newVo.getLangMtcd());
-			    	}					
+
+			    		// influxDB에 키워드 저장
+			    		InfluxDbKeywordDto keywordDto = new InfluxDbKeywordDto();
+			    		keywordDto.setKeyword(newVo.getMedataVal());
+			    		keywordDto.setLangMtcd(newVo.getLangMtcd());
+			    		keywordDto.setPrptyId(pDto.getPrptyId());
+			    		keywordDto.setMedataSetId(medataSetId);
+			    		keywordDto.setDateTimeStr(metadataSetDto.getMedataSetAmdDt());
+			    		this.saveKeywordToInfluxDb(keywordDto, prevKeywordList);
+			    	}				
 				}
 			}
 		}
@@ -3150,12 +3550,15 @@ public class MetadataSetService {
 	 * @param dataMap
 	 * @param newRvsn
 	 * @return
+	 * @modified 2025-08-25 ifPresent dataMap 에 키가 존재할때만 저장 하는 로직 추가. API PUT(내용 PATCH) 용
 	 */
 	@SuppressWarnings({"rawtypes", "unchecked"})
-	private int modifyMetadataMulti(MetadataSetDto metadataSetDto, ModelInfoDto modelInfoDto, Map<String, Object> dataMap, int newRvsn) {
+	private int modifyMetadataMulti(MetadataSetDto metadataSetDto, ModelInfoDto modelInfoDto, Map<String, Object> dataMap, int newRvsn, boolean ifPresent) {
 		Assert.notNull(metadataSetDto, "metadataSetDto is null.");
 		Assert.notNull(modelInfoDto, "modelInfoDto is null.");
 		Assert.notEmpty(dataMap, "dataMap is empty.");
+		
+		String medataSetId = metadataSetDto.getMedataSetId();
 		
 		// 참조 프라퍼티를 활용하여 조회전용 참조값 설정.
 		this.setRefValToDataMap(modelInfoDto, dataMap);
@@ -3164,8 +3567,27 @@ public class MetadataSetService {
 		for (Map.Entry<String, ModelPropertyInfoDto> pMap : modelInfoDto.getPropertyMap().entrySet()) {
 			ModelPropertyInfoDto pDto = pMap.getValue();
 			String prptyNm            = pMap.getKey();
+			
+			// 2025-08-25 ifPresent 경우 dataMap 에 존재하는 key 에 대해서는 저장 처리. 없으면 SKIP. 그 외 경우는 dataMap 전체가 한 Set 의 데이터라고 봄.
+			if (ifPresent && !dataMap.containsKey(prptyNm)) {
+				continue;
+			}
+			
 			boolean isArrayProperty   = StringUtils.equals("Y", pDto.getDataArrayYn()); // 배열 데이터 여부
 			List<Object> dataValList  = null;
+			String dataType           = pDto.getRangeDataTypeMtcd();
+			
+			// 키워드인 경우 저장 전 목록 조회
+			List<String> prevKeywordList = null;
+	    	if (RangeDataTypeMtcd.keywordsKo.code().equals(dataType) || RangeDataTypeMtcd.keywordsEn.code().equals(dataType)) {
+    			MetadataSearchVo paramVo = new MetadataSearchVo();
+    			paramVo.setMedataSetId(medataSetId);
+    			paramVo.setPrptyId(pDto.getPrptyId());
+	    		prevKeywordList = metadataMapper.selectKeywordListBySetId(paramVo);
+	    		if (prevKeywordList == null) {
+	    			prevKeywordList = new ArrayList<String>(); // not null
+	    		}
+	    	}
 			
 			// 새 값
 			if (isArrayProperty) {
@@ -3189,7 +3611,7 @@ public class MetadataSetService {
 				List<Object> deleteValList = new ArrayList<>();
 				
 				MetadataPropertySearchVo paramVo = new MetadataPropertySearchVo();
-				paramVo.setMedataSetId(metadataSetDto.getMedataSetId());
+				paramVo.setMedataSetId(medataSetId);
 				paramVo.setPrptyNm(prptyNm);
 				List<MetadataPropertyDto> prevDataList = metadataMapper.selectMetadataListByPropertyNm(paramVo);
 				if (prevDataList != null && !prevDataList.isEmpty()) {
@@ -3230,11 +3652,11 @@ public class MetadataSetService {
 			}
 			
 			// 프라퍼티 별로 저장
-			cnt += this.saveMetadataValueListByPropertyNm(modelInfoDto, metadataSetDto, prptyNm, dataValList, newRvsn);
+			cnt += this.saveMetadataValueListByPropertyNm(modelInfoDto, metadataSetDto, prptyNm, dataValList, newRvsn, prevKeywordList);
 			
 		}
 		
-		log.debug("{} 메타데이터 {}건 저장함", metadataSetDto.getMedataSetId(), cnt);
+		log.debug("{} 메타데이터 {}건 저장함", medataSetId, cnt);
 		return cnt;
 	}
 	
@@ -3264,7 +3686,7 @@ public class MetadataSetService {
 	 * @return (medataId 값이 없는 경우 nullable)
 	 */
 	private MetadataVo getMetadataVoFromMetadata(String medataSetId, Object valObj, String langMtcd, ModelPropertyInfoDto pDto, String medataId) {
-		String dataType =  pDto.getRangeDataTypeMtcd();
+		String dataType = pDto.getRangeDataTypeMtcd();
 		log.debug("{} - {}, dataType : {}, valObj : {}", medataSetId, pDto.getPrptyNm(), dataType, valObj);		
 		
 		String val = valObj == null ? null : String.valueOf(valObj);
@@ -3321,18 +3743,27 @@ public class MetadataSetService {
 				}
 				
 			} else if (RangeDataTypeMtcd.createDateTime.code().equals(dataType)) {
-				vo.setMedataVal(DateUtil.toISOTimeStr(val));
+				// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+				vo.setMedataVal(DateUtil.toISO6TimeStr(val));
 				
 			} else if (RangeDataTypeMtcd.updateDateTime.code().equals(dataType)) {
-				vo.setMedataVal(DateUtil.toISOTimeStr(val));
+				// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+				vo.setMedataVal(DateUtil.toISO6TimeStr(val));
 				
 			} else if (RangeDataTypeMtcd.dateTime.code().equals(dataType)) {
-				vo.setMedataVal(DateUtil.toISOTimeStr(val));
+				// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+				vo.setMedataVal(DateUtil.toISO6TimeStr(val));
 				
 			} else if (RangeDataTypeMtcd.boolean_.code().equals(dataType)) {
-				vo.setMedataVal(val.toLowerCase()); // 소문자로 true/false 만				
+				vo.setMedataVal(val.toLowerCase()); // 소문자로 true/false 만
 				
 			} else if (RangeDataTypeMtcd.json.code().equals(dataType)) {
+				vo.setMedataVal(this.toJsonStr(valObj));
+				
+			} else if (RangeDataTypeMtcd.address.code().equals(dataType)) { // 2025-07 표준문서 관련 데이터타입 추가. TODO 필요시 변경
+				vo.setMedataVal(this.toJsonStr(valObj));
+				
+			} else if (RangeDataTypeMtcd.dataInfo.code().equals(dataType)) { // 2025-07 표준문서 관련 데이터타입 추가. TODO 필요시 변경
 				vo.setMedataVal(this.toJsonStr(valObj));
 				
 			} else if (RangeDataTypeMtcd.geoJson.code().equals(dataType)) {
@@ -3370,7 +3801,8 @@ public class MetadataSetService {
 	private String toJsonStr(Object valObj) {
 		String jsonStr = null;
 		if (valObj instanceof String) {
-			jsonStr = (String) valObj;
+			// 2025-08-08 아래로 변경.jsonStr = (String) valObj;
+			jsonStr = MapperUtil.stringify((String) valObj);
 		} else {
 			jsonStr = JsonUtil.toJson(valObj);
 		}	
@@ -3414,24 +3846,56 @@ public class MetadataSetService {
 	 * @Author      : heenim
 	 * @Date        : 2024. 03. 19.
 	 * @param action
-	 * @param medataSetId
-	 * @param delData
+	 * @param metadataSetDto
+	 * @param delDataMap
+	 * @param delUpSetList
+	 * @modified 2025. 08. 19 디지털 트윈 연합 레지스트리 관련 API 위해 pubic 메서드로 변경.
 	 */
-	private void sendMetadataViaKafka(String action, String medataSetId, ListOrderedMap<String, Object> delDataMap, List<CamelCaseMap> delUpSetList) {
+	@SuppressWarnings("unchecked")
+	public void sendMetadataViaKafka(String action, MetadataSetDto metadataSetDto, ListOrderedMap<String, Object> delDataMap, List<CamelCaseMap> delUpSetList) {
 		log.debug("[메타데이터 변경시 카프카 전송] action: {}", action);
 		ListOrderedMap<String, Object> dataMap = null;
 		List<CamelCaseMap> upSetList = null;
 		
+		String medataSetId = metadataSetDto.getMedataSetId();
+		String typeModelId = metadataSetDto.getTypeModelId();
+		
+		final MetadataElasticJsonMap medataSetMap;
+		final VectorStoreDto vectorStoreDto;
+		final String jwtToken = AuthUtil.getCurrentJwtToken();
+		
 		if (KafkaConst.ACTION_DELETE.equals(action)) {
 			dataMap = delDataMap;
 			upSetList = delUpSetList;
+			medataSetMap = new MetadataElasticJsonMap();
+			vectorStoreDto = null;
 			
 		} else {
 			dataMap = this.getMetadataForKafka(medataSetId);
+			
 			MetadataSearchVo metadataSearchVo = new MetadataSearchVo();
 			metadataSearchVo.setIsPaging(false);
 			metadataSearchVo.setMedataSetId(medataSetId);
+			metadataSearchVo.setSqlDateFormat(typeModelId);
 			upSetList = metadataSetMapper.selectMetadataSetDtwListBySubSetId(metadataSearchVo);
+			
+			MetadataSetDto setDto = new MetadataSetDto();
+			setDto.setMedataSetId(medataSetId);
+			setDto.setArrayDataLimitYn("N");
+			
+			medataSetMap =  metadataApiMapper.selectMetadataToJsonStrBySetIdAsText(setDto);
+			
+			// 벡터 저장 위한 조회
+			// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+			metadataSearchVo.setSqlDateFormat(SqlDatePart.iso6z.format());
+			vectorStoreDto = metadataSetMapper.selectMetadataSetForVectorStore(metadataSearchVo);
+			if (vectorStoreDto != null && upSetList != null) {
+				if (vectorStoreDto.getCustomFields() == null) {
+					vectorStoreDto.setCustomFields(Map.of("upSetList", upSetList));
+				} else {
+					vectorStoreDto.getCustomFields().put("upSetList", upSetList);
+				}
+			}
 		}
 		
 		Map<String, Object> sendData = new HashMap<>();
@@ -3440,30 +3904,224 @@ public class MetadataSetService {
 		sendData.put("metadata", dataMap);
 		sendData.put("upSetList", upSetList);
 		
-		myKafkaProducer.send(KafkaConst.TOPIC_DT_META_CHANGELOG, sendData); // async 보내고 끝
+		if(myKafkaProducer != null) {			
+			myKafkaProducer.send(KafkaConst.TOPIC_DT_META_CHANGELOG, sendData); // async 보내고 끝
+		}
 
-		//elasticSearch 저장/삭제
-		CompletableFuture.runAsync(() -> { // TODO 비동기 처리	
+		// elasticSearch 저장/삭제
+		CompletableFuture.runAsync(() -> { // 비동기 처리	
 			try {
 				
 				if (KafkaConst.ACTION_DELETE.equals(action)) {
 					elasticSearchService.deleteElasticData(medataSetId);
 				}
 				else {
-					MetadataSetDto setDto = new MetadataSetDto();
-					setDto.setMedataSetId(medataSetId);
-					setDto.setArrayDataLimitYn("N");
-					ListOrderedMap<String, Object> medataSetMap = metadataApiMapper.selectMetadataToJsonStrBySetIdAsText(setDto);
 					elasticSearchService.saveElasticKafkaData(medataSetId, medataSetMap);
 				}
 				
 			} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 				log.error("[메타데이터 변경시 카프카 전송] ElasticSearch에 메타데이터 셋 정보 저장/삭제 실패/오류 (SKIP) : {} - {}", medataSetId, e.getReason());
 			} catch (Exception e) {
-				log.error("[메타데이터 변경시 카프카 전송] ElasticSearch에 메타데이터 셋 정보 저장 실패/오류 (SKIP) - {}", medataSetId, e);
+				log.error("[메타데이터 변경시 카프카 전송] ElasticSearch에 메타데이터 셋 정보 저장/삭제 실패/오류 (SKIP) : {}", medataSetId, e);
 			}
 		}, elasticSearchExecutor);
 		
+		// 벡터 서버를 통해 elasticSearch 에 벡터 저장/삭제
+		if (KafkaConst.ACTION_DELETE.equals(action) || vectorStoreDto != null) {
+			CompletableFuture.runAsync(() -> { // 비동기 처리
+				try {
+					
+					if (KafkaConst.ACTION_DELETE.equals(action)) {
+						vectorSearchService.deleteVector(medataSetId, jwtToken);
+					}
+					else {
+						vectorSearchService.sendToVectorServer(vectorStoreDto, jwtToken);
+					}
+					
+				} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
+					log.error("[메타데이터 변경시 카프카 전송] 벡터 서버에 저장/삭제 요청 실패/오류 (SKIP) : {} - {}", medataSetId, e.getReason());
+				} catch (Exception e) {
+					log.error("[메타데이터 변경시 카프카 전송] 벡터 서버에 저장/삭제 요청 실패/오류 (SKIP) : {}", medataSetId, e);
+				}
+			}, elasticSearchExecutor);
+		}
+				
+		// influx db 저장
+		CompletableFuture.runAsync(() -> { // 비동기 처리
+			try {
+                ListOrderedMap<String, Object> influxDbJson = new ListOrderedMap<>();
+                influxDbJson.put("action", action);
+                influxDbJson.put("metadata", medataSetMap);
+                influxDbService.addMetadataAsync(InfluxDbMetadataVo.dataMapToDto(medataSetId, typeModelId, influxDbJson));
+            } catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
+                log.error("[메타데이터 변경시 카프카 전송] InfluxDB에 메타데이터 셋 정보 저장/삭제 실패/오류 (SKIP) : {} - {}", medataSetId, e.getReason());
+            } catch (Exception e) {
+                log.error("[메타데이터 변경시 카프카 전송] InfluxDB에 메타데이터 셋 정보 저장/삭제 실패/오류 (SKIP) : {}", medataSetId, e);
+            }
+		}, influxExecutor);
+		
+	}
+
+	/**
+	 * 지형지물 코드 - 메타데이터 셋 등록 시,지형지물 코드 중복확인 여부 조회
+	 * ( 메타데이터 유형 모델, 식별체계 - 국가코드, 식별체계 - 분류코드, 식별체계 - 코드(지형지물) )
+	 * @Date        : 2025. 07. 31.
+	 * @param metadataSetSaveDto
+	 * @return resMap
+	 */
+	// 2025-08-08 로직 변경으로 사용할 일이 없어짐. 지형지물도 일련번호 자동생성.
+//	public Map<String, Boolean> checkMetadatasetsIdByIdSchms(MetadataSetSaveDto metadataSetSaveDto) {
+//		log.debug("[지형지물 코드 - 메타데이터 셋 등록 시,지형지물 코드 중복확인 여부 조회] 서비스 시작 ");
+//		Map<String, Boolean> resMap = new HashMap<>();
+//		try {
+//			// 메타데이터셋 data 의 model id >> 유형 모델 id 와 동일 
+//			String typeModelId = metadataSetSaveDto.getModelId();
+//			this.setIdSchmPrefix(typeModelId, metadataSetSaveDto);
+//			// 지형지물 코드의 경우, 메타데이터셋 id 로 사용되는 prefix 와 식별체계 컬럼에 대한 중복 여부 확인 
+//			boolean isDuplicatedMetadatasetsIdByIdSchms = metadataSetMapper.checkMetadatasetsIdByIdSchms(metadataSetSaveDto);
+//			resMap.put("duplicated", isDuplicatedMetadatasetsIdByIdSchms);
+//		} catch (Exception e) {
+//			log.debug("[지형지물 코드 - 메타데이터 셋 등록 시,지형지물 코드 중복확인 여부 조회] 서비스 실패 ");
+//			throw new ResBaseRuntimeException(e);
+//		}
+//		log.debug("[지형지물 코드 - 메타데이터 셋 등록 시,지형지물 코드 중복확인 여부 조회] 서비스 종료 ");
+//		return resMap;
+//	}
+
+	/**
+	 * influxDB 에 키워드 저장
+	 * @Author      : heenim
+	 * @Date        : 2025. 02. 04.
+	 * @param dto
+	 * @param prevKeywordList
+	 */
+	public void saveKeywordToInfluxDb(InfluxDbKeywordDto dto, List<String> prevKeywordList) {
+		Assert.notNull(prevKeywordList, "prevKeywordList is null.");
+		dto.setKeyword(StringUtils.trimToNull(dto.getKeyword()));
+		
+		if (dto.getKeyword() == null || dto.getKeyword().isEmpty()) { 
+			return; // 기존에 있던 키워드를 삭제한 것에 대해서는 나중에 junk 데이터 삭제로 처리.
+		}
+		
+		if (dto.getKeyword().indexOf(",") == -1) {
+			if (prevKeywordList.indexOf(dto.getKeyword()) != -1) {
+				return; // 해당 메타데이터 셋에 이미 존재하는 키워드
+			}
+			
+			this.addKeywordToInfluxDb(dto);
+			prevKeywordList.add(dto.getKeyword());
+			
+		} else { // "," 로 나열되어 있으면 분리해서 저장
+			List<String> list = Arrays.asList(dto.getKeyword().split(","));
+			InfluxDbKeywordDto eachDto = new InfluxDbKeywordDto();
+			BeanUtils.copyProperties(dto, eachDto);
+			for (String keyword : list) {
+				keyword = StringUtils.trimToNull(keyword);
+				if (keyword != null) {
+					if (prevKeywordList.indexOf(keyword) != -1) {
+						continue; // 해당 메타데이터 셋에 이미 존재하는 키워드
+					}
+					
+					eachDto.setKeyword(keyword);
+					this.addKeywordToInfluxDb(eachDto);
+					prevKeywordList.add(keyword);
+				}
+			}
+		}
 	}
 	
+	/**
+	 * 키워드 유효성 확인 후 실제 influxDB에 추가
+	 * @Author      : heenim
+	 * @Date        : 2025. 02. 04.
+	 * @param dto
+	 */
+	private void addKeywordToInfluxDb(InfluxDbKeywordDto dto) {
+		// 싱크가 안맞아서 동기 처리로 변경.
+		try {
+			InfluxDbKeywordVo keywordVo = new InfluxDbKeywordVo(dto);
+			influxDbService.addKeywordData(keywordVo);
+			
+		} catch (IllegalArgumentException e) {
+			log.error("[메타데이터 저장] InfluxDB에 키워드 정보 저장 실패/오류 (SKIP) : {}", dto.getMedataSetId(), e.getMessage());
+		} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
+			log.error("[메타데이터 저장] InfluxDB에 키워드 정보 저장 실패/오류 (SKIP) : {} - {}", dto.getMedataSetId(), e.getReason());
+		} catch (Exception e) {
+			log.error("[메타데이터 저장] InfluxDB에 키워드 정보 저장 실패/오류 (SKIP) : {}", dto.getMedataSetId(), e);
+		}
+	}
+	
+	/**
+	 * influxDB에서 정크 키워드 제거
+	 * @Author      : heenim
+	 * @Date        : 2025. 02. 11.
+	 * @param metadataSetDto
+	 */
+	@SuppressWarnings("unchecked")
+	private void removeJunkKeywordFromInfluxDb(MetadataSetDto metadataSetDto) {
+		// 싱크가 안맞아서 동기 처리로 변경.
+		Assert.notNull(metadataSetDto, "metadataSetDto is null.");		
+		String medataSetId = metadataSetDto.getMedataSetId();
+		String regDt       = metadataSetDto.getMedataSetRegDt();
+		String logRegrId   = AuthUtil.getLoginUserId();
+		
+		// InfluxDB 키워드 용 메타데이터 목록 조회
+		MetadataSearchVo paramVo = new MetadataSearchVo();
+		paramVo.setMedataSetId(medataSetId);
+		List<InfluxDbKeywordDto> list = metadataMapper.selectMetadataListForInfluxDbKeyword(paramVo);
+		int rdbCnt = list != null ? list.size() : 0;
+		log.debug("[influxDB에서 정크 키워드 제거] PostgreSQL 현재 건수: {}", rdbCnt); // 원본이라 친다.
+		
+		// InfluxDB 의 키워드 목록 조회
+		List<JSONObject> keywordList = influxDbService.getKeywordDataBySetId(medataSetId, regDt, null);
+		int influxDbCnt = keywordList != null ? keywordList.size() : 0;
+		log.debug("[influxDB에서 정크 키워드 제거] influxDB 대상 건수: {}", influxDbCnt);
+
+		try {
+			int delCnt = 0;
+			if (keywordList != null && influxDbCnt > 0 && rdbCnt < influxDbCnt) {
+				if (list == null) {
+					// 셋 ID 로 InfluxDB에서 키워드 측정 데이터 삭제
+					influxDbService.deleteKeywordDataBySetId(medataSetId, logRegrId, regDt, null);
+					delCnt = influxDbCnt;
+					
+				} else {
+					for (JSONObject json : keywordList) {
+						String id      = String.valueOf(json.getOrDefault("id", ""));
+						String word    = String.valueOf(json.getOrDefault("word", ""));
+						String prptyId = String.valueOf(json.getOrDefault("prptyId", ""));
+						String lang    = String.valueOf(json.getOrDefault("lang", ""));
+						
+						// 동일 값을 현재 RDB에서 찾음. null 이면 현재 존재하지 않는 키워드. 정크 데이터.					
+						InfluxDbKeywordDto dto = list.stream()
+								.filter(x ->    InfluxUtil.equalsInTagFormat(id, x.getMedataSetId()) 
+										     && InfluxUtil.equalsInTagFormat(word, x.getKeyword())
+										     && InfluxUtil.equalsInTagFormat(prptyId, x.getPrptyId())
+										     && InfluxUtil.equalsInTagFormat(lang, x.getLangMtcd()))
+								.findFirst()
+								.orElse(null);
+						
+						if (dto == null) {
+							// 정크 데이터 삭제
+							InfluxDbKeywordVo delVo = new InfluxDbKeywordVo();
+							delVo.setId(id);
+							delVo.setWord(word);
+							delVo.setPrptyId(prptyId);
+							delVo.setLang(lang);
+							influxDbService.deleteKeywordData(delVo, regDt, null);
+							delCnt++;
+						}
+					}
+				}		
+			}
+			log.debug("[influxDB에서 정크 키워드 제거] 삭제 건수: {}", delCnt);
+			
+		} catch (IllegalArgumentException e) {
+			log.error("[influxDB에서 정크 키워드 제거] 실패/오류 (SKIP) : {}", medataSetId, e.getMessage());
+		} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
+			log.error("[influxDB에서 정크 키워드 제거] 실패/오류 (SKIP) : {} - {}", medataSetId, e.getReason());
+		} catch (Exception e) {
+			log.error("[influxDB에서 정크 키워드 제거] 실패/오류 (SKIP) : {}", medataSetId, e);
+		}
+	}
 }

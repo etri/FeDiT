@@ -218,6 +218,7 @@
              , t1.id_schm_type
              , c3.mtcd_nm		AS id_schm_type_nm
              , t1.id_schm_cd
+             , t1.id_schm_cd2
           FROM dtmeta.tb_meta_dataset t1
           LEFT OUTER JOIN dtmeta.tb_meta_model  t2  ON t1.model_id = t2.model_id
           LEFT OUTER JOIN dtmeta.tb_meta_model  t4  ON t2.type_model_id = t4.model_id
@@ -255,9 +256,10 @@
              , id_schm_cntry_cd
              , id_schm_type
              , id_schm_cd
+             , id_schm_cd2
 			 ) VALUES 
 			 ( 
-			   #{medataSetId}			 			 
+			   #{medataSetId}
 			 , #{modelId}
 			 , #{medataSetNm}
 			 , #{medataSetLogicNm}
@@ -274,28 +276,34 @@
 			 , #{idSchmCntryCd}
 			 , #{idSchmType}
 			 , #{idSchmCd}
+			 , #{idSchmCd2}
 			 )
 	</insert>
 	
     <insert id="insertMetadataSetAutoKey" parameterType="metadataSetVo">
 	    <selectKey keyProperty="medataSetId" keyColumn="medata_set_id" resultType="string" order="BEFORE">
-            <if test='@org.apache.commons.lang3.StringUtils@equals(idSchmYearUseYn, "Y")'>
-				SELECT CONCAT(#{idSchmPrefix}, yyyy, LPAD(CAST(COALESCE(new_val, 1) AS VARCHAR), 4, '0'))
-				  FROM (
-				        SELECT TO_CHAR(CURRENT_DATE, 'YYYY')  AS yyyy
-				             , MAX( SUBSTRING(medata_set_id, OCTET_LENGTH(#{idSchmPrefix} || TO_CHAR(CURRENT_DATE, 'YYYY')) + 1)::int ) + 1  AS new_val
-				          FROM dtmeta.tb_meta_dataset
-				         WHERE medata_set_id LIKE #{idSchmPrefix} || TO_CHAR(CURRENT_DATE, 'YYYY') || '%'
-				       ) key1
-			 </if>
-			 <if test='!@org.apache.commons.lang3.StringUtils@equals(idSchmYearUseYn, "Y")'>
-	            SELECT CONCAT(#{idSchmPrefix}, LPAD(CAST(COALESCE(new_val, 1) AS VARCHAR), 4, '0'))
-	              FROM (
-	                    SELECT MAX( SUBSTRING(medata_set_id, OCTET_LENGTH(#{idSchmPrefix}) + 1)::int ) + 1  AS new_val
-	                      FROM dtmeta.tb_meta_dataset
-	                     WHERE medata_set_id LIKE #{idSchmPrefix} || '%'
-	                   ) key2			 
-			 </if>
+            <if test='@org.apache.commons.lang3.StringUtils@equals(idSchmSeqGenYn, "Y")'>
+	            <if test='@org.apache.commons.lang3.StringUtils@equals(idSchmYearUseYn, "Y")'>
+					SELECT CONCAT(#{idSchmPrefix}, yyyy, LPAD(CAST(COALESCE(new_val, 1) AS VARCHAR), 4, '0'))
+					  FROM (
+					        SELECT TO_CHAR(CURRENT_DATE, 'YYYY')  AS yyyy
+					             , MAX( SUBSTRING(medata_set_id, OCTET_LENGTH(#{idSchmPrefix} || TO_CHAR(CURRENT_DATE, 'YYYY')) + 1)::int ) + 1  AS new_val
+					          FROM dtmeta.tb_meta_dataset
+					         WHERE medata_set_id LIKE #{idSchmPrefix} || TO_CHAR(CURRENT_DATE, 'YYYY') || '%'
+					       ) key1
+				 </if>
+				 <if test='!@org.apache.commons.lang3.StringUtils@equals(idSchmYearUseYn, "Y")'>
+		            SELECT CONCAT(#{idSchmPrefix}, LPAD(CAST(COALESCE(new_val, 1) AS VARCHAR), 4, '0'))
+		              FROM (
+		                    SELECT MAX( SUBSTRING(medata_set_id, OCTET_LENGTH(#{idSchmPrefix}) + 1)::int ) + 1  AS new_val
+		                      FROM dtmeta.tb_meta_dataset
+		                     WHERE medata_set_id LIKE #{idSchmPrefix} || '%'
+		                   ) key2
+				 </if>
+            </if>
+            <if test='!@org.apache.commons.lang3.StringUtils@equals(idSchmSeqGenYn, "Y")'>
+                SELECT #{idSchmPrefix}
+            </if>
 	    </selectKey>    
         INSERT /* SQL_ID: MetadataSetMapper.insertMetadataSet */
                INTO dtmeta.tb_meta_dataset
@@ -316,9 +324,10 @@
              , id_schm_cntry_cd
              , id_schm_type
              , id_schm_cd
+             , id_schm_cd2
              ) VALUES 
              ( 
-               #{medataSetId}                        
+               #{medataSetId}
              , #{modelId}
              , #{medataSetNm}
              , #{medataSetLogicNm}
@@ -335,6 +344,7 @@
              , #{idSchmCntryCd}
              , #{idSchmType}
              , #{idSchmCd}
+             , #{idSchmCd2}
              )
     </insert>	
 	
@@ -436,5 +446,58 @@
 		<include refid="limitPage"/>
     </select>
     
+    <!-- TODO custom_fields 에 우선 고정을 해본다. -->
+    <select id="selectMetadataSetForVectorStore" parameterType="metadataSearchVo" resultType="vectorStoreDto">
+        SELECT /* SQL_ID: MetadataSetMapper.selectMetadataSetForVectorStore */    
+               t1.medata_set_id
+             , t1.medata_set_nm
+             , t1.medata_set_desc                      
+             , t3.model_nm        AS meta_type_model                
+             , t2.model_nm        AS meta_model
+             , t1.medata_set_regr_id
+             , TO_CHAR(t1.medata_set_reg_dt, #{sqlDateFormat})  AS medata_set_reg_dt
+             , TO_CHAR(t1.medata_set_amd_dt, #{sqlDateFormat})  AS medata_set_amd_dt    
+             , (
+                    SELECT jsonb_object_agg(
+                              a2.prpty_nm
+                            , CASE WHEN a3.data_type_mtcd = 'langString' THEN jsonb_build_object('language', a1.lang_mtcd, 'value', a1.medata_val)
+                                   WHEN a3.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(a1.geodata_val)::jsonb
+                                   WHEN a3.data_type_mtcd in ('json', 'address', 'dataInfo') THEN a1.medata_val::jsonb
+                                   ELSE to_jsonb(a1.medata_val)
+                              END
+                           )
+                      FROM dtmeta.tb_meta_data a1
+                     INNER JOIN dtmeta.tb_meta_property a2  ON a1.prpty_id = a2.prpty_id AND a2.prpty_data_sttus_mtcd = 'use'
+                     INNER JOIN dtmeta.tb_meta_model    a3  ON a1.val_model_id = a3.model_id
+                     WHERE a1.medata_set_id = t1.medata_set_id
+                       AND ( a2.prpty_id = 'owner' OR a2.cnt_prpty_yn = 'Y')
+                ) AS custom_fields
+          FROM dtmeta.tb_meta_dataset t1
+          LEFT OUTER JOIN dtmeta.tb_meta_model  t2  ON t1.model_id = t2.model_id
+          LEFT OUTER JOIN dtmeta.tb_meta_model  t3  ON t2.type_model_id = t3.model_id
+         WHERE t1.medata_set_id   =  #{medataSetId}
+    </select>
+    
+	<select id="checkMetadatasetsIdByIdSchms" resultType="boolean">
+		SELECT /* SQL_ID: MetadataSetMapper.checkMetadatasetsIdByIdSchms */
+			EXISTS (
+				SELECT 1
+				FROM dtmeta.tb_meta_dataset t1
+				WHERE
+					t1.model_id = #{modelId}
+					AND (
+					t1.medata_set_id = #{idSchmPrefix}
+						OR (
+						t1.id_schm_cntry_cd = #{idSchmCntryCd}
+							AND t1.id_schm_type = #{idSchmType}
+							AND t1.id_schm_cd = #{idSchmCd}
+							<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(idSchmCd2)">
+							AND t1.id_schm_cd2 = #{idSchmCd2}
+							</if>
+					)
+				)
+			)
+	</select>
+	
 </mapper>
 

@@ -70,7 +70,7 @@ public class AsyncConfig {
 	Executor elasticSearchExecutor() {
 		ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
 		taskExecutor.setCorePoolSize(2);
-		taskExecutor.setMaxPoolSize(2);
+		taskExecutor.setMaxPoolSize(4);
 		taskExecutor.setQueueCapacity(300);
 		taskExecutor.setThreadNamePrefix("ELASTICSEARCH-JOB-");
 //		taskExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
@@ -88,6 +88,29 @@ public class AsyncConfig {
 		
 		return taskExecutor;
 	}
+	
+	@Bean(name = "influxExecutor")
+	Executor influxExecutor() {
+		ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
+		taskExecutor.setCorePoolSize(2);
+		taskExecutor.setMaxPoolSize(4);
+		taskExecutor.setQueueCapacity(300);
+		taskExecutor.setThreadNamePrefix("INFLUX-JOB-");
+//		taskExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+		taskExecutor.setRejectedExecutionHandler(new RejectedExecutionHandler() {
+			@Override
+			public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+				try {
+					executor.getQueue().put(r);
+				} catch (InterruptedException e) {
+					throw new RejectedExecutionException("수집 작업 rejectedExecution 중 InterruptedException 발생.", e);
+				}
+			}
+		});	
+		taskExecutor.initialize();
+		
+		return taskExecutor;
+	}	
 	
 	@Bean(name = "collectExecutor")
 	Executor collectExecutor() {

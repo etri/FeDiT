@@ -24,4 +24,13 @@ public class ResBadRequestException extends ResBaseRuntimeException {
 		super(HttpStatus.BAD_REQUEST, reason, cause);
 	}
 	
+    // apiResCode 지정 생성자
+    public ResBadRequestException(int apiResCode, String reason) {
+        super(apiResCode, HttpStatus.BAD_REQUEST, reason);
+    }
+
+    public ResBadRequestException(int apiResCode, String reason, Throwable cause) {
+        super(apiResCode, HttpStatus.BAD_REQUEST, reason, cause);
+    }	
+	
 }

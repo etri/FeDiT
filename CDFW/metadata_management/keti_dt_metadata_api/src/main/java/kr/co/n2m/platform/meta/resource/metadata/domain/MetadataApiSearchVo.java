@@ -3,6 +3,7 @@ package kr.co.n2m.platform.meta.resource.metadata.domain;
 import java.io.Serializable;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
@@ -58,8 +59,21 @@ public class MetadataApiSearchVo extends PageVo implements Serializable {
 	private String digitalTwinId;
 	
 	@Schema(description="metaTypeModel 을 조회할지 여부")
-	private String metaTypeNodelShowYn = "N";
+	private String metaTypeModelShowYn = "N";
 	
+	@Schema(description="배열 데이터 조회 제한 건수", defaultValue="20")
+	private int arrayDataLimit = 20;
+	
+	@Schema(description="object 참조 형식 : none/id/object", defaultValue="none")
+	private String objectRefFormat = "none";
+	
+	@Schema(description="디지털트윈의 객체 타입 속성(프라퍼티명)")
+	private String dtwObjsAttr;
+	
+	@Schema(description="디지털트윈의 객체 타입 속성(프라퍼티명) 존재 여부")
+	public boolean getHasDtwObjsAttr() {
+		return StringUtils.isNotEmpty(dtwObjsAttr);
+	}
 	
 	public MetadataApiSearchVo() { /* default 생성자 */ }
 	

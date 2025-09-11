@@ -1,5 +1,7 @@
 package kr.co.n2m.platform.meta.schema.idscheme.controller;
 
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -194,6 +196,50 @@ public class IdSchemeCodeController extends ResponseComponent {
 		compareUniqueId(idSchmCd, idSchemeCodeVo.getIdSchmCd());
 		idSchemeCodeService.modifyIdSchemeFacilityCode(idSchemeCodeVo);
 		return makeResponseEntity(new ResultIdVo(idSchemeCodeVo.getIdSchmCd()));
+	}
+	
+	@Operation(summary="식별체계 - 객체 - 지형지물 코드 목록 조회")
+	@GetMapping("/api/v1/schema/featurecodes")
+	public ResponseEntity<Object> getIdSchemeFeatureCodeList(IdSchemeSearchVo searchVo) {
+		return makeResponseEntity(idSchemeCodeService.getIdSchemeFeatureCodeList(searchVo));
+	}
+	
+	@Operation(summary="식별체계 - 객체 - 지형지물 코드 상세 조회 ")
+	@GetMapping("/api/v1/schema/featurecodes/{idSchmCd}")
+	public ResponseEntity<Object> getIdSchemeFeatureCode(
+			@Parameter(name="idSchmCd", description="식별체계 코드") @PathVariable String idSchmCd) {
+		IdSchemeCodeDto dto = idSchemeCodeService.getIdSchemeFeatureCode(idSchmCd);
+		if (dto == null) throw new ResNotFoundException("객체 - 지형지물 코드 데이터가 존재하지 않습니다.");
+		return makeResponseEntity(dto);
+	}
+	
+	@Operation(summary="식별체계 - 객체 - 지형지물 코드 등록")
+	@PostMapping("/api/v1/schema/featurecodes")
+	public ResponseEntity<Object> createIdSchemeFeatureCode(
+			@RequestBody IdSchemeCodeVo idSchemeCodeVo) {
+		log.debug(idSchemeCodeVo.toString());
+		String result = idSchemeCodeService.createIdSchemeFeatureCode(idSchemeCodeVo);
+		return makeResponseEntity(new ResultIdVo(result), HttpStatus.CREATED, "/api/v1/schema/featurecodes/" + result);
+	}
+	
+	@Operation(summary="식별체계 - 객체 - 지형지물 코드 수정 ")
+	@PutMapping("/api/v1/schema/featurecodes/{idSchmCd}")
+	public ResponseEntity<Object> modifyIdSchemeFeatureCode(
+			@Parameter(name="idSchmCd", description="식별체계 코드") @PathVariable String idSchmCd, @RequestBody IdSchemeCodeVo idSchemeCodeVo) {
+		log.debug(idSchemeCodeVo.toString());
+		compareUniqueId(idSchmCd, idSchemeCodeVo.getIdSchmCd());
+		idSchemeCodeService.modifyIdSchemeFeatureCode(idSchemeCodeVo);
+		return makeResponseEntity(new ResultIdVo(idSchemeCodeVo.getIdSchmCd()));
+	}
+	
+	@Operation(summary="식별체계 - 객체 - 지형지물 코드 중복체크")
+	@GetMapping("/api/v1/schema/featurecodes/{idSchmCd}/check")
+	public ResponseEntity<Object> checkFeatureCode(
+			@Parameter(name="idSchmCd", description="식별체계 코드") @PathVariable String idSchmCd) {
+		IdSchemeSearchVo searchVo = new IdSchemeSearchVo();
+		searchVo.setIdSchmCd(idSchmCd);
+		Map<String, Boolean> resMap = idSchemeCodeService.checkFeatureCode(searchVo);
+		return makeResponseEntity(resMap);
 	}
 	
 }

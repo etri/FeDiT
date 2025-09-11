@@ -26,9 +26,10 @@ public class SearchVo extends PageVo implements Serializable {
 	/** serialVersionUID */
 	private static final long serialVersionUID = 2022L;
 	
+	// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
 	@Getter(AccessLevel.NONE)
 	@Schema(description="SQL 날짜 format", hidden=true)
-	private String sqlDateFormat = SqlDatePart.iso.format();
+	private String sqlDateFormat = SqlDatePart.iso6z.format();
 	
 	/** 정렬순서 필드 */
 	@Schema(description="정렬 순서 필드")

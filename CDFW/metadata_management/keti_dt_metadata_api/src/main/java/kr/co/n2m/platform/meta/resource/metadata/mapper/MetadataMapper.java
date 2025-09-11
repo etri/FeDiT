@@ -5,6 +5,7 @@ import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 
 import kr.co.n2m.platform.meta.architecture.domain.CamelCaseMap;
+import kr.co.n2m.platform.meta.datastore.influxdb.domain.InfluxDbKeywordDto;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataDto;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataPropertyDto;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataPropertySearchVo;
@@ -176,4 +177,22 @@ public interface MetadataMapper {
 	 */
 	public List<CamelCaseMap> selectMetadataValModelCntListBySetId(MetadataSearchVo metadataSearchVo);
 
+	/**
+	 * 메타데이터 셋 에서 키워드 목록 조회
+	 * @Author      : heenim
+	 * @Date        : 2025. 02. 04.
+	 * @param metadataSearchVo
+	 * @return
+	 */
+	public List<String> selectKeywordListBySetId(MetadataSearchVo metadataSearchVo);
+	
+	/**
+	 * InfluxDB 키워드 용 메타데이터 목록 조회
+	 * @Author      : heenim
+	 * @Date        : 2025. 02. 07.
+	 * @param metadataSearchVo
+	 * @return
+	 */
+	public List<InfluxDbKeywordDto> selectMetadataListForInfluxDbKeyword(MetadataSearchVo metadataSearchVo);
+	
 }

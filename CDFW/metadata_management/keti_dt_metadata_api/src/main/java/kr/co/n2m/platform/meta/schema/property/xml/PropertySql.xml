@@ -33,6 +33,9 @@
 		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(dataArrayYn)">
 			AND prpty.data_array_yn = #{dataArrayYn}
 		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(rangeModelId)">
+			AND prpty_def.range_model_id = #{rangeModelId}
+		</if>
 	</sql>
 	
 	<sql id="orderByProperty">

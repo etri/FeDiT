@@ -187,22 +187,16 @@
             )
         </if>
     </select>
+    <!-- 2025-07-31 쿼리 수정 SELECT t2.rdf_prpty_def_id, GROUP BY t2.rdf_prpty_def_id 삭제. -->
     <select id="selectDomainRdfPropertyList" parameterType="rdfPropertySearchVo" resultType="rdfPropertyDto">
         /* SQL_ID: RdfPropertyMapper.selectDomainRdfPropertyList */
         WITH RECURSIVE class_tree AS (
-		  SELECT 
-		    rdf_class_id, 
-		    up_rdf_class_id 
-		  FROM 
-		    dtmeta.tb_rdf_class 
-		  WHERE 
-		    rdf_class_id = #{rdfClassId}
-		  UNION ALL 
-		  SELECT 
-		    t1.rdf_class_id, 
-		    t1.up_rdf_class_id 
-		  FROM 
-		    dtmeta.tb_rdf_class t1
+		  SELECT rdf_class_id, up_rdf_class_id 
+		    FROM dtmeta.tb_rdf_class 
+		   WHERE rdf_class_id = #{rdfClassId}
+		   UNION ALL 
+		  SELECT t1.rdf_class_id, t1.up_rdf_class_id 
+		    FROM dtmeta.tb_rdf_class t1
 		    JOIN class_tree ct ON t1.rdf_class_id = ct.up_rdf_class_id
 		) 
 		SELECT 
@@ -226,11 +220,10 @@
 		  t1.rdf_prpty_amdr_id, 
 		  t1.rdf_prpty_amdr_nm, 
 		  to_char(t1.rdf_prpty_amd_dt, #{sqlDateFormat}) AS rdf_prpty_amd_dt,
-          t2.rdf_prpty_def_id,
 		  CONCAT(
 		    t3.rdf_nmsp_pfix, ':', t1.rdf_prpty_nm
 		  ) rdf_prpty,
-          string_agg(tb_sub.rdf_class, ',') rdf_class_str
+          string_agg(tb_sub.rdf_class, ',' ORDER BY tb_sub.rdf_class) rdf_class_str
 		FROM 
 		  dtmeta.tb_rdf_property t1
 		  LEFT JOIN dtmeta.tb_rdf_propertydefine t2 ON t2.rdf_prpty_id = t1.rdf_prpty_id 
@@ -275,9 +268,7 @@
         <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(rdfFormMtcd)">
             AND (
                 t1.rdf_form_mtcds = #{rdfFormMtcd}
-                OR t1.rdf_form_mtcds LIKE CONCAT('%,', #{rdfFormMtcd})
-                OR t1.rdf_form_mtcds LIKE CONCAT(#{rdfFormMtcd}, ',%')
-                OR t1.rdf_form_mtcds LIKE CONCAT('%,', #{rdfFormMtcd}, ',%')
+                OR t1.rdf_form_mtcds ~ ('(^|,)' || #{rdfFormMtcd} || '($|,)')
             )
         </if>
         <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(rdfNmspId)">
@@ -305,8 +296,7 @@
             t1.rdf_prpty_amdr_id,
             t1.rdf_prpty_amdr_nm,
             t1.rdf_prpty_amd_dt,
-            t3.rdf_nmsp_pfix,
-            t2.rdf_prpty_def_id
+            t3.rdf_nmsp_pfix
         ORDER BY t1.rdf_prpty_nm ASC
         <include refid="limitPage"/>
     </select>
@@ -476,6 +466,16 @@
             AND t1.rdf_class_id = #{rdfClassId}
         </if>        
     </sql>
+    <sql id="orderByRdfPropertyDefine">
+        <choose>
+            <when test="@org.apache.commons.lang3.StringUtils@equals(sortField, 'rdfPrptyNm')">
+                ORDER BY t3.rdf_prpty_nm    <if test="@org.apache.commons.lang3.StringUtils@equals(sortOrder, 'descending')"> DESC </if>
+            </when>        
+            <otherwise>
+                ORDER BY t1.rdf_prpty_def_odrg ASC
+            </otherwise>
+        </choose>
+    </sql>    
     <select id="selectRdfPropertyDefineCount" parameterType="rdfPropertyDefineSearchVo" resultType="int">
         SELECT COUNT(*)  /* SQL_ID: RdfPropertyMapper.selectRdfPropertyDefineCount */
         FROM  dtmeta.tb_rdf_propertydefine t1
@@ -484,7 +484,7 @@
     </select>
     <select id="selectRdfPropertyDefineList"  parameterType="rdfPropertyDefineSearchVo" resultType="rdfPropertyDefineDto">
         SELECT  /* SQL_ID: RdfPropertyMapper.selectRdfPropertyDefineList */
-              ROW_NUMBER() OVER(ORDER BY t1.rdf_prpty_def_odrg ASC) AS rownum
+              ROW_NUMBER() OVER( <include refid="orderByRdfPropertyDefine"/> ) AS rownum
             , t1.rdf_prpty_def_id
             , t1.rdf_prpty_id
             , t1.domn_range_div_mtcd

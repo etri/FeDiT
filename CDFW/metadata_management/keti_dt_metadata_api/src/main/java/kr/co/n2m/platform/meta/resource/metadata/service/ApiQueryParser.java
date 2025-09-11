@@ -20,11 +20,27 @@ import lombok.extern.slf4j.Slf4j;
  * 
  * query=propertyNm1==val;propertyNm2>=val2;propertyNm3^=val3
  * 
- * => SELECT medata_set_id FROM dtmeta.tb_meta_data WHERE prpty_id = 'propertyNm1' and medata_val = 'val'
- *    INTERSECT
- *    SELECT medata_set_id FROM dtmeta.tb_meta_data WHERE prpty_id = 'propertyNm2' and medata_val::int >= 'val'::int
- *	  INTERSECT 
- *	  SELECT medata_set_id FROM dtmeta.tb_meta_data WHERE prpty_id = 'propertyNm3' and medata_val ILIKE CONCAT('val3', '%')
+		  AND EXISTS (
+		    SELECT 1
+		    FROM dtmeta.tb_meta_data d
+		    WHERE d.medata_set_id = t4.medata_set_id
+		      AND d.prpty_id      = 'propertyNm1'
+		      AND d.medata_val    = 'val'
+		  )
+		  AND EXISTS (
+		    SELECT 1
+		    FROM dtmeta.tb_meta_data d
+		    WHERE d.medata_set_id = t4.medata_set_id
+		      AND d.prpty_id      = 'propertyNm2'
+		      AND d.medata_val::int >= 123
+		  )
+		  AND EXISTS (
+		    SELECT 1
+		    FROM dtmeta.tb_meta_data d
+		    WHERE d.medata_set_id = t4.medata_set_id
+		      AND d.prpty_id      = 'propertyNm3'
+		      AND d.medata_val ILIKE CONCAT('val3', '%')
+		  )
  * @author n2m
  */
 @Slf4j
@@ -35,7 +51,6 @@ public class ApiQueryParser {
 	private PropertyService propertyService;
 	
 	public static final String QUERY_SEPARATOR = ";";
-	public static final String INTERSECT_SQL = " INTERSECT \n";
 	
     public static enum QueryOperator {
     	eq    ("==", "=="  , "equal"                   , " =  %s "),
@@ -78,6 +93,40 @@ public class ApiQueryParser {
         }        
     }	
 	
+    /**
+     * 2025-08-13
+          --AND EXISTS (... INTERSECT 사용하는 쿼리에서 개별 EXISTS로 변경.
+				--SELECT medata_set_id FROM dtmeta.tb_meta_data WHERE prpty_id = 'propertyNm1' and medata_val = 'val'
+				--INTERSECT
+				--SELECT medata_set_id FROM dtmeta.tb_meta_data WHERE prpty_id = 'propertyNm2' and medata_val::int >= 'val'::int
+				--INTERSECT 
+				--SELECT medata_set_id FROM dtmeta.tb_meta_data WHERE prpty_id = 'propertyNm3' and medata_val ILIKE CONCAT('val3', '%')
+				-- ... )
+				
+		  AND EXISTS (
+		    SELECT 1
+		    FROM dtmeta.tb_meta_data d
+		    WHERE d.medata_set_id = t4.medata_set_id
+		      AND d.prpty_id      = 'propertyNm1'
+		      AND d.medata_val    = 'val'
+		  )
+		  AND EXISTS (
+		    SELECT 1
+		    FROM dtmeta.tb_meta_data d
+		    WHERE d.medata_set_id = t4.medata_set_id
+		      AND d.prpty_id      = 'propertyNm2'
+		      AND d.medata_val::int >= 123
+		  )
+		  AND EXISTS (
+		    SELECT 1
+		    FROM dtmeta.tb_meta_data d
+		    WHERE d.medata_set_id = t4.medata_set_id
+		      AND d.prpty_id      = 'propertyNm3'
+		      AND d.medata_val ILIKE CONCAT('val3', '%')
+		  )
+     * @param query
+     * @return
+     */
 	public String getQuerySql(String query) {
 		if (StringUtils.isBlank(query)) return "";
 		
@@ -95,13 +144,7 @@ public class ApiQueryParser {
 							break;
 						}
 					}
-					if (sb.length() > 0) {
-						sb.append(INTERSECT_SQL);
-					}
 				}
-				if (sb.length() > 0 && sb.indexOf(INTERSECT_SQL) != -1) { // 마지막 UNION 제거
-					sb.delete(sb.length() - INTERSECT_SQL.length(), sb.length());
-				}				
 			}
 			
 		} catch (ResBadRequestException e) {
@@ -117,6 +160,10 @@ public class ApiQueryParser {
 		return sb.toString();
 	}
 	
+	private static String sqlQuote(String str) { 
+		return "'" + str.replace("'", "''") + "'"; 
+	}
+	
 	private void appendConditionSql(StringBuilder sb, String prptyNm, QueryOperator op, String value) {
 		PropertyDataTypeDto typeDto = propertyService.getPropertyDataTypeDtoFromCache(prptyNm);
 		if (typeDto == null) throw new ResBadRequestException("[" + prptyNm + "] 프라퍼티가 존재하지 않거나 사용할 수 없습니다.");
@@ -124,10 +171,15 @@ public class ApiQueryParser {
 		log.debug("{} {} {}", prptyNm, op.code(), value);
 		
 		// value 에서 쿼리 보안성 문제를 야기할 만한 부분 제거
-		String val =  "'" + value.replaceAll("'", "") + "'";
+		String val = sqlQuote(value); 
 		
 		// ex) SELECT medata_set_id FROM dtmeta.tb_meta_data WHERE prpty_id = 'dtType' AND medata_val = 'single'
-		sb.append(" SELECT medata_set_id FROM dtmeta.tb_meta_data WHERE prpty_id = '").append(prptyNm).append("' AND ");
+		//sb.append(" SELECT medata_set_id FROM dtmeta.tb_meta_data WHERE prpty_id = '").append(prptyNm).append("' AND ");
+		
+        sb.append("AND EXISTS (\n");
+        sb.append("  SELECT 1 FROM dtmeta.tb_meta_data d\n");
+        sb.append("  WHERE d.medata_set_id = t4.medata_set_id\n");        	
+        sb.append("    AND d.prpty_id = ").append( sqlQuote(prptyNm) ).append("\n    AND ");
 		
 		RangeDataTypeMtcd dataTypeEnum = MetadataEnum.getValue(typeDto.getRangeDataTypeMtcd(), RangeDataTypeMtcd.class);
 		switch (dataTypeEnum) {
@@ -136,25 +188,25 @@ public class ApiQueryParser {
 		case dateTime :
 			
 			if (!DateUtil.isDateStr(val)) throw new ResBadRequestException("[" + prptyNm + "] 프라퍼티 의 비교값이 날짜 형식이 아닙니다.");
-			sb.append("medata_val").append(op.sql(val));
+			sb.append("d.medata_val").append(op.sql(val));
 			break;
 			
 		case date :
 			
 			if (!ValueUtil.isValidDd(val)) throw new ResBadRequestException("[" + prptyNm + "] 프라퍼티 의 비교값이 날짜 형식(yyyy-MM-dd)이 아닙니다.");
-			sb.append("medata_val").append(op.sql(val));
+			sb.append("d.medata_val").append(op.sql(val));
 			break;		
 			
 		case year :
 			
 			if (!ValueUtil.isValidYear(val)) throw new ResBadRequestException("[" + prptyNm + "] 프라퍼티 의 비교값이 날짜 형식(yyyy)이 아닙니다.");
-			sb.append("medata_val").append(op.sql(val));
+			sb.append("d.medata_val").append(op.sql(val));
 			break;
 			
 		case yearMonth :
 			
 			if (!ValueUtil.isValidYearMonth(val)) throw new ResBadRequestException("[" + prptyNm + "] 프라퍼티 의 비교값이 날짜 형식(yyyy-MM)이 아닙니다.");
-			sb.append("medata_val").append(op.sql(val));
+			sb.append("d.medata_val").append(op.sql(val));
 			break;			
 			
 		case integer:
@@ -165,7 +217,7 @@ public class ApiQueryParser {
 			
 			AssertLikeOperators(prptyNm, op);
 			if (!ValueUtil.isInteger(value)) throw new ResBadRequestException("[" + prptyNm + "] 프라퍼티 의 비교값이 Integer 형식의 숫자가 아닙니다.");
-			sb.append("medata_val::int").append(op.sql(value));
+			sb.append("d.medata_val::int").append(op.sql(value));
 			break;	
 			
 			
@@ -173,45 +225,45 @@ public class ApiQueryParser {
 			
 			AssertLikeOperators(prptyNm, op);
 			if (!ValueUtil.isLong(value)) throw new ResBadRequestException("[" + prptyNm + "] 프라퍼티 의 비교값이 Long 형식의 숫자가 아닙니다.");
-			sb.append("medata_val::numeric").append(op.sql(value));
+			sb.append("d.medata_val::numeric").append(op.sql(value));
 			break;	
 			
 		case float_:
 			
 			AssertLikeOperators(prptyNm, op);
 			if (!ValueUtil.isFloat(value)) throw new ResBadRequestException("[" + prptyNm + "] 프라퍼티 의 비교값이 Float 형식의 숫자가 아닙니다.");
-			sb.append("medata_val::numeric").append(op.sql(value));
+			sb.append("d.medata_val::numeric").append(op.sql(value));
 			break;	
 			
 		case double_:
 			
 			AssertLikeOperators(prptyNm, op);
 			if (!ValueUtil.isDouble(value)) throw new ResBadRequestException("[" + prptyNm + "] 프라퍼티 의 비교값이 Double 형식의 숫자가 아닙니다.");
-			sb.append("medata_val::numeric").append(op.sql(value));
+			sb.append("d.medata_val::numeric").append(op.sql(value));
 			break;	
 			
 		case boolean_ :
 			
 			AssertLikeOperators(prptyNm, op);
-			sb.append("medata_val").append(op.sql(val.toLowerCase())); // // 소문자로 true/false 만
+			sb.append("d.medata_val").append(op.sql(val.toLowerCase())); // // 소문자로 true/false 만
 			break;
 			
 		case geoJson : // TODO 어떤 방식으로 검색할지 정의 필요
 			
 			AssertLikeOperators(prptyNm, op);
-			sb.append("dtmeta.ST_AsGeoJson(geodata_val)").append(op.sql(val)); // TODO 쿼리 실행되지 않음, 추후 수정 혹은 삭제 필요
+			sb.append("dtmeta.ST_AsGeoJson(d.geodata_val)").append(op.sql(val)); // TODO 쿼리 실행되지 않음, 추후 수정 혹은 삭제 필요
 			break;			
 			
-		// TODO 우선 case json: 으로, 추후 별도 검색 처리가 필요할 수 있음 
+		// TODO 우선 case json: case address: case dataInfo: 으로, 추후 별도 검색 처리가 필요할 수 있음 
 		// TODO 우선 case keywordsKo: case keywordsEn: 으로, 추후 키워드 경우 따로 OR 또는 IN 조건 같은 형식으로 변경 처리가 필요할 수 있음
 		default:
 			
-			sb.append("medata_val").append(op.sql(val));
+			sb.append("d.medata_val").append(op.sql(val));
 			break;
 				
 		}
 
-		sb.append("\n");
+		sb.append("\n)\n");
 		
 	}
 	
