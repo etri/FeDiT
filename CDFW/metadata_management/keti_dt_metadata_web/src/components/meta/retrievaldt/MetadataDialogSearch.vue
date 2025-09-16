@@ -2,7 +2,7 @@
 	<div class="dialog-area">
 		<!-- 페이징 필요한 property 목록 (data_type) -->
 		<div v-if="'data_type' === props.rangeModelTypeMtcd
-			&& 'geoJson' !== props.rangeDataTypeMtcd && 'json' !== props.rangeDataTypeMtcd">
+			&& 'geoJson' !== props.rangeDataTypeMtcd && !metaConst.ARR_ETCJSON_DATATYPE.includes(props.rangeDataTypeMtcd)">
 			<!-- 메타데이터 검색 -->
 			<MetadataDialogSearchForm :medataSetId="props.medataSetId" :prptyNm="props.prptyNm" :langMtcdList="langMtcdList"
 				@searchMetadataList="searchMetadataList" />
@@ -49,6 +49,7 @@ import { reactive, onMounted, defineProps, ref } from "vue";
 import { useStore } from "vuex";
 import { getGlobalProperties } from "@/assets/js/common.js";
 import util from "util";
+import metaConst from "@/assets/js/metaConst.js";
 
 const $axios = getGlobalProperties().$axios;
 const $apiUrls = getGlobalProperties().$apiUrls;

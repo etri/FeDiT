@@ -66,7 +66,7 @@
 </template>
 <script setup>
 import { reactive, defineExpose, onMounted, watch, ref } from "vue";
-import { getGlobalProperties, isAmdYn, isDelYn } from "@/assets/js/common.js";
+import { getGlobalProperties, isAmdYn, isDelYn, routerPush, getCookie } from "@/assets/js/common.js";
 import { useRouter, useRoute } from "vue-router";
 import util from "util";
 
@@ -192,7 +192,11 @@ const DeleteRdfMapping = () => {
   .delete(util.format($apiUrls.meta.rdf.mapping.deleteMapping, props.rdfInfo.rdfMappgId))
   .then(() => {
     alert("삭제되었습니다.");
-    router.push({ name: "meta_RefMappingListPage" });
+
+    let platform = getCookie("pltfrmId");
+    let query = { rdfMappgId: props.rdfInfo.rdfMappgId, };
+
+    routerPush(platform, "RefMappingListPage", query);
   })
   .catch((err) => {
     console.log(err);

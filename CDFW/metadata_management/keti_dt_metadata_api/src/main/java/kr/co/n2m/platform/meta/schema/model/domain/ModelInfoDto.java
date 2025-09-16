@@ -10,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import kr.co.n2m.platform.meta.architecture.code.MetadataEnum.MetadataSetRangeModelId;
+import kr.co.n2m.platform.meta.architecture.code.MetadataEnum.RangeDataTypeMtcd;
 import kr.co.n2m.platform.meta.schema.modelproperty.domain.ModelPropertyInfoDto;
 
 /**
@@ -44,6 +45,12 @@ public class ModelInfoDto extends ModelVo {
 	@Schema(description="개수 프라퍼티 명 목록")
 	private List<String> cntPropertyNmList;
 	
+	@Schema(description="키워드 프라퍼티 명 목록")
+	private List<String> keywordPropertyNmList;
+	
+	@Schema(description="메타데이터 모델의 idString 프라퍼티 명, medataSetId 프라퍼티 명")
+	private String setIdPropertyNm;
+	
 	
 	public ModelInfoDto() { /* default 생성자 */ }
 	
@@ -69,6 +76,9 @@ public class ModelInfoDto extends ModelVo {
 		for (MetadataSetRangeModelId rangeModelId : MetadataSetRangeModelId.values()) {
 			for (ModelPropertyInfoDto dto : propertyMap.valueList()) {
 				if (StringUtils.equals(rangeModelId.code(), dto.getRangeModelId())) {
+					if (MetadataSetRangeModelId.idString.equals(rangeModelId)) {
+						setIdPropertyNm = dto.getPrptyNm();
+					}
 					propertyNmToSetColMap.put(dto.getPrptyNm(), rangeModelId.getMetadataSetCol());
 					selColToPropertyNmMap.put(rangeModelId.getMetadataSetCol(), dto.getPrptyNm());
 					break;
@@ -81,17 +91,23 @@ public class ModelInfoDto extends ModelVo {
 		jsonEtcPropertyNmList     = new ArrayList<>();
 		refPropertyNmMap          = new HashMap<>();
 		cntPropertyNmList		  = new ArrayList<>();
+		keywordPropertyNmList     = new ArrayList<>();
 		for (ModelPropertyInfoDto dto : propertyMap.valueList()) {
+			String dataType = dto.getRangeDataTypeMtcd();
 			if (StringUtils.equals("Y", dto.getDataArrayYn())) {
 				dataArrayYnPropertyNmList.add(dto.getPrptyNm());
 			}
 			
-			if ("geoJson".equals(dto.getRangeDataTypeMtcd())) {
+			if (RangeDataTypeMtcd.geoJson.code().equals(dataType)) {
 				geoJsonPropertyNmList.add(dto.getPrptyNm());
 			}
-			else if ("json".equals(dto.getRangeDataTypeMtcd())) { // JSON 외 기타. 현재는 JSON만 
+			// 2005-07 JSON 형식. json, address, dataInfo
+			else if (RangeDataTypeMtcd.json.code().equals(dataType) || RangeDataTypeMtcd.address.code().equals(dataType) || RangeDataTypeMtcd.dataInfo.code().equals(dataType)) {
 				jsonEtcPropertyNmList.add(dto.getPrptyNm());
 			}			
+			else if (RangeDataTypeMtcd.keywordsKo.code().equals(dataType) || RangeDataTypeMtcd.keywordsEn.code().equals(dataType)) {
+				keywordPropertyNmList.add(dto.getPrptyNm());
+			}
 			
 			if (StringUtils.isNotBlank(dto.getRangeRefPrptyNm())) {
 				refPropertyNmMap.put(dto.getRangeRefPrptyNm(), dto.getPrptyNm()); // code, codeName OR categoryId, categotyName 프라퍼티 맵 OR object_type 의 메타데이터 셋 ID, refSetName
@@ -100,6 +116,7 @@ public class ModelInfoDto extends ModelVo {
 			if (StringUtils.equals("Y", dto.getCntPrptyYn())) {
 				cntPropertyNmList.add(dto.getPrptyNm());
 			}
+
 		}
 	}
 	
@@ -129,6 +146,10 @@ public class ModelInfoDto extends ModelVo {
 	
 	public List<String> getCntPropertyNmList() {
 		return this.cntPropertyNmList;
+	}
+	
+	public List<String> getKeywordPropertyNmList() {
+		return this.keywordPropertyNmList;
 	}
 	
 	public ModelPropertyInfoDto getPropertyInfoDto(String propertyNm) {
@@ -161,4 +182,8 @@ public class ModelInfoDto extends ModelVo {
 		return this.propertyMap.get(propertyNm).getPrptyId();
 	}
 
+	public String getSetIdPropertyNm() { 
+		return this.setIdPropertyNm;
+	}
+	
 }

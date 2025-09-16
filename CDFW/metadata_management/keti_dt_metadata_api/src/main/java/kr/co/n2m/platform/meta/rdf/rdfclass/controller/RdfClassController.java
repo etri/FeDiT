@@ -80,6 +80,7 @@ public class RdfClassController extends ResponseComponent {
     public ResponseEntity<Object> getRdfPropertyListByRdfClassId(@PathVariable String rdfClassId, RdfPropertyDefineSearchVo searchVo) {
     	searchVo.setRdfClassId(rdfClassId);
     	searchVo.setDomnRangeDivMtcd("domain");
+    	searchVo.setSortField("rdfPrptyNm");
         return makeResponseEntity(rdfPropertyService.getRdfPropertyDefineList(searchVo), HttpStatus.OK);
     }
     

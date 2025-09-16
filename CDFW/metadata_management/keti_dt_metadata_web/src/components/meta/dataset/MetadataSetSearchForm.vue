@@ -93,7 +93,7 @@
                   style="width: 250px"
                   disabled
                 />
-                <el-button type="delete" class="ml15" @click="refreshModelId"
+                <el-button type="default" class="el-button--delete ml15" @click="refreshModelId"
                   ><el-icon class="icon icon-refresh"
                 /></el-button>
               </el-form-item>

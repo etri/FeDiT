@@ -86,6 +86,9 @@ public class MetadataSearchVo extends SearchVo implements Serializable {
 	@Schema(description="수정일 검색기간 종료일")
 	private String srchEndDd;
 	
+	@Schema(description="object_type 프라퍼티만 조회 여부")
+	private String onlyObjectTypeYn;
+	
 	@Override
 	public String toString() {
 		return ReflectionToStringBuilder.toString(this, ToStringStyle.SHORT_PREFIX_STYLE, true, true);

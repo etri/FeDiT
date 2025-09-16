@@ -39,7 +39,7 @@
   </div>
 
   <div>
-    <el-dialog v-model="dialogVisible" title="사용자 검색" style="padding-bottom: 35px;">
+    <el-dialog v-model="dialogVisible" title="사용자 검색">
       <AuthgroupUserList
         @cancelPopup="cancelPopup"
         @selectedUser="selectedUser"

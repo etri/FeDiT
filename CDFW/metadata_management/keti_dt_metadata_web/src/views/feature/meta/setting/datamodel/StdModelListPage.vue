@@ -10,10 +10,7 @@
 						</el-checkbox>
 						<el-button type="primary" v-if="isWriteYn(route.meta.auth)" @click="dialogEditModel" >하위 모델 등록</el-button>
 					</div>
-					<el-dialog v-model="dialogVisibleEdit" :key="dialogKeyByEdit" title="메타데이터 표준 모델 등록">
-						<StdModelDialogEdit :stdModel="state.modelInfo" :dataStatusCdList="dataStatusCdList"
-							@cancelDialog="cancelDialogEdit" @editModel="editModel" />
-					</el-dialog>
+
 				</div>
 				<div class="boxCnt">
 					<div style="overflow-x: hidden; overflow-y: auto">
@@ -23,9 +20,20 @@
 					</div>
 				</div>
 			</div>
+
+			<el-dialog v-model="dialogVisibleEdit" :key="dialogKeyByEdit" title="메타데이터 표준 모델 등록">
+				<StdModelDialogEdit :stdModel="state.modelInfo" :dataStatusCdList="dataStatusCdList"
+					@cancelDialog="cancelDialogEdit" @editModel="editModel" />
+			</el-dialog>
+
 		</div>
 
 		<div class="container-items-right">
+
+			<el-dialog v-model="dialogVisibleModify" :key="dialogKeyByEdit" title="메타데이터 표준 모델 수정">
+				<StdModelDialogModify :stdModel="state.modelInfo" :dataStatusCdList="dataStatusCdList"
+					@deleteModel="deleteModel" @cancelDialogModify="cancelDialogModify" @modifyModel="modifyModel" />
+			</el-dialog>
 
 			<div class="boxSectionTit" style="margin-top: 0">
 				<div v-if="!state.modelInfo.modelNm ">
@@ -43,10 +51,6 @@
 						<el-button type="primary" @click="dialogModifyModel" 
 							v-show="isAmdYn(route.meta.auth) && (state.modelInfo.modelId != 'Class' && state.modelInfo.upModelId != 'Class')">수정</el-button>
 					</div>
-					<el-dialog v-model="dialogVisibleModify" :key="dialogKeyByEdit" title="메타데이터 표준 모델 수정">
-						<StdModelDialogModify :stdModel="state.modelInfo" :dataStatusCdList="dataStatusCdList"
-							@deleteModel="deleteModel" @cancelDialogModify="cancelDialogModify" @modifyModel="modifyModel" />
-					</el-dialog>
 				</div>
 				<div class="boxCnt">
 					<div class="ly-table">

@@ -24,4 +24,13 @@ public class ResBizInfoException extends ResBaseRuntimeException {
 		super(HttpStatus.UNPROCESSABLE_ENTITY, reason, cause);
 	}
 	
+    // apiResCode 지정 생성자
+    public ResBizInfoException(int apiResCode, String reason) {
+        super(apiResCode, HttpStatus.UNPROCESSABLE_ENTITY, reason);
+    }
+
+    public ResBizInfoException(int apiResCode, String reason, Throwable cause) {
+        super(apiResCode, HttpStatus.UNPROCESSABLE_ENTITY, reason, cause);
+    }
+
 }

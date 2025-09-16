@@ -20,7 +20,7 @@
 						<div class="inline-area">
 							<el-input	v-model="state.metadataSet.modelNm"	disabled style="width: 250px" />
 							<el-button type="default" class="ml15" @click="dialogVisibleModelSearch = true"><el-icon class="icon icon-search"/></el-button>
-							<el-button type="delete" @click="refreshModelInfo"><el-icon class="icon icon-refresh"/></el-button>
+							<el-button type="default" class="el-button--delete" @click="refreshModelInfo"><el-icon class="icon icon-refresh"/></el-button>
 						</div>			
 						<el-dialog v-model="dialogVisibleModelSearch" title="메타데이터 셋 검색">
 							<MetaDataModelSearchPage 
@@ -63,7 +63,7 @@
 							<el-input	v-model="state.metadataSet.idSchmCd"	disabled style="width: 100px" />
 							<el-input	v-model="state.idSchmCdNm"	disabled style="width: 250px; margin-left: 5px;" />
 							<el-button type="default" class="ml15" @click="codeSearchClick"><el-icon class="icon icon-search"/></el-button>
-							<el-button type="delete" @click="refreshCodeInfo"><el-icon class="icon icon-refresh"/></el-button>
+							<el-button type="default" class="el-button--delete" @click="refreshCodeInfo"><el-icon class="icon icon-refresh"/></el-button>
 						</div>	
 						<el-dialog v-model="dialogVisibleCodeSearch" :title="`식별체계 코드 검색 - ${state.idSchmTypeNm}`">
 							<IdSchemeCodeSearchPage 

@@ -13,9 +13,9 @@
 				<el-button type="default" plain @click="prevStdModel" v-if="props.stdModelPrev">목록</el-button>
 			</div>
 		</div>
-		<el-dialog style="width: 700px;" v-model="dialogVisibleDelete" :title="`메타데이터 ${state.modelGubunNm} 모델 프라퍼티 삭제`">
+		<el-dialog style="width: 700px;" v-model="dialogVisibleDelete" :title="`메타데이터 ${state.modelGubunNm} 모델 프라퍼티 삭제`" @close="closeDialogDelete" >
 			<ModelPropertyDialogDelete :key="dialogKeyByEdit" :modelPropertyList="modelPropertyList" :modelId="modelId"
-				@cancelDialog="cancelDialogDelete" @completeDialog="completeDialogDelete" />
+				@closeDialog="closeDialogDelete" />
 		</el-dialog>
 		<el-dialog style="width: 1300px;" v-model="dialogVisibleEdit" :title="`메타데이터 ${state.modelGubunNm} 모델 프라퍼티 추가`">
 			<ModelPropertyDialogEdit ref="editRef" :key="dialogKeyByEdit" :typeModelYn="typeModelYn"
@@ -329,13 +329,11 @@ const deleteModelProperty = () => {
 const cancelDialogModify = () => {
 	dialogVisibleEdit.value = false;
 }
-const cancelDialogDelete = () => {
-	dialogVisibleDelete.value = false;
-	getModelPropertyList(props.modelId);
-}
-const completeDialogDelete = () => {
-	dialogVisibleDelete.value = false;
-	getModelPropertyList(props.modelId);
+const closeDialogDelete = () => {
+	if (dialogVisibleDelete.value) {
+	  dialogVisibleDelete.value = false;
+	  getModelPropertyList(props.modelId);
+	}
 }
 
 const prevStdModel = () => {

@@ -24,4 +24,13 @@ public class ResForbiddenException extends ResBaseRuntimeException {
 		super(HttpStatus.FORBIDDEN, reason, cause);
 	}
 	
+    // apiResCode 지정 생성자
+    public ResForbiddenException(int apiResCode, String reason) {
+        super(apiResCode, HttpStatus.FORBIDDEN, reason);
+    }
+
+    public ResForbiddenException(int apiResCode, String reason, Throwable cause) {
+        super(apiResCode, HttpStatus.FORBIDDEN, reason, cause);
+    }
+	
 }

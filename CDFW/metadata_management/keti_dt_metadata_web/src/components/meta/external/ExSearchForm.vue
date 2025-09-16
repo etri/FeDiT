@@ -55,7 +55,7 @@
 						<el-form-item label="공간">
 							<div class="spaceInner">
 								<el-button type="default" @click="clickMapSearchBtn" class="btn-label-color"><el-icon class="icon icon-search" /></el-button>
-								<el-button type="delete" @click="clickRefreshBtn" class="btn-label-color"><el-icon class="icon icon-refresh" /></el-button>
+								<el-button type="default" class="el-button--delete btn-label-color" @click="clickRefreshBtn" ><el-icon class="icon icon-refresh" /></el-button>
 								<el-input placeholder="" v-model="pageInfo.polygon" style="max-width:100%" disabled/>
 							</div>
 						</el-form-item>

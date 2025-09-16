@@ -21,7 +21,7 @@
 						<div class="inline-area">
 							<el-input style="width: 250px;" v-model="state.property.upPrptyNm" disabled	/>
 							<el-button type="default" class="ml15" @click="dialogVisiblePropertySearch = true"><el-icon class="icon icon-search"/></el-button>
-							<el-button type="delete" @click="refreshProperty"><el-icon class="icon icon-refresh"/></el-button>
+							<el-button type="default" class="el-button--delete" @click="refreshProperty"><el-icon class="icon icon-refresh"/></el-button>
 						</div>
 						<el-dialog class="dialog_size" v-model="dialogVisiblePropertySearch" title="프라퍼티 검색">
 							<PropertyDialogSearch @selectedRow="selectedUpProperty"/>
@@ -31,7 +31,7 @@
 
 					<el-form-item label="프라퍼티 명 (물리명)" prop="prptyNm">
 						<div class="inline-area">
-							<el-input class="" style="width: 250px;" v-model="state.property.prptyNm" @input="changePrptyNm"></el-input>
+							<el-input class="" style="width: 250px;" v-model="state.property.prptyNm" @input="changePrptyNm" placeholder="64자 이하로 입력"></el-input>
 							<el-button type="primary" class="ml15" @click="propertyNameCheck('alert')" @keydown.enter.prevent="propertyNameCheck('alert')" >중복확인</el-button>
 						</div>
 					</el-form-item>
@@ -143,7 +143,7 @@
 						<div class="inline-area">
 							<el-input style="width: 250px;" v-model="state.property.rangeModelId" disabled	/>
 							<el-button type="default" class="ml15" @click="dialogVisibleModelSearch = true"><el-icon class="icon icon-search"/></el-button>
-							<el-button type="delete" @click="refreshRangeModel"><el-icon class="icon icon-refresh"/></el-button>
+							<el-button type="default" class="el-button--delete" @click="refreshRangeModel"><el-icon class="icon icon-refresh"/></el-button>
 						</div>				
 						<el-dialog v-model="dialogVisibleModelSearch" title="범위 모델 검색">
 							<MetaDataModelSearchPage
@@ -279,7 +279,12 @@ const state = reactive({
         required: true,
         message: "내용을 입력하세요.",
         trigger: "blur",
-      }
+      },
+	  {
+		max: 64,
+		message: "64자 이하만 가능합니다.",
+		trigger: "blur",		
+	  },
     ],
     prptyLogicNm: [
       {
@@ -426,6 +431,13 @@ const editPropertyInfo = async () => {
 
 
 const propertyNameCheck = async (check) => {
+	let ruleForm = ruleFormRef1.value;
+	try {
+		await ruleForm.validateField('prptyNm');
+	} catch (e) {
+		ruleForm.scrollToField?.('prptyNm');
+		return false;
+	}
 	if(state.property.prptyNm == '') {
 		alert("물리명을 입력해주세요."); 
 		return false;

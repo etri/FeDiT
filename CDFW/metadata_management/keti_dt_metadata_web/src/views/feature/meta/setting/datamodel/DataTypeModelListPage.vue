@@ -78,7 +78,7 @@ const getMetaCodeGroupList = async () => {
   });
 };
 const metaCodeGroupList = computed(
-  () => store.getters["MetaStore/getSotreAllMetaCodeGroupList"]
+  () => store.getters["MetaStore/getStoreAllMetaCodeGroupList"]
 ); //no parameter
 
 const getCodeList = async () => {

@@ -55,7 +55,7 @@
 		<!-- etc json type property (not geo json) -->
 		<div class="boxLayout" v-for="prptyNm of state.jsonEtcPropertyNmList" :key="prptyNm">
 			<GeneralProperty :dataEditableYn="state.dataEditableYn" :generalProperty="state.arrayPropertyMap[prptyNm]"
-				:medataSetId="medataSet.medataSetId" :medataSet="medataSet" @data-saved="generalPropertyDataSaved" />
+				:medataSetId="medataSet.medataSetId" :medataSet="medataSet" @data-saved="generalPropertyDataSaved" @selectedProperty="selectedProperty"/>
 		</div>
 
 		<!-- array type & object type property -->
@@ -65,6 +65,21 @@
 		</div>
 
 	</div>
+
+
+	<el-dialog v-model="dialogLogInfo" title="프라퍼티 정보">
+		<div class="dialog-area">
+			<JsonEditorVue class="dialog_jsonEditor_setting" v-model="selectedInfo" v-bind="{
+				readOnly: true,
+				mode: 'text',
+				theme: 'light',
+				mainMenuBar: false,
+				navigationBar: false,
+				parser: undefined,
+			}" />
+		</div>
+	</el-dialog>
+
 </template>
 <script setup>
 import UpperDigitalTwinList from "@/components/meta/dataset/UpperDigitalTwinList.vue";
@@ -86,6 +101,8 @@ const store = useStore();
 const route = useRoute();
 const router = useRouter();
 
+const dialogLogInfo = ref(false);
+const selectedInfo = ref({});
 const dataStatusList = ref([]);
 const medataSet = ref({});
 const emptyPrptyShowYn = ref("N");
@@ -330,6 +347,11 @@ const onSingleDataChanged = (currList) => {
 
 	isUnsavedData.value = isChanged;
 }
+
+const selectedProperty = (payload) => {
+	dialogLogInfo.value = true;
+	selectedInfo.value = payload;
+};
 
 </script>
 <style lang="scss"></style>

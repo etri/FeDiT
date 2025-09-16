@@ -1,11 +1,16 @@
 package kr.co.n2m.platform.meta.architecture.util;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -24,10 +29,16 @@ public class DateUtil {
 	public static final String DATE_FORMAT_DT3        = "yyyy-MM-dd HH:mm:ss.SSS";
 //	public static final String DATE_FORMAT_ISO        = "yyyy-MM-dd'T'HH:mm:ss";
 //	public static final String DATE_FORMAT_ISO3  	  = "yyyy-MM-dd'T'HH:mm:ss.SSS";
-	public static final String DATE_FORMAT_ISOZ       = "yyyy-MM-dd'T'HH:mm:ssXXX";
-	public static final String DATE_FORMAT_ISO3Z 	  = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+	public static final String DATE_FORMAT_ISOZ       = "yyyy-MM-dd'T'HH:mm:ssXXXXX"; // XXXXX 출력 포맷 경우만
+	
+	// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정. XXXXX -> 'Z' 표시됨. +09:00 표시됨
+	// ex) 2024-01-17T17:13:40.123456Z, 2024-01-18T02:13:40.123456+09:00
+	public static final String DATE_FORMAT_ISO6Z 	  = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXXXX"; // XXXXX 출력 포맷 경우만
 	
 	public static final String DATA_FORMAT_POSTGRESQL_DT  = "yyyy-MM-dd HH:mm:ss";
+	
+	// 끝에 붙은 타임존만 인식: Z, UTC, ±HH[:MM] or ±HHMM or ±HH
+	public static final Pattern TIMEZONE_TAIL = Pattern.compile("\\s*(Z|UTC|[+-]\\d{2}(?::?\\d{2})?)$");  
     
     /**
      * <pre>
@@ -71,7 +82,7 @@ public class DateUtil {
     
     /**
      * <pre>
-     * 날짜형식 문자열을  ISO 8601 "yyyy-MM-dd'T'HH:mm:ssXXX" 문자열로 변환
+     * 날짜형식 문자열을  ISO 8601 "yyyy-MM-dd'T'HH:mm:ssXXXXX" 문자열로 변환
      * 
      * 예) 2023-01-13          -> 2023-01-13T00:00:00+09:00
      * 예) 2023-01-13 17:20:55 -> 2023-01-13T17:20:55+09:00
@@ -80,7 +91,7 @@ public class DateUtil {
     public static String toISOTimeStr(String dateStr) throws IllegalArgumentException {
     	ZonedDateTime zonedDateTime = ZonedDateTime.of(toLocalDateTime(dateStr), ZoneId.systemDefault());
     	return DateTimeFormatter.ofPattern(DATE_FORMAT_ISOZ).format(zonedDateTime);
-    }    
+    }
     
     /**
      * toISOTimeStr 하기 전 가능한지 체크
@@ -97,6 +108,22 @@ public class DateUtil {
     	}
     	return true;
     }
+    
+    // 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+    public static String toISO6TimeStr(String dateStr) throws IllegalArgumentException {
+    	ZonedDateTime zonedDateTime = ZonedDateTime.of(toLocalDateTime(dateStr), ZoneId.systemDefault());
+    	return DateTimeFormatter.ofPattern(DATE_FORMAT_ISO6Z).format(zonedDateTime);
+    }
+    
+    public static boolean isISO6Time(String dateStr) {
+    	if (StringUtils.isEmpty(dateStr)) return false;
+    	try {
+    		toISO6TimeStr(dateStr);
+    	} catch (IllegalArgumentException e) {
+    		return false;
+    	}
+    	return true;
+    }    
 
     /**
      * 날짜형식 문자열을  LocalDateTime 으로 변환 (Custom Parsing)
@@ -108,17 +135,19 @@ public class DateUtil {
     	String pattern = "";
     			
 		try {
-			String tempStr = dateStr;
+			String tempStr = dateStr.replace("\"", "").replace("'", ""); // 큰따옴표나 작은따옴표 있다면 제거
 	    	ZoneId zoneId = ZoneId.systemDefault(); // "Asia/Seoul"
 	    	
     		// "+", "-", "Z", "UTC" 이 존재한다면 Zone 정보가 있다고 보고 따로 zoneId를  구한다. 그 외의 경우는 직접 formatter 지정해서 변환할 것!
-    		int idx = StringUtils.lastIndexOfAny(dateStr, "+", "-", "Z", "UTC");	    	
-    		if (idx != -1 && idx > 7) { // 7: yyyy-MM-dd  2번째 "-" 위치 보다는 커야 함 
-    			String offsetStr = dateStr.substring(idx);
-    			zoneId  = ZoneId.of(offsetStr);
-    			tempStr = dateStr.substring(0, idx);
-    		}
+	        Matcher m = TIMEZONE_TAIL.matcher(dateStr);
+	        if (m.find() && m.start() >= 8) {
+	            String offsetStr = m.group(1);
+	            if ("Z".equals(offsetStr)) offsetStr = "UTC";
+	            zoneId = ZoneId.of(offsetStr);
+	            tempStr = dateStr.substring(0, m.start()).trim(); // 타임존 제거된 본문
+	        }
 
+	        // 숫자만 추출해서 패턴 판별(yyyyMMdd[HH[mm[ss[SSS/SSSSSS]]]])
 			String time = tempStr.replaceAll("[^0-9]", "");
 			//log.debug(dateStr + " -> " + time);
 			
@@ -196,11 +225,29 @@ public class DateUtil {
     }
     
     /**
-     * 현재 일시 반환 (yyyy-MM-dd'T'HH:mm:ssXXX)
+     * 현재 일시 반환 (yyyy-MM-dd'T'HH:mm:ssXXXXX)
      */
     public static String getCurrISOTime() {
     	ZonedDateTime zonedDateTime = ZonedDateTime.of(LocalDateTime.now(), ZoneId.systemDefault());
     	return DateTimeFormatter.ofPattern(DATE_FORMAT_ISOZ).format(zonedDateTime);    	
+    }
+    
+    /**
+     * 현재 일시 반환 (yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXXXX)
+     * @return
+     */
+    public static String getCurrISO6Time() {
+    	ZonedDateTime zonedDateTime = ZonedDateTime.of(LocalDateTime.now(), ZoneId.systemDefault());
+    	return DateTimeFormatter.ofPattern(DATE_FORMAT_ISO6Z).format(zonedDateTime);    	
+    }
+    
+    /**
+     * 현재 UTC 일시 반환 (ISO 8601 + 마이크로초 6자리 + Z)
+     * ex) 2024-01-17T08:13:40.123456Z
+     */
+    public static String getCurrUTCISO6Time() {
+        ZonedDateTime utcNow = ZonedDateTime.now(ZoneOffset.UTC);
+        return DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'").format(utcNow);
     }
     
     /**
@@ -210,4 +257,48 @@ public class DateUtil {
     	return DateTimeFormatter.ofPattern(format).format(LocalDateTime.now());
     }
 
+    /**
+     * 날짜형식 문자열을 Unix 초로 반환 ex) 1599567400L
+     * @param dateStr
+     * @return
+     */
+    public static long toUnixTimestamp(String dateStr) {
+    	LocalDateTime localDateTime = toLocalDateTime(dateStr);
+    	return localDateTime.toEpochSecond(getCurrZoneOffset());
+    }
+    
+    /**
+     * 현재(시스템) ZoneOffset 반환
+     * @return
+     */
+    public static ZoneOffset getCurrZoneOffset() {
+    	ZonedDateTime zonedDateTime = ZonedDateTime.now(ZoneId.systemDefault());
+    	return zonedDateTime.getOffset();
+    }
+    
+    /**
+     * 날짜형식 문자열을 OffsetDateTime 으로 반환 (초 단위까지. 초 이하(밀리, 마이크로, 나노 등)단위는 다 0 취급)
+     * @param dateStr
+     * @return
+     */
+    public static OffsetDateTime toOffsetDateTime(String dateStr) {
+    	Instant instant = Instant.ofEpochSecond(toUnixTimestamp(dateStr));
+    	return instant.atOffset(getCurrZoneOffset());
+    }
+    
+//    public static void main(String[] args) {
+//    	//String dateStr = "2025-02-05T16:57:01";
+//    	//System.out.println(dateStr + " -> " + toUnixTimestamp(dateStr) + " -> " + toOffsetDateTime(dateStr));
+//    	String[] strs = { "2025-07-30", "2025-07-31T16", "2025-08-01T16:12:45Z", "2025-08-02T17:23:21+09:00", "2025-08-03T10:23:35.234123+09:00" };
+//    	for (String s : strs) {
+//    		System.out.println(s + " -> " + toISO6TimeStr(s));
+//    	}
+//    	/*
+//    	 	2025-07-30 -> 2025-07-30T00:00:00.000000+09:00
+//			2025-07-31T16 -> 2025-07-31T16:00:00.000000+09:00
+//			2025-08-01T16:12:45Z -> 2025-08-02T01:12:45.000000+09:00
+//			2025-08-02T17:23:21+09:00 -> 2025-08-02T17:23:21.000000+09:00
+//			2025-08-03T10:23:35.234123+09:00 -> 2025-08-03T10:23:35.234123+09:00
+//    	 */
+//    }
 }

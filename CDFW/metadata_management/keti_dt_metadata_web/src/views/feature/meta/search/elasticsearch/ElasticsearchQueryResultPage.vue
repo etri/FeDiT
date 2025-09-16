@@ -104,7 +104,7 @@ const tableData = ref([]);
 const executeQuery = () => {
   let param = Object.assign({}, state.searchInfo);
   $axios
-    .get($apiUrls.meta.rdf.elastic.searchElasticsearch, {
+    .get($apiUrls.meta.datastore.elastic.searchElasticsearch, {
       params: param,
     })
     .then((res) => {

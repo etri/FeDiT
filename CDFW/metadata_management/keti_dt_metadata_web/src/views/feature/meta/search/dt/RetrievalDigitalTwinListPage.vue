@@ -7,6 +7,9 @@
 			<div class="boxLayout">
 				<div class="boxTit">
 					<h3>디지털트윈 목록</h3>
+					<div class="taR">
+						<p style="color: #4a4a4a !important;">'사용' 상태인 디지털트윈만 조회됩니다.</p>
+					</div>
 				</div>
 				<div class="boxCnt">
 					<div style="overflow-x: hidden; overflow-y: auto">

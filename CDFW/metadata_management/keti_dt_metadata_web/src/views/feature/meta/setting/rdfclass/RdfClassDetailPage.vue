@@ -76,7 +76,6 @@
   </div>
   <el-dialog v-model="dialogModify" title="RDF 클래스 편집">
     <div class="dialog-area">
-      <div class="cntSec">
         <div class="boxLayout">
           <div class="boxTit"><h3>RDF 클래스 정보</h3></div>
           <div class="boxCnt">
@@ -184,7 +183,7 @@
                     <el-button type="default" class="ml15" @click="handleClickRdfClass()"
                       ><el-icon class="icon icon-search"
                     /></el-button>
-                    <el-button type="delete" class="ml15" @click="refreshUpRdfProperty()"
+                    <el-button type="default" class="el-button--delete ml15" @click="refreshUpRdfProperty()"
                       ><el-icon class="icon icon-refresh"
                     /></el-button>
                   </el-form-item>
@@ -230,7 +229,6 @@
             >취소</el-button
           >
         </div>
-      </div>
     </div>
   </el-dialog>
   <el-dialog v-model="dialogRdfClass" title="상위 RDF 클래스 검색">

@@ -119,9 +119,8 @@ const onLogout = () => {
 }
 
 const n2mLogo = ref("N2M");
-const naraLogo = ref(process.env.VUE_APP_NARA_SERVICE_LOGO);
-const ketiLogo = ref(process.env.VUE_APP_AIOT_LOGO);
-const logo = ref( naraLogo.value === null|| naraLogo.value === undefined ?  (ketiLogo.value === null || ketiLogo.value === undefined ? n2mLogo : ketiLogo) : naraLogo);
+const platformLogo = null; // ref(process.env.VUE_APP_PLATFORM_LOGO_TEXT);
+const logo = platformLogo ?? n2mLogo;
 const alarmIcon = ref(false);
 
 const platformLanguageVisible = ref(false);

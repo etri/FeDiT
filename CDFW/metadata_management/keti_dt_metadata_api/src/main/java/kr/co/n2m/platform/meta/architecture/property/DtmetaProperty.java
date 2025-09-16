@@ -43,4 +43,16 @@ public class DtmetaProperty {
 	@Value("${dtmeta.id-scheme.digital-twin-object}")
 	private String idSchmDigitalTwinObject;
 	
+	/**
+	 * 디지털 트윈 시각화모델 식별체계 적용할 메타데이터 모델 ID. 없으면 적용 안함.
+	 * 기본적으로 디지털 트윈 객체 식별체계를 적용하고 뒤쪽에 3D 모델 분류를 하나 더 붙임.
+	 * 
+	 * TTAK.KO-11.0326-Part10
+	 * 디지털 트윈 연합 – 제10부: 디지털 트윈 3D모델 객체 식별체계
+	 * Digital twin federation – Part 10: Identification Scheme for Digital Twin 3D Model object
+	 * @since 2025-09-09
+	 */
+	@Value("${dtmeta.id-scheme.digital-twin-object-vm}")
+	private String idSchmDigitalTwinObjectVm;
+	
 }

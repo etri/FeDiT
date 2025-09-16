@@ -59,7 +59,7 @@
         <el-col :span="24" :xs="24">
           <el-form-item label="메뉴 아이콘">
             <el-icon v-if="menu.menuIcon !== ''" size="14"><component :is="menu.menuIcon" /></el-icon>
-            <span v-if="menu.menuIcon !== ''" style="font-size: 14px; position: absolute;">&nbsp;{{ menu.menuIcon }}</span>
+            <span v-if="menu.menuIcon !== ''" style="font-size: 14px;">&nbsp;{{ menu.menuIcon }}</span>
           </el-form-item>
         </el-col>
       </el-row>
