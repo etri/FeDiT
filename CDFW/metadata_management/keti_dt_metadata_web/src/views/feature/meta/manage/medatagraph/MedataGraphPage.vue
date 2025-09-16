@@ -30,7 +30,7 @@
                 <div class="inline-area">
                   <el-input class="w-100 m-2" v-model="state.medataSetNm" disabled />
                   <el-button type="default" class="ml15" @click="dialogVisibleSearchMetadataSet = true"><el-icon class="icon icon-search"/></el-button>
-                  <el-button type="delete" @click="refreshMedataSet"><el-icon class="icon icon-refresh"/></el-button>
+                  <el-button type="default" class="el-button--delete" @click="refreshMedataSet"><el-icon class="icon icon-refresh"/></el-button>
                 </div>
               </el-form-item>
             </el-row>
@@ -43,7 +43,7 @@
           <el-aside width="70%" style="margin-right: 10px;">
             <div class="boxLayout"  >
               <div class="boxTit">
-                <h3>시각 그래프 (총 {{ state.nodeCount }} 건)</h3>
+                <h3>시각 그래프 ( 조회된 노드 {{ state.nodeCount }} 건 / 전체 노드 {{ state.totalCount }} 건 )</h3>
               </div>
               <div class="boxCnt">
                 <div id="neo4jd3" class="neo4jd3" ref="neo4jD3Svg" stripe></div> 
@@ -132,6 +132,7 @@ const state = reactive({
   clickedNodeProperties: [],
 
   nodeCount: "0",
+  totalCount: "0"
 });
 
 const selectedMetaDataSet = (payload) => {
@@ -153,7 +154,7 @@ onMounted(() => {
   
 const getRdbNeo4j = () => {
   $axios
-    .get($apiUrls.meta.rdf.neo4j.getRdbNeo4j, {
+    .get($apiUrls.meta.datastore.neo4j.getRdbNeo4j, {
       params: {
         searchType: state.searchType,
         matchLimit: state.matchLimit.toString(),
@@ -165,6 +166,9 @@ const getRdbNeo4j = () => {
       drawNeo4jGraph(res.data);
       if(res.data.graph.nodecount !== null){
         state.nodeCount = res.data.graph.nodecount;
+      }
+      if(res.data.totalcount !== null){
+        state.totalCount = res.data.totalcount;
       }
     })
     .catch((err) => {

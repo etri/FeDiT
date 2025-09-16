@@ -78,11 +78,18 @@ const goPage = (payload) => {
 	const path = route.path;
 	const query = props.pageInfo;
 
+	// TODO : 기존 router push는 남겨둔 상태로 external route 관련 적용 처리. 추후 수정 필요.
 	if(path.includes('exsearch')) {
 		router.push({path: `/meta/exsearch/page/${payload.medataSetId}`, query: query});
 	}
 	else {
-		router.push({path: `/meta/search/intgrdata/page/${payload.medataSetId}`, query: query});
+		const isExternal = window.location.pathname.startsWith("/meta/external");
+		if(isExternal) {
+			router.push({path: `/meta/external/search/intgrdata/page/${payload.medataSetId}`, query: query});
+		}
+		else {
+			router.push({path: `/meta/search/intgrdata/page/${payload.medataSetId}`, query: query});
+		}
 	}
 };
 

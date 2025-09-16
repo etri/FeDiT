@@ -239,7 +239,7 @@ public class CollectionMainService {
 			}
 			
 			// 메타데이터 셋 DB 저장
-			medataSetId = metadataSetService.createMetadataSetFromDataMap(dataMap, null, false);
+			medataSetId = metadataSetService.createMetadataSetFromDataMap(dataMap, null, false, true); // TODO 2025-08 지금 이 서비스는 사용하지 않지만 isKafkaSend true 는 아닌 것 같다!! 나중에 필요시 고칠 것
 			newSetIdSet.add(medataSetId);
 			
 			// key 프라퍼티가 있다면 key 값과 메타데이터 셋 ID 메모리 저장

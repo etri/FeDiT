@@ -91,13 +91,9 @@
 	
     <sql id="whereByMetadataSetFilter">
         <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(querySql)">
-            AND EXISTS (
-                         SELECT medata_set_id
-                          FROM (
-                                  ${querySql}
-                               ) a1
-                         WHERE a1.medata_set_id = t4.medata_set_id
-                       )
+            <![CDATA[
+			${querySql}
+			]]>
         </if>    
     </sql>	
 	
@@ -133,7 +129,7 @@
         <if test="showPrptyNmList != null and showPrptyNmList.size > 0">
             AND t2.prpty_nm                 IN <foreach collection="showPrptyNmList" item="item" index="index"  open="(" close=")" separator=","> #{item} </foreach>
         </if>        
-    </sql>      
+    </sql>
 	
 	<!-- 2023-06-22 모델의 모든 프라퍼티가 나오도록 수정 -->
 	<!-- 2023-10-23 배열 프라퍼티 건수를 따로 조회하는 대신 개수 프라퍼티 여부를 추가.쿼리 수정 -->
@@ -174,7 +170,7 @@
                                    FROM dtmeta.tb_meta_model        t5      
                                   WHERE 1=1
                                  <include refid="whereByMetadataModel"/>
-                                 <if test='@org.apache.commons.lang3.StringUtils@equals(metaTypeNodelShowYn, "Y")'>
+                                 <if test='@org.apache.commons.lang3.StringUtils@equals(metaTypeModelShowYn, "Y")'>
                                  /* 메타 유형 모델 */
                                  UNION ALL
                                 SELECT concat('TypeMP_', t5.model_id)
@@ -192,7 +188,7 @@
                                      , t2.prpty_nm
                                      , CASE WHEN t6.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)
                                             WHEN t6.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
-                                            WHEN t6.data_type_mtcd = 'json' THEN t1.medata_val::jsonb
+                                            WHEN t6.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
                                             ELSE to_jsonb(t1.medata_val)
                                        END  AS val                             
                                   FROM dtmeta.tb_meta_data t1
@@ -213,13 +209,13 @@
                                   FROM dtmeta.tb_meta_data t1
                                  INNER JOIN dtmeta.tb_meta_property t2  ON t1.prpty_id = t2.prpty_id AND t2.prpty_data_sttus_mtcd = 'use'
                                   LEFT JOIN (
-                                        SELECT ROW_NUMBER() OVER(PARTITION BY t1.medata_set_id ORDER BY t1.medata_id)  AS rn
+                                        SELECT ROW_NUMBER() OVER(PARTITION BY t1.medata_set_id, t1.prpty_id ORDER BY t1.medata_id)  AS rn
                                              , t1.medata_id
                                              , t1.medata_set_id
                                              , t1.prpty_id
                                              , CASE WHEN t6.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)
                                                     WHEN t6.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
-                                                    WHEN t6.data_type_mtcd = 'json' THEN t1.medata_val::jsonb
+                                                    WHEN t6.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
                                                     ELSE to_jsonb(t1.medata_val)
                                                END  AS val
                                           FROM dtmeta.tb_meta_data t1
@@ -231,7 +227,7 @@
                                  INNER JOIN dtmeta.tb_meta_model    t5  ON t4.model_id = t5.model_id                            
                                  WHERE t2.data_array_yn = 'Y'
                                    <![CDATA[
-                                   AND t3.rn <= 10
+                                   AND t3.rn <= COALESCE(#{arrayDataLimit}, 10)
                                    ]]>
                                 <include refid="whereByMetadata"/>
                                 <include refid="whereByMetadataSet"/>
@@ -262,7 +258,7 @@
                                  INNER JOIN dtmeta.tb_meta_model  t5  ON t4.model_id = t5.model_id       
                                  WHERE 1=1    
                                 <include refid="whereByMetadataSet"/>
-                                <if test='@org.apache.commons.lang3.StringUtils@equals(metaTypeNodelShowYn, "Y")'>
+                                <if test='@org.apache.commons.lang3.StringUtils@equals(metaTypeModelShowYn, "Y")'>
                                  /* 메타 유형 모델 */
                                  UNION ALL
                                 SELECT t4.medata_set_id
@@ -305,7 +301,7 @@
                                    FROM dtmeta.tb_meta_model        t5      
                                   WHERE 1=1
                                  <include refid="whereByMetadataModel"/>
-                                 <if test='@org.apache.commons.lang3.StringUtils@equals(metaTypeNodelShowYn, "Y")'>
+                                 <if test='@org.apache.commons.lang3.StringUtils@equals(metaTypeModelShowYn, "Y")'>
 					             /* 메타 유형 모델 */
 					             UNION ALL
 					            SELECT concat('TypeMP_', t5.model_id)
@@ -323,7 +319,7 @@
                                      , t2.prpty_nm
                                      , CASE WHEN t6.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)
                                             WHEN t6.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
-                                            WHEN t6.data_type_mtcd = 'json' THEN t1.medata_val::jsonb
+                                            WHEN t6.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
                                             ELSE to_jsonb(t1.medata_val)
                                        END  AS val                             
                                   FROM dtmeta.tb_meta_data t1
@@ -344,13 +340,13 @@
                                   FROM dtmeta.tb_meta_data t1
                                  INNER JOIN dtmeta.tb_meta_property t2  ON t1.prpty_id = t2.prpty_id AND t2.prpty_data_sttus_mtcd = 'use'
                                   LEFT JOIN (
-                                        SELECT ROW_NUMBER() OVER(PARTITION BY t1.medata_set_id ORDER BY t1.medata_id)  AS rn
+                                        SELECT ROW_NUMBER() OVER(PARTITION BY t1.medata_set_id, t1.prpty_id ORDER BY t1.medata_id)  AS rn
                                              , t1.medata_id
                                              , t1.medata_set_id
                                              , t1.prpty_id
                                              , CASE WHEN t6.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)
                                                     WHEN t6.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
-                                                    WHEN t6.data_type_mtcd = 'json' THEN t1.medata_val::jsonb
+                                                    WHEN t6.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
                                                     ELSE to_jsonb(t1.medata_val)
                                                END  AS val
                                           FROM dtmeta.tb_meta_data t1
@@ -362,7 +358,7 @@
                                  INNER JOIN dtmeta.tb_meta_model    t5  ON t4.model_id = t5.model_id                            
                                  WHERE t2.data_array_yn = 'Y'
                                    <![CDATA[
-                                   AND t3.rn <= 10
+                                   AND t3.rn <= COALESCE(#{arrayDataLimit}, 10)
                                    ]]>
                                 <include refid="whereByMetadata"/>
                                 <include refid="whereByMetadataSet"/>
@@ -378,7 +374,7 @@
                                  INNER JOIN dtmeta.tb_meta_model  t5  ON t4.model_id = t5.model_id       
                                  WHERE 1=1    
                                 <include refid="whereByMetadataSet"/>
-                                <if test='@org.apache.commons.lang3.StringUtils@equals(metaTypeNodelShowYn, "Y")'>
+                                <if test='@org.apache.commons.lang3.StringUtils@equals(metaTypeModelShowYn, "Y")'>
                                  /* 메타 유형 모델 */
                                  UNION ALL
                                 SELECT t4.medata_set_id
@@ -447,7 +443,7 @@
                              , t2.prpty_nm
                              , CASE WHEN t3.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)
                                     WHEN t3.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
-                                    WHEN t3.data_type_mtcd = 'json' THEN t1.medata_val::jsonb
+                                    WHEN t3.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
                                     ELSE to_jsonb(t1.medata_val)
                                END  AS val                             
                           FROM dtmeta.tb_meta_data t1
@@ -469,7 +465,7 @@
                                      , t1.prpty_id
                                      , CASE WHEN t3.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)
                                             WHEN t3.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
-                                            WHEN t3.data_type_mtcd = 'json' THEN t1.medata_val::jsonb
+                                            WHEN t3.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
                                             ELSE to_jsonb(t1.medata_val)
                                        END  AS val
                                   FROM dtmeta.tb_meta_data t1
@@ -481,7 +477,7 @@
                         WHERE t1.medata_set_id = #{medataSetId}
                           AND t2.data_array_yn = 'Y'
                           <![CDATA[
-                          AND t4.rn <= 10
+                          AND t4.rn <= COALESCE(#{arrayDataLimit}, 10)
                           ]]>
                         GROUP BY t1.medata_set_id, t2.prpty_nm               
                        ) t4  ON t2.model_prpty_id = t4.model_prpty_id        
@@ -533,7 +529,7 @@
                              , t2.prpty_nm
                              , CASE WHEN t3.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)
                                     WHEN t3.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
-                                    WHEN t3.data_type_mtcd = 'json' THEN t1.medata_val::jsonb
+                                    WHEN t3.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
                                     ELSE to_jsonb(t1.medata_val)
                                END  AS val                             
                           FROM dtmeta.tb_meta_data t1
@@ -555,7 +551,7 @@
                                      , t1.prpty_id
                                      , CASE WHEN t3.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)
                                             WHEN t3.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
-                                            WHEN t3.data_type_mtcd = 'json' THEN t1.medata_val::jsonb
+                                            WHEN t3.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
                                             ELSE to_jsonb(t1.medata_val)
                                        END  AS val
                                   FROM dtmeta.tb_meta_data t1
@@ -568,7 +564,7 @@
                           AND t2.data_array_yn = 'Y'
                           <if test='@org.apache.commons.lang3.StringUtils@equals(arrayDataLimitYn, "Y")'>
                           <![CDATA[
-                          AND t4.rn <= #{arrayDataLimit}
+                          AND t4.rn <= COALESCE(#{arrayDataLimit}, 10)
                           ]]>
                           </if>
                         GROUP BY t1.medata_set_id, t2.prpty_nm               
@@ -610,7 +606,7 @@
                              , t2.prpty_nm
                              , CASE WHEN t3.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)::jsonb 
                                     WHEN t3.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
-                                    WHEN t3.data_type_mtcd = 'json' THEN to_jsonb(t1.medata_val) 
+                                    WHEN t3.data_type_mtcd in ('json', 'address', 'dataInfo') THEN to_jsonb(t1.medata_val) 
                                     ELSE to_jsonb(t1.medata_val)
                                END  AS val                             
                           FROM dtmeta.tb_meta_data t1
@@ -632,7 +628,7 @@
                                      , t1.prpty_id
                                      , CASE WHEN t3.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)::jsonb 
                                             WHEN t3.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
-                                            WHEN t3.data_type_mtcd = 'json' THEN to_jsonb(t1.medata_val) 
+                                            WHEN t3.data_type_mtcd in ('json', 'address', 'dataInfo') THEN to_jsonb(t1.medata_val) 
                                             ELSE to_jsonb(t1.medata_val)
                                        END  AS val
                                   FROM dtmeta.tb_meta_data t1
@@ -645,7 +641,7 @@
                           AND t2.data_array_yn = 'Y'
                           <if test='@org.apache.commons.lang3.StringUtils@equals(arrayDataLimitYn, "Y")'>
                           <![CDATA[
-                          AND t4.rn <= #{arrayDataLimit}
+                          AND t4.rn <= COALESCE(#{arrayDataLimit}, 10)
                           ]]>
                           </if>
                         GROUP BY t1.medata_set_id, t2.prpty_nm               
@@ -689,7 +685,7 @@
                              , t2.prpty_nm
                              , CASE WHEN t3.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)
                                     WHEN t3.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
-                                    WHEN t3.data_type_mtcd = 'json' THEN t1.medata_val::jsonb
+                                    WHEN t3.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
                                     ELSE to_jsonb(t1.medata_val)
                                END  AS val                             
                           FROM dtmeta.tb_meta_data t1
@@ -711,7 +707,7 @@
                                      , t1.prpty_id
                                      , CASE WHEN t3.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)
                                             WHEN t3.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
-                                            WHEN t3.data_type_mtcd = 'json' THEN t1.medata_val::jsonb
+                                            WHEN t3.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
                                             ELSE to_jsonb(t1.medata_val)
                                        END  AS val
                                   FROM dtmeta.tb_meta_data t1
@@ -777,7 +773,7 @@
                              , t2.prpty_nm
                              , CASE WHEN t3.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)
                                     WHEN t3.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
-                                    WHEN t3.data_type_mtcd = 'json' THEN t1.medata_val::jsonb
+                                    WHEN t3.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
                                     ELSE to_jsonb(t1.medata_val)
                                END  AS val                             
                           FROM dtmeta.tb_meta_data t1
@@ -799,7 +795,7 @@
                                      , t1.prpty_id
                                      , CASE WHEN t3.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)
                                             WHEN t3.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
-                                            WHEN t3.data_type_mtcd = 'json' THEN t1.medata_val::jsonb
+                                            WHEN t3.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
                                             ELSE to_jsonb(t1.medata_val)
                                        END  AS val
                                   FROM dtmeta.tb_meta_data t1
@@ -854,7 +850,7 @@
                              , t2.prpty_nm
                              , CASE WHEN t3.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)
                                     WHEN t3.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
-                                    WHEN t3.data_type_mtcd = 'json' THEN t1.medata_val::jsonb
+                                    WHEN t3.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
                                     ELSE to_jsonb(t1.medata_val)
                                END  AS val                             
                           FROM dtmeta.tb_meta_data t1
@@ -939,7 +935,7 @@
           FROM (
 				SELECT CASE WHEN t3.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)
 				            WHEN t3.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
-				            WHEN t3.data_type_mtcd = 'json' THEN t1.medata_val::jsonb
+				            WHEN t3.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
 				            ELSE to_jsonb(t1.medata_val)
 				       END               AS "medataVal"              
 				     , t5.medata_set_nm  AS "medataValNm"
@@ -968,5 +964,317 @@
                ) x1
 	</select>
 	
+    <!-- =========================
+       디지털 트윈 연합 레지스트리 관련 API 용 (참조ID로 저장되어 있는 것들을 1번만(1depth) JSON으로 변환해서 조회)
+    ========================= -->
+        
+    <sql id="whereByRefObjFilter">
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(refObjFilterQuerySql)">
+	        <![CDATA[
+	        ${refObjFilterQuerySql}
+	        ]]>        
+        </if>
+    </sql>   
+    
+    <!-- 1. 목록의 페이지 대상을 먼저 조회 (DigitalTwin 인 경우만, object 형식으로 요청한 경우만 하위 JSON으로 치환)-->
+	<sql id="cte_pagedSets">
+        WITH cte_baseSets AS (
+            SELECT t4.medata_set_id
+	             , (t5.type_model_id = 'DigitalTwin' AND #{objectRefFormat} = 'object') AS expand
+	             , t4.medata_set_amd_dt
+	          FROM dtmeta.tb_meta_dataset t4
+	          JOIN dtmeta.tb_meta_model   t5 ON t4.model_id = t5.model_id
+	         WHERE 1=1
+	        <include refid="whereByMetadataSet"/>
+	        <include refid="whereByMetadataSetFilter"/>
+	    ),
+        cte_refFilterOwners AS (
+	    <choose>
+	      <when test="applyRefFilter">
+	        SELECT DISTINCT t1.medata_set_id AS owner_set_id
+	          FROM dtmeta.tb_meta_data     t1
+	          JOIN dtmeta.tb_meta_property t2 ON t1.prpty_id = t2.prpty_id AND t2.prpty_data_sttus_mtcd = 'use'
+	          JOIN dtmeta.tb_meta_model    t6 ON t1.val_model_id = t6.model_id
+	          JOIN cte_baseSets            bs ON bs.medata_set_id = t1.medata_set_id
+	         WHERE t6.model_type_mtcd = 'object_type'
+	        <include refid="whereByRefObjFilter"/>
+	      </when>
+	      <otherwise>
+	        SELECT bs.medata_set_id AS owner_set_id
+	          FROM cte_baseSets bs
+	      </otherwise>
+	    </choose>
+        ),
+        cte_pagedSets AS (
+            SELECT bs.medata_set_id
+	             , bs.expand
+              FROM cte_baseSets bs
+             WHERE EXISTS (
+                            SELECT 1 
+                              FROM cte_refFilterOwners rfo
+                             WHERE rfo.owner_set_id = bs.medata_set_id
+                          )
+	         ORDER BY bs.medata_set_amd_dt DESC, bs.medata_set_id DESC
+	        <include refid="limitPage"/>
+        )
+	</sql>
+    
+    <!-- 2. 페이지 안에서 object_type 참조 ID 수집 (expand 경우만) -->
+    <sql id="cte_refIds">
+        , cte_refIds AS (
+			SELECT DISTINCT t1.medata_val                    AS ref_id
+			     , t1.medata_set_id                          AS owner_set_id
+			     , (ps.expand OR #{hasDtwObjsAttr}) AS owner_expand
+			     , ROW_NUMBER() OVER(PARTITION BY t1.medata_set_id, t1.prpty_id ORDER BY t1.medata_id)  AS ref_rn
+			  FROM dtmeta.tb_meta_data t1
+			 INNER JOIN dtmeta.tb_meta_property t2  ON t1.prpty_id = t2.prpty_id AND t2.prpty_data_sttus_mtcd = 'use'
+			 INNER JOIN dtmeta.tb_meta_model    t6  ON t1.val_model_id = t6.model_id
+			 INNER JOIN cte_pagedSets           ps  ON ps.medata_set_id = t1.medata_set_id 
+			 WHERE (ps.expand OR #{hasDtwObjsAttr})
+			   AND t6.model_type_mtcd = 'object_type'
+			<if test="hasDtwObjsAttr">
+		       AND t2.prpty_nm        = #{dtwObjsAttr}
+		    </if>
+            <include refid="whereByMetadata"/>
+            <include refid="whereByMetadataProperty"/>
+		    <if test="applyRefFilter">
+		       <include refid="whereByRefObjFilter"/>
+		    </if>
+        )
+    </sql>
+    
+    <!-- 3. 참조 ID 들의 JSON 미리 생성 (expand 경우만) -->
+    <sql id="cte_objJsons">
+        , cte_objJsons AS (
+            SELECT medata_set_id, json_object_agg(prpty_nm, val ORDER BY sort1 NULLS LAST, sort2 NULLS LAST, model_prpty_id) AS obj_json
+              FROM (        
+                        SELECT t4.medata_set_id
+                             , m2.prpty_nm
+                             , m3.val
+                             , m2.sort1
+                             , m2.sort2
+                             , m2.model_prpty_id
+                          FROM cte_refIds                   rf
+                         INNER JOIN dtmeta.tb_meta_dataset  t4  ON rf.ref_id = t4.medata_set_id
+                         INNER JOIN dtmeta.tb_meta_model    t5  ON t4.model_id = t5.model_id   
+                         INNER JOIN (
+                                SELECT t7.model_prpty_id
+                                     , t7.model_id
+                                     , t2.prpty_nm
+                                     , t7.model_prpty_sort_odrg AS sort1
+                                     , t2.prpty_sort_odrg       AS sort2
+                                  FROM dtmeta.tb_meta_modelproperty t7
+                                 INNER JOIN dtmeta.tb_meta_property t2  ON t2.prpty_id = t7.prpty_id AND t2.prpty_data_sttus_mtcd = 'use'
+                                 WHERE t7.model_prpty_del_yn = 'N'
+                                   /* TODO sub 조건2 */
+                               ) m2  ON t5.model_id = m2.model_id
+                          LEFT OUTER JOIN (
+                                SELECT t1.medata_set_id
+                                     , t1.model_prpty_id
+                                     , t2.prpty_nm
+                                     , CASE WHEN t6.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)
+                                            WHEN t6.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
+                                            WHEN t6.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
+                                            ELSE to_jsonb(t1.medata_val)
+                                       END  AS val                             
+                                  FROM dtmeta.tb_meta_data t1
+                                 INNER JOIN dtmeta.tb_meta_property t2  ON t1.prpty_id = t2.prpty_id AND t2.prpty_data_sttus_mtcd = 'use'
+                                 INNER JOIN dtmeta.tb_meta_model    t6  ON t1.val_model_id = t6.model_id                      
+                                 WHERE t2.data_array_yn = 'N'
+                                   AND t1.medata_set_id IN (SELECT ref_id FROM cte_refIds)
+                                 /* 배열 내용은 10건 이하만 */
+                                 UNION ALL               
+                                SELECT t1.medata_set_id
+                                     , MAX(t1.model_prpty_id) AS model_prpty_id
+                                     , t2.prpty_nm
+                                     , jsonb_agg(t3.val ORDER BY t3.medata_id) AS val
+                                  FROM dtmeta.tb_meta_data t1
+                                 INNER JOIN dtmeta.tb_meta_property t2  ON t1.prpty_id = t2.prpty_id AND t2.prpty_data_sttus_mtcd = 'use'
+                                  LEFT JOIN (
+                                        SELECT ROW_NUMBER() OVER(PARTITION BY t1.medata_set_id, t1.prpty_id ORDER BY t1.medata_id)  AS rn
+                                             , t1.medata_id
+                                             , t1.medata_set_id
+                                             , t1.prpty_id
+                                             , CASE WHEN t6.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)
+                                                    WHEN t6.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
+                                                    WHEN t6.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
+                                                    ELSE to_jsonb(t1.medata_val)
+                                               END  AS val
+                                          FROM dtmeta.tb_meta_data t1
+                                         INNER JOIN dtmeta.tb_meta_property t2  ON t1.prpty_id = t2.prpty_id AND t2.prpty_data_sttus_mtcd = 'use'
+                                         INNER JOIN dtmeta.tb_meta_model    t6  ON t1.val_model_id = t6.model_id
+                                         WHERE t2.data_array_yn = 'Y'   
+                                       ) t3  ON t1.medata_id = t3.medata_id
+                                 WHERE t2.data_array_yn = 'Y'
+                                   AND t1.medata_set_id IN (SELECT ref_id FROM cte_refIds)                          
+                                   <![CDATA[
+                                   AND t3.rn <= COALESCE(#{arrayDataLimit}, 10)
+                                   ]]>
+                                 GROUP BY t1.medata_set_id, t2.prpty_nm   
+                               ) m3  ON t4.medata_set_id = m3.medata_set_id AND m2.model_prpty_id = m3.model_prpty_id
+                         WHERE rf.owner_expand
+                          <![CDATA[
+                           AND rf.ref_rn <= COALESCE(#{arrayDataLimit}, 10)
+                          ]]>                         
+                   ) x1
+             GROUP BY medata_set_id                         
+        )
+    </sql>
+    
+    <!-- 4. 본 JSON 조회 + object_type 치환 (object_type 경우만 cte_objJsons 값을 가져와서 치환) -->
+    <sql id="cte_mainRows">
+        , cte_mainRows AS (
+                        SELECT t4.medata_set_id
+                             , m2.prpty_nm
+                             , m2.sort1
+                             , m2.sort2
+                             , m2.model_prpty_id     
+                             , CASE WHEN m3.model_type_mtcd != 'object_type' THEN m3.val
+                                    WHEN ( ps.expand OR (#{hasDtwObjsAttr} AND m2.prpty_nm = #{dtwObjsAttr}) )
+                                    THEN CASE WHEN m2.data_array_yn = 'N'  
+                                              THEN COALESCE(oj.obj_json::jsonb, m3.val)
+    		                                  ELSE (
+			                                        SELECT jsonb_agg(COALESCE(oj2.obj_json::jsonb, to_jsonb(elem_text)) ORDER BY ord)
+			                                          FROM jsonb_array_elements_text(m3.val) WITH ORDINALITY AS e(elem_text, ord)
+			                                          LEFT JOIN cte_objJsons oj2
+			                                                 ON ( ps.expand OR (#{hasDtwObjsAttr} AND m2.prpty_nm = #{dtwObjsAttr}) )
+			                                                AND oj2.medata_set_id = elem_text
+			                                       )
+			                             END
+			                        WHEN #{objectRefFormat} = 'id' THEN m3.val
+			                        ELSE null
+                               END AS val
+						  FROM cte_pagedSets          ps
+						  JOIN dtmeta.tb_meta_dataset t4 ON t4.medata_set_id = ps.medata_set_id
+                          JOIN dtmeta.tb_meta_model   t5 ON t4.model_id = t5.model_id
+                         INNER JOIN (
+                                SELECT t7.model_prpty_id
+                                     , t7.model_id
+                                     , t2.prpty_nm
+                                     , t2.data_array_yn 
+                                     , t7.model_prpty_sort_odrg AS sort1
+                                     , t2.prpty_sort_odrg       AS sort2
+                                  FROM dtmeta.tb_meta_modelproperty t7
+                                 INNER JOIN dtmeta.tb_meta_property t2  ON t2.prpty_id = t7.prpty_id AND t2.prpty_data_sttus_mtcd = 'use'
+                                 WHERE t7.model_prpty_del_yn = 'N'                                 
+                                <include refid="whereByMetadataModelProperty"/>
+                               ) m2  ON t5.model_id = m2.model_id
+                          LEFT OUTER JOIN (
+                                SELECT t1.medata_set_id
+                                     , t1.model_prpty_id
+                                     , t2.prpty_nm
+                                     , CASE WHEN t6.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)
+                                            WHEN t6.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
+                                            WHEN t6.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
+                                            ELSE to_jsonb(t1.medata_val)
+                                       END  AS val
+                                     , t1.medata_val AS val_text
+                                     , t2.data_array_yn
+                                     , t6.model_type_mtcd
+                                  FROM dtmeta.tb_meta_data t1
+                                 INNER JOIN dtmeta.tb_meta_property t2  ON t1.prpty_id = t2.prpty_id AND t2.prpty_data_sttus_mtcd = 'use'
+                                 INNER JOIN dtmeta.tb_meta_model    t6  ON t1.val_model_id = t6.model_id                      
+                                 WHERE t2.data_array_yn = 'N'
+                                   AND t1.medata_set_id IN (SELECT medata_set_id FROM cte_pagedSets)
+                                <include refid="whereByMetadata"/>
+                                <include refid="whereByMetadataProperty"/>
+                                 /* 배열 내용은 10건 이하만 */
+                                 UNION ALL               
+                                SELECT t1.medata_set_id
+                                     , MAX(t1.model_prpty_id) AS model_prpty_id
+                                     , t2.prpty_nm
+                                     , jsonb_agg(t3.val ORDER BY t3.medata_id) AS val
+                                     , NULL AS val_text 
+                                     , 'Y' AS data_array_yn
+                                     , MAX(t3.model_type_mtcd) AS model_type_mtcd
+                                  FROM dtmeta.tb_meta_data t1
+                                 INNER JOIN dtmeta.tb_meta_property t2  ON t1.prpty_id = t2.prpty_id AND t2.prpty_data_sttus_mtcd = 'use'
+                                  LEFT JOIN (
+                                        SELECT ROW_NUMBER() OVER(PARTITION BY t1.medata_set_id, t1.prpty_id ORDER BY t1.medata_id)  AS rn
+                                             , t1.medata_id
+                                             , t1.medata_set_id
+                                             , t1.prpty_id
+                                             , t6.model_type_mtcd
+                                             , CASE WHEN t6.data_type_mtcd = 'langString' THEN jsonb_build_object('language', t1.lang_mtcd, 'value', t1.medata_val)
+                                                    WHEN t6.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(t1.geodata_val)::jsonb
+                                                    WHEN t6.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
+                                                    ELSE to_jsonb(t1.medata_val)
+                                               END  AS val
+                                          FROM dtmeta.tb_meta_data t1
+                                         INNER JOIN dtmeta.tb_meta_property t2  ON t1.prpty_id = t2.prpty_id AND t2.prpty_data_sttus_mtcd = 'use'
+                                         INNER JOIN dtmeta.tb_meta_model    t6  ON t1.val_model_id = t6.model_id
+                                         WHERE t2.data_array_yn = 'Y'   
+                                       ) t3  ON t1.medata_id = t3.medata_id
+                                 WHERE t2.data_array_yn = 'Y'
+                                   AND t1.medata_set_id IN (SELECT medata_set_id FROM cte_pagedSets)
+                                   <![CDATA[
+                                   AND t3.rn <= COALESCE(#{arrayDataLimit}, 10)
+                                   ]]>
+                                <include refid="whereByMetadata"/>
+                                <include refid="whereByMetadataProperty"/>
+                                 GROUP BY t1.medata_set_id, t2.prpty_nm   
+                               ) m3  ON t4.medata_set_id = m3.medata_set_id AND m2.model_prpty_id = m3.model_prpty_id
+                          LEFT OUTER JOIN cte_objJsons  oj  
+                                       ON ( ps.expand OR (#{hasDtwObjsAttr} AND m2.prpty_nm = #{dtwObjsAttr}) )
+                                      AND m3.model_type_mtcd = 'object_type' AND m2.data_array_yn = 'N' AND oj.medata_set_id = m3.val_text
+                         WHERE 1=1
+                          <if test='@org.apache.commons.lang3.StringUtils@equals(objectRefFormat, "none")'>
+					       AND NOT ( m3.model_type_mtcd = 'object_type'
+					                 AND NOT ( ps.expand OR (#{hasDtwObjsAttr} AND m2.prpty_nm = #{dtwObjsAttr}) )
+					               )
+					      </if>
+        )
+    </sql>
+    
+    <!-- 5. 최종 SELECT -->
+    <select id="selectMetadataSetListForApiWithChildren" resultType="metadataJsonMap">
+        /* SQL_ID: MetadataApiMapper.selectMetadataSetListForApiWithChildren */
+        <include refid="cte_pagedSets"/>
+        <include refid="cte_refIds"/>
+        <include refid="cte_objJsons"/>
+        <include refid="cte_mainRows"/>
+        SELECT json_object_agg(prpty_nm, val ORDER BY sort1 NULLS LAST, sort2 NULLS LAST, model_prpty_id) AS metaJsonStr
+          FROM cte_mainRows x1
+         GROUP BY medata_set_id
+    </select>
+    
+    <select id="selectMetadataSetCountForApi" resultType="int"> 
+        /* SQL_ID: MetadataApiMapper.selectMetadataSetCountForApi */
+        WITH cte_baseSets AS (
+            SELECT t4.medata_set_id
+                 , (t5.type_model_id = 'DigitalTwin' AND #{objectRefFormat} = 'object') AS expand
+                 , t4.medata_set_amd_dt
+              FROM dtmeta.tb_meta_dataset t4
+              JOIN dtmeta.tb_meta_model   t5 ON t4.model_id = t5.model_id
+             WHERE 1=1
+            <include refid="whereByMetadataSet"/>
+            <include refid="whereByMetadataSetFilter"/>
+        ),
+        cte_refFilterOwners AS (
+        <choose>
+          <when test="applyRefFilter">
+            SELECT DISTINCT t1.medata_set_id AS owner_set_id
+              FROM dtmeta.tb_meta_data     t1
+              JOIN dtmeta.tb_meta_property t2 ON t1.prpty_id = t2.prpty_id AND t2.prpty_data_sttus_mtcd = 'use'
+              JOIN dtmeta.tb_meta_model    t6 ON t1.val_model_id = t6.model_id
+              JOIN cte_baseSets            bs ON bs.medata_set_id = t1.medata_set_id
+             WHERE t6.model_type_mtcd = 'object_type'
+            <include refid="whereByRefObjFilter"/>
+          </when>
+          <otherwise>
+            SELECT bs.medata_set_id AS owner_set_id
+              FROM cte_baseSets bs
+          </otherwise>
+        </choose>
+        )
+        SELECT COUNT(*)
+          FROM cte_baseSets bs
+         WHERE EXISTS (
+                        SELECT 1 
+                          FROM cte_refFilterOwners rfo
+                         WHERE rfo.owner_set_id = bs.medata_set_id
+                      )
+    </select>
+      
 </mapper>
 

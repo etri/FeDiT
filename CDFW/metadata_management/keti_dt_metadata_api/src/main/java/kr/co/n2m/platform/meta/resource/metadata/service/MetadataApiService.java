@@ -334,7 +334,7 @@ public class MetadataApiService {
 				if (StringUtils.isEmpty(modelNm)) modelNm = typeModelVo.getModelNm(); // 지정 모델명이 없으면 유형 모델로 설정.
 				
 				try {
-					String medataSetId = metadataSetService.createMetadataSetFromDataMap(dataMap, typeModelVo, true);
+					String medataSetId = metadataSetService.createMetadataSetFromDataMap(dataMap, typeModelVo, true, true);
 					idList.add(medataSetId);
 					cnt++;
 					

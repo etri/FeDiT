@@ -114,7 +114,7 @@
                   <el-button type="default" class="ml15" @click="handleClickUpRdfClass"
                     ><el-icon class="icon icon-search"
                   /></el-button>
-                  <el-button type="delete" class="ml15" @click="refreshUpRdfClass"
+                  <el-button type="default" class="el-button--delete ml15" @click="refreshUpRdfClass"
                     ><el-icon class="icon icon-refresh"
                   /></el-button>
                 </el-form-item>

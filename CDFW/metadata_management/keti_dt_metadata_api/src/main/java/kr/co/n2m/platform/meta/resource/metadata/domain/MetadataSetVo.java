@@ -61,6 +61,7 @@ public class MetadataSetVo extends BaseVo {
 	 * id_schm_object 디지털트윈 객체 식별체계 분류코드 종류 (1자리)
 	 * 1: 물품 - 디지털 트윈에 구현된 물품에 대한 분류
 	 * 2: 시설 - 디지털 트윈에 구현된 시설에 대한 분류
+	 * 3: 지형지물
 	 * </pre>
 	 */
 	@Schema(description="식별체계 분류코드 종류")
@@ -80,10 +81,25 @@ public class MetadataSetVo extends BaseVo {
 	@Schema(description="식별체계 코드")
 	private String idSchmCd;
 	
+	/**
+	 * <pre>
+	 * id_schm_object_vm
+	 * 시각화 모델의 경우
+	 * 3D 모델 객체 분류 코드 추가됨 (1자리)
+	 * </pre>
+	 */
+	@Schema(description="식별체계 코드2")
+	private String idSchmCd2;
+	
 	@Schema(description="식별체계 PREFIX", hidden=true)
 	private String idSchmPrefix;
 	@Schema(description="식별체계 년도 사용 여부 (식별체계 PREFIX 값이 있는 경우만)", hidden=true)
-	private String idSchmYearUseYn;	
+	private String idSchmYearUseYn;
+	@Schema(description="식별체계 일련번호 생성 여부 (식별체계 PREFIX 값이 있는 경우만)", hidden=true) // 2025-08-08 로직 변경으로 사용할 일이 없어짐. 지형지물도 일련번호 자동생성. 무조건 Y.
+	private String idSchmSeqGenYn;
+	
+	//TODO 적용안함. 고민중... @Schema(description="원본 아이디") // TODO 2025-07 필요없을 수 있음. 등록시에만 사용???
+	//private String originId;
 
     @Override
     public String toString() {

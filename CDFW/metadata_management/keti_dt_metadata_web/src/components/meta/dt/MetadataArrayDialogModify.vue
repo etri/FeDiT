@@ -2,7 +2,7 @@
 	<div class="dialog-area">
 
 		<!-- geoJson type data 편집 form -->
-		<div v-if="'geoJson' === props.generalProperty.rangeDataTypeMtcd || 'json' === props.generalProperty.rangeDataTypeMtcd">
+		<div v-if="'geoJson' === props.generalProperty.rangeDataTypeMtcd || metaConst.ARR_ETCJSON_DATATYPE.includes(props.generalProperty.rangeDataTypeMtcd)">
 			<div class="boxLayout">
 				<div class="boxTit">
 					<h3>메타데이터 값 정보</h3><!--json, geoJson -->
@@ -46,7 +46,7 @@
 					</div>
 				</div>
 
-				<div v-if="'json' === props.generalProperty.rangeDataTypeMtcd" class="boxCnt">
+				<div v-if="metaConst.ARR_ETCJSON_DATATYPE.includes(props.generalProperty.rangeDataTypeMtcd)" class="boxCnt">
 					<div style="overflow-x: hidden; overflow-y: auto">
 						<MetadataDialogSearchList 
 							:metadataList="state.metadataList" 
@@ -66,7 +66,7 @@
 		<!-- property 목록과 편집 form (data_type 중 json 형식은 제외) -->
 		<div v-if="'data_type' === props.generalProperty.rangeModelTypeMtcd 
 			&& 'geoJson' !== props.generalProperty.rangeDataTypeMtcd
-			&& 'json' !== props.generalProperty.rangeDataTypeMtcd ">
+			&& !metaConst.ARR_ETCJSON_DATATYPE.includes(props.generalProperty.rangeDataTypeMtcd) ">
 
 			<div class="boxLayout">
 				<div class="boxTit">
@@ -128,7 +128,7 @@
 		</div>
 
 		<!-- property 목록과 편집 form  (object_type) -->
-		<div v-if="'object_type' === props.generalProperty.rangeModelTypeMtcd"> <!--  && 'geoJson' !== props.rangeDataTypeMtcd -->
+		<div v-if="'object_type' === props.generalProperty.rangeModelTypeMtcd"> 
 
 			<div class="boxLayout">
 				<div class="boxTit">
@@ -270,6 +270,7 @@ import { reactive, onMounted, defineProps, ref, getCurrentInstance, defineExpose
 import { useStore } from "vuex";
 import { getGlobalProperties, isEmpty } from "@/assets/js/common.js";
 import util from "util";
+import metaConst from "@/assets/js/metaConst.js";
 
 const $axios = getGlobalProperties().$axios;
 const $apiUrls = getGlobalProperties().$apiUrls;

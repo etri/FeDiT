@@ -1,7 +1,7 @@
 <template>
 	<div class="dialog-area">
 
-		<el-form ref="ruleFormRef" :model="state.metadataSet" :rules="IdSchmUseYn == 'Y' && metaIdSchmSettings.id_schm_object.typeModelId == model.typeModelId ? state.rules : state.idSchmNotUseRules" label-width="200px"
+		<el-form ref="ruleFormRef" :model="state.metadataSet" :rules="IdSchmUseYn == 'Y' && idSchmTypeModelIds.includes(model.typeModelId) ? state.rules : state.idSchmNotUseRules" label-width="200px"
 			class="demo-ruleForm" label-position="right">
 
 			<div class="boxLayout">
@@ -24,7 +24,7 @@
 							<el-button type="default" class="ml15" @click="dialogVisibleModelSearch = true"><!-- 유형이 같은 모델을 선택할 수 있게 하자. 동일 모델만으로 요구 조건이 바뀔 경우는 다시 show 조건! v-show="props.modelDisabledYn !== 'Y'" -->
 								<el-icon class="icon icon-search"></el-icon>
 							</el-button>
-							<el-button type="delete" @click="refreshModelInfo"><!-- 유형이 같은 모델을 선택할 수 있게 하자. 동일 모델만으로 요구 조건이 바뀔 경우는 다시 show 조건! v-show="props.modelDisabledYn !== 'Y'" -->
+							<el-button type="default" class="el-button--delete" @click="refreshModelInfo"><!-- 유형이 같은 모델을 선택할 수 있게 하자. 동일 모델만으로 요구 조건이 바뀔 경우는 다시 show 조건! v-show="props.modelDisabledYn !== 'Y'" -->
 								<el-icon class="icon icon-refresh" />
 							</el-button>
 						</div>
@@ -37,7 +37,7 @@
 						</el-dialog>						
 					</el-form-item>
 
-					<el-form-item label="식별체계 - 국가코드" prop="idSchmCntryCd" v-show="IdSchmUseYn === 'Y' && metaIdSchmSettings.id_schm_object.typeModelId == model.typeModelId">
+					<el-form-item label="식별체계 - 국가코드" prop="idSchmCntryCd" v-show="IdSchmUseYn === 'Y' && idSchmTypeModelIds.includes(model.typeModelId)">
 						<el-select 
 								v-model="state.metadataSet.idSchmCntryCd"
 								placeholder="선택">
@@ -50,7 +50,7 @@
               			</el-select>
 					</el-form-item>
 
-					<el-form-item label="식별체계 - 분류코드 종류" prop="idSchmType" v-show="IdSchmUseYn === 'Y' && metaIdSchmSettings.id_schm_object.typeModelId == model.typeModelId">
+					<el-form-item label="식별체계 - 분류코드 종류" prop="idSchmType" v-show="IdSchmUseYn === 'Y' && idSchmTypeModelIds.includes(model.typeModelId)">
 						<el-select 
 								v-model="state.metadataSet.idSchmType"
 								placeholder="선택"
@@ -64,18 +64,39 @@
               			</el-select>
 					</el-form-item>
 
-					<el-form-item label="식별체계 - 코드" prop="idSchmCd" v-show="IdSchmUseYn === 'Y' && metaIdSchmSettings.id_schm_object.typeModelId == model.typeModelId">
+					<!-- 지형지물 코드가 아닌 경우만, 식별체계 코드를 검색 dialog 를 통해 입력받도록 함 (25.07.31 keti 요구사항) -->
+					<el-form-item label="식별체계 - 코드" prop="idSchmCd" v-show="IdSchmUseYn === 'Y' && idSchmTypeModelIds.includes(model.typeModelId) && state.metadataSet.idSchmType !== '3'">
 						<div class="inline-area">
 							<el-input	v-model="state.metadataSet.idSchmCd"	disabled style="width: 100px" />
 							<el-input	v-model="state.idSchmCdNm"	disabled style="width: 250px; margin-left: 5px;" />
 							<el-button type="default" class="ml15" @click="codeSearchClick"><el-icon class="icon icon-search"/></el-button>
-							<el-button type="delete" @click="refreshCodeInfo"><el-icon class="icon icon-refresh"/></el-button>
+							<el-button type="default" class="el-button--delete" @click="refreshCodeInfo"><el-icon class="icon icon-refresh"/></el-button>
 						</div>	
 						<el-dialog v-model="dialogVisibleCodeSearch" :title="`식별체계 코드 검색 - ${state.idSchmTypeNm}`">
 							<IdSchemeCodeSearchPage 
 							:idSchmType="state.metadataSet.idSchmType" 
 							@selectedRow="selectedIdSchmCd" />
 						</el-dialog>
+					</el-form-item>
+
+					<!-- 지형지물 코드 선택 시, 식별체계 코드를 사용자로부터 직접 문자열로 입력받도록 함 (25.07.31 keti 요구사항) -->
+					<el-form-item v-if="state.metadataSet.idSchmType === '3'" label="식별체계 - 코드" prop="idSchmCd" >
+						<el-input v-model="state.metadataSet.idSchmCd" placeholder="지형지물 코드를 입력하세요. 예) A001000012345678" />
+						<!-- 2025-08-08 지형지물코드도 일련번호 생성. 중복확인 필요 없어짐. 
+						<el-button type="primary" plain class="ml15" @click="checkDuplicatedCode">중복 확인</el-button>
+						-->
+					</el-form-item>
+
+					<!-- 2025-09-09 시각화 모델 식별체계 -->
+					<el-form-item label="식별체계 - 3D 모델 객체 분류" prop="idSchmCd2" v-show="isIdSchmVmField" :required="isIdSchmVmField" >
+						<el-select v-model="state.metadataSet.idSchmCd2" placeholder="선택"	>
+							<el-option
+								v-for="item in idSchm3dCdList"
+								:key="item.mtcd"
+								:label="item.mtcdNm"
+								:value="item.mtcd"
+							/>
+						</el-select>
 					</el-form-item>
 
 					<el-form-item label="메타데이터 셋 명" prop="medataSetNm">
@@ -104,7 +125,7 @@
 							<el-button type="default" class="ml15" @click="popDialog('SearchMetadataSet')" v-show="props.cnctInfoDisabledYn !== 'Y'">
 								<el-icon class="icon icon-search"></el-icon>
 							</el-button>
-							<el-button type="delete" @click="refreshSearchMetadataSetInfo" v-show="props.cnctInfoDisabledYn !== 'Y'">
+							<el-button type="default" class="el-button--delete" @click="refreshSearchMetadataSetInfo" v-show="props.cnctInfoDisabledYn !== 'Y'">
 								<el-icon class="icon icon-refresh" />
 							</el-button>
 						</div>
@@ -146,7 +167,7 @@ import MetadataSetDialogSearch from "@/components/meta/dt/MetadataSetDialogSearc
 import IdSchemeCodeSearchPage from "@/views/feature/meta/stddata/idshemecommon/IdSchemeCodeSearchPage.vue";
 import metaIdSchmSettings from "@/assets/json/metaIdSchmSettings.json";
 
-import { ref, toRefs, reactive, defineEmits, defineProps, watch, onMounted } from "vue";
+import { ref, toRefs, reactive, defineEmits, defineProps, watch, onMounted, computed } from "vue";
 import { useRoute } from "vue-router";
 import { getGlobalProperties, isEmpty } from "@/assets/js/common.js";
 import util from "util";
@@ -159,6 +180,9 @@ const $apiUrls = getGlobalProperties().$apiUrls;
 
 const ruleFormRef = ref(null);
 const IdSchmUseYn = ref(process.env.VUE_APP_METADATA_ID_SCHM_USE_YN);
+const idSchmTypeModelIds = [metaIdSchmSettings.id_schm_object.typeModelId, metaIdSchmSettings.id_schm_object_vm.typeModelId];
+// 2025-09-09 시각화모델 일 때만 보이는 필드
+const isIdSchmVmField = computed(() => IdSchmUseYn.value === 'Y' && metaIdSchmSettings.id_schm_object_vm.typeModelId == props.model.typeModelId);
 
 const dialogVisibleModelSearch = ref(false);
 const dialogVisibleCodeSearch = ref(false);
@@ -208,24 +232,33 @@ const props = defineProps({
 		type: Array,
 		required: false,
 	},
+	idSchm3dCdList: { // 3D 모델 객체 분류 코드 목록
+		type: Array,
+		required: false,
+	},
 });
 
 const propsModel = toRefs(props).model;
 watch(propsModel, (curr, prev) => {
+	//state.metadataSet.modelId = curr.modelId;
+	//state.metadataSet.modelNm = curr.modelNm;
+	//state.metadataSet.typeModelId = curr.typeModelId;
+	//state.metadataSet.typeModelNm = curr.typeModelNm;
+	state.metadataSet = Object.assign(state.metadataSet, curr);
+
+	state.idSchmCdNm = "";
+	state.metadataSet.idSchmCntryCd = IdSchmUseYn.value == 'Y' && idSchmTypeModelIds.includes(curr.typeModelId) ? "KR" : "";
 
 	if (ruleFormRef.value) { ruleFormRef.value.resetFields(); } // 밸리데이션 초기화
-
-	state.metadataSet.modelId = curr.modelId;
-	state.metadataSet.modelNm = curr.modelNm;
-	state.metadataSet.typeModelId = curr.typeModelId;
-	state.metadataSet.typeModelNm = curr.typeModelNm;
-	state.idSchmCdNm = "";
+	
 });
 
 const propsCnct = toRefs(props).cnctInfo;
 watch(propsCnct, (curr) => {
-	state.metadataSet.cnctMedataSetId = curr.cnctMedataSetId;
-	state.metadataSet.cnctMedataSetNm = curr.cnctMedataSetNm;
+	//state.metadataSet.cnctMedataSetId = curr.cnctMedataSetId;
+	//state.metadataSet.cnctMedataSetNm = curr.cnctMedataSetNm;
+	state.metadataSet = Object.assign(state.metadataSet, curr);
+
 	// 콤보 조회 후 설정 되도록 함. state.metadataSet.cnctPrptyId = curr.cnctPrptyId;
 	//선택값에 대한 프라퍼티 목록 set
 	getUpperMetadataSetsPropertyList(curr.cnctMedataSetId, curr.cnctPrptyId);
@@ -240,9 +273,10 @@ const state = reactive({
 		medataSetNm: "", //메타데이터 셋 명
 		medataSetLogicNm: "", //메타데이터 셋 논리 명
 		medataSetDesc: "", //메타데이터 셋 설명
-		idSchmCntryCd: IdSchmUseYn.value == 'Y' && metaIdSchmSettings.id_schm_object.typeModelId == props.model.typeModelId ? "KR" : "",
+		idSchmCntryCd: IdSchmUseYn.value == 'Y' && idSchmTypeModelIds.includes(props.model.typeModelId) ? "KR" : "",
 		idSchmType: "",
 		idSchmCd: "",
+		idSchmCd2: "",
 		idSchmUseYn: IdSchmUseYn.value, 
 		cnctMedataSetId: props.cnctInfo.cnctMedataSetId, //연결 메타데이터 셋 ID (상위) -> prop을 통해 이전 화면부터 선택한 값 전송받기
 		cnctMedataSetNm: props.cnctInfo.cnctMedataSetNm,
@@ -265,27 +299,51 @@ const state = reactive({
         trigger: "blur",
       },
     ], 
-	idSchmCntryCd: [
-		{
-			required: true,
-			message: "",
-			trigger: "blur",
-		},
+		idSchmCntryCd: [
+			{
+				required: true,
+				message: "",
+				trigger: "blur",
+			},
     ],
-	idSchmType: [
-		{
-			required: true,
-			message: "",
-			trigger: "blur",
-		},
+		idSchmType: [
+			{
+				required: true,
+				message: "",
+				trigger: "blur",
+			},
     ],
-	idSchmCd: [
-		{
-			required: true,
-			message: "코드를 선택하세요.",
-			trigger: "blur",
-		},
-	], 
+		idSchmCd: [
+			{
+				required: true,
+				message: "코드를 선택(입력)하세요.",
+				trigger: "blur",
+			},
+			// 2025-08-08 지형지물코드도 일련번호 생성. 중복확인 필요 없어짐.
+			// {
+			//   validator: (rule, value, callback) => {
+			//     if (state.metadataSet.idSchmType === '3' && !isFeatureCodeChecked.value) {
+			//       callback(new Error('지형지물 코드 중복 확인이 필요합니다.'));
+			//     } else {
+			//       callback();
+			//     }
+			//   },
+			//   trigger: 'blur',
+			// },
+		], 
+		idSchmCd2: [
+			{
+				validator: (rule, value, callback) => {
+					// 2025-09-09 시각화모델 식별체계
+					if (isIdSchmVmField.value && !value) {
+						callback(new Error('코드를 선택(입력)하세요.'));
+					} else {
+						callback();
+					}
+				},
+				trigger: 'blur',
+			},
+		],
 		medataSetNm: [
 			{
 				required: true,
@@ -536,6 +594,9 @@ const typeChg = () => {
 	if(state.metadataSet.idSchmType === "2") {
 		state.idSchmTypeNm = "시설"
 	}
+	if (state.metadataSet.idSchmType === "3") {
+		state.idSchmTypeNm = "지형지물";
+	}
 
 	refreshCodeInfo();
 };
@@ -552,6 +613,45 @@ const refreshCodeInfo = () => {
 	state.metadataSet.idSchmCd = "";
 	state.idSchmCdNm = "";
 };
+
+const isFeatureCodeChecked = ref(false);
+watch(
+  () => state.metadataSet.idSchmCd,
+  (newValue, oldValue) => {
+	// 지형지물 코드 입력 시, 기존 입력 코드와 달라지면 중복 확인 조회를 다시 하도록 함.
+    if (newValue !== oldValue && state.metadataSet.idSchmType === '3') {
+      isFeatureCodeChecked.value = false;
+    }
+  }
+);
+/* 2025-08-08 지형지물코드도 일련번호 생성. 중복확인 필요 없어짐.
+const checkDuplicatedCode = () => {
+	// 지형지물 코드 선택 경우, 사용자로부터 입력받은 지형지물 코드 중복 여부 확인 진행.
+	// 메타데이터 유형 모델, 식별체계 - 국가코드, 식별체계 - 분류코드, 식별체계 - 코드(지형지물) 를 통한 중복 확인
+	const { typeModelId, idSchmCntryCd, idSchmType, idSchmCd } = state.metadataSet;
+	const requestData = {
+		modelId: typeModelId,
+		idSchmCntryCd,
+		idSchmType,
+		idSchmCd
+	};
+	$axios
+	.post($apiUrls.meta.resource.metadatasets.checkMetadatasetsForFeatureCd, requestData)
+	.then((res) => {
+            if (res.data.duplicated === true) {
+                alert("이미 사용 중인 지형지물 코드입니다.");
+                isFeatureCodeChecked.value = false;
+            }
+            else {
+                alert("사용 가능한 지형지물 코드입니다.");
+                isFeatureCodeChecked.value = true;
+            }
+	})
+	.catch((err) => {
+		console.log(err);
+		alert("중복 조회에 실패하였습니다.");
+	});
+}; */
 
 
 const selectedIdSchmCd = (payload) => {

@@ -77,7 +77,8 @@ public class SpringDocOpenApiV1Config {
     	return GroupedOpenApi.builder()
     			.group("000.externalApi")			// /meta/v3/api-docs/000.externalApi
     			.displayName("000.외부 API")
-    			.pathsToMatch("/api/v1/resource/{dataUri}/**", "/api/v1/schema/models/{metaModel}/info", "/api/v1/resource/dts**", "/api/v1/resource/objects**", "/api/v1/schema/typemodels")
+    			//2025-07 변경.pathsToMatch("/api/v1/resource/{dataUri}/**", "/api/v1/schema/models/{metaModel}/info", "/api/v1/resource/digitalTwins**", "/api/v1/resource/objects**", "/api/v1/schema/typemodels")
+    			.pathsToMatch("/digitalTwins/**")
 				.pathsToExclude("/api/v1/resource/categories/**", "/api/v1/resource/metadatasets/**", "/api/v1/resource/metadata/**")
     			//.consumesToMatch(consumesToMatch)
     			//.producesToMatch(producesToMatch)

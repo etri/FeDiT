@@ -30,7 +30,7 @@ public class IdSchemeCodeDto extends IdSchemeCodeVo {
 	private String idSchmType;
 	
 	/**
-	 * 표준산업분류체계/공공자원분류체계/물품/시설
+	 * 표준산업분류체계/공공자원분류체계/물품/시설/지형지물
 	 */
 	@Schema(description="식별체계 분류코드 종류 명")
 	private String idSchmTypeNm;

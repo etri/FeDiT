@@ -108,13 +108,13 @@ const connect = (myUser, $store, $axios, $emitter) => {
           // 소켓 연결 실패
           console.log('[소켓 연결 끊김]', error);        
           //myLog('[소켓 연결이 끊어졌습니다.]');
-          reject(error);
+          reject(new Error(error?.message || JSON.stringify(error)));
         }    
-      );     
+      );
 
     } catch (e) {
       myLog(e.message);
-      reject(e);
+      reject(new Error(e?.message || JSON.stringify(e)));
     }
 
   });   

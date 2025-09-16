@@ -1,7 +1,9 @@
 package kr.co.n2m.platform.meta.schema.idscheme.service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -737,22 +739,173 @@ public class IdSchemeCodeService {
 	
 	
 
-	public IdSchemeCodeDto getIdSchemeCode(String idSchmDiv, String idSchmType, String idSchmCd) {
-		if (StringUtils.equals(Constant.ID_SCHM_DT, idSchmDiv)) {
-			if (StringUtils.equals(Constant.ID_SCHM_TYPE_KSIC, idSchmType)) {
-				return this.getIdSchemeStdIndCode(idSchmCd);
-			} else if (StringUtils.equals(Constant.ID_SCHM_TYPE_PBRC, idSchmType)) {
-				return this.getIdSchemePubRiCode(idSchmCd);
-			}
+//	public IdSchemeCodeDto getIdSchemeCode(String idSchmDiv, String idSchmType, String idSchmCd) {
+//		if (StringUtils.equals(Constant.ID_SCHM_DT, idSchmDiv)) {
+//			if (StringUtils.equals(Constant.ID_SCHM_TYPE_KSIC, idSchmType)) {
+//				return this.getIdSchemeStdIndCode(idSchmCd);
+//			} else if (StringUtils.equals(Constant.ID_SCHM_TYPE_PBRC, idSchmType)) {
+//				return this.getIdSchemePubRiCode(idSchmCd);
+//			}
+//		}
+//		else if (StringUtils.equals(Constant.ID_SCHM_OBJECT, idSchmDiv)) {
+//			if (StringUtils.equals(Constant.ID_SCHM_TYPE_PRODUCT, idSchmType)) {
+//				return this.getIdSchemeProductCode(idSchmCd);
+//			} else if (StringUtils.equals(Constant.ID_SCHM_TYPE_FACILITY, idSchmType)) {
+//				return this.getIdSchemeFacilityCode(idSchmCd);
+//			}
+//		}
+//		
+//		return null;
+//	}
+	
+	/**
+	 * 식별체계 - 객체 - 지형지물 코드 목록 조회
+	 *
+	 * @param IdSchemeSearchVo
+	 * @return SearchResultListVo
+	 * @Date : 2025. 07. 29.
+	 */
+	public SearchResultListVo getIdSchemeFeatureCodeList(IdSchemeSearchVo searchVo) {
+		log.debug("[식별체계 - 객체 - 지형지물 코드 목록 조회] 서비스 시작");
+		SearchResultListVo listVo = new SearchResultListVo();
+		try {
+			int totalListSize = idSchemeCodeMapper.selectIdSchemeFeatureCount(searchVo);
+			searchVo.setTotalListSize(totalListSize);
+
+			List<IdSchemeCodeDto> list = idSchemeCodeMapper.selectIdSchemeFeatureList(searchVo);
+			listVo.setList(list);
+			listVo.setPage(new PageVo(searchVo));
+		} catch (Exception e) {
+			log.error("[식별체계 - 객체 - 지형지물 코드 목록 조회] 실패/오류", e);
+			throw new ResBaseRuntimeException(e);
 		}
-		else if (StringUtils.equals(Constant.ID_SCHM_OBJECT, idSchmDiv)) {
-			if (StringUtils.equals(Constant.ID_SCHM_TYPE_PRODUCT, idSchmType)) {
-				return this.getIdSchemeProductCode(idSchmCd);
-			} else if (StringUtils.equals(Constant.ID_SCHM_TYPE_FACILITY, idSchmType)) {
-				return this.getIdSchemeFacilityCode(idSchmCd);
-			}
-		}
-		
-		return null;
+		log.debug("[식별체계 - 객체 - 지형지물 코드 목록 조회] 서비스 종료");
+		return listVo;
 	}
+	
+	/**
+	 * 식별체계 - 객체 - 지형지물 코드 상세 조회
+	 *
+	 * @param idSchmCd
+	 * @return IdSchemeCodeDto
+	 * @Date : 2025. 07. 29.
+	 */
+	public IdSchemeCodeDto getIdSchemeFeatureCode(String idSchmCd) {
+		log.debug("[식별체계 - 객체 - 지형지물 코드 상세 조회] 서비스 시작");
+		IdSchemeCodeDto dto = null;
+
+		try {
+			IdSchemeCodeVo idSchemeCodeVo = new IdSchemeCodeVo();
+			idSchemeCodeVo.setIdSchmCd(idSchmCd);
+			dto = idSchemeCodeMapper.selectIdSchemeFeature(idSchemeCodeVo);
+		} catch (Exception e) {
+			log.error("[식별체계 - 객체 - 지형지물 코드 상세 조회] 실패/오류", e);
+			throw new ResBaseRuntimeException(e);
+		}
+
+		log.debug("[식별체계 - 객체 - 지형지물 코드 상세 조회] 서비스 종료");
+		return dto;
+	}
+	
+	/**
+	 * 식별체계 - 객체 - 지형지물 코드 등록
+	 *
+	 * @param IdSchemeCodeVo
+	 * @return idSchmCd
+	 * @Date : 2025. 07. 29.
+	 */
+	public String createIdSchemeFeatureCode(IdSchemeCodeVo idSchemeCodeVo) {
+		log.debug("[식별체계 - 객체 - 지형지물 코드 등록] 서비스 시작");
+		try {
+			// 지형지물 코드 고정값
+			idSchemeCodeVo.setCdSizeDivMtcd("m");
+			idSchemeCodeVo.setLctgExtrCd("3");
+
+			// 1. 유효성
+			editModeYn = true;
+			modifyModeYn = false;
+			idSchemeCodeValidate(idSchemeCodeVo);
+
+			// 2. 식별체계 코드 체크
+			if (!StringUtils.equals(idSchemeCodeVo.getOriginExtrCd(), idSchemeCodeVo.getIdSchmCd())) {
+				throw new ResBizInfoException("입력한 외부코드와 식별체계 코드가 일치하지 않습니다.");
+			}
+
+			if (editModeYn) {
+				boolean isExistsIdSchemeFeatureCode = false;
+				IdSchemeSearchVo searchVo = new IdSchemeSearchVo();
+				searchVo.setIdSchmCd(idSchemeCodeVo.getIdSchmCd());
+				isExistsIdSchemeFeatureCode = idSchemeCodeMapper.isIdSchemeFeatureExists(searchVo);
+				if (isExistsIdSchemeFeatureCode) {
+					throw new ResBizInfoException("이미 존재하는 식별체계 코드입니다.");
+				}
+			}
+
+			LoginUserVo loginUserVo = AuthUtil.getLoginUserVoFromRequest();
+			idSchemeCodeVo.setIdSchmCdRegrId(loginUserVo.getUserId());
+			idSchemeCodeVo.setIdSchmCdRegrNm(loginUserVo.getUserNm());
+			idSchemeCodeVo.setIdSchmCdAmdrId(loginUserVo.getUserId());
+			idSchemeCodeVo.setIdSchmCdAmdrNm(loginUserVo.getUserNm());
+			idSchemeCodeMapper.insertIdSchemeFeature(idSchemeCodeVo);
+
+		} catch (ResBadRequestException | ResBizInfoException e) {
+			log.info("[식별체계 - 객체 - 지형지물 코드 등록] 실패/오류 (정보성) : {}", e.getMessage());
+			throw e;
+		} catch (Exception e) {
+			log.error("[식별체계 - 객체 - 지형지물 코드 등록] 실패/오류", e);
+			throw new ResBaseRuntimeException(e);
+		}
+		log.debug("[식별체계 - 객체 - 지형지물 코드 등록] 서비스 종료");
+		return idSchemeCodeVo.getIdSchmCd();
+	}
+	
+	/**
+	 * 식별체계 - 객체 - 지형지물 코드 수정
+	 *
+	 * @param IdSchemeCodeVo
+	 * @return
+	 * @Date : 2025. 07. 29.
+	 */
+	public void modifyIdSchemeFeatureCode(IdSchemeCodeVo idSchemeCodeVo) {
+		log.debug("[식별체계 - 객체 - 지형지물 코드 수정] 서비스 시작");
+		try {
+			editModeYn = false;
+			modifyModeYn = true;
+			idSchemeCodeValidate(idSchemeCodeVo);
+			LoginUserVo loginUserVo = AuthUtil.getLoginUserVoFromRequest();
+			idSchemeCodeVo.setIdSchmCdAmdrId(loginUserVo.getUserId());
+			idSchemeCodeVo.setIdSchmCdAmdrNm(loginUserVo.getUserNm());
+			idSchemeCodeMapper.updateIdSchemeFeature(idSchemeCodeVo);
+
+		} catch (ResBadRequestException | ResBizInfoException e) {
+			log.info("[식별체계 - 객체 - 지형지물 코드 수정] 실패/오류 (정보성) : {}", e.getMessage());
+			throw e;
+		} catch (Exception e) {
+			log.error("[식별체계 - 객체 - 지형지물 코드 수정] 실패/오류", e);
+			throw new ResBaseRuntimeException(e);
+		}
+		log.debug("[식별체계 - 객체 - 지형지물 코드 수정] 서비스 종료");
+	}
+	
+	/**
+	 * 식별체계 - 객체 - 지형지물 코드 중복여부 조회 
+	 *
+	 * @param idSchemeCodeVo
+	 * @return resMap
+	 * @Date : 2025. 07. 30
+	 * */
+	public Map<String, Boolean> checkFeatureCode(IdSchemeSearchVo searchVo) {
+		log.debug("[식별체계 - 객체 - 지형지물 코드 중복여부 조회] 서비스 시작");
+		Map<String, Boolean> resMap = new HashMap<>();
+		try {
+			boolean isDuplicatedFeatureCode =idSchemeCodeMapper.isIdSchemeFeatureExists(searchVo);
+			resMap.put("duplicated", isDuplicatedFeatureCode);
+		} catch (Exception e) {
+			log.error("[식별체계 - 객체 - 지형지물 코드 중복여부 조회] 중복여부 조회 실패/오류", e);
+			throw new ResBaseRuntimeException(e);
+		}
+		log.debug("[식별체계 - 객체 - 지형지물 코드 중복여부 조회] 서비스 종료 ");
+		return resMap;
+	}
+	
 }

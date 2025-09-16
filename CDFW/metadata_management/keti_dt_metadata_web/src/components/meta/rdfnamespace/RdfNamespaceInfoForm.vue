@@ -40,7 +40,7 @@
 					<el-col :span="12">
 						<el-form-item label="시스템 적용">
 							<el-select v-model="state.rdfNamespace.rdfNmspAplyMtcd" class="w100" placeholder="해당없음">
-								<el-option value="">해당없음</el-option>
+								<el-option label="해당없음" value="" />
 								<el-option
 									v-for="item in mtcdList"
 									:key="item.mtcd"

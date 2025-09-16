@@ -11,7 +11,7 @@
 			<el-form :inline="true" 
 				:model="pageInfo" 
 				class="demo-form-inline search-form" 
-				label-width="200px"
+				label-width="150px"
 				label-position="left">
 				<el-row :gutter="20">
 					<el-col :span="12">
@@ -50,6 +50,8 @@
 						/>
 						</el-form-item>
 					</el-col>
+				</el-row>
+				<el-row :gutter="20">
 					<el-col :span="12">         
 						<el-form-item label="수집 작업 상태">
 							<el-select v-model="searchInfo.colecWrkSttusMtcd" placeholder="전체">
@@ -72,6 +74,8 @@
 							/>
 							</el-form-item>
 						</el-col>
+					</el-row>
+					<el-row :gutter="20">
 						<el-col :span="12">         
 							<el-form-item label="생성 메타데이터셋 ID">
 							<el-input

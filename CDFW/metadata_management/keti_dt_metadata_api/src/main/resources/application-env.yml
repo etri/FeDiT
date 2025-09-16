@@ -1,7 +1,3 @@
-# --------------------------------------
-# keti https://etrioss.kr/ 용
-# --------------------------------------
-
 # DataBase
 spring:
   config:
@@ -9,12 +5,12 @@ spring:
       on-profile:
       - local
   datasource:
-    url: jdbc:postgresql://{server ip}:5432/dtmeta
+    url: jdbc:postgresql://{postgresql}:5432/dtmeta
     username: meta_manager
     password: rhksflwk1!
-    driver-class-name: org.postgresql.Driver    
+    driver-class-name: org.postgresql.Driver
   kafka:
-    bootstrap-servers: {server ip}:9092
+    bootstrap-servers: {kafka server ip}:9092
     client-id : DT_PRODUCER
     auth:
       user-id: 
@@ -23,62 +19,58 @@ spring:
     
 # Spring Doc Open Api    
 springdoc.swagger-ui.enabled: true
-# swagger-ui custom path
-#springdoc.swagger-ui.path: /swagger-ui.html
 
-# File
-#file:
-#  upload-path: /opt/dtmeata
-      
+
   
 # Security
 security:
-  secret-key: mk8sO0z3ORun6W/7aILNQrX+OUSp4PPX9ZxAn3JNgGY=
+  secret-key: {key==}
 
 oauth:
-  public-key: http://{server ip}:33000/security/publickey
-  access-token: http://{server ip}:33000/oauth2.0/token
+  public-key: http://{security web server ip}:33000/security/publickey
+  access-token: http://{security web server ip}:33000/oauth2.0/token
 authorization: 
   data : true
   default-auth:
     use-flag: true  
     list: AUT_META_DEFAULT
   
-platform.common.api.url: http://{server ip}:6998
-
-# Virtuoso 
-virtuoso:
-  datasource:
-    url: jdbc:virtuoso://{server ip}:1111/charset=UTF-8
-    username: meta_manager
-    password: rhksflwk1!
-  graph:
-    dev: DEV_GRAPH_NM
-    use: USE_GRAPH_NM
-  conductor-url: http://{server ip}:8890/conductor
+platform.common.api.url: http://{keti-dt-platformadmin-api}:6998
 
 # Metadata RDF URL (Namespace) 
 dtmeta:
   # TODO : 임시 정의, 추후 수정 필요
   resource:
-    base-url: http://{server ip}:8084/meta/resource/page/
-    data-url: http://{server ip}:8084/meta/api/v1/resource/data/
+    base-url: http://{web server ip}:8084/meta/resource/page/
+    data-url: http://{web server ip}:8084/meta/api/v1/resource/data/
   # TODO : 임시 정의, 추후 수정 필요
   rdf-schema:
-    base-url: http://{server ip}:8084/meta/ns/digitaltwin#
-    skos-url: http://{server ip}:8084/meta/skos/digitaltwin#
+    base-url: http://{web server ip}:8084/meta/ns/digitaltwin#
+    skos-url: http://{web server ip}:8084/meta/skos/digitaltwin#
   # 디지털트윈 연합 식별체계 적용
   id-scheme:
     digital-twin: DigitalTwin
-    digital-twin-object: DigitalObject
+    digital-twin-object: DigitalTwinObject
+    digital-twin-object-vm: VisualModel
+
+# Virtuoso 
+virtuoso:
+  datasource:
+    url: jdbc:virtuoso://{virtuoso}:1111/charset=UTF-8
+    username: meta_manager
+    password: rhksflwk1!
+  graph:
+    dev: DEV_GRAPH_NM
+    use: USE_GRAPH_NM
+  conductor-url: http://{virtuoso web server ip}:8890/conductor
     
 # NEO4J
 neo4j:
   authentication:
     username: neo4j
     password: rhksflwk1!
-  uri: bolt://{server ip}:7687
-  browser-url: http://{server ip}:7474/browser
+  uri: bolt://{neo4j}:7687
+  browser-url: http://{neo4j web server ip}:7474/browser
   
 # Elastic Search
 elastic:
@@ -86,14 +78,28 @@ elastic:
     username: elastic
     password: rhksflwk1!
   protocol: http
-    # TODO : 임시 정의, 추후 수정 필요
-  server-ip: {server ip}
+  server-ip: {elasticsearch}
   server-port: 9200
   kibana-port: 5601
-  fingerprint: {fingerprint}
+  fingerprint: {fingerprint==}
   index-name: dtmeta
-  kibana-url: http://{server ip}:5601
+  kibana-url: http://{kibana web server ip}:5601
+  # 벡터 저장 및 검색 (별도 Python 서버 API)
+  vector-url: http://{keti-dt-metadata-vector}:5000/vectors
   
+# InfluxDB
+influx:
+  authentication:
+    username: meta_manager
+    password: rhksflwk1!
+  url: http://{influxdb2}:8086/
+  browser-url: http://{influxdb web server ip}:8086/
+  org: dtmeta
+  bucket: metadata
+  # admin token
+  token: {token==}
+
+
 ---
 
 spring:
@@ -102,12 +108,12 @@ spring:
       on-profile:
       - dev
   datasource:
-    url: jdbc:postgresql://{server ip}:5432/dtmeta
+    url: jdbc:postgresql://{postgresql}:5432/dtmeta
     username: meta_manager
     password: rhksflwk1!
     driver-class-name: org.postgresql.Driver
   kafka:
-    bootstrap-servers: {server ip}:9092
+    bootstrap-servers: {kafka server ip}:9092
     client-id : DT_PRODUCER
     auth:
       user-id: 
@@ -117,54 +123,56 @@ spring:
 springdoc.swagger-ui.enabled: true
 
 
+
 # Security
 security:
-  secret-key: mk8sO0z3ORun6W/7aILNQrX+OUSp4PPX9ZxAn3JNgGY=
+  secret-key: {key==}
 
 oauth:
-  public-key: http://{server ip}:33000/security/publickey
-  access-token: http://{server ip}:33000/oauth2.0/token
+  public-key: http://{security web server ip}:33000/security/publickey
+  access-token: http://{security web server ip}:33000/oauth2.0/token
 authorization: 
   data : true
   default-auth:
     use-flag: true  
     list: AUT_META_DEFAULT
   
-platform.common.api.url: http://{server ip}:6998
+platform.common.api.url: http://{keti-dt-platformadmin-api}:6998
 
+# Metadata RDF URL (Namespace) 
+dtmeta:
+  # TODO : 임시 정의, 추후 수정 필요
+  resource:
+    base-url: http://{web server ip}:8084/meta/resource/page/
+    data-url: http://{web server ip}:8084/meta/api/v1/resource/data/
+  # TODO : 임시 정의, 추후 수정 필요
+  rdf-schema:
+    base-url: http://{web server ip}:8084/meta/ns/digitaltwin#
+    skos-url: http://{web server ip}:8084/meta/skos/digitaltwin#
+  # 디지털트윈 연합 식별체계 적용
+  id-scheme:
+    digital-twin: DigitalTwin
+    digital-twin-object: DigitalTwinObject
+    digital-twin-object-vm: VisualModel
+    
 # Virtuoso 
 virtuoso:
   datasource:
-    url: jdbc:virtuoso://{server ip}:1111/charset=UTF-8
+    url: jdbc:virtuoso://{virtuoso}:1111/charset=UTF-8
     username: meta_manager
     password: rhksflwk1!
   graph:
     dev: DEV_GRAPH_NM
     use: USE_GRAPH_NM
-  conductor-url: http://{server ip}:8890/conductor    
-    
-# Metadata RDF URL (Namespace) 
-dtmeta:
-  # TODO : 임시 정의, 추후 수정 필요
-  resource:
-    base-url: http://{server ip}:8084/meta/resource/page/
-    data-url: http://{server ip}:8084/meta/api/v1/resource/data/
-  # TODO : 임시 정의, 추후 수정 필요
-  rdf-schema:
-    base-url: http://{server ip}:8084/meta/ns/digitaltwin#
-    skos-url: http://{server ip}:8084/meta/skos/digitaltwin#
-  # 디지털트윈 연합 식별체계 적용
-  id-scheme:
-    digital-twin: DigitalTwin
-    digital-twin-object: DigitalObject
+  conductor-url: http://{virtuoso web server ip}:8890/conductor
     
 # NEO4J
 neo4j:
   authentication:
     username: neo4j
     password: rhksflwk1!
-  uri: bolt://{server ip}:7687
-  browser-url: http://{server ip}:7474/browser
+  uri: bolt://{neo4j}:7687
+  browser-url: http://{neo4j web server ip}:7474/browser
   
 # Elastic Search
 elastic:
@@ -172,13 +180,27 @@ elastic:
     username: elastic
     password: rhksflwk1!
   protocol: http
-    # TODO : 임시 정의, 추후 수정 필요
-  server-ip: {server ip}
+  server-ip: {elasticsearch}
   server-port: 9200
   kibana-port: 5601
-  fingerprint: {fingerprint}
+  fingerprint: {fingerprint==}
   index-name: dtmeta
-  kibana-url: http://{server ip}:5601
+  kibana-url: http://{kibana web server ip}:5601
+  # 벡터 저장 및 검색 (별도 Python 서버 API)
+  vector-url: http://{keti-dt-metadata-vector}:5000/vectors
+  
+# InfluxDB
+influx:
+  authentication:
+    username: meta_manager
+    password: rhksflwk1!
+  url: http://{influxdb2}:8086/
+  browser-url: http://{influxdb web ip}:8086/
+  org: dtmeta
+  bucket: metadata
+  # admin token
+  token: {token==}
+  
 
 ---
 
@@ -188,69 +210,76 @@ spring:
       on-profile:
       - prod
   datasource:
-    url: jdbc:postgresql://{server ip}:5432/dtmeta
+    url: jdbc:postgresql://{postgresql}:5432/dtmeta
     username: meta_manager
     password: rhksflwk1!
     driver-class-name: org.postgresql.Driver
   kafka:
-    bootstrap-servers: {server ip}:9092
+    bootstrap-servers: {kafka server ip}:9092
     client-id : DT_PRODUCER
     auth:
       user-id: 
       user-pw: 
-    thread-sleep : 100     
+    thread-sleep : 100  
+    
+# Disabling the swagger-ui
+springdoc.swagger-ui.enabled: false
 
-springdoc.swagger-ui.enabled: true
 
 
 # Security
 security:
-  secret-key: mk8sO0z3ORun6W/7aILNQrX+OUSp4PPX9ZxAn3JNgGY=
+  secret-key: {key==}
 
 oauth:
-  public-key: http://{server ip}:33000/security/publickey
-  access-token: http://{server ip}:33000/oauth2.0/token
+  public-key: http://{security web server ip}:33000/security/publickey
+  access-token: http://{security web server ip}:33000/oauth2.0/token
 authorization: 
   data : true
   default-auth:
     use-flag: true  
     list: AUT_META_DEFAULT
   
-platform.common.api.url: http://{server ip}:6998
+platform.common.api.url: http://{keti-dt-platformadmin-api}:6998
 
+# Metadata RDF URL (Namespace) 
+dtmeta:
+  # TODO : 임시 정의, 추후 수정 필요
+  resource:
+    base-url: http://{web server ip}:8084/meta/resource/page/
+    data-url: http://{web server ip}:8084/meta/api/v1/resource/data/
+    #base-url: http://digitaltwin.keti.re.kr/meta/resource/page/
+    #data-url: http://digitaltwin.keti.re.kr/meta/api/v1/resource/data/
+  # TODO : 임시 정의, 추후 수정 필요
+  rdf-schema:
+    base-url: http://{web server ip}:8084/meta/ns/digitaltwin#
+    skos-url: http://{web server ip}:8084/meta/skos/digitaltwin#
+    #base-url: http://vocab.keti.re.kr/meta/ns/digitaltwin#
+    #skos-url: http://vocab.keti.re.kr/meta/skos/digitaltwin#
+  # 디지털트윈 연합 식별체계 적용
+  id-scheme:
+    digital-twin: DigitalTwin
+    digital-twin-object: DigitalTwinObject
+    digital-twin-object-vm: VisualModel
+    
 # Virtuoso 
 virtuoso:
   datasource:
-    url: jdbc:virtuoso://{server ip}:1111/charset=UTF-8
+    url: jdbc:virtuoso://{virtuoso}:1111/charset=UTF-8
     username: meta_manager
     password: rhksflwk1!
   graph:
     dev: DEV_GRAPH_NM
     use: USE_GRAPH_NM
-  conductor-url: http://{server ip}:8890/conductor    
-    
-# Metadata RDF URL (Namespace) 
-dtmeta:
-  # TODO : 임시 정의, 추후 수정 필요
-  resource:
-    base-url: http://{server ip}:8084/meta/resource/page/
-    data-url: http://{server ip}:8084/meta/api/v1/resource/data/
-  # TODO : 임시 정의, 추후 수정 필요
-  rdf-schema:
-    base-url: http://{server ip}:8084/meta/ns/digitaltwin#
-    skos-url: http://{server ip}:8084/meta/skos/digitaltwin#
-  # 디지털트윈 연합 식별체계 적용
-  id-scheme:
-    digital-twin: DigitalTwin
-    digital-twin-object: DigitalObject
+  conductor-url: http://{virtuoso web server ip}:8890/conductor
     
 # NEO4J
 neo4j:
   authentication:
     username: neo4j
     password: rhksflwk1!
-  uri: bolt://{server ip}:7687
-  browser-url: http://{server ip}:7474/browser
+  uri: bolt://{neo4j}:7687
+  browser-url: http://{neo4j web server ip}:7474/browser
   
 # Elastic Search
 elastic:
@@ -258,11 +287,25 @@ elastic:
     username: elastic
     password: rhksflwk1!
   protocol: http
-    # TODO : 임시 정의, 추후 수정 필요
-  server-ip: {server ip}
+  server-ip: {elasticsearch}
   server-port: 9200
   kibana-port: 5601
-  fingerprint: {fingerprint}
+  fingerprint: {fingerprint==}
   index-name: dtmeta
-  kibana-url: http://{server ip}:5601
+  kibana-url: http://{kibana web server ip}:5601
+  # 벡터 저장 및 검색 (별도 Python 서버 API)
+  vector-url: http://{keti-dt-metadata-vector}:5000/vectors
+  
+# InfluxDB
+influx:
+  authentication:
+    username: meta_manager
+    password: rhksflwk1!
+  url: http://{influxdb2}:8086/
+  browser-url: http://{influxdb web ip}:8086/
+  org: dtmeta
+  bucket: metadata
+  # admin token
+  token: {token==}
+
 

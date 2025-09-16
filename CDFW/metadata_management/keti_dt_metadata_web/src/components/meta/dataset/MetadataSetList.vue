@@ -64,10 +64,12 @@ const props = defineProps({
 	totalPage: {
 		type: Number,
 		required: true,
+		default: 0,
 	},
 	curPage: {
 		type: Number,
 		required: true,
+		default: 1,
 	},
 });
 

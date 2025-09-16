@@ -99,6 +99,9 @@ public class Neo4jService {
 	@Autowired
 	private MetadataChgHstMapper metadataChgHstMapper;
 	
+	SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX"); // XXX 가 맞음. DateTimeFormatter.ofPattern("...") 쓸 경우 출력 포맷 XXXXX 로 쓰면 Z 도 표시됨.
+	
+	
 	/**
 	 * NEO4J Browser URL
 	 * @Author      : heenim
@@ -239,11 +242,19 @@ public class Neo4jService {
         		outputItem.put("nodes", outputNodeList);
         		outputItem.put("relationships", outputRelationshipList);
         		
+        		String totalCountQuery = "MATCH (n:Resource) WITH n RETURN COUNT(n) AS CNT";
+	    		Result totalCountResult = session.run(totalCountQuery);
+	    		String totalCount = "0";
+	    		while (totalCountResult.hasNext()) {
+	    			org.neo4j.driver.Record record = totalCountResult.next();
+	    			totalCount = record.get("CNT").toString();
+	    		}
+        		
         		Map<String, Object> result = new HashMap<>();
         		result.put("graph", outputItem);
+        		result.put("totalcount", totalCount);
         		
         		ObjectMapper objectMapper = new ObjectMapper();
-        		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
         		objectMapper.setDateFormat(dateFormat);
         		objectMapper.registerModule(new JavaTimeModule());
         		jsonOutput = objectMapper.writeValueAsString(result);
@@ -392,11 +403,19 @@ public class Neo4jService {
         		outputItem.put("nodes", outputNodeList);
         		outputItem.put("relationships", outputRelationshipList);
         		
+        		String totalCountQuery = "MATCH (n:Resource) WITH n RETURN COUNT(n) AS CNT";
+	    		Result totalCountResult = session.run(totalCountQuery);
+	    		String totalCount = "0";
+	    		while (totalCountResult.hasNext()) {
+	    			org.neo4j.driver.Record record = totalCountResult.next();
+	    			totalCount = record.get("CNT").toString();
+	    		}
+        		
         		Map<String, Object> result = new HashMap<>();
         		result.put("graph", outputItem);
+        		result.put("totalcount", totalCount);
         		
         		ObjectMapper objectMapper = new ObjectMapper();
-        		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
         		objectMapper.setDateFormat(dateFormat);
         		objectMapper.registerModule(new JavaTimeModule());
         		jsonOutput = objectMapper.writeValueAsString(result);
@@ -1068,11 +1087,19 @@ public class Neo4jService {
 	    		outputItem.put("nodes", outputNodeList);
 	    		outputItem.put("relationships", outputRelationshipList);
 	    		
-	    		Map<String, Object> result = new HashMap<>();
-	    		result.put("graph", outputItem);
+        		String totalCountQuery = "MATCH (n:medataResource) WITH n RETURN COUNT(n) AS CNT";
+	    		Result totalCountResult = session.run(totalCountQuery);
+	    		String totalCount = "0";
+	    		while (totalCountResult.hasNext()) {
+	    			org.neo4j.driver.Record record = totalCountResult.next();
+	    			totalCount = record.get("CNT").toString();
+	    		}
+        		
+        		Map<String, Object> result = new HashMap<>();
+        		result.put("graph", outputItem);
+        		result.put("totalcount", totalCount);
 	    		
 	    		ObjectMapper objectMapper = new ObjectMapper();
-	    		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
 	    		objectMapper.setDateFormat(dateFormat);
 	    		objectMapper.registerModule(new JavaTimeModule());
 	    		jsonOutput = objectMapper.writeValueAsString(result);
@@ -1224,11 +1251,19 @@ public class Neo4jService {
         		outputItem.put("nodes", outputNodeList);
         		outputItem.put("relationships", outputRelationshipList);
         		
+        		String totalCountQuery = "MATCH (n:medataResource) WITH n RETURN COUNT(n) AS CNT";
+	    		Result totalCountResult = session.run(totalCountQuery);
+	    		String totalCount = "0";
+	    		while (totalCountResult.hasNext()) {
+	    			org.neo4j.driver.Record record = totalCountResult.next();
+	    			totalCount = record.get("CNT").toString();
+	    		}
+        		
         		Map<String, Object> result = new HashMap<>();
         		result.put("graph", outputItem);
+        		result.put("totalcount", totalCount);
         		
         		ObjectMapper objectMapper = new ObjectMapper();
-        		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
         		objectMapper.setDateFormat(dateFormat);
         		objectMapper.registerModule(new JavaTimeModule());
         		jsonOutput = objectMapper.writeValueAsString(result);

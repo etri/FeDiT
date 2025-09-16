@@ -19,9 +19,10 @@ import lombok.Setter;
 @Setter
 public abstract class BaseVo {
 	
+	// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
 	@Getter(AccessLevel.NONE)	
 	@Schema(description="SQL 날짜 format", hidden=true)
-	private String sqlDateFormat = SqlDatePart.iso.format();
+	private String sqlDateFormat = SqlDatePart.iso6z.format();
 	
 	@Schema(description="사용자 정보 (비동기 처리시 사용)", hidden=true)
 	private LoginUserVo asyncUserVo;

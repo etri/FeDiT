@@ -101,7 +101,7 @@ export const MetaStore = {
     getStoreCountryCodeList(state) {
       return state.countryCodes;
     },
-    getSotreAllMetaCodeGroupList(state) {
+    getStoreAllMetaCodeGroupList(state) {
       return state.metaCodeGroups;
     },
     getRdfClass(state){

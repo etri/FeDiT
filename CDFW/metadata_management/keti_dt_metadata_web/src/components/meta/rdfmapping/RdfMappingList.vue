@@ -70,10 +70,10 @@ const mappingCreate = (data) => {
 };
 
 const mappingManage = (data) => {
-  router.push({ 
-    name: "meta_RefMappingDetailPage", 
-    query: { rdfMappgId: data.rdfMappgId }
-  });
+  let platform = getCookie("pltfrmId");
+	let query = { rdfMappgId: data.rdfMappgId };
+
+  routerPush(platform, "RefMappingDetailPage", query);
 };
 
 const cancelPopup = () => {

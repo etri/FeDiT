@@ -45,7 +45,8 @@ public interface MetadataEnum {
     	updateDateTime     ("updateDateTime"	, "수정일시"           	, false, "medataSetAmdDt"		, PropertyRequired.readonly),
     	idSchmCountryCode  ("idSchmCountryCode" , "식별체계 국가코드"        , true , "idSchmCntryCd"        , PropertyRequired.readonly), // 식별체계가 사용되는 셋에만 필요. 등록시에만 필요.
     	idSchmType         ("idSchmType"        , "식별체계 분류코드 종류"    , true , "idSchmType"           , PropertyRequired.readonly), // 식별체계가 사용되는 셋에만 필요. 등록시에만 필요.
-    	idSchmCode         ("idSchmCode"        , "식별체계 코드"           , true , "idSchmCd"             , PropertyRequired.readonly)  // 식별체계가 사용되는 셋에만 필요. 등록시에만 필요.
+    	idSchmCode         ("idSchmCode"        , "식별체계 코드"           , true , "idSchmCd"             , PropertyRequired.readonly), // 식별체계가 사용되는 셋에만 필요. 등록시에만 필요.
+    	idSchmCode2        ("idSchmCode2"       , "식별체계 코드2"          , true , "idSchmCd2"            , PropertyRequired.readonly)  // 식별체계가 사용되는 셋에만 필요. 등록시에만 필요.
     	;
     	
     	private String code;
@@ -155,14 +156,17 @@ public interface MetadataEnum {
     	keywordsKo			("keywordsKo"			, "키워드(한글)"),
     	keywordsEn			("keywordsEn"			, "키워드(영문)"),
     	code_				("code"					, "코드"),
-		codeName			("codeName"				, "코드명"),
-		categoryId			("categoryId"			, "카테고리ID"),
+		codeName			("codeName"             , "코드명"),
+		categoryId          ("categoryId"           , "카테고리ID"),
 		categoryConcept     ("categoryConcept"      , "카테고리 개념명"),
-	    categoryName		("categoryName"			, "카테고리명"),
+	    categoryName		("categoryName"         , "카테고리명"),
 	    refSetName          ("refSetName"           , "참조한 메타데이터 셋 명"),
-    	idSchmCountryCode   ("idSchmCountryCode"    , "식별체계 국가코드"),     // 식별체계가 사용되는 셋에만 필요. 등록시에만 필요.
-    	idSchmType          ("idSchmType"           , "식별체계 분류코드 종류"), // 식별체계가 사용되는 셋에만 필요. 등록시에만 필요.
-    	idSchmCode          ("idSchmCode"           , "식별체계 코드")         // 식별체계가 사용되는 셋에만 필요. 등록시에만 필요.
+    	idSchmCountryCode   ("idSchmCountryCode"    , "식별체계 국가코드"),      // 식별체계가 사용되는 셋에만 필요. 등록시에만 필요.
+    	idSchmType          ("idSchmType"           , "식별체계 분류코드 종류"),  // 식별체계가 사용되는 셋에만 필요. 등록시에만 필요.
+    	idSchmCode          ("idSchmCode"           , "식별체계 코드"),         // 식별체계가 사용되는 셋에만 필요. 등록시에만 필요.
+    	idSchmCode2         ("idSchmCode2"          , "식별체계 코드2"),        // 식별체계가 사용되는 셋에만 필요. 등록시에만 필요. 2025-09 추가.
+    	address             ("address"              , "주소 정보"),           // 2025-07 표준문서 관련 데이터타입 추가. 
+    	dataInfo            ("dataInfo"             , "데이터정보")	          // 2025-07 표준문서 관련 데이터타입 추가. 
     	;
     	
     	private String code;
@@ -231,6 +235,7 @@ public interface MetadataEnum {
     	microsec ("microseconds", "마이크로초", "YYYY-MM-DD HH24:MI:SS.US"),
     	iso      ("iso"         , "ISO"    , "YYYY-MM-DD\"T\"HH24:MI:SS"),
     	isoz     ("isoz"        , "ISOZ"   , "YYYY-MM-DD\"T\"HH24:MI:SS%s"), // YYYY-MM-DD\"T\"HH24:MI:SS+09:00
+    	iso6z    ("iso6z"       , "ISO6Z"  , "YYYY-MM-DD\"T\"HH24:MI:SS.US%s"), // YYYY-MM-DD\"T\"HH24:MI:SS.US+09:00
     	;
     	
     	private String code;
@@ -242,9 +247,10 @@ public interface MetadataEnum {
             this.koName = koName;            
             this.format = format;
             
-            if (StringUtils.equals(code, "isoz")) {
+            // 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+            if (StringUtils.equals(code, "isoz") || StringUtils.equals(code, "iso6z")) {
 	        	ZonedDateTime zonedDateTime = ZonedDateTime.of(LocalDateTime.now(), ZoneId.systemDefault());
-	        	String localZone = DateTimeFormatter.ofPattern("XXX").format(zonedDateTime);
+	        	String localZone = DateTimeFormatter.ofPattern("XXXXX").format(zonedDateTime); // XXXXX 출력 포맷 경우만
 	        	this.format = String.format(format, localZone);
             }
         }

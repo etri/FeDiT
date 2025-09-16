@@ -1,55 +1,52 @@
 <template>
-  <div class="cntSec">
-    <div class="boxLayout">
-      <div class="boxTit">
-        <h3>API그룹 검색</h3>
-      </div>
-      <div class="boxCnt">
-        <el-form-item label="API이름" prop="name" class="chTable">
-          <el-input
-            v-model="state.name"
-            placeholder="검색어를 입력하세요."
-            @keyup.enter="searchApiName"
-            style="width: 400px"
-          ></el-input>
-          <el-icon
-            @click="resetApiList"
-            style="position: relative; right: 22px; top: 3px"
-            ><Close
-          /></el-icon>
-          <el-button
-            type="primary"
-            @click="searchApiName"
-            style="position: relative; left;: 22px"
-            >검색</el-button
-          >
-        </el-form-item>
-        <div></div>
-      </div>
+  <div class="boxLayout">
+    <div class="boxTit">
+      <h3>API그룹 검색</h3>
     </div>
-    <div class="boxLayout">
-      <div class="boxTit">
-        <h3>API그룹 목록</h3>
-      </div>
-      <div>
-        <el-scrollbar height="300px">
-          <comn-list
-            :tableHeader="tableHeader"
-            :tableData="totalApiList"
-            @selectionChange="onSelectionChkbox"
-          
-          >
-            <template v-slot:name="slotProps">
-              <el-input v-model="slotProps.row.userID"> </el-input>
-            </template>
-          </comn-list>
-        </el-scrollbar>
-      </div>
+    <div class="boxCnt">
+      <el-form-item label="API이름" prop="name" class="chTable">
+        <el-input
+          v-model="state.name"
+          placeholder="검색어를 입력하세요."
+          @keyup.enter="searchApiName"
+          style="width: 400px"
+        ></el-input>
+        <el-icon
+          @click="resetApiList"
+          style="position: relative; right: 22px; top: 3px"
+          ><Close
+        /></el-icon>
+        <el-button
+          type="primary"
+          @click="searchApiName"
+          style="position: relative; left;: 22px"
+          >검색</el-button
+        >
+      </el-form-item>
+      <div></div>
     </div>
-    <div style="float: right">
-      <el-button type="primary" @click="saveApi">선택</el-button>
-      <el-button plain type="primary" @click="cancelPopup">취소</el-button>
+  </div>
+  <div class="boxLayout">
+    <div class="boxTit">
+      <h3>API그룹 목록</h3>
     </div>
+    <div>
+      <comn-list
+        :tableHeader="tableHeader"
+        :tableData="totalApiList"
+        :height="300"
+        @selectionChange="onSelectionChkbox"
+      
+      >
+        <template v-slot:name="slotProps">
+          <el-input v-model="slotProps.row.userID"> </el-input>
+        </template>
+      </comn-list>
+    </div>
+  </div>
+  <div class="btnSec taR mt10" >
+    <el-button type="primary" @click="saveApi">선택</el-button>
+    <el-button plain type="primary" @click="cancelPopup">취소</el-button>
   </div>
 </template>
 <script setup>

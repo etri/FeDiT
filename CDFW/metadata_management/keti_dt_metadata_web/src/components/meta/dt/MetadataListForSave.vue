@@ -54,7 +54,7 @@
 							<el-button type="default" @click="searchCategory(slotData.row)">
 								<el-icon class="icon icon-search"></el-icon>
 							</el-button>
-							<el-button type="delete" @click="refreshCategory(slotData.row)"><el-icon class="icon icon-refresh" /></el-button>
+							<el-button type="default" class="el-button--delete" @click="refreshCategory(slotData.row)"><el-icon class="icon icon-refresh" /></el-button>
 						</div>
 					</div>
 					<div v-else>

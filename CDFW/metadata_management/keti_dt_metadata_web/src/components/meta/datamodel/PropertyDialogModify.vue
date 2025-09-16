@@ -22,7 +22,7 @@
 						<div class="inline-area">
 							<el-input style="width: 250px;" v-model="property.upPrptyNm" disabled	/>
 							<el-button type="default" class="ml15" @click="dialogVisiblePropertySearch = true"><el-icon class="icon icon-search"/></el-button>
-							<el-button type="delete" @click="refreshProperty"><el-icon class="icon icon-refresh"/></el-button>
+							<el-button type="default" class="el-button--delete" @click="refreshProperty"><el-icon class="icon icon-refresh"/></el-button>
 						</div>						
 						<el-dialog class="dialog_size" v-model="dialogVisiblePropertySearch" title="프라퍼티 검색">
 							<PropertyDialogSearch @selectedRow="selectedUpProperty"/>
@@ -153,7 +153,7 @@
 						<div class="inline-area">
 							<el-input style="width: 250px;" v-model="propertyDef.rangeModelId" disabled	/>
 							<el-button type="default" class="ml15 btn-label-color" @click="dialogVisibleModelSearch = true"><el-icon class="icon icon-search"/></el-button>
-							<el-button type="delete" @click="refreshRangeModel"><el-icon class="icon icon-refresh"/></el-button>
+							<el-button type="default" class="el-button--delete" @click="refreshRangeModel"><el-icon class="icon icon-refresh"/></el-button>
 						</div>
 						<el-dialog v-model="dialogVisibleModelSearch" title="범위 모델 검색">
 							<MetaDataModelSearchPage

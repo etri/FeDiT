@@ -72,11 +72,16 @@ import "vue3-openlayers/dist/vue3-openlayers.css";
 // Tree table - primeVue
 import PrimeVue from 'primevue/config'; // This imports the PrimeVue library.
 
-import "@/assets/scss/default.scss";
+import "@/assets/css/default.css";
+//console.log(process.env.VUE_APP_METADATA_CSS_THEME);
+if (process.env.VUE_APP_METADATA_CSS_THEME === "BLUEGRAY") {
+  import("@/assets/css/style.css");
+}
 
 import ApiUrls from "@/assets/json/ApiUrls.json";
 import CommonObj from "@/assets/js/commonObj.js";
 import { Base64 } from 'js-base64';
+import { getToken } from "@/assets/js/auth.js";
 
 const emitter = mitt();
 const app = createApp(App);
@@ -111,7 +116,7 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 axios.interceptors.request.use((config) => {
   emitter.emit("loading", true);
   //console.log("TODO :: axios pre-handler");
-  let access_token = cookie.get('token');
+  let access_token = getToken();
   if(access_token) {
     config.headers.Authorization = 'Bearer ' + `${access_token}`;
   }else {

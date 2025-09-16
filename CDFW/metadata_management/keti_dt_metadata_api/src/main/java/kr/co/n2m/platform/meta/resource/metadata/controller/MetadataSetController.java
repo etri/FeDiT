@@ -3,6 +3,7 @@ package kr.co.n2m.platform.meta.resource.metadata.controller;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.atlas.logging.Log;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,8 +31,10 @@ import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSetSaveDto;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSetVo;
 import kr.co.n2m.platform.meta.resource.metadata.service.MetadataApiService;
 import kr.co.n2m.platform.meta.resource.metadata.service.MetadataSetService;
+import lombok.extern.slf4j.Slf4j;
 
 @Tag(name = "메타데이터 (화면용)", description = "메타데이터 관리 API (화면용)")
+@Slf4j
 @RestController
 public class MetadataSetController extends ResponseComponent {
 	
@@ -275,5 +278,20 @@ public class MetadataSetController extends ResponseComponent {
 		metadataSetService.deleteMetadata(medataId);
 		return makeResponseEntity(null, HttpStatus.NO_CONTENT);
 	}
+	
+	/**
+	 * 지형지물 코드 - 메타데이터 셋 등록 시,지형지물 코드 중복확인 여부 조회
+	 * ( 메타데이터 유형 모델, 식별체계 - 국가코드, 식별체계 - 분류코드, 식별체계 - 코드(지형지물) )
+	 * 
+	 * @Date        : 2025. 07. 31.
+	 * @param metadataSetSaveDto
+	 * @return resMap
+	 * */
+	// 2025-08-08 로직 변경으로 사용할 일이 없어짐. 지형지물도 일련번호 자동생성.
+//	@Operation(summary="지형지물 코드 - 메타데이터 셋 등록 시, 중복 확인 여부 조회 ")
+//	@PostMapping("/api/v1/resource/metadatasets/check-id")
+//	public ResponseEntity<Object> checkMetadatasetsForFeatureCd(@RequestBody MetadataSetSaveDto metadataSetSaveDto) {
+//		return makeResponseEntity(metadataSetService.checkMetadatasetsIdByIdSchms(metadataSetSaveDto));
+//	}
 
 }

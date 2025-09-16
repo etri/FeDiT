@@ -207,6 +207,7 @@
 	                            WHEN t1.mtcd = 'idSchmCountryCode' THEN t2.id_schm_cntry_cd
 	                            WHEN t1.mtcd = 'idSchmType'        THEN t2.id_schm_type 
 	                            WHEN t1.mtcd = 'idSchmCode'        THEN t2.id_schm_cd 
+	                            WHEN t1.mtcd = 'idSchmCode2'       THEN t2.id_schm_cd2
 	                            ELSE NULL
 	                       END  AS set_medata_val
                          , CASE WHEN t1.mtcd = 'logicNameStringKo' THEN 'ko'
