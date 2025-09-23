@@ -1,5 +1,6 @@
 package kr.co.e8ight.ndxpro.translatorRunner.util;
 
+import com.google.gson.JsonObject;
 import kr.co.e8ight.ndxpro.translatorRunner.deserializer.CommonJsonDeserializer;
 import kr.co.e8ight.ndxpro.translatorRunner.serializer.EntitySerializer;
 import kr.co.e8ight.ndxpro.translatorRunner.serializer.ZonedDatetimeSerializer;
@@ -11,7 +12,6 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.json.JSONObject;
 
 import java.util.Properties;
 
@@ -19,7 +19,7 @@ public class KafkaUtil {
 
     Properties kafkaProducerProperties;
     Properties kafkaConsumerProperties;
-    KafkaConsumer<Integer, JSONObject> kafkaConsumer;
+    KafkaConsumer<Integer, JsonObject> kafkaConsumer;
     KafkaProducer<Integer, Entity> entityKafkaProducer;
 
     KafkaProducer<Integer, ZonedDateTimeVo> zonedDateTimeKafkaProducer;
@@ -58,7 +58,7 @@ public class KafkaUtil {
         return kafkaConsumerProperties;
     }
 
-    public KafkaConsumer<Integer, JSONObject> getKafkaConsumer(Long translatorId) {
+    public KafkaConsumer<Integer, JsonObject> getKafkaConsumer(Long translatorId) {
         kafkaConsumerProperties.put(ConsumerConfig.GROUP_ID_CONFIG, "e8ight-translator-"+translatorId);
         kafkaConsumer =  new KafkaConsumer<>(kafkaConsumerProperties);
         return kafkaConsumer;

@@ -1,6 +1,8 @@
 package kr.co.e8ight.ndxpro.translatorRunner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import kr.co.e8ight.ndxpro.translatorRunner.serializer.EntitySerializer;
 import kr.co.e8ight.ndxpro.translatorRunner.translator.EntityTranslator;
 import kr.co.e8ight.ndxpro.translatorRunner.translator.TestResult;
@@ -13,7 +15,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +49,8 @@ public class TranslatorRunner {
 
     private static String logDir;
 
+    private static Gson gson = new Gson();
+
     public static void main(String[] args) {
 
         SignalProcessor signalProcessor = SignalProcessor.INSTANCE;
@@ -57,7 +60,7 @@ public class TranslatorRunner {
 
         if ( mode.equals("run") ) {
             KafkaUtil kafkaUtil = new KafkaUtil(kafkaUrl);
-            KafkaConsumer<Integer, JSONObject> kafkaConsumer = kafkaUtil.getKafkaConsumer(translatorId);
+            KafkaConsumer<Integer, JsonObject> kafkaConsumer = kafkaUtil.getKafkaConsumer(translatorId);
             KafkaProducer<Integer, Entity> kafkaProducer = kafkaUtil.getEntityKafkaProducer();
 
             String targetTopic = "ngsild.topic";
@@ -66,10 +69,10 @@ public class TranslatorRunner {
 
             while (!Thread.currentThread().isInterrupted()) {
                 try {
-                    ConsumerRecords<Integer, JSONObject> records = kafkaConsumer.poll(Duration.ofMillis(pollDuration));
+                    ConsumerRecords<Integer, JsonObject> records = kafkaConsumer.poll(Duration.ofMillis(pollDuration));
                     kafkaConsumer.commitAsync();
 
-                    for (ConsumerRecord<Integer, JSONObject> consumerRecord : records) {
+                    for (ConsumerRecord<Integer, JsonObject> consumerRecord : records) {
                         //init observedAtList
                         List<ZonedDateTime> observedAtList = TranslatorRunner.translator.getObservedAtList();
                         observedAtList.clear();
@@ -142,7 +145,7 @@ public class TranslatorRunner {
 
             TestResult result;
             try {
-                JSONObject jsonObject = new JSONObject(sampleJson);
+                JsonObject jsonObject = gson.fromJson(sampleJson, JsonObject.class);
                 List<Entity> translate = translator.translate(jsonObject);
                 result = new TestResult(true, translate.get(0), null);
                 saveTestResultJsonFile(result, resultJsonPath);
@@ -209,8 +212,8 @@ public class TranslatorRunner {
         return null;
     }
 
-    private static List<Entity> translate(ConsumerRecord<Integer, JSONObject> consumerRecord, KafkaUtil kafkaUtil, String observedAtScenarioId, String observedAtScenarioType) {
-        JSONObject jsonObject = consumerRecord.value();
+    private static List<Entity> translate(ConsumerRecord<Integer, JsonObject> consumerRecord, KafkaUtil kafkaUtil, String observedAtScenarioId, String observedAtScenarioType) {
+        JsonObject jsonObject = consumerRecord.value();
         return TranslatorRunner.translator.translate(jsonObject);
     }
 
