@@ -3,7 +3,6 @@ import numpy as np
 import ml_collections
 from glob import glob
 from configs.config import Config
-from tqdm import tqdm
 import pandas as pd
 import json
 
@@ -21,7 +20,7 @@ class PreprocessData():
         
     def get_solve_array(self):
         self.filename_lst = sorted(glob(self.path))
-        for filepath in tqdm(self.filename_lst):
+        for filepath in self.filename_lst:
             df = pd.read_csv(filepath)
             self.boundary_lst.append(df["boundary"])            
             self.ux_lst.append(df["ux"].values)

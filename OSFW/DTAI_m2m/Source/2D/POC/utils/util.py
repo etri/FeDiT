@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from scipy.interpolate import griddata
 from sklearn.preprocessing import MinMaxScaler
 from datetime import datetime
-from tqdm import tqdm
 from typing import Dict,List
 from configs.config import PoCConfig
 
@@ -58,7 +57,7 @@ def fetch_data_from_url_for_timedelta(target:str,
     """
     BASE_URL = PoCConfig.BASE_URL
     observed_lst = []
-    for date in tqdm(date_range):
+    for date in date_range:
         for hour in range(24):
             hour = str(hour)
             if len(hour)==1:
