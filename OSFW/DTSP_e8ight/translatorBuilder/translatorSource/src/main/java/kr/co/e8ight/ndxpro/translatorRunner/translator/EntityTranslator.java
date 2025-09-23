@@ -1,7 +1,7 @@
 package kr.co.e8ight.ndxpro.translatorRunner.translator;
 
 import kr.co.e8ight.ndxpro.translatorRunner.vo.Entity;
-import org.json.JSONObject;
+import com.google.gson.JsonObject;
 
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
@@ -16,7 +16,7 @@ public abstract class EntityTranslator {
     private String isFinish;
     private String date;
 
-    public abstract List<Entity> translate(JSONObject value);
+    public abstract List<Entity> translate(JsonObject value);
 
     public List<ZonedDateTime> getObservedAtList() {
         return observedAtList;
