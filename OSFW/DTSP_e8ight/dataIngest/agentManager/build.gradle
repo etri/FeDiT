@@ -60,6 +60,8 @@ dependencies {
 
     //ndxpro common
     implementation 'kr.co.e8ight.ndxpro:ndxpro_common:0.1.0'
+    implementation 'jakarta.activation:jakarta.activation-api:1.2.2'
+    
 }
 
 tasks.named('test') {
