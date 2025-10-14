@@ -6,7 +6,6 @@ import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 import org.json.JSONObject;
 
-import javax.ws.rs.core.Response;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -36,6 +35,10 @@ public class HttpSourceGetWeatherTask extends SourceTask {
     int MAX_RETRY_COUNT = 3;
     private String connectorName;
 
+    // JAX-RS Response 대체: 2xx 성공 판정
+    private static boolean isSuccessful(int status) {
+        return status >= 200 && status < 300;
+    }
 
     @Override
     public String version() {
@@ -121,8 +124,8 @@ public class HttpSourceGetWeatherTask extends SourceTask {
 
                 // get status check
                 int status = conn.getResponseCode();
-                if (Response.Status.Family.familyOf(status) != Response.Status.Family.SUCCESSFUL) {
-                    logger.warning("[FAIL Response] FAIL " + conn.getResponseMessage() + config.getString("api.url"));
+                if (!isSuccessful(status)) {
+                    logger.warning("[FAIL Response] json: " + status + " " + conn.getResponseMessage() + " " + config.getString("api.url"));
                     retryCount++;
                 } else {
                     br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));

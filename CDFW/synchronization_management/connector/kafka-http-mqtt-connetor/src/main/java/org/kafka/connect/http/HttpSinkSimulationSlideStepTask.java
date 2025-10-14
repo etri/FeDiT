@@ -9,7 +9,6 @@ import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 import org.json.JSONObject;
 
-import javax.ws.rs.core.Response;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -46,6 +45,11 @@ public class HttpSinkSimulationSlideStepTask extends SinkTask {
     Instant result_time;
     private KafkaProducer<String, String> producer;
 
+    // JAX-RS Response 대체: 2xx 성공 판정
+    private static boolean isSuccessful(int status) {
+        return status >= 200 && status < 300;
+    }
+    
     @Override
     public String version() {
         return "1.0";
@@ -205,7 +209,7 @@ public class HttpSinkSimulationSlideStepTask extends SinkTask {
                     trigger_time = Instant.now();
                     // get Response
                     int status = conn.getResponseCode();
-                    if (Response.Status.Family.familyOf(status) != Response.Status.Family.SUCCESSFUL) {
+                    if (!isSuccessful(status)) {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
                         String inputLine;
                         StringBuffer error = new StringBuffer();
@@ -345,7 +349,7 @@ public class HttpSinkSimulationSlideStepTask extends SinkTask {
                     trigger_time = Instant.now();
                     // get Response
                     int status = conn.getResponseCode();
-                    if (Response.Status.Family.familyOf(status) != Response.Status.Family.SUCCESSFUL) {
+                    if (!isSuccessful(status)) {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
                         String inputLine;
                         StringBuffer error = new StringBuffer();
@@ -482,7 +486,7 @@ public class HttpSinkSimulationSlideStepTask extends SinkTask {
                         trigger_time = Instant.now();
                         // get Response
                         int status = conn.getResponseCode();
-                        if (Response.Status.Family.familyOf(status) != Response.Status.Family.SUCCESSFUL) {
+                        if (!isSuccessful(status)) {
                             BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
                             String inputLine;
                             StringBuffer error = new StringBuffer();
@@ -617,7 +621,7 @@ public class HttpSinkSimulationSlideStepTask extends SinkTask {
                         trigger_time = Instant.now();
                         // get Response
                         int status = conn.getResponseCode();
-                        if (Response.Status.Family.familyOf(status) != Response.Status.Family.SUCCESSFUL) {
+                        if (!isSuccessful(status)) {
                             BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
                             String inputLine;
                             StringBuffer error = new StringBuffer();
@@ -749,7 +753,7 @@ public class HttpSinkSimulationSlideStepTask extends SinkTask {
 
         // get Response
         int status = conn.getResponseCode();
-        if (Response.Status.Family.familyOf(status) != Response.Status.Family.SUCCESSFUL) {
+        if (!isSuccessful(status)) {
             BufferedReader in = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
             String inputLine;
             StringBuffer error = new StringBuffer();
