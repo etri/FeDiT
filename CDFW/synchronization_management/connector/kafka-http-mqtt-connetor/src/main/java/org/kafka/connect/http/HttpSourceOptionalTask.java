@@ -8,8 +8,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.XML;
 
-import javax.sql.DataSource;
-import javax.ws.rs.core.Response;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -30,7 +28,6 @@ import java.util.logging.SimpleFormatter;
 public class HttpSourceOptionalTask extends SourceTask {
     // private final Logger logger = LoggerFactory.getLogger(HttpSourceOptionalConnector.class);
     Logger logger = Logger.getLogger("HttpSourceOptionalLogs");
-    DataSource dataSource;
     URL url;
     HttpURLConnection conn;
     BufferedReader br;
@@ -43,6 +40,11 @@ public class HttpSourceOptionalTask extends SourceTask {
     private String key_topic;
     private String connectorName;
 
+    // JAX-RS Response 대체: 2xx 성공 판정
+    private static boolean isSuccessful(int status) {
+        return status >= 200 && status < 300;
+    }
+    
     @Override
     public String version() {
         return "1.0";
@@ -85,8 +87,8 @@ public class HttpSourceOptionalTask extends SourceTask {
                 conn.setRequestProperty("Accept", "*/*;q=0.9"); //header
                 // get status check
                 int status = conn.getResponseCode();
-                if (Response.Status.Family.familyOf(status) != Response.Status.Family.SUCCESSFUL) {
-                    logger.warning("[FAIL Response] json: " + conn.getResponseMessage() + config.getString("api.url"));
+                if (!isSuccessful(status)) {
+                    logger.warning("[FAIL Response] json: " + status + " " + conn.getResponseMessage() + " " + config.getString("api.url"));
                     retryCount++;
                 } else {
                     br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
@@ -145,8 +147,8 @@ public class HttpSourceOptionalTask extends SourceTask {
                 conn.setRequestProperty("Accept", "*/*;q=0.9");
                 // get status check
                 int status = conn.getResponseCode();
-                if (Response.Status.Family.familyOf(status) != Response.Status.Family.SUCCESSFUL) {
-                    logger.warning("[FAIL Response] XML: " + conn.getResponseMessage() + config.getString("api.url"));
+                if (!isSuccessful(status)) {
+                    logger.warning("[FAIL Response] XML: " + status + " " + conn.getResponseMessage() + " " + config.getString("api.url"));
                     retryCount++;
                 } else {
                     br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
