@@ -18,27 +18,6 @@ $(document).ready(function () {
         format: 'YYYY-MM-DD HH:mm',
     });
 
-    $('.tags').tagsInput({
-        'width': '100%',
-        'height': '75%',
-        'interactive': true,
-        'defaultText': '태그추가',
-        'removeWithBackspace': true,
-        'minChars': 0,
-        'maxChars': 20,
-        'placeholderColor': '#666666'
-    });
-
-    $('.tags-artist').tagsInput({
-        'width': '600px',
-        'height': '55px',
-        'interactive': false,
-        'removeWithBackspace': true,
-        'minChars': 0,
-        'maxChars': 20,
-        'placeholderColor': '#666666'
-    });
-
     $('#gridSortName').change(function () {
         $('#sortName').val($(this).val());
         var sortType = $('#gridSortType').val();

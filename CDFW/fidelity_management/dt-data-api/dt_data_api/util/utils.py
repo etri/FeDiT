@@ -257,13 +257,21 @@ class Utils:
             plt.tight_layout()
             
             # summary plot 저장
+            # for ext in ['png']:
+            #     filepath = f'{save_dir}_shap_plot.{ext}'
+            #     plt.savefig(filepath, 
+            #             dpi=300 if ext == 'png' else None,
+            #             format=ext, 
+            #             bbox_inches='tight')
+            #     saved_plot_files.append(filepath)
+            
             for ext in ['png']:
                 filepath = f'{save_dir}_shap_plot.{ext}'
                 plt.savefig(filepath, 
                         dpi=300 if ext == 'png' else None,
-                        format=ext, 
-                        bbox_inches='tight')
+                        format=ext)
                 saved_plot_files.append(filepath)
+            
             plt.close()
 
 
@@ -279,12 +287,19 @@ class Utils:
             plt.tight_layout()
             
             # summary plot 저장
+            # for ext in ['png']:
+            #     filepath = f'{save_dir}_shap_bar.{ext}'
+            #     plt.savefig(filepath, 
+            #             dpi=300 if ext == 'png' else None,
+            #             format=ext, 
+            #             bbox_inches='tight')
+            #     saved_plot_files.append(filepath)
+                
             for ext in ['png']:
                 filepath = f'{save_dir}_shap_bar.{ext}'
                 plt.savefig(filepath, 
                         dpi=300 if ext == 'png' else None,
-                        format=ext, 
-                        bbox_inches='tight')
+                        format=ext)
                 saved_plot_files.append(filepath)
             plt.close()
 
@@ -302,12 +317,19 @@ class Utils:
             plt.tight_layout()
             
             # waterfall plot 저장
+            # for ext in ['png']:
+            #     filepath = f'{save_dir}_shap_waterfall.{ext}'
+            #     plt.savefig(filepath,
+            #             dpi=300 if ext == 'png' else None,
+            #             format=ext,
+            #             bbox_inches='tight')
+            #     saved_plot_files.append(filepath)
+                
             for ext in ['png']:
                 filepath = f'{save_dir}_shap_waterfall.{ext}'
                 plt.savefig(filepath,
                         dpi=300 if ext == 'png' else None,
-                        format=ext,
-                        bbox_inches='tight')
+                        format=ext)
                 saved_plot_files.append(filepath)
             plt.close()
 

@@ -11,8 +11,7 @@ import com.stoneitgt.dt.data.platform.util.file.FileReader;
 import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
+import org.json.JSONObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -486,13 +485,27 @@ public class DataSetController extends BaseController {
         }
 
         if (correlationSet != null && correlationSet.getBody() != null) {
-            correlationObj = (JSONObject) new JSONParser().parse(Objects.requireNonNull(correlationSet.getBody()).toString());
+            correlationObj = new JSONObject(Objects.requireNonNull(correlationSet.getBody()).toString());
         }
 
         if (Integer.parseInt(correlationObj.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
             result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
-            result.put("correlation_data", correlationObj.get("data"));
+            JSONObject dataObj = correlationObj.getJSONObject("data");
+
+            // JSONArray → Java List로 변환
+            List<Object> dataArr = dataObj.getJSONArray("data").toList();
+            List<Object> xdataArr = dataObj.getJSONArray("xdata").toList();
+            List<Object> ydataArr = dataObj.getJSONArray("ydata").toList();
+
+            // JSONObject 대신 Map 사용
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("data", dataArr);
+            payload.put("xdata", xdataArr);
+            payload.put("ydata", ydataArr);
+
+            result.put("correlation_data", payload);
         }
+        log.info("correlation_data -> {}", result.get("correlation_data"));
         return result;
     }
 }
