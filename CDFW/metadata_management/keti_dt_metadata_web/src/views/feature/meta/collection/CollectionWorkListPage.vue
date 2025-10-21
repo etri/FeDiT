@@ -43,7 +43,6 @@ import { useRouter, useRoute } from "vue-router";
 import { useStore } from "vuex";
 import util from "util";
 import dayjs from "dayjs";
-import { trim } from "@amcharts/amcharts4/.internal/core/utils/Utils";
 import metaCommon from "@/assets/js/metaCommon.js";
 
 const route = useRoute();

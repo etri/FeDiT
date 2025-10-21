@@ -29,12 +29,14 @@ const $axios = getGlobalProperties().$axios;
 const $apiUrls = getGlobalProperties().$apiUrls;
 const store = useStore();
 
+/* TODO 다른 차트로 변경 예정.
 import * as am4core from "@amcharts/amcharts4/core";
 import * as am4charts from "@amcharts/amcharts4/charts";
 import * as am4plugins_wordCloud from "@amcharts/amcharts4/plugins/wordCloud"; 
 import am4themes_animated from "@amcharts/amcharts4/themes/animated";
 
 am4core.useTheme(am4themes_animated);
+*/
 
 const state = reactive({
   dataList: [],
@@ -78,6 +80,7 @@ const getInfluxDBCountByKeyword = () => {
 };
 
 const drawChart = () => {
+/* TODO 다른 차트로 변경 예정.    
   let chart = am4core.create("chartdiv", am4plugins_wordCloud.WordCloud);
   chart.fontFamily = "Courier New";
   let series = chart.series.push(new am4plugins_wordCloud.WordCloudSeries());
@@ -111,9 +114,11 @@ const drawChart = () => {
   title.text = "최근 1년 동안의 키워드";
   title.fontSize = 20;
   title.fontWeight = "800";
+  */
 }
 
 const drawChart2 = () => {
+/* TODO 다른 차트로 변경 예정.    
   let chart = am4core.create("chartdiv2", am4charts.XYChart);
   chart.scrollbarX = new am4core.Scrollbar();
 
@@ -156,6 +161,7 @@ const drawChart2 = () => {
   });
 
   chart.cursor = new am4charts.XYCursor();
+  */
 }
 
 /* 예제)
