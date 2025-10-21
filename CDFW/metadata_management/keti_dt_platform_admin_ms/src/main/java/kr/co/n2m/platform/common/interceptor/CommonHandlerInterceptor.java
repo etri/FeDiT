@@ -5,12 +5,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
@@ -46,10 +48,19 @@ public class CommonHandlerInterceptor implements HandlerInterceptor {
 	@Autowired
 	private AuthService authService;
 	
-	
+    private static final String MDC_KEY = "requestId";
+    private static final String HDR = "X-Request-Id";
 	
 	@Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+		// 추적용 requestId
+        String requestId = request.getHeader(HDR);
+        if (requestId == null || requestId.isEmpty()) {
+        	requestId = UUID.randomUUID().toString();
+        }
+        MDC.put(MDC_KEY, requestId);
+        response.setHeader(HDR, requestId);
+		
 		String clientIP = getClientIpAddr(request);
 		String token = request.getHeader(Constants.AUTHTOKEN_HEADER);
 		HttpSession session = request.getSession(false);
@@ -58,6 +69,10 @@ public class CommonHandlerInterceptor implements HandlerInterceptor {
 
         if (requestURI.startsWith("/admin/session")) {
         	return true;
+        }
+        
+        if (requestURI.startsWith("/admin/platform") && request.getMethod().equals("GET")) {
+            return true;
         }
 
 		if (token == null) {
@@ -168,6 +183,12 @@ public class CommonHandlerInterceptor implements HandlerInterceptor {
 	public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, @Nullable ModelAndView modelAndView) throws Exception {
 		// TODO 
 	}
+	
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, @Nullable Exception ex) throws Exception {
+        // 요청 처리 종료 시 MDC 정리 (예외 발생 시에도 호출됨)
+        MDC.remove(MDC_KEY);
+    }	
 
 	private static String getClientIpAddr(HttpServletRequest request) {
 		String ip = request.getHeader("X-Forwarded-For");

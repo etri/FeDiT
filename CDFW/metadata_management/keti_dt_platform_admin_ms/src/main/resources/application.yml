@@ -1,6 +1,6 @@
 #common
 server:
-  port: 6991
+  port: 6998
   servlet:
     context-path: /admin
     session : 
@@ -9,10 +9,11 @@ server:
 
 spring:
   application:
-    name: Platform_Admin_MS
+    name: MetaPlatformAdminApplication
   profiles:
     include:
     - env
+    - meta
     active: local
   jpa:
     properties:
@@ -21,9 +22,6 @@ spring:
         order_updates: true
         jdbc:
           batch_size: 500
-  sleuth:
-    sampler:
-      probability: 1.0
     
 management:
   endpoint:

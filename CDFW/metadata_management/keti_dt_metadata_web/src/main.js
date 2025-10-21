@@ -32,11 +32,6 @@ import Router from "./router";
 // Vue Axios
 import axios from "axios";
 
-// Vue Zipkin-Axios
-const wrapAxios = require('zipkin-axios');
-const { HttpLogger } = require('zipkin-transport-http');
-const { Tracer, ExplicitContext, BatchRecorder } = require('zipkin');
-
 // Quartz Cron Expression Validator
 var cronValidator = require('cron-expression-validator');
 
@@ -149,24 +144,7 @@ app.config.globalProperties.$apiUrls = ApiUrls;
 app.config.globalProperties.$emitter = emitter;
 app.config.globalProperties.$common  = CommonObj;
 app.config.globalProperties.cronValidator = cronValidator;
+app.config.globalProperties.$axios = axios;
 
-// Setup zipkin components
-if (process.env.VUE_APP_LOG_TRACING_ENABLE == 'true') {
-  const ctxImpl = new ExplicitContext();
-  const recorder = new BatchRecorder({
-    logger: new HttpLogger({
-      endpoint: process.env.VUE_APP_LOG_TRACING_ZIPKIN_URL 
-    })
-  });
-  const tracer = new Tracer({ ctxImpl, recorder });
-
-  // Wrapp an instance of axios
-  const zipkinAxios = wrapAxios(axios, {tracer, serviceName: 'PlatformAdminPortal'});
-
-  app.config.globalProperties.$axios = zipkinAxios;
-}
-else {
-  app.config.globalProperties.$axios = axios;
-}
 
 
