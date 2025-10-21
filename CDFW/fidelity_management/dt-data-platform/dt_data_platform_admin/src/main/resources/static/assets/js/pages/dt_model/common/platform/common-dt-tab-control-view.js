@@ -169,6 +169,7 @@ $(document).ready(function () {
                         correlationViewContainer.style.borderStyle = 'solid';
                         correlationViewContainer.style.borderColor = '#EEE';
                         parent.appendChild(correlationViewContainer);
+                        console.log('result.correlation_data',result.correlation_data);
                         if (result.correlation_data['data'].length !== 0) {
                             correlationHeatMapView(result.correlation_data['data'], result.correlation_data['xdata'], result.correlation_data['ydata']);
                         } else {

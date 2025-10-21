@@ -4043,13 +4043,14 @@ function reInitializeOutlierExecute() {
     } else {
         //autoencoder
     }
+
     let p_value = $('#p_value').val();
     /**
      * -------------------------
      *  2025-08-18, Outlier STANDARD 옵션 버그 수정
      * -------------------------
      * */
-    if (p_value < 0.05) {
+    if (p_value < 0.05 && outlier_type.toLowerCase() === 'standard') {
         alert('정규분포 경계(p-value)는 0.05 이상이어야 합니다.');
         return false;
     }
@@ -4118,7 +4119,7 @@ function reInitializeOutlierExecute() {
         params.n_clusters = n_clusters;
         params.n_count = parseInt(n_count);
     }
-    if (outlier_type === 'autoencoder' || outlier_type === 'auto encoder' || outlier_type === 'AUTOENCODER' || outlier_type === 'AUTO ENCODER') {
+    if (outlier_type.toLowerCase() === 'autoencoder' || outlier_type.toLowerCase() === 'auto encoder') {
         let window_size = $('#window_size').val();
         let threshold = $('#threshold').val();
 
