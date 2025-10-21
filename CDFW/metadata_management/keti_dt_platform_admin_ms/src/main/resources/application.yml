@@ -13,7 +13,6 @@ spring:
   profiles:
     include:
     - env
-    - meta
     active: local
   jpa:
     properties:
