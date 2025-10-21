@@ -10,9 +10,9 @@
 	</parent>
 
 	<groupId>kr.co.n2m.platform</groupId>
-	<artifactId>PLATFORM_ADMIN_MS</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>PLATFORM_ADMIN_MS</name>
+	<artifactId>keti_dt_platformadmin_api</artifactId>
+	<version>0.0.1</version>
+	<name>keti_dt_platformadmin_api</name>
 	<description>Platform Admin MS for Spring Boot</description>
 
 	<properties>
@@ -25,6 +25,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
+		        
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+        </dependency>		
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -188,16 +193,6 @@
 			<artifactId>querydsl-jpa</artifactId>
 		</dependency>
 
-		<dependency>
-		    <groupId>org.springframework.cloud</groupId>
-		    <artifactId>spring-cloud-starter-sleuth</artifactId>
-		</dependency>
-
-		<dependency>
-		    <groupId>org.springframework.cloud</groupId>
-		    <artifactId>spring-cloud-sleuth-zipkin</artifactId>
-		</dependency>
-
 		<!-- swagger -->
 		<dependency>
 			  <groupId>io.springfox</groupId>
@@ -233,6 +228,15 @@
 	</dependencyManagement>
 
 	<build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.11.0</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>        
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
@@ -246,7 +250,7 @@
 				</configuration>
 			</plugin>
 
-			<!-- QueryDSL -->
+			<!-- QueryDSL 
 			<plugin>
 				<groupId>com.mysema.maven</groupId>
 				<artifactId>apt-maven-plugin</artifactId>
@@ -274,27 +278,45 @@
 					</dependency>
 				</dependencies>
 			</plugin>
-
-			<!-- Push Nexus Docker Image -->
-			<plugin>
-				<groupId>com.google.cloud.tools</groupId>
-				<artifactId>jib-maven-plugin</artifactId>
-				<version>1.8.0</version>
-				<configuration>
-					<from>
-						<image>eclipse-temurin:17</image>
-					</from>
-					<to>
-						<image>192.168.123.30:12000/common-platform-admin-ms</image>
-						<auth>
-							<username>admin</username>
-							<password>dpsxndpa1!</password>
-						</auth>
-					</to>
-					<allowInsecureRegistries>true</allowInsecureRegistries>
-					<sendCredentialsOverHttp>true</sendCredentialsOverHttp>
-				</configuration>
-			</plugin>
+			-->
+            <!-- QueryDSL (JPAAnnotationProcessor, 기존 설정 유지) -->
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-compiler-plugin</artifactId>
+              <version>3.11.0</version>
+              <executions>
+                <execution>
+                  <id>querydsl-compile</id>
+                  <phase>compile</phase>
+                  <goals>
+                    <goal>compile</goal>
+                  </goals>
+                  <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                    <generatedSourcesDirectory>target/generated-sources/java</generatedSourcesDirectory>
+                    <compilerArgs>
+                      <arg>-processor</arg>
+                      <arg>com.querydsl.apt.jpa.JPAAnnotationProcessor</arg>
+                      <arg>-Aquerydsl.entityAccessors=true</arg>
+                      <arg>-Aquerydsl.generatedAnnotationClass=javax.annotation.Generated</arg>
+                    </compilerArgs>
+                    <annotationProcessorPaths>
+                      <path>
+                        <groupId>com.querydsl</groupId>
+                        <artifactId>querydsl-apt</artifactId>
+                        <version>5.0.0</version>
+                      </path>
+                      <path>
+                        <groupId>javax.persistence</groupId>
+                        <artifactId>javax.persistence-api</artifactId>
+                        <version>2.2</version>
+                      </path>
+                    </annotationProcessorPaths>
+                  </configuration>
+                </execution>
+              </executions>
+            </plugin>
 		</plugins>
 
 		<resources>
@@ -312,11 +334,6 @@
 	</build>
 
 	<repositories>
-		<repository>
-			<id>n2m</id>
-			<name>Common Libraries</name>
-			<url>http://220.76.205.230:19081/repository/n2m/</url>
-		</repository>
 		<repository>
 			<id>spring-milestones</id>
 			<name>Spring Milestones</name>
