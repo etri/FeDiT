@@ -57,19 +57,6 @@ div.datepicker {
     padding: 6px;
 }
 
-.bootstrap-tagsinput {
-    border: 1px solid #e8ebf1 !important;
-    font-weight: 400;
-    font-size: 0.875rem;
-    width: 100%;
-    border-radius: inherit !important;
-    line-height: 32px !important;
-}
-
-.bootstrap-tagsinput input {
-    min-width: 100px;
-}
-
 .table thead th {
     vertical-align: middle !important;
 }

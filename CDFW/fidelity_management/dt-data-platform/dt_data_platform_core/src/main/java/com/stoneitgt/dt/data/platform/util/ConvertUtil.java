@@ -20,6 +20,7 @@ public class ConvertUtil {
             "MM/dd/yyyy HH:mm:ss",
             "yyyy-MM-dd'T'HH:mm:ss",
             "yyyy-MM-dd'T'HH:mm:ssZ",
+            "yyyy-MM-dd'T'HH:mm:ss.SSSX",
             "yyyy-MM-dd",
             "yyyy/MM/dd"
     };

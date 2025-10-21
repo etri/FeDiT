@@ -1,7 +1,5 @@
 package com.stoneitgt.dt.data.platform.admin.controller;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stoneitgt.common.GlobalConstant;
@@ -16,9 +14,8 @@ import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 import com.stoneitgt.dt.data.platform.util.file.FileWriter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.HashedMap;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -712,7 +709,7 @@ public class DTModelController extends BaseController {
 
     @PostMapping("/get/outlier_info")
     @ResponseBody
-    public Map<String, Object> getOutlierInfo(@RequestBody Map<String, Object> params) throws JsonParseException, JsonMappingException, IOException, ParseException {
+    public Map<String, Object> getOutlierInfo(@RequestBody Map<String, Object> params) throws IOException, JSONException {
         Map<String, Object> result = new HashMap<String, Object>();
 
         Map<String, Object> outlierParameters = new HashMap<String, Object>();
@@ -803,7 +800,7 @@ public class DTModelController extends BaseController {
 
         log.info("getOutlierInfo outlierSet -> {}", outlierSet);
 
-        JSONObject outlierJSONObject = (JSONObject) new JSONParser().parse(outlierSet.getBody().toString());
+        JSONObject outlierJSONObject = new JSONObject(outlierSet.getBody().toString());
         log.info("getOutlierInfo outlierJSONObject -> {}", outlierJSONObject);
         try {
             JsonNode jsonNode = new ObjectMapper().readTree(outlierSet.getBody().toString());
@@ -1675,7 +1672,7 @@ public class DTModelController extends BaseController {
 
     @PostMapping("/make/algorithm_set")
     @ResponseBody
-    public Map<String, Object> makeAlgorithmSet(@RequestBody Map<String, Object> params) throws ParseException {
+    public Map<String, Object> makeAlgorithmSet(@RequestBody Map<String, Object> params) throws JSONException {
         Map<String, Object> result = new HashMap<String, Object>();
         int modelSeq = Integer.parseInt(params.get("model_seq").toString());
         DTModel dtModel = new DTModel();
