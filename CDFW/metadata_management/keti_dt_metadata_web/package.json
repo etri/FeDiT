@@ -11,7 +11,6 @@
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
-    "@amcharts/amcharts4": "^4.10.34",
     "@element-plus/icons-vue": "^2.0.10",
     "@imengyu/vue3-context-menu": "^1.1.7",
     "@tiptap/extension-bubble-menu": "^2.0.0-beta.212",
@@ -48,9 +47,9 @@
     "cross-env": "^7.0.3",
     "date-fns": "^2.30.0",
     "dayjs": "^1.11.10",
-    "draggable-resizable-vue3": "^1.0.94-beta",
     "element-plus": "2.3.4",
     "file-saver": "^2.0.5",
+    "highlight.js": "^11.11.1",
     "html2canvas": "^1.4.1",
     "jmuxer": "^2.0.5",
     "js-base64": "^3.6.0",
@@ -58,6 +57,7 @@
     "json-editor-vue": "^0.10.8",
     "jsonpath": "^1.1.1",
     "jwt-decode": "^3.1.2",
+    "markdown-it": "^14.1.0",
     "mitt": "^3.0.0",
     "neo4jd3": "0.0.5",
     "ol": "^8.2.0",
@@ -95,10 +95,7 @@
     "vuex": "^4.1.0",
     "vuex-persistedstate": "^4.1.0",
     "webstomp-client": "^1.2.6",
-    "xlsx": "^0.18.5",
-    "zipkin": "^0.22.0",
-    "zipkin-axios": "^0.2.4",
-    "zipkin-transport-http": "^0.22.0"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",
