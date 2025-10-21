@@ -862,13 +862,14 @@ input.ui-check-btn:where([type=checkbox], [type=radio]):checked ~ label {
   border-radius: 100px;
   height: 24px;
   background-color: var(--gray-0, #fff);
-  color: var(--frame-bg, #0F1B2A);
+  color: #000;
   font-size: var(--text-xs, 12px);
   font-weight: 600;
   line-height: 22px;
   letter-spacing: -0.03em;
   transition: 0.2s ease-in-out;
 }
+
 .btn-filter-reset:where(:hover, :active) {
   background-color: var(--gray-100, #EBEEF1);
 }

@@ -1,13 +1,14 @@
 package com.stoneitgt.dt.data.platform.admin.controller;
 
 import com.stoneitgt.common.GlobalConstant;
-import com.stoneitgt.dt.data.platform.admin.component.PasswordConstraintValidator;
-import com.stoneitgt.dt.data.platform.admin.service.*;
+import com.stoneitgt.dt.data.platform.admin.component.PasswordRules;
+import com.stoneitgt.dt.data.platform.admin.service.UnitService;
+import com.stoneitgt.dt.data.platform.admin.service.UserService;
+import com.stoneitgt.dt.data.platform.admin.service.VerifyService;
 import com.stoneitgt.dt.data.platform.domain.*;
 import com.stoneitgt.dt.data.platform.util.StoneUtil;
 import com.stoneitgt.dt.data.platform.util.StringUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.passay.RuleResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -296,9 +297,9 @@ public class SettingController extends BaseController {
 
     @PostMapping("/user/form")
     public String saveUser(@RequestParam(required = false) String menuCd, @ModelAttribute("user") @Valid User user, BindingResult bindingResult, Model model, RedirectAttributes rttr) {
-        PasswordConstraintValidator passwordValidator = new PasswordConstraintValidator();
-        if (user.getUserSeq() == 0) {
+        // PasswordConstraintValidator passwordValidator = new PasswordConstraintValidator(); // 제거
 
+        if (user.getUserSeq() == 0) {
             for (String id : GlobalConstant.BLACK_ID_LIST) {
                 if (id.equalsIgnoreCase(user.getId())) {
                     bindingResult.rejectValue("id", "id.black.pattern", new Object[]{id}, "");
@@ -312,23 +313,26 @@ public class SettingController extends BaseController {
             if (StringUtil.isBlank(user.getPassword())) {
                 bindingResult.rejectValue("password", "field.required");
             }
-            RuleResult ruleResult = passwordValidator.validate(user.getPassword());
-            if (!ruleResult.isValid()) {
+
+            // ▼ Passay → 유틸로 교체
+            if (!PasswordRules.isValid(user.getPassword(), 8, 15)) {
                 bindingResult.rejectValue("password", "password.illegal_match");
             }
+
             if (!user.getPassword().equals(user.getPasswordConfirm())) {
                 bindingResult.rejectValue("passwordConfirm", "password.illegal_match_confirm");
             }
-        } else {
 
+        } else {
             if (StringUtil.isNotBlank(user.getTempPassword())) {
 
-                RuleResult ruleResult = passwordValidator.validate(user.getTempPassword());
-                if (!ruleResult.isValid()) {
+                // ▼ Passay → 유틸로 교체
+                if (!PasswordRules.isValid(user.getTempPassword(), 8, 15)) {
                     bindingResult.rejectValue("tempPassword", "password.illegal_match");
                 } else {
                     user.setNewPassword(user.getTempPassword());
                 }
+
                 if (!user.getTempPassword().equals(user.getTempPasswordConfirm())) {
                     bindingResult.rejectValue("tempPasswordConfirm", "password.illegal_match_confirm");
                 } else {
@@ -346,7 +350,6 @@ public class SettingController extends BaseController {
         }
 
         String returnUrl = "redirect:/setting/user?";
-
         if (user.getUserSeq() == 0) {
             rttr.addFlashAttribute("result_code", GlobalConstant.CRUD_TYPE.INSERT);
             returnUrl += "menuCd=" + menuCd;
@@ -357,12 +360,8 @@ public class SettingController extends BaseController {
         user.setLoginUserSeq(authenticationFacade.getLoginUserSeq());
         user.setLoginUserIp(authenticationFacade.getLoginUserIp());
 
-
-        if (user.getUserSeq() == 0) {
-            userService.saveUser(user);
-        } else {
-            userService.updateUser(user);
-        }
+        if (user.getUserSeq() == 0) userService.saveUser(user);
+        else userService.updateUser(user);
 
         return returnUrl;
     }

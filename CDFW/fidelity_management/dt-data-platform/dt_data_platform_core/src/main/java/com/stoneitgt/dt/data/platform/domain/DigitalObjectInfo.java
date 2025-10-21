@@ -14,6 +14,7 @@ public class DigitalObjectInfo {
     private String subjectConcept;
     private ArrayList<String> keywords;
     private ArrayList<String> subjects;
+    private ArrayList<String> subject2;
     private String modificationTime;
     private String creationTime;
     private int memberSensorCount;
@@ -41,9 +42,14 @@ public class DigitalObjectInfo {
     private String parking;
     private String useTime;
     private int status;
+    private String metaStatusCode;
+    private String metaStatusName;
     private String timestamp;
     private String error;
     private String message;
     private String exception;
     private String path;
+    private ArrayList<String> testArray;
+    private String createDateTime;
+    private String updateDateTime;
 }

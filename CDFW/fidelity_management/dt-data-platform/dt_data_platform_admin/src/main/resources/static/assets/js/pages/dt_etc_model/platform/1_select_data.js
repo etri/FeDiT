@@ -201,24 +201,29 @@
             let twinId = $this.data('twin-id');
             displayMetaInfoModal(twinId, objectId, function (data) {
                 if (data) {
-                    $('#metaModel').val(data.metaModel || '');
-                    $('#digitalObjectName').val(data.digitalObjectName || '');
-                    $('#digitalObjectDataSourceUrl').val(data.digitalObjectDataSourceUrl || '없음');
-                    $('#description').val(data.description || '');
+                    try {
+                        $('#metaModel').val(data.metaModel || '');
+                        $('#digitalObjectName').val(data.digitalObjectName || '');
+                        $('#digitalObjectDataSourceUrl').val(data.digitalObjectDataSourceUrl || '없음');
+                        $('#description').val(data.description || '');
 
-                    $('#digitalObjectId').val(data.digitalObjectId || '');
-                    $('#digitalTwinId').val(twinId);
+                        $('#digitalObjectId').val(data.digitalObjectId || '');
+                        $('#digitalTwinId').val(twinId);
 
-                    $('#digitalObjectDataModel').val(prettyJson(data.digitalTwinObjectData.digitalObjectDataModel));
-                    $('#digitalObjectDataSample').val(prettyJson(data.digitalTwinObjectData.digitalObjectDataSample));
+                        $('#digitalObjectDataModel').val(prettyJson(data.digitalTwinObjectData.digitalObjectDataModel));
+                        $('#digitalObjectDataSample').val(prettyJson(data.digitalTwinObjectData.digitalObjectDataSample));
 
-                    console.log('digitalObjectDataModel', JSON.parse(data.digitalTwinObjectData.digitalObjectDataModel));
-                    console.log('digitalObjectDataSample', JSON.parse(data.digitalTwinObjectData.digitalObjectDataSample));
+                        console.log('digitalObjectDataModel', JSON.parse(data.digitalTwinObjectData.digitalObjectDataModel));
+                        console.log('digitalObjectDataSample', JSON.parse(data.digitalTwinObjectData.digitalObjectDataSample));
 
-                    //모달 오픈
-                    const modalPopupId = $this.data('popup-id');
-                    console.log('modalPopupId', modalPopupId);
-                    document.getElementById(modalPopupId).classList.add('is-open');
+                        //모달 오픈
+                        const modalPopupId = $this.data('popup-id');
+                        console.log('modalPopupId', modalPopupId);
+                        document.getElementById(modalPopupId).classList.add('is-open');
+                    } catch (e) {
+                        console.error('Error parsing data:', e);
+                        alert('데이터를 불러오는데 실패했습니다. 데이터 형식을 확인해주세요.');
+                    }
                 } else {
                     alert('데이터를 불러오는데 실패했습니다.');
                 }
