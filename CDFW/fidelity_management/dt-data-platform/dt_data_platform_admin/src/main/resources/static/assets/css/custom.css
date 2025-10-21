@@ -1,22 +1,4 @@
 @charset "utf-8";
-div.tagsinput {
-    background: #FFF;
-    padding-top: 7px;
-    padding-bottom: 12px;
-    width: 300px;
-    height: 100px;
-    overflow-y: auto;
-}
-
-div.tagsinput span.tag {
-    background: #727cf5;
-    border: 0;
-    color: #ffffff;
-    padding: 8px 13px 5px 13px;
-    font-size: 0.8725rem;
-    font-family: inherit;
-    line-height: 1;
-}
 
 #loading {
     width: 100%;

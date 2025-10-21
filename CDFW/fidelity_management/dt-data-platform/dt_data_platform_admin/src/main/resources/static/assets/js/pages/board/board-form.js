@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }, error: function (xhr, status, error) {
                     closeProgressBar({element: null, process_id: 'process-51'});
-                    this.disabled = false;
+                    _this.disabled = false;
                     console.error('Error:', error);  // Handle errors
                 }
             });

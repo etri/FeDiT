@@ -12,7 +12,7 @@ import com.stoneitgt.dt.data.platform.util.StringUtil;
 import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.HashedMap;
-import org.json.simple.JSONObject;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
