@@ -91,15 +91,17 @@ async function processJsonObject(jsonData) {
             }
           }
 
+          modifiedObject["digital_object_data_access_url"] =
+            jsonData.metadata?.digitalTwinObjectData?.contextURL;
           modifiedObject["digital_object_data_interval"] =
             jsonData.metadata?.digitalTwinObjectData?.updateInterval;
+          modifiedObject["digital_object_data_model"] =
+            jsonData.metadata?.digitalTwinObjectData?.schemaInformation;
           modifiedObject["digital_object_data_access_type"] = "http";
           modifiedObject["digital_object_control_url"] =
             jsonData.metadata?.digitalObjectControlUrl;
           modifiedObject["digital_object_control_request_model"] =
             jsonData.metadata?.digitalObjectControlRequestModel;
-          modifiedObject["digital_object_data_model"] =
-            jsonData.metadata?.digitalTwinObjectData;
         }
         break;
 
