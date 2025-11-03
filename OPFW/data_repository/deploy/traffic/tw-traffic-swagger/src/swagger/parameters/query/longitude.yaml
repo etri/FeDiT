@@ -1,6 +1,0 @@
-name: longitude
-in: query
-required: true
-description: longitude
-schema:
-  type: number

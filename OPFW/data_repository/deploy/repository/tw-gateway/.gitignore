@@ -1,4 +1,0 @@
-/docker-bind/generated-data
-/docker-bind/init-data/tw-gateway/svc/*.jar
-/docker-bind/init-data/tw-service-manager/svc/*.jar
-.env

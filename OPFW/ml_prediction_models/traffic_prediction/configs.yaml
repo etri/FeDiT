@@ -1,104 +1,12 @@
 params:
-  # === 학습 하이퍼파라미터 ===
-  hidden_dim: 256
-  num_layers: 2
-  learning_rate: 0.0003
-  epochs: 12
-
-  # === 윈도 크기 ===
-  seq_in_hours: 168
-  seq_out_hours: 48
-
-  # === 스케줄/캐시 정합: 옵션 A(정각 기준) ===
-  run_mode: "top_of_hour"
-  # 옵션 B를 원하면: run_mode: "interval", run_every_minutes: 20
-  run_every_minutes: 20
-  run_at_hours: [0, 6, 12, 18]
-
-  bootstrap_train_on_start: true
-  bootstrap_epochs: 3
-
-  # === 운영 편의(코드 보강 시 사용) ===
-  request_timeout_seconds: 120
-  max_cache_age_hours: 24
-  clip_min: 0.0
-  clip_max: 120.0
-  seed: 42
-
-  # === 소스 타임존 명시 ===
-  source_tz: "UTC"   # 실제 원천 시간대가 KST라면 "Asia/Seoul"로 변경
-
-  training:
-    val_hours: 168                 # validation window length by time
-    gap_hours: 0                   # embargo between train/val (0=off)
-    early_stopping_patience: 2     # already supported; keep as is
-    use_amp: true                  # AMP on CUDA
-    deterministic: false           # fully reproducible runs
-    metrics_per_horizon: true      # save per-horizon metrics
-    save_baseline: true            # compute naive baseline metrics
-    metrics: [MAE, RMSE, MAPE, sMAPE]
-
-  # === 수집/대기/재시도 ===
-  acquire:
-    startup_max_wait_minutes: 30
-    initial_rounds: 12
-    wait_between_fdo_seconds: 3
-    wait_between_rounds_seconds: 15
-    per_request_days: 10           # 14 → 10 (운영 중 트래픽 보며 조정)
-    min_period_minutes: 10
-    schedule_max_wait_minutes: 15
-    max_backfill_days: 60         # 최대 백필 일수(필요 커버리지 확보 위해 count를 늘려가며 재요청)
-    max_backfill_retries: 5       # 백필 반복 횟수 한도
-    missing_tolerance_ratio: 0.15 # 학습·검증 창 내 허용 가능한 결측 비율(보간 전 기준)
-
-  retry:
-    total: 5
-    connect: 3
-    read: 3
-    backoff_factor: 0.4
-    status_forcelist: [429, 500, 502, 503, 504]
-    # 코드에서 지원 추가 시:
-    # respect_retry_after_header: true
-
-  parallel:
-    enabled: true
-    max_workers: 2            # 단일 GPU/MPS면 1~2부터 권장
-    allow_on_single_mps: false
-    # (CUDA 단일장비도 제어하려면 코드에 있는 allow_on_single_cuda를 config로 노출)
-
-  cache_retention:
-    enabled: true          # 캐시 정리 on/off
-    keep_days: 30          # 최근 30일만 보관
-    min_hours: 216         # 최소 보관(168+48h)
-    safety_margin_hours: 24  # 추가 안전 마진
-
-  # === 데이터 수집 주기 조절 ===
-  data_collection:
-    dynamic_scheduling: true      # 동적 수집 주기 활성화
-    intervals:
-      training_completed: 3600    # 학습 완료 FDO: 1시간 (3600초)
-      sufficient_data: 3600       # 충분한 데이터: 1시간
-      moderate_data: 1800         # 중간 데이터: 30분 (1800초)
-      insufficient_data: 600      # 부족한 데이터: 10분 (600초)
-      very_insufficient_data: 120 # 매우 부족한 데이터: 2분 (120초)
-    
-    # 최소/최대 주기 제한
-    min_interval_seconds: 60      # 최소 1분
-    max_interval_seconds: 7200    # 최대 2시간
-    
-    # 데이터 품질 기준
-    data_thresholds:
-      sufficient_hours: 216       # 충분한 데이터 기준 (9일)
-      moderate_hours: 100         # 중간 데이터 기준
-      insufficient_hours: 50      # 부족한 데이터 기준
-  
-
-# === 서버 설정 ===
-server:
-  host: "0.0.0.0"
-  port: 5002
-  debug: false
-  use_reloader: false
+  train_interval_sec: 600       # 학습 주기(초)
+  infer_interval_sec: 600       # 추론 주기(초)
+  learning_rate: 0.001          # 학습률
+  epochs: 10                    # 에폭
+  hidden_dim: 64                # LSTM hidden size
+  num_layers: 2                 # LSTM 레이어
+  batch_size: 32                # 배치사이즈
+  parallel_train: 2             # 동시 학습 개수
 
 urls:
     source: 'http://220.124.222.84:1221/fedit/v1/federated-twins/KR-02-K10000-20240000/federated-digital-objects/'
@@ -124,3 +32,6 @@ mapper:
     'F-KR-109941-0018': [ 'KR-104111-0018' , '천지연폭포' ]
     'F-KR-109941-0019': [ 'KR-104111-0019' , '한라수목원' ]
     'F-KR-109941-0020': [ 'KR-104111-0020' , '항파두리항몽유적지' ]
+
+    
+

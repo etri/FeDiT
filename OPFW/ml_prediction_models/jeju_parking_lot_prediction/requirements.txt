@@ -1,5 +1,0 @@
-Flask
-flasgger
-pandas
-scikit-learn
-holidays

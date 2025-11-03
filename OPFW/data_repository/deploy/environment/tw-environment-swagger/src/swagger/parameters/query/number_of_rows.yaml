@@ -1,7 +1,0 @@
-name: number_of_rows
-in: query
-required: false
-description: number_of_rows
-schema:
-  type: integer
-  default: 10

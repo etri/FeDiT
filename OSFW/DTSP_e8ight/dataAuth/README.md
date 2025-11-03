@@ -1,2 +1,0 @@
-# dataAuth
-ndxpro authorization service

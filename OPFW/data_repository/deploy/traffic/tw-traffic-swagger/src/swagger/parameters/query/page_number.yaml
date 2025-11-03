@@ -1,7 +1,0 @@
-name: page_number
-in: query
-required: false
-description: page_number
-schema:
-  type: integer
-  default: 1

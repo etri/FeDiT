@@ -1,6 +1,0 @@
-name: measure_position_id
-in: query
-required: false
-description: measure_position_id
-schema:
-  type: string

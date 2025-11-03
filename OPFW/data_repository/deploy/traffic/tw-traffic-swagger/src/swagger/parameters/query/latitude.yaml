@@ -1,6 +1,0 @@
-name: latitude
-in: query
-required: true
-description: latitude
-schema:
-  type: number

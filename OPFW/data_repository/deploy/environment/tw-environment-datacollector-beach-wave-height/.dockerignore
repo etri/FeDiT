@@ -1,6 +1,0 @@
-build/
-/docker-bind/generated-data
-logs/
-node_modules/
-.git/
-.dockerignore
