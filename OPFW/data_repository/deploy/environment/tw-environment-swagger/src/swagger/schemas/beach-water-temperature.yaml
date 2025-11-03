@@ -1,9 +1,0 @@
-type: object
-properties:
-  date_time:
-    type: string
-    dbDataType: timestamp
-  measure_position_id:
-    type: integer
-  water_temperature:
-    type: number

@@ -1,8 +1,0 @@
-name: start_date_time
-in: query
-required: true
-description: start_date_time(yyyy-MM-dd HH:mm:ss)
-schema:
-  type: string
-operator: '$gte'
-dbfield: 'date_time'

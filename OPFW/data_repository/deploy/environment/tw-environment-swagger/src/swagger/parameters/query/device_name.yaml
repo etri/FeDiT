@@ -1,6 +1,0 @@
-name: device_name
-in: query
-required: false
-description: device_name
-schema:
-  type: string

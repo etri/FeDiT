@@ -1,7 +1,0 @@
-name: dataName
-in: query
-required: false
-description: dataName
-schema:
-  type: string
-dbfield: name

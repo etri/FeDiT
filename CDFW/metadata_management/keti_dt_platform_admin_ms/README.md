@@ -1,2 +1,0 @@
-# Common Platform Admin MS
-

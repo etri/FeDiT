@@ -1,6 +1,0 @@
-name: visitjeju_id
-in: query
-required: false
-description: visitjeju_id
-schema:
-  type: string
