@@ -14,13 +14,17 @@
 	<insert id="insertKeyword" parameterType="keywordVo">
 		INSERT /* SQL_ID: KeywordMapper.insertKeyword */
 		       INTO dtmeta.tb_meta_keyword
-			 ( kywrd
+			 ( kywrd_norm
+			 , kywrd_disp
+			 , kywrd_influx_tag
              , kywrd_lang_mtcd
              , kywrd_recnt_dt
              , kywrd_reg_dt
 			 ) VALUES 
 			 ( 
-			   #{kywrd}			 			 
+			   #{kywrdNorm}
+			 , #{kywrdDisp}
+			 , #{kywrdInfluxTag}
 			 , #{kywrdLangMtcd}
 			 , current_timestamp
              , current_timestamp
@@ -31,9 +35,25 @@
         UPDATE /* SQL_ID: KeywordMapper.updateKeywordRecntDt */
                dtmeta.tb_meta_keyword
            SET
-               kywrd_recnt_dt        = current_timestamp            
-         WHERE kywrd      = #{kywrd}
+               kywrd_recnt_dt  = current_timestamp
+         WHERE kywrd_norm      = #{kywrdNorm}
     </update>	
+
+    <select id="selectKeywordList" resultType="keywordVo">
+		SELECT /* SQL_ID: KeywordMapper.selectKeywordList */
+		       t1.kywrd_norm
+		     , t1.kywrd_disp
+		     , t1.kywrd_influx_tag
+		     , t1.kywrd_lang_mtcd
+		     , to_char(t1.kywrd_recnt_dt, #{sqlDateFormat}) AS kywrd_recnt_dt
+		     , to_char(t1.kywrd_reg_dt, #{sqlDateFormat})   AS kywrd_reg_dt
+		  FROM dtmeta.tb_meta_keyword t1
+		 WHERE 1=1
+        <if test="normKeywordList != null and normKeywordList.size > 0">
+          AND t1.kywrd_norm  IN  <foreach collection="normKeywordList" item="item" open="(" close=")" separator=","> #{item} </foreach>
+        </if>
+        <include refid="limitPage"/>		 
+    </select>
 
 </mapper>
 

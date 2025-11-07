@@ -36,7 +36,7 @@ import kr.co.n2m.platform.meta.architecture.kafka.MyKafkaProducer;
 import kr.co.n2m.platform.meta.architecture.property.DtmetaProperty;
 import kr.co.n2m.platform.meta.architecture.util.AuthUtil;
 import kr.co.n2m.platform.meta.architecture.util.DateUtil;
-import kr.co.n2m.platform.meta.architecture.util.InfluxUtil;
+import kr.co.n2m.platform.meta.architecture.util.KeywordUtil;
 import kr.co.n2m.platform.meta.architecture.util.JsonUtil;
 import kr.co.n2m.platform.meta.architecture.util.MapperUtil;
 import kr.co.n2m.platform.meta.architecture.util.RdfUtil;
@@ -75,7 +75,6 @@ import kr.co.n2m.platform.meta.schema.model.domain.ModelVo;
 import kr.co.n2m.platform.meta.schema.model.service.ModelService;
 import kr.co.n2m.platform.meta.schema.modelproperty.domain.ModelPropertyInfoDto;
 import kr.co.n2m.platform.meta.search.elasticsearch.service.ElasticSearchService;
-import kr.co.n2m.platform.meta.search.vector.domain.VectorStoreDto;
 import kr.co.n2m.platform.meta.search.vector.service.VectorSearchService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -150,8 +149,11 @@ public class MetadataSetService {
 		this.influxDbService = influxDbService;
 	}
 	
-	@Autowired
-	private VectorSearchService vectorSearchService;
+	private VectorSearchService vectorSearchService; // 순환참조 오류 방지
+	
+	public void setVectorSearchService (VectorSearchService vectorSearchService) { // 순환참조 오류 방지
+		this.vectorSearchService = vectorSearchService;
+	}
 
 	/**
 	 * 메타데이터 셋의 모델 정보 조회
@@ -3768,6 +3770,10 @@ public class MetadataSetService {
 				
 			} else if (RangeDataTypeMtcd.geoJson.code().equals(dataType)) {
 				vo.setGeodataVal(this.toJsonStr(valObj));
+				
+			} else if  (RangeDataTypeMtcd.keywordsKo.code().equals(dataType) || RangeDataTypeMtcd.keywordsEn.code().equals(dataType)) {
+				// 키워드 관련 값인 경우만 공백(spaces) 처리
+				vo.setMedataVal(KeywordUtil.toCleanCommaSeparated(val));
 
 			} else {
 				// code_, categoryId 가 DB에 존재하는 데이터 인지는 체크하지 말자!
@@ -3825,7 +3831,7 @@ public class MetadataSetService {
 	 * @param medataSetId
 	 * @return
 	 */
-	@SuppressWarnings("unchecked")	
+	@SuppressWarnings("unchecked")
 	private ListOrderedMap<String, Object> getMetadataForKafka(String medataSetId) {
 		ListOrderedMap<String, Object> dataMap = null;		
 		try {
@@ -3854,21 +3860,23 @@ public class MetadataSetService {
 	@SuppressWarnings("unchecked")
 	public void sendMetadataViaKafka(String action, MetadataSetDto metadataSetDto, ListOrderedMap<String, Object> delDataMap, List<CamelCaseMap> delUpSetList) {
 		log.debug("[메타데이터 변경시 카프카 전송] action: {}", action);
-		ListOrderedMap<String, Object> dataMap = null;
-		List<CamelCaseMap> upSetList = null;
+		final ListOrderedMap<String, Object> dataMap;
 		
 		String medataSetId = metadataSetDto.getMedataSetId();
 		String typeModelId = metadataSetDto.getTypeModelId();
+		String modelId     = metadataSetDto.getModelId();
 		
 		final MetadataElasticJsonMap medataSetMap;
-		final VectorStoreDto vectorStoreDto;
+//		final VectorStoreDto vectorStoreDto;
+		final List<CamelCaseMap> upSetList;
 		final String jwtToken = AuthUtil.getCurrentJwtToken();
+		ModelInfoDto modelInfoDto = modelService.getModelInfoByIdFromCache(modelId);
 		
 		if (KafkaConst.ACTION_DELETE.equals(action)) {
 			dataMap = delDataMap;
 			upSetList = delUpSetList;
 			medataSetMap = new MetadataElasticJsonMap();
-			vectorStoreDto = null;
+//			vectorStoreDto = null;
 			
 		} else {
 			dataMap = this.getMetadataForKafka(medataSetId);
@@ -3886,16 +3894,26 @@ public class MetadataSetService {
 			medataSetMap =  metadataApiMapper.selectMetadataToJsonStrBySetIdAsText(setDto);
 			
 			// 벡터 저장 위한 조회
-			// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
-			metadataSearchVo.setSqlDateFormat(SqlDatePart.iso6z.format());
-			vectorStoreDto = metadataSetMapper.selectMetadataSetForVectorStore(metadataSearchVo);
-			if (vectorStoreDto != null && upSetList != null) {
-				if (vectorStoreDto.getCustomFields() == null) {
-					vectorStoreDto.setCustomFields(Map.of("upSetList", upSetList));
-				} else {
-					vectorStoreDto.getCustomFields().put("upSetList", upSetList);
-				}
-			}
+//			// 2025-07-25 dateTime 기본적으로 소수점6자리(마이크로초)로 설정.
+//			metadataSearchVo.setSqlDateFormat(SqlDatePart.iso6z.format());
+//			vectorStoreDto = metadataSetMapper.selectMetadataSetForVectorStore(metadataSearchVo);
+//			if (vectorStoreDto != null && upSetList != null) {
+//				if (vectorStoreDto.getCustomFields() == null) {
+//					vectorStoreDto.setCustomFields(Map.of("upSetList", upSetList));
+//				} else {
+//					vectorStoreDto.getCustomFields().put("upSetList", upSetList);
+//				}
+//			}
+//			// 하위 데이터 목록.
+//			MetadataSearchVo paramVo = new MetadataSearchVo();
+//			paramVo.setIsPaging(false); // TODO: LIMIT_LIST_SIZE 보다 데이터 건수가 더 많다면 처리시 페이징해서 처리해야 함
+//			paramVo.setMedataSetId(medataSetId);
+//			paramVo.setOnlyObjectTypeYn("Y");
+//			List<MetadataVo> downList = metadataMapper.selectMetadataSimpleListBySetId(paramVo);			
+//			// geometry 정보. 여러건 존재할 경우 (거의 없지만) 첫번째 건이 선택됨
+//			CamelCaseMap geoInfo = metadataApiMapper.selectGeometryInfoBySetId(paramVo);			
+//			vectorStoreDto = new VectorStoreDto(medataSetId, medataSetMap, modelInfoDto, downList, upSetList, geoInfo); // 기본 엔티티, down 관계
+
 		}
 		
 		Map<String, Object> sendData = new HashMap<>();
@@ -3927,15 +3945,15 @@ public class MetadataSetService {
 		}, elasticSearchExecutor);
 		
 		// 벡터 서버를 통해 elasticSearch 에 벡터 저장/삭제
-		if (KafkaConst.ACTION_DELETE.equals(action) || vectorStoreDto != null) {
+		if (KafkaConst.ACTION_DELETE.equals(action) || (dataMap != null && !dataMap.isEmpty())) {
 			CompletableFuture.runAsync(() -> { // 비동기 처리
 				try {
 					
 					if (KafkaConst.ACTION_DELETE.equals(action)) {
-						vectorSearchService.deleteVector(medataSetId, jwtToken);
+						vectorSearchService.deleteVectorData(medataSetId, jwtToken);
 					}
 					else {
-						vectorSearchService.sendToVectorServer(vectorStoreDto, jwtToken);
+						vectorSearchService.saveVentorData(medataSetId, dataMap, modelInfoDto, upSetList, jwtToken);
 					}
 					
 				} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
@@ -4094,10 +4112,10 @@ public class MetadataSetService {
 						
 						// 동일 값을 현재 RDB에서 찾음. null 이면 현재 존재하지 않는 키워드. 정크 데이터.					
 						InfluxDbKeywordDto dto = list.stream()
-								.filter(x ->    InfluxUtil.equalsInTagFormat(id, x.getMedataSetId()) 
-										     && InfluxUtil.equalsInTagFormat(word, x.getKeyword())
-										     && InfluxUtil.equalsInTagFormat(prptyId, x.getPrptyId())
-										     && InfluxUtil.equalsInTagFormat(lang, x.getLangMtcd()))
+								.filter(x ->    StringUtils.equals(id, KeywordUtil.toInfluxTag(x.getMedataSetId()))
+										     && StringUtils.equals(word, KeywordUtil.toInfluxWordTag(x.getKeyword()))
+										     && StringUtils.equals(prptyId, KeywordUtil.toInfluxTag(x.getPrptyId()))
+										     && StringUtils.equals(lang, KeywordUtil.toInfluxTag(x.getLangMtcd())))
 								.findFirst()
 								.orElse(null);
 						

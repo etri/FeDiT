@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,11 +40,12 @@ public class Neo4jController extends ResponseComponent {
 	public ResponseEntity<Object> getNeo4jData(Neo4jSearchVo searchVo) {
 		return makeResponseEntity(neo4jService.getNeo4jData(searchVo));
 	}	
-	
+    // 2025-11-05 initDataStatType (onlyUse/all) 추가.	
     @Operation(summary="NEO4J 그래프 초기화 후 재등록 (설정 초기화 + 내용 전체 삭제 후 재등록) (RDF)")
     @PutMapping("/api/v1/rdf/graph/neo4j/data/init")
-    public ResponseEntity<Object> initNeo4jGraphAndAddDataAll() {
-    	neo4jService.initNeo4jGraphAndAddDataAll();
+    public ResponseEntity<Object> initNeo4jGraphAndAddDataAll(
+    	    @RequestParam(name = "initDataStatType", required = false, defaultValue = "onlyUse") String initDataStatType) {    		
+    	neo4jService.initNeo4jGraphAndAddDataAll(initDataStatType);
     	return makeResponseEntity(null, HttpStatus.NO_CONTENT);
     }
 	
@@ -76,10 +78,12 @@ public class Neo4jController extends ResponseComponent {
     	return makeResponseEntity(null, HttpStatus.NO_CONTENT);
     }
 	
+    // 2025-11-05 initDataStatType (onlyUse/all) 추가.
     @Operation(summary="NEO4J 그래프 초기화 후 재등록 (설정 초기화 + 내용 전체 삭제 후 재등록) (RDB)")
     @PutMapping("/api/v1/rdf/graph/neo4j/origindata/init")
-    public ResponseEntity<Object> initNeo4jRdbGraphAndAddDataAll() {
-    	neo4jService.initNeo4jRdbGraphAndAddDataAll();
+    public ResponseEntity<Object> initNeo4jRdbGraphAndAddDataAll(
+    	    @RequestParam(name = "initDataStatType", required = false, defaultValue = "onlyUse") String initDataStatType) {
+    	neo4jService.initNeo4jRdbGraphAndAddDataAll(initDataStatType);
     	return makeResponseEntity(null, HttpStatus.NO_CONTENT);
     }
     

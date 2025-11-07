@@ -229,6 +229,7 @@
 	                  LEFT OUTER JOIN dtmeta.tb_portal_code          t5  ON t2.medata_set_sttus_mtcd = t5.mtcd AND t5.mtcd_grp_id   = 'MCG00001'
 	                 WHERE t1.mtcd_grp_id   = 'MCG00013'
 	                   AND t1.mtcd_use_yn   = 'Y'
+	                   AND t4.prpty_id IS NOT NULL
 	           )  m1
 	      LEFT OUTER JOIN (
 	                SELECT t5.data_type_mtcd 

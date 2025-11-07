@@ -365,6 +365,7 @@ public class DigitalTwinRegistryApiService {
 		MetadataSetDto setDto = new MetadataSetDto();
 		setDto.setMedataSetId(medataSetId);
 		setDto.setTypeModelId(modelInfoDto.getTypeModelId());
+		setDto.setModelId(modelInfoDto.getModelId());
 		outNewSetIdMap.put(medataSetId, setDto);
 		log.debug("{} {} new medataSetId : {} {}", depth, modelNm, medataSetId, StringUtils.defaultString((String) dataMap.get("name")));
 		return medataSetId;

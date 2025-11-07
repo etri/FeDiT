@@ -12,20 +12,23 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import kr.co.n2m.platform.meta.architecture.property.Neo4jProperty;
 
 @Configuration
-@EnableTransactionManagement
+//2025-10-23 neo4j 트랜잭션 불필요. @EnableTransactionManagement
 public class Neo4jConfig {
 	
-	@Autowired
-	private Neo4jProperty property;
+    private final Neo4jProperty property;
+
+    public Neo4jConfig(Neo4jProperty property) {
+        this.property = property;
+    }
     
-	@Bean(name = "neo4jDriver")
+	@Bean(name = "neo4jDriver", destroyMethod = "close")
     public Driver neo4jDriver() {
         return GraphDatabase.driver(property.getUri(), AuthTokens.basic(property.getUsername(), property.getPassword()));
     }
 
-    @Bean(name = "neo4jTransactionManager")
-    public Neo4jTransactionManager neo4jTransactionManager() {
-    	return new Neo4jTransactionManager(neo4jDriver());
-    }
+//    @Bean(name = "neo4jTransactionManager")
+//    public Neo4jTransactionManager neo4jTransactionManager() {
+//    	return new Neo4jTransactionManager(neo4jDriver());
+//    }
     
 }

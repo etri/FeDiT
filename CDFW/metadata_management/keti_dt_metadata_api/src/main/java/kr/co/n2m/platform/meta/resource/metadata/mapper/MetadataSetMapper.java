@@ -112,14 +112,14 @@ public interface MetadataSetMapper {
 	 */
 	public List<CamelCaseMap> selectMetadataSetDtwListBySubSetId(MetadataSearchVo metadataSearchVo);
 	
-	/**
-	 * 벡터 저장을 위한 메타데이터 셋 과 커스텀필드 조회
-	 * @Author      : heenim
-	 * @Date        : 2025. 05. 22.
-	 * @param metadataSearchVo
-	 * @return
-	 */
-	public VectorStoreDto selectMetadataSetForVectorStore(MetadataSearchVo metadataSearchVo);
+//	/**
+//	 * 벡터 저장을 위한 메타데이터 셋 과 커스텀필드 조회
+//	 * @Author      : heenim
+//	 * @Date        : 2025. 05. 22.
+//	 * @param metadataSearchVo
+//	 * @return
+//	 */
+//	public VectorStoreDto selectMetadataSetForVectorStore(MetadataSearchVo metadataSearchVo);
 	
 	/**
 	 * 지형지물 코드 - 메타데이터 셋 등록 시, 중복 확인 여부 조회

@@ -290,6 +290,7 @@
 					             , MAX( SUBSTRING(medata_set_id, OCTET_LENGTH(#{idSchmPrefix} || TO_CHAR(CURRENT_DATE, 'YYYY')) + 1)::int ) + 1  AS new_val
 					          FROM dtmeta.tb_meta_dataset
 					         WHERE medata_set_id LIKE #{idSchmPrefix} || TO_CHAR(CURRENT_DATE, 'YYYY') || '%'
+					           AND POSITION('-' IN substring(medata_set_id, length(#{idSchmPrefix})+1)) = 0
 					       ) key1
 				 </if>
 				 <if test='!@org.apache.commons.lang3.StringUtils@equals(idSchmYearUseYn, "Y")'>
@@ -298,6 +299,7 @@
 		                    SELECT MAX( SUBSTRING(medata_set_id, OCTET_LENGTH(#{idSchmPrefix}) + 1)::int ) + 1  AS new_val
 		                      FROM dtmeta.tb_meta_dataset
 		                     WHERE medata_set_id LIKE #{idSchmPrefix} || '%'
+		                       AND POSITION('-' IN substring(medata_set_id, length(#{idSchmPrefix})+1)) = 0
 		                   ) key2
 				 </if>
             </if>
@@ -430,6 +432,7 @@
              , h.up_set_id_path[1]            AS up_set_id
              , n2.medata_set_nm               AS up_set_nm
              , n4.type_model_id               AS up_type_model_id
+             , n2.model_id                    AS up_model_id
              , h.up_prpty_id_path[1]          AS up_prpty_id
              , n3.prpty_nm                    AS up_prpty_nm
              , n2.medata_set_sttus_mtcd       AS up_set_sttus_mtcd
@@ -446,7 +449,7 @@
 		<include refid="limitPage"/>
     </select>
     
-    <!-- TODO custom_fields 에 우선 고정을 해본다. -->
+    <!-- TODO custom_fields 에 우선 고정을 해본다.
     <select id="selectMetadataSetForVectorStore" parameterType="metadataSearchVo" resultType="vectorStoreDto">
         SELECT /* SQL_ID: MetadataSetMapper.selectMetadataSetForVectorStore */    
                t1.medata_set_id
@@ -477,7 +480,7 @@
           LEFT OUTER JOIN dtmeta.tb_meta_model  t3  ON t2.type_model_id = t3.model_id
          WHERE t1.medata_set_id   =  #{medataSetId}
     </select>
-    
+    -->
 	<select id="checkMetadatasetsIdByIdSchms" resultType="boolean">
 		SELECT /* SQL_ID: MetadataSetMapper.checkMetadatasetsIdByIdSchms */
 			EXISTS (

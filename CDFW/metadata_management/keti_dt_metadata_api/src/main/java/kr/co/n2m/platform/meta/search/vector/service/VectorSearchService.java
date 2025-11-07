@@ -1,8 +1,12 @@
 package kr.co.n2m.platform.meta.search.vector.service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import javax.annotation.PostConstruct;
+
+import org.apache.commons.collections4.map.ListOrderedMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -15,33 +19,150 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import kr.co.n2m.platform.meta.architecture.domain.CamelCaseMap;
 import kr.co.n2m.platform.meta.architecture.exception.ResBadRequestException;
 import kr.co.n2m.platform.meta.architecture.exception.ResBaseRuntimeException;
 import kr.co.n2m.platform.meta.architecture.exception.ResBizInfoException;
+import kr.co.n2m.platform.meta.architecture.exception.ResNotFoundException;
 import kr.co.n2m.platform.meta.architecture.property.ElasticProperty;
+import kr.co.n2m.platform.meta.architecture.util.AuthUtil;
+import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSearchVo;
+import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSetDto;
+import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataVo;
+import kr.co.n2m.platform.meta.resource.metadata.mapper.MetadataApiMapper;
+import kr.co.n2m.platform.meta.resource.metadata.mapper.MetadataMapper;
+import kr.co.n2m.platform.meta.resource.metadata.mapper.MetadataSetMapper;
+import kr.co.n2m.platform.meta.resource.metadata.service.MetadataSetService;
+import kr.co.n2m.platform.meta.schema.model.domain.ModelInfoDto;
+import kr.co.n2m.platform.meta.schema.model.service.ModelService;
 import kr.co.n2m.platform.meta.search.vector.domain.VectorStoreDto;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
 public class VectorSearchService {
+	
+    @Autowired
+    private MetadataSetService metadataSetService;
+    
+	@PostConstruct
+	public void init() {
+		metadataSetService.setVectorSearchService(this); // 순환참조 오류 방지
+	}
 
 	@Autowired
 	private ElasticProperty elasticProperty;
 
     @Autowired
     private RestTemplate restTemplate;
-
-    /**
-     * 벡터 저장 (벡터 저장을 위해 벡터 서버로 전송)
-     * @param dto
-     * @param jwtToken
-     */
-    public void sendToVectorServer(VectorStoreDto dto, String jwtToken) {
+    
+	@Autowired
+	private MetadataSetMapper metadataSetMapper;
+    
+	@Autowired
+	private MetadataMapper metadataMapper;
+    
+	@Autowired
+	private MetadataApiMapper metadataApiMapper;
+	
+	@Autowired
+	private ModelService modelService;
+	
+	/**
+	 * 셋 ID 로 ElasticSearch에 메타데이터 벡터 정보 등록/수정
+	 * TODO 임시적
+	 * @param medataSetId
+	 */
+	@SuppressWarnings("unchecked")
+	public void saveVentorDataBySetId(String medataSetId) {
+		log.debug("[셋 ID 로 ElasticSearch에 메타데이터 벡터 정보 등록/수정] 서비스 시작 - {}", medataSetId);
+		try {
+			MetadataSetDto setDto = metadataSetService.getMetadataSet(medataSetId);
+			if (setDto == null) throw new ResNotFoundException("메타데이터 셋 데이터가 존재하지 않습니다.");
+			
+			String typeModelId = setDto.getTypeModelId();
+			String modelId     = setDto.getModelId();		
+			String jwtToken = AuthUtil.getCurrentJwtToken();
+			ModelInfoDto modelInfoDto = modelService.getModelInfoByIdFromCache(modelId);
+			
+			setDto.setArrayDataLimitYn("N");
+			ListOrderedMap<String, Object> medataSetMap =  metadataApiMapper.selectMetadataToJsonStrBySetId(setDto);
+			
+			MetadataSearchVo metadataSearchVo = new MetadataSearchVo();
+			metadataSearchVo.setIsPaging(false);
+			metadataSearchVo.setMedataSetId(medataSetId);
+			metadataSearchVo.setSqlDateFormat(typeModelId);
+			List<CamelCaseMap> upSetList = metadataSetMapper.selectMetadataSetDtwListBySubSetId(metadataSearchVo);
+			
+			this.saveVentorData(medataSetId, medataSetMap, modelInfoDto, upSetList, jwtToken);
+			
+	    } catch (ResBaseRuntimeException e) {            
+	    	throw e;            
+	    } catch (Exception e) {
+	        log.error("[셋 ID 로 ElasticSearch에 메타데이터 벡터 정보 등록/수정] 알 수 없는 오류: {}", e.getMessage(), e);
+	        throw new ResBaseRuntimeException(e);
+	    }		
+		log.debug("[셋 ID 로 ElasticSearch에 메타데이터 벡터 정보 등록/수정] 서비스 종료 - {}", medataSetId);
+	}
+	
+	/**
+	 * 셋 ID 로 ElasticSearch에 메타데이터 벡터 정보 삭제
+	 * @param medataSetId
+	 */
+	public void deleteVectorDataBySetId(String medataSetId) {
+		log.debug("[셋 ID 로 ElasticSearch에 메타데이터 벡터 정보 삭제] 서비스 시작 - {}", medataSetId);
+		try {
+			String jwtToken = AuthUtil.getCurrentJwtToken();
+			
+			this.deleteVectorData(medataSetId, jwtToken);
+			
+	    } catch (ResBaseRuntimeException e) {            
+	    	throw e;            
+	    } catch (Exception e) {
+	        log.error("[셋 ID 로 ElasticSearch에 메타데이터 벡터 정보 삭제] 알 수 없는 오류: {}", e.getMessage(), e);
+	        throw new ResBaseRuntimeException(e);
+	    }		
+		log.debug("[셋 ID 로 ElasticSearch에 메타데이터 벡터 정보 삭제] 서비스 종료 - {}", medataSetId);
+	}
+    
+	/**
+	 * 메타데이터 셋별 벡터 데이터 저장 (메타데이터 셋 서비스에서도 호출됨)
+	 * @param medataSetId
+	 * @param medataSetMap
+	 * @param modelInfoDto
+	 * @param upSetList
+	 * @param jwtToken
+	 */
+	public void saveVentorData(String medataSetId, ListOrderedMap<String, Object> medataSetMap, ModelInfoDto modelInfoDto, List<CamelCaseMap> upSetList, String jwtToken) {
+        log.debug("[메타데이터 셋별 벡터 데이터 저장] 서비스 시작 - {}", medataSetId);
+        try {
+	    	// 하위 데이터 목록.
+	    	MetadataSearchVo paramVo = new MetadataSearchVo();
+	    	paramVo.setIsPaging(false); // TODO: LIMIT_LIST_SIZE 보다 데이터 건수가 더 많다면 처리시 페이징해서 처리해야 함
+	    	paramVo.setMedataSetId(medataSetId);
+	    	paramVo.setOnlyObjectTypeYn("Y");
+	    	List<MetadataVo> downList = metadataMapper.selectMetadataSimpleListBySetId(paramVo);			
+	    	// geometry 정보. 여러건 존재할 경우 (거의 없지만) 첫번째 건이 선택됨
+	    	CamelCaseMap geoInfo = metadataApiMapper.selectGeometryInfoBySetId(paramVo);			
+	    	VectorStoreDto vectorStoreDto = new VectorStoreDto(medataSetId, medataSetMap, modelInfoDto, downList, upSetList, geoInfo); // 기본 엔티티, down 관계
+	    	
+	    	// 벡터 서버에 전송
+	    	this.sendToVectorServer(vectorStoreDto, jwtToken);
+    	
+        } catch (ResBaseRuntimeException e) {            
+        	throw e;            
+        } catch (Exception e) {
+            log.error("[메타데이터 셋별 벡터 데이터 저장] 알 수 없는 오류: {}", e.getMessage(), e);
+            throw new ResBaseRuntimeException(e);
+        }
+        log.debug("[메타데이터 셋별 벡터 데이터 저장] 서비스 종료 - {}", medataSetId);
+    }
+    
+    private void sendToVectorServer(VectorStoreDto dto, String jwtToken) {
         log.debug("[벡터 저장] 서비스 시작");
         
         try {
-	        if (dto.getMedataSetId() == null || dto.getMedataSetNm() == null) {
+	        if (dto.getId() == null || dto.getName() == null) {
 	            throw new ResBadRequestException("벡터 저장시 필수 메타데이터가 누락되었습니다.");
 	        }
         
@@ -50,7 +171,7 @@ public class VectorSearchService {
 	        headers.setBearerAuth(jwtToken);
 	
 	        HttpEntity<VectorStoreDto> requestEntity = new HttpEntity<>(dto, headers);
-	        String url = elasticProperty.getVectorUrl() + "/" + dto.getMedataSetId(); //  /vectors/<medataSetId>
+	        String url = elasticProperty.getVectorUrl() + "/" + dto.getId(); //  /vectors/<medataSetId>
 	        
             ResponseEntity<String> response = restTemplate.exchange(
                 url,
@@ -84,7 +205,7 @@ public class VectorSearchService {
      * @param medataSetId
      * @param jwtToken
      */
-    public void deleteVector(String medataSetId, String jwtToken) {
+    public void deleteVectorData(String medataSetId, String jwtToken) {
         log.debug("[벡터 삭제] 서비스 시작: {}", medataSetId);
 
         try {
@@ -172,76 +293,5 @@ public class VectorSearchService {
             throw new ResBizInfoException("벡터 서버 오류: 오류가 발생했습니다.");
         }
     }
-	
-	
-	/*
-	// TODO 내 개인 계정 "dtmeta_dev_mykey" 키임. 프로젝트에 맞는 키로 변경 필요!!!
-	private final static String OPENAI_API_KEY = "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";
 
-
-	public Map<String, Object> getSearchWithGPTs(AiSearchVo aiSearchVo) {
-		log.debug("[GPTs 검색] 서비스 시작");
-		Map<String, Object> resMap = new HashMap<>();
-		
-		try {
-			JsonObject jsonObj = new JsonObject();
-			
-			JsonObject jsonMsg = new JsonObject();
-			jsonMsg.addProperty("role", "user");
-			jsonMsg.addProperty("content", aiSearchVo.getPrompt());
-			
-			jsonObj.addProperty("model", "gpt-3.5"); // "gpt-4" 는 유료버전.
-			jsonObj.add("messages", jsonMsg);
-					
-			OkHttpClient client = new OkHttpClient.Builder()
-			        .connectTimeout(300, TimeUnit.SECONDS)
-			        .writeTimeout(300, TimeUnit.SECONDS)
-			        .readTimeout(300, TimeUnit.SECONDS)
-			        .build();
-			
-			Request request = new Request.Builder()
-					.addHeader("Authorization", OPENAI_API_KEY)
-					//.addHeader("Accept", " * / * ") // TODO 고쳐
-					.url("https://api.openai.com/v1/chat/completions")
-					.post(RequestBody.create(jsonObj.toString(), MediaType.get("application/json")))
-					.build();
-			
-			String responseBody = "요청 처리 중 오류가 발생했습니다.";
-	        try (Response response = client.newCall(request).execute()) {
-	            responseBody = response.body().string();
-			}
-
-	        // JSON 파싱해서 content만 추출 (단순 처리 예시)
-//	        String content = extractGptContent(responseBody);
-	        try {
-	            ObjectMapper mapper = new ObjectMapper();
-	            JsonNode root = mapper.readTree(responseBody);
-	            String content = root.at("/choices/0/message/content").asText();
-	            resMap.put("response", content);
-	            resMap.put("root", root);
-	        } catch (Exception e) {
-	            throw new ResBizInfoException("응답 처리 중 오류가 발생했습니다.");
-	        }
-        
-		} catch (ResBaseRuntimeException e) {
-			log.info("[GPTs 검색] 실패/오류 (정보성) : {}", e.getMessage());
-			throw e;
-		} catch (Exception e) {
-			log.error("[GPTs 검색] 실패/오류", e);
-			throw new ResBaseRuntimeException(e);
-		}        
-
-        return resMap;        
-	}
-	*/
-	
-//    private String extractGptContent(String responseBody) {
-//        try {
-//            ObjectMapper mapper = new ObjectMapper();
-//            JsonNode root = mapper.readTree(responseBody);
-//            return root.at("/choices/0/message/content").asText();
-//        } catch (Exception e) {
-//            return "응답 처리 중 오류가 발생했습니다.";
-//        }
-//    }	
 }

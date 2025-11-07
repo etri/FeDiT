@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import kr.co.n2m.platform.meta.architecture.exception.ResBadRequestException;
 import kr.co.n2m.platform.meta.architecture.exception.ResBaseRuntimeException;
 import kr.co.n2m.platform.meta.architecture.exception.ResBizInfoException;
+import kr.co.n2m.platform.meta.architecture.util.KeywordUtil;
 import kr.co.n2m.platform.meta.resource.keyword.domain.KeywordVo;
 import kr.co.n2m.platform.meta.resource.keyword.mapper.KeywordMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -39,10 +40,12 @@ public class KeywordService {
 			if (keywordList != null && keywordList.size() > 0) {
 				KeywordVo kVo = null;
 				for (String kywrd : keywordList) {
-					kywrd = StringUtils.trimToNull(kywrd);
+					kywrd = KeywordUtil.toCleanText(kywrd); // StringUtils.trimToNull(kywrd);
 					if (kywrd != null) {
 						kVo = new KeywordVo();
-						kVo.setKywrd(kywrd);
+						kVo.setKywrdDisp(kywrd);
+						kVo.setKywrdNorm(KeywordUtil.toNormKeyword(kywrd));
+						kVo.setKywrdInfluxTag(KeywordUtil.toInfluxTag(kywrd));
 						kVo.setKywrdLangMtcd(langMtcd);
 						int updateCnt = keywordMapper.updateKeywordRecntDt(kVo);
 						if (updateCnt == 0) {

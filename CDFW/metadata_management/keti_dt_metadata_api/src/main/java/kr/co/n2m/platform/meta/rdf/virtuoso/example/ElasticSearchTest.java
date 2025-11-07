@@ -56,7 +56,7 @@ public class ElasticSearchTest {
 	public static String USERNAME = "elastic";
 	public static String PASSOWORD = "es_admin1!";
 	
-	public static String FINGERPRINT = "{fingerprint}"; 
+	public static String FINGERPRINT = "4cd6a201122ff2ddad6545b074f7d9c38b8d431f4adf66bf7473a6449ab463d7"; 
 	// 4609 5ACC 8548 582C 1A26 99A9 D27D 666C D88E 42B4
 	
 	public static String INDEX_NAME = "test_meta";

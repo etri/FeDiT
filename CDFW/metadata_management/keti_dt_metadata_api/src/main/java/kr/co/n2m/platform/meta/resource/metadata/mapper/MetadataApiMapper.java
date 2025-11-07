@@ -4,10 +4,12 @@ import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
 
+import kr.co.n2m.platform.meta.architecture.domain.CamelCaseMap;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataApiInnerSearchVo;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataApiSetPropertySearchVo;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataElasticJsonMap;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataJsonMap;
+import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSearchVo;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSetDto;
 import kr.co.n2m.platform.meta.resource.metadata.domain.MetadataSetVo;
 
@@ -85,6 +87,15 @@ public interface MetadataApiMapper {
 	 * @return
 	 */
 	public List<MetadataJsonMap> selectMetadataListBySetPropertyNm(MetadataApiSetPropertySearchVo metadataApiSetPropertySearchVo);
+	
+	/**
+	 * 셋 ID 로 Geometry 정보 조회
+	 * @Author      : heenim
+	 * @Date        : 2025. 09.18.
+	 * @param metadataSearchVo
+	 * @return
+	 */
+	public CamelCaseMap selectGeometryInfoBySetId(MetadataSearchVo metadataSearchVo);
 	
 	/**
 	 * 레지스트리 API 용 메타데이터 목록 건수 조회

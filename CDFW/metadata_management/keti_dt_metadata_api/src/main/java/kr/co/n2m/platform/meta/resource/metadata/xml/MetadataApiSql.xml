@@ -758,6 +758,7 @@
               ORDER BY sort_odrg
            ) x1
     </select> -->
+    <!-- 2025-10-29 Neo4j 에서만 사용됨. object_type 은 따로 조회해 오므로 data_type 조건 추가. -->
     <select id="selectMetadataToJsonStrUnlimitedBySetId" resultType="metadataJsonMap">
         SELECT /* SQL_ID: MetadataApiMapper.selectMetadataToJsonStrUnlimitedBySetId */
                json_object_agg(prpty_nm, val) AS metaJsonStr    
@@ -781,7 +782,7 @@
                          INNER JOIN dtmeta.tb_meta_model    t3  ON t1.val_model_id = t3.model_id
                          WHERE t1.medata_set_id = #{medataSetId}
                            AND t2.data_array_yn = 'N'
-                         /* 배열 내용은 10건 이하만 */
+                         /* 배열 내용은 전부 */
                          UNION ALL               
                         SELECT MAX(t1.model_prpty_id) AS model_prpty_id
                              , t2.prpty_nm
@@ -798,14 +799,17 @@
                                             WHEN t3.data_type_mtcd in ('json', 'address', 'dataInfo') THEN t1.medata_val::jsonb
                                             ELSE to_jsonb(t1.medata_val)
                                        END  AS val
+                                     , t3.model_type_mtcd
                                   FROM dtmeta.tb_meta_data t1
                                  INNER JOIN dtmeta.tb_meta_property t2  ON t1.prpty_id = t2.prpty_id
                                  INNER JOIN dtmeta.tb_meta_model    t3  ON t1.val_model_id = t3.model_id
                                  WHERE t1.medata_set_id = #{medataSetId}                
-                                   AND t2.data_array_yn = 'Y'   
+                                   AND t2.data_array_yn = 'Y'
+                                   AND t3.model_type_mtcd = 'data_type' /* data_type 만 */
                               ) t4  ON t1.medata_id = t4.medata_id
                         WHERE t1.medata_set_id = #{medataSetId}
                           AND t2.data_array_yn = 'Y'
+                          AND t4.model_type_mtcd = 'data_type' /* data_type 만 */
                         GROUP BY t1.medata_set_id, t2.prpty_nm               
                        ) t4  ON t2.model_prpty_id = t4.model_prpty_id        
                  WHERE t1.medata_set_id = #{medataSetId}
@@ -836,7 +840,7 @@
     </select>  
 
     <select id="selectMetadataToJsonStrNoArrayBySetId" resultType="metadataJsonMap">
-        SELECT /* SQL_ID: MetadataApiMapper.selectMetadataToJsonStrUnlimitedBySetId */
+        SELECT /* SQL_ID: MetadataApiMapper.selectMetadataToJsonStrNoArrayBySetId */
                json_object_agg(prpty_nm, val) AS metaJsonStr    
           FROM ( 
                 SELECT t3.prpty_nm
@@ -963,6 +967,27 @@
 		         <include refid="limitPage"/>                      
                ) x1
 	</select>
+	
+    <!-- 검색용 벡터DB 에 필요한 geometry 정보 조회 (단건) -->
+    <select id="selectGeometryInfoBySetId" resultType="camelCaseMap">
+        /* SQL_ID: MetadataApiMapper.selectGeometryInfoBySetId */
+        WITH geo AS (
+            SELECT t1.geodata_val AS g4326
+              FROM dtmeta.tb_meta_data t1
+             WHERE t1.geodata_val      IS NOT NULL
+               AND t1.medata_set_id    = #{medataSetId}
+        )
+        SELECT dtmeta.ST_AsGeoJSON(g4326)::jsonb                                    AS geometry
+             , jsonb_build_object( 'lon', dtmeta.ST_X(pt), 'lat', dtmeta.ST_Y(pt) ) AS geometry_centroid
+          FROM (
+                SELECT g4326
+                     , CASE WHEN dtmeta.GeometryType(g4326) IN ('POLYGON','MULTIPOLYGON') THEN dtmeta.ST_PointOnSurface(g4326) /* 면 내부의 대표점 */
+                            ELSE dtmeta.ST_Centroid(g4326) 
+                       END AS pt
+                  FROM geo
+               ) x1
+        OFFSET 0 LIMIT 1
+    </select>
 	
     <!-- =========================
        디지털 트윈 연합 레지스트리 관련 API 용 (참조ID로 저장되어 있는 것들을 1번만(1depth) JSON으로 변환해서 조회)

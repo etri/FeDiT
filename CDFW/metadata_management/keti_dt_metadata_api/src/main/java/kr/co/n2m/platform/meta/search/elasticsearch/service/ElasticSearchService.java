@@ -8,7 +8,6 @@ import javax.net.ssl.SSLContext;
 
 import org.apache.commons.collections4.map.ListOrderedMap;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -45,6 +44,7 @@ import kr.co.n2m.platform.meta.resource.metadata.mapper.MetadataApiMapper;
 import kr.co.n2m.platform.meta.resource.metadata.service.MetadataSetService;
 import kr.co.n2m.platform.meta.search.elasticsearch.domain.ElasticSearchQueryVo;
 import kr.co.n2m.platform.meta.search.elasticsearch.domain.ElasticSearchVo;
+import kr.co.n2m.platform.meta.search.vector.service.VectorSearchService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -55,7 +55,7 @@ public class ElasticSearchService {
 	private ElasticProperty property;
 	
     @Autowired
-	MetadataSetService metadataSetService;
+    private MetadataSetService metadataSetService;
     
 	@PostConstruct
 	public void init() {
@@ -64,6 +64,9 @@ public class ElasticSearchService {
 	
 	@Autowired
 	private MetadataApiMapper metadataApiMapper;
+	
+    @Autowired
+    private VectorSearchService vectorSearchService;
 	
 	
 	public RestClient restClient() {
@@ -148,6 +151,13 @@ public class ElasticSearchService {
             request.setEntity(entity); 
 
             restClient.performRequest(request);
+            
+    		// TODO 임시로 이곳에 같이... 벡터 에러는 스킵!
+    		try {
+    			vectorSearchService.saveVentorDataBySetId(medataSetId);
+    		} catch (ResBaseRuntimeException e) {
+    			log.error("[셋 ID 로 ElasticSearch에 메타데이터 셋 정보 등록/수정] 벡터 서버 호출 실패/오류 (SKIP) - {}", medataSetId, e);
+    		}
     		
 		} catch (ResBaseRuntimeException e) {
 			log.info("[셋 ID 로 ElasticSearch에 메타데이터 셋 정보 등록/수정] 실패/오류 (정보성) : {}", e.getMessage());
@@ -172,6 +182,13 @@ public class ElasticSearchService {
             Request request = new Request("DELETE", property.getIndexName() + "/_doc/" + medataSetId);
 
             restClient.performRequest(request);
+            
+    		// TODO 임시로 이곳에 같이... 벡터 에러는 스킵!
+    		try {
+    			vectorSearchService.deleteVectorDataBySetId(medataSetId);
+    		} catch (ResBaseRuntimeException e) {
+    			log.error("[셋 ID 로 ElasticSearch에 메타데이터 셋 정보 등록/수정] 벡터 서버 호출 실패/오류 (SKIP) - {}", medataSetId, e);
+    		}
 
 		} catch (ResBaseRuntimeException e) {
 			log.info("[셋 ID 로 ElasticSearch에 저장된 메타데이터 셋 삭제] 실패/오류 (정보성) : {}", e.getMessage());
@@ -399,7 +416,16 @@ public class ElasticSearchService {
     	if (listVo != null && listVo.getList() != null && listVo.getList().size() > 0) {
     		List<CamelCaseMap> list = (List<CamelCaseMap>) listVo.getList();
     		for (CamelCaseMap tMap : list) {
-	    		this.saveElasticData(String.valueOf(tMap.get("medataSetId")));
+    			String medataSetId = String.valueOf(tMap.get("medataSetId"));
+	    		this.saveElasticData(medataSetId);
+	    		
+	    		// TODO 벡터서버 초기화 후 ..  전체 메타데이터 를 PUT 하는것을 만들자
+	    		// TODO 임시로 이곳에 같이... 벡터 에러는 스킵!
+	    		try {
+	    			vectorSearchService.saveVentorDataBySetId(medataSetId);
+	    		} catch (ResBaseRuntimeException e) {
+	    			log.error("[Elastic 검색 메타데이터셋 전체 저장] 벡터 서버 호출 실패/오류 (SKIP) - {}", medataSetId, e);
+	    		}
     		}
     	}
         log.debug("[Elastic 검색 메타데이터셋 전체 저장] 서비스 시작");    	
@@ -433,5 +459,8 @@ public class ElasticSearchService {
 		}
         log.debug("[ElasticSearch에 카프카 전송된 메타데이터 셋 정보 등록/수정] 서비스 종료");
 	}
+	
+	
+	// TODO 벡터서버에 인덱스 초기화를 호출하는 것을 만들자! 인덱스 삭제?? 후 인덱스 매핑 초기화 까지??? 벡터 서비스 호출해서??? 
 	
 }

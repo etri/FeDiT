@@ -23,7 +23,7 @@ public class InfluxDbMetadataVo {
 	private String medataSetNwstRvsn;
 	private String typeModelId;
 	private String jsonStr;
-	private ListOrderedMap<String, Object> dataMap = new ListOrderedMap<>();
+//	private ListOrderedMap<String, Object> dataMap = new ListOrderedMap<>();
 
 	public static InfluxDbMetadataVo dataMapToDto(
 			String medataSetId, String typeModelId, ListOrderedMap<String, Object> dataMap) {

@@ -45,7 +45,7 @@ public class GlobalExceptionHandler {
 		}
 		
 		Map<String, Object> body = new LinkedHashMap<>();
-		body.put("timestamp", DateFormatUtils.format(new Date(), "yyyy-MM-dd HH:mm:ss.SSSXXXXX", TimeZone.getDefault())); // XXXXX 출력 포맷 경우만
+		body.put("timestamp", DateFormatUtils.format(new Date(), "yyyy-MM-dd HH:mm:ss.SSSXXX", TimeZone.getDefault())); // DateFormatUtils 에서는 XXX 까지만 허용함. XXXXX 출력 포맷 경우만
 		body.put("status"   , status.value());
 		body.put("error"    , status.getReasonPhrase());
 		body.put("message"  , message);		

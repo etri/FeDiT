@@ -23,7 +23,7 @@ public class Neo4jSearchVo extends SearchVo implements Serializable {
 	/** serialVersionUID */
 	private static final long serialVersionUID = 2022L;
 	
-	@Schema(description="검색 유형 (all, medataSet)")
+	@Schema(description="검색 방식 (all, medataSet, keyword)")
 	private String searchType;
 	@Schema(description="NEO4J 조회 LIMIT (CYPHER)")
 	private String matchLimit;
@@ -31,6 +31,15 @@ public class Neo4jSearchVo extends SearchVo implements Serializable {
 	private String medataSetId;
 	@Schema(description="label 유형")
 	private String labelType;
+	@Schema(description="검색어(키워드)")
+	private String keywordText;
+	@Schema(description="키워드 매칭 방식 (contains/exact)")
+	private String keywordMatchType;
+	@Schema(description="그래프 보기 방식")
+	private String graphView;
+	
+	@Schema(description="키워드(검색어) 정규화 값")
+	private String normKeyword;
 	
 	@Override
 	public String toString() {

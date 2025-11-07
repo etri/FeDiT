@@ -24,7 +24,11 @@ import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.RDFFormat;
 import org.apache.jena.riot.RDFWriter;
+import org.apache.jena.vocabulary.DCAT;
 import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.vocabulary.RDFS;
+import org.apache.jena.vocabulary.SchemaDO;
+import org.apache.jena.vocabulary.VCARD4;
 import org.springframework.util.Assert;
 
 import kr.co.n2m.platform.meta.architecture.code.Constant;
@@ -38,7 +42,9 @@ import kr.co.n2m.platform.meta.architecture.exception.ResBaseRuntimeException;
 import kr.co.n2m.platform.meta.architecture.exception.ResBizInfoException;
 import kr.co.n2m.platform.meta.architecture.util.BeanUtil;
 import kr.co.n2m.platform.meta.architecture.util.JsonUtil;
+import kr.co.n2m.platform.meta.architecture.util.KeywordUtil;
 import kr.co.n2m.platform.meta.architecture.util.RdfUtil;
+import kr.co.n2m.platform.meta.architecture.util.SecurityUtil;
 import kr.co.n2m.platform.meta.rdf.mapping.domain.RdfMappingModelVo;
 import kr.co.n2m.platform.meta.rdf.mapping.domain.RdfMappingRuleDto;
 import kr.co.n2m.platform.meta.rdf.mapping.domain.RdfMappingVo;
@@ -308,14 +314,34 @@ public class RdfModel {
 				if ("N".equals(ruleDto.getObjtDataMappgYn())) {
 					
 					if (StringUtils.isNotBlank(ruleDto.getObjtRdfClassIri())) {
-						// 2023-08-16 neo4j 에 빈 노드가 추가되지 않도록
-						Resource objtRi = null;						
-						if (settingVo.isSettingEmptyNodeUri() && StringUtils.isNotBlank(medataSetId)) {
-							String uniqueTempUri = sbjtRi.getURI() + (sbjtRi.getURI().indexOf("#") == -1 ? "#" : "-") + ruleDto.getObjtRdfClassNm() + "-" + ruleDto.getEmptyNodeOrdg();
-							objtRi = model.createResource(uniqueTempUri);
-							log.debug("uniqueTempUri : {}", uniqueTempUri);
-						} else {
-							objtRi = model.createResource();
+						Resource objtRi = null;
+						
+						// 2025-11 특수 경우 하드코딩
+				        // dcat:contactPoint 밑에 오는 특정 클래스는 URN 스코렘
+				        if (RdfUtil.equalsUriIgnoreScheme(DCAT.contactPoint.getURI(),p.getURI()) && this.shouldSkolemizeContactClass(ruleDto.getObjtRdfClassIri())) {
+
+				            // 하위 규칙의 vcard:hasTelephone 리터럴들로 스코렘 생성
+				            String urn = this.getSkolemUriForContactNode(
+				            		medataSetId,
+				                    sbjtRi,
+				                    ruleDto,                   // 현재 contactPoint의 자식 규칙(=붙일 클래스)
+				                    ruleDto.getObjtRdfClassIri(),
+				                    dataMap
+				                );
+				            if (StringUtils.isNotBlank(urn)) {
+				            	objtRi = model.createResource(urn);
+				            }
+				        }
+				        
+				        if (objtRi == null) {
+					        // 2023-08-16 neo4j 에 빈 노드가 추가되지 않도록
+					        if (settingVo.isSettingEmptyNodeUri() && StringUtils.isNotBlank(medataSetId)) {
+								String uniqueTempUri = sbjtRi.getURI() + (sbjtRi.getURI().indexOf("#") == -1 ? "#" : "-") + ruleDto.getObjtRdfClassNm() + "-" + ruleDto.getEmptyNodeOrdg();
+								objtRi = model.createResource(uniqueTempUri);
+								log.debug("uniqueTempUri : {}", uniqueTempUri);
+							} else {
+								objtRi = model.createResource();
+							}
 						}
 												
 						sbjtRi.addProperty(p, objtRi);
@@ -572,7 +598,7 @@ public class RdfModel {
 			// 특수한 경우 하드코딩.
 			// 2025-08 유형 프라퍼티 의 범위모델이 address 인 경우 schema:PostalAddress 객체로 하드코딩. (schema:spatial, vcard:hasAddress 사용시)
 			if (RangeDataTypeMtcd.address.equals(dataTypeEnum)) {
-				if ("http://schema.org/spatial".equals(p.getURI()) || "http://www.w3.org/2006/vcard/ns#hasAddress".equals(p.getURI())) {
+				if (RdfUtil.equalsUriIgnoreScheme(SchemaDO.spatial.getURI(), p.getURI()) || RdfUtil.equalsUriIgnoreScheme(VCARD4.hasAddress.getURI(),p.getURI())) {
 					if (isArrayProperty) {
 						for (MetadataPropertyDto valDto : vallist) {
 							Resource addressRes = this.buildPostalAddressResource(valDto.getMedataVal());
@@ -1032,37 +1058,294 @@ public class RdfModel {
 	}
 	
 	/**
-	 * 2005-08 유형 프라퍼티 의 범위모델이 address 인 경우 schema:PostalAddress 객체로 하드코딩. (schema:spatial, vcard:hasAddress 사용시)
+	 * 2025-08 유형 프라퍼티 의 범위모델이 address 인 경우 schema:PostalAddress 객체로 하드코딩. (schema:spatial, vcard:hasAddress 사용시)
+	 * 2025-11 내용이 완전히 같은 경우, 같은 urn 으로 생성됨. 따라서 주소 내용이 같은 것들은 같은 주소로 연결됨! 
 	 */
 	@SuppressWarnings("unchecked")
 	private Resource buildPostalAddressResource(Object valObj) {
-		Resource addressRes = null;
-		Map<String, Object> addressMap = null;
-		
-		if (valObj instanceof Map) {
-			// { "addressCountry" : "KR", "addressRegion" : "제주도", "addressLocality" : "제주시" , "streetAddress": "광양9길 10" }
-			addressMap = (Map<String, Object>) valObj;
-		} else {
-			String val = StringUtils.defaultString((String) valObj);
-			// JSON 문자열에 포함된 "\n" 또는 실제 줄바꿈을 제거
-			//저장시 제거해서 막음. val = val.replaceAll("\\\\n", "").replace("\n", "");
-			addressMap = (Map<String, Object>) JsonUtil.toMap(val);
-		}
-		
-		if (addressMap != null) {
-		    addressRes = model.createResource();  // 빈 노드
-		    addressRes.addProperty(RDF.type, model.createResource("http://schema.org/PostalAddress"));
-	
-		    for (String key : ALLOWED_ADDRESS_KEYS) {
-		        Object value = addressMap.get(key);
-		        if (value != null && StringUtils.isNotBlank(value.toString())) {
-		            Property prop = model.createProperty("http://schema.org/" + key);
-		            addressRes.addProperty(prop, value.toString());
-		        }
-		    }
-		}
+	    Resource addressRes = null;
+	    Map<String, Object> addressMap = null;
 
+	    if (valObj instanceof Map) {
+	        addressMap = (Map<String, Object>) valObj;
+	    } else {
+	        String val = StringUtils.defaultString((String) valObj);
+	        addressMap = (Map<String, Object>) JsonUtil.toMap(val);
+	    }
+
+	    if (addressMap != null) {
+	        // 키 조합 (존재하는 것만 이어붙임)
+	        String country  = KeywordUtil.nfcTrim(String.valueOf(addressMap.getOrDefault("addressCountry","")));
+	        String region   = KeywordUtil.nfcTrim(String.valueOf(addressMap.getOrDefault("addressRegion","")));
+	        String locality = KeywordUtil.nfcTrim(String.valueOf(addressMap.getOrDefault("addressLocality","")));
+	        String street   = KeywordUtil.nfcTrim(String.valueOf(addressMap.getOrDefault("streetAddress","")));
+	        String postal   = KeywordUtil.nfcTrim(String.valueOf(addressMap.getOrDefault("postalCode","")));
+	        String pobox    = KeywordUtil.nfcTrim(String.valueOf(addressMap.getOrDefault("postOfficeBoxNumber","")));
+
+	        String key = String.join("|", country, region, locality, street, postal, pobox)
+	                        .replaceAll("\\|+$","");
+
+	        String urn = "urn:dtmeta:address:v1-" + SecurityUtil.toSha256Hex(key);
+
+	        // 빈노드 대신 URN 리소스 사용
+	        addressRes = model.createResource(urn);
+	        addressRes.addProperty(RDF.type, model.createResource(SchemaDO.PostalAddress.getURI()));
+
+	        for (String k : ALLOWED_ADDRESS_KEYS) {
+	            Object v = addressMap.get(k);
+	            if (v != null && StringUtils.isNotBlank(v.toString())) {
+	                Property prop = model.createProperty(SchemaDO.NS + k);
+	                addressRes.addProperty(prop, v.toString());
+	            }
+	        }
+	    }
 	    return addressRes;
-	}	
+	}
+	
+	/**
+	 * 2025-11 ContactPoint 소코램 대상인지 여부
+	 * @param classIri
+	 * @return
+	 */
+	private boolean shouldSkolemizeContactClass(String classIri) {
+	    // vCard4
+	    if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Kind.getURI(),classIri)) return true;
+	    if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Organization.getURI(),classIri)) return true;
+	    if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Individual.getURI(),classIri)) return true; // 개인
+	    if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Group.getURI(),classIri)) return true;      // 선택
+	    if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Location.getURI(),classIri)) return true;   // 선택
+
+	    // schema.org
+	    if (RdfUtil.equalsUriIgnoreScheme(SchemaDO.ContactPoint.getURI(),classIri)) return true;
+	    if (RdfUtil.equalsUriIgnoreScheme(SchemaDO.Organization.getURI(),classIri)) return true;
+	    if (RdfUtil.equalsUriIgnoreScheme(SchemaDO.Person.getURI(),classIri)) return true;
+
+	    return false;
+	}
+	
+	@SuppressWarnings("unchecked")
+	private java.util.List<String> collectChildLiteralValues(
+	        RdfMappingRuleDto parentRule,
+	        java.util.List<String> wantedPredUris,
+	        String medataSetId,
+	        ListOrderedMap<String, Object> dataMap) {
+
+	    java.util.List<String> out = new java.util.ArrayList<>();
+
+	    for (RdfMappingRuleDto child : ruleList) {
+	        if (!StringUtils.equals(parentRule.getRdfMappgRuleId(), child.getUpRdfMappgRuleId())) continue;
+	        if (!"Y".equals(child.getObjtLiteralYn())) continue;                // 리터럴만 수집
+	        if (!wantedPredUris.contains(child.getPredctRdfPropertyIri())) continue;
+
+	        String prptyNm = modelInfoDto.getPropertyNmById(child.getObjtPrptyId());
+	        if (prptyNm == null) continue;
+
+	        Object valObj = dataMap.get(prptyNm);
+	        if (valObj == null && StringUtils.isNotBlank(medataSetId)) {
+	            // 배열 가능성
+	            SearchResultListVo listVo = this.getMetadataListBySetPropertyNm(medataSetId, prptyNm);
+	            java.util.List<MetadataPropertyDto> list = (java.util.List<MetadataPropertyDto>) listVo.getList();
+	            if (list != null) {
+	                for (MetadataPropertyDto v : list) {
+	                    String t = KeywordUtil.nfcTrim(StringUtils.defaultString(v.getMedataVal()));
+	                    if (StringUtils.isNotBlank(t)) out.add(t);
+	                }
+	            }
+	        } else if (valObj != null) {
+	            String t = KeywordUtil.nfcTrim(String.valueOf(valObj));
+	            if (StringUtils.isNotBlank(t)) out.add(t);
+	        }
+	    }
+
+	    // 중복 제거
+	    out = new java.util.ArrayList<>(new java.util.LinkedHashSet<>(out));
+	    return out;
+	}
+	
+	/**
+	 * 2025-11 ContactPoint URN 스코렘 생성해서 반환. 
+	 *         이것은 메타데이터 셋 마다 다른 urn 생성. 메타데이터 셋 마다 고유하게 나옴.
+	 * @param medataSetId
+	 * @param parent
+	 * @param classRule
+	 * @param classIri
+	 * @param dataMap
+	 * @return
+	 */
+//	private String getSkolemUriForContactNode(
+//	        String medataSetId,
+//	        Resource parent,
+//	        RdfMappingRuleDto classRule,
+//	        String classIri,
+//	        ListOrderedMap<String, Object> dataMap) {
+//
+//	    // 1) 클래스별 프라퍼티 후보 정의
+//	    java.util.List<String> telPreds   = new java.util.ArrayList<>();
+//	    java.util.List<String> namePreds  = new java.util.ArrayList<>();
+//
+//	    // 전화 후보 (공통)
+//	    telPreds.add(VCARD4.hasTelephone.getURI());
+//	    telPreds.add(SchemaDO.telephone.getURI());
+//
+//	    if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Organization.getURI(),classIri) || RdfUtil.equalsUriIgnoreScheme(SchemaDO.Organization.getURI(),classIri)) {
+//	        // 조직명 후보
+//	        namePreds.add(VCARD4.organization_name.getURI()); // vCard4: organization-name
+//	        namePreds.add(SchemaDO.name.getURI());            // schema:name
+//	    } else if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Individual.getURI(),classIri) || RdfUtil.equalsUriIgnoreScheme(SchemaDO.Person.getURI(),classIri)) {
+//	        // 개인명 후보
+//	        namePreds.add(VCARD4.fn.getURI());                // vCard4: fn(full name)
+//	        namePreds.add(SchemaDO.name.getURI());            // schema:name
+//	    } else if (RdfUtil.equalsUriIgnoreScheme(SchemaDO.ContactPoint.getURI(),classIri)) {
+//	        // 연락처 포인트 라벨
+//	        namePreds.add(RDFS.label.getURI());
+//	        namePreds.add(SchemaDO.contactType.getURI());     // 선택
+//	        namePreds.add(SchemaDO.name.getURI());            // 선택
+//	    } else if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Kind.getURI(),classIri)) {
+//	        // generic Kind일 때
+//	        namePreds.add(RDFS.label.getURI());
+//	        namePreds.add(VCARD4.category.getURI());          // 선택
+//	        namePreds.add(SchemaDO.name.getURI());            // 선택
+//	    } else {
+//	        // 기타: 가장 무난한 라벨 후보
+//	        namePreds.add(RDFS.label.getURI());
+//	        namePreds.add(SchemaDO.name.getURI());
+//	    }
+//
+//	    // 2) 자식 규칙 훑어서 값 수집
+//	    java.util.List<String> tels  = collectChildLiteralValues(classRule, telPreds, medataSetId, dataMap);
+//	    java.util.List<String> names = collectChildLiteralValues(classRule, namePreds, medataSetId, dataMap);
+//
+//	    java.util.Collections.sort(tels);
+//	    java.util.Collections.sort(names);
+//
+//	    // 3) 결정 키
+//	    String key = StringUtils.defaultString(medataSetId)
+//	              + "|" + classIri
+//	              + "|" + String.join(",", names)
+//	              + "|" + String.join(",", tels);
+//
+//	    if (tels.isEmpty() && names.isEmpty()) {
+//	        // 값이 하나도 없을 때도 항상 같은 키가 나오도록
+//	        key = StringUtils.defaultString(medataSetId)
+//	            + "|" + classIri
+//	            + "|" + classRule.getRdfMappgRuleId()
+//	            + "|" + StringUtils.defaultString(String.valueOf(classRule.getEmptyNodeOrdg()));
+//	    }
+//
+//	    // 4) 클래스별 prefix로 URN 생성
+//	    String prefix = "urn:dtmeta:contact:cp:v1-";
+//	    if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Organization.getURI(),classIri) || RdfUtil.equalsUriIgnoreScheme(SchemaDO.Organization.getURI(),classIri)) {
+//	        prefix = "urn:dtmeta:contact:org:v1-";
+//	    } else if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Individual.getURI(),classIri) || RdfUtil.equalsUriIgnoreScheme(SchemaDO.Person.getURI(),classIri)) {
+//	        prefix = "urn:dtmeta:contact:person:v1-";
+//	    } else if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Kind.getURI(),classIri)) {
+//	        prefix = "urn:dtmeta:contact:kind:v1-";
+//	    } else if (RdfUtil.equalsUriIgnoreScheme(SchemaDO.ContactPoint.getURI(),classIri)) {
+//	        prefix = "urn:dtmeta:contact:cp:v1-";
+//	    }
+//
+//	    return prefix + SecurityUtil.toSha256Hex(key);
+//	}
+	
+	/**
+	 * 2025-11 ContactPoint URN 스코렘 생성해서 반환. 
+	 *         이것은 내용별로 유니크.
+	 * 내용(전화/이름 등)만을 기반으로 ContactPoint/Organization/Person/Kind의 URN 스코렘을 생성.
+	 * - 전화/이름/라벨 등의 정규화된 값이 하나도 없으면 null 반환(=스코렘하지 않음).
+	 * - vCard4와 schema.org의 대표 프라퍼티들을 통합 수집해 키를 만든다.
+	 * - 메타데이터셋ID나 룰ID에는 의존하지 않음(내용 동일 ⇒ 동일 URN).
+	 */
+	private String getSkolemUriForContactNode(
+	        String medataSetId,
+	        Resource parent,
+	        RdfMappingRuleDto classRule,
+	        String classIri,
+	        ListOrderedMap<String, Object> dataMap) {
+
+	    // 1) 수집 대상 프라퍼티 정의 (vCard4 + schema.org)
+	    java.util.List<String> telPreds  = new java.util.ArrayList<>();
+	    java.util.List<String> namePreds = new java.util.ArrayList<>();
+
+	    telPreds.add(VCARD4.hasTelephone.getURI());
+	    telPreds.add(SchemaDO.telephone.getURI());
+
+	    if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Organization.getURI(), classIri)
+	            || RdfUtil.equalsUriIgnoreScheme(SchemaDO.Organization.getURI(), classIri)) {
+	        namePreds.add(VCARD4.organization_name.getURI());
+	        namePreds.add(SchemaDO.name.getURI());
+	        namePreds.add(RDFS.label.getURI());
+	    } else if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Individual.getURI(), classIri)
+	            || RdfUtil.equalsUriIgnoreScheme(SchemaDO.Person.getURI(), classIri)) {
+	        namePreds.add(VCARD4.fn.getURI());
+	        namePreds.add(SchemaDO.name.getURI());
+	        namePreds.add(RDFS.label.getURI());
+	    } else if (RdfUtil.equalsUriIgnoreScheme(SchemaDO.ContactPoint.getURI(), classIri)) {
+	        namePreds.add(RDFS.label.getURI());
+	        namePreds.add(SchemaDO.contactType.getURI());
+	        namePreds.add(SchemaDO.name.getURI());
+	    } else if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Kind.getURI(), classIri)) {
+	        namePreds.add(RDFS.label.getURI());
+	        namePreds.add(VCARD4.category.getURI());
+	        namePreds.add(SchemaDO.name.getURI());
+	    } else {
+	        namePreds.add(RDFS.label.getURI());
+	        namePreds.add(SchemaDO.name.getURI());
+	    }
+
+	    // 2) 값 수집
+	    java.util.List<String> rawTels  = collectChildLiteralValues(classRule, telPreds,  medataSetId, dataMap);
+	    java.util.List<String> rawNames = collectChildLiteralValues(classRule, namePreds, medataSetId, dataMap);
+
+	    // 2-a) 전화 범위 확장
+	    java.util.List<String> expandedTels = new java.util.ArrayList<>();
+	    for (String t : rawTels) {
+	        expandedTels.addAll(RdfUtil.expandPhoneRangeLabels(t));
+	    }
+
+	    // 2-b) tel IRI 정규화(+국가코드), 중복 제거
+	    java.util.LinkedHashSet<String> telSet = new java.util.LinkedHashSet<>();
+	    for (String t : expandedTels) {
+	        String iri = RdfUtil.toTelIri(t, "KR"); // 기본국가 필요시 설정값으로
+	        if (iri != null && !iri.isEmpty()) telSet.add(iri);
+	    }
+
+	    // 이름 정규화/트림 + 중복 제거
+	    java.util.LinkedHashSet<String> nameSet = new java.util.LinkedHashSet<>();
+	    for (String n : rawNames) {
+	        String nn = kr.co.n2m.platform.meta.architecture.util.KeywordUtil.nfcTrim(n);
+	        if (org.apache.commons.lang3.StringUtils.isNotBlank(nn)) nameSet.add(nn);
+	    }
+
+	    // 3) 내용 비었으면 스코렘 안 함
+	    if (telSet.isEmpty() && nameSet.isEmpty()) {
+	        return null;
+	    }
+
+	    // 4) 안정 키 (내용만 기반: classIri + 정렬된 값들)
+	    java.util.List<String> telList  = new java.util.ArrayList<>(telSet);
+	    java.util.List<String> nameList = new java.util.ArrayList<>(nameSet);
+	    java.util.Collections.sort(telList);
+	    java.util.Collections.sort(nameList);
+
+	    String key = classIri
+	               + "|" + String.join(",", nameList)
+	               + "|" + String.join(",", telList);
+
+	    // 5) 클래스별 prefix
+	    String prefix = "urn:dtmeta:contact:cp:v1-";
+	    if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Organization.getURI(), classIri)
+	            || RdfUtil.equalsUriIgnoreScheme(SchemaDO.Organization.getURI(), classIri)) {
+	        prefix = "urn:dtmeta:contact:org:v1-";
+	    } else if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Individual.getURI(), classIri)
+	            || RdfUtil.equalsUriIgnoreScheme(SchemaDO.Person.getURI(), classIri)) {
+	        prefix = "urn:dtmeta:contact:person:v1-";
+	    } else if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Kind.getURI(), classIri)) {
+	        prefix = "urn:dtmeta:contact:kind:v1-";
+	    } else if (RdfUtil.equalsUriIgnoreScheme(SchemaDO.ContactPoint.getURI(), classIri)) {
+	        prefix = "urn:dtmeta:contact:cp:v1-";
+	    }
+
+	    return prefix + SecurityUtil.toSha256Hex(key);
+	}
 	
 }

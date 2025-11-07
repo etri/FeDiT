@@ -9,6 +9,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.json.simple.JSONObject;
 
 import kr.co.n2m.platform.meta.architecture.code.Constant;
+import kr.co.n2m.platform.meta.architecture.util.BeanUtil;
 import kr.co.n2m.platform.meta.architecture.util.JsonUtil;
 import kr.co.n2m.platform.meta.schema.property.domain.PropertyDataTypeDto;
 import kr.co.n2m.platform.meta.schema.property.service.PropertyCacheService;
@@ -20,6 +21,8 @@ import kr.co.n2m.platform.meta.schema.property.service.PropertyCacheService;
  */
 @SuppressWarnings({ "rawtypes", "serial" })
 public class MetadataElasticJsonMap extends ListOrderedMap {
+	
+	private List<PropertyDataTypeDto> dataTypeList = null;	
 
 	@SuppressWarnings("unchecked")
 	@Override
@@ -43,9 +46,13 @@ public class MetadataElasticJsonMap extends ListOrderedMap {
 	private Object convertDataType(String key, Object value) {
 		if (value == null) return null;
 		
-		List<PropertyDataTypeDto> list = PropertyCacheService.getPrptyDataTypeListForMetadataJsonMap();
-		if (list != null && !list.isEmpty()) {
-			for (PropertyDataTypeDto dto : list) {
+//		List<PropertyDataTypeDto> list = PropertyCacheService.getPrptyDataTypeListForMetadataJsonMap();
+		if (dataTypeList == null) {
+			PropertyCacheService propertyCacheService = BeanUtil.getBean("propertyCacheService", PropertyCacheService.class);
+			dataTypeList = propertyCacheService.getPrptyDataTypeList();
+		}		
+		if (dataTypeList != null && !dataTypeList.isEmpty()) {
+			for (PropertyDataTypeDto dto : dataTypeList) {
 				if (StringUtils.equals(dto.getPrptyNm(), key)) {
 					// 데이터 유형에 따라 변환 적용
 					try {

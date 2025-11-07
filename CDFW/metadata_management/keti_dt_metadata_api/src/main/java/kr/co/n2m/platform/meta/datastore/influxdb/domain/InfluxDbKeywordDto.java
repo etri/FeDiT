@@ -11,7 +11,7 @@ import lombok.Setter;
 @Setter
 public class InfluxDbKeywordDto {
 
-	private String keyword;
+	private String keyword; // value
 	private String langMtcd;
 	private String prptyId;
 	private String medataSetId;

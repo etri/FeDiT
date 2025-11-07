@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.co.n2m.platform.meta.architecture.component.ResponseComponent;
-import kr.co.n2m.platform.meta.search.vector.domain.VectorStoreDto;
 import kr.co.n2m.platform.meta.search.vector.service.VectorSearchService;
 
 @Tag(name = "Vector 검색", description = "Vector 검색 API")

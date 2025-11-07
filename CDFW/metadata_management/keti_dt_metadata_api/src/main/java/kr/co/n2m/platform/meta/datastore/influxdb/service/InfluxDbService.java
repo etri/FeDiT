@@ -263,24 +263,48 @@ public class InfluxDbService {
 	 */
 	public List<JSONObject> getKeywordCountData(InfluxDbSearchVo searchVo) {
 		log.debug("[최근 1년 동안의 키워드별 건수 현황 조회] 서비스 시작");
-		/*
-			 from(bucket: "metadata")
-			  |> range(start: -365d)
-			  |> filter(fn: (r) => r["_measurement"] == "keyword")
-			  |> group(columns: ["word"])
-			  |> count()
-			  |> sort(columns: ["_value"], desc: true) 
-			  |> rename(columns: {_value: "count", "word": "keyword"})
-		 */
+
 		StringBuilder sb = new StringBuilder();
-		sb.append("from(bucket: \"").append(influxProperty.getBucket()).append("\")\n")
-		  .append(" |> range(start: -365d)\n") // 최근 일년 동안
-		  .append(" |> filter(fn: (r) => r._measurement == \"keyword\")\n")
-		  .append(" |> group(columns: [\"word\"])\n")
-		  .append(" |> count()\n")
-		  .append(" |> sort(columns: [\"_value\"], desc: true)\n") // TODO 정렬이 안되는 이유가 뭘까?
-		  .append(" |> rename(columns: {_value: \"count\", \"word\": \"keyword\"})") // keyword, count
-		  ;
+		/*
+			 base = from(bucket: "metadata")
+			   |> range(start: -365d)                			// 최근 1년 데이터만 조회
+			   |> filter(fn: (r) => r._measurement == "keyword")
+			   |> filter(fn: (r) => r._field == "value")  
+		
+			 counts = base
+			   |> group(columns: ["word"])          			// 정규화된 키(태그) word 별로 묶기
+			   |> count()                           			// 각 word 그룹의 발생 건수 세기
+			   |> rename(columns: {_value: "count"})			// 결과 컬럼명을 count 로 바꿔서 사람이 보기 쉽게
+			
+			 labels = base
+			   |> group(columns: ["word"])          			// 동일하게 word 단위로 묶고
+			   |> last()             							// 그 word에서 가장 마지막(최근) 하나만 대표로 가져오기
+			   |> keep(columns: ["word", "_value"])  			
+			   |> rename(columns: {"_value": "keyword"})        // 결과 컬럼명을 keyword 이름으로 바꿔서 표시용으로 씀
+			
+			 join(tables: {c: counts, l: labels}, on: ["word"], method: "inner")  // word를 기준으로 count 정보와 label 정보를 합침
+			   |> keep(columns: ["word", "keyword", "count"])                     // 최종으로 필요한 컬럼만 유지
+			   |> sort(columns: ["count"], desc: true)                            // 등장 횟수 많은 순서대로 정렬
+		*/
+		sb.append("base = from(bucket: \"").append(influxProperty.getBucket()).append("\")\n")
+		  .append("  |> range(start: -365d)\n")
+		  .append("  |> filter(fn: (r) => r._measurement == \"keyword\")\n")
+		  .append("  |> filter(fn: (r) => r._field == \"value\")\n") // 우리가 쓰려는 필드(value)만 남김
+		  .append("\n")
+		  .append("counts = base\n")
+		  .append("  |> group(columns: [\"word\"])\n")
+		  .append("  |> count()\n")
+		  .append("  |> rename(columns: {_value: \"count\"})\n")
+		  .append("\n")
+		  .append("labels = base\n")
+		  .append("  |> group(columns: [\"word\"])\n")
+		  .append("  |> last()\n") // 그룹별 마지막 _value 를 가져옴
+		  .append("  |> keep(columns: [\"word\", \"_value\"])\n")
+		  .append("  |> rename(columns: {_value: \"keyword\"})\n")
+		  .append("\n")
+		  .append("join(tables: {c: counts, l: labels}, on: [\"word\"], method: \"inner\")\n")
+		  .append("  |> keep(columns: [\"word\", \"keyword\", \"count\"])\n")
+		  .append("  |> sort(columns: [\"count\"], desc: true)\n");
 		
 		QueryApi queryApi = influxDBClient.getQueryApi();
 		
@@ -318,7 +342,7 @@ public class InfluxDbService {
 					           .addTag("lang", dataVo.getLang())
 					           .addTag("prptyId", dataVo.getPrptyId())
 					           .addTag("id", dataVo.getId())
-					           .addField("value", dataVo.getWord()) // 필드 추가
+					           .addField("value", dataVo.getValue()) // 필드 추가
 					           .time(NumberUtils.createNumber(dataVo.getNanosec()), WritePrecision.NS) // 타임스탬프 설정 (나노초)
 					           ;
 	        writeApi.writePoint(point);		

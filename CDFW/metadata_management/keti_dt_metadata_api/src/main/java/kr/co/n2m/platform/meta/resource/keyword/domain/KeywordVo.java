@@ -15,7 +15,9 @@ import lombok.Setter;
 @Setter
 public class KeywordVo {
 	
-	private String kywrd;
+	private String kywrdNorm;
+	private String kywrdDisp;
+	private String kywrdInfluxTag;
 	private String kywrdLangMtcd;
 	private String kywrdRecntDt;
 	private String kywrdRegDt;
