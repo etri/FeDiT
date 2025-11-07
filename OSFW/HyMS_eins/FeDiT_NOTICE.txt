@@ -1,0 +1,8 @@
+# NOTICE
+
+This project includes software developed by EinsS&C and other contributors
+under the MIT License, as well as portions of the Dojo Toolkit developed by
+the Dojo Foundation under the BSD 3-Clause "New" License or the
+Academic Free License v2.1 (AFL-2.1).
+
+Modifications made by EinsS&C (2025)
