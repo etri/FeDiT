@@ -250,7 +250,7 @@
 				</configuration>
 			</plugin>
 
-			<!-- QueryDSL 
+			<!-- QueryDSL -->
 			<plugin>
 				<groupId>com.mysema.maven</groupId>
 				<artifactId>apt-maven-plugin</artifactId>
@@ -278,8 +278,8 @@
 					</dependency>
 				</dependencies>
 			</plugin>
-			-->
-            <!-- QueryDSL (JPAAnnotationProcessor, 기존 설정 유지) -->
+            <!-- QueryDSL (JPAAnnotationProcessor, 기존 설정 유지) >> 25.10.30 젠킨스 빌드 실패로 플러그인 설정 원복 -->
+            <!--
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-compiler-plugin</artifactId>
@@ -317,6 +317,7 @@
                 </execution>
               </executions>
             </plugin>
+            -->
 		</plugins>
 
 		<resources>

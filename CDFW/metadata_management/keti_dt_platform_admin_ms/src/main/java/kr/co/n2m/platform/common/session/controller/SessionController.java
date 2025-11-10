@@ -16,8 +16,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import kr.co.n2m.platform.common.constant.Constants;
 import kr.co.n2m.platform.common.property.OauthProperty;
@@ -57,8 +55,7 @@ public class SessionController {
 			
 			return new ResponseEntity<Boolean>(hasRefreshToken, null, HttpStatus.OK);
 		}catch (Exception e) {
-			// TODO: handle exception
-			e.printStackTrace();
+			log.error("", e.getMessage());
 			return new ResponseEntity<Boolean>(hasRefreshToken, null, HttpStatus.OK);
 		}
 		
@@ -89,8 +86,7 @@ public class SessionController {
 			return new ResponseEntity<Map<String, String>>(null, null, HttpStatus.UNAUTHORIZED);
 			
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log.error("", e.getMessage());
 			return new ResponseEntity<Map<String, String>>(null, null, HttpStatus.UNAUTHORIZED);
 		}
 	}
@@ -102,7 +98,7 @@ public class SessionController {
 			session = request.getSession();
 			session.invalidate();
 		} catch (IllegalStateException e) {
-			e.printStackTrace();
+			log.error("", e.getMessage());
 			throw e;
 		}
 		
@@ -127,8 +123,7 @@ public class SessionController {
 			
 			return false;
 		}catch (Exception e) {
-			// TODO: handle exception
-			e.printStackTrace();
+			log.error("", e.getMessage());
 			return false;
 		}
 	}
