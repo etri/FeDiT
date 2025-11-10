@@ -455,7 +455,10 @@
     },
     "search": {
       "metadata": {
-        "getMetadataList"                   :  "/api/meta/api/v1/search/metadata"
+        "getMetadataList"                   : "/api/meta/api/v1/search/metadata"
+      },
+      "vector": {
+        "getRagResults"                     : "/api/meta/api/v1/search/vector/prompt"
       }
     }
   }

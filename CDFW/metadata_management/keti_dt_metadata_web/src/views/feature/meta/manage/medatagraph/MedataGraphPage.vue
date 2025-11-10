@@ -17,15 +17,22 @@
           >
 
             <el-row :gutter="0">
-              <el-form-item label="조회 유형">
-                <el-radio-group v-model="state.searchType">
+              <el-form-item label="검색 방식">
+                <el-radio-group v-model="state.searchType" @change="onChangeDefaultGraphView">
                   <el-radio-button label="all">전체</el-radio-button>
-                  <el-radio-button label="medataSet">메타데이터 셋</el-radio-button>
+                  <el-radio-button label="keyword">키워드 검색</el-radio-button>
+                  <el-radio-button label="medataSet">메타데이터 셋 지정</el-radio-button>
                 </el-radio-group>
               </el-form-item>
-              <el-form-item label="LIMIT">
-                <el-input type="number" class="w-100 m-2" @keydown.enter.prevent="getMedataGraph()" v-model="state.matchLimit" />
-              </el-form-item>
+              <el-form-item label="키워드(검색어)" v-if="state.searchType === 'keyword'">
+                <div class="inline-area">
+                  <el-input type="text" class="w-100 m-2" @keydown.enter.prevent="getMedataGraph()" v-model="state.keywordText" />
+                  <el-select class="ml5" v-model="state.keywordMatchType" placeholder="키워드 매칭 방식">
+                    <el-option label="포함" value="contains" />
+                    <el-option label="일치" value="exact" />
+              		</el-select>
+                </div>
+              </el-form-item>              
               <el-form-item label="메타데이터 셋" v-if="state.searchType === 'medataSet'">
                 <div class="inline-area">
                   <el-input class="w-100 m-2" v-model="state.medataSetNm" disabled />
@@ -33,6 +40,16 @@
                   <el-button type="default" class="el-button--delete" @click="refreshMedataSet"><el-icon class="icon icon-refresh"/></el-button>
                 </div>
               </el-form-item>
+              <el-form-item label="그래프 보기 방식">
+                <el-select v-model="state.graphView" placeholder="그래프 보기 방식">
+                  <el-option label="전체" value="all" />
+                  <el-option label="키워드 중심" value="keywordMain" />
+                  <el-option label="키워드 제외" value="metaOnly" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="LIMIT(결과 제한 개수)">
+                <el-input type="number" class="w-100 m-2" @keydown.enter.prevent="getMedataGraph()" v-model="state.matchLimit" />
+              </el-form-item>              
             </el-row>
             
           </el-form>
@@ -98,7 +115,7 @@
 </template>
 <script setup>
 import { getGlobalProperties } from "@/assets/js/common.js";
-import { ref, reactive, onMounted, computed, watch } from "vue";
+import { ref, reactive, onMounted, computed, watch, onBeforeUnmount } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useStore } from "vuex";
 import util from "util";
@@ -118,14 +135,34 @@ const dialogVisibleSearchMetadataSet = ref(false);
 const searchMetaTypeFix = false;
 const searchMetaTypeId = ref("");
 
+// neo4jd3 타이머 핸들 변수
+let rafId = null;
+let toId = null;
+const neoInstance = ref(null);
+function disposeGraph() {
+  // 1) 타이머 정리
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  if (toId)  { clearTimeout(toId);          toId  = null; }
+
+  // 2) (가능하면) neo4jd3 내부 시뮬레이션 정지
+  try { neoInstance.value?.simulation?.stop?.(); } catch {}
+
+  // 3) 컨테이너 비우기
+  if (neo4jD3Svg.value) neo4jD3Svg.value.innerHTML = '';
+
+  neoInstance.value = null;
+}
+
 const state = reactive({
-  searchType: "all",
+  searchType: "all",       // all | keyword | medataSet
+  graphView: "metaOnly",   // all | keywordMain | metaOnly
   matchLimit: 100,
-  typeModelId: "",
-  medataSetNm: "",
-  searchModeForDt: "all",
+  keywordText: "",
+  keywordMatchType: "contains",
   medataSetId: "",
-  medataSetNm: "",
+  medataSetNm: "",  
+  searchModeForDt: "all",
+  typeModelId: "",
   selectedLabelType: "",
 
   clickedNodeLabels: [],
@@ -151,18 +188,26 @@ onMounted(() => {
   getTypeModelList();
   getRdbNeo4j();
 });
+
+onBeforeUnmount(() => {
+  disposeGraph();
+});
   
 const getRdbNeo4j = () => {
   $axios
     .get($apiUrls.meta.datastore.neo4j.getRdbNeo4j, {
       params: {
         searchType: state.searchType,
+        graphView: state.graphView,
         matchLimit: state.matchLimit.toString(),
+        keywordText: state.keywordText,
+        keywordMatchType: state.keywordMatchType,
         medataSetId: state.medataSetId,
         labelType: state.selectedLabelType,
       },
     })
     .then((res) => {
+      //console.log(res.data);
       drawNeo4jGraph(res.data);
       if(res.data.graph.nodecount !== null){
         state.nodeCount = res.data.graph.nodecount;
@@ -192,6 +237,11 @@ const getMedataGraph = () => {
       alert("메타데이터 셋을 입력해주세요.");
       return;
     }
+  } else if (state.searchType === "keyword"){
+    if(state.keywordText === "" || state.keywordText === null){
+      alert("키워드를 입력해주세요.");
+      return;
+    }    
   }
 
   getRdbNeo4j();
@@ -199,6 +249,20 @@ const getMedataGraph = () => {
   state.clickedNodeLabels = [];
   state.clickedNodeProperties = [];
 };
+
+function ensureD3(cb){
+  if (window.d3 && window.d3.version?.startsWith('4.')) return cb();
+  let s = document.querySelector('#ext-d3v4');
+  if (!s) {
+    s = document.createElement('script');
+    s.id = 'ext-d3v4';
+    s.src = 'https://d3js.org/d3.v4.min.js';
+    s.onload = cb;
+    document.head.appendChild(s);
+  } else {
+    s.onload ? s.addEventListener('load', cb) : cb();
+  }
+}
 
 const drawNeo4jGraph = (data)  => {
   for(var i=0; i<data.graph.nodes.length; i++){
@@ -208,32 +272,50 @@ const drawNeo4jGraph = (data)  => {
       data.graph.nodes[i].labels[1] = temp;
     }
   }
-  let highlightClass = "";
-  let highlightValue = "";
+
+  let highlightArr = [];
   if(state.searchType === "medataSet"){
     try{
       for(var i=0; i<data.graph.nodes.length; i++){
         if(typeof data.graph.nodes[i].properties.medataSetId !== "undefined"){
           if(data.graph.nodes[i].properties.medataSetId === state.medataSetId){
-            highlightClass = data.graph.nodes[i].labels[0];
-            highlightValue = data.graph.nodes[i].properties.medataSetId;
+            let highlightClass = data.graph.nodes[i].labels[0];
+            let highlightValue = data.graph.nodes[i].properties.medataSetId;
+            highlightArr.push({
+              class: highlightClass,
+              property: 'medataSetId',
+              value: highlightValue
+            });
+          }
+        }
+      }
+    } catch(e) {}
+  } else if (state.searchType === "keyword"){
+    try{
+      for(var i=0; i<data.graph.nodes.length; i++){
+        //console.log(`node properties: `, data.graph.nodes[i].properties);
+        if(typeof data.graph.nodes[i].properties.isSeedKeyword !== "undefined"){
+          if(data.graph.nodes[i].properties.isSeedKeyword){ // true
+            //console.log(`isSeedKeyword true `, data.graph.nodes[i].properties);
+            let highlightClass = data.graph.nodes[i].labels[0];
+            let highlightValue = data.graph.nodes[i].properties.name;
+            highlightArr.push({
+              class: highlightClass,
+              property: 'name',
+              value: highlightValue
+            });            
           }
         }
       }
     } catch(e) {}
   }
 
-  const script = document.createElement('script');
-  script.src = 'https://d3js.org/d3.v4.min.js';
-  script.onload = () => {
+  ensureD3(() => {
+    // 이전 그래프/타이머 확실히 제거
+    disposeGraph();
+
     const options = {
-      highlight: [
-        { 
-          class: highlightClass,
-          property: 'medataSetId',
-          value: highlightValue
-        },
-      ],
+      highlight: highlightArr,
       icons: {
         
       },
@@ -262,9 +344,71 @@ const drawNeo4jGraph = (data)  => {
       },
       zoomFit: false,
     };
-    const neo4jGraph = new neo4jd3(neo4jD3Svg.value, options);
-  };
-  document.head.appendChild(script);
+
+    neoInstance.value = new neo4jd3(neo4jD3Svg.value, options);
+
+    // caption 교체 스케줄 (컨테이너 살아있을 때만)
+    rafId = requestAnimationFrame(() => {
+      if (neo4jD3Svg.value?.isConnected) {
+        setNodeCaptions();
+        separateDuplicateLinksByLocalOffset(neo4jD3Svg.value);
+      }
+    });
+    toId = setTimeout(() => {
+      if (neo4jD3Svg.value?.isConnected) {
+        setNodeCaptions();
+        separateDuplicateLinksByLocalOffset(neo4jD3Svg.value);
+      }
+    }, 100);
+  });
+};
+
+const setNodeCaptions = () => {
+  // g.node > text 는 그래프 노드 원 안의 텍스트 (id 숫자)
+  if (!window.d3 || !neo4jD3Svg.value?.isConnected) return;
+  d3.select(neo4jD3Svg.value)
+    .selectAll('g.node text')
+    .filter(function(){ return !this.classList.contains('icon'); }) // 아이콘 텍스트 제외
+    .each(function(d){ renderMultiline(this, captionFromNode(d)); });
+};
+
+const captionFromNode = (d) => {
+  const p = d.properties || {};
+  // let kw = p.keywords;
+  // if (typeof kw === 'string') {
+  //   try { const arr = JSON.parse(kw); if (Array.isArray(arr) && arr.length) kw = arr[0]; } catch {}
+  // }
+  // return (p.name || p.metaModel || kw || String(d.id)).toString();
+  return (p.name || p.metaModel || String(d.id)).toString();
+};
+// 문자열을 고정 글자수로 자르되, 최대 줄 수를 넘으면 마지막 줄을 '…'로 마감
+const splitLinesWithEllipsis = (s, perLine, maxLines) => {
+  const lines = [];
+  for (let i = 0; i < s.length; i += perLine) lines.push(s.slice(i, i + perLine));
+  if (lines.length > maxLines) {
+    const keep = lines.slice(0, maxLines);
+    const last = keep[maxLines - 1];
+    keep[maxLines - 1] = (last.length >= perLine ? last.slice(0, perLine - 1) : last) + '…';
+    return keep;
+  }
+  return lines;
+};
+// <tspan>으로 멀티라인 렌더
+const renderMultiline = (textEl, caption, perLine = 10, maxLines = 3) => {
+  const sel = d3.select(textEl);
+  sel.text('');                // 기존 텍스트 제거
+  sel.selectAll('tspan').remove();
+
+  const lines = splitLinesWithEllipsis(caption, perLine, maxLines);
+  // 가운데 정렬을 위해 첫 줄의 dy를 위로 올림
+  const firstDy = -(lines.length - 1) * 0.6;  // 줄간격 1.2em 기준 절반
+
+  lines.forEach((line, idx) => {
+    sel.append('tspan')
+      .attr('x', 0)
+      .attr('dy', idx === 0 ? `${firstDy}em` : '1.2em')
+      .text(line);
+  });
 };
 
 const getTypeModelList = () => {
@@ -283,6 +427,112 @@ const getTypeModelList = () => {
 			console.log(err);
 		});
 };
+
+const onChangeDefaultGraphView = () => {
+  if (state.searchType == "keyword") {
+    state.graphView = "keywordMain";
+  } else if (state.searchType == "medataSet") {
+    state.graphView = "all";
+  } else {
+    state.graphView = "metaOnly";
+  }
+}
+
+// -----------------------------------------------------------------------
+// subjects/keywords 등 A -> B 관계가 겹치면 하나를 곡선으로 처리
+// ==> 결국 안되서 하나를 옆으로 평행 복사
+
+// --- 유틸: d3 v3/v4에서도 되는 groupBy ---
+function groupBy(list, keyFn) {
+  var m = new Map();
+  for (var i = 0; i < list.length; i++) {
+    var it = list[i], k = keyFn(it);
+    if (!m.has(k)) m.set(k, []);
+    m.get(k).push(it);
+  }
+  return m;
+}
+
+// --- 관계 g 내부에 우리 전용 래퍼(<g.rel-inner>)를 보장 ---
+function ensureInnerWrapper(gEl) {
+  var inner = gEl.querySelector('g.rel-inner');
+  if (inner) return inner;
+
+  var doc = gEl.ownerDocument;
+  inner = doc.createElementNS('http://www.w3.org/2000/svg', 'g');
+  inner.setAttribute('class', 'rel-inner');
+
+  // gEl의 기존 자식들(text, path.outline, path.overlay)을 모두 inner로 이동
+  var nodes = [];
+  for (var i = 0; i < gEl.childNodes.length; i++) nodes.push(gEl.childNodes[i]);
+  for (var j = 0; j < nodes.length; j++) inner.appendChild(nodes[j]);
+
+  gEl.appendChild(inner);
+  return inner;
+}
+
+// --- 로컬 좌표(수평 막대 기준의 수직 방향) offset 적용 ---
+function setLocalOffset(gEl, offsetPx) {
+  var inner = ensureInnerWrapper(gEl);
+  // 로컬 좌표에서 Y로만 이동 → 회전 이후엔 "법선"으로 보임
+  inner.setAttribute('transform', 'translate(0,' + offsetPx + ')');
+}
+
+// --- 같은 (start->end) 중복 관계 벌리기 ---
+function separateDuplicateLinksByLocalOffset(svgEl, opts) {
+  if (!window.d3 || !svgEl || !svgEl.isConnected) return;
+
+  var base = (opts && opts.baseOffset) || 16; // 기본 벌림 px
+  function offsetForIndex(i) {
+    if (i === 0) return 0;
+    var k = Math.ceil(i / 2);
+    var sign = (i % 2 === 1) ? +1 : -1;
+    return sign * base * k;
+  }
+
+  // 1) 관계 수집
+  var rels = [];
+  d3.select(svgEl).selectAll('g.relationship').each(function(d) {
+    if (!d || !d.source || !d.target) return;
+    rels.push({ key: d.source.id + '->' + d.target.id, datum: d, g: this });
+  });
+  if (!rels.length) return;
+
+  // 2) 그룹핑 후 2개 이상인 것만
+  var groups = groupBy(rels, function(r){ return r.key; });
+  groups.forEach(function(arr){
+    if (arr.length < 2) return;
+
+    // 우선순위 테이블 (낮을수록 앞)
+    var TYPE_ORDER = { subjects: 0, keywords: 1 };
+
+    // 안정적 순서: type 우선 → id 보조
+    arr.sort(function(a, b) {
+      var ta = (a.datum && a.datum.type ? String(a.datum.type).toLowerCase() : '');
+      var tb = (b.datum && b.datum.type ? String(b.datum.type).toLowerCase() : '');
+
+      var pa = (ta in TYPE_ORDER) ? TYPE_ORDER[ta] : 9999;
+      var pb = (tb in TYPE_ORDER) ? TYPE_ORDER[tb] : 9999;
+
+      if (pa !== pb) return pa - pb;  // type 우선순위로 정렬
+
+      // type 같거나 우선순위 미정이면 id로 보조 정렬
+      var aid = (a.datum && a.datum.id != null) ? a.datum.id : 0;
+      var bid = (b.datum && b.datum.id != null) ? b.datum.id : 0;
+      return aid - bid;
+    });
+
+    // 3) 각 관계에 로컬 offset 적용
+    for (var i = 0; i < arr.length; i++) {
+      var off = offsetForIndex(i);
+      setLocalOffset(arr[i].g, off);
+      d3.select(arr[i].g).classed('rel-offset', off !== 0);
+    }
+  });
+}
+
+
+
 
 </script>
 <style lang="scss">

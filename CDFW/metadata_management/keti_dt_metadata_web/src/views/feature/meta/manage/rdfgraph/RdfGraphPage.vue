@@ -106,7 +106,7 @@
 </template>
 <script setup>
 import { getGlobalProperties } from "@/assets/js/common.js";
-import { ref, reactive, onMounted, computed, watch } from "vue";
+import { ref, reactive, onMounted, computed, watch, onBeforeUnmount } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useStore } from "vuex";
 import util from "util";
@@ -125,6 +125,20 @@ const typeModelList = ref([]);
 const dialogVisibleSearchMetadataSet = ref(false);
 const searchMetaTypeFix = false;
 const searchMetaTypeId = ref("");
+
+// neo4jd3 타이머 핸들 변수
+const neoInstance = ref(null);
+let rafId = null, toId = null;
+
+function disposeGraph() {
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  if (toId)  { clearTimeout(toId);          toId  = null; }
+  try { neoInstance.value?.simulation?.stop?.(); } catch {}
+  if (neo4jD3Svg.value) neo4jD3Svg.value.innerHTML = '';
+  neoInstance.value = null;
+}
+
+onBeforeUnmount(() => { disposeGraph(); });
 
 const state = reactive({
   searchType: "all",
@@ -160,6 +174,20 @@ onMounted(() => {
   getNeo4j();
 });
   
+function ensureD3(cb){
+  if (window.d3 && window.d3.version?.startsWith('4.')) return cb();
+  let s = document.querySelector('#ext-d3v4');
+  if (!s) {
+    s = document.createElement('script');
+    s.id = 'ext-d3v4';
+    s.src = 'https://d3js.org/d3.v4.min.js';
+    s.onload = cb;
+    document.head.appendChild(s);
+  } else {
+    s.onload ? s.addEventListener('load', cb) : cb();
+  }
+}
+
 const getNeo4j = () => {
   $axios
     .get($apiUrls.meta.datastore.neo4j.getNeo4j, {
@@ -244,11 +272,9 @@ const drawNeo4jGraph = (data)  => {
       }
     } catch(e) {}
   }
-  // D3.js 로드
-  const script = document.createElement('script');
-  script.src = 'https://d3js.org/d3.v4.min.js';
-  script.onload = () => {
-    // neo4jd3 라이브러리 초기화
+
+  ensureD3(() => {
+    disposeGraph();
     const options = {
       highlight: [
         { 
@@ -285,9 +311,73 @@ const drawNeo4jGraph = (data)  => {
       },
       zoomFit: false,
     };
-    const neo4jGraph = new neo4jd3(neo4jD3Svg.value, options);
-  };
-  document.head.appendChild(script);
+    neoInstance.value = new neo4jd3(neo4jD3Svg.value, options);
+    // caption 교체 스케줄 (컨테이너 살아있을 때만)
+    rafId = requestAnimationFrame(() => {
+      if (neo4jD3Svg.value?.isConnected) setNodeCaptions();
+    });
+    toId = setTimeout(() => {
+      if (neo4jD3Svg.value?.isConnected) setNodeCaptions();
+    }, 100);
+  });
+};
+
+const setNodeCaptions = () => {
+  // g.node > text 는 그래프 노드 원 안의 텍스트 (id 숫자)
+  if (!window.d3 || !neo4jD3Svg.value?.isConnected) return;
+  d3.select(neo4jD3Svg.value)
+    .selectAll('g.node text')
+    .filter(function(){ return !this.classList.contains('icon'); }) // 아이콘 텍스트 제외
+    .each(function(d){ renderMultiline(this, captionFromNode(d)); });
+};
+
+const captionFromNode = (d) => {
+  const p = d.properties || {};
+  const allKeys = Object.keys(p);
+  //console.log(`allKeys.length=${allKeys.length} : `, p);
+  //console.log('Object.hasOwn(p, \'locn__geometry\')', Object.hasOwn(p, 'locn__geometry'));
+  let caption = p.dcterms__title ?? '';
+  if (!Object.hasOwn(p, 'dcterms__title')) {
+    if (d.orgLabels.includes('schema__PostalAddress')) {
+      caption = p.schema__addressLocality || p.schema__addressRegion;
+    } else if (Object.hasOwn(p, 'locn__geometry')) {
+      caption = (JSON.parse(p.locn__geometry)).type;
+    } else if (allKeys.length === 2) { // uri 외 1개 경우
+      const randomKey = allKeys.find(key => key != 'uri');
+      caption = p[randomKey].toString();
+    } 
+  }
+  return (caption || p.dcterms__identifier ||String(d.id)).toString();
+};
+
+// 문자열을 고정 글자수로 자르되, 최대 줄 수를 넘으면 마지막 줄을 '…'로 마감
+const splitLinesWithEllipsis = (s, perLine, maxLines) => {
+  const lines = [];
+  for (let i = 0; i < s.length; i += perLine) lines.push(s.slice(i, i + perLine));
+  if (lines.length > maxLines) {
+    const keep = lines.slice(0, maxLines);
+    const last = keep[maxLines - 1];
+    keep[maxLines - 1] = (last.length >= perLine ? last.slice(0, perLine - 1) : last) + '…';
+    return keep;
+  }
+  return lines;
+};
+// <tspan>으로 멀티라인 렌더
+const renderMultiline = (textEl, caption, perLine = 10, maxLines = 3) => {
+  const sel = d3.select(textEl);
+  sel.text('');                // 기존 텍스트 제거
+  sel.selectAll('tspan').remove();
+
+  const lines = splitLinesWithEllipsis(caption, perLine, maxLines);
+  // 가운데 정렬을 위해 첫 줄의 dy를 위로 올림
+  const firstDy = -(lines.length - 1) * 0.6;  // 줄간격 1.2em 기준 절반
+
+  lines.forEach((line, idx) => {
+    sel.append('tspan')
+      .attr('x', 0)
+      .attr('dy', idx === 0 ? `${firstDy}em` : '1.2em')
+      .text(line);
+  });
 };
 
 const getTypeModelList = () => {

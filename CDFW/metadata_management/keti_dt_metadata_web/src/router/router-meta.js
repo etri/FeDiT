@@ -90,6 +90,9 @@ import SparqlQueryResultPage from "@/views/feature/meta/search/sparql/SparqlQuer
 import ElasticsearchQueryPage from "@/views/feature/meta/search/elasticsearch/ElasticsearchQueryPage.vue";
 import ElasticsearchQueryResultPage from "@/views/feature/meta/search/elasticsearch/ElasticsearchQueryResultPage.vue";
 
+import KeywordChartPage from "@/views/feature/meta/search/keyword/KeywordChartPage.vue";
+import RagChatPage from "@/views/feature/meta/search/rag/RagChatPage.vue";
+
 import MetadataListPage from "@/views/feature/meta/manage/dataset/MetadataListPage.vue";
 import MetadataDetailManagePage from "@/views/feature/meta/manage/dataset/MetadataDetailManagePage.vue";
 
@@ -120,7 +123,6 @@ import ExDigitalTwinDetailManagePage from "@/views/feature/meta/external/ExDigit
 
 import ExMedataGraphPage from "@/views/feature/meta/external/ExMedataGraphPage.vue";
 
-import KeywordChartPage from "@/views/feature/meta/search/keyword/KeywordChartPage.vue";
 
 
 const contenxtPath = "";
@@ -581,6 +583,23 @@ export const metaRoutes = {
             },           
           ],
         },
+        {
+          path: "ragsearch",
+          name: "meta_RagSearchPage",
+          meta: { title: "메타데이터 RAG 검색" },   
+          children: [
+            {
+              path: ":",
+              name: "meta_RagChatPage",
+              components: { default: RagChatPage },
+            },  
+            // {
+            //   path: "page/:medataSetId",
+            //   name: "meta_IntgrdataPage",
+            //   components: { default: ExMetadataPage },
+            // },           
+          ],
+        },      
         // 디지털트윈 리소스 트리
 				{
 					path: "resourcetree",

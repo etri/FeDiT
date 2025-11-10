@@ -36,7 +36,7 @@
 			<div class="boxTit">
 				<h3>메타데이터 정보</h3>
 				<div class="btnSec taR">
-					<el-button type="primary" plain @click="goListPage">목록</el-button>
+					<el-button v-if="!isEmbed" type="primary" plain @click="goListPage">목록</el-button>
 				</div>
 			</div>
 			<div class="boxCnt">
@@ -103,7 +103,7 @@ import MetadataSetBasicInfo from "@/components/meta/retrievaldt/MetadataSetBasic
 import MetadataNameValueList from "@/components/meta/retrievaldt/MetadataNameValueList.vue";
 import RetrievalGeneralProperty from "@/components/meta/retrievaldt/RetrievalGeneralProperty.vue";
 
-import { reactive, ref, onMounted, watch, onBeforeMount } from "vue";
+import { reactive, ref, onMounted, watch, onBeforeMount, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getGlobalProperties } from "@/assets/js/common.js";
 import util from "util";
@@ -175,6 +175,11 @@ const clearInfo = (cmd) => {
 	state.dataMap = {};	
 	state.upperMetadataSetDtwListBySubSetId = [];
 }
+
+const isEmbed = ref(
+  typeof window !== "undefined" &&
+  sessionStorage.getItem("dtmeta.dialog-embed") === "1"
+)
 
 const getMetadataSetInfo = (medataSetId) => {
 

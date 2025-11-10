@@ -199,6 +199,10 @@
                         <el-button type="danger" @click="resetNeo4jRdbGraph" v-show="isDelYn(route.meta.auth)"
                           >초기화</el-button
                         >
+                        <el-select v-model="state.neo4jRdbGraphInitDataStatType" class="ml15">
+                          <el-option label="사용 상태인 것만(기본값)" value="onlyUse" />
+                          <el-option label="전체(상태 상관 없이)" value="all" />
+                        </el-select>
                         <span class="ml15"
                           >※ Neo4j 메타데이터 그래프를 초기화합니다. 전체 내용을 삭제 후, "사용" 상태인 메타데이터 셋 들의 정보를 등록합니다.
                           <br/>(데이터가 많을수록 시간이 오래 걸릴 수 있습니다.)</span
@@ -265,6 +269,10 @@
                         <el-button type="danger" @click="resetNeo4jGraph" v-show="isDelYn(route.meta.auth)"
                           >초기화</el-button
                         >
+                        <el-select v-model="state.neo4jGraphInitDataStatType" class="ml15">
+                          <el-option label="사용 상태인 것만(기본값)" value="onlyUse" />
+                          <el-option label="전체(상태 상관 없이)" value="all" />
+                        </el-select>
                         <span class="ml15"
                           >※ Neo4j RDF 그래프를 초기화합니다. 전체 내용을 삭제 후, "사용" 상태인 메타데이터 셋 들의 정보를 등록합니다.
                           <br/>(데이터가 많을수록 시간이 오래 걸릴 수 있습니다.)</span
@@ -550,8 +558,10 @@ const state = reactive({
   virtuosoSkosGraphInitResultErrMsg: "",
   neo4jRdbGraphInitResult: null,
   neo4jRdbGraphInitResultErrMsg: "",
+  neo4jRdbGraphInitDataStatType: "onlyUse",
   neo4jGraphInitResult: null,
   neo4jGraphInitResultErrMsg: "",
+  neo4jGraphInitDataStatType: "onlyUse",
   elasticInitResult: null,
   elasticInitResultErrMsg: "",
   influxDbKeywordInitResult: null,
@@ -976,9 +986,14 @@ const resetNeo4jGraph = () => {
   if (!confirm("neo4j 그래프(RDF)를 초기화하시겠습니까?")) {
     return;
   }
+
+  const params = {
+    initDataStatType: state.neo4jGraphInitDataStatType
+  }
+
   state.neo4jGraphInitResult = "ING";
   $axios
-    .put(util.format($apiUrls.meta.datastore.neo4j.initializeNeo4jGraph))
+    .put(util.format($apiUrls.meta.datastore.neo4j.initializeNeo4jGraph), null, { params })
     .then((res) => {
       console.log(res.data);
       alert("neo4j 그래프(RDF) 초기화 성공했습니다.");
@@ -996,9 +1011,14 @@ const resetNeo4jRdbGraph = () => {
   if (!confirm("neo4j 그래프(RDB)를 초기화하시겠습니까?")) {
     return;
   }
+
+  const params = {
+    initDataStatType: state.neo4jRdbGraphInitDataStatType
+  }
+
   state.neo4jRdbGraphInitResult = "ING";
   $axios
-    .put(util.format($apiUrls.meta.datastore.neo4j.initializeNeo4jRdbGraph))
+    .put(util.format($apiUrls.meta.datastore.neo4j.initializeNeo4jRdbGraph), null, { params })
     .then((res) => {
       console.log(res.data);
       alert("neo4j 그래프(RDB) 초기화 성공했습니다.");
