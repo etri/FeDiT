@@ -11,8 +11,9 @@
         <div class="hint-wrap">
           <div class="hint-head">
             <h4>예시 질문</h4>
+            <el-button type="default" size="small" class="ml15" @click="showEx = !showEx">{{ showEx ? '접기' : '펼치기' }}</el-button>
           </div>
-          <div class="hint-grid">
+          <div class="hint-grid"  v-show="showEx">
             <div v-for="(h, i) in HINT_SETS" :key="i" class="hint-card">
               <div class="title">{{ h.title }}</div>
               <div class="chips">
@@ -24,10 +25,10 @@
                   @click="useHint(q, 'send')"
                 >{{ q }}</el-button>
               </div>
-              <div class="tiny">
+              <!-- <div class="tiny">
                 <span class="example-label">예:</span>
                 <a href="#" @click.prevent="useHint(h.example, 'fill')">{{ h.example }}</a>
-              </div>
+              </div> -->
             </div>
           </div>
         </div>
@@ -89,13 +90,16 @@
 import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { getGlobalProperties } from "@/assets/js/common.js";
 import MarkdownIt from 'markdown-it'
-import hljs from 'highlight.js'
+import Prism from 'prismjs'
+import 'prismjs/themes/prism.css'  
 import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
 const route = useRoute()
 const $axios = getGlobalProperties().$axios;
 const $apiUrls = getGlobalProperties().$apiUrls;
+
+const showEx = ref(false);
 
 // -----------------------------
 // 예시 질문
@@ -197,14 +201,16 @@ const md = new MarkdownIt({
   html: false,
   linkify: true,
   typographer: true,
-  highlight: (str, lang) => {
+  highlight: (code, lang) => {
     try {
-      if (lang && hljs.getLanguage(lang)) {
-        return `<pre class="hljs"><code>${hljs.highlight(str, { language: lang }).value}</code></pre>`
+      if (lang && Prism.languages[lang]) {
+        const html = Prism.highlight(code, Prism.languages[lang], lang)
+        return `<pre class="language-${lang}"><code class="language-${lang}">${html}</code></pre>`
       }
-      return `<pre class="hljs"><code>${md.utils.escapeHtml(str)}</code></pre>`
+      // 언어 미지정/미지원: 이스케이프만
+      return `<pre><code>${md.utils.escapeHtml(code)}</code></pre>`
     } catch {
-      return `<pre class="hljs"><code>${md.utils.escapeHtml(str)}</code></pre>`
+      return `<pre><code>${md.utils.escapeHtml(code)}</code></pre>`
     }
   }
 })
@@ -327,7 +333,7 @@ const onTimelineKeydown = (e) => {
 .boxCnt { display:flex; flex-direction: column; height: calc(100vh - 260px); }
 
 .hint-wrap{ margin-bottom:20px; }
-.hint-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.hint-head{ display:flex; /* justify-content:space-between; */ align-items:center; margin-bottom:6px; }
 .hint-head h4{ margin:0; font-size:14px; font-weight:700; color:#333; }
 .hint-grid{
   display:grid;
