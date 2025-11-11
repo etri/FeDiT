@@ -1,0 +1,47 @@
+# docker-compose.dev.yml
+
+name: dtmeta
+
+services:
+  keti-dt-metadata-vector:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5000:5000"
+    environment:
+      RUN_MODE: ${RUN_MODE:-dev}             # 기본 dev, 필요 시 prod로 오버라이드
+      PYTHONPATH: /app/src                   # src 직하 .py 임포트
+      DEFAULT_TZ_NAME: ${DEFAULT_TZ_NAME:-Asia/Seoul}
+      # ↓ 프록시 변수 전부 비우기 (대/소문자 모두)
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      ALL_PROXY: ""
+      NO_PROXY: "localhost,127.0.0.1"
+      OPENAI_PROXY: ""
+      http_proxy: ""
+      https_proxy: ""
+      all_proxy: ""
+      no_proxy: "localhost,127.0.0.1"
+      openai_proxy: ""
+    env_file:
+      - .env.dev
+    volumes:
+      - .:/app                               # 핫리로드(운영에선 제거 권장)
+      - model_cache:/app/.cache/hf      
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5000/health || exit 1"]
+      interval: 1m
+      timeout: 5s
+      retries: 3
+      start_period: 1m
+    networks:
+      - keti-dt-net
+
+volumes:
+  model_cache:
+
+networks:
+  keti-dt-net:
+    external: true
