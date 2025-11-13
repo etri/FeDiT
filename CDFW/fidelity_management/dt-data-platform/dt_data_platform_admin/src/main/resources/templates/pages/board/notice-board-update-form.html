@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/platform_layout}">
+
+<head>
+    <title th:text="${breadcrumb.menu_nm}">게시판</title>
+</head>
+<div layout:fragment="content">
+    <div class="page-title">
+        <div class="contain">
+            <h1 th:text="${breadcrumb.menu_nm}">공지사항</h1>
+        </div>
+    </div>
+
+    <section class="data-edit-section">
+        <div class="contain-sm">
+            <div class="form-frame" data-action-container="update">
+                <div class="form-frame-header">
+                    <h2 class="title" th:text="${breadcrumb.menu_nm} + ' 수정'">공지사항 수정</h2>
+                </div>
+                <div class="form-frame-body">
+                    <!---- form 내용 ---->
+                    <div class="form-wrap">
+                        <div class="form-control-wrap">
+                            <label id="title_label" class="form-label" for="title">제목 <span
+                                    class="badge required">필수</span></label>
+                            <input type="text" id="title" class="form-control sm" placeholder="제목을 입력해주세요"
+                                   th:value="${board.board_nm}"
+                                   aria-labelledby="title_label">
+                        </div>
+                        <div class="form-control-wrap">
+                            <label id="description_label" class="form-label" for="description">내용 <span
+                                    class="badge required">필수</span></label>
+                            <textarea id="description" rows="5" class="form-control sm"
+                                      placeholder="내용을 입력해주세요"
+                                      th:text="${board.board_derpn}"></textarea>
+                        </div>
+
+                        <div class="form-control-wrap" th:if="${board.files != null}">
+                            <label id="attachFiles_label" class="form-label" for="attach_files">게시판 파일</label>
+                            <div class="form-group attach-file-group" style="padding-top: 0; padding-bottom: 0;">
+                                <div class="attach-file pt-0" style="display: flex;">
+                                    <input type="file" name="attach_files" class="file-upload-default" id="attach_files"
+                                           th:data-origin-file-nm="${board.files.fileNm}"
+                                           data-origin-file-check="true"
+                                           style="display: none;">
+                                    <div class="input-group">
+                                        <input type="text" id="attach_files_input" disabled="disabled"
+                                               class="form-control sm file-upload-title" style="margin-top: 0;" placeholder="파일을 선택해주세요"
+                                               th:value="${board.files.fileNm}">
+                                        <button type="button" class="form-right-action sm file-upload-browse"
+                                                style="z-index: 999 !important;">파일선택
+                                        </button>
+                                    </div>
+                                    <button type="button" name="clearButton" id="clearButton" class="ui-button primary" style="margin-left: 8px;">초기화
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-control-wrap" th:unless="${board.files != null}">
+                            <label id="attachFiles_label" class="form-label" for="attach_files">게시판 파일</label>
+                            <div class="form-group attach-file-group" style="padding-top: 0; padding-bottom: 0;">
+                                <div class="attach-file pt-0" style="display: flex;">
+                                    <input type="file" name="attach_files" class="file-upload-default" id="attach_files"
+                                           style="display: none;">
+                                    <div class="input-group">
+                                        <input type="text" id="attach_files_input" disabled="disabled"
+                                               class="form-control sm file-upload-title" style="margin-top: 0;" placeholder="파일을 선택해주세요">
+                                        <button type="button" class="form-right-action sm file-upload-browse"
+                                                style="z-index: 999 !important;">파일선택
+                                        </button>
+                                    </div>
+                                    <button type="button" name="clearButton" id="clearButton" class="ui-button primary" style="margin-left: 8px;">초기화
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-control-wrap">
+                            <span class="form-label">사용 여부 <span class="badge required">필수</span></span>
+                            <ul class="form-checkbox-list">
+                                <li class="form-checkbox">
+                                    <input type="radio" name="rlsYn" id="useY" class="ui-check"
+                                           value="N"
+                                           data-label="비공개"
+                                           aria-labelledby="useN_label"
+                                           th:checked="*{board.rls_yn == 'N' or board.rls_yn == null}">
+                                    <label class="form-label" for="useY" id="useN_label">비공개</label>
+                                </li>
+                                <li class="form-checkbox">
+                                    <input type="radio" name="rlsYn" id="useN" class="ui-check"
+                                           value="Y"
+                                           data-label="공개"
+                                           aria-labelledby="useY_label"
+                                           th:checked="*{board.rls_yn == 'Y'}">
+                                    <label class="form-label" for="useN" id="useY_label">공개</label>
+                                </li>
+                            </ul>
+                        </div>
+
+                    </div>
+                    <!---- form 내용 END ---->
+                </div>
+                <div class="form-frame-footer buttons">
+                    <a class="ui-button sm primary"
+                       th:href="|/dt/board/notice/list?menuCd=${menuCd}|">목록</a>
+                    <button type="button" class="ui-button sm primary"
+                            data-action="update"
+                            th:data-board-no="${board.board_seq}"
+                            data-type="NOTICE">수정
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+<th:block layout:fragment="custom_css">
+    <link rel="stylesheet" th:href="@{/assets/css/codemirror.css}"/>
+    <link rel="stylesheet" th:href="@{/assets/vendors/datatables.net-bs4/dataTables.bootstrap4.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/custom.css}">
+</th:block>
+<th:block layout:fragment="custom_js">
+    <script th:src="@{/assets/js/file-upload.js}"></script>
+    <script th:src="@{/assets/js/pages/board/board-form.js}"></script>
+</th:block>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/platform_layout}">
+
+<head>
+    <title th:text="${breadcrumb.menu_nm}">게시판</title>
+</head>
+<div layout:fragment="content">
+    <div class="page-title">
+        <div class="contain">
+            <h1 th:text="${breadcrumb.menu_nm}">공지사항 게시판</h1>
+        </div>
+    </div>
+    <div class="list-top">
+        <div class="contain">
+            <form name="searchForm" th:action="@{/dt/board/notice/list(menuCd=${params.menuCd})}"
+                  th:object="${params}"
+                  method="GET" style="display: none;">
+                <input type="hidden" th:field="*{menuCd}"/>
+                <input type="hidden" id="pagingPage" name="page" th:value="${paging.page}"/>
+                <input type="hidden" id="pagingSize" name="size" th:value="${paging.size}"/>
+                <input type="hidden" th:field="*{field}"/>
+                <input type="hidden" th:field="*{keyword}"/>
+                <button type="submit" class="ui-button primary btn-search">조회</button>
+            </form>
+            <div class="filter-wrap">
+                <!-- 유형 -->
+                <div class="filter-layer-box"><!-- 옵션 선택시 :: is-selected 클래스 추가 -->
+                    <button type="button" class="filter-toggle">유형<span class="filter-value"
+                                                                        th:data-initialize="${params.field}">제목</span>
+                    </button>
+                    <div class="filter-layer" aria-expanded="false" style="position: absolute; top: calc(100% + 2px);">
+                        <ul class="option-list">
+                            <li>
+                                <input type="radio" id="searchType1" name="searchType" value="title"
+                                       th:checked="${params.field == 'title' or params.field == null or params.field == ''}">
+                                <label for="searchType1">제목</label>
+                            </li>
+                            <li>
+                                <input type="radio" id="searchType2" name="searchType" value="description"
+                                       th:checked="${params.field == 'description'}">
+                                <label for="searchType2">내용</label>
+                            </li>
+                            <li>
+                                <input type="radio" id="searchType3" name="searchType" value="author"
+                                       th:checked="${params.field == 'author'}">
+                                <label for="searchType3">작성자</label>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 검색어 -->
+                <div class="filter-layer-box">
+                    <button type="button" class="filter-toggle">검색어<span class="filter-value"
+                                                                         th:if="${params.keyword != null && params.keyword != ''}"
+                                                                         th:text="${params.keyword}"></span></button>
+                    <div class="filter-layer exclude-layer form-control-wrap"
+                         style="position: absolute; top: calc(100% + 2px);"
+                         aria-expanded="false">
+                        <div class="input-group">
+                            <input type="text" id="filterKeyword" class="form-control md" placeholder="검색어를 입력해주세요">
+                            <button type="button" class="form-right-action" id="filterKeywordAction">입력</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="buttons-group">
+                <button type="button" th:data-href="@{|/dt/board/notice/form?menuCd=${menuCd}|}"
+                        class="ui-button xs primary ico">
+                    <img src="/assets/images/platform/ico_add_wh.svg" alt="">등록
+                </button>
+            </div>
+        </div>
+    </div>
+    <section class="data-section">
+        <div class="contain">
+            <div id="loading" style="margin-left: 0px;display: none;">
+                <img th:src="@{/assets/images/ajax-loading.gif}" alt="loading"/>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="table-box">
+                        <table class="data-table">
+                            <colgroup>
+                                <col style="width:5%">
+                                <col style="width: 15%;">
+                                <col style="width: 20%;">
+                                <col style="width:4.8%;">
+                                <col style="width:4.8%;">
+                                <col style="width:4.8%;">
+                            </colgroup>
+                            <thead>
+                            <tr>
+                                <th>번호</th>
+                                <th>제목</th>
+                                <th>내용</th>
+                                <th>작성자</th>
+                                <th>등록일</th>
+                                <th>기능</th>
+                            </tr>
+                            </thead>
+                            <tbody class="table-text-nowrap">
+                            <th:block th:include="fragments/table_empty:: table_empty(6)"
+                                      th:if="${#lists.isEmpty(boards)}"></th:block>
+                            <tr th:each="item : ${boards}" th:unless="${#lists.isEmpty(boards)}">
+                                <td th:text="${paging.total - item.rnum + 1}"></td>
+                                <td>
+                                    <a th:href="@{|/dt/board/notice/${item.board_seq}?menuCd=${menuCd}|}"
+                                       th:text="${item.board_nm}">제목</a>
+                                </td>
+                                <td th:text="${item.board_smp_derpn}"></td>
+                                <td th:text="${item.user_id}"></td>
+                                <td th:text="${item.reg_dt}"></td>
+                                <td>
+                                    <th:block th:if="${item.is_delete == true}">
+                                        <button type="button"
+                                                class="ui-button danger sm"
+                                                data-action="delete" th:data-number="${item.board_seq}"
+                                                data-type="NOTICE">
+                                            삭제
+                                        </button>
+                                    </th:block>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <th:block th:include="fragments/platform_paging"></th:block>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+<th:block layout:fragment="custom_css">
+    <link rel="stylesheet" th:href="@{/assets/css/codemirror.css}"/>
+    <link rel="stylesheet" th:href="@{/assets/vendors/datatables.net-bs4/dataTables.bootstrap4.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/custom.css}">
+</th:block>
+<th:block layout:fragment="custom_js">
+    <script th:src="@{/assets/js/file-upload.js}"></script>
+    <script th:src="@{/assets/js/pages/board/board.js}"></script>
+</th:block>
+</html>
