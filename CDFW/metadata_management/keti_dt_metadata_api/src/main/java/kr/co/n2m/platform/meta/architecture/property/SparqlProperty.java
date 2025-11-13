@@ -9,8 +9,7 @@ import lombok.Data;
 @Component
 @ConfigurationProperties(prefix = "virtuoso")
 @Data
-public class VirtuosoProperty {
-	
+public class SparqlProperty {
 	@Value("${virtuoso.datasource.url}")
 	private String url;	
 
@@ -29,4 +28,12 @@ public class VirtuosoProperty {
 	@Value("${virtuoso.conductor-url}")
 	private String conductorUrl;
 	
+	@Value("${virtuoso.query-endpoint}")
+	private String queryEndpoint;
+	
+	@Value("${virtuoso.update-endpoint}")
+	private String updateEndpoint;
+	
+	@Value("${virtuoso.gsp-endpoint}")
+	private String gspEndpoint;
 }
