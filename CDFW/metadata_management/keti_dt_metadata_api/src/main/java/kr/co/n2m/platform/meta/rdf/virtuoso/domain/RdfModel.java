@@ -260,6 +260,10 @@ public class RdfModel {
 		}
 	}
 	
+	public Model getModel() {
+	    return model;   // 호출 측에서 close하지 말고, RdfModel.close()만 호출
+	}
+	
 	/**
 	 * RDF 모델 만들기
 	 * @param medataSetId
@@ -1085,7 +1089,7 @@ public class RdfModel {
 	        String key = String.join("|", country, region, locality, street, postal, pobox)
 	                        .replaceAll("\\|+$","");
 
-	        String urn = "urn:dtmeta:address:v1-" + SecurityUtil.toSha256Hex(key);
+	        String urn = DtmetaSkolem.ADDRESS_BASE + "v1-" + SecurityUtil.toSha256Hex(key);
 
 	        // 빈노드 대신 URN 리소스 사용
 	        addressRes = model.createResource(urn);
@@ -1332,17 +1336,17 @@ public class RdfModel {
 	               + "|" + String.join(",", telList);
 
 	    // 5) 클래스별 prefix
-	    String prefix = "urn:dtmeta:contact:cp:v1-";
+	    String prefix = DtmetaSkolem.CONTACT_BASE + "cp:v1-";
 	    if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Organization.getURI(), classIri)
 	            || RdfUtil.equalsUriIgnoreScheme(SchemaDO.Organization.getURI(), classIri)) {
-	        prefix = "urn:dtmeta:contact:org:v1-";
+	        prefix = DtmetaSkolem.CONTACT_BASE + "org:v1-";
 	    } else if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Individual.getURI(), classIri)
 	            || RdfUtil.equalsUriIgnoreScheme(SchemaDO.Person.getURI(), classIri)) {
-	        prefix = "urn:dtmeta:contact:person:v1-";
+	        prefix = DtmetaSkolem.CONTACT_BASE + "person:v1-";
 	    } else if (RdfUtil.equalsUriIgnoreScheme(VCARD4.Kind.getURI(), classIri)) {
-	        prefix = "urn:dtmeta:contact:kind:v1-";
+	        prefix = DtmetaSkolem.CONTACT_BASE + "kind:v1-";
 	    } else if (RdfUtil.equalsUriIgnoreScheme(SchemaDO.ContactPoint.getURI(), classIri)) {
-	        prefix = "urn:dtmeta:contact:cp:v1-";
+	        prefix = DtmetaSkolem.CONTACT_BASE + "cp:v1-";
 	    }
 
 	    return prefix + SecurityUtil.toSha256Hex(key);

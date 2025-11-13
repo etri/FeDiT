@@ -60,9 +60,13 @@ virtuoso:
     username: meta_manager
     password: rhksflwk1!
   graph:
-    dev: DEV_GRAPH_NM
-    use: USE_GRAPH_NM
+    dev: urn:dtmeta:graph:dev
+    use: urn:dtmeta:graph:use
   conductor-url: http://{virtuoso web server ip}:8890/conductor
+  # 새로 추가 (jena 라이브러리 사용 변경으로 인한 속성 추가) (HTTP SPARQL / GSP 엔드포인트)
+  query-endpoint: http://{virtuoso web server ip}:8890/sparql
+  update-endpoint: http://{virtuoso web server ip}:8890/sparql-auth
+  gsp-endpoint: http://{virtuoso web server ip}:8890/sparql-graph-crud-auth
     
 # NEO4J
 neo4j:
@@ -162,10 +166,14 @@ virtuoso:
     username: meta_manager
     password: rhksflwk1!
   graph:
-    dev: DEV_GRAPH_NM
-    use: USE_GRAPH_NM
+    dev: urn:dtmeta:graph:dev
+    use: urn:dtmeta:graph:use
   conductor-url: http://{virtuoso web server ip}:8890/conductor
-    
+  # 새로 추가 (jena 라이브러리 사용 변경으로 인한 속성 추가) (HTTP SPARQL / GSP 엔드포인트)
+  query-endpoint: http://{virtuoso web server ip}:8890/sparql
+  update-endpoint: http://{virtuoso web server ip}:8890/sparql-auth
+  gsp-endpoint: http://{virtuoso web server ip}:8890/sparql-graph-crud-auth
+
 # NEO4J
 neo4j:
   authentication:
@@ -269,9 +277,13 @@ virtuoso:
     username: meta_manager
     password: rhksflwk1!
   graph:
-    dev: DEV_GRAPH_NM
-    use: USE_GRAPH_NM
+    dev: urn:dtmeta:graph:dev
+    use: urn:dtmeta:graph:use
   conductor-url: http://{virtuoso web server ip}:8890/conductor
+  # 새로 추가 (jena 라이브러리 사용 변경으로 인한 속성 추가) (HTTP SPARQL / GSP 엔드포인트)
+  query-endpoint: http://{virtuoso web server ip}:8890/sparql
+  update-endpoint: http://{virtuoso web server ip}:8890/sparql-auth
+  gsp-endpoint: http://{virtuoso web server ip}:8890/sparql-graph-crud-auth
     
 # NEO4J
 neo4j:
