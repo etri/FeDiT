@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.n2m.platform.meta.portal.notifc.mapper.NotifcTypeMapper">
+    <sql id="limitPage">
+        <if test="isPaging">
+            OFFSET #{startIndex} LIMIT #{pageListSize}
+        </if>
+        <if test="!isPaging">
+            OFFSET 0 LIMIT #{limitListSize}
+        </if>
+    </sql>
+    <sql id="whereByNotifcType">
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(notifcUseYn)">
+            AND t1.notifc_use_yn = #{notifcUseYn}
+        </if>
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(notifcTypeId)">
+            AND t1.notifc_type_id = #{notifcTypeId}
+        </if>        
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(notifcMsgTmplt)">
+            AND t1.notifc_msg_tmplt ILIKE CONCAT('%', #{notifcMsgTmplt}, '%')
+        </if>
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(searchTypeKeyword)">
+            AND(
+                t1.notifc_type_id ILIKE CONCAT('%', #{searchTypeKeyword}, '%'
+            ) OR
+                t1.notifc_type_nm ILIKE CONCAT('%', #{searchTypeKeyword}, '%')
+            )
+        </if>
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(searchTargetKeyword)">
+            AND (
+                tb_sub1.notifc_tgtr_ids_str ILIKE CONCAT('%', #{searchTargetKeyword}, '%')
+            OR
+                tb_sub1.notifc_tgtr_nms_str ILIKE CONCAT('%', #{searchTargetKeyword}, '%')
+            )
+        </if>        
+    </sql>
+    <select id="selectNotifcTypeCount" resultType="int">
+        SELECT COUNT(*) /* SQL_ID: NotifcTypeMapper.selectNotifcTypeCount */
+        FROM dtmeta.tb_portal_notifctype t1
+            LEFT JOIN (
+                SELECT notifc_type_id, string_agg(nm_str, ',') AS notifc_tgtr_nms_str, string_agg(id_str, ',') AS notifc_tgtr_ids_str
+                FROM (
+                    SELECT notifc_type_id, unnest(string_to_array(nm_str, ',')) AS nm_str, unnest(string_to_array(id_str, ',')) AS id_str
+                    FROM (
+                        SELECT tmp1.notifc_type_id, string_agg(notifc_tgtr_nms, ',') AS nm_str, string_agg(notifc_tgtr_ids, ',') AS id_str
+                        FROM  dtmeta.tb_portal_notifctype tmp1
+                            LEFT JOIN dtmeta.tb_portal_notifctarget tmp2 ON tmp1.notifc_type_id = tmp2.notifc_type_id
+                        GROUP BY 1
+                    ) sub1
+                    GROUP BY 1, 2, 3
+                ) sub2
+                GROUP BY 1
+            ) tb_sub1 ON t1.notifc_type_id = tb_sub1.notifc_type_id 
+        WHERE 1=1
+        <include refid="whereByNotifcType"/>
+    </select>
+    <select id="selectNotifcTypeList" parameterType="notifcSearchVo" resultType="notifcTypeDto">
+        SELECT /* SQL_ID: NotifcTypeMapper.selectNotifcTypeList */
+            t1.notifc_type_id
+            , t1.notifc_type_nm
+            , t1.notifc_use_yn
+            , t1.notifc_msg_tmplt
+            , t1.notifc_msg_rstrtn_len
+            , t1.notifc_link_tmplt_url
+            , t1.notifc_type_sort_odrg            
+            , t1.notifc_type_regr_id
+            , t1.notifc_type_regr_nm
+            , to_char(t1.notifc_type_reg_dt, #{sqlDateFormat}) AS notifc_type_reg_dt
+            , t1.notifc_type_amdr_id
+            , t1.notifc_type_amdr_nm
+            , to_char(t1.notifc_type_amd_dt, #{sqlDateFormat}) AS notifc_type_amd_dt
+            , tb_sub1.notifc_tgtr_nms_str
+            , tb_sub1.notifc_tgtr_ids_str
+        FROM dtmeta.tb_portal_notifctype t1
+            LEFT JOIN (
+                SELECT notifc_type_id, string_agg(nm_str, ',') AS notifc_tgtr_nms_str, string_agg(id_str, ',') AS notifc_tgtr_ids_str
+                FROM (
+                    SELECT notifc_type_id, unnest(string_to_array(nm_str, ',')) AS nm_str, unnest(string_to_array(id_str, ',')) AS id_str
+                    FROM (
+                        SELECT tmp1.notifc_type_id, string_agg(notifc_tgtr_nms, ',') AS nm_str, string_agg(notifc_tgtr_ids, ',') AS id_str
+                        FROM  dtmeta.tb_portal_notifctype tmp1
+                            LEFT JOIN dtmeta.tb_portal_notifctarget tmp2 ON tmp1.notifc_type_id = tmp2.notifc_type_id
+                        GROUP BY 1
+                    ) sub1
+                    GROUP BY 1, 2, 3
+                ) sub2
+                GROUP BY 1
+            ) tb_sub1 ON t1.notifc_type_id = tb_sub1.notifc_type_id            
+        WHERE 1=1
+        <include refid="whereByNotifcType"/>
+        ORDER BY t1.notifc_type_sort_odrg
+        <include refid="limitPage"/>
+    </select>
+    <select id="selectNotifcType" parameterType="notifcSearchVo" resultType="notifcTypeVo">
+        SELECT /* SQL_ID: NotifcTypeMapper.selectNotifcType */
+            t1.notifc_type_id,
+            t1.notifc_type_nm,
+            t1.notifc_use_yn,
+            t1.notifc_type_desc,
+            t1.notifc_msg_tmplt,
+            t1.notifc_msg_rstrtn_len,
+            t1.notifc_link_tmplt_url,
+            t1.notifc_type_sort_odrg,            
+            t1.notifc_type_regr_id,
+            t1.notifc_type_regr_nm,
+            to_char(t1.notifc_type_reg_dt, #{sqlDateFormat}) AS notifc_type_reg_dt,
+            t1.notifc_type_amdr_id,
+            t1.notifc_type_amdr_nm,
+            to_char(t1.notifc_type_amd_dt, #{sqlDateFormat}) AS notifc_type_amd_dt
+        FROM dtmeta.tb_portal_notifctype t1
+        WHERE t1.notifc_type_id = #{notifcTypeId}
+    </select>
+    <select id="isNotifcTypeIdExist" parameterType="java.lang.String" resultType="boolean">
+        SELECT EXISTS (  /* SQL_ID: NotifcTypeMapper.isNotifcTypeIdExist */
+            SELECT 1
+            FROM dtmeta.tb_portal_notifctype
+            WHERE notifc_type_id = #{notifcTypeId}
+        )
+    </select>
+    <insert id="insertNotifcType">
+        INSERT
+        INTO dtmeta.tb_portal_notifctype (  /* SQL_ID: NotifcTypeMapper.insertNotifcType */
+            notifc_type_id
+            , notifc_type_nm
+            , notifc_use_yn
+            , notifc_type_desc
+            , notifc_msg_rstrtn_len
+            , notifc_msg_tmplt
+            , notifc_link_tmplt_url
+            , notifc_type_sort_odrg            
+            , notifc_type_regr_id
+            , notifc_type_regr_nm
+            , notifc_type_reg_dt
+            , notifc_type_amdr_id
+            , notifc_type_amdr_nm
+            , notifc_type_amd_dt
+        )
+        VALUES (
+            #{notifcTypeId}
+            , #{notifcTypeNm}
+            , #{notifcUseYn}
+            , #{notifcTypeDesc}
+            , #{notifcMsgRstrtnLen}
+            , #{notifcMsgTmplt}
+            , #{notifcLinkTmpltUrl}
+            , #{notifcTypeSortOdrg}            
+            , #{notifcTypeRegrId}
+            , #{notifcTypeRegrNm}
+            , current_timestamp
+            , #{notifcTypeAmdrId}
+            , #{notifcTypeAmdrNm}
+            , current_timestamp
+        )
+    </insert>
+    <update id="updateNotifcType" parameterType="notifcTypeVo">
+        UPDATE dtmeta.tb_portal_notifctype   /* SQL_ID: NotifcTypeMapper.updateNotifcType */
+        SET
+            notifc_type_nm = #{notifcTypeNm}
+            , notifc_use_yn = #{notifcUseYn}
+            , notifc_type_desc = #{notifcTypeDesc}
+            , notifc_msg_rstrtn_len = #{notifcMsgRstrtnLen}
+            , notifc_msg_tmplt = #{notifcMsgTmplt}
+            , notifc_link_tmplt_url = #{notifcLinkTmpltUrl}
+            , notifc_type_sort_odrg = #{notifcTypeSortOdrg}            
+            , notifc_type_amdr_id = #{notifcTypeAmdrId}
+            , notifc_type_amdr_nm = #{notifcTypeAmdrNm}
+            , notifc_type_amd_dt = current_timestamp
+        WHERE notifc_type_id = #{notifcTypeId}
+    </update>
+    <delete id="deleteNotifcType" parameterType="java.lang.String">
+        DELETE   /* SQL_ID: NotifcTypeMapper.deleteNotifcType */
+        FROM dtmeta.tb_portal_notifctype
+        WHERE notifc_type_id = #{notifcTypeId}
+    </delete>
+    <select id="isNotifcTypeIdExistInTarget" parameterType="java.lang.String" resultType="boolean">
+        SELECT EXISTS (  /* SQL_ID: NotifcTypeMapper.isNotifcTypeIdExistInTarget */
+            SELECT 1
+            FROM dtmeta.tb_portal_notifctarget
+            WHERE notifc_type_id = #{notifcTypeId}
+        )
+    </select>
+</mapper>

@@ -1,0 +1,56 @@
+@charset 'utf-8';
+
+@import url('common.css');
+/* @import url('style.css'); */ /* DT other theme */
+@import url('header.css');
+@import url('main.css');
+@import url('sub.css');
+@import url('login.css');
+@import url('font-awesome.css');
+/* meta에 필요없음. @import url('sub_datacore.css'); */
+
+/* 노토산스 폰트변경 */
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: url('../fonts/NotoSansKR-Regular.eot'),
+    url('../fonts/NotoSansKR-Regular.ttf') format('turetype'),
+    url('../fonts/NotoSansKR-Regular.woff2') format('font-woff2');
+}
+
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: normal;
+  font-weight: 700;
+  src: url('../fonts/NotoSansKR-Bold.eot'),
+    url('../fonts/NotoSansKR-Bold.ttf') format('turetype'),
+    url('../fonts/NotoSansKR-Bold.woff2') format('font-woff2');
+}
+
+@font-face {
+  font-family: 'Min Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: url('../fonts/MinSans-Regular.eot'),
+    url('../fonts/MinSans-Regular.ttf') format('truetype'),
+    url('../fonts/MinSans-Regular.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Min Sans';
+  font-style: normal;
+  font-weight: 700;
+  src: url('../fonts/MinSans-Bold.eot'),
+    url('../fonts/MinSans-Bold.ttf') format('truetype'),
+    url('../fonts/MinSans-Bold.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Min Sans';
+  font-style: normal;
+  font-weight: 800;
+  src: url('../fonts/MinSans-ExtraBold.eot'),
+    url('../fonts/MinSans-ExtraBold.ttf') format('truetype'),
+    url('../fonts/MinSans-ExtraBold.woff') format('woff');
+}
