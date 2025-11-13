@@ -1,0 +1,465 @@
+{
+  "platform" : {
+    "getPlatformPaging"          : "/api/admin/platformPaging",
+    "getPlatformList"            : "/api/admin/platform",
+    "setPlatformDetail"          : "/api/admin/platform",
+    "getPlatformDetail"          : "/api/admin/platform/%s",
+    "modifyPlatform"             : "/api/admin/platform/%s"
+  },
+  "menu": {
+    "getUserMenu"           : "/api/admin/usermenu",
+    "getMenuList"           : "/api/admin/menu",
+    "setMenuDetail"         : "/api/admin/menu",
+    "getMenuDetail"         : "/api/admin/menu/%s",
+    "modifyMenuDetail"      : "/api/admin/menu/%s",
+    "deleteMenuDetail"      : "/api/admin/menu/%s"
+  },
+  "common": {
+    "group": {
+      "getGroupList"            : "/api/admin/groupPaging",
+      "getGroupDetail"          : "/api/admin/group/%s",
+      "setGroupDetail"          : "/api/admin/group",
+      "modifyGroup"             : "/api/admin/group/%s",
+      "deleteGroup"             : "/api/admin/group/%s",
+
+      "getGroupUserList"         : "/api/admin/groupUsers",
+      "getGroupUserDetail"       : "/api/admin/groupUsers/%s",
+      "setGroupUser"             : "/api/admin/groupUser",
+      "setGroupUsers"            : "/api/admin/groupUsers",
+      "deleteGroupUser"          : "/api/admin/groupUsers/%s",
+      "deleteGroupUsers"         : "/api/admin/groupUsers"
+    }
+  },
+  "admin": {
+    "auth": {
+      "getAuthMenu"             : "/api/admin/authgroup/%s/menu",
+      "getAuthList"             : "/api/admin/authPaging",
+      "getAuthDetail"           : "/api/admin/auth/%s",
+      "setAuthDetail"           : "/api/admin/auth",
+      "modifyAuthDetail"        : "/api/admin/auth/%s",
+      "deleteAuthDetail"        : "/api/admin/auth/%s",
+      "getAuthUserList"         : "/api/admin/auth/%s/users",
+      "setAuthUsers"            : "/api/admin/auth/%s/users",
+      "deleteAuthUsers"         : "/api/admin/auth/%s/users",
+      "replaceAuthUsers"        : "/api/admin/auth/%s/users/replace",
+      "getAuthMenuList"         : "/api/admin/auth/%s/menu",
+      "setAuthMenus"            : "/api/admin/auth/%s/menus",
+      "deleteAuthMenuList"      : "/api/admin/auth/%s/menu",
+      "getAuthApiList"          : "/api/admin/auth/%s/apigroup",
+      "setAuthApiList"          : "/api/admin/auth/%s/apigroups",
+      "deleteAuthApiList"       : "/api/admin/auth/%s/apigroup",
+      "deleteAuthData"          : "/api/admin/authData/%s"
+    },
+    "code": {
+      "getCodes"                : "/api/admin/codegroup/%s/codes",
+      "getWflowCodes"           : "/api/admin/codegroup/wflowCodes",
+      "getCodegroupList"        : "/api/admin/codegroupPaging",
+      "setCodegroup"            : "/api/admin/codegroup",
+      "getCodegroupDetail"      : "/api/admin/codegroup/%s",
+      "modifyCodegroupDetail"   : "/api/admin/codegroup/%s",
+      "deleteCodegroupDetail"   : "/api/admin/codegroup/%s",
+      "getCodegroupCodeList"    : "/api/admin/codegroup/%s/codes",
+      "deleteCodeList"          : "/api/admin/codegroup/%s/codes",
+      "setCode"                 : "/api/admin/codegroup/%s/codes",
+      "modifyCode"              : "/api/admin/codegroup/%s/codes/%s",
+      "deleteCode"              : "/api/admin/codegroup/%s/codes/%s",
+      "deleteCodeAllData"       : "/api/admin/codegroupData/%s"
+    },
+    "notices": {
+      "getNoticePaging"         : "/api/admin/noticePaging",
+      "getNoticeDetail"         : "/api/admin/notice/%s",
+      "setNoticeDetail"         : "/api/admin/notice",
+      "modifyNoticeDetail"      : "/api/admin/notice/%s",
+      "deleteNoticeDetail"      : "/api/admin/notice/%s",
+      "getNoticeAttachFiles"    : "/api/admin/notice/%s/attachFiles",
+      "setNoticeAttachFiles"    : "/api/admin/notice/%s/attachFiles",
+      "deleteNoticeAttachFiles" : "/api/admin/notice/%s/attachFiles",
+      "patchNoticeHit"          : "/api/admin/notice/%s/hit",
+      "hasPopupNoticeByPltfrm"  : "/api/admin/notice/%s/popup"
+    },
+    "common": {
+      "getDownloadFile"         : "/api/admin/downloadFile",
+      "getSuperAdmin"           : "/api/admin/auth/admin"
+    },
+    "user" : {
+      "getUserPaging"           : "/api/admin/userPaging",    
+      "getUserList"             : "/api/admin/user"
+    },
+    "board" : {
+      "getBoardPaging"          : "/api/admin/boardPaging",
+      "setBoardDetail"          : "/api/admin/board",
+      "getBoardDetail"          : "/api/admin/board/%s",
+      "modifyBoardDetail"       : "/api/admin/board/%s",
+      "deleteBoardDetail"       : "/api/admin/board/%s"
+    },
+    "boardmsg" : {
+      "getboardmsgPaging"      : "/api/admin/boardPostPaging",
+      "setBoardmsgDetail"      : "/api/admin/board/%s/post",
+      "getBoardmsgDetail"      : "/api/admin/board/%s/post/%s",
+      "modifyBoardmsgDetail"   : "/api/admin/board/%s/post/%s",
+      "deleteBoardmsgDetail"   : "/api/admin/board/%s/post/%s",
+      "getBoardmsgAttachFiles" : "/api/admin/board/%s/post/%s/attachFiles",
+      "setBoardmsgAttachFiles" : "/api/admin/board/%s/post/%s/attachFiles",
+      "getBoardmsgComments"    : "/api/admin/board/%s/post/%s/comments",
+      "setBoardmsgComments"    : "/api/admin/board/%s/post/%s/comments",
+      "modifyBoardmsgComments" : "/api/admin/board/%s/post/%s/comments/%s",
+      "deleteBoardmsgComments" : "/api/admin/board/%s/post/%s/comments/%s",
+      "patchBoardmsgeHit"      : "/api/admin/board/%s/post/%s/hit"
+    },
+    "faq" : {
+      "getFaqListPaging"        : "/api/admin/faqPaging",
+      "getFaqDetail"            : "/api/admin/faq/%s",
+      "getFaqAttachFileList"    : "/api/admin/faq/%s/attachFiles",
+      "setFaqDetail"            : "/api/admin/faq",
+      "modifyFaqDetail"         : "/api/admin/faq/%s",
+      "deleteFaqDetail"         : "/api/admin/faq/%s",
+      "patchFaqHit"             : "/api/admin/faq/%s/hit"
+    },
+    "qna" : {
+      "getQnaListPaging"        : "/api/admin/qnaPaging",
+      "getQnaDetail"            : "/api/admin/qna/%s",
+      "getQnaAttachFileList"    : "/api/admin/qna/%s/attachFiles",
+      "setQnaDetail"            : "/api/admin/qna",
+      "modifyQnaDetail"         : "/api/admin/qna/%s",
+      "deleteQnaDetail"         : "/api/admin/qna/%s",
+      "registerQnaAnswer"       : "/api/admin/qna/%s/answer",
+      "patchQnaHit"             : "/api/admin/qna/%s/hit"
+    },
+    "image" : {
+      "getImageListPaging"        : "/api/admin/imgPaging",
+      "getImageDetail"            : "/api/admin/img/%s",
+      "getImageAttachFileList"    : "/api/admin/img/%s/attachFiles",
+      "setImageDetail"            : "/api/admin/img",
+      "modifyImageDetail"         : "/api/admin/img/%s",
+      "deleteImageDetail"         : "/api/admin/img/%s"
+    },
+    "api" : {
+      "getApigroupListPaging"       : "/api/admin/apigroupPaging",
+      "getApigroupList"             : "/api/admin/apigroup",
+      "getApigroupDetail"           : "/api/admin/apigroup/%s",
+      "setApigroupDetail"           : "/api/admin/apigroup",
+      "modifyApigroupDetail"        : "/api/admin/apigroup/%s",
+      "deleteApigroupDetail"        : "/api/admin/apigroup/%s",
+      "getApiPagingList"            : "/api/admin/apigroup/%s/apiPaging",
+      "getApiDetail"                : "/api/admin/apigroup/%s/api/%s",
+      "setApiDetail"                : "/api/admin/apigroup/%s/api",
+      "modifyApiDetail"             : "/api/admin/apigroup/%s/api/%s",
+      "deleteApiDetail"             : "/api/admin/apigroup/%s/api/%s"
+    }
+  },
+  "publicpage": {
+    "meta": {
+      "resource": {
+        "metadatasets": {
+          "getMetadataSetInfo"				     : "/api/meta/api/v1/public/resource/data/%s",
+          "getMetadataListBySetPropertyNm" : "/api/meta/api/v1/public/resource/data/%s/properties/%s"
+        },
+        "rdf": {
+          "getRdfNsTtlInfo"				     : "/api/meta/api/v1/public/ns/ttl",
+          "getRdfSkosTtlInfo"				   : "/api/meta/api/v1/public/skos/ttl"
+        }
+      },
+      "search": {
+        "metadata": {
+          "getMetadataList"  :  "/api/meta/api/v1/public/search/metadata",
+          "geometryValidate" :  "/api/meta/api/v1/public/search/metadata/geometry/validate"
+        }
+      },
+      "data": {
+        "type": {
+          "getTypeModelList"           : "/api/meta/api/v1/public/schema/typemodels"
+        }
+      }
+    },
+    "portal": {
+      "code": {
+        "getCodeList"						 : "/api/meta/api/v1/public/codegroups/%s/codes"
+      }
+    }
+    
+  },
+  "meta": {
+    "portal": {
+      "stomp": {
+        "connect"                : "/api/meta/api/v1/portal/stomp"
+      },
+      "code": {
+        "getCodegroupList"       : "/api/meta/api/v1/portal/codegroups",
+				"getCodeList"						 : "/api/meta/api/v1/portal/codegroups/%s/codes",
+				"getCodegroup"           : "/api/meta/api/v1/portal/codegroups/%s",
+				"createCodegroup"        : "/api/meta/api/v1/portal/codegroups",
+				"modifyCodegroup"        : "/api/meta/api/v1/portal/codegroups/%s",
+				"getCode"                : "/api/meta/api/v1/portal/codegroups/%s/codes/%s",
+				"createCode"             : "/api/meta/api/v1/portal/codegroups/%s/codes",
+				"modifyCode"             : "/api/meta/api/v1/portal/codegroups/%s/codes/%s"
+      },
+			"countrycode": {
+				"getCountryCodeList"		 : "/api/meta/api/v1/portal/countrycodes",
+				"getCountryCode"				 : "/api/meta/api/v1/portal/countrycodes/%s",
+				"createCountryCode"			 : "/api/meta/api/v1/portal/countrycodes",
+				"modifyCountryCode"			 : "/api/meta/api/v1/portal/countrycodes/%s"
+			},
+			"mypage": {
+				"getMyDigitalTwinList"	     : "/api/meta/api/v1/portal/mypage/dts",
+        "getMyNotifcList"            : "/api/meta/api/v1/portal/mypage/notifcs",
+        "getMyNotifcConfirmedList"   : "/api/meta/api/v1/portal/mypage/confirmednotifcs",
+        "saveMyConfirmedNotifc"      : "/api/meta/api/v1/portal/mypage/confirmednotifcs",
+        "getMyNotifcSettingList"     : "/api/meta/api/v1/portal/mypage/notifcsettings",
+				"createNotificationSetting"  : "/api/meta/api/v1/portal/mypage/notifcsettings",
+        "modifyNotificationSetting"  : "/api/meta/api/v1/portal/mypage/notifcsettings/%s",
+        "getPatList"                 : "/api/meta/api/v1/portal/mypage/pats"               
+			}, 
+      "notification": {
+        "getNotificationTypeList"  : "/api/meta/api/v1/portal/notifictypes", 
+        "getNotificationType"      : "/api/meta/api/v1/portal/notifictypes/%s", 
+        "isNotifcTypeIdDuplicated" : "/api/meta/api/v1/portal/notifictypes/check", 
+				"createNotifcType"         : "/api/meta/api/v1/portal/notifictypes",
+				"modifyNotifcType"         : "/api/meta/api/v1/portal/notifictypes/%s", 
+				"deleteNotifcType"         : "/api/meta/api/v1/portal/notifictypes/%s", 
+
+        "getNotificationTargetList" : "/api/meta/api/v1/portal/notifictargets",
+        "getNotificationTarget"     : "/api/meta/api/v1/portal/notifictargets/%s",
+        "createNotificationTarget"  : "/api/meta/api/v1/portal/notifictargets",
+        "modifyNotificationTarget"  : "/api/meta/api/v1/portal/notifictargets/%s",
+        "deleteNotificationTarget"  : "/api/meta/api/v1/portal/notifictargets/%s"
+      },
+      "pat": {
+        "getPat"                 : "/api/meta/api/v1/portal/pats/%s",
+        "deletePat"              : "/api/meta/api/v1/portal/pats/%s",
+        "setPat"                 : "/api/meta/api/v1/portal/pats"
+      },
+      "cache": {
+        "removeModelListAll"                : "/api/meta/api/v1/portal/caches/modellist",
+        "removeTypeModelAllByDataUri"       : "/api/meta/api/v1/portal/caches/typemodel",
+        "removeModelInfoAll"                : "/api/meta/api/v1/portal/caches/model",
+
+        "removePropertyInfoAll"             : "/api/meta/api/v1/portal/caches/property",
+
+        "removeAllRdfMapping"               : "/api/meta/api/v1/portal/caches/property",
+        "removeAllRdfMappingModelList"      : "/api/meta/api/v1/portal/caches/property",
+        "removeAllRdfMappingRuleList"       : "/api/meta/api/v1/portal/caches/property",
+        "removeAllRdfNamespaceList"         : "/api/meta/api/v1/portal/caches/property",
+
+        "removeCodeGroupDtoAll"             : "/api/meta/api/v1/portal/caches/property"
+      }
+    },
+    "resource": {
+      "agent": {
+        "getAgentList"           : "/api/meta/api/v1/resource/agents",
+        "getAgent"               : "/api/meta/api/v1/resource/agents/%s",
+        "createAgent"            : "/api/meta/api/v1/resource/agents",
+        "modifyAgent"            : "/api/meta/api/v1/resource/agents/%s",
+        "deleteAgent"            : "/api/meta/api/v1/resource/agents/%s"
+      },
+      "category": {
+        "getCategoryList"        : "/api/meta/api/v1/resource/categories",
+        "getCategory"            : "/api/meta/api/v1/resource/categories/%s",
+        "createCategory"         : "/api/meta/api/v1/resource/categories",
+        "modifyCategory"         : "/api/meta/api/v1/resource/categories/%s",
+        "deleteCategory"         : "/api/meta/api/v1/resource/categories/%s",
+        "checkCtgryRdfCncptNm"   : "/api/meta/api/v1/resource/categories/check"
+      },
+			"metadatasets": {
+				"getMetadataSetList"		     : "/api/meta/api/v1/resource/metadatasets",
+				"getMetadataSet"				     : "/api/meta/api/v1/resource/metadatasets/%s",
+				"createMetadataSet"			     : "/api/meta/api/v1/resource/metadatasets",
+				"deleteMetadataSetAndMetadata" : "/api/meta/api/v1/resource/metadatasets/%s",
+				"modifyMetadataSet" 		     : "/api/meta/api/v1/resource/metadatasets/%s",
+				"modifyMetadataSetStatus"    : "/api/meta/api/v1/resource/metadatasets/%s",
+				"getMetadatasetListForSave"  : "/api/meta/api/v1/resource/metadatasets/%s/properties-for-save",
+				"getModelInfoBySetId"		     : "/api/meta/api/v1/resource/metadatasets/%s/modelinfo",
+				"getMetadataListBySetPropertyNm" : "/api/meta/api/v1/resource/metadatasets/%s/properties/%s",
+				"getMetadataList"						 : "/api/meta/api/v1/resource/metadata",
+				"modifyMetadataByMulti"      : "/api/meta/api/v1/resource/metadatasets/%s/properties",
+				"deleteMetadata"				     : "/api/meta/api/v1/resource/metadata/%s",
+				"getMetadata"						     : "/api/meta/api/v1/resource/metadata/%s",
+				"putMetadatasetsForRelation" : "/api/meta/api/v1/resource/metadatasets/%s/relation",
+				"getMetadataModelsTree"      : "/api/meta/api/v1/schema/models/tree",
+				"getMetadataSetDtwListBySubSetId" : "/api/meta/api/v1/resource/metadatasets/%s/top-dts",
+        "getMetadataSetChgHstListBySetId" : "/api/meta/api/v1/resource/metadatasets/%s/histories",
+        "checkMetadatasetsForFeatureCd"   : "/api/meta/api/v1/resource/metadatasets/check-id"
+			},
+      "dashboard": {
+        "getObject": "/api/meta/api/v1/resource/objects",
+        "getSensor": "/api/meta/api/v1/resource/sensors/%s"
+      },
+      "metadataapi": {
+        "getDataMapFromMetadataSet": "/api/meta/api/v1/resource/data/%s"
+      }
+    },
+		"rdf": {
+			"namespace": {
+				"getNamespaceList"			: "/api/meta/api/v1/rdf/namespaces",
+				"getNamespace"					: "/api/meta/api/v1/rdf/namespaces/%s",
+				"createNamespace"				: "/api/meta/api/v1/rdf/namespaces",
+				"modifyNamespace"				: "/api/meta/api/v1/rdf/namespaces/%s",
+				"deleteNamespace"				: "/api/meta/api/v1/rdf/namespaces/%s",
+				"checkNamespaceUri"			: "/api/meta/api/v1/rdf/namespaces/checkUri",
+				"checkNamespacePrefix"  : "/api/meta/api/v1/rdf/namespaces/checkPrefix"
+			},
+      "class" : {
+        "getClassList"			              : "/api/meta/api/v1/rdf/classes",
+        "getClass"					              : "/api/meta/api/v1/rdf/classes/%s",
+        "createClass"			              	: "/api/meta/api/v1/rdf/classes",
+        "modifyClass"			            	  : "/api/meta/api/v1/rdf/classes/%s",
+				"deleteClass"			          	    : "/api/meta/api/v1/rdf/classes/%s",
+        "getPropertyListByRdfClass"			  : "/api/meta/api/v1/rdf/classes/%s/properties"
+      },
+      "property" : {
+        "getPropertyList"                 : "/api/meta/api/v1/rdf/properties",
+        "getProperty"					            : "/api/meta/api/v1/rdf/properties/%s",
+        "createProperty"			            : "/api/meta/api/v1/rdf/properties",
+        "modifyProperty"                  : "/api/meta/api/v1/rdf/properties/%s",
+        "deleteProperty"                  : "/api/meta/api/v1/rdf/properties/%s",
+        "getPropertyDefineList"           : "/api/meta/api/v1/rdf/propertydefines",
+        "createPropertyDefineList"        : "/api/meta/api/v1/rdf/propertydefines",
+        "deletePropertyDefineList"        : "/api/meta/api/v1/rdf/propertydefines"
+      },
+      "mapping": {
+        "getMappingList"			              : "/api/meta/api/v1/rdf/mappings",
+        "getMapping"			                  : "/api/meta/api/v1/rdf/mappings/%s",
+        "createMapping"                     : "/api/meta/api/v1/rdf/mappings",
+        "modifyMapping"				              : "/api/meta/api/v1/rdf/mappings/%s",
+        "deleteMapping"                     : "/api/meta/api/v1/rdf/mappings/%s",
+        "getMappingModelList"	              : "/api/meta/api/v1/rdf/mappingmodels",
+        "createMappingModel"                : "/api/meta/api/v1/rdf/mappingmodels",
+        "modifyMappingModel"                : "/api/meta/api/v1/rdf/mappingmodels/%s",
+        "deleteMappingModel"                : "/api/meta/api/v1/rdf/mappingmodels/%s",
+        "getMappingTreeList"                : "/api/meta/api/v1/rdf/mappingmodels/%s/tree",
+        "getMappingruleList"                : "/api/meta/api/v1/rdf/mappingrules",
+        "createMappingrule"                 : "/api/meta/api/v1/rdf/mappingrules",
+        "modifyMappingrule"                 : "/api/meta/api/v1/rdf/mappingrules/%s",
+        "deleteMappingrule"                 : "/api/meta/api/v1/rdf/mappingrules/%s"
+      }
+		},
+    "datastore": {
+      "neo4j": {
+        "getNeo4j"                  : "/api/meta/api/v1/rdf/graph/neo4j/data",
+        "createRdfInfoToNeo4j"      : "/api/meta/api/v1/rdf/graph/neo4j/data/%s",
+        "deleteRdfInfoToNeo4j"      : "/api/meta/api/v1/rdf/graph/neo4j/data/%s",
+        "getRdbNeo4j"               : "/api/meta/api/v1/rdf/graph/neo4j/origindata",
+        "createRdfInfoToRdbNeo4j"   : "/api/meta/api/v1/rdf/graph/neo4j/origindata/%s",
+        "deleteRdfInfoToRdbNeo4j"   : "/api/meta/api/v1/rdf/graph/neo4j/origindata/%s",
+        "getNeo4jBrowserUrl"        : "/api/meta/api/v1/rdf/graph/neo4j/browser-url",
+        "initializeNeo4jGraph"      : "/api/meta/api/v1/rdf/graph/neo4j/data/init",
+        "initializeNeo4jRdbGraph"   : "/api/meta/api/v1/rdf/graph/neo4j/origindata/init"
+      },
+      "virtuoso": {
+        "createRdfInfoToVirtuoso"  : "/api/meta/api/v1/rdf/graph/virtuoso/data/%s",
+        "deleteRdfInfoToVirtuoso"  : "/api/meta/api/v1/rdf/graph/virtuoso/data/%s",
+        "getVirtuosoConductorUrl"  : "/api/meta/api/v1/rdf/graph/virtuoso/conductor-url",
+        "connectVirtuoso"          : "/api/meta/api/v1/rdf/graph/virtuoso/conn",
+        "initializeVirtuoso"       : "/api/meta/api/v1/rdf/graph/virtuoso/data/init",
+        "initializeNsOfVirtuoso"   : "/api/meta/api/v1/rdf/graph/virtuoso/data/namespace",
+        "initializeSkosOfVirtuoso" : "/api/meta/api/v1/rdf/graph/virtuoso/data/category",
+        "executeSparqlQuery"       : "/api/meta/api/v1/rdf/graph/virtuoso/sparql"
+      },
+      "elastic": {
+        "getKibanaUrl"              : "/api/meta/api/v1/search/elastic/kibana-url",
+        "createElasticData"         : "/api/meta/api/v1/search/elastic/data/%s",
+        "deleteElasticData"         : "/api/meta/api/v1/search/elastic/data/%s",
+        "initializeElastic"         : "/api/meta/api/v1/search/elastic/data/init",
+        "searchElasticsearch"       : "/api/meta/api/v1/search/elastic/data/json/enties"
+      },
+      "influxdb": {
+        "getInfluxDBUrl"            : "/api/meta/api/v1/datastore/influxdb/url",
+        "createInfluxDBKeyword"     : "/api/meta/api/v1/datastore/influxdb/keywords/%s",
+        "deleteInfluxDBKeyword"     : "/api/meta/api/v1/datastore/influxdb/keywords/%s",
+        "initializeInfluxDBKeyword" : "/api/meta/api/v1/datastore/influxdb/keywords/init",
+        "getInfluxDBCountByKeyword" : "/api/meta/api/v1/datastore/influxdb/count-by-keyword",
+        "getJsonMeasurementBySetId" : "/api/meta/api/v1/database/influxdb/data/%s",
+        "getLatestJsonMeasurementByMedataSetId" : "/api/meta/api/v1/database/influxdb/data/%s/latest",
+        "getJsonMeasurementData" : "/api/meta/api/v1/database/influxdb/data",
+        "getJsonMeasurementBySetIdAndTimestamp" : "/api/meta/api/v1/database/influxdb/data/%s/%s"
+      }
+    },
+		"data": {
+			"datatype": {
+				"getDataTypeModelList"			: "/api/meta/api/v1/schema/datatypes",
+				"createDataTypeModel"			  : "/api/meta/api/v1/schema/datatypes",
+        "modifyDataTypeModel"			  : "/api/meta/api/v1/schema/datatypes/%s",
+        "deleteDataTypeModel"			  : "/api/meta/api/v1/schema/datatypes/%s"
+			},
+      "model": {
+        "getModelCheck"             : "/api/meta/api/v1/schema/models/check",
+        "getModel"                  : "/api/meta/api/v1/schema/models/%s",
+        "getMetaDataModelList"      : "/api/meta/api/v1/schema/models",
+        "getModelPropertyList"      : "/api/meta/api/v1/schema/models/%s/properties",
+        "getRdfStr"                 : "/api/meta/api/v1/schema/models/%s/rdf"
+      },
+      "property": {
+        "getPropertyList"           : "/api/meta/api/v1/schema/properties",        
+        "getProperty"               : "/api/meta/api/v1/schema/properties/%s",
+        "createProperty"            : "/api/meta/api/v1/schema/properties",
+        "modifyProperty"            : "/api/meta/api/v1/schema/properties/%s/base",
+        "modifyPropertyDef"         : "/api/meta/api/v1/schema/properties/%s/define",
+        "getPropertyCheck"          : "/api/meta/api/v1/schema/properties/check",
+        "getTypePropertyList"       : "/api/meta/api/v1/schema/typeproperties/%s"
+      },
+      "type": {
+        "getTypeModelList"           : "/api/meta/api/v1/schema/typemodels",
+        "createTypeModel"            : "/api/meta/api/v1/schema/typemodels",
+        "modifyTypeModel"            : "/api/meta/api/v1/schema/typemodels/%s",
+        "deleteTypeModel"            : "/api/meta/api/v1/schema/typemodels/%s"
+      },
+      "typemodelproperty": {
+        "getTypeModelPropertyList"   : "/api/meta/api/v1/schema/typemodels/%s/properties",
+        "modifyModelProperty"        : "/api/meta/api/v1/schema/typemodels/%s/properties",
+        "createModelProperty"        : "/api/meta/api/v1/schema/typemodels/%s/properties",
+        "deleteModelProperty"        : "/api/meta/api/v1/schema/typemodels/%s/properties"
+      },
+      "std": {
+        "createStdModel"             : "/api/meta/api/v1/schema/stdmodels",
+        "modifyStdModel"			       : "/api/meta/api/v1/schema/stdmodels/%s",
+        "deleteStdModel"			       : "/api/meta/api/v1/schema/stdmodels/%s",
+        "getStdModelPropertyList"    : "/api/meta/api/v1/schema/stdmodels/%s/properties",
+        "createStdModelProperty"     : "/api/meta/api/v1/schema/stdmodels/%s/properties"
+
+      }
+		},
+    "collection": {
+      "getLogList"  : "/api/meta/api/v1/collection/logs",
+      "getLog"  : "/api/meta/api/v1/collection/logs/%s",
+      "createLog"  : "/api/meta/api/v1/collection/logs",
+      "getWorkList"  : "/api/meta/api/v1/collection/works",
+      "getWork"  : "/api/meta/api/v1/collection/works/%s",
+      "createWork"  : "/api/meta/api/v1/collection/works",
+      "updateWork"  : "/api/meta/api/v1/collection/works/%s"
+    },
+    "schema": {
+      "idschemecode": {
+        "getIdSchemeStdIndCodeList"         : "/api/meta/api/v1/schema/ksiccodes",
+        "getIdSchemeStdIndLctgCodeList"     : "/api/meta/api/v1/schema/ksiccodes/lctgcodes",
+        "getIdSchemeStdIndCode"             : "/api/meta/api/v1/schema/ksiccodes/%s", 
+        "createKsicCode"                    : "/api/meta/api/v1/schema/ksiccodes",
+        "modifyKsicCode"                    : "/api/meta/api/v1/schema/ksiccodes/%s",
+        "getIdSchemePubRiCodeList"          : "/api/meta/api/v1/schema/pbrccodes",
+        "getIdSchemePubRiLctgCodeList"      : "/api/meta/api/v1/schema/pbrccodes/lctgcodes",
+        "getIdSchemePubRiCode"              : "/api/meta/api/v1/schema/pbrccodes/%s", 
+        "createPbrcCode"                    : "/api/meta/api/v1/schema/pbrccodes",
+        "modifyPbrcCode"                    : "/api/meta/api/v1/schema/pbrccodes/%s",
+        "getIdSchemeProductCodeList"        : "/api/meta/api/v1/schema/productcodes",
+        "getIdSchemeProductCode"            : "/api/meta/api/v1/schema/productcodes/%s",
+        "createProductCode"                 : "/api/meta/api/v1/schema/productcodes",
+        "modifyProductCode"                 : "/api/meta/api/v1/schema/productcodes/%s",
+        "getIdSchemeFacilityCodeList"       : "/api/meta/api/v1/schema/facilitycodes",
+        "getIdSchemeFacilityCode"           : "/api/meta/api/v1/schema/facilitycodes/%s",
+        "createFacilityCode"                : "/api/meta/api/v1/schema/facilitycodes",
+        "modifyFacilityCode"                : "/api/meta/api/v1/schema/facilitycodes/%s",
+        "getIdSchemeFeatureCodeList"        : "/api/meta/api/v1/schema/featurecodes",
+        "getIdSchemeFeatureCode"            : "/api/meta/api/v1/schema/featurecodes/%s",
+        "createIdSchemeFeatureCode"         : "/api/meta/api/v1/schema/featurecodes",
+        "modifyIdSchemeFeatureCode"         : "/api/meta/api/v1/schema/featurecodes/%s",
+        "checkFeatureCode"                  : "/api/meta/api/v1/schema/featurecodes/%s/check"
+      }
+    },
+    "search": {
+      "metadata": {
+        "getMetadataList"                   : "/api/meta/api/v1/search/metadata"
+      },
+      "vector": {
+        "getRagResults"                     : "/api/meta/api/v1/search/vector/prompt"
+      }
+    }
+  }
+}

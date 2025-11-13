@@ -1,0 +1,33 @@
+flask==3.0.3
+
+# 임베딩/모델
+torch == 2.3.1
+torchvision==0.18.1
+torchaudio==2.3.1
+sentence-transformers==5.1.0
+transformers==4.41.0
+
+# 토크나이저 이슈 방지
+sentencepiece==0.2.0
+
+#langchain
+langchain==0.3.27
+langchain-elasticsearch==0.3.0
+langchain-huggingface == 0.3.1
+langchain-community>=0.3.27
+langchain-core==0.3.74
+langchain-openai
+
+# Elasticsearch
+elasticsearch==8.19.1
+
+# OpenAI
+openai==1.104.2
+tiktoken==0.8.0
+
+#python environment
+python-dotenv==1.0.1
+authlib==1.5.1
+gunicorn==21.2.0
+
+dateparser==1.2.0

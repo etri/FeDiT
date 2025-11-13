@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.n2m.platform.meta.schema.modelproperty.mapper.ModelPropertyMapper">
+
+    <sql id="limitPage">
+        <if test="isPaging">    
+        	OFFSET #{startIndex} LIMIT #{pageListSize}
+        </if>
+        <if test="!isPaging">    
+    		OFFSET 0 LIMIT #{limitListSize}
+    	</if>   
+    </sql>
+    
+    <sql id="orderByModelProperty">
+		ORDER BY rownum
+	</sql>
+    
+    <sql id="whereByModelProperty">
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(modelId)">
+			AND model.model_id = #{modelId}
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(searchName)">
+			AND (UPPER(prpty.prpty_nm) LIKE UPPER('%'||#{searchName}||'%') OR UPPER(prpty.prpty_logic_nm) LIKE UPPER('%'||#{searchName}||'%'))
+		</if>
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(modelPrptyDelYn)">
+            AND modelPrpty.model_prpty_del_yn = #{modelPrptyDelYn}
+        </if>
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(prptyDataSttusMtcd)">
+            AND prpty.prpty_data_sttus_mtcd = #{prptyDataSttusMtcd}
+        </if>
+	</sql>
+	
+	<select id="selectModelPropertyCount" parameterType="modelPropertySearchVo" resultType="int">
+		SELECT /* SQL_ID: ModelPropertyMapper.selectModelPropertyCount */
+	    	COUNT(*)
+		FROM dtmeta.tb_meta_model model
+		INNER JOIN dtmeta.tb_meta_modelproperty modelPrpty on model.model_id = modelPrpty.model_id
+		INNER JOIN dtmeta.tb_meta_property prpty on prpty.prpty_id = modelPrpty .prpty_id 
+		INNER JOIN dtmeta.tb_meta_propertydefine prptyDefine on prpty .prpty_id = prptyDefine.prpty_id AND prptyDefine.prpty_def_chg_yn = 'N'
+		INNER JOIN dtmeta.tb_meta_model rangeModel on prptyDefine.range_model_id = rangeModel.model_id 
+		WHERE 1=1
+		<include refid="whereByModelProperty"/>
+	</select>
+    
+    <select id="selectModelPropertyList" parameterType="modelPropertySearchVo" resultType="modelPropertyVo">
+	    SELECT /* SQL_ID: ModelPropertyMapper.selectModelPropertyList */
+	    	 (ROW_NUMBER() OVER(ORDER BY modelPrpty.model_prpty_sort_odrg)) AS model_prpty_sort_odrg
+	    	,(ROW_NUMBER() OVER(ORDER BY modelPrpty.model_prpty_del_yn, modelPrpty.model_prpty_sort_odrg)) AS rownum
+			,model.model_id 
+			,model.model_nm
+			,modelPrpty.prpty_id
+			,prpty.prpty_nm 
+			,prpty.prpty_logic_nm 
+			,prpty.prpty_data_sttus_mtcd
+			,prptyDefine.range_model_id 
+			,rangeModel.model_nm AS rangeModelNm 
+			,rangeModel.model_data_sttus_mtcd AS rangeModelDataSttusMtcd
+			,domnModel.model_nm AS domnModelNm
+			,modelPrpty.model_prpty_mand_mtcd
+			,code.mtcd_nm AS modelPrptyMandMtcdNm
+			,CASE WHEN c2.mtcd IS NOT NULL THEN 'Y' ELSE 'N' END  AS setUsgPrptyYn
+			,rangeModel.data_type_mtcd  AS range_data_type_mtcd
+			,rangeModel.model_type_mtcd AS range_model_type_mtcd
+			,modelprpty.model_prpty_val_exam
+			,modelprpty.std_model_id
+			,stdModel.model_nm  AS std_model_nm
+            ,prpty.cnt_prpty_yn
+            ,prpty.cnt_model_id
+			,modelprpty.model_prpty_del_yn
+			,modelprpty.model_prpty_delr_id
+			,modelprpty.model_prpty_delr_nm
+		FROM dtmeta.tb_meta_modelproperty modelPrpty 
+		INNER JOIN dtmeta.tb_meta_model model on modelPrpty.model_id = model.model_id
+		INNER JOIN dtmeta.tb_meta_property prpty on prpty.prpty_id = modelPrpty .prpty_id 
+		INNER JOIN dtmeta.tb_meta_propertydefine prptyDefine on prpty .prpty_id = prptyDefine.prpty_id AND prptyDefine.prpty_def_chg_yn = 'N'
+		INNER JOIN dtmeta.tb_meta_model rangeModel on prptyDefine.range_model_id = rangeModel.model_id
+		INNER JOIN dtmeta.tb_meta_model domnModel ON prptyDefine.domn_model_id = domnModel.model_id
+		LEFT JOIN dtmeta.tb_portal_code code on modelPrpty .model_prpty_mand_mtcd = code.mtcd and code.mtcd_grp_id  = 'MCG00004'
+		LEFT JOIN dtmeta.tb_portal_code c2 ON rangeModel.data_type_mtcd = c2.mtcd AND c2.mtcd_grp_id = 'MCG00013'
+		LEFT JOIN dtmeta.tb_meta_model stdModel on modelPrpty.std_model_id = stdModel.model_id
+		WHERE 1=1
+		<include refid="whereByModelProperty"/> 
+		<include refid="orderByModelProperty"/> 
+		<include refid="limitPage"/> 
+    </select>
+
+	<select id="selectTypeModelPropertyList" parameterType="modelPropertySearchVo" resultType="modelPropertyVo">
+		SELECT /* SQL_ID: ModelPropertyMapper.selectTypeModelPropertyList */
+			 (ROW_NUMBER() OVER(ORDER BY modelPrpty.model_prpty_del_yn, modelPrpty.model_prpty_sort_odrg)) AS rownum
+			,modelPrpty.model_prpty_id
+			,model.model_id 
+			,model.model_nm
+			,modelprpty.prpty_id
+			,prpty.prpty_nm 
+			,prpty.prpty_logic_nm 
+			,prpty.prpty_data_sttus_mtcd
+			,prptyDefine.domn_model_id 
+			,domnModel.model_nm AS domnModelNm
+			,prptyDefine.range_model_id 
+			,rangeModel.model_nm AS  rangeModelNm
+			,rangeModel.model_data_sttus_mtcd AS rangeModelDataSttusMtcd
+			,rangeModel.model_type_mtcd AS range_model_type_mtcd
+			,modelPrpty.model_prpty_sort_odrg
+			,modelprpty.model_prpty_val_exam
+			,modelprpty.std_model_id
+			,stdModel.model_nm  AS std_model_nm
+			,modelprpty.model_prpty_mand_mtcd
+			,code.mtcd_nm as modelPrptyMandMtcdNm
+			,modelprpty.tbl_coln_mappg_nm
+			,prpty.data_array_yn
+			,prpty.cnt_prpty_yn
+			,prpty.cnt_model_id
+			,modelprpty.model_prpty_del_yn
+			,modelprpty.model_prpty_delr_id
+			,modelprpty.model_prpty_delr_nm
+			,to_char(modelprpty.model_prpty_del_dt,#{sqlDateFormat}) as modelPrptyDelDt
+			,modelprpty.model_prpty_del_why
+			,CASE WHEN c2.mtcd IS NOT NULL THEN 'Y' ELSE 'N' END  AS setUsgPrptyYn
+			,rangeModel.data_type_mtcd  AS range_data_type_mtcd
+		FROM  dtmeta.tb_meta_modelproperty modelPrpty 
+		INNER JOIN dtmeta.tb_meta_model model ON modelPrpty.model_id = model.model_id
+		INNER JOIN dtmeta.tb_meta_property prpty ON prpty.prpty_id = modelPrpty .prpty_id 
+		INNER JOIN dtmeta.tb_meta_propertydefine prptyDefine ON prpty .prpty_id = prptyDefine.prpty_id AND prptyDefine.prpty_def_chg_yn = 'N'
+		INNER JOIN dtmeta.tb_meta_model rangeModel ON prptyDefine.range_model_id = rangeModel.model_id 
+		INNER JOIN dtmeta.tb_meta_model domnModel ON prptyDefine.domn_model_id = domnModel.model_id
+		LEFT JOIN dtmeta.tb_portal_code code ON modelPrpty .model_prpty_mand_mtcd = code.mtcd and code.mtcd_grp_id  = 'MCG00004'
+		LEFT JOIN dtmeta.tb_portal_code c2 ON rangeModel.data_type_mtcd = c2.mtcd AND c2.mtcd_grp_id = 'MCG00013'
+		LEFT JOIN dtmeta.tb_meta_model stdModel on modelPrpty.std_model_id = stdModel.model_id
+		WHERE model.model_id = #{modelId}
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(searchName)">
+		AND (UPPER(prpty.prpty_nm) LIKE UPPER('%'||#{searchName}||'%') OR UPPER(prpty.prpty_logic_nm) LIKE UPPER('%'||#{searchName}||'%'))
+		</if>
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(prptyDataSttusMtcd)">
+        AND prpty.prpty_data_sttus_mtcd = #{prptyDataSttusMtcd}
+        </if>
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(modelPrptyDelYn)">
+        AND modelPrpty.model_prpty_del_yn = #{modelPrptyDelYn}
+        </if>        
+	</select>
+	
+	<select id="selectModelPropertyCheck" parameterType="modelPropertyVo" resultType="int">
+		SELECT /* SQL_ID: ModelPropertyMapper.selectModelPropertyCheck */
+			COUNT(modelPrpty.model_prpty_id) AS cnt
+		FROM dtmeta.tb_meta_modelproperty modelPrpty
+		
+		WHERE modelPrpty.model_prpty_del_yn='N'
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(modelId)">
+		AND modelPrpty.model_id = #{modelId}
+		</if>  
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(prptyId)">
+		AND modelPrpty.prpty_id = #{prptyId}
+		</if>  
+	</select>
+	
+	<insert id= "insertModelProperty" parameterType="modelPropertyVo">
+	<selectKey keyProperty="modelPrptyId" keyColumn="model_prpty_id" resultType="string" order="BEFORE">
+		SELECT CONCAT('MP', EXTRACT(EPOCH FROM now())::int, LPAD(CAST(NEXTVAL('dtmeta.seq_tb_meta_common') AS varchar), 4, '0'))	
+	</selectKey>
+		INSERT /* SQL_ID: ModelPropertyMapper.insertModelProperty */
+		  INTO dtmeta.tb_meta_modelproperty
+			 ( 
+			   model_prpty_id
+			 , model_id
+			 , prpty_id 
+			 , model_prpty_mand_mtcd 
+			 , model_prpty_val_exam
+			 , std_model_id
+			 , model_prpty_sort_odrg
+			 , model_prpty_del_yn 
+			 , model_prpty_regr_id 
+			 , model_prpty_regr_nm 
+			 , model_prpty_reg_dt 
+			 , model_prpty_amdr_id 
+			 , model_prpty_amdr_nm 
+			 , model_prpty_amd_dt 
+			 ) 
+		VALUES 
+			 ( 
+		       #{modelPrptyId}    
+			 , #{modelId}   
+			 , #{prptyId}
+			 , #{modelPrptyMandMtcd}
+			 , #{modelPrptyValExam}
+			 , #{stdModelId}
+			 , ( SELECT COALESCE(MAX(model_prpty_sort_odrg), 0) + 1  FROM dtmeta.tb_meta_modelproperty  WHERE model_id = #{modelId} AND model_prpty_del_yn = 'N' )
+			 , 'N'
+			 , #{modelPrptyRegrId}
+			 , #{modelPrptyRegrNm} 
+			 , current_timestamp
+			 , #{modelPrptyAmdrId}
+			 , #{modelPrptyAmdrNm}
+			 , current_timestamp
+			 )
+	</insert>
+	
+	<update id="updateModelProperty" parameterType="modelPropertyVo">
+		UPDATE /* SQL_ID: ModelPropertyMapper.updateModelProperty*/
+               dtmeta.tb_meta_modelproperty
+		   SET model_prpty_val_exam         = #{modelPrptyValExam}
+		     , std_model_id                 = #{stdModelId}
+		     , model_prpty_mand_mtcd        = #{modelPrptyMandMtcd}
+		     , model_prpty_sort_odrg		= #{modelPrptySortOdrg}::int
+		     , model_prpty_amdr_id			= #{modelPrptyAmdrId}
+		     , model_prpty_amdr_nm			= #{modelPrptyAmdrNm}
+		     , model_prpty_amd_dt			= current_timestamp
+	          <if test='@org.apache.commons.lang3.StringUtils@equals(structdModelYn, "Y")'>
+			 , tbl_coln_mappg_nm			= #{tblColnMappgNm}
+	          </if>
+		 WHERE model_prpty_id		        = #{modelPrptyId}
+		 AND   model_id						= #{modelId}
+	</update>
+    
+    <select id="selectStdModelPropertyCountForDelCheck" resultType="int">
+        SELECT /* SQL_ID: ModelPropertyMapper.selectStdModelPropertyCountForDelCheck */ 
+               COUNT(*)
+		  FROM dtmeta.tb_meta_modelproperty t1
+		 INNER JOIN dtmeta.tb_meta_model    t2  ON t1.model_id = t2.model_id 
+		 WHERE t2.type_model_id      = #{typeModelId}
+		   AND t2.up_model_id       != 'Class'
+		   AND t1.prpty_id           = #{prptyId}
+		   AND t1.model_prpty_del_yn = 'N'
+    </select>	
+	
+	<select id="selectMetaDataUseCheck" parameterType="String" resultType="int">
+		SELECT /* SQL_ID: ModelPropertyMapper.selectMetaDataUseCheck*/ 
+			COUNT(*) 
+		FROM  dtmeta.tb_meta_data meta
+		WHERE meta.model_prpty_id = #{modelPrptyId}
+	</select>
+	
+	<select id="selectMetaDataCheckByProperty" parameterType="String" resultType="int">
+		SELECT /* SQL_ID: ModelPropertyMapper.selectMetaDataCheckByProperty*/ 
+			COUNT(*) 
+		FROM  dtmeta.tb_meta_data meta
+		WHERE meta.prpty_id = #{prptyId}
+	</select>
+	
+	<update id="updateModelPropertyDelYn" parameterType="modelVo">
+		UPDATE /* SQL_ID: ModelPropertyMapper.updateModelPropertyDelYn*/
+               dtmeta.tb_meta_modelproperty
+		   SET model_prpty_del_yn           = 'Y'
+		     , model_prpty_del_dt           = current_timestamp
+		     , model_prpty_del_why		    = #{modelPrptyDelWhy}
+		     , model_prpty_delr_nm		    = #{modelPrptyDelrNm}
+		 	 , model_prpty_amdr_id			= #{modelPrptyAmdrId}
+		     , model_prpty_amdr_nm			= #{modelPrptyAmdrNm}
+		     , model_prpty_amd_dt			= current_timestamp    
+		 WHERE model_prpty_id		        = #{modelPrptyId}
+	</update>
+	
+	<delete id="deleteModelProperty" parameterType="String">
+		DELETE /* SQL_ID: ModelPropertyMapper.deleteModelProperty*/
+		FROM dtmeta.tb_meta_modelproperty
+		where model_prpty_id = #{modelPrptyId}
+	</delete>
+
+    <select id="selectModelPropertyInfoListByModelId" resultType="modelPropertyInfoDto">
+        SELECT /* SQL_ID: ModelPropertyMapper.selectModelPropertyInfoListByModelId */
+               t1.model_prpty_id 
+             , t1.model_id 
+             , t1.prpty_id 
+             , t1.model_prpty_mand_mtcd
+             , c1.mtcd_nm          AS model_prpty_mand_mtcd_nm              
+             , t1.model_prpty_sort_odrg 
+             , t1.model_prpty_val_exam 
+             , t1.tbl_coln_mappg_nm 
+             , t1.std_model_id 
+             , t1.model_prpty_del_yn 
+             , t2.prpty_nm 
+             , t2.prpty_logic_nm 
+             , t2.data_array_yn 
+             , t2.prpty_scrn_indc_yn
+             , t2.cnt_prpty_yn
+             , t2.cnt_model_id
+             , t9.model_nm         AS cnt_model_nm
+             , t3.domn_model_id 
+             , t3.range_model_id 
+             , COALESCE(t3.range_mtcd_grp_id, t5.mtcd_grp_id)  AS range_mtcd_grp_id
+             , t3.prpty_def_chg_yn 
+             , t4.model_nm         AS domn_model_nm
+             , t4.model_logic_nm   AS domn_model_logic_nm
+             , t5.model_nm         AS range_model_nm
+             , t5.model_logic_nm   AS range_model_logic_nm
+             , t5.model_type_mtcd  AS range_model_type_mtcd
+             , t5.type_model_id    AS range_type_model_id
+             , t7.model_nm         AS range_type_model_nm
+             , t5.data_type_mtcd   AS range_data_type_mtcd
+             , t5.use_lang_mtcd    AS range_use_lang_mtcd
+             , t6.prpty_nm         AS range_ref_prpty_nm
+             , CASE WHEN c2.mtcd IS NOT NULL THEN 'Y' ELSE 'N' END  AS set_usg_prpty_yn
+             , t8.model_nm         AS std_model_nm
+          FROM dtmeta.tb_meta_modelproperty t1
+         INNER JOIN dtmeta.tb_meta_property       t2  ON t1.prpty_id = t2.prpty_id AND t2.prpty_data_sttus_mtcd = 'use'
+         INNER JOIN dtmeta.tb_meta_propertydefine t3  ON t1.prpty_id = t3.prpty_id AND t3.prpty_def_chg_yn = 'N'
+          LEFT OUTER JOIN dtmeta.tb_meta_model    t4  ON t3.domn_model_id = t4.model_id AND t4.model_data_sttus_mtcd = 'use'
+          LEFT OUTER JOIN dtmeta.tb_meta_model    t5  ON t3.range_model_id = t5.model_id AND t5.model_data_sttus_mtcd = 'use'
+          LEFT OUTER JOIN dtmeta.tb_meta_property t6  ON t3.ref_prpty_id = t6.prpty_id AND t6.prpty_data_sttus_mtcd = 'use'
+          LEFT OUTER JOIN dtmeta.tb_portal_code   c1  ON t1.model_prpty_mand_mtcd = c1.mtcd AND c1.mtcd_grp_id = 'MCG00004'
+          LEFT OUTER JOIN dtmeta.tb_portal_code   c2  ON t5.data_type_mtcd = c2.mtcd AND c2.mtcd_grp_id = 'MCG00013'
+          LEFT OUTER JOIN dtmeta.tb_meta_model    t7  ON t5.type_model_id = t7.model_id
+          LEFT OUTER JOIN dtmeta.tb_meta_model    t8  ON t1.std_model_id = t8.model_id
+          LEFT OUTER JOIN dtmeta.tb_meta_model    t9  ON t2.cnt_model_id = t9.model_id
+         WHERE t1.model_prpty_del_yn    = 'N'
+           AND t1.model_id              = #{modelId}
+	           <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(modelTypeMtcd)">
+	           	AND t5.model_type_mtcd = #{modelTypeMtcd}
+	           </if>
+         ORDER BY t1.model_prpty_sort_odrg, t2.prpty_sort_odrg 
+    </select>
+    
+    <select id="selectModelPropertyInfoListByModelIdForNeo4j" resultType="modelPropertyInfoDto">
+        SELECT /* SQL_ID: ModelPropertyMapper.selectModelPropertyInfoListByModelIdForNeo4j */
+               t1.model_prpty_id 
+             , t1.model_id 
+             , t1.prpty_id 
+             , t1.model_prpty_mand_mtcd
+             , c1.mtcd_nm          AS model_prpty_mand_mtcd_nm              
+             , t1.model_prpty_sort_odrg 
+             , t1.model_prpty_val_exam 
+             , t1.tbl_coln_mappg_nm 
+             , t1.std_model_id 
+             , t1.model_prpty_del_yn 
+             , t2.prpty_nm 
+             , t2.prpty_logic_nm 
+             , t2.data_array_yn 
+             , t2.prpty_scrn_indc_yn
+             , t2.cnt_prpty_yn
+             , t2.cnt_model_id
+             , t9.model_nm         AS cnt_model_nm
+             , t3.domn_model_id 
+             , t3.range_model_id 
+             , COALESCE(t3.range_mtcd_grp_id, t5.mtcd_grp_id)  AS range_mtcd_grp_id
+             , t3.prpty_def_chg_yn 
+             , t4.model_nm         AS domn_model_nm
+             , t4.model_logic_nm   AS domn_model_logic_nm
+             , t5.model_nm         AS range_model_nm
+             , t5.model_logic_nm   AS range_model_logic_nm
+             , t5.model_type_mtcd  AS range_model_type_mtcd
+             , t5.type_model_id    AS range_type_model_id
+             , t7.model_nm         AS range_type_model_nm
+             , t5.data_type_mtcd   AS range_data_type_mtcd
+             , t5.use_lang_mtcd    AS range_use_lang_mtcd
+             , t6.prpty_nm         AS range_ref_prpty_nm
+             , CASE WHEN c2.mtcd IS NOT NULL THEN 'Y' ELSE 'N' END  AS set_usg_prpty_yn
+             , t8.model_nm         AS std_model_nm
+          FROM dtmeta.tb_meta_modelproperty t1
+         INNER JOIN dtmeta.tb_meta_property       t2  ON t1.prpty_id = t2.prpty_id AND t2.prpty_data_sttus_mtcd = 'use'
+         INNER JOIN dtmeta.tb_meta_propertydefine t3  ON t1.prpty_id = t3.prpty_id AND t3.prpty_def_chg_yn = 'N'
+          LEFT OUTER JOIN dtmeta.tb_meta_model    t4  ON t3.domn_model_id = t4.model_id AND t4.model_data_sttus_mtcd = 'use'
+          LEFT OUTER JOIN dtmeta.tb_meta_model    t5  ON t3.range_model_id = t5.model_id AND t5.model_data_sttus_mtcd = 'use'
+          LEFT OUTER JOIN dtmeta.tb_meta_property t6  ON t3.ref_prpty_id = t6.prpty_id AND t6.prpty_data_sttus_mtcd = 'use'
+          LEFT OUTER JOIN dtmeta.tb_portal_code   c1  ON t1.model_prpty_mand_mtcd = c1.mtcd AND c1.mtcd_grp_id = 'MCG00004'
+          LEFT OUTER JOIN dtmeta.tb_portal_code   c2  ON t5.data_type_mtcd = c2.mtcd AND c2.mtcd_grp_id = 'MCG00013'
+          LEFT OUTER JOIN dtmeta.tb_meta_model    t7  ON t5.type_model_id = t7.model_id
+          LEFT OUTER JOIN dtmeta.tb_meta_model    t8  ON t1.std_model_id = t8.model_id
+          LEFT OUTER JOIN dtmeta.tb_meta_model    t9  ON t2.cnt_model_id = t9.model_id
+         WHERE t1.model_prpty_del_yn    = 'N'
+           AND t1.model_id              = #{modelId}
+	           <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(modelTypeMtcd)">
+	           	AND t5.model_type_mtcd = #{modelTypeMtcd}
+	           </if>
+	           <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(dataArrayYn)">
+	           	AND t2.data_array_yn = #{dataArrayYn}
+	           </if>
+         ORDER BY t1.model_prpty_sort_odrg, t2.prpty_sort_odrg 
+    </select>
+	
+</mapper>

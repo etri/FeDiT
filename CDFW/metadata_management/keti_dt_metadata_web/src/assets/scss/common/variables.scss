@@ -1,0 +1,128 @@
+$bgColor: rgb(208, 240, 208);
+
+$--font-size-big-large: 1.75rem !default; //28px
+$--font-size-extra-large: 1.5rem !default; //24px
+/// fontSize|1|Font Size|0
+$--font-size-large: 1.25rem !default; //20px
+/// fontSize|1|Font Size|0
+$--font-size-medium: 1.125rem !default; //18px
+/// fontSize|1|Font Size|0
+$--font-size-base: 1rem !default; //16px
+$--font-size-table-small: 0.938em !default; //15px
+/// fontSize|1|Font Size|0
+$--font-size-small: 0.875em !default; //14px
+$--font-size-calendar-small: 0.813em !default; //13px
+/// fontSize|1|Font Size|0
+$--font-size-extra-small: 0.75rem !default; //12px
+/// fontLineHeight|1|Line Height|2
+$--font-line-height-primary: 26px !default;
+/// fontLineHeight|1|Line Height|2
+$--font-line-height-secondary: 18px !default;
+
+$--font-weight-default: 400 !default;
+$--font-weight-Medium: 500 !default;
+$--font-weight-bold: 700 !default;
+
+/*custom theme color*/
+$--color-primary: #34558a !default;
+$--color-success: #ed2028 !default;
+$--color-waring: #ffedee !default;
+$--color-excel: #107c41 !default;
+$--color-info: #5e5e5e !default;
+$--color-point: #29b0ed !default;
+
+$--color-black: #333333 !default;
+$--color-dark-gray: $--color-info !default;
+$--color-gray: #bebebe !default;
+$--color-light-gray: #e5e5e5 !default;
+$--color-light-blue: #f1f6fc !default;
+$--color-white-smoke: #f5f5f5 !default;
+$--color-white: #fff !default;
+$--color-light-white-smoke: #fafafa !default;
+$--color-waring-board: #f4979b !default;
+
+$--text-default: $--color-black !default;
+$--text-sub: $--color-dark-gray !default;
+$--text-point: $--color-primary !default;
+$--text-disabled: #b5b5b5 !default;
+$--text-placeholder: #c1c5cc !default;
+$--text-white: $--color-white !default;
+$--text-nodata: #8e8e8e !default;
+
+$--input-line-default: #dadada;
+
+// border
+
+$--border-radius-base: 5px !default;
+$--border-radius-mobile: 10px !default;
+$--border-color-base: $--color-light-gray !default;
+$--border-color-gray: #e5e5e5 !default;
+
+// input
+
+$--input-height: 50px !default;
+$--input-medium-height: 36px !default;
+$--input-small-height: 28px !default;
+$--input-mini-heigh: 26px !default;
+// botton
+
+$--button-font-size: $--font-size-base;
+$--button-small-font-size: $--font-size-small;
+$--button-disabled-background-color: $--color-light-gray !default;
+$--button-disabled-border-color: $--color-light-gray !default;
+$--button-disabled-font-color: $--text-placeholder !default;
+
+$--button-padding-vertical: 8px !default;
+$--button-padding-horizontal: 20px !default;
+$--button-small-padding-vertical: 7px !default;
+$--button-small-padding-horizontal: 14px !default;
+$--color-button-upload: #7d7d7d !default;
+
+/// padding||Spacing|3
+$--button-medium-padding-vertical: 9px !default;
+/// padding||Spacing|3
+$--button-medium-padding-horizontal: 18px !default;
+
+// table
+
+$--table-header-font-color: #4b4b4b !default;
+$--table-header-background-color: $--color-white-smoke !default;
+$--table-row-hover-background-color: #ffefd8 !default;
+$--table-row-hover-border-color: #ffbb44 !default;
+$--table-row-current-background-color: #dfeeff !default;
+$--table-row-current-border-color: #6a9cee !default;
+$--table-row-disabled-background-color: #eaebed !default;
+$--table-row-disabled-font-color: #9aa3b2 !default;
+$--table-current-row-background-color: $--color-light-blue !default;
+$--table-border-color: #ebeef5 !default;
+$--list-border-color: #bebebe !default;
+$--list-hover-color: $--table-row-current-background-color !default;
+
+// dialog
+
+$--dialog-title-font-size: $--font-size-large !default;
+$--dialog-content-font-size: $--font-size-base !default;
+
+// switch
+
+$--switch-width: 36px !default;
+// height||Other|4
+$--switch-height: 20px !default;
+// height||Other|4
+$--switch-button-size: 12px !default;
+
+// calendar
+$--calendar-cell-width: 38px !default;
+$--calendar-border: $--color-light-gray !default;
+$--calendar-header-color: #f1f1f1 !default;
+
+// breakpoint
+$--breakpoint-mobile: 414px;
+$--breakpoint-tablet: 750px;
+$--breakpoint-desktop: 1024;
+
+// tip
+$--tip-color-request: #25d4aa !default;
+$--tip-color-in-use: #a04ae2 !default;
+$--tip-color-wait: #ffa34f !default;
+$--tip-color-reject: #ff4438 !default;
