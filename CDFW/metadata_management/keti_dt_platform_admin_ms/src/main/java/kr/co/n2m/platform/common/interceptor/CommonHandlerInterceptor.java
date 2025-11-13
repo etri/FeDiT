@@ -102,8 +102,9 @@ public class CommonHandlerInterceptor implements HandlerInterceptor {
 			}
 		} else {
 			//Bearer 제외한 token정보 빼내기
-			String[] jwtDataArr = token.split(" ");
-			String jwtData = jwtDataArr[1]; 
+			String jwtData = token
+					.replaceFirst("(?i)^\\s*Bearer\\s+", "") // 앞쪽의 Bearer + 임의 공백 제거(대소문자 무시)
+					.trim();
 			
 			//캐시에 public key가 없으면 생성, 있으면 생성x
 			PublicKey publicKey;

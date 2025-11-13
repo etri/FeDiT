@@ -16,71 +16,71 @@ public class SwaggerConfig {
 
 	@Bean
 	public Docket allApi() {
-        return getDocket("전체", "/*.*");
+		return getDocket("전체", "/*.*");
 	}
 
 	@Bean
 	public Docket menuApi() {
-        return getDocket("메뉴 관리", "/menu/*.*");
+		return getDocket("메뉴 관리", "/menu/*.*");
 	}
 
 	@Bean
 	public Docket authGroupApi() {
-        return getDocket("권한 관리", "/auth/*.*");
+		return getDocket("권한 관리", "/auth/*.*");
 	}
 
 	@Bean
 	public Docket codeGroupApi() {
-        return getDocket("코드 그룹 관리", "/codegroup/*.*");
+		return getDocket("코드 그룹 관리", "/codegroup/*.*");
 	}
 	
 	@Bean
 	public Docket userApi() {
-        return getDocket("사용자 관리", "/user/*.*");
+		return getDocket("사용자 관리", "/user/*.*");
 	}
 	
 	@Bean
 	public Docket apigroupApi() {
-        return getDocket("API 그룹 관리", "/apigroup/*.*");
+		return getDocket("API 그룹 관리", "/apigroup/*.*");
 	}
 	
 	@Bean
 	public Docket boardApi() {
-        return getDocket("게시판 관리", "/board/*.*");
+		return getDocket("게시판 관리", "/board/*.*");
 	}
 
 	@Bean
 	public Docket noticeApi() {
-        return getDocket("공지사항 관리", "/notice/*.*");
+		return getDocket("공지사항 관리", "/notice/*.*");
 	}
 
 	@Bean
 	public Docket qnaApi() {
-        return getDocket("QnA 관리", "/qna/*.*");
+		return getDocket("QnA 관리", "/qna/*.*");
 	}
 	
 	@Bean
 	public Docket faqApi() {
-        return getDocket("FAQ 관리", "/faq/*.*");
+		return getDocket("FAQ 관리", "/faq/*.*");
 	}
 	
 	@Bean
 	public Docket attachFileApi() {
-        return getDocket("첨부 파일 관리", "/attachfile/*.*");
+		return getDocket("첨부 파일 관리", "/attachfile/*.*");
 	}
 	
 	@Bean
 	public Docket platformApi() {
-        return getDocket("플랫폼 관리", "/platform/*.*");
+		return getDocket("플랫폼 관리", "/platform/*.*");
 	}
 
-    public Docket getDocket(String groupName, String pathRegex) {
+	public Docket getDocket(String groupName, String pathRegex) {
 		return new Docket(DocumentationType.SWAGGER_2)
 				.useDefaultResponseMessages(false)
 				.groupName(groupName)
 				.select()
 				.apis(RequestHandlerSelectors.basePackage("kr.co.n2m.platform.admin.feature"))
-                .paths(PathSelectors.regex(pathRegex))
+				.paths(PathSelectors.regex(pathRegex))
 				.build()
 				.apiInfo(apiInfo())
 				// .globalResponseMessage(RequestMethod.GET, getCustomizedResponseMessages())

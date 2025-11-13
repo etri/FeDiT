@@ -40,7 +40,7 @@ authorization:
     list: AUT_META_DEFAULT
 
 super: 
-  admin: n2m_iot
+  admin: {super_admin}
 
 ---
 #common
@@ -84,7 +84,7 @@ authorization:
     list: AUT_META_DEFAULT
       
 super: 
-  admin: n2m_iot  
+  admin: {super_admin}
   
 ---
 #common
@@ -128,5 +128,5 @@ authorization:
     list: AUT_META_DEFAULT
       
 super: 
-  admin: n2m_iot
+  admin: {super_admin}
   
