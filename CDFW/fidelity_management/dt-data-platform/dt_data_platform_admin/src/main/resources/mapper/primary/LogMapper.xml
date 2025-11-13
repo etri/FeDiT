@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.stoneitgt.dt.data.platform.admin.mapper.LogMapper">
+    <!--void insertDtDataFileLog(DataFileDownloadLog dataFileDownloadLog);-->
+    <insert id="insertDtDataFileLog" parameterType="com.stoneitgt.dt.data.platform.domain.DataFileDownloadLog"
+            keyProperty="logSeq" useGeneratedKeys="true">
+        INSERT INTO TB_META_DATA_FILE_LOG(FILE_SEQ, MODEL_SEQ, REG_USER_SEQ, REG_IP)
+        VALUES (#{fileSeq}, #{modelSeq}, #{regUserSeq}, #{regIp});
+    </insert>
+    <!--void insertDtEtcDataFileLog(DataFileDownloadLog dataFileDownloadLog);-->
+    <insert id="insertDtEtcDataFileLog" parameterType="com.stoneitgt.dt.data.platform.domain.DataFileDownloadLog"
+            keyProperty="logSeq" useGeneratedKeys="true">
+        INSERT INTO TB_META_ETC_DATA_FILE_LOG(FILE_SEQ, MODEL_SEQ, REG_USER_SEQ, REG_IP)
+        VALUES (#{fileSeq}, #{modelSeq}, #{regUserSeq}, #{regIp});
+    </insert>
+    <!--void insertDtEtcModelReferenceLog(ModelReferenceLog modelReferenceLog);-->
+    <insert id="insertDtEtcModelReferenceLog" parameterType="com.stoneitgt.dt.data.platform.domain.ModelReferenceLog"
+            keyProperty="logSeq" useGeneratedKeys="true">
+        INSERT INTO TB_META_ETC_MODEL_LOG(REF_MODEL_SEQ, MODEL_ALGRM_SEQ, MODEL_SEQ, REG_USER_SEQ, REG_IP)
+        VALUES (#{refModelSeq}, #{modelAlgrmSeq}, #{modelSeq}, #{regUserSeq}, #{regIp});
+    </insert>
+    <!--void insertDtModelReferenceLog(ModelReferenceLog modelReferenceLog);-->
+    <insert id="insertDtModelReferenceLog" parameterType="com.stoneitgt.dt.data.platform.domain.ModelReferenceLog"
+            keyProperty="logSeq" useGeneratedKeys="true">
+        INSERT INTO TB_META_MODEL_LOG(REF_SIMULATION_SEQ, MODEL_ALGRM_SEQ, MODEL_SEQ, REG_USER_SEQ, REG_IP)
+        VALUES (#{refSimulationSeq}, #{modelAlgrmSeq}, #{modelSeq}, #{regUserSeq}, #{regIp});
+    </insert>
+    <!--boolean checkDtModelReferenceLog(ModelReferenceLog modelReferenceLog);-->
+    <select id="checkDtModelReferenceLog" parameterType="com.stoneitgt.dt.data.platform.domain.ModelReferenceLog" resultType="boolean">
+        SELECT CASE
+                   WHEN COUNT(*) > 0 THEN TRUE
+                   ELSE FALSE
+                   END
+        FROM TB_META_MODEL_LOG
+        WHERE REF_SIMULATION_SEQ = #{refSimulationSeq}
+          AND MODEL_SEQ = #{modelSeq}
+    </select>
+    <!--ArrayList<DataFileDownloadLog> findDtEtcDataFileLogsByEtcModelSeq(int etcModelSeq);-->
+    <select id="findDtEtcDataFileLogsByEtcModelSeq" parameterType="int"
+            resultType="com.stoneitgt.dt.data.platform.domain.DataFileDownloadLog">
+        SELECT *
+        FROM TB_META_ETC_DATA_FILE_LOG
+        WHERE USE_YN = 'Y'
+          AND DEL_YN = 'N'
+          AND MODEL_SEQ = #{etcModelSeq};
+    </select>
+    <!--ArrayList<DataFileDownloadLog> findDtEtcDataFileLogs();-->
+    <select id="findDtEtcDataFileLogs" parameterType="int"
+            resultType="com.stoneitgt.dt.data.platform.domain.DataFileDownloadLog">
+        SELECT *
+        FROM TB_META_ETC_DATA_FILE_LOG
+        WHERE USE_YN = 'Y'
+          AND DEL_YN = 'N'
+    </select>
+    <!--ArrayList<ModelReferenceLog> findDtEtcModelReferenceLogsByEtcModelSeq(int etcModelSeq);-->
+    <select id="findDtEtcModelReferenceLogsByEtcModelSeq" parameterType="int"
+            resultType="com.stoneitgt.dt.data.platform.domain.ModelReferenceLog">
+        SELECT *,
+               TMM.MODEL_NM         AS 'modelNm',
+               CASE
+                   WHEN TMM.JOB_LEVEL = 'P' THEN '전처리'
+                   WHEN TMM.JOB_LEVEL = 'M' THEN '모델'
+                   ELSE '알 수 없음' -- 또는 다른 기본값 처리 (예: '알 수 없음')
+                   END              AS 'processTp',
+               TMEMA.MODEL_ALGRM_NM AS 'algorithm'
+        FROM TB_META_ETC_MODEL_LOG AS LOG
+                 INNER JOIN TB_META_MODEL AS TMM ON TMM.MODEL_SEQ = LOG.REF_MODEL_SEQ
+                 INNER JOIN TB_META_ETC_MODEL_ALGRM AS TMEMA ON TMEMA.MODEL_ALGRM_SEQ = LOG.MODEL_ALGRM_SEQ
+        WHERE LOG.USE_YN = 'Y'
+          AND LOG.DEL_YN = 'N'
+          AND LOG.MODEL_SEQ = #{etcModelSeq};
+    </select>
+    <!--ArrayList<ModelReferenceLog> findDtEtcModelReferenceLogs();-->
+    <select id="findDtEtcModelReferenceLogs" resultType="com.stoneitgt.dt.data.platform.domain.ModelReferenceLog">
+        SELECT *,
+               TMM.MODEL_NM         AS 'modelNm',
+               CASE
+                   WHEN TMM.JOB_LEVEL = 'P' THEN '전처리'
+                   WHEN TMM.JOB_LEVEL = 'M' THEN '모델'
+                   ELSE '알 수 없음' -- 또는 다른 기본값 처리 (예: '알 수 없음')
+                   END              AS 'processTp',
+               TMEMA.MODEL_ALGRM_NM AS 'algorithm'
+        FROM TB_META_ETC_MODEL_LOG AS LOG
+                 INNER JOIN TB_META_MODEL AS TMM ON TMM.MODEL_SEQ = LOG.REF_MODEL_SEQ
+                 INNER JOIN TB_META_ETC_MODEL_ALGRM AS TMEMA ON TMEMA.MODEL_ALGRM_SEQ = LOG.MODEL_ALGRM_SEQ
+        WHERE LOG.USE_YN = 'Y'
+          AND LOG.DEL_YN = 'N'
+    </select>
+    <!--ArrayList<ModelReferenceLog> findDtEtcModelReferenceLogsRangeByEtcModelSeq(int etcModelSeq, String dateStr);-->
+    <select id="findDtEtcModelReferenceLogsRangeByEtcModelSeq"
+            resultType="com.stoneitgt.dt.data.platform.domain.ModelReferenceLog">
+        SELECT *,
+               TMM.MODEL_NM         AS 'modelNm',
+               CASE
+                   WHEN TMM.JOB_LEVEL = 'P' THEN '전처리'
+                   WHEN TMM.JOB_LEVEL = 'M' THEN '모델'
+                   ELSE '알 수 없음' -- 또는 다른 기본값 처리 (예: '알 수 없음')
+                   END              AS 'processTp',
+               TMEMA.MODEL_ALGRM_NM AS 'algorithm'
+        FROM TB_META_ETC_MODEL_LOG AS LOG
+                 INNER JOIN TB_META_MODEL AS TMM ON TMM.MODEL_SEQ = LOG.REF_MODEL_SEQ
+                 INNER JOIN TB_META_ETC_MODEL_ALGRM AS TMEMA ON TMEMA.MODEL_ALGRM_SEQ = LOG.MODEL_ALGRM_SEQ
+        WHERE LOG.USE_YN = 'Y'
+          AND LOG.DEL_YN = 'N'
+          AND LOG.MODEL_SEQ = #{etcModelSeq}
+          AND DATE_FORMAT(LOG.REG_DT, '%Y-%m') = #{dateStr};
+    </select>
+    <!--ArrayList<ModelReferenceLog> findDtEtcModelReferenceLogsRange(String dateStr);-->
+    <select id="findDtEtcModelReferenceLogsRange" resultType="com.stoneitgt.dt.data.platform.domain.ModelReferenceLog">
+        SELECT *,
+               TMM.MODEL_NM         AS 'modelNm',
+               CASE
+                   WHEN TMM.JOB_LEVEL = 'P' THEN '전처리'
+                   WHEN TMM.JOB_LEVEL = 'M' THEN '모델'
+                   ELSE '알 수 없음' -- 또는 다른 기본값 처리 (예: '알 수 없음')
+                   END              AS 'processTp',
+               TMEMA.MODEL_ALGRM_NM AS 'algorithm'
+        FROM TB_META_ETC_MODEL_LOG AS LOG
+                 INNER JOIN TB_META_MODEL AS TMM ON TMM.MODEL_SEQ = LOG.REF_MODEL_SEQ
+                 INNER JOIN TB_META_ETC_MODEL_ALGRM AS TMEMA ON TMEMA.MODEL_ALGRM_SEQ = LOG.MODEL_ALGRM_SEQ
+        WHERE LOG.USE_YN = 'Y'
+          AND LOG.DEL_YN = 'N'
+          AND DATE_FORMAT(LOG.REG_DT, '%Y-%m') = #{dateStr};
+    </select>
+    <!--ArrayList<DataFileDownloadLog> findDtEtcDataFileLogsRangeByEtcModelSeq(int etcModelSeq, String dateStr);-->
+    <select id="findDtEtcDataFileLogsRangeByEtcModelSeq"
+            resultType="com.stoneitgt.dt.data.platform.domain.DataFileDownloadLog">
+        SELECT *
+        FROM TB_META_ETC_DATA_FILE_LOG AS LOG
+        WHERE LOG.USE_YN = 'Y'
+          AND LOG.DEL_YN = 'N'
+          AND LOG.MODEL_SEQ = #{etcModelSeq}
+          AND DATE_FORMAT(LOG.REG_DT, '%Y-%m') = #{dateStr};
+    </select>
+    <!--ArrayList<DataFileDownloadLog> findDtEtcDataFileLogsRange(String dateStr);-->
+    <select id="findDtEtcDataFileLogsRange" resultType="com.stoneitgt.dt.data.platform.domain.DataFileDownloadLog">
+        SELECT *
+        FROM TB_META_ETC_DATA_FILE_LOG AS LOG
+        WHERE LOG.USE_YN = 'Y'
+          AND LOG.DEL_YN = 'N'
+          AND DATE_FORMAT(LOG.REG_DT, '%Y-%m') = #{dateStr};
+    </select>
+    <!--ArrayList<DataFileDownloadLog> findDtDataFileLogsByModelSeq(int modelSeq);-->
+    <select id="findDtDataFileLogsByModelSeq" parameterType="int"
+            resultType="com.stoneitgt.dt.data.platform.domain.DataFileDownloadLog">
+        SELECT *
+        FROM TB_META_DATA_FILE_LOG
+        WHERE USE_YN = 'Y'
+          AND DEL_YN = 'N'
+          AND MODEL_SEQ = #{modelSeq};
+    </select>
+    <!--ArrayList<DataFileDownloadLog> findDtDataFileLogs();-->
+    <select id="findDtDataFileLogs" resultType="com.stoneitgt.dt.data.platform.domain.DataFileDownloadLog">
+        SELECT *
+        FROM TB_META_DATA_FILE_LOG
+        WHERE USE_YN = 'Y'
+          AND DEL_YN = 'N';
+    </select>
+    <!--ArrayList<ModelReferenceLog> findDtModelReferenceLogsByModelSeq(int modelSeq);-->
+    <select id="findDtModelReferenceLogsByModelSeq" parameterType="int"
+            resultType="com.stoneitgt.dt.data.platform.domain.ModelReferenceLog">
+        SELECT *,
+               TMA.TITLE AS 'modelNm',
+               CASE
+                   WHEN TMA.SIM_TP = 'P' THEN '전처리'
+                   WHEN TMA.SIM_TP = 'A' THEN '증강'
+                   ELSE '알 수 없음' -- 또는 다른 기본값 처리 (예: '알 수 없음')
+                   END   AS 'processTp',
+               CASE
+                   WHEN TMA.AUGMENT_TP = 'O' THEN '일회성'
+                   WHEN TMA.AUGMENT_TP = 'R' THEN '주기성'
+                   WHEN TMA.AUGMENT_TP = 'F' THEN '추론'
+                   ELSE '알 수 없음' -- 또는 다른 기본값 처리 (예: '알 수 없음')
+                   END   AS 'augmentTp'
+        FROM TB_META_MODEL_LOG AS LOG
+                 INNER JOIN TB_META_AUGMENT AS TMA ON TMA.MODEL_SEQ = LOG.MODEL_SEQ AND TMA.AUGMENT_SEQ = LOG.REF_SIMULATION_SEQ
+        WHERE LOG.USE_YN = 'Y'
+          AND LOG.DEL_YN = 'N'
+          AND LOG.MODEL_SEQ = #{modelSeq};
+    </select>
+    <!--ArrayList<ModelReferenceLog> findDtModelReferenceLogsRange(String dateStr);-->
+    <select id="findDtModelReferenceLogsRange"
+            resultType="com.stoneitgt.dt.data.platform.domain.ModelReferenceLog">
+        SELECT *,
+               TMA.TITLE           AS 'modelNm',
+               CASE
+                   WHEN TMA.SIM_TP = 'P' THEN '전처리'
+                   WHEN TMA.SIM_TP = 'A' THEN '증강'
+                   ELSE '알 수 없음' -- 또는 다른 기본값 처리 (예: '알 수 없음')
+                   END             AS 'processTp',
+               CASE
+                   WHEN TMA.AUGMENT_TP = 'O' THEN '일회성'
+                   WHEN TMA.AUGMENT_TP = 'R' THEN '주기성'
+                   WHEN TMA.AUGMENT_TP = 'F' THEN '추론'
+                   ELSE '알 수 없음' -- 또는 다른 기본값 처리 (예: '알 수 없음')
+                   END             AS 'augmentTp',
+               TMM.MODEL_ALGRM_SEQ AS 'modelAlgrmSeq'
+        FROM TB_META_MODEL_LOG AS LOG
+                 INNER JOIN TB_META_AUGMENT AS TMA ON TMA.MODEL_SEQ = LOG.MODEL_SEQ AND TMA.AUGMENT_SEQ = LOG.REF_SIMULATION_SEQ
+                 INNER JOIN TB_META_MODEL AS TMM ON TMM.MODEL_SEQ = LOG.MODEL_SEQ
+        WHERE LOG.USE_YN = 'Y'
+          AND LOG.DEL_YN = 'N'
+          AND DATE_FORMAT(LOG.REG_DT, '%Y-%m') = #{dateStr};
+    </select>
+    <!--ArrayList<ModelReferenceLog> findDtModelReferenceLogsRangeByModelSeq(int modelSeq, String dateParam);-->
+    <select id="findDtModelReferenceLogsRangeByModelSeq"
+            resultType="com.stoneitgt.dt.data.platform.domain.ModelReferenceLog">
+        SELECT *,
+               TMA.TITLE AS 'modelNm',
+               CASE
+                   WHEN TMA.SIM_TP = 'P' THEN '전처리'
+                   WHEN TMA.SIM_TP = 'A' THEN '증강'
+                   ELSE '알 수 없음' -- 또는 다른 기본값 처리 (예: '알 수 없음')
+                   END   AS 'processTp',
+               CASE
+                   WHEN TMA.AUGMENT_TP = 'O' THEN '일회성'
+                   WHEN TMA.AUGMENT_TP = 'R' THEN '주기성'
+                   WHEN TMA.AUGMENT_TP = 'F' THEN '추론'
+                   ELSE '알 수 없음' -- 또는 다른 기본값 처리 (예: '알 수 없음')
+                   END   AS 'augmentTp'
+        FROM TB_META_MODEL_LOG AS LOG
+                 INNER JOIN TB_META_AUGMENT AS TMA ON TMA.MODEL_SEQ = LOG.MODEL_SEQ AND TMA.AUGMENT_SEQ = LOG.REF_SIMULATION_SEQ
+        WHERE LOG.USE_YN = 'Y'
+          AND LOG.DEL_YN = 'N'
+          AND LOG.MODEL_SEQ = #{modelSeq}
+          AND DATE_FORMAT(LOG.REG_DT, '%Y-%m') = #{dateStr};
+    </select>
+    <!--ArrayList<ModelReferenceLog> findDtModelReferenceLogs();-->
+    <select id="findDtModelReferenceLogs" resultType="com.stoneitgt.dt.data.platform.domain.ModelReferenceLog">
+        SELECT *,
+               TMA.TITLE AS 'modelNm',
+               CASE
+                   WHEN TMA.SIM_TP = 'P' THEN '전처리'
+                   WHEN TMA.SIM_TP = 'A' THEN '증강'
+                   ELSE '알 수 없음' -- 또는 다른 기본값 처리 (예: '알 수 없음')
+                   END   AS 'processTp',
+               CASE
+                   WHEN TMA.AUGMENT_TP = 'O' THEN '일회성'
+                   WHEN TMA.AUGMENT_TP = 'R' THEN '주기성'
+                   WHEN TMA.AUGMENT_TP = 'F' THEN '추론'
+                   ELSE '알 수 없음' -- 또는 다른 기본값 처리 (예: '알 수 없음')
+                   END   AS 'augmentTp'
+        FROM TB_META_MODEL_LOG AS LOG
+                 INNER JOIN TB_META_AUGMENT AS TMA
+                            ON TMA.MODEL_SEQ = LOG.MODEL_SEQ AND TMA.AUGMENT_SEQ = LOG.REF_SIMULATION_SEQ
+        WHERE LOG.USE_YN = 'Y'
+          AND LOG.DEL_YN = 'N'
+    </select>
+    <!--ArrayList<DataFileDownloadLog> findDtDataFileLogsRangeByModelSeq(int modelSeq, String dateParam);-->
+    <select id="findDtDataFileLogsRangeByModelSeq"
+            resultType="com.stoneitgt.dt.data.platform.domain.DataFileDownloadLog">
+        SELECT *
+        FROM TB_META_DATA_FILE_LOG AS LOG
+        WHERE LOG.USE_YN = 'Y'
+          AND LOG.DEL_YN = 'N'
+          AND LOG.MODEL_SEQ = #{modelSeq}
+          AND DATE_FORMAT(LOG.REG_DT, '%Y-%m') = #{dateStr};
+    </select>
+    <!--ArrayList<DataFileDownloadLog> findDtDataFileLogsRange(String dateStr);-->
+    <select id="findDtDataFileLogsRange" resultType="com.stoneitgt.dt.data.platform.domain.DataFileDownloadLog">
+        SELECT *
+        FROM TB_META_DATA_FILE_LOG AS LOG
+        WHERE LOG.USE_YN = 'Y'
+          AND LOG.DEL_YN = 'N'
+          AND DATE_FORMAT(LOG.REG_DT, '%Y-%m') = #{dateStr};
+    </select>
+    <!--int countDtEtcModelByAlgorithm(String modelAlgrm);-->
+    <select id="countDtEtcModelByAlgorithm" parameterType="int" resultType="int">
+        SELECT COUNT(*)
+        FROM TB_META_ETC_MODEL_LOG AS LOG
+                 INNER JOIN TB_META_MODEL AS TMM ON TMM.MODEL_SEQ = LOG.REF_MODEL_SEQ
+                 INNER JOIN TB_META_ETC_MODEL_ALGRM AS TMEMA ON TMEMA.MODEL_ALGRM_SEQ = LOG.MODEL_ALGRM_SEQ
+        WHERE LOG.USE_YN = 'Y'
+          AND LOG.DEL_YN = 'N'
+          AND LOG.MODEL_ALGRM_SEQ = #{algrmSeq}
+    </select>
+    <!--int countDtModelByAlgorithm(int algrmSeq);-->
+    <select id="countDtModelByAlgorithm" parameterType="int" resultType="int">
+        SELECT COUNT(*)
+        FROM TB_META_MODEL_LOG AS LOG
+                 INNER JOIN TB_META_MODEL AS TMM ON TMM.MODEL_SEQ = LOG.MODEL_SEQ
+                 INNER JOIN TB_META_AUGMENT AS TMA ON TMA.AUGMENT_SEQ = LOG.REF_SIMULATION_SEQ
+        WHERE LOG.USE_YN = 'Y'
+          AND LOG.DEL_YN = 'N'
+          AND TMM.MODEL_ALGRM_SEQ = #{algrmSeq}
+    </select>
+</mapper>

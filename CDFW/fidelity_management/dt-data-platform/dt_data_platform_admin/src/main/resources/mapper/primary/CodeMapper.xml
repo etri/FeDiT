@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.stoneitgt.dt.data.platform.admin.mapper.CodeMapper">
+	<select id="getCodeMasterList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : CodeMapper.xml, id : getCodeMasterList */
+		SELECT A.*
+		, DATE_FORMAT(A.REG_DT, '%Y-%m-%d') AS REG_DT
+		FROM TB_CODE_MST A
+		WHERE A.DEL_YN = 'N'
+		<if test="GRP_CD != null and GRP_CD != ''">
+			AND A.GRP_CD = #{grpCode}
+		</if>
+		ORDER BY GRP_CD
+		/*||ORDER BY GRP_CD||*/
+	</select>
+
+	<select id="getCodeDetailList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : CodeMapper.xml, id : getCodeDetailList */
+		SELECT A.*
+			 , DATE_FORMAT(A.REG_DT, '%Y-%m-%d') AS REG_DT
+		FROM TB_CODE_DTL A
+		WHERE A.DEL_YN = 'N'
+		  AND A.GRP_CD = #{grpCd}
+		ORDER BY ORDBY
+		/*||ORDER BY ORDBY||*/
+	</select>
+
+	<select id="getCodeList" parameterType="string" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : CodeMapper.xml, id : getCodeList */
+		  SELECT DTL_CD
+		       , DTL_CD_NM
+		       , REF_CD
+		       , REF_CLASS
+		       , REF_VALUE
+		       , ORDBY
+		    FROM TB_CODE_DTL
+		   WHERE GRP_CD = #{groupCode}
+		     AND DEL_YN = 'N'
+		     AND USE_YN = 'Y'
+		ORDER BY ORDBY, DTL_CD_NM
+	</select>
+
+	<select id="getCodeList2" parameterType="string" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : CodeMapper.xml, id : getCodeList */
+		  SELECT LOWER(DTL_CD) DTL_CD
+		       , DTL_CD_NM
+		       , REF_CD
+		       , REF_CLASS
+		       , REF_VALUE
+		       , ORDBY
+		    FROM TB_CODE_DTL
+		   WHERE GRP_CD = #{groupCode}
+		     AND DEL_YN = 'N'
+		     AND USE_YN = 'Y'
+		ORDER BY ORDBY, DTL_CD_NM
+	</select>
+
+	<select id="getCodeMaster" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : CodeMapper.xml, id : getCodeMaster */
+		  SELECT A.*
+		    FROM TB_CODE_MST A
+		   WHERE A.DEL_YN = 'N'
+		     AND A.GRP_CD = #{grpCd}
+	</select>
+
+	<select id="getCodeDetail" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+		/* file : CodeMapper.xml, id : getCodeDetail */
+		SELECT A.*
+		FROM TB_CODE_DTL A
+		WHERE A.DEL_YN = 'N'
+		  AND A.GRP_CD = #{grpCd}
+		  AND A.DTL_CD     = #{dtlCd}
+	</select>
+
+	<insert id="saveCodeMaster" parameterType="com.stoneitgt.dt.data.platform.domain.CodeMst">
+		/* file : CodeMapper.xml, id : saveCodeMaster */
+		INSERT
+		  INTO TB_CODE_MST (
+		              GRP_CD
+		            , GRP_CD_NM
+		            , REG_USER_SEQ
+		            , REG_IP)
+		       VALUES (
+		              UPPER( #{grpCd} )
+		            , #{grpCdNm}
+		            , #{loginUserSeq}
+		            , #{loginUserIp})
+		    ON DUPLICATE KEY UPDATE GRP_CD_NM = #{grpCdNm}
+		     , DEL_YN                           = 'N'
+		     , MDFCN_USER_SEQ                       = #{loginUserSeq}
+		     , MDFCN_DT                           = CURRENT_TIMESTAMP
+		     , MDFCN_IP                             = #{loginUserIp}
+	</insert>
+
+	<insert id="saveCodeDetail" parameterType="com.stoneitgt.dt.data.platform.domain.CodeDtl">
+		/* file : CodeMapper.xml, id : saveCodeDetail */
+		INSERT
+		INTO TB_CODE_DTL (
+						   GRP_CD
+						 , DTL_CD
+						 , DTL_CD_NM
+						 , ORDBY
+						 , USE_YN
+						 , REG_USER_SEQ
+						 , REG_IP)
+		VALUES (
+				 UPPER( #{grpCd} )
+			   , UPPER( #{dtlCd} )
+			   , #{dtlCdNm}
+			   , #{ordby}
+			   , #{useYn}
+			   , #{loginUserSeq}
+			   , #{loginUserIp})
+		ON DUPLICATE KEY UPDATE DTL_CD_NM = #{dtlCdNm}
+							  , ORDBY                          = #{ordby}
+							  , USE_YN                       = #{useYn}
+							  , DEL_YN                       = 'N'
+							  , MDFCN_USER_SEQ                   = #{loginUserSeq}
+							  , MDFCN_DT                       = CURRENT_TIMESTAMP
+							  , MDFCN_IP                         = #{loginUserIp}
+	</insert>
+
+	<update id="deleteCodeMaster" parameterType="com.stoneitgt.dt.data.platform.domain.CodeDtl" >
+		/* file : CodeMapper.xml, id : deleteCodeMaster */
+		  UPDATE TB_CODE_MST
+		     SET DEL_YN     = 'Y'
+		       , DEL_USER_SEQ = #{loginUserSeq}
+		       , DEL_DT     = CURRENT_TIMESTAMP
+		       , DEL_IP       = #{loginUserIp}
+		   WHERE GRP_CD     = #{grpCd}
+	</update>
+
+	<update id="deleteCodeMasterDetail" parameterType="com.stoneitgt.dt.data.platform.domain.CodeDtl" >
+		/* file : CodeMapper.xml, id : deleteCodeMasterDetail */
+		  UPDATE TB_CODE_DTL
+		     SET DEL_YN     = 'Y'
+		       , DEL_USER_SEQ = #{loginUserSeq}
+		       , DEL_DT     = CURRENT_TIMESTAMP
+		       , DEL_IP       = #{loginUserIp}
+		   WHERE GRP_CD     = #{grpCd}
+	</update>
+
+	<update id="deleteCodeDetail" parameterType="com.stoneitgt.dt.data.platform.domain.CodeDtl" >
+		/* file : CodeMapper.xml, id : deleteCodeDetail */
+		  UPDATE TB_CODE_DTL
+		     SET DEL_YN     = 'Y'
+		       , DEL_USER_SEQ = #{loginUserSeq}
+		       , DEL_DT     = CURRENT_TIMESTAMP
+		       , DEL_IP       = #{loginUserIp}
+		   WHERE GRP_CD     = #{grpCd}
+		     AND DTL_CD         = #{dtlCd}
+	</update>
+</mapper>

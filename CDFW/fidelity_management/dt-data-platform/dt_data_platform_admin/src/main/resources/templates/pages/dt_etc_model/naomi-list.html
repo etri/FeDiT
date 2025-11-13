@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/platform_dt_etc_layout}">
+
+<head>
+    <title th:text="${breadcrumb.menu_nm}">사용자관리</title>
+</head>
+<div layout:fragment="content">
+    <div class="page-title">
+        <div class="contain">
+            <h1 th:text="${breadcrumb.menu_nm}">Naomi 모델</h1>
+        </div>
+    </div>
+    <div class="list-top">
+        <div class="contain">
+            <form name="searchForm" th:action="@{/dt/etc/model/naomi/list(menuCd=${params.menuCd})}"
+                  th:object="${params}"
+                  method="GET" style="display: none;">
+                <input type="hidden" th:field="*{menuCd}">
+                <input type="hidden" id="pagingPage" name="page" th:value="${paging.page}">
+                <input type="hidden" id="pagingSize" name="size" th:value="${paging.size}">
+                <input type="hidden" id="subPagingPage" name="subPage" th:value="${subPaging.page}">
+                <input type="hidden" id="subPagingSize" name="subSize" th:value="${subPaging.size}">
+                <input type="hidden" th:field="*{sortName}">
+                <input type="hidden" th:field="*{sortType}">
+                <input type="hidden" th:field="*{subSortName}">
+                <input type="hidden" th:field="*{subSortType}">
+                <input type="hidden" th:field="*{field}"/>
+                <input type="hidden" th:field="*{subField}"/>
+                <input type="hidden" th:field="*{keyword}"/>
+                <input type="hidden" th:field="*{subKeyword}"/>
+                <button type="submit" class="ui-button primary btn-search">조회</button>
+            </form>
+            <div class="filter-wrap">
+                <!-- 유형 -->
+                <div class="filter-layer-box"><!-- 옵션 선택시 :: is-selected 클래스 추가 -->
+                    <button type="button" class="filter-toggle">유형<span class="filter-value"
+                                                                        th:data-initialize="${params.field}">모델명</span>
+                    </button>
+                    <div class="filter-layer" aria-expanded="false" style="position: absolute; top: calc(100% + 2px);">
+                        <ul class="option-list">
+                            <li>
+                                <input type="radio" id="searchType1" name="searchType" value="etc_model_nm"
+                                       th:checked="${params.field == 'etc_model_nm' or params.field == null or params.field == ''}">
+                                <label for="searchType1">모델명</label>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 검색어 -->
+                <div class="filter-layer-box">
+                    <button type="button" class="filter-toggle">검색어<span class="filter-value"
+                                                                         th:if="${params.keyword != null && params.keyword != ''}"
+                                                                         th:text="${params.keyword}"></span></button>
+                    <div class="filter-layer exclude-layer form-control-wrap"
+                         style="position: absolute; top: calc(100% + 2px);"
+                         aria-expanded="false">
+                        <div class="input-group">
+                            <input type="text" id="filterKeyword" class="form-control md" placeholder="검색어를 입력해주세요">
+                            <button type="button" class="form-right-action" id="filterKeywordAction">입력</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- 필터 전체 해제 -->
+                <button type="button" class="btn-filter-reset" id="resetKeyword">필터 전체 해제</button>
+            </div>
+            <div class="buttons-group">
+                <button type="button" th:data-href="@{|/dt/etc/model/naomi/form?${pageParams}|}"
+                        class="ui-button xs primary ico">
+                    <img src="/assets/images/platform/ico_add_wh.svg" alt="">등록
+                </button>
+            </div>
+        </div>
+    </div>
+    <section class="data-section">
+        <div class="contain">
+            <div class="row">
+                <div class="col-12">
+                    <ul class="my-3">
+                        <li>
+                            <div class="bg-box">
+                                <p class="dot-desc">대상 컬럼은 유효성 검증 도구를 사용할 때 기준이 되는 컬럼입니다.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="bg-box">
+                                <p class="dot-desc">모델 종류는 이상치를 탐지하는 오토인코더, 결측을 처리해주는 랜덤포레스트, 브리츠, 나오미가 있습니다.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <!-- 로그인한 사용자의 유효성 검증 도구 모델들 -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="table-box">
+                        <table class="data-table">
+                            <colgroup>
+                                <col style="width: auto;">
+                                <col style="width: 30%;">
+                                <col style="width: 30%;">
+                                <col style="width: auto;">
+                                <col style="width: auto;">
+                                <col style="width: auto;">
+                                <col style="width: auto;">
+                                <col style="width: auto;">
+                                <col style="width: auto;">
+                            </colgroup>
+                            <thead>
+                            <tr>
+                                <th>순번</th>
+                                <th>제목</th>
+                                <th>설명</th>
+                                <th>대상컬럼</th>
+                                <th>모델종류</th>
+                                <th>상태</th>
+                                <th>작성자</th>
+                                <th>등록일</th>
+                                <th>기능</th>
+                            </tr>
+                            </thead>
+                            <tbody class="table-text-nowrap">
+                            <th:block th:include="fragments/table_empty:: table_empty(9)"
+                                      th:if="${#lists.isEmpty(list)}"></th:block>
+                            <tr th:each="item : ${list}" th:unless="${#lists.isEmpty(list)}">
+                                <td th:text="${paging.total - item.rnum + 1}"></td>
+                                <td class="wrap">
+                                    <a th:href="@{|/dt/etc/model/naomi/${item.etc_model_seq}?${pageParams}|}"
+                                       th:text="${item.etc_model_nm}">제목</a>
+                                </td>
+                                <td class="wrap" th:text="${item.etc_model_derpn}"></td>
+                                <td>
+                                          <span class="badge gray">
+                                              <th:block th:text="${item.trgt_col}"></th:block>
+                                          </span>
+                                </td>
+                                <td>
+                                         <span class="badge gray">
+                                             <th:block th:text="${item.model_algorithm}"></th:block>
+                                         </span>
+                                </td>
+                                <td th:data="${item.model_status}">
+                                    <th:block th:if="${item.model_status=='PREPARE'}">
+                                            <span class="badge gray"><th:block
+                                                    th:text="${item.status_nm}"></th:block></span>
+                                    </th:block>
+                                    <th:block th:if="${item.model_status=='WAIT'}">
+                                            <span class="badge blue"><th:block
+                                                    th:text="${item.status_nm}"></th:block></span>
+                                    </th:block>
+                                    <th:block th:if="${item.model_status=='DOING'}">
+                                            <span class="badge yellow"><th:block
+                                                    th:text="${item.status_nm}"></th:block></span>
+                                    </th:block>
+                                    <th:block th:if="${item.model_status=='DONE'}">
+                                            <span class="badge green"><th:block
+                                                    th:text="${item.status_nm}"></th:block></span>
+                                    </th:block>
+                                    <th:block th:if="${item.model_status=='FAIL'}">
+                                            <span class="badge red cursor-pointer"
+                                                  data-type="errorModal"><th:block
+                                                    th:text="${item.status_nm}"></th:block></span>
+                                        <th:block th:if="${item.model_status == 'FAIL'}">
+                                            <div id="error_frame">
+                                                <th:block th:if="${item.err_tp != null}">
+                                                    <div id="err_type" th:attr="data-value=${item.err_tp}"></div>
+                                                </th:block>
+                                                <th:block th:if="${item.err_cd != null}">
+                                                    <div id="errCd" th:attr="data-value=${item.err_cd}"></div>
+                                                </th:block>
+                                                <th:block th:if="${item.err_nm != null}">
+                                                    <div id="errNm" th:attr="data-value=${item.err_nm}"></div>
+                                                </th:block>
+                                                <th:block th:if="${item.err_lct != null}">
+                                                    <div id="errLct" th:attr="data-value=${item.err_lct}"></div>
+                                                </th:block>
+                                                <th:block th:if="${item.err_cn != null}">
+                                                    <div id="errCn" th:attr="data-value=${item.err_cn}"></div>
+                                                </th:block>
+                                                <th:block th:if="${item.errregdt != null}">
+                                                    <div id="errRegDt" th:attr="data-value=${item.errregdt}"></div>
+                                                </th:block>
+                                            </div>
+                                        </th:block>
+                                    </th:block>
+                                </td>
+                                <td th:text="${item.user_id}"></td>
+                                <td th:text="${item.reg_dt}"></td>
+                                <td>
+                                    <button type="button" class="ui-button danger sm"
+                                            data-action-type="delete" th:data-number="${item.etc_model_seq}">
+                                        삭제
+                                    </button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <th:block th:include="fragments/platform_paging_multi"></th:block>
+                </div>
+            </div>
+            <div class="hr-3"></div>
+            <!-- 공유된 유효성 검증 도구 모델들 -->
+            <div class="sub-page-title">
+                <h1 th:text="'공유된 ' + ${breadcrumb.menu_nm}">공유된 Naomi 모델</h1>
+            </div>
+            <div class="list-top">
+                <div class="filter-wrap">
+                    <!-- 유형 -->
+                    <div class="filter-layer-box"><!-- 옵션 선택시 :: is-selected 클래스 추가 -->
+                        <button type="button" class="filter-toggle">유형<span class="filter-value"
+                                                                            th:data-initialize="${params.subField}">모델명</span>
+                        </button>
+                        <div class="filter-layer" aria-expanded="false"
+                             style="position: absolute; top: calc(100% + 2px);">
+                            <ul class="option-list">
+                                <li>
+                                    <input type="radio" id="subSearchType1" name="subSearchType" value="etc_model_nm"
+                                           th:checked="${params.subField == 'etc_model_nm' or params.subField == null or params.subField == ''}">
+                                    <label for="subSearchType1">모델명</label>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <!-- 검색어 -->
+                    <div class="filter-layer-box">
+                        <button type="button" class="filter-toggle">검색어<span class="filter-value"
+                                                                             th:if="${params.subKeyword != null && params.subKeyword != ''}"
+                                                                             th:text="${params.subKeyword}"></span>
+                        </button>
+                        <div class="filter-layer exclude-layer form-control-wrap"
+                             style="position: absolute; top: calc(100% + 2px);"
+                             aria-expanded="false">
+                            <div class="input-group">
+                                <input type="text" id="filterSubKeyword" class="form-control md"
+                                       placeholder="검색어를 입력해주세요">
+                                <button type="button" class="form-right-action" id="filterSubKeywordAction">입력</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="table-box">
+                        <table class="data-table">
+                            <colgroup>
+                                <col style="width: auto;">
+                                <col style="width: 30%;">
+                                <col style="width: 30%;">
+                                <col style="width: auto;">
+                                <col style="width: auto;">
+                                <col style="width: auto;">
+                                <col style="width: auto;">
+                                <col style="width: auto;">
+                            </colgroup>
+                            <thead>
+                            <tr>
+                                <th>순번</th>
+                                <th>제목</th>
+                                <th>설명</th>
+                                <th>대상컬럼</th>
+                                <th>모델종류</th>
+                                <th>상태</th>
+                                <th>작성자</th>
+                                <th>등록일</th>
+                            </tr>
+                            </thead>
+                            <tbody class="table-text-nowrap">
+                            <th:block th:include="fragments/table_empty:: table_empty(8)"
+                                      th:if="${#lists.isEmpty(share_list)}"></th:block>
+                            <tr th:each="shere_item : ${share_list}"
+                                th:unless="${#lists.isEmpty(share_list)}">
+                                <td th:text="${subPaging.total - shere_item.rnum + 1}"></td>
+                                <td class="wrap">
+                                    <a th:href="@{|/dt/etc/model/naomi/${shere_item.etc_model_seq}?${pageParams}|}"
+                                       th:text="${shere_item.etc_model_nm}">제목</a>
+                                </td>
+                                <td class="wrap" th:text="${shere_item.etc_model_derpn}"></td>
+                                <td>
+                                          <span class="badge gray">
+                                              <th:block th:text="${shere_item.trgt_col}"></th:block>
+                                          </span>
+                                </td>
+                                <td>
+                                         <span class="badge gray">
+                                             <th:block th:text="${shere_item.model_algorithm}"></th:block>
+                                         </span>
+                                </td>
+                                <td th:data="${shere_item.model_status}">
+                                    <th:block th:if="${shere_item.model_status=='PREPARE'}">
+                                            <span class="badge gray"><th:block
+                                                    th:text="${shere_item.status_nm}"></th:block></span>
+                                    </th:block>
+                                    <th:block th:if="${shere_item.model_status=='WAIT'}">
+                                            <span class="badge blue"><th:block
+                                                    th:text="${shere_item.status_nm}"></th:block></span>
+                                    </th:block>
+                                    <th:block th:if="${shere_item.model_status=='DOING'}">
+                                            <span class="badge yellow"><th:block
+                                                    th:text="${shere_item.status_nm}"></th:block></span>
+                                    </th:block>
+                                    <th:block th:if="${shere_item.model_status=='DONE'}">
+                                            <span class="badge green"><th:block
+                                                    th:text="${shere_item.status_nm}"></th:block></span>
+                                    </th:block>
+                                    <th:block th:if="${shere_item.model_status=='FAIL'}">
+                                            <span class="badge red cursor-pointer"
+                                                  data-type="errorModal"><th:block
+                                                    th:text="${shere_item.status_nm}"></th:block></span>
+                                        <th:block th:if="${shere_item.model_status == 'FAIL'}">
+                                            <div id="error_frame">
+                                                <th:block th:if="${shere_item.err_tp != null}">
+                                                    <div id="err_type"
+                                                         th:attr="data-value=${shere_item.err_tp}"></div>
+                                                </th:block>
+                                                <th:block th:if="${shere_item.err_cd != null}">
+                                                    <div id="errCd" th:attr="data-value=${shere_item.err_cd}"></div>
+                                                </th:block>
+                                                <th:block th:if="${shere_item.err_nm != null}">
+                                                    <div id="errNm" th:attr="data-value=${shere_item.err_nm}"></div>
+                                                </th:block>
+                                                <th:block th:if="${shere_item.err_lct != null}">
+                                                    <div id="errLct"
+                                                         th:attr="data-value=${shere_item.err_lct}"></div>
+                                                </th:block>
+                                                <th:block th:if="${shere_item.err_cn != null}">
+                                                    <div id="errCn" th:attr="data-value=${shere_item.err_cn}"></div>
+                                                </th:block>
+                                                <th:block th:if="${shere_item.errregdt != null}">
+                                                    <div id="errRegDt"
+                                                         th:attr="data-value=${shere_item.errregdt}"></div>
+                                                </th:block>
+                                            </div>
+                                        </th:block>
+                                    </th:block>
+                                </td>
+                                <td th:text="${shere_item.user_id}"></td>
+                                <td th:text="${shere_item.reg_dt}"></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <th:block th:include="fragments/platform_paging_multi_sub"></th:block>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!--Error Modal-->
+    <th:block th:include="fragments/modal/modal_error_info"></th:block>
+</div>
+<th:block layout:fragment="custom_css">
+</th:block>
+<th:block layout:fragment="custom_js">
+    <script th:src="@{/assets/js/pages/dt_etc_model/list.js}"></script>
+</th:block>
+</html>

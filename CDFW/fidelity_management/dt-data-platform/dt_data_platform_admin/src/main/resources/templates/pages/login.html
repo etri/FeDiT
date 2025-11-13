@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>DT_DATA_PLATFORM :: 로그인</title>
+    <link rel="shortcut icon" th:href="@{/assets/images/favicon.ico}" type="image/x-icon">
+    <link rel="stylesheet" th:href="@{/assets/vendors/core/core.css}">
+    <th:block th:with="ver=${@environment.getProperty('system.version')}">
+        <link rel="stylesheet" th:href="@{/assets/css/demo_1/style.css(ver=${ver})}">
+        <link rel="stylesheet" th:href="@{/assets/css/common.css(ver=${ver})}">
+    </th:block>
+    <!--Design Custom Styles-->
+    <link rel="stylesheet" th:href="@{/assets/css/platform_design.css}">
+    <!--Platform Styles-->
+    <link rel="stylesheet" th:href="@{/assets/css/platform/style.css}">
+</head>
+
+<body>
+<div class="main-wrapper cont_login">
+    <div class="page-wrapper full-page">
+        <div class="page-content d-flex align-items-center justify-content-center">
+            <div class="row w-100 mx-0 auth-page">
+                <div class="col-md-8 col-xl-6 mx-auto">
+                    <div class="card">
+                        <div class="row">
+                            <div class="col-md-4 pr-md-0">
+                                <div class="auth-left-wrapper"
+                                     th:style="|background-image: url(@{/assets/images/logo-black.png});background-position: center;background-repeat: no-repeat;background-size: auto;|">
+                                </div>
+                            </div>
+                            <div class="col-md-8 pl-md-0">
+                                <div class="auth-form-wrapper px-4 py-5">
+                                    <a href="#" class="noble-ui-logo d-block mb-3">DT_DATA_PLATFORM</a>
+                                    <form class="forms-sample" th:action="@{/login}" method="POST"
+                                          th:object="${loginForm}">
+                                        <div class="form-control-wrap">
+                                            <label id="id_label" class="form-label" for="id">아이디</label>
+                                            <input type="text" maxlength="15" id="id" th:field="*{id}"
+                                                   class="form-control md" autofocus="autofocus"
+                                                   placeholder="아이디를 입력하세요" aria-labelledby="id_label"
+                                                   required="required">
+                                        </div>
+                                        <div class="form-control-wrap">
+                                            <label id="password_label" class="form-label" for="password">패스워드</label>
+                                            <input type="password" maxlength="20" id="password" th:field="*{password}"
+                                                   class="form-control md"
+                                                   placeholder="비밀번호를 입력하세요" aria-labelledby="password_label"
+                                                   required="required">
+                                        </div>
+                                        <div class="box_desc" th:if="${not #strings.isEmpty(error)}">
+                                            <p class="desc_error" th:text="${error}">아이디 혹은 비밀번호가 일치하지 않습니다. 입력한 내용을 다시
+                                                확인해 주세요.</p>
+                                        </div>
+                                        <div class="form-control-wrap">
+                                            <button type="submit" class="ui-button lg primary">로그인</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        let statusElement = document.querySelector('[name="status"]');
+        if (statusElement) {
+            console.log('statusElement', statusElement);
+        }
+    });
+</script>
+</html>

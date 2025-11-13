@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/platform_layout}">
+
+<head>
+    <title th:text="${breadcrumb.menu_nm}">권한관리</title>
+</head>
+
+<div layout:fragment="content">
+    <div class="page-title">
+        <div class="contain">
+            <h1 th:text="${breadcrumb.menu_nm}">권한 관리</h1>
+        </div>
+    </div>
+
+    <section class="data-section">
+        <div class="contain">
+            <div class="row">
+                <div class="col-4">
+                    <div class="row">
+                        <div class="col-12 pt-3">
+                            <div style="display: flex; justify-content: space-between;">
+                                <label class="col-form-label">그룹 권한</label>
+                            </div>
+                        </div>
+                        <div class="col-12 pt-3">
+                            <div class="table-box">
+                                <table class="data-table">
+                                    <colgroup>
+                                        <col>
+                                        <col>
+                                    </colgroup>
+                                    <thead>
+                                    <tr>
+                                        <th>권한 코드</th>
+                                        <th>권한 코드명</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="item : ${authList}"
+                                        th:class="${item.dtl_cd} == ${auth} ? 'table-info' : ''"
+                                        th:data-group-code="${item.dtl_cd}">
+                                        <td th:text="${item.dtl_cd}">code</td>
+                                        <td>
+                                            <a th:href="@{/setting/auth(auth=${item.dtl_cd},menuCd=${params.menuCd})}"
+                                               th:text="${item.dtl_cd_nm}">grp_code_name</a>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-8">
+                    <div class="row">
+                        <div class="col-12 pt-3">
+                            <div style="display: flex; justify-content: space-between;">
+                                <label class="col-form-label">메뉴</label>
+                                <button type="button" class="ui-button primary sm btn-register">저장
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-12 pt-3">
+                            <input type="hidden" id="auth" th:value="${auth}">
+                            <div class="tree_container"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<th:block layout:fragment="custom_css">
+</th:block>
+<th:block layout:fragment="custom_js">
+    <script th:inline="javascript">
+        let menuList = /*[[${menuList}]]*/ null;
+        let values = /*[[${values}]]*/ null;
+    </script>
+    <script th:src="@{/assets/js/libs/tree.min.js}"></script>
+    <script th:src="@{/assets/js/pages/setting/auth_list.js}"></script>
+</th:block>
+</html>
