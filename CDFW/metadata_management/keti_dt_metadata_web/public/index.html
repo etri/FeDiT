@@ -6,8 +6,10 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
     <title><%= htmlWebpackPlugin.options.title %></title>
-    <!-- Kakao Map API -->
-    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=<%= process.env.VUE_APP_KAKAO_JS_KEY %>&libraries=services"></script>
+    <!-- VUE_APP_KAKAO_JS_KEY 환경 변수를 사용하여 키를 동적으로 주입합니다. -->
+    <script type="text/javascript" 
+      src="//dapi.kakao.com/v2/maps/sdk.js?appkey=<%= process.env.VUE_APP_KAKAO_JS_KEY %>&libraries=services">
+    </script>
   </head>
   <body>
     <noscript>

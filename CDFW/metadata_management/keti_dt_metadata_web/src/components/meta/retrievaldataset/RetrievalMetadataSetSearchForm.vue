@@ -38,16 +38,18 @@
 						<el-dialog v-model="dialogVisibleSearchAgent" title="대리인 검색">
 							<AgentDialogSearch @selectAgent="selectedAgent" />
 						</el-dialog>
-					-->
-					<ComnFormItemInput2Btns label="제공자 (대리인)" v-model="pageInfo.agntNm"
-							@click-search="dialogVisibleSearchAgent = true" @click-refresh="refreshAgent" />
+						-->
+						<!-- 2025 카테고리와 Agent 를 사용안해서 검색조건에서 숨김.
+						<ComnFormItemInput2Btns label="제공자 (대리인)" v-model="pageInfo.agntNm"
+								@click-search="dialogVisibleSearchAgent = true" @click-refresh="refreshAgent" />
 						<el-dialog v-model="dialogVisibleSearchAgent" title="제공자 (대리인) 메타데이터 셋 검색">
 							<MetadataSetDialogSearch 
-							  searchSttusCd="use" searchMode="type"
-							  typeModelId="Agent" typeModelNm="제공자 (대리인)"
+								searchSttusCd="use" searchMode="type"
+								typeModelId="Agent" typeModelNm="제공자 (대리인)"
 								:searchMetaTypeFix='true' searchMetaTypeId="Agent" 
-							  @selectedRow="selectedAgent" />
-						</el-dialog>					
+								@selectedRow="selectedAgent" />
+						</el-dialog>
+						-->
 					</el-col>
 				</el-row>
 

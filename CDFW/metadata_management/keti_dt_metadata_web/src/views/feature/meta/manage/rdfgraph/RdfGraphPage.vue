@@ -142,7 +142,7 @@ onBeforeUnmount(() => { disposeGraph(); });
 
 const state = reactive({
   searchType: "all",
-  matchLimit: 100,
+  matchLimit: 500,
   typeModelId: "",
   medataSetNm: "",
   searchModeForDt: "all",

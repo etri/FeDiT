@@ -11,7 +11,6 @@ import {
   isAuthenticated,
   requestAuthToken,
   redirectLoginView,
-  tempLoginPass, // TODO 2024-11-06 고객 요청 임시 로그인 패스용
 } from "@/assets/js/auth.js";
 
 import { metaRoutes, externalRoutes } from './router-meta.js';
@@ -97,8 +96,7 @@ const names = [
 router.beforeEach(async (to, from, next) => {
   store.commit('MetaStore/closePopup');
   //console.log(`beforeEach : ${to.name}, to.path : ${to.path}`);
-  //if (names.includes(to.name) && to.path !== "/redirect") {
-  if (names.includes(to.name) && to.path !== "/redirect" && to.path !== "/loginpass") { // TODO 2024-11-06 고객 요청 임시 로그인 패스용
+  if (names.includes(to.name) && to.path !== "/redirect") {
     return next();
   }
   await checkSession(to, from, next);
@@ -241,30 +239,7 @@ const checkSession = async (to, from, next) => {
     if (to.path === '/redirect') {
       return next('/');
     }
-    // TODO 2024-11-06 고객 요청 임시 로그인 패스용
-    if (to.path === '/loginpass') {
-      // 누군가 이미 로그인해 있다면, 혹은 임시 로그인 패스로 로그인해 있다면, 그냥 처리
-      if (to.query && to.query.to) {
-        return next(to.query.to);
-      } else {
-        return next('/');
-      }
-    }
     return next();
-  }
-  // TODO 2024-11-06 고객 요청 임시 로그인 패스용
-  else if (to.path === '/loginpass') {
-    // 로그인 상태가 아닌 경우, 임시 로그인 처리
-    await tempLoginPass();
-    const checkAuthenticated2 = await isAuthenticated();
-    // console.log(`임시 로그인 처리 checkAuthenticated2: ${checkAuthenticated2}`);
-    if (checkAuthenticated2) {
-      if (to.query && to.query.to) {
-        return next(to.query.to);
-      } else {
-        return next('/');
-      }    
-    }
   }
 
   let accessToken;

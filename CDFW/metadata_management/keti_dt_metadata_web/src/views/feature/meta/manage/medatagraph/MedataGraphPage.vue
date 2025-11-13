@@ -156,7 +156,7 @@ function disposeGraph() {
 const state = reactive({
   searchType: "all",       // all | keyword | medataSet
   graphView: "metaOnly",   // all | keywordMain | metaOnly
-  matchLimit: 100,
+  matchLimit: 500,
   keywordText: "",
   keywordMatchType: "contains",
   medataSetId: "",

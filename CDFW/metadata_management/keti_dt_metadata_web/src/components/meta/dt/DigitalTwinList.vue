@@ -12,12 +12,14 @@
 								<li class="dd">{{ item.medataSetId }} </li>
 								<li class="dt">상태</li>
 								<li class="dd">{{ item.medataSetSttusMtcdNm }} </li>
+								<!-- 2025 카테고리와 Agent 를 사용안해서 검색조건에서 숨김.
 								<li class="dt">카테고리</li>
-								<li class="dd"> {{ item.categoryNm }}</li>
+								<li class="dd"> {{ item.categoryNm }}</li> -->
 								<li class="dt">모델</li>
 								<li class="dd">{{ item.modelNm }}</li>
+								<!-- 2025 카테고리와 Agent 를 사용안해서 검색조건에서 숨김.
 								<li class="dt">제공자</li>
-								<li class="dd">{{ item.agentNm }}</li>
+								<li class="dd">{{ item.agentNm }}</li>  -->
 								<li class="dt">수정일</li>
 								<li class="dd">{{ item.medataSetAmdDt }}</li>
 								<li class="dt">키워드</li>

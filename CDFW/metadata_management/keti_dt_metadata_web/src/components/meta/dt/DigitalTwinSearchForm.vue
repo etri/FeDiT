@@ -45,41 +45,6 @@
 						</el-form-item>									
 					</el-col>
 				  <el-col :span="12">
-						<!-- 2023-07-27 정형모델 사용안함 
-						<ComnFormItemInput2Btns
-						  label="제공자 (대리인)"
-							v-model="pageInfo.agntNm"
-						  @click-search="dialogVisibleSearchAgent = true"
-							@click-refresh="refreshAgent"
-						/>
-						<el-dialog v-model="dialogVisibleSearchAgent" title="대리인 검색">
-							<AgentDialogSearch @selectAgent="selectAgent" />
-						</el-dialog>
-						-->
-						<ComnFormItemInput2Btns label="제공자 (대리인)" v-model="pageInfo.agntNm"
-							@click-search="dialogVisibleSearchAgent = true" @click-refresh="refreshAgent" />
-						<el-dialog v-model="dialogVisibleSearchAgent" title="제공자 (대리인) 메타데이터 셋 검색">
-							<MetadataSetDialogSearch 
-							  searchSttusCd="" searchMode="type"
-							  typeModelId="Agent" typeModelNm="제공자 (대리인)"
-								:searchMetaTypeFix='true' searchMetaTypeId="Agent" 
-							  @selectedRow="selectAgent" />
-						</el-dialog>												
-					</el-col>
-				</el-row>
-				<el-row :gutter="20">
-					<el-col :span="12">
-						<ComnFormItemInput2Btns
-						  label="카테고리"
-							v-model="pageInfo.ctgryNm"
-						  @click-search="dialogVisibleSearchCategory = true"
-							@click-refresh="refreshCategory"
-						/>						
-						<el-dialog v-model="dialogVisibleSearchCategory" title="카테고리 검색">
-							<CategoryDialogSearch @selectCategory="selectCategory" />
-						</el-dialog>
-					</el-col>
-					<el-col :span="12">
 						<ComnFormItemInput2Btns
 						  label="메타데이터 모델"
 							v-model="pageInfo.modelNm"
@@ -93,8 +58,45 @@
 								:typeModelId="searchTypeModelId" 
 								@selectedRow="selectedMetaDataModel" />
 						</el-dialog>
+					</el-col>						
+				</el-row>
+				<!-- 2025 카테고리와 Agent 를 사용안해서 검색조건에서 숨김.
+				<el-row :gutter="20">
+					<el-col :span="12">
+						<ComnFormItemInput2Btns
+						  label="카테고리"
+							v-model="pageInfo.ctgryNm"
+						  @click-search="dialogVisibleSearchCategory = true"
+							@click-refresh="refreshCategory"
+						/>						
+						<el-dialog v-model="dialogVisibleSearchCategory" title="카테고리 검색">
+							<CategoryDialogSearch @selectCategory="selectCategory" />
+						</el-dialog>
+					</el-col>
+					<el-col :span="12"></el-col>					
+						< !-- 2023-07-27 정형모델 사용안함 
+						<ComnFormItemInput2Btns
+						  label="제공자 (대리인)"
+							v-model="pageInfo.agntNm"
+						  @click-search="dialogVisibleSearchAgent = true"
+							@click-refresh="refreshAgent"
+						/>
+						<el-dialog v-model="dialogVisibleSearchAgent" title="대리인 검색">
+							<AgentDialogSearch @selectAgent="selectAgent" />
+						</el-dialog>
+						-- >
+						<ComnFormItemInput2Btns label="제공자 (대리인)" v-model="pageInfo.agntNm"
+							@click-search="dialogVisibleSearchAgent = true" @click-refresh="refreshAgent" />
+						<el-dialog v-model="dialogVisibleSearchAgent" title="제공자 (대리인) 메타데이터 셋 검색">
+							<MetadataSetDialogSearch 
+							  searchSttusCd="" searchMode="type"
+							  typeModelId="Agent" typeModelNm="제공자 (대리인)"
+								:searchMetaTypeFix='true' searchMetaTypeId="Agent" 
+							  @selectedRow="selectAgent" />
+						</el-dialog>												
 					</el-col>
 				</el-row>
+				-->
 				<el-row :gutter="20">
 					<el-col :span="12">
 						<el-form-item label="상태">

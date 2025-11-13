@@ -40,11 +40,7 @@ const getAuth = async (code) => {
 
     cookie.set('token', response.data.access_token, { expires:  new Date(response.data.expires_in * 1000) });
     // cookie.set('refresh_token', response.data.refresh_token, { expires: response.data.refresh_expires_in });
-
-    // TODO 2024-11-20 고객 요청 임시 로그인 패스용
-    if (enable_logging) console.log('sessionStorage token - remove3!');
-    sessionStorage.removeItem("meta-tk"); // 정상적인 로그인 경우 삭제
-    
+  
     let data = {
         refreshToken : response.data.refresh_token,
         refreshExpires : response.data.refresh_expires_in,
@@ -194,9 +190,6 @@ export const checkToken = async () => {
 
 export const logout = async (flagMove) => {
     console.log('logout called');
-    // TODO 2024-11-20 고객 요청 임시 로그인 패스용
-    if (enable_logging) console.log('sessionStorage token - remove1!');
-    sessionStorage.removeItem("meta-tk");
 
     try {
         let deleteRefreshToken = await axios.delete('/api/admin/session/logout');
@@ -262,21 +255,6 @@ export const logout = async (flagMove) => {
 export const getToken = () => {
     //return cookie.get('token')
     let token = cookie.get('token') || null;
-
-    //if (enable_logging) console.log(`cookie.get('token') : ${cookie.get('token')}`);
-    // TODO 2024-11-20 고객 요청 임시 로그인 패스용
-    if (!token && process.env.VUE_APP_METADATA_TEMP_LOGIN_PASS_YN === 'Y' && process.env.VUE_APP_METADATA_TEMP_LOGIN_USER_ID) {
-        //if (enable_logging) console.log(`sessionStorage token - get! : ${sessionStorage.getItem("meta-tk")}`);
-        token = sessionStorage.getItem("meta-tk");
-        if (!validateToken(token)) {
-            token = null;
-        }
-    }
-    if (sessionStorage.getItem("meta-tk") && (process.env.VUE_APP_METADATA_TEMP_LOGIN_PASS_YN !== 'Y' || !process.env.VUE_APP_METADATA_TEMP_LOGIN_USER_ID)) {
-        if (enable_logging) console.log('sessionStorage token - remove!');
-        sessionStorage.removeItem("meta-tk");
-    }
-
     return token;
 }
 
@@ -317,53 +295,3 @@ export const setTokenFromRefreshToken = async() =>{
     return data;
 }
 
-// TODO 2024-11-06 고객 요청 임시 로그인 패스용 !!!!!!!!!!!!!!!!! 나중에 삭제 할 것 !!!!!!!!!!!!!!!
-export const tempLoginPass = async () => {
-    if (enable_logging) console.log('tempLoginPass -----------------');
-    console.log(`VUE_APP_METADATA_TEMP_LOGIN_PASS_YN : ${process.env.VUE_APP_METADATA_TEMP_LOGIN_PASS_YN}`);
-    if (enable_logging) console.log(`VUE_APP_METADATA_TEMP_LOGIN_USER_ID : ${process.env.VUE_APP_METADATA_TEMP_LOGIN_USER_ID}`);
-
-    if (process.env.VUE_APP_METADATA_TEMP_LOGIN_PASS_YN !== 'Y') return;
-    if (process.env.VUE_APP_METADATA_TEMP_LOGIN_USER_ID) {
-
-        // 현재 로그인 되어 있다면 로그아웃 처리
-        await logout(false);
-        if (enable_logging) console.log('sessionStorage token - remove2!');
-        sessionStorage.removeItem("meta-tk");
-      
-        // 임시 로그인 처리
-        try {
-            const tempId = process.env.VUE_APP_METADATA_TEMP_LOGIN_USER_ID;
-            const response = await _axios.get(`/security/token/${tempId}`, { // TODO 2024-11-06 고객 요청 임시 로그인 패스용 !!!!!!!!!!!!!!!!! 나중에 삭제 할 것 !!!!!!!!!!!!!!!
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                timeout: 60 * 1000,
-            });
-        
-            if (enable_logging) console.log('Success Temp Token');
-            //if (enable_logging) console.log(response.data);
-        
-            cookie.set('token', response.data.access_token, { expires:  new Date(response.data.expire_time * 1000) });
-            if (enable_logging) console.log('sessionStorage token - set!');
-            sessionStorage.setItem("meta-tk", response.data.access_token);
-            if (enable_logging) console.log('cookie set');
-            //if (enable_logging) console.log(`cookie get : ${getToken()}`);
-
-            let data = {
-                refreshToken : response.data.refresh_token,
-                refreshExpires : response.data.refresh_expires_in,
-                userId : getLoginUserId(),
-                userNm : getUser().name,
-            }
-
-            let sendData = await axios.post('/api/admin/session/login',data);
-            console.log(`임시 로그인 처리`);
-
-        } catch (err) {
-            console.error(err);
-            console.log(`임시 로그인 처리 중 오류 발생!`);
-        }
-    } 
-}
