@@ -1,0 +1,24 @@
+# Build products
+target/
+bin
+
+# IntelliJ data
+*.iml
+.idea/
+.ipr
+
+# Documentation build output
+/docs/_build
+
+.DS_Store
+
+derby.log
+
+# Test databases
+__test_database_*
+test.sqlite
+*.db-journal
+
+# Gradle
+/build
+/.gradle
