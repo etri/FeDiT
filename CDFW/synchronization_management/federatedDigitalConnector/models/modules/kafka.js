@@ -27,11 +27,43 @@ class Kafka {
     };
   }
 
-  createTopics({ topic }) {
-    producer.createTopics([topic], true, function (err, data) {
-      if (err) logger.error(err);
-    });
-    return 0;
+  /**
+   * KafkaJS용 토픽 생성
+   * - 존재해도 OK (idempotent)
+   * - 필요한 경우 파티션/복제 계수 옵션 추가 가능
+   */
+  async createTopics({ topic, numPartitions = 1, replicationFactor = 1 }) {
+    if (!global.kafka) {
+      throw new Error(
+        "KafkaJS client(global.kafka)가 초기화되어 있지 않습니다."
+      );
+    }
+    const admin = global.kafka.admin();
+    try {
+      await admin.connect();
+      await admin.createTopics({
+        waitForLeaders: true,
+        topics: [
+          {
+            topic,
+            numPartitions,
+            replicationFactor,
+          },
+        ],
+      });
+      // 로그는 선택
+      if (typeof logger !== "undefined") {
+        logger.info(`[Kafka] ensure topic created: ${topic}`);
+      }
+      return 0;
+    } catch (err) {
+      if (typeof logger !== "undefined") logger.error(err);
+      throw err;
+    } finally {
+      try {
+        await admin.disconnect();
+      } catch (_) {}
+    }
   }
 
   async GetConnectorCheck({ connectors }) {
@@ -57,18 +89,34 @@ class Kafka {
     return getConnector?.config ? getConnector.config : getConnector;
   }
 
-  kafkaProducer({ topic, kafkaKey, data }) {
-    let payload = [
-      {
-        topic: topic,
-        key: kafkaKey,
-        messages: data, //sensor_data post body
-      },
-    ];
-    producer.send(payload, function (err, data) {
-      if (err) logger.error(err);
-    });
-    return 0;
+  /**
+   * KafkaJS producer.send 사용
+   *  - topic: string
+   *  - kafkaKey: string|Buffer|null
+   *  - data: string|Buffer|object(→ 자동 stringify)
+   */
+  async kafkaProducer({ topic, kafkaKey, data }) {
+    if (!global.producer) {
+      throw new Error(
+        "KafkaJS producer(global.producer)가 연결되지 않았습니다."
+      );
+    }
+
+    const value =
+      typeof data === "string" || Buffer.isBuffer(data)
+        ? data
+        : JSON.stringify(data);
+
+    try {
+      await global.producer.send({
+        topic,
+        messages: [{ key: kafkaKey != null ? String(kafkaKey) : null, value }],
+      });
+      return 0;
+    } catch (err) {
+      if (typeof logger !== "undefined") logger.error(err);
+      throw err;
+    }
   }
 
   async deleteSink({ id }) {

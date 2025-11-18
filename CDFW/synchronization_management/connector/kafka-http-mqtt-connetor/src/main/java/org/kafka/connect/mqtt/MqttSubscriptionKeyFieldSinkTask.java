@@ -5,49 +5,92 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
-import org.eclipse.paho.client.mqttv3.*;
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
-import java.util.Collection;
-import java.util.Map;
+import com.hivemq.client.mqtt.datatypes.MqttQos;
+import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
+import com.hivemq.client.mqtt.mqtt3.Mqtt3BlockingClient;
 
-public class MqttSubscriptionKeyFieldSinkTask extends SinkTask implements MqttCallback {
-    MqttSubscriptionKeyFieldSinkConnectorConfig config;
-    String key_topic;
-    String resource_type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+public class MqttSubscriptionKeyFieldSinkTask extends SinkTask {
+
+    private final Logger logger = LoggerFactory.getLogger(MqttSubscriptionKeyFieldSinkTask.class);
+    private MqttSubscriptionKeyFieldSinkConnectorConfig config;
+
+    private String key_topic;
+    private String resource_type;
     private String connectorName;
     private String mqttTopic;
     private String mqttClientId;
     private String mqttBrokerUri;
-    private MqttClient mqttClient;
-    private MqttConnectOptions mqttOptions;
+    private Mqtt3BlockingClient mqttClient;
 
     @Override
     public String version() {
         return "1.0";
     }
 
-    private void initMqttClient() {
-        // init variables
-        mqttOptions = new MqttConnectOptions();
-        mqttOptions.setCleanSession(true);
-        mqttOptions.setKeepAliveInterval(30);
+    private static class HostPort {
+        final String host;
+        final int port;
+        HostPort(String host, int port) { this.host = host; this.port = port; }
+    }
 
-        // mqtt connect
+    private HostPort parseBroker(String uri) {
         try {
-            mqttClient = new MqttClient(mqttBrokerUri, mqttClientId, new MemoryPersistence());
-            mqttClient.setCallback(this);
-            mqttClient.connect(mqttOptions);
-            // logging
-        } catch (MqttException e) {
-            e.printStackTrace();
+            URI u = URI.create(uri.replace("mqtt://", "tcp://"));
+            String host = (u.getHost() != null) ? u.getHost() : "localhost";
+            int port = (u.getPort() > 0)
+                    ? u.getPort()
+                    : ("ssl".equalsIgnoreCase(u.getScheme()) ? 8883 : 1883);
+            return new HostPort(host, port);
+        } catch (Exception e) {
+            logger.warn("Invalid MQTT broker URI '{}', fallback to localhost:1883", uri, e);
+            return new HostPort("localhost", 1883);
+        }
+    }
+
+    private void initMqttClient() {
+        HostPort hp = parseBroker(mqttBrokerUri);
+
+        var asyncClient = Mqtt3Client.builder()
+                .identifier((mqttClientId != null && !mqttClientId.isEmpty())
+                        ? mqttClientId : UUID.randomUUID().toString())
+                .serverHost(hp.host)
+                .serverPort(hp.port)
+                .automaticReconnect()
+                    .initialDelay(1, TimeUnit.SECONDS)
+                    .maxDelay(30, TimeUnit.SECONDS)
+                    .applyAutomaticReconnect()
+                .build()
+                .toAsync();
+
+        mqttClient = asyncClient.toBlocking();
+
+        try {
+            mqttClient.connectWith()
+                    .keepAlive(30)
+                    .cleanSession(true)
+                    .send();
+            logger.info("[MqttSubscriptionKeyFieldSinkTask] Connected to MQTT broker ({}:{})", hp.host, hp.port);
+        } catch (Exception e) {
+            logger.error("[MqttSubscriptionKeyFieldSinkTask] Failed to connect MQTT broker ({}:{})", hp.host, hp.port, e);
+            throw new RuntimeException("MQTT connect failed", e);
         }
 
-        // mqtt subscribe
         try {
-            mqttClient.subscribe(mqttTopic, 0);
-        } catch (MqttException e) {
-            e.printStackTrace();
+            mqttClient.subscribeWith()
+                    .topicFilter(mqttTopic)
+                    .qos(MqttQos.AT_MOST_ONCE)
+                    .send();
+            logger.info("[MqttSubscriptionKeyFieldSinkTask] Subscribed topic '{}'", mqttTopic);
+        } catch (Exception e) {
+            logger.warn("[MqttSubscriptionKeyFieldSinkTask] Subscription failed for topic '{}'", mqttTopic, e);
         }
     }
 
@@ -61,139 +104,101 @@ public class MqttSubscriptionKeyFieldSinkTask extends SinkTask implements MqttCa
         key_topic = config.getString("key.topic");
         resource_type = config.getString("resource.type");
 
+        logger.info("[MqttSubscriptionKeyFieldSinkTask] Starting connector '{}'", connectorName);
         initMqttClient();
     }
 
     @Override
     public void put(Collection<SinkRecord> records) {
-        if (records.isEmpty()) {
-            //System.out.println("records is empty");
-            return;
-        }
+        if (records == null || records.isEmpty()) return;
+
         try {
             if ("digital_object".equals(resource_type)) {
-                tryExecute(records);
+                handleDigitalObjects(records);
             } else if ("federated_digital_object".equals(resource_type)) {
-                tryFDOExecute(records);
+                handleFederatedObjects(records);
             } else {
-                System.out.println("Unsupported resource_type: " + resource_type);
+                logger.warn("Unsupported resource_type: {}", resource_type);
             }
-        } catch (MqttException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            logger.error("Error in MQTT SinkTask put(): {}", e.getMessage(), e);
         }
-
     }
 
-    private void tryExecute(final Collection<SinkRecord> records) throws MqttException {
+    private void handleDigitalObjects(final Collection<SinkRecord> records) {
         for (SinkRecord record : records) {
-            if (record == null || record.value() == null) {
-                continue;
-            }
+            if (record == null || record.value() == null) continue;
+
             String record_topic = record.topic();
             String recordValue = record.value().toString();
-            if (record_topic.equals("latestDigitalObjects")) {
-                try {
-                    String digital_Id = JsonPath.read(record.value().toString(), "$.digital_object_id");
-                    String[] key_topicArray = key_topic.toString().split(",");
-                    for (String topic : key_topicArray) {
-                        if (digital_Id.equals(topic)) {
-                            try {
-                                MqttMessage message = new MqttMessage();
-                                message.setPayload(record.value().toString().getBytes());
-                                if (mqttClient.isConnected()) {
-                                    mqttClient.publish(mqttTopic, message);
-                                } else {
-                                    mqttClient.reconnect();
-                                    mqttClient.publish(mqttTopic, message);
-                                }
-                            } catch (Exception e) {
-                            }
-                        }
+
+            if (!"latestDigitalObjects".equals(record_topic)) {
+                sendMqttMessageSafe(recordValue);
+                continue;
+            }
+
+            try {
+                String digital_Id = JsonPath.read(recordValue, "$.digital_object_id");
+                for (String topic : key_topic.split(",")) {
+                    if (digital_Id.equals(topic)) {
+                        sendMqttMessageSafe(recordValue);
                     }
-                } catch (Exception e) {
                 }
-            } else {
-                try {
-                    MqttMessage message = new MqttMessage();
-                    message.setPayload(record.value().toString().getBytes());
-                    if (mqttClient.isConnected()) {
-                        mqttClient.publish(mqttTopic, message);
-                    } else {
-                        mqttClient.reconnect();
-                        mqttClient.publish(mqttTopic, message);
-                    }
-                } catch (Exception e2) {
-                }
+            } catch (Exception e) {
+                logger.debug("DigitalObject parse error: {}", e.getMessage());
             }
         }
     }
 
-    private void tryFDOExecute(final Collection<SinkRecord> records) throws MqttException {
+    private void handleFederatedObjects(final Collection<SinkRecord> records) {
         for (SinkRecord record : records) {
-            if (record == null || record.value() == null) {
-                continue;
-            }
+            if (record == null || record.value() == null) continue;
+
             String record_topic = record.topic();
             String recordValue = record.value().toString();
-            if (record_topic.equals("latestFederatedDigitalObjects")) {
-                try {
-                    String digital_Id = JsonPath.read(record.value().toString(), "$.federated_digital_object_id");
-                    String[] key_topicArray = key_topic.toString().split(",");
-                    for (String topic : key_topicArray) {
-                        if (digital_Id.equals(topic)) {
-                            try {
-                                MqttMessage message = new MqttMessage();
-                                message.setPayload(record.value().toString().getBytes());
-                                if (mqttClient.isConnected()) {
-                                    mqttClient.publish(mqttTopic, message);
-                                } else {
-                                    mqttClient.reconnect();
-                                    mqttClient.publish(mqttTopic, message);
-                                }
-                            } catch (Exception e) {
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                }
-            } else {
-                try {
-                    MqttMessage message = new MqttMessage();
-                    message.setPayload(record.value().toString().getBytes());
-                    if (mqttClient.isConnected()) {
-                        mqttClient.publish(mqttTopic, message);
-                    } else {
-                        mqttClient.reconnect();
-                        mqttClient.publish(mqttTopic, message);
-                    }
-                } catch (Exception e2) {
-                }
+
+            if (!"latestFederatedDigitalObjects".equals(record_topic)) {
+                sendMqttMessageSafe(recordValue);
+                continue;
             }
+
+            try {
+                String federated_Id = JsonPath.read(recordValue, "$.federated_digital_object_id");
+                for (String topic : key_topic.split(",")) {
+                    if (federated_Id.equals(topic)) {
+                        sendMqttMessageSafe(recordValue);
+                    }
+                }
+            } catch (Exception e) {
+                logger.debug("FederatedObject parse error: {}", e.getMessage());
+            }
+        }
+    }
+
+    private void sendMqttMessageSafe(String value) {
+        try {
+            mqttClient.publishWith()
+                    .topic(mqttTopic)
+                    .payload(value.getBytes())
+                    .qos(MqttQos.AT_MOST_ONCE)
+                    .send();
+        } catch (Exception e) {
+            logger.error("Failed to send MQTT message: {}", e.getMessage());
         }
     }
 
     @Override
-    public void flush(Map<TopicPartition, OffsetAndMetadata> currentOffsets) { // 어디까지 데이터가 처리되었는지에 대한 정보를 받아서 commit 시점마다 어느 offset 까지 처리했는지 확인할 수 있음
-//        super.flush(currentOffsets);
-        //ignored
+    public void flush(Map<TopicPartition, OffsetAndMetadata> currentOffsets) {
+        // ignored
     }
 
     @Override
     public void stop() {
-    }
-
-    @Override
-    public void connectionLost(Throwable cause) {
-
-    }
-
-    @Override
-    public void messageArrived(String topic, MqttMessage message) throws Exception {
-
-    }
-
-    @Override
-    public void deliveryComplete(IMqttDeliveryToken token) {
-
+        logger.info("[MqttSubscriptionKeyFieldSinkTask] Stopping connector '{}'", connectorName);
+        try {
+            if (mqttClient != null) mqttClient.disconnect();
+        } catch (Exception e) {
+            logger.warn("Error during MQTT disconnect: {}", e.getMessage());
+        }
     }
 }
