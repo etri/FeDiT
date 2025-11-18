@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<th:block th:fragment="preprocess">
+    <div class="row">
+        <div class="col-8 pt-3">
+            <div class="row" id="tab_preproc_bottom_range" style="display: none;">
+                <div class="col-12">
+                    <th:block th:if="${formType == 'I'}">
+                        <ul class="nav nav-tabs">
+                            <li class="nav-item"><a class="nav-link active" id="tab_validate"
+                                                    th:href="@{|#|}">Validate</a></li>
+                            <li class="nav-item"><a class="nav-link" id="tab_outlier" th:href="@{|#|}">Outlier</a></li>
+                            <li class="nav-item"><a class="nav-link" id="tab_missing" th:href="@{|#|}">Missing Value</a>
+                            </li>
+                            <li class="nav-item"><a class="nav-link" id="tab_interval" th:href="@{|#|}">Interval
+                                Conversion</a></li>
+                            <li class="nav-item"><a class="nav-link" id="tab_unit" th:href="@{|#|}">Unit Conversion</a>
+                            </li>
+                        </ul>
+                    </th:block>
+                    <th:block th:unless="${formType == 'I'}">
+                        <ul class="nav nav-tabs">
+                            <li class="nav-item"><a class="nav-link active" id="tab_validate1"
+                                                    th:href="@{|#|}">Validate</a></li>
+                            <li class="nav-item"><a class="nav-link" id="tab_outlier1" th:href="@{|#|}">Outlier</a></li>
+                            <li class="nav-item"><a class="nav-link" id="tab_missing1" th:href="@{|#|}">Missing
+                                Value</a></li>
+                            <li class="nav-item"><a class="nav-link" id="tab_interval1" th:href="@{|#|}">Interval
+                                Conversion</a></li>
+                            <li class="nav-item"><a class="nav-link" id="tab_unit1" th:href="@{|#|}">Unit Conversion</a>
+                            </li>
+                        </ul>
+                    </th:block>
+                </div>
+                <div class="col-12">
+                    <th:block th:if="${formType == 'I'}">
+                        <!--유효성  -->
+                        <div id="inc_tab_validate" class="row" style="display: none;">
+                            <th:block th:include="pages/dt_model/fragments/platform/3_1_tab_validate:: tab_validate"></th:block>
+                        </div>
+
+                        <!--이상치  -->
+                        <div id="inc_tab_outlier" class="row" style="display: none;">
+                            <th:block th:include="pages/dt_model/fragments/platform/3_2_tab_outlier:: tab_outlier"></th:block>
+                        </div>
+
+                        <!--결측치  -->
+                        <div id="inc_tab_missing" class="row" style="display: none;">
+                            <th:block th:include="pages/dt_model/fragments/platform/3_3_tab_missing:: tab_missing"></th:block>
+                        </div>
+
+                        <!--샘플링  -->
+                        <div id="inc_tab_interval" class="row" style="display: none;">
+                            <th:block th:include="pages/dt_model/fragments/platform/3_4_tab_interval:: tab_interval"></th:block>
+                        </div>
+
+                        <!--단위  -->
+                        <div id="inc_tab_unit" class="row" style="display: none;">
+                            <th:block th:include="pages/dt_model/fragments/platform/3_5_tab_unit:: tab_unit"></th:block>
+                        </div>
+                    </th:block>
+                    <th:block th:unless="${formType == 'I'}">
+                        <div id="preprocOptionRangeView"></div>
+                        <div id="preprocTableRangeView"></div>
+                        <div id="preprocDataVisualRangeView" style="display: none;">
+                            <label class="col-form-label pt-3">필터링된 데이터</label>
+                            <div id="data-visual-graph-container">
+                            </div>
+                        </div>
+                    </th:block>
+                </div>
+            </div>
+        </div>
+        <div class="col-4 pt-3 border-left">
+            <div id="property_range" style="padding-top: 8px;"></div>
+        </div>
+    </div>
+</th:block>
+</html>

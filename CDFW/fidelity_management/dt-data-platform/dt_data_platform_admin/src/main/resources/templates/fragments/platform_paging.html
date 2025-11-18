@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<th:block th:fragment="paging">
+    <nav th:if="${paging.total > 0}" class="pagination md" role="navigation" aria-label="목록 페이지네이션">
+        <button type="button" class="page-link direction first" th:attr="disabled=${paging.page == 1} ? 'disabled' : null"
+                th:data-page="${paging.first}" aria-label="첫 페이지로"><span>첫 페이지</span></button>
+        <button type="button" class="page-link direction prev" th:attr="disabled=${paging.page == 1} ? 'disabled' : null"
+                th:data-page="${paging.prev}" aria-label="이전 페이지로"><span>이전 페이지</span></button>
+        <!---->
+        <th:block th:each="page : ${#numbers.sequence(paging.begin, paging.end)}">
+            <button type="button" class="page-link pagemove" th:classappend="${page == paging.page} ? 'on' : null"
+                    th:title="${page}" th:text="${page}" th:data-page="${page}" aria-label="1페이지로 이동"
+                    th:attr="aria-current=${page == paging.page} ? 'true' : null">1
+            </button>
+        </th:block>
+        <!---->
+        <button type="button" class="page-link direction next"
+                th:attr="disabled=${paging.page == paging.last} ? 'disabled' : null" th:data-page="${paging.next}"
+                aria-label="다음 페이지로"><span>다음 페이지</span></button>
+        <button type="button" class="page-link direction last"
+                th:attr="disabled=${paging.page == paging.last} ? 'disabled' : null" th:data-page="${paging.last}"
+                aria-label="마지막 페이지로"><span>마지막 페이지</span></button>
+    </nav>
+</th:block>
+
+</html>
