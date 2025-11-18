@@ -6,11 +6,11 @@ const postgresLoader = require("./postgres");
 const logger = require("../lib/logger");
 
 exports.start = async ({ app }) => {
-   globalLoader.init();
-   expressLoader.init({ app });
-   mqttLoader.init();
-   kafkaLoader.init();
-   postgresLoader.init();
+  globalLoader.init();
+  expressLoader.init({ app });
+  mqttLoader.init();
+  kafkaLoader.init();
+  postgresLoader.init();
 
-   logger.info("all loaders initialized");
+  logger.info("all loaders initialized");
 };

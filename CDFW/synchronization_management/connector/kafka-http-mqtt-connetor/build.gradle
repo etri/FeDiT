@@ -10,38 +10,61 @@ repositories {
 }
 
 ext {
-    set('slf4jSimple', '1.7.30')
-    set('connectApi', '2.5.0')
+    set('connectApi', '2.8.0')
+    set('slf4j', '1.7.36')
     set('jsonSimple', '1.1.1')
-    set('json', '20190722')
-    set('mqttV3', '1.2.5')
+    set('json', '20190722')           
     set('jackson', '2.14.1')
-    set('json-path', '2.6.0')
+    set('jsonPath', '2.6.0')
+}
+
+/**
+ * 라이선스 이슈 트랜지티브 전역 차단:
+ * - javax.ws.rs:javax.ws.rs-api (EPL/GPL 계열)
+ * - junit:junit (구버전 CPL 표기 잡힘 방지)
+ */
+configurations.all {
+    exclude group: "javax.ws.rs", module: "javax.ws.rs-api"
+    exclude group: "javax.mail"           // 옛 그룹
+    exclude group: "com.sun.mail"         // 새로운 그룹
+    exclude group: "javax.servlet", module: "javax.servlet-api"
+    exclude group: "ch.qos.logback"       // classic/core 모두 제거
+    exclude group: "junit", module: "junit"
+    exclude group: "org.eclipse.paho", module: "org.eclipse.paho.client.mqttv3"
 }
 
 dependencies {
-    implementation "org.slf4j:slf4j-simple:${slf4jSimple}"
+    // Kafka Connect API (단일 버전만)
     implementation "org.apache.kafka:connect-api:${connectApi}"
-    implementation "com.googlecode.json-simple:json-simple:${jsonSimple}"
-    implementation "org.json:json:${json}"
-    implementation "org.eclipse.paho:org.eclipse.paho.client.mqttv3:${mqttV3}"
-    implementation "com.fasterxml.jackson.core:jackson-databind:${jackson}"
-    implementation 'com.jayway.jsonpath:json-path:2.6.0'
-    // SLF4J API
-    implementation 'org.slf4j:slf4j-api:1.7.32'
-    // Logback Classic
-    implementation 'ch.qos.logback:logback-classic:1.2.6'
-    implementation group: 'org.postgresql', name: 'postgresql', version: '42.6.0' // 추가
-    runtimeOnly 'org.postgresql:postgresql' // 추가
-}
 
+    // json-simple (트랜지티브 junit 방어 한 번 더)
+    implementation("com.googlecode.json-simple:json-simple:${jsonSimple}") {
+        exclude group: "junit", module: "junit"
+    }
+
+    // (org.json은 실제 사용 시에만 유지 권장 — 라이선스 정책상 꺼리는 조직이 있음)
+    implementation "org.json:json:${json}"
+
+    // HiveMQ MQTT Client (Apache-2.0)
+    implementation "com.hivemq:hivemq-mqtt-client:1.3.3"
+
+    // Jackson / JsonPath
+    implementation "com.fasterxml.jackson.core:jackson-databind:${jackson}"
+    implementation "com.jayway.jsonpath:json-path:${jsonPath}"
+
+    // SLF4J: api + simple 로거를 같은 버전으로
+    implementation "org.slf4j:slf4j-api:${slf4j}"
+    implementation "org.slf4j:slf4j-simple:${slf4j}"
+
+    // PostgreSQL 드라이버 (runtimeOnly 중복 제거하고 implementation만)
+    implementation "org.postgresql:postgresql:42.6.0"
+}
 
 jar {
     from(configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }) {
         exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-
 }
 
 tasks.withType(JavaCompile) {

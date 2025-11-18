@@ -4,56 +4,88 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
-import org.eclipse.paho.client.mqttv3.*;
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+
+import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
+import com.hivemq.client.mqtt.mqtt3.Mqtt3BlockingClient;
+import com.hivemq.client.mqtt.datatypes.MqttQos;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URI;
 import java.util.Collection;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
-public class MqttSinkSimulationTask extends SinkTask implements MqttCallback {
+public class MqttSinkSimulationTask extends SinkTask {
     private final Logger logger = LoggerFactory.getLogger(MqttSinkConnector.class);
-    MqttSinkConnectorConfig config;
+
+    private MqttSinkConnectorConfig config;
     private String connectorName;
     private String mqttTopic;
     private String mqttClientId;
     private String mqttBrokerUri;
-    private MqttClient mqttClient;
-    private MqttConnectOptions mqttOptions;
+
+    private Mqtt3BlockingClient mqttClient;
 
     @Override
     public String version() {
         return "1.0";
     }
 
+    private static class HostPort {
+        final String host;
+        final int port;
+        HostPort(String host, int port) { this.host = host; this.port = port; }
+    }
+
+    private HostPort parseBroker(String uri) {
+        try {
+            // mqtt:// → tcp:// 로 치환해도 URI 파싱은 동일하게 동작
+            URI u = URI.create(uri.replace("mqtt://", "tcp://"));
+            String host = (u.getHost() != null) ? u.getHost() : "localhost";
+            int port = (u.getPort() > 0) ? u.getPort()
+                    : ("ssl".equalsIgnoreCase(u.getScheme()) ? 8883 : 1883);
+            return new HostPort(host, port);
+        } catch (Exception e) {
+            logger.warn("Invalid MQTT broker URI '{}', fallback to localhost:1883", uri, e);
+            return new HostPort("localhost", 1883);
+        }
+    }
+
     private void initMqttClient() {
-        // init variables
-        mqttOptions = new MqttConnectOptions();
-        mqttOptions.setCleanSession(true);
-        mqttOptions.setKeepAliveInterval(30);
+        HostPort hp = parseBroker(mqttBrokerUri);
 
-        // mqtt connect
+        var asyncClient = Mqtt3Client.builder()
+                .identifier((mqttClientId != null && !mqttClientId.isEmpty())
+                        ? mqttClientId : UUID.randomUUID().toString())
+                .serverHost(hp.host)
+                .serverPort(hp.port)
+                .automaticReconnect()
+                    .initialDelay(1, TimeUnit.SECONDS)   // ✅ HiveMQ 시그니처(초 단위 지정)
+                    .maxDelay(30, TimeUnit.SECONDS)
+                    .applyAutomaticReconnect()
+                .build()
+                .toAsync();
+
+        mqttClient = asyncClient.toBlocking();
+
+        // keepAlive/cleanSession 등은 connectWith 체인에서 설정
         try {
-            mqttClient = new MqttClient(mqttBrokerUri, mqttClientId, new MemoryPersistence());
-            mqttClient.setCallback(this);
-            mqttClient.connect(mqttOptions);
-            logger.info("SUCCESS to connect MQTT broker({}), connector name: '{}'", mqttBrokerUri, connectorName);
-            // logging
-        } catch (MqttException e) {
-//            throw new RuntimeException(e);
-            logger.error("FAILED to connect MQTT broker({}), connector name: '{}'", mqttBrokerUri, connectorName);
-            e.printStackTrace();
+            mqttClient.connectWith()
+                    .keepAlive(30)
+                    .cleanSession(true)
+                    .send();
+            logger.info("SUCCESS to connect MQTT broker({}:{}) for connector '{}'",
+                    hp.host, hp.port, connectorName);
+        } catch (Exception e) {
+            logger.error("FAILED to connect MQTT broker({}:{}) for connector '{}'",
+                    hp.host, hp.port, connectorName, e);
+            throw new RuntimeException("MQTT connect failed", e);
         }
 
-        // mqtt subscribe
-        try {
-            mqttClient.subscribe(mqttTopic, 0);
-            logger.info("SUCCESS to subscribe MQTT topic({}), connector name: '{}'", mqttTopic, connectorName);
-        } catch (MqttException e) {
-            logger.error("FAILED to subscribe MQTT topic({}), connector name: '{}'", mqttTopic, connectorName);
-            e.printStackTrace();
-        }
+        // 원본은 subscribe를 호출하지만 콜백을 사용하지 않았음 → 불필요하므로 제거
     }
 
     @Override
@@ -64,18 +96,14 @@ public class MqttSinkSimulationTask extends SinkTask implements MqttCallback {
         mqttBrokerUri = config.getString("mqtt.broker.uri");
         mqttClientId = config.getString("mqtt.client.id");
 
-        logger.info("Starting MqttSinkConnector with connector name '{}'", connectorName);
-        logger.info("MqttSinkTask config setting : " + props.toString());
+        logger.info("Starting MqttSinkConnector '{}' with props: {}", connectorName, props);
         initMqttClient();
-
     }
 
     @Override
     public void put(Collection<SinkRecord> records) {
-        if (records.isEmpty()) {
-            //System.out.println("records is empty");
-            return;
-        }
+        if (records == null || records.isEmpty()) return;
+
         try {
             sendMqttMessage(records);
         } catch (Exception e) {
@@ -83,44 +111,41 @@ public class MqttSinkSimulationTask extends SinkTask implements MqttCallback {
         }
     }
 
-    private void sendMqttMessage(final Collection<SinkRecord> records) throws MqttException {
+    private void sendMqttMessage(final Collection<SinkRecord> records) {
         for (SinkRecord record : records) {
-            if (record.value() == null) {
-                //System.out.println("record.value() is empty");
-                continue;
-            }
-            MqttMessage message = new MqttMessage();
-            message.setPayload(record.value().toString().getBytes());
-            //System.out.println("Kafka message to send (to MQTT) : "+message);
-            if (mqttClient.isConnected()) {
-                mqttClient.publish(mqttTopic, message);
+            if (record.value() == null) continue;
+
+            byte[] payload = record.value().toString().getBytes();
+            try {
+                if (mqttClient != null) {
+                    mqttClient.publishWith()
+                            .topic(mqttTopic)
+                            .payload(payload)
+                            .qos(MqttQos.AT_MOST_ONCE)  // Paho qos=0 대응
+                            .send();
+                }
+            } catch (Exception e) {
+                logger.error("Failed to publish to MQTT topic '{}' (connector='{}')",
+                        mqttTopic, connectorName, e);
+                // 필요 시 재시도 정책 추가 가능
             }
         }
     }
 
     @Override
-    public void flush(Map<TopicPartition, OffsetAndMetadata> currentOffsets) { // 어디까지 데이터가 처리되었는지에 대한 정보를 받아서 commit 시점마다 어느 offset 까지 처리했는지 확인할 수 있음
-//        super.flush(currentOffsets);
-        //ignored
+    public void flush(Map<TopicPartition, OffsetAndMetadata> currentOffsets) {
+        // ignored
     }
 
     @Override
     public void stop() {
-        logger.info("Stopping MqttSinkConnector task");
-    }
-
-    @Override
-    public void connectionLost(Throwable cause) {
-
-    }
-
-    @Override
-    public void messageArrived(String topic, MqttMessage message) throws Exception {
-
-    }
-
-    @Override
-    public void deliveryComplete(IMqttDeliveryToken token) {
-
+        logger.info("Stopping MqttSinkConnector task '{}'", connectorName);
+        try {
+            if (mqttClient != null) {
+                mqttClient.disconnect();
+            }
+        } catch (Exception e) {
+            logger.warn("Error while disconnecting MQTT client for '{}'", connectorName, e);
+        }
     }
 }

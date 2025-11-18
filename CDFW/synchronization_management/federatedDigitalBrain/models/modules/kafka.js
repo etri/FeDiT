@@ -1,9 +1,9 @@
+// services/kafka/index.js (예시 경로: 원래 파일 위치 그대로 교체)
 const config = require("../../config");
 const lib = require("../../lib");
 const { connectHost } = config.kafka;
 const [hostname, port] = connectHost.split(":");
 const ErrorHandler = require("../../lib/error-handler");
-const http = require("http");
 
 class Kafka {
   /**
@@ -29,15 +29,47 @@ class Kafka {
     };
   }
 
-  createTopics({ topic }) {
-    producer.createTopics([topic], true, function (err, data) {
-      if (err) logger.error(err);
-    });
-    return 0;
+  /**
+   * KafkaJS용 토픽 생성
+   * - 존재해도 OK (idempotent)
+   * - 필요한 경우 파티션/복제 계수 옵션 추가 가능
+   */
+  async createTopics({ topic, numPartitions = 1, replicationFactor = 1 }) {
+    if (!global.kafka) {
+      throw new Error(
+        "KafkaJS client(global.kafka)가 초기화되어 있지 않습니다."
+      );
+    }
+    const admin = global.kafka.admin();
+    try {
+      await admin.connect();
+      await admin.createTopics({
+        waitForLeaders: true,
+        topics: [
+          {
+            topic,
+            numPartitions,
+            replicationFactor,
+          },
+        ],
+      });
+      // 로그는 선택
+      if (typeof logger !== "undefined") {
+        logger.info(`[Kafka] ensure topic created: ${topic}`);
+      }
+      return 0;
+    } catch (err) {
+      if (typeof logger !== "undefined") logger.error(err);
+      throw err;
+    } finally {
+      try {
+        await admin.disconnect();
+      } catch (_) {}
+    }
   }
 
   async GetConnectorCheck({ connectors }) {
-    let getConnectors = await lib.request({
+    const getConnectors = await lib.request({
       method: "get",
       url: `http://${config.kafka.connectHost}/connectors`,
     });
@@ -65,19 +97,34 @@ class Kafka {
     return;
   }
 
-  kafkaProducer({ topic, kafkaKey, data }) {
-    let payload = [
-      {
-        topic: topic,
-        key: kafkaKey,
-        messages: data, //sensor_data post body
-      },
-    ];
+  /**
+   * KafkaJS producer.send 사용
+   *  - topic: string
+   *  - kafkaKey: string|Buffer|null
+   *  - data: string|Buffer|object(→ 자동 stringify)
+   */
+  async kafkaProducer({ topic, kafkaKey, data }) {
+    if (!global.producer) {
+      throw new Error(
+        "KafkaJS producer(global.producer)가 연결되지 않았습니다."
+      );
+    }
 
-    producer.send(payload, function (err, data) {
-      if (err) logger.error(err);
-    });
-    return 0;
+    const value =
+      typeof data === "string" || Buffer.isBuffer(data)
+        ? data
+        : JSON.stringify(data);
+
+    try {
+      await global.producer.send({
+        topic,
+        messages: [{ key: kafkaKey != null ? String(kafkaKey) : null, value }],
+      });
+      return 0;
+    } catch (err) {
+      if (typeof logger !== "undefined") logger.error(err);
+      throw err;
+    }
   }
 
   async createSourceHttpConnectorGroup({
@@ -88,7 +135,7 @@ class Kafka {
     digital_twin_ids,
     digital_object_data_interval,
   }) {
-    let sourceConnectorBody = {
+    const sourceConnectorBody = {
       name: `${name}`,
       config: {
         "connector.class": "org.kafka.connect.http.HttpSourceGroupConnector",
@@ -116,13 +163,6 @@ class Kafka {
     return 0;
   }
 
-  /**
-   *
-   * @param {String} topic latestFederatedDigitalObjects
-   * @param {String} key federated_digital_object_id
-   * @param {String} type Define source topic FDO_/FDO_window_10_
-   * @returns
-   */
   async createKeyTopicDistributeSink({ topic, key, type }) {
     const ConnectorBody = {
       name: `keyTopicDistSink_${topic}`,
@@ -188,11 +228,7 @@ class Kafka {
       },
     };
 
-    if (simulation_attribute) {
-      ConnectorBody.config["simulation.attribute"] = simulation_attribute;
-    } else {
-      ConnectorBody.config["simulation.attribute"] = "";
-    }
+    ConnectorBody.config["simulation.attribute"] = simulation_attribute || "";
 
     await lib.request({
       method: "post",
@@ -264,8 +300,6 @@ class Kafka {
     filtering_action_list,
     filtering_condition_list,
   }) {
-    //topics: kafka에서 consuming하는 주체
-    //key.topic: consuming한 데이터에서 key를 지정하여 걸러냄
     if (subscription_protocol === "http") {
       const ConnectorBody = {
         name: `${subscription_id}`,
@@ -295,12 +329,13 @@ class Kafka {
       });
       return 0;
     } else if (subscription_protocol === "mqtt") {
-      let mqttBrokerUri = notification_url.split("//")[1].split("/")[0];
-      let mqttTopic = notification_url
+      const mqttBrokerUri = notification_url.split("//")[1].split("/")[0];
+      const mqttTopic = notification_url
         .split("//")[1]
         .split("/")
         .slice(1)
         .join("/");
+
       const ConnectorBody = {
         name: `${subscription_id}`,
         config: {
@@ -374,12 +409,13 @@ class Kafka {
       });
       return 0;
     } else if (subscription_protocol === "mqtt") {
-      let mqttBrokerUri = notification_url.split("//")[1].split("/")[0];
-      let mqttTopic = notification_url
+      const mqttBrokerUri = notification_url.split("//")[1].split("/")[0];
+      const mqttTopic = notification_url
         .split("//")[1]
         .split("/")
         .slice(1)
         .join("/");
+
       const ConnectorBody = {
         "connector.class":
           "org.kafka.connect.mqtt.MqttSubscriptionActionSinkConnector",
@@ -410,92 +446,8 @@ class Kafka {
   }
 
   /**
-   * @param {String} type
-   * @param {String} term
-   * @returns
-   */
-  async createlatestDataSinkConnector({ type, term }) {
-    try {
-      let field, topicType;
-      if (type == "UnalliedDigitalObjects") {
-        field = "@.digital_object_id";
-        topicType = "DO";
-      } else if (type == "FederatedDigitalObjects") {
-        field = "@.federated_digital_object_id";
-        topicType = "FDO";
-      } else if (type == "FDOsyncWindows") {
-        field = "@.federated_digital_object_id";
-        topicType = `FWindows${term}`;
-      }
-
-      const bodyConfig = {
-        name: "latestDataSink_" + type + (term ? term : ""),
-        config: {
-          "connector.class": "com.keti.connector.kafka.KafkaSinkConnector",
-          "key.converter": "org.apache.kafka.connect.storage.StringConverter",
-          "value.converter": "org.apache.kafka.connect.storage.StringConverter",
-          "kafka.sink.bootstrap": config.kafka.host,
-          "kafka.sink.topic": "latest" + type + (term ? term : ""), // Check if term is provided
-          "tasks.max": "1",
-          topics: type + (term ? term : ""), // Check if term is provided
-          "kafka.key.enabled": "true",
-          "kafka.key.field": field,
-          "topic.type": topicType,
-        },
-      };
-
-      await lib.request({
-        method: "post",
-        url: `http://${config.kafka.connectHost}/connectors`,
-        bodyParams: bodyConfig,
-      });
-
-      return 0;
-    } catch (error) {
-      logger.error(`[kafka] ${error}`);
-    }
-  }
-
-  async createPostgresSinkConnector({ topic, table, type }) {
-    const sinkConnectorBody = {
-      name: "DigitalBase_" + topic,
-      config: {
-        "connector.class": "io.aiven.connect.jdbc.JdbcSinkConnector",
-        "tasks.max": "1",
-        topics: topic,
-        "input.data.format": "JSON",
-        "connection.url": `jdbc:postgresql://${config.postgresPool.host}:${config.postgresPool.port}/${config.postgresPool.database}`,
-        "connection.host": config.postgresPool.host,
-        "connection.port": config.postgresPool.port,
-        "connection.user": "postgres",
-        "connection.password": config.postgresPool.password,
-        "db.name": config.postgresPool.database,
-        "auto.create": "false",
-        "table.name.format": table,
-        "key.converter": "org.apache.kafka.connect.storage.StringConverter",
-        "key.converter.schemas.enable": "false",
-        "value.converter": "org.apache.kafka.connect.json.JsonConverter",
-        "value.converter.schemas.enable": "false",
-        "data.type": type,
-      },
-    };
-
-    await lib.request({
-      url: `http://${config.kafka.connectHost}/connectors`,
-      bodyParams: sinkConnectorBody,
-    });
-    return 0;
-  }
-
-  async createServiceSinkConnector({}) {
-    return 0;
-  }
-
-  /**
-   *
    * @param {string} type (SIM , SUB, DigitalBase_)
    * @param {string} connectorName
-   * @returns
    */
   async deleteSink({ type, connectorName }) {
     const url = type
