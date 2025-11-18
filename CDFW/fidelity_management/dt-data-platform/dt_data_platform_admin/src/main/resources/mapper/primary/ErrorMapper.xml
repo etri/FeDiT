@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.stoneitgt.dt.data.platform.admin.mapper.ErrorMapper">
+	<insert id="saveErrorLog" parameterType="com.stoneitgt.dt.data.platform.domain.ErrorLog">
+		/* file : ErrorMapper.xml, id : saveErrorLog */
+		INSERT
+		INTO TB_ERROR_LOG ( MODEL_SEQ
+						  , AUGMENT_SEQ
+						  , ERR_TP
+						  , ERR_LCT
+						  , ERR_CN
+						  , ERR_NM
+						  , ERR_CD
+						  , REG_USER_SEQ
+						  , REG_IP)
+		VALUES ( #{modelSeq}
+			   , #{augmentSeq}
+			   , #{errTp}
+			   , #{errLct}
+			   , #{errCn}
+			   , #{errNm}
+			   , #{errCd}
+			   , #{loginUserSeq}
+			   , #{loginUserIp})
+	</insert>
+	<select id="getErrorLog" resultType="com.stoneitgt.dt.data.platform.domain.ErrorLog">
+		SELECT ERR_SEQ, MODEL_SEQ, AUGMENT_SEQ, ERR_TP, ERR_CD, ERR_NM, ERR_LCT, ERR_CN,
+			   USE_YN, DEL_YN, REG_USER_SEQ, REG_DT, REG_IP, MDFCN_USER_SEQ, MDFCN_DT,
+			   MDFCN_IP, DEL_USER_SEQ, DEL_DT, DEL_IP,
+			   0 AS LOGIN_USER_SEQ,   -- 기본값 0
+			   null AS LOGIN_USER_IP, -- null 값
+			   null AS `STATUS`       -- null 값
+		FROM TB_ERROR_LOG
+		WHERE MODEL_SEQ = #{modelSeq}
+		  AND ERR_LCT = #{ERROR_LCT}
+		LIMIT 1
+	</select>
+</mapper>

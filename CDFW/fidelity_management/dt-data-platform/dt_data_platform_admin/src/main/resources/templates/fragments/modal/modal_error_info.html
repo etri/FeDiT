@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<!-- MODAL POPUP -->
+<!-- 에러 모달 -->
+<div class="modal-popup-wrap" id="errorModal"> <!-- is-open -->
+    <div class="modal-popup">
+        <div class="modal-popup-header">
+            <p class="title">실패 내용</p>
+            <button type="button" class="btn-popup-close right" data-popup-id="errorModal">
+                <svg aria-label="닫기" role="img" viewBox="0 0 12 12" preserveAspectRatio="xMidYMid meet"
+                     xmlns="http://www.w3.org/2000/svg" fill="none">
+                    <g clip-path="url(#a)">
+                        <path fill="#C7C7C7"
+                              d="m7.409 6 4.295-4.287a1.003 1.003 0 0 0-1.418-1.42L6 4.59 1.714.294A1.003 1.003 0 1 0 .296 1.713L4.59 5.999.296 10.286a1 1 0 0 0 0 1.418 1 1 0 0 0 1.418 0L6 7.408l4.286 4.296a.998.998 0 0 0 1.418 0 1 1 0 0 0 0-1.418L7.41 5.999Z"/>
+                    </g>
+                    <defs>
+                        <clipPath id="a">
+                            <path fill="#fff" d="M0 0h12v12H0z"/>
+                        </clipPath>
+                    </defs>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-popup-body">
+            <!-- contents -->
+            <div class="row" id="errorModalBody">
+                <div class="col-sm-6 mb-3">
+                    <div class="row">
+                        <div class="col-auto text-bold">에러 타입</div>
+                        <div class="col" id="errTp"></div>
+                    </div>
+                </div>
+                <div class="col-sm-6 mb-3">
+                    <div class="row">
+                        <div class="col-auto text-bold">에러코드</div>
+                        <div class="col" id="errCd"></div>
+                    </div>
+                </div>
+                <div class="col-sm-6 mb-3">
+                    <div class="row">
+                        <div class="col-auto text-bold">에러이름</div>
+                        <div class="col" id="errNm"></div>
+                    </div>
+                </div>
+                <div class="col-sm-6 mb-3">
+                    <div class="row">
+                        <div class="col-auto text-bold">에러영역</div>
+                        <div class="col" id="errLct"></div>
+                    </div>
+                </div>
+                <div class="col-sm-6 mb-3">
+                    <div class="row">
+                        <div class="col-auto text-bold">에러 날짜</div>
+                        <div class="col" id="errRegDt"></div>
+                    </div>
+                </div>
+                <div class="col-sm-12">
+                    <div class="row">
+                        <div class="col-sm-12 text-bold">에러 내용</div>
+                        <div class="col-sm-12" id="errCn" style="white-space: pre-wrap;"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- contents end -->
+        </div>
+        <div class="modal-popup-footer buttons">
+            <button type="button" class="ui-button sm outline-primary btn-cancel btn-popup-close"
+                    data-popup-id="errorModal">닫기
+            </button>
+        </div>
+    </div>
+    <div class="modal-popup-mask"></div>
+</div>
+<!-- MODAL POPUP end // -->
+</html>

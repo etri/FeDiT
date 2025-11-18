@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/platform_layout}">
+
+<head>
+    <title th:text="${breadcrumb.menu_nm}">게시판</title>
+</head>
+<div layout:fragment="content">
+    <div id="loading" style="margin-left: 0px;display: none;">
+        <img th:src="@{/assets/images/ajax-loading.gif}">
+    </div>
+    <div class="page-title">
+        <div class="contain">
+            <h1 th:text="${breadcrumb.menu_nm}">Notice</h1>
+        </div>
+    </div>
+
+    <section class="data-edit-section">
+        <div class="contain">
+            <div class="form-frame">
+                <div class="form-frame-header">
+                    <h2 class="title" th:text="${board.board_nm}">게시판 제목</h2>
+                </div>
+                <div class="form-frame-body">
+                    <!---- form 내용 ---->
+                    <div class="form-wrap">
+                        <div class="form-control-wrap">
+                            <label id="content_label" class="form-label">내용</label>
+                            <p class="textareaView" th:text="${board.board_derpn}"></p>
+                        </div>
+                        <div class="form-control-wrap" th:if="${board.files != null}">
+                            <label id="file_label" class="form-label">게시판 파일</label>
+                            <div class="attachment-files">
+                                <div class="file-box">
+                                    <div class="cont">
+                                        <span class="file-name" th:data="${board.files}">
+                                            <a th:href="@{|/file/download/board/${board.board_seq}|}" href="#"
+                                               target="_blank" title="파일 다운로드"
+                                               th:text="${board.files.fileNm}">file.pdf</a>
+                                        </span>
+                                        <span class="desc-message"
+                                              th:text="${board.files.changedFileSize} + ', ' + ${board.files.regDt}">313 KB, 2024-08-31</span>
+                                    </div>
+                                    <div class="buttons">
+                                        <a th:href="@{|/file/download/board/${board.board_seq}|}" class="btn-download"
+                                           target="_blank" title="파일 다운로드">파일 다운로드</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-control-wrap">
+                            <span class="form-label">공개 여부</span>
+                            <ul class="form-checkbox-list mt-3">
+                                <li class="form-checkbox">
+                                    <input type="radio" name="rlsYn" value="N" id="rlsN" class="ui-check"
+                                           disabled="disabled"
+                                           aria-labelledby="rlsN_label"
+                                           th:checked="*{board.rls_yn == 'N' or board.rls_yn == null}">
+                                    <label class="form-label" for="rlsN" id="rlsN_label">비공개</label>
+                                </li>
+                                <li class="form-checkbox">
+                                    <input type="radio" name="rlsYn" value="Y" id="rlsY" class="ui-check"
+                                           disabled="disabled"
+                                           aria-labelledby="rlsY_label"
+                                           th:checked="*{board.rls_yn == 'Y'}">
+                                    <label class="form-label" for="rlsY" id="rlsY_label">공개</label>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <!---- form 내용 END ---->
+                </div>
+                <div class="form-frame-footer buttons">
+                    <button th:data-href="|/dt/board/notice/list?menuCd=${menuCd}|" type="button"
+                            class="ui-button sm primary btn-popup-save">목록
+                    </button>
+                    <th:block th:if="${is_update == true}">
+                        <button th:data-href="|/dt/board/notice/${board.board_seq}/update?menuCd=${menuCd}|"
+                                type="button"
+                                class="ui-button sm outline-primary btn-accept">수정
+                        </button>
+                    </th:block>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+<th:block layout:fragment="custom_css">
+    <link rel="stylesheet" th:href="@{/assets/css/codemirror.css}"/>
+    <link rel="stylesheet" th:href="@{/assets/vendors/datatables.net-bs4/dataTables.bootstrap4.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/custom.css}">
+</th:block>
+<th:block layout:fragment="custom_js">
+    <script th:src="@{/assets/js/file-upload.js}"></script>
+    <script th:src="@{/assets/js/pages/board/board-view.js}"></script>
+</th:block>
+</html>
