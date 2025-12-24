@@ -11,10 +11,13 @@ let cpd_designer = null;
 let arrow_obj = null;
 let project_name = null;
 let api_server_url = 'http://220.124.222.89:8081';
-//let api_server_url = 'http://localhost:8081';
 let selected_model_data = null;
 let add_model_tmp = null;//드래그로 임시 추가중인 모델
 let _window_z_index = 1000;//print, graph2d 등 서브창의 z-index
+let WebId = null;
+let ModelLoaded = null;
+let panelWindow = null;
+
 function init_designer() {
     console.log("init()");
     
@@ -31,21 +34,14 @@ function init_designer() {
     cpd_designer = new coupling_designer({ctx:ctx, on_model_changed_proc:on_model_changed});
     cpd_designer.adjust_pane(true);
 
-    /*cpd_designer.add_model({model_name:'한글 모델명', in_port:inport, out_port:outport,
-        position:{x:100, y:100}, width:100, height:10, color:'rgba(200,200,0,1)'});
-    cpd_designer.add_model({model_name:'WaterTank_atomic', in_port:inport2, out_port:outport2, 
-        position:{x:100, y:100}, width:100, height:10, color:'rgba(0,200,0,1)'});
-    cpd_designer.add_model({model_name:'Controller_atomic', in_port:inport, out_port:outport, 
-        position:{x:100, y:100}, width:100, height:10, color:'rgba(0,0,200,1)'});*/
     add_keyevent_listener();
     animate_loop();
 
     let model_img_list = document.getElementById('img_list');
     model_img_list.innerHTML = '';
     set_default_btn(model_img_list);
-
-    
 }
+
 function get_thumbnail(){
     cpd_designer.adjust_pane(true);
     let new_size = Object.assign({}, cpd_designer.cpd_pane_size);
@@ -370,6 +366,16 @@ function add_model_btn(parent_div, title, filename, update_time, data){
     parent_div.appendChild(btn);
 }
 
+ws.on_data_callback["res_m"] = (json) => {
+    WebId = json.Data.info;   // 저장
+};
+
+ws.on_data_callback["rest_run"] = (json) => {
+
+    panelAddLog("프로젝트 명:" + json.Data.projectname + " 시뮬레이션 합니다.");
+
+    run_model_on_server(json.Data.projectname, 0, json.Data.end_t);
+};
 function req_list_models(module_name){
     console.log(module_name);
     send_post_ex(api_server_url + '/get_model_list',
@@ -546,6 +552,68 @@ function load_from_local(file){
         load_from_json_text(file_reader.result, file.name);
     }
 }
+
+function open_External_Panel() {
+
+    const connected = (WebId !== null && WebId !== "" && WebId !== undefined);
+    const modelLoaded = (ModelLoaded === true);
+
+    const sendServerStatus = () => {
+        if (panelWindow && !panelWindow.closed) {
+            panelWindow.postMessage({ type: "SERVER_STATUS", connected: connected }, "*");
+        }
+    };
+
+    const sendModelStatus = () => {
+        if (panelWindow && !panelWindow.closed) {
+            panelWindow.postMessage({ type: "MODEL_LOAD_STATUS", loaded: modelLoaded }, "*");
+        }
+    };
+
+    const sendWebId = () => {
+        if (panelWindow && !panelWindow.closed) {
+            panelWindow.postMessage({ type: "SET_WEB_ID", webId: WebId }, "*");
+        }
+    };
+
+    // ⭐ 프로젝트명 전달 함수 추가
+    const sendProjectName = () => {
+        if (panelWindow && !panelWindow.closed) {
+            panelWindow.postMessage({ type: "SET_PROJECT_NAME", project: document.all.project_name.value }, "*");
+        }
+    };
+
+    // 이미 열려 있을 때
+    if (panelWindow && !panelWindow.closed) {
+        panelWindow.focus();
+        sendWebId();
+        sendProjectName();   // ⭐ 추가됨
+        sendServerStatus();
+        sendModelStatus();
+        return;
+    }
+
+    // 새 창 열기
+    panelWindow = window.open('ExternalPanel.html', 'MyEditor',
+        'width=1000,height=770,menubar=no,toolbar=no,location=no');
+
+    const timer = setInterval(() => {
+        if (panelWindow && !panelWindow.closed) {
+            sendWebId();
+            sendProjectName();   // ⭐ 추가됨
+            sendServerStatus();
+            sendModelStatus();
+            clearInterval(timer);
+        }
+    }, 300);
+}
+
+// Panel.html에 로그를 전달하는 함수
+function appendLogToPanel(message) {
+    if (panelWindow && !panelWindow.closed) {
+        panelWindow.postMessage({ type: "ADD_LOG", message: message }, "*");
+    }
+}
 function unload_model_on_server(){
     let json = {};
     json['Type'] = 'sim_ctl';
@@ -582,6 +650,7 @@ function load_model_on_server(project_name, file_name){
             document.getElementById('btn_sim_stop').disabled = true;
             document.getElementById('btn_sim_push').disabled = false;
             document.getElementById('btn_sim_update').disabled = false;
+            ModelLoaded = true;
         }
         //load_from_json(json.Data.content, file_name);
     }
@@ -594,6 +663,7 @@ function load_model_on_server(project_name, file_name){
     document.getElementById('btn_sim_push').disabled = true;
     document.getElementById('btn_sim_update').disabled = true;
     document.getElementById('btn_sim_stop').disabled = false;
+    ModelLoaded = false;
 }
 
 function update_model_on_server(project_name, file_name){
@@ -867,3 +937,49 @@ function add_atomic_list_option (parent, project_name, file_name) {
     option.value = project_name + "/" + file_name;
     parent.options.add(option);
 }
+
+function panelAddLog(text) {
+    if (panelWindow && !panelWindow.closed) {
+        panelWindow.postMessage(
+            { type: "ADD_LOG", message: text },
+            "*"
+        );
+    }
+}
+
+window.addEventListener("message", function(event) {
+    if (!event.data || !event.data.type) return;
+
+    if (event.data.type === "REQUEST_REFRESH") {
+
+        // Panel에서 새로고침 요청함 → Panel에 상태 다시 보냄
+        if (panelWindow && !panelWindow.closed) {
+
+            // 웹 ID
+            panelWindow.postMessage({ 
+                type: "SET_WEB_ID", 
+                webId: WebId 
+            }, "*");
+
+            // 프로젝트명
+            panelWindow.postMessage({ 
+                type: "SET_PROJECT_NAME", 
+                project: document.all.project_name.value 
+            }, "*");
+
+            // 서버 연결 상태
+            const connected = (WebId !== null && WebId !== "" && WebId !== undefined);
+            panelWindow.postMessage({
+                type: "SERVER_STATUS",
+                connected: connected
+            }, "*");
+
+            // 모델 로드 상태
+            const modelLoaded = (ModelLoaded === true);
+            panelWindow.postMessage({
+                type: "MODEL_LOAD_STATUS",
+                loaded: modelLoaded
+            }, "*");
+        }
+    }
+});
