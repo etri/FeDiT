@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Web Log Panel</title>
+  <style>
+    /* 전체 다크모드 */
+    body {
+      background-color: #1e1e1e;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      color: #e0e0e0;
+    }
+
+    /* 카드 스타일 (웹ID / Notice / LogBox 모두 사용) */
+    .card {
+      background-color: #2b2b2b;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    }
+
+    /* 타이틀 */
+    .card-title {
+      font-size: 18px;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+    /* Notice Box */
+    #noticeBox {
+      min-height: 60px;
+      background-color: #3a3a3a;
+      border-left: 5px solid #4fc3f7;
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    /* Log Box */
+    #logBox {
+      background-color: #121212;
+      border-radius: 8px;
+      padding: 15px;
+      height: 300px;
+      overflow-y: auto;
+      font-family: Consolas, monospace;
+      border: 1px solid #444;
+      color: #d5d5d5;
+    }
+
+    /* 스크롤바 스타일 */
+    #logBox::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    #logBox::-webkit-scrollbar-thumb {
+      background: #555;
+      border-radius: 5px;
+    }
+
+    #logBox::-webkit-scrollbar-track {
+      background: #2b2b2b;
+    }
+
+    #topBar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* 오른쪽 영역: 서버상태 + 모델상태 가로 정렬 */
+    .rightArea {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    /* LED 표시 */
+    .led {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 8px;
+    }
+
+    .led.green {
+      background-color: #4caf50;
+    }
+
+    /* 연결됨 */
+    .led.red {
+      background-color: #f44336;
+    }
+
+    /* 끊김 */
+  </style>
+</head>
+
+<body>
+
+
+  <!-- 웹 ID 카드 -->
+  <div class="card">
+    <div id="topBar">
+
+      <!-- 왼쪽: 웹 ID -->
+      <div class="leftArea">
+        <div class="card-title">
+          접속한 웹 ID: <span id="webId">-</span>
+        </div>
+      </div>
+      <div class="infoRow" style="margin-top: 6px;">
+        <div class="card-title">로드된 프로젝트 명:
+          <span id="projectName">-</span>
+
+        </div>
+      </div>
+      <!-- 오른쪽: 상태들 묶음 -->
+      <div class="rightArea">
+        <div id="serverStatus">
+          <span class="led red" id="ledStatus"></span>
+          <span id="serverStatusText">Disconnected</span>
+        </div>
+
+        <div id="modelLoadStatus">
+          <span class="led red" id="loadStatusLed"></span>
+          <span id="loadStatusText">Model Not Loaded</span>
+        </div>
+      </div>
+
+
+        <button id="refreshBtn" style="
+      padding: 6px 12px;
+      background-color: #444;
+      color: #fff;
+      border: 1px solid #666;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-left: 20px;
+  ">
+    새로고침
+</button>
+    </div>
+  </div>
+
+  <!-- Notice 카드 -->
+  <div class="card">
+    <div class="card-title">RestAPI를 다음과 같이 호출하세요 </div>
+    <div id="noticeBox">
+      <!-- 여기에 당신이 Notice 내용을 추가하면 됩니다 -->
+      * id=접속한 웹 ID, projectname = 로드된 프로젝트 명, ID, end_t= 시뮬레이션 수행 시간"
+      <br><br>
+      RESTAPI 호출 : 시뮬레이션 서버주소 + /api/sim/run?id=접속한웹ID&projectname=프로젝트명&end_t=시뮬레이션수행시간
+    </div>
+  </div>
+
+  <!-- Log 카드 -->
+  <div class="card">
+    <div class="card-title">외부 인터페이스 호출 Log</div>
+    <div id="logBox"></div>
+  </div>
+
+  <script>
+    // 메인 창에서 수신하는 메시지 처리
+    window.addEventListener("message", function (event) {
+      const msg = event.data;
+      if (!msg || !msg.type) return;
+
+      switch (msg.type) {
+        case "SET_WEB_ID":
+          document.getElementById("webId").innerText = msg.webId;
+          break;
+        case "SET_PROJECT_NAME":
+          projectName_cache = msg.project;     // ⭐ 저장
+          document.getElementById("projectName").innerText = msg.project;
+          break;
+        case "ADD_LOG":
+          addLog(msg.message);
+          break;
+        case "SERVER_STATUS":
+          setServerStatus(msg.connected);
+          break;
+        case "MODEL_LOAD_STATUS":
+          setModelLoadStatus(msg.loaded);
+          break;
+        case "NOTICE":
+          // Notice 박스에 메시지 추가 (원할 때 사용)
+          document.getElementById("noticeBox").innerHTML += "<br>" + msg.notice;
+          break;
+      }
+    });
+
+    let serverConnected = false;
+    let modelLoaded = false;
+    let projectName_cache = "-";
+    let forceRecheck = false;
+
+
+    // 로그 추가 함수
+    function addLog(message) {
+      const logBox = document.getElementById("logBox");
+      logBox.innerHTML += "<br>" + message;
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function setServerStatus(connected) {
+      const led = document.getElementById("ledStatus");
+      const text = document.getElementById("serverStatusText");
+
+      serverConnected = connected;   // 상태 저장
+
+      if (connected) {
+        led.className = "led green";
+        text.innerText = "Connected";
+
+        addLog("시뮬레이션 서버와 정상 연결되었습니다.");   // ⭐ 자동 로그
+      } else {
+        led.className = "led red";
+        text.innerText = "Disconnected";
+
+        addLog("시뮬레이션 서버 연결이 끊어졌습니다.");   // ⭐ 자동 로그
+      }
+
+          checkAllReady(true);  // ⭐ 강제 체크 플래그 전달
+    }
+
+    function setModelLoadStatus(loaded) {
+      const led = document.getElementById("loadStatusLed");
+      const text = document.getElementById("loadStatusText");
+
+      modelLoaded = loaded;  // 상태 저장
+
+      if (loaded) {
+        led.className = "led green";
+        text.innerText = "Model Loaded";
+
+        addLog(projectName_cache + " 모델이 로드되었습니다.");   // ⭐ 자동 로그
+      } else {
+        led.className = "led red";
+        text.innerText = "Model Not Loaded";
+
+        addLog(projectName_cache + " 모델이 언로드되었습니다."); // optional
+      }
+
+      checkAllReady(true);  // ⭐ 강제 체크 플래그 전달
+    }
+
+    let allReadyLogged = false;
+
+
+function checkAllReady(force = false) {
+
+    if (serverConnected && modelLoaded) {
+
+        if (force || !allReadyLogged) {
+            addLog("시뮬레이션 준비가 완료되었습니다. 이제 REST API를 통해 시뮬레이션 수행이 가능합니다.");
+
+            allReadyLogged = true;
+            forceRecheck = false;  // 🔥 새로고침 상태 해제
+        }
+
+    } else {
+        allReadyLogged = false;
+    }
+}
+
+
+    document.getElementById("refreshBtn").addEventListener("click", function () {
+
+        addLog("🔄 새로고침 요청됨 → 메인 페이지에 최신 상태 요청합니다.");
+
+        // 새로고침 후 상태 다시 점검하도록 설정
+        forceRecheck = true;
+
+        if (window.opener && !window.opener.closed) {
+            window.opener.postMessage({ type: "REQUEST_REFRESH" }, "*");
+        }
+    });
+
+
+  </script>
+
+</body>
+
+</html>
