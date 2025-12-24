@@ -1,5 +1,6 @@
 #include <iostream>
 #include "sim_manager.h"
+#include "masterAgent.h"
 #include "../common/common.h"
 #include "../common/string_util.h"
 #include <algorithm>
@@ -10,6 +11,7 @@
 
 using namespace std;
 sim_manager _sim_manager;
+masterAgent _RestAPI;
 unordered_map<string, pair<vector<string>, function<void(vector<string>)>>> cmds;
 
 void print_command_list() {
@@ -240,7 +242,8 @@ void main() {
 	DPRINT_INIT;
 	_sim_manager.init();
 	_sim_manager.init_gui();
-	_sim_manager.init_masterAgent(new externalTest2);
+	_RestAPI.Connect_SimManager(&_sim_manager);
+	//_sim_manager.init_masterAgent(new externalTest2);
 	commandLineLoop();
 	_sim_manager.release();
 	

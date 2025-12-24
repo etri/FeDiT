@@ -4,9 +4,14 @@
 #include <string>
 #include "../WebSocket/websocket_server.h"
 #include "../WebSocket/websocket_client.h"
+#include "sim_engine.h"
 
-
+#include <cpprest/http_listener.h>
 #include "../common/masterAgent_inf.h"
+
+using namespace web;
+using namespace web::http;
+using namespace web::http::experimental::listener;
 
 // WebSocket Listen Port
 #define PORT_NUMBER 8864
@@ -113,80 +118,16 @@ public:
 	SIM_ENGINE_EVENT targetEventId;
 
 	int loadSet(const string& project_name, std::condition_variable* sEvent, SIM_ENGINE_EVENT* Id);
-	int init_masterAgent(masterAgent_inf* masterAgent);
+	void set_callback(std::string id, std::string projectname, double end_t);
+
+
 private:
 	
 };
-
 
 extern sim_manager _sim_manager;
 #define SIM_MANAGER _sim_manager
 #define MODEL_SOCKET _sim_manager._model_socket
 #define GUI_SOCKET	_sim_manager._gui_socket
 
-class  externalTest2 : public masterAgent_inf
-{
-
-public:
-	externalTest2()
-	{
-
-	}
-
-	int sim_run(const string& projectname, const string& sim_start_time, const string& sim_end_time)
-	{
-		std::cout << ">>>>>>>>>>>>>>>>>> externalTest2 - sim_run()" << endl;
-
-		return 1;
-	}
-
-	int init()
-	{
-		std::cout << ">>>>>>>>>>>>>>>>>> externalTest2 - init()" << endl;
-		return 1;
-	}
-
-
-	int receive()
-	{
-		Json::Value args;
-		Json::Reader reader;
-
-		string aaa = "{\"json_data\":{\"color\":\"hsla(77, 100%, 50%, 1)\",\"file_name\":\"untitled.json\",\"file_path\":null,\"idx\":-1,\"iid\":\"m2h4mo8ayy42z1nve\",\"in_param\":[],\"in_port\":[],\"ip_port\":\"localhost:8865\",\"model_name\":\"untitled\",\"model_type\":99,\"models\":[{\"color\":\"hsla(77, 100%, 50%, 1)\",\"file_name\":\"poc.json\",\"file_path\":null,\"idx\":-1,\"iid\":\"m2h4mrd3uja5umjp8\",\"in_param\":[],\"in_port\":[],\"ip_port\":\"localhost:8865\",\"model_name\":\"poc\",\"model_type\":99,\"models\":[{\"color\":\"hsla(77, 100%, 50%, 1)\",\"file_name\":\"poc.json\",\"file_path\":null,\"idx\":-1,\"iid\":\"m2h4iy9xiq97gt7vk\",\"in_param\":[],\"in_port\":[],\"ip_port\":\"localhost:8865\",\"model_name\":\"poc\",\"model_type\":99,\"models\":[{\"color\":\"hsla(102, 100%, 50%, 1)\",\"file_name\":\"poc_calculation_atomic.dll\",\"file_path\":\"banksim9\",\"idx\":-1,\"iid\":\"m2h4jga3l7rsj72i0\",\"in_param\":[],\"in_port\":[{\"index\":0,\"line\":[],\"name\":\"POC1_IN\"}],\"ip_port\":\"localhost:8865\",\"model_name\":\"poc_calculation_atomic\",\"model_type\":1,\"models\":[],\"out_port\":[{\"index\":0,\"line\":[{\"from_obj_info\":{\"iid\":\"m2h4jga3l7rsj72i0\",\"port_name\":\"POC1_OUT\"},\"to_obj_info\":{\"iid\":\"m2h4ji3eqooijsdxx\",\"port_name\":\"POC2_IN\"},\"user_offset\":[0,0,0,0]},{\"from_obj_info\":{\"iid\":\"m2h4jga3l7rsj72i0\",\"port_name\":\"POC1_OUT\"},\"to_obj_info\":{\"iid\":\"m2h4jl6a88g1f1v1z\",\"port_name\":\"POC3_IN\"},\"user_offset\":[0,0,0,0]},{\"from_obj_info\":{\"iid\":\"m2h4jga3l7rsj72i0\",\"port_name\":\"POC1_OUT\"},\"to_obj_info\":{\"iid\":\"m2h4jjqd3uuptx5vl\",\"port_name\":\"POC4_IN\"},\"user_offset\":[0,0,0,0]}],\"name\":\"POC1_OUT\"}],\"position\":{\"x\":155.20503776009087,\"y\":155.72415704896764},\"uid\":\"m2h4jga35fxpih5dl\"},{\"color\":\"hsla(333, 100%, 50%, 1)\",\"file_name\":\"poc_forecastweather_atomic.dll\",\"file_path\":\"banksim9\",\"idx\":1,\"iid\":\"m2h4ji3eqooijsdxx\",\"in_param\":[],\"in_port\":[{\"index\":0,\"line\":[],\"name\":\"POC2_IN\"}],\"ip_port\":\"localhost:8865\",\"model_name\":\"poc_forecastweather_atomic\",\"model_type\":1,\"models\":[],\"out_port\":[{\"index\":0,\"line\":[{\"from_obj_info\":{\"iid\":\"m2h4ji3eqooijsdxx\",\"port_name\":\"POC2_OUT\"},\"to_obj_info\":{\"iid\":\"m2h4jga3l7rsj72i0\",\"port_name\":\"POC1_IN\"},\"user_offset\":[0,0,0,0]}],\"name\":\"POC2_OUT\"}],\"position\":{\"x\":417.05365052727825,\"y\":50.322142407128204},\"uid\":\"m2h4ji3ejjcpx3ind\"},{\"color\":\"hsla(204, 100%, 50%, 1)\",\"file_name\":\"poc_carpark_atomic.dll\",\"file_path\":\"banksim9\",\"idx\":2,\"iid\":\"m2h4jjqd3uuptx5vl\",\"in_param\":[],\"in_port\":[{\"index\":0,\"line\":[],\"name\":\"POC4_IN\"}],\"ip_port\":\"localhost:8865\",\"model_name\":\"poc_carpark_atomic\",\"model_type\":1,\"models\":[],\"out_port\":[{\"index\":0,\"line\":[{\"from_obj_info\":{\"iid\":\"m2h4jjqd3uuptx5vl\",\"port_name\":\"POC4_OUT\"},\"to_obj_info\":{\"iid\":\"m2h4jga3l7rsj72i0\",\"port_name\":\"POC1_IN\"},\"user_offset\":[0,0,0,0]}],\"name\":\"POC4_OUT\"}],\"position\":{\"x\":527.01007320919723,\"y\":343.75614613224911},\"uid\":\"m2h4jjqdm12c1cyjv\"},{\"color\":\"hsla(75, 100%, 50%, 1)\",\"file_name\":\"poc_microdust_atomic.dll\",\"file_path\":\"banksim9\",\"idx\":3,\"iid\":\"m2h4jl6a88g1f1v1z\",\"in_param\":[],\"in_port\":[{\"index\":0,\"line\":[],\"name\":\"POC3_IN\"}],\"ip_port\":\"localhost:8865\",\"model_name\":\"poc_microdust_atomic\",\"model_type\":1,\"models\":[],\"out_port\":[{\"index\":0,\"line\":[{\"from_obj_info\":{\"iid\":\"m2h4jl6a88g1f1v1z\",\"port_name\":\"POC3_OUT\"},\"to_obj_info\":{\"iid\":\"m2h4jga3l7rsj72i0\",\"port_name\":\"POC1_IN\"},\"user_offset\":[0,0,0,0]}],\"name\":\"POC3_OUT\"}],\"position\":{\"x\":538.07077844939022,\"y\":214.28083184998954},\"uid\":\"m2h4jl6axq4xbn1zx\"}],\"out_port\":[],\"position\":{\"x\":396.46206824585204,\"y\":353.89731816758842},\"uid\":\"m2eopkx1t1aeabppx\"}],\"out_port\":[],\"position\":{\"x\":275.52476124150945,\"y\":359.08129185455556},\"uid\":\"m2h4is6uqen9vggwf\"}],\"out_port\":[],\"position\":{\"x\":150,\"y\":50},\"uid\":\"m2h4mo8avftxl18dy\"},\"msg\":\"load\",\"project_name\":\"banksim\"}";
-
-		bool parsingSuccessful = reader.parse(aaa, args);
-		if (!parsingSuccessful)
-		{
-			cout << "Error parsing the string" << endl;
-		}
-
-		spdlog::debug("{}::{}", Json::stringifyJson(args), __LINE__);
-		if (!args.isMember(PROTOCOL::MODEL_INFO::PROJECT_NAME)) {
-			spdlog::error("# ERROR] GUI::SIM_CTL::prj_is_null::{}", __LINE__);
-			return 1;
-		}
-		string project_name = args[PROTOCOL::MODEL_INFO::PROJECT_NAME].asString();
-		spdlog::debug("project_name = {}::{}", project_name, __LINE__);
-
-		if (!args.isMember(PROTOCOL::GUI::SIM_CTL::MSG)) {
-			spdlog::error("# ERROR] GUI::SIM_CTL::msg is null::{}", __LINE__);
-			return 1;
-		}
-		string msg = args[PROTOCOL::GUI::SIM_CTL::MSG].asString();
-		if (msg == PROTOCOL::GUI::SIM_CTL::SIM_LOAD) {
-			std::string remote_ip_port = "test";
-			//g_gui_clients[remote_ip_port].client_id = project_name;
-
-			Json::Value body = args[PROTOCOL::MODEL_INFO::JSON_DATA];
-			//sim_del_all();
-			_sim_manager.sim_del(project_name);
-			_sim_manager.sim_add(project_name);
-
-			//_sim_manager.set_sim_gui(project_name, test);
-			_sim_manager.load(project_name, body);
-		}
-
-		return 1;
-	}
-};
 #endif
