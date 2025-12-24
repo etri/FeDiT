@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.n2m.platform.meta.rdf.mapping.mapper.RdfMappingRuleMapper">
+
+    <sql id="limitPage">
+        <if test="isPaging">    
+        	OFFSET #{startIndex} LIMIT #{pageListSize}
+        </if>
+        <if test="!isPaging">    
+    		OFFSET 0 LIMIT #{limitListSize}
+    	</if>   
+    </sql>
+
+	<select id="selectRdfMappingRuleListByRdfModelId" parameterType="rdfMappingRuleSearchVo" resultType="rdfMappingRuleDto">
+		SELECT /* SQL_ID: RdfMappingRuleMapper.selectRdfMappingRuleListByRdfModelId */
+		       t1.rdf_mappg_rule_id
+		     , t1.rdf_mappg_model_id
+		     , t1.rdf_mappg_rule_odrg
+		     , t1.up_rdf_mappg_rule_id
+		     , t1.rdf_prpty_id
+		     , p1.rdf_prpty_nm                                 AS predct_rdf_property_nm
+		     , CONCAT(p2.rdf_nmsp_pfix, ':', p1.rdf_prpty_nm)  AS predct_rdf_property
+		     , CONCAT(p2.rdf_nmsp_uri, p1.rdf_prpty_nm)        AS predct_rdf_property_iri
+		     , t1.objt_data_mappg_yn
+		     , t1.objt_rdf_class_id
+		     , o1.rdf_class_nm                                 AS objt_rdf_class_nm
+		     , CASE WHEN o2.rdf_nmsp_pfix IS NOT NULL THEN CONCAT(o2.rdf_nmsp_pfix, ':', o1.rdf_class_nm) ELSE NULL END  AS objt_rdf_class
+		     , CONCAT(o2.rdf_nmsp_uri, o1.rdf_class_nm)        AS objt_rdf_class_iri
+		     , t1.objt_literal_yn
+		     , t1.objt_prpty_id
+		     , t1.objt_rdf_mappg_id
+		     , ROW_NUMBER() OVER(PARTITION BY t1.rdf_mappg_model_id, t1.rdf_prpty_id ORDER BY t1.rdf_mappg_rule_id) AS empty_node_ordg
+		  FROM dtmeta.tb_rdf_mappingrule          t1
+		 INNER JOIN dtmeta.tb_rdf_property        p1  ON t1.rdf_prpty_id = p1.rdf_prpty_id  
+		 INNER JOIN dtmeta.tb_rdf_namespace       p2  ON p1.rdf_nmsp_id = p2.rdf_nmsp_id 
+		  LEFT OUTER JOIN dtmeta.tb_rdf_class     o1  ON t1.objt_rdf_class_id = o1.rdf_class_id  
+		  LEFT OUTER JOIN dtmeta.tb_rdf_namespace o2  ON o1.rdf_nmsp_id = o2.rdf_nmsp_id  
+		 WHERE t1.rdf_mappg_model_id  = #{rdfMappgModelId}
+		 ORDER BY t1.rdf_mappg_rule_odrg		
+    </select>
+    
+   	<delete id="deleteRdfMappingRuleByRdfModelId" parameterType="rdfMappingModelVo">
+    	DELETE  /* SQL_ID: RdfMappingRuleMapper.deleteRdfMappingRuleByRdfModelId */
+        FROM dtmeta.tb_rdf_mappingrule
+        WHERE rdf_mappg_model_id = #{rdfMappgModelId}
+	</delete>
+    
+    <select id="selectRdfNamespaceListByRdfModelId" parameterType="rdfMappingRuleSearchVo" resultType="rdfNamespaceVo">
+        SELECT /* SQL_ID: RdfMappingRuleMapper.selectRdfNamespaceListByRdfModelId */
+               p2.rdf_nmsp_id
+             , p2.rdf_nmsp_pfix
+             , p2.rdf_nmsp_uri
+          FROM dtmeta.tb_rdf_mappingrule          t1
+         INNER JOIN dtmeta.tb_rdf_property        p1  ON t1.rdf_prpty_id = p1.rdf_prpty_id  
+         INNER JOIN dtmeta.tb_rdf_namespace       p2  ON p1.rdf_nmsp_id = p2.rdf_nmsp_id
+         WHERE
+         	   1=1
+         	   <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(rdfMappgModelId)">
+	       	   	AND t1.rdf_mappg_model_id  = #{rdfMappgModelId}   
+	       	   </if>
+         UNION
+        SELECT c2.rdf_nmsp_id
+             , c2.rdf_nmsp_pfix
+             , c2.rdf_nmsp_uri
+          FROM dtmeta.tb_rdf_mappingrule          t1
+         INNER JOIN dtmeta.tb_rdf_class           c1  ON t1.objt_rdf_class_id = c1.rdf_class_id  
+         INNER JOIN dtmeta.tb_rdf_namespace       c2  ON c1.rdf_nmsp_id = c2.rdf_nmsp_id  
+         WHERE
+			   1=1
+         	   <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(rdfMappgModelId)">
+	       	   	AND t1.rdf_mappg_model_id  = #{rdfMappgModelId}   
+	       	   </if>  
+        <if test="defaultNamespaceUriList != null and defaultNamespaceUriList.size() > 0">
+         UNION 
+        SELECT n1.rdf_nmsp_id
+             , n1.rdf_nmsp_pfix
+             , n1.rdf_nmsp_uri
+          FROM dtmeta.tb_rdf_namespace            n1
+         WHERE n1.rdf_nmsp_uri        IN <foreach collection="defaultNamespaceUriList" item="item" index="index"  open="(" close=")" separator=","> #{item} </foreach>
+        </if> 
+         ORDER BY rdf_nmsp_pfix
+    </select>    
+	
+	<select id="selectRdfMappingRuleMaxOdrg" parameterType="rdfMappingRuleVo" resultType="int">
+		SELECT COALESCE(MAX(rdf_mappg_rule_odrg), 0) + 1  FROM dtmeta.tb_rdf_mappingrule WHERE rdf_mappg_model_id = #{rdfMappgModelId}
+	</select>
+	
+	<insert id="insertRdfMappingRule" parameterType="rdfMappingRuleVo">
+	<selectKey keyProperty="rdfMappgRuleId" keyColumn="rdf_mappg_rule_id" resultType="string" order="BEFORE">
+		SELECT CONCAT('RMR', EXTRACT(EPOCH FROM now())::int, LPAD(CAST(NEXTVAL('dtmeta.seq_tb_rdf_common') AS varchar), 4, '0'))	
+	</selectKey>
+	INSERT /* SQL_ID: RdfMappingRuleMapper.insertRdfMappingRule */
+		INTO dtmeta.tb_rdf_mappingrule
+		( rdf_mappg_rule_id
+		, rdf_mappg_model_id
+		, rdf_mappg_rule_odrg
+		, up_rdf_mappg_rule_id
+		, rdf_prpty_id
+		, objt_data_mappg_yn
+		, objt_rdf_class_id
+		, objt_literal_yn
+		, objt_prpty_id
+		, objt_rdf_mappg_id
+		, rdf_mappg_rule_reg_dt
+		, rdf_mappg_rule_amd_dt
+		) VALUES
+		(
+		  #{rdfMappgRuleId}
+		  , #{rdfMappgModelId}
+		  , #{rdfMappgRuleOdrg}
+		  , #{upRdfMappgRuleId}
+		  , #{rdfPrptyId}
+		  , 'N'
+		  , NULL
+		  , 'N'
+		  , NULL
+		  , NULL
+		  , current_timestamp
+		  , current_timestamp
+		 )
+	</insert>
+	
+	<select id="selectRdfMappingRuleObjtPrptyIdExist" parameterType="rdfMappingRuleVo" resultType="int">
+		SELECT /* SQL_ID: RdfMappingRuleMapper.selectRdfMappingRuleObjtPrptyIdExist */
+			   COUNT(*)
+		  FROM dtmeta.tb_rdf_mappingrule
+		 WHERE rdf_mappg_rule_id  = #{rdfMappgRuleId}
+		 	   AND objt_prpty_id IS NOT NULL
+    </select>
+    
+    <select id="selectRdfMappingIdByObjtPrptyId" parameterType="rdfMappingRuleVo" resultType="string">
+    	SELECT /* SQL_ID: RdfMappingRuleMapper.selectRdfMappingIdByObjtPrptyId */
+    		rdf_mappg_id
+		FROM 
+			dtmeta.tb_rdf_mapping
+		WHERE 
+			type_model_id = (SELECT range_model_id FROM dtmeta.tb_meta_propertydefine WHERE prpty_id = #{objtPrptyId} LIMIT 1)
+			AND rdf_form_mtcd = #{rdfFormMtcd}
+			AND rdf_mappg_data_sttus_mtcd = 'use'
+		LIMIT 1
+    </select>
+	
+	<update id="updateRdfMappingrule" parameterType="rdfMappingRuleVo">
+		UPDATE /* SQL_ID: RdfMappingRuleMapper.updateRdfMappingrule */
+       		dtmeta.tb_rdf_mappingrule
+	   	SET  		
+			objt_data_mappg_yn = #{objtDataMappgYn}
+			<if test="rdfMappgRuleOdrg != null">
+				, rdf_mappg_rule_odrg = #{rdfMappgRuleOdrg}
+			</if>
+			<if test='@org.apache.commons.lang3.StringUtils@equals(objtDataMappgYn, "N")'>
+				, objt_rdf_class_id = #{objtRdfClassId}
+			</if>
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equals(objtPrptyDeleteYn, "Y")'>
+					, objt_prpty_id = null
+				</when>
+				<otherwise>
+					<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(objtPrptyId)">
+						, objt_prpty_id = #{objtPrptyId}
+					</if>
+				</otherwise>
+			</choose>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(objtLiteralYn)">
+				, objt_literal_yn = #{objtLiteralYn}
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(objtRdfMappgId)">
+				, objt_rdf_mappg_id = #{objtRdfMappgId}
+			</if>
+	 	WHERE 
+		 	rdf_mappg_rule_id = #{rdfMappgRuleId}
+	</update>
+	
+	<update id="deleteMappingrule" parameterType="rdfMappingRuleVo">
+		DELETE /* SQL_ID: RdfMappingRuleMapper.deleteMappingrule */
+       	FROM
+       		dtmeta.tb_rdf_mappingrule
+	 	WHERE 
+		 	rdf_mappg_rule_id = #{rdfMappgRuleId}
+	</update>
+	
+	<select id="selectRdfMappingRule" parameterType="rdfMappingRuleVo"  resultType="rdfMappingRuleVo">
+		SELECT t1.*  /* SQL_ID: RdfMappingRuleMapper.selectRdfMappingRule */
+		FROM dtmeta.tb_rdf_mappingrule          t1
+		WHERE rdf_mappg_rule_id = #{rdfMappgRuleId}
+	</select>
+	
+</mapper>
+

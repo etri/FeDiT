@@ -1,0 +1,144 @@
+/*📦 기본 레이아웃*/
+#wrapper {
+    padding-top: 114px;
+}
+
+.header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/*🧭 헤더 메뉴 레이아웃*/
+.header .flat-menu {
+    display: block;
+    padding: 16px 0;
+}
+
+.header .side-menu {
+    display: none;
+}
+
+/* 필터 전체 그룹 */
+.header .flat-menu .filter-wrap {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+}
+
+/*🧊 필터 박스 및 토글 버튼*/
+.header .flat-menu .filter-layer-box {
+    width: 100%;
+    border-radius: 8px;
+    transition: 0.2s ease-in-out;
+}
+
+/* Hover, Show, Current 상태 */
+.header .flat-menu .filter-layer-box:is(.is-show, :hover, .current) {
+    background-color: rgba(83, 159, 229, 0.2);
+}
+
+/* 토글 버튼 */
+.header .flat-menu .filter-layer-box .filter-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    background-color: transparent;
+    color: #E9EBED;
+    font-size: var(--text-md);
+    font-weight: 500;
+    line-height: 18px;
+    letter-spacing: -0.03em;
+    white-space: nowrap;
+    transition: 0.2s ease-in-out;
+}
+
+.header .flat-menu .filter-layer-box .filter-toggle:hover,
+.header .flat-menu .filter-layer-box .filter-toggle:active {
+    color: #E9EBED;
+}
+
+.header .flat-menu .filter-layer-box .filter-toggle i {
+    display: flex;
+}
+
+.header .flat-menu .filter-layer-box .filter-toggle i img {
+    margin: auto;
+}
+
+/*☑️ 옵션 리스트 스타일*/
+.header .flat-menu .option-list input:where([type=checkbox], [type=radio]) ~ label {
+    position: relative;
+    display: block;
+    padding: 0;
+    color: #30313D;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    line-height: 20px;
+    letter-spacing: -0.03em;
+}
+
+.header .flat-menu .option-list input:where([type=checkbox], [type=radio]) ~ label a {
+    display: block;
+    padding: 8px 16px;
+    color: #E9EBED;
+    font-size: var(--text-sm, 14px);
+    font-weight: 500;
+    line-height: 20px;
+    letter-spacing: -0.03em;
+}
+
+/* Hover 및 활성화 효과 */
+.header .flat-menu .option-list input:where([type=checkbox], [type=radio]) ~ label:hover,
+.header .flat-menu .option-list input:where([type=checkbox], [type=radio]) ~ label:active,
+.header .flat-menu .filter-layer-box.current .option-list li.current input:where([type=checkbox], [type=radio]) ~ label {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/*🎛️ 필터 레이어 내부 스타일*/
+.header .flat-menu .filter-layer-box .filter-layer {
+    background-color: #2A3F59;
+    color: #E9EBED;
+    border: none;
+}
+
+/*📱 반응형 레이아웃 (Media Queries)*/
+@media (min-width: 576px) {
+    #wrapper {
+        padding-top: 114px;
+    }
+
+    .header .flat-menu {
+        display: block;
+    }
+
+    .header .side-menu {
+        display: none;
+    }
+}
+
+@media (min-width: 768px) {
+    #wrapper {
+        padding-top: 120px;
+    }
+}
+
+@media (min-width: 992px) {
+    .header .flat-menu {
+        display: block;
+    }
+
+    .header .side-menu {
+        display: none;
+    }
+}
+
+@media (min-width: 1200px) {
+    /* 현재는 별도 스타일 없음 */
+}

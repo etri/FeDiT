@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<th:block th:fragment="input_info">
+    <div class="row">
+        <div class="col-12 pt-3">
+            <label class="col-form-label">데이터 정보 등록</label>
+            <th:block th:if="${formType == 'I'}">
+                <div class="row">
+                    <div class="col-12">
+                        <ul class="my-3">
+                            <li>
+                                <div class="bg-box">
+                                    <p class="dot-desc">공개 여부 중 공개로 설정한 경우 학습이 정상적으로 완료된 건만 공개됩니다.</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </th:block>
+        </div>
+        <div class="col-12 pt-3">
+            <div class="row">
+                <div class="col-lg-3">
+                    <label class="col-form-label">모델명</label>
+                </div>
+                <div class="col-lg-9">
+                    <input class="form-control sm" name="etcModelNm" id="etcModelNm"
+                           th:readonly="${GRANT == false}"
+                           th:value="${dtModelEtc.etcModelNm}" type="text">
+                </div>
+            </div>
+        </div>
+        <div class="col-12 pt-3">
+            <div class="row">
+                <div class="col-lg-3">
+                    <label class="col-form-label">모델설명</label>
+                </div>
+                <div class="col-lg-9">
+                    <textarea id="maxlength-textarea" class="form-control sm model_derpn" name="etcModelDerpn"
+                              th:readonly="${GRANT == false}" th:text="${dtModelEtc.etcModelDerpn}" rows="12"></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 pt-3">
+            <div class="row">
+                <div class="col-lg-3">
+                    <label class="col-form-label">공개여부</label>
+                </div>
+                <div class="col-lg-8">
+                    <ul class="form-checkbox-list">
+                        <li class="form-checkbox">
+                            <input type="radio" name="rlsYn" id="useN" class="ui-check"
+                                   value="N"
+                                   data-label="비공개"
+                                   th:readonly="${GRANT == false}"
+                                   aria-labelledby="useN_label" th:checked="${dtModelEtc.rlsYn == 'N' or dtModelEtc.rlsYn == null}">
+                            <label class="form-label" for="useN" id="useN_label">비공개</label>
+                        </li>
+                        <li class="form-checkbox">
+                            <input type="radio" name="rlsYn" id="useY" class="ui-check"
+                                   value="Y"
+                                   data-label="공개"
+                                   th:readonly="${GRANT == false}"
+                                   aria-labelledby="useY_label" th:checked="${dtModelEtc.rlsYn == 'Y'}">
+                            <label class="form-label" for="useY" id="useY_label">공개</label>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 데이터 테이블-->
+    <div class="row">
+        <div class="col-12 pt-3" id="csvUpRange">
+        </div>
+    </div>
+    <th:block th:if="${GRANT == true}">
+        <div id="next_button_info_range" class="row" style="display: none;">
+            <div class="col-12 pt-3" style="text-align: end;">
+                <button type="button" id="info_prev" class="ui-button primary sm prev-select-data-step">
+                    이전
+                </button>
+                <button type="button" id="info_next" class="ui-button primary sm next-dataset-info-step" style="display: none;">
+                    다음(데이터확인후)
+                </button>
+            </div>
+        </div>
+    </th:block>
+</th:block>
+</html>

@@ -1,0 +1,323 @@
+# DataBase
+spring:
+  config:
+    activate:
+      on-profile:
+      - local
+  datasource:
+    url: jdbc:postgresql://{postgresql}:5432/dtmeta
+    username: meta_manager
+    password: rhksflwk1!
+    driver-class-name: org.postgresql.Driver
+  kafka:
+    bootstrap-servers: {kafka server ip}:9092
+    client-id : DT_PRODUCER
+    auth:
+      user-id: 
+      user-pw: 
+    thread-sleep : 100  
+    
+# Spring Doc Open Api    
+springdoc.swagger-ui.enabled: true
+
+
+  
+# Security
+security:
+  secret-key: {key==}
+
+oauth:
+  public-key: http://{security web server ip}:33000/security/publickey
+  access-token: http://{security web server ip}:33000/oauth2.0/token
+authorization: 
+  data : true
+  default-auth:
+    use-flag: true  
+    list: AUT_META_DEFAULT
+  
+platform.common.api.url: http://{keti-dt-platformadmin-api}:6998
+
+# Metadata RDF URL (Namespace) 
+dtmeta:
+  # TODO : 임시 정의, 추후 수정 필요
+  resource:
+    base-url: http://{web server ip}:8084/meta/resource/page/
+    data-url: http://{web server ip}:8084/meta/api/v1/resource/data/
+  # TODO : 임시 정의, 추후 수정 필요
+  rdf-schema:
+    base-url: http://{web server ip}:8084/meta/ns/digitaltwin#
+    skos-url: http://{web server ip}:8084/meta/skos/digitaltwin#
+  # 디지털트윈 연합 식별체계 적용
+  id-scheme:
+    digital-twin: DigitalTwin
+    digital-twin-object: DigitalTwinObject
+    digital-twin-object-vm: VisualModel
+
+# Virtuoso 
+virtuoso:
+  datasource:
+    url: jdbc:virtuoso://{virtuoso}:1111/charset=UTF-8
+    username: meta_manager
+    password: rhksflwk1!
+  graph:
+    dev: urn:dtmeta:graph:dev
+    use: urn:dtmeta:graph:use
+  conductor-url: http://{virtuoso web server ip}:8890/conductor
+  # 새로 추가 (jena 라이브러리 사용 변경으로 인한 속성 추가) (HTTP SPARQL / GSP 엔드포인트)
+  query-endpoint: http://{virtuoso web server ip}:8890/sparql
+  update-endpoint: http://{virtuoso web server ip}:8890/sparql-auth
+  gsp-endpoint: http://{virtuoso web server ip}:8890/sparql-graph-crud-auth
+    
+# NEO4J
+neo4j:
+  authentication:
+    username: neo4j
+    password: rhksflwk1!
+  uri: bolt://{neo4j}:7687
+  browser-url: http://{neo4j web server ip}:7474/browser
+  
+# Elastic Search
+elastic:
+  authentication:
+    username: elastic
+    password: rhksflwk1!
+  protocol: http
+  server-ip: {elasticsearch}
+  server-port: 9200
+  kibana-port: 5601
+  fingerprint: {fingerprint==}
+  index-name: dtmeta
+  kibana-url: http://{kibana web server ip}:5601
+  # 벡터 저장 및 검색 (별도 Python 서버 API)
+  vector-url: http://{keti-dt-metadata-vector}:5000/vectors
+  
+# InfluxDB
+influx:
+  authentication:
+    username: meta_manager
+    password: rhksflwk1!
+  url: http://{influxdb2}:8086/
+  browser-url: http://{influxdb web server ip}:8086/
+  org: dtmeta
+  bucket: metadata
+  # admin token
+  token: {token==}
+
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile:
+      - dev
+  datasource:
+    url: jdbc:postgresql://{postgresql}:5432/dtmeta
+    username: meta_manager
+    password: rhksflwk1!
+    driver-class-name: org.postgresql.Driver
+  kafka:
+    bootstrap-servers: {kafka server ip}:9092
+    client-id : DT_PRODUCER
+    auth:
+      user-id: 
+      user-pw: 
+    thread-sleep : 100     
+
+springdoc.swagger-ui.enabled: true
+
+
+
+# Security
+security:
+  secret-key: {key==}
+
+oauth:
+  public-key: http://{security web server ip}:33000/security/publickey
+  access-token: http://{security web server ip}:33000/oauth2.0/token
+authorization: 
+  data : true
+  default-auth:
+    use-flag: true  
+    list: AUT_META_DEFAULT
+  
+platform.common.api.url: http://{keti-dt-platformadmin-api}:6998
+
+# Metadata RDF URL (Namespace) 
+dtmeta:
+  # TODO : 임시 정의, 추후 수정 필요
+  resource:
+    base-url: http://{web server ip}:8084/meta/resource/page/
+    data-url: http://{web server ip}:8084/meta/api/v1/resource/data/
+  # TODO : 임시 정의, 추후 수정 필요
+  rdf-schema:
+    base-url: http://{web server ip}:8084/meta/ns/digitaltwin#
+    skos-url: http://{web server ip}:8084/meta/skos/digitaltwin#
+  # 디지털트윈 연합 식별체계 적용
+  id-scheme:
+    digital-twin: DigitalTwin
+    digital-twin-object: DigitalTwinObject
+    digital-twin-object-vm: VisualModel
+    
+# Virtuoso 
+virtuoso:
+  datasource:
+    url: jdbc:virtuoso://{virtuoso}:1111/charset=UTF-8
+    username: meta_manager
+    password: rhksflwk1!
+  graph:
+    dev: urn:dtmeta:graph:dev
+    use: urn:dtmeta:graph:use
+  conductor-url: http://{virtuoso web server ip}:8890/conductor
+  # 새로 추가 (jena 라이브러리 사용 변경으로 인한 속성 추가) (HTTP SPARQL / GSP 엔드포인트)
+  query-endpoint: http://{virtuoso web server ip}:8890/sparql
+  update-endpoint: http://{virtuoso web server ip}:8890/sparql-auth
+  gsp-endpoint: http://{virtuoso web server ip}:8890/sparql-graph-crud-auth
+
+# NEO4J
+neo4j:
+  authentication:
+    username: neo4j
+    password: rhksflwk1!
+  uri: bolt://{neo4j}:7687
+  browser-url: http://{neo4j web server ip}:7474/browser
+  
+# Elastic Search
+elastic:
+  authentication:
+    username: elastic
+    password: rhksflwk1!
+  protocol: http
+  server-ip: {elasticsearch}
+  server-port: 9200
+  kibana-port: 5601
+  fingerprint: {fingerprint==}
+  index-name: dtmeta
+  kibana-url: http://{kibana web server ip}:5601
+  # 벡터 저장 및 검색 (별도 Python 서버 API)
+  vector-url: http://{keti-dt-metadata-vector}:5000/vectors
+  
+# InfluxDB
+influx:
+  authentication:
+    username: meta_manager
+    password: rhksflwk1!
+  url: http://{influxdb2}:8086/
+  browser-url: http://{influxdb web ip}:8086/
+  org: dtmeta
+  bucket: metadata
+  # admin token
+  token: {token==}
+  
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile:
+      - prod
+  datasource:
+    url: jdbc:postgresql://{postgresql}:5432/dtmeta
+    username: meta_manager
+    password: rhksflwk1!
+    driver-class-name: org.postgresql.Driver
+  kafka:
+    bootstrap-servers: {kafka server ip}:9092
+    client-id : DT_PRODUCER
+    auth:
+      user-id: 
+      user-pw: 
+    thread-sleep : 100  
+    
+# Disabling the swagger-ui
+springdoc.swagger-ui.enabled: false
+
+
+
+# Security
+security:
+  secret-key: {key==}
+
+oauth:
+  public-key: http://{security web server ip}:33000/security/publickey
+  access-token: http://{security web server ip}:33000/oauth2.0/token
+authorization: 
+  data : true
+  default-auth:
+    use-flag: true  
+    list: AUT_META_DEFAULT
+  
+platform.common.api.url: http://{keti-dt-platformadmin-api}:6998
+
+# Metadata RDF URL (Namespace) 
+dtmeta:
+  # TODO : 임시 정의, 추후 수정 필요
+  resource:
+    base-url: http://{web server ip}:8084/meta/resource/page/
+    data-url: http://{web server ip}:8084/meta/api/v1/resource/data/
+    #base-url: http://digitaltwin.keti.re.kr/meta/resource/page/
+    #data-url: http://digitaltwin.keti.re.kr/meta/api/v1/resource/data/
+  # TODO : 임시 정의, 추후 수정 필요
+  rdf-schema:
+    base-url: http://{web server ip}:8084/meta/ns/digitaltwin#
+    skos-url: http://{web server ip}:8084/meta/skos/digitaltwin#
+    #base-url: http://vocab.keti.re.kr/meta/ns/digitaltwin#
+    #skos-url: http://vocab.keti.re.kr/meta/skos/digitaltwin#
+  # 디지털트윈 연합 식별체계 적용
+  id-scheme:
+    digital-twin: DigitalTwin
+    digital-twin-object: DigitalTwinObject
+    digital-twin-object-vm: VisualModel
+    
+# Virtuoso 
+virtuoso:
+  datasource:
+    url: jdbc:virtuoso://{virtuoso}:1111/charset=UTF-8
+    username: meta_manager
+    password: rhksflwk1!
+  graph:
+    dev: urn:dtmeta:graph:dev
+    use: urn:dtmeta:graph:use
+  conductor-url: http://{virtuoso web server ip}:8890/conductor
+  # 새로 추가 (jena 라이브러리 사용 변경으로 인한 속성 추가) (HTTP SPARQL / GSP 엔드포인트)
+  query-endpoint: http://{virtuoso web server ip}:8890/sparql
+  update-endpoint: http://{virtuoso web server ip}:8890/sparql-auth
+  gsp-endpoint: http://{virtuoso web server ip}:8890/sparql-graph-crud-auth
+    
+# NEO4J
+neo4j:
+  authentication:
+    username: neo4j
+    password: rhksflwk1!
+  uri: bolt://{neo4j}:7687
+  browser-url: http://{neo4j web server ip}:7474/browser
+  
+# Elastic Search
+elastic:
+  authentication:
+    username: elastic
+    password: rhksflwk1!
+  protocol: http
+  server-ip: {elasticsearch}
+  server-port: 9200
+  kibana-port: 5601
+  fingerprint: {fingerprint==}
+  index-name: dtmeta
+  kibana-url: http://{kibana web server ip}:5601
+  # 벡터 저장 및 검색 (별도 Python 서버 API)
+  vector-url: http://{keti-dt-metadata-vector}:5000/vectors
+  
+# InfluxDB
+influx:
+  authentication:
+    username: meta_manager
+    password: rhksflwk1!
+  url: http://{influxdb2}:8086/
+  browser-url: http://{influxdb web ip}:8086/
+  org: dtmeta
+  bucket: metadata
+  # admin token
+  token: {token==}
+
+
