@@ -60,6 +60,9 @@
     <ClCompile Include="embeded_func_mul.cpp">
       <Filter>embeded_func</Filter>
     </ClCompile>
+    <ClCompile Include="masterAgent.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="sim_engine.h">
@@ -94,6 +97,9 @@
     </ClInclude>
     <ClInclude Include="embeded_func_mul.h">
       <Filter>embeded_func</Filter>
+    </ClInclude>
+    <ClInclude Include="masterAgent.h">
+      <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

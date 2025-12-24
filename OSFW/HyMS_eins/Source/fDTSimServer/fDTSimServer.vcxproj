@@ -154,6 +154,7 @@
     <ClCompile Include="embeded_func_plus.cpp" />
     <ClCompile Include="fDTSimServer.cpp" />
     <ClCompile Include="function_imp.cpp" />
+    <ClCompile Include="masterAgent.cpp" />
     <ClCompile Include="model_t.cpp" />
     <ClCompile Include="sim_engine.cpp" />
     <ClCompile Include="sim_manager.cpp" />
@@ -167,6 +168,7 @@
     <ClInclude Include="embeded_func_mul.h" />
     <ClInclude Include="embeded_func_plus.h" />
     <ClInclude Include="function_imp.h" />
+    <ClInclude Include="masterAgent.h" />
     <ClInclude Include="model_t.h" />
     <ClInclude Include="sim_engine.h" />
     <ClInclude Include="sim_manager.h" />

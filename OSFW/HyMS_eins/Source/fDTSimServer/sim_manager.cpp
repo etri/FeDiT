@@ -201,7 +201,9 @@ int sim_manager::init_gui(int listen_port)
             client.client_id = "";
             g_gui_clients[remote_ip_port] = client;
 
-        //}
+            Json::Value res;
+            res[PROTOCOL::SIM_CTL::INFO] = remote_ip_port;
+            GUI_SOCKET.send_json(conn, PROTOCOL::GUI::RES_M::TYPE.c_str(), res, 1);
     };
 
     _gui_socket.on_disconnect_callback = [this](connectionInfo conn) {
@@ -309,13 +311,7 @@ int sim_manager::init_gui(int listen_port)
     });
 
     _gui_socket.listen(listen_port);
-    return 1;
-}
 
-int sim_manager::init_masterAgent(masterAgent_inf* masterAgent)
-{
-    _masterAgent = masterAgent;
-    _masterAgent->receive();
     return 1;
 }
 
@@ -529,4 +525,11 @@ int sim_manager::update_model(const string& project_name, const Json::Value& jso
     }
     eng->second.second->update_modelparam(json);
     return 1;
+}
+void sim_manager::set_callback(std::string id, std::string projectname, double end_t)
+{
+    Json::Value res;
+    res[PROTOCOL::SIM_CTL::PROJECTNAME] = projectname;
+    res[PROTOCOL::SIM_CTL::END_TIME] = end_t;
+    GUI_SOCKET.send_json(g_gui_clients[id].conn, PROTOCOL::GUI::REST_RUN::TYPE.c_str(), res, 1);
 }
