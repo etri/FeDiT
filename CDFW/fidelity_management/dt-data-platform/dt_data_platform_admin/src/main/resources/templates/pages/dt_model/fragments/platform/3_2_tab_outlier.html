@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<th:block th:fragment="tab_outlier">
+    <!-- 데이터 전처리 Outlier Tab Contents-->
+    <div id="tab_outlier_range" class="col-12 pt-3">
+        <div class="row">
+            <div class="col-6">
+                <div class="row">
+                    <div class="col-12">
+                        <label class="col-form-label">이상치 검증 유형 및 컬럼 지정</label>
+                    </div>
+                    <div class="col-12 pt-3">
+                        <label class="col-form-label">검증 유형</label>
+                        <div class="dropdown-wrapper">
+                            <div class="dropdown-box">
+                                <button type="button" class="form-control sm dropdown-toggle"
+                                        id="select_outlier_option" data-value="0">선택 없음
+                                </button>
+                                <div class="dropdown-layer" id="select_outlier_option_selection"
+                                     aria-expanded="false">
+                                    <ul class="option-list">
+                                        <li>
+                                            <input type="radio"
+                                                   id="input_select_outlier_option_0"
+                                                   name="select_outlier_option_input"
+                                                   value="0">
+                                            <label for="input_select_outlier_option_0">선택 없음</label>
+                                        </li>
+                                        <li>
+                                            <input type="radio"
+                                                   id="input_select_outlier_option_standard"
+                                                   name="select_outlier_option_input"
+                                                   value="standard">
+                                            <label for="input_select_outlier_option_standard">STANDARD</label>
+                                        </li>
+                                        <li>
+                                            <input type="radio"
+                                                   id="input_select_outlier_option_kmean"
+                                                   name="select_outlier_option_input"
+                                                   value="kmean">
+                                            <label for="input_select_outlier_option_kmean">KMEAN</label>
+                                        </li>
+                                        <li>
+                                            <input type="radio"
+                                                   id="input_select_outlier_option_dbscan"
+                                                   name="select_outlier_option_input"
+                                                   value="dbscan">
+                                            <label for="input_select_outlier_option_dbscan">DBSCAN</label>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 pt-3" id="outlier_column_range">
+                        <label class="col-form-label">검증 컬럼</label>
+                        <div id="preProcOutlierTargetCol"></div>
+                    </div>
+                    <th:block th:if="${formType == 'I'}">
+                        <div class="col-12 pt-3">
+                            <button type="button" class="ui-button primary sm btn-make-outlier" id="btn_make_outlier">변환
+                            </button>
+                        </div>
+                    </th:block>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="row">
+                    <div class="col-12">
+                        <label class="col-form-label">이상치 파라미터</label>
+                    </div>
+                    <div class="col-12 pt-3">
+                        <div class="row" id="outlier_standard_range" style="display: none;">
+                            <div class="col-12">
+                                <label class="col-form-label">샘플링 길이</label>
+                            </div>
+                            <div class="col-12">
+                                <input placeholder="샘플링 길이를 입력해주세요." class="form-control sm number_only" id="freq"
+                                       type="text" value="10">
+                            </div>
+                            <div class="col-12 pt-3">
+                                <label for="p_value" class="col-form-label">정규분포 경계</label>
+                            </div>
+                            <div class="col-12">
+                                <input placeholder="정규분포 경계값을 입력해주세요." class="form-control sm" id="p_value" type="text"
+                                       value="0.05">
+                            </div>
+                            <div class="col-12 pt-3">
+                                <button type="button" id="btn_change_standard" class="ui-button primary sm">수치변경
+                                </button>
+                                <div class="form-message-wrap">
+                                    <span class="form-message ico">수치변경 버튼은 미리보기입니다. 이후 적용시 변경 버튼을 눌러주세요.</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row" id="outlier_kmean_range" style="display: none;">
+                            <div class="col-12">
+                                <label class="col-form-label">샘플링 길이</label>
+                            </div>
+                            <div class="col-12">
+                                <input placeholder="샘플링 길이를 입력해주세요." class="form-control sm number_only" id="freq"
+                                       type="text" value="10">
+                            </div>
+                            <div class="col-12 pt-3">
+                                <label for="n_clusters" class="col-form-label">클러스터 개수 (10개 이하)</label>
+                            </div>
+                            <div class="col-12">
+                                <input class="form-control sm number_only" data-event-validate-max="10" value="10"
+                                       id="n_clusters" type="text"
+                                       placeholder="클러스터의 개수를 입력해주세요.">
+                            </div>
+                            <div class="col-12 pt-3">
+                                <label for="n_count" class="col-form-label">클러스터의 제한되는 데이터 개수</label>
+                            </div>
+                            <div class="col-12">
+                                <input class="form-control sm number_only" name="n_count" id="n_count" type="text"
+                                       placeholder="제한되는 데이터의 개수를 입력해주세요." value="10">
+                            </div>
+                            <div class="col-12 pt-3">
+                                <button type="button" id="btn_change_kmean" class="ui-button primary sm">수치변경
+                                </button>
+                                <div class="form-message-wrap">
+                                    <span class="form-message ico">수치변경 버튼은 미리보기입니다. 이후 적용시 변경 버튼을 눌러주세요.</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row" id="outlier_dbscan_range" style="display: none;">
+                            <div class="col-12">
+                                <label class="col-form-label">샘플링 길이</label>
+                            </div>
+                            <div class="col-12">
+                                <input placeholder="샘플링 길이를 입력해주세요." class="form-control sm number_only" value="10"
+                                       id="freq" type="text">
+                            </div>
+                            <div class="col-12 pt-3">
+                                <label class="col-form-label">EPS</label>
+                            </div>
+                            <div class="col-12">
+                                <input placeholder="EPS 값을 입력해주세요." class="form-control sm double_only"
+                                       value="0.1"
+                                       id="eps" type="text">
+                            </div>
+                            <div class="col-12 pt-3">
+                                <label class="col-form-label">최소 샘플 (min_samples)</label>
+                            </div>
+                            <div class="col-12">
+                                <input placeholder="샘플링 길이를 입력해주세요." class="form-control sm number_only"
+                                       id="min_samples"
+                                       type="text" value="2">
+                            </div>
+                            <div class="col-12 pt-3">
+                                <button type="button" id="btn_change_dbscan" class="ui-button primary sm">수치변경
+                                </button>
+                                <div class="form-message-wrap">
+                                    <span class="form-message ico">수치변경 버튼은 미리보기입니다. 이후 적용시 변경 버튼을 눌러주세요.</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row" id="outlier_etc_range" style="display: none;">
+                            <div class="col-12">
+                                <label class="col-form-label">Window Size</label>
+                            </div>
+                            <div class="col-12">
+                                <input placeholder="Window Size를 입력해주세요." class="form-control sm number_only"
+                                       id="window_size" type="text" value="25">
+                            </div>
+                            <div class="col-12 pt-3">
+                                <label class="col-form-label">ThreshHold</label>
+                            </div>
+                            <div class="col-12">
+                                <input placeholder="ThreshHold를 입력해주세요." class="form-control sm double_only"
+                                       id="threshold" type="text" value="1.5">
+                            </div>
+                            <div class="col-12 pt-3">
+                                <button type="button" id="btn_change_threshold" class="ui-button primary sm">수치변경
+                                </button>
+                                <div class="form-message-wrap">
+                                    <span class="form-message ico">수치변경 버튼은 미리보기입니다. 이후 적용시 변경 버튼을 눌러주세요.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row" id="outlier_standard_chart_range_form_group" style="display: none;">
+            <div class="col-12 pt-3" id="outlier_standard_chart_range" style="display: none;">
+                <div id="view5" class="chart-view-container"></div>
+            </div>
+        </div>
+        <div class="row" id="outlier_kmean_chart_range_form_group" style="display: none;">
+            <div class="col-12 pt-3" id="outlier_kmean_chart_range" style="display: none;">
+                <div id="view6" class="chart-view-container"></div>
+            </div>
+        </div>
+        <div class="row" id="outlier_dbscan_chart_range_form_group" style="display: none;">
+            <div class="col-12 pt-3" id="outlier_dbscan_chart_range" style="display: none;">
+                <div id="view7" class="chart-view-container"></div>
+            </div>
+        </div>
+    </div>
+    <!-- 업로드 테이블-->
+    <th:block th:if="${formType == 'I'}">
+        <div class="col-12">
+            <div id="preprocTableExcludeRangeOutlier" class="pt-3" style="display: none;"></div>
+            <div id="preprocTableRangeOutlier" class="pt-3" style="display: none;"></div>
+        </div>
+    </th:block>
+    <div id="next_button_outlier_range" class="col-12 pt-3" style="display: none; text-align: end;">
+        <button type="button" class="ui-button primary sm prev-preproc-validate-step">
+            이전
+        </button>
+        <button type="button" class="ui-button primary sm next-preproc-interpolate-step">
+            다음(interpolate)
+        </button>
+    </div>
+</th:block>
+</html>

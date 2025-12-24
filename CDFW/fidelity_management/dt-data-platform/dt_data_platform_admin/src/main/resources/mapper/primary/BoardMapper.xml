@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.stoneitgt.dt.data.platform.admin.mapper.BoardMapper">
+    <!--List<Map<String, Object>> getBoardList(Map<String, Object> params, RowBounds paging);-->
+    <select id="getBoardList" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+        SELECT *
+        FROM (
+        SELECT A.*
+        , (SELECT USER_ID FROM TB_USER U WHERE U.DEL_YN = 'N' AND U.USER_SEQ = A.REG_USER_SEQ) USER_ID
+        FROM TB_BOARD A
+        WHERE A.DEL_YN = 'N'
+        AND A.USE_YN = 'Y'
+        ) TB
+        <where>
+            TB.BOARD_TP = #{type} <!-- 추가된 조건 -->
+            <if test="field != null and field != ''">
+                <choose>
+                    <when test="field == 'title'">
+                        <if test="keyword != null and keyword != ''">
+                            AND BOARD_NM LIKE CONCAT('%', #{keyword}, '%')
+                        </if>
+                    </when>
+                    <when test="field == 'description'">
+                        <if test="keyword != null and keyword != ''">
+                            AND BOARD_SMP_DERPN LIKE CONCAT('%', #{keyword}, '%')
+                        </if>
+                    </when>
+                    <when test="field == 'author'">
+                        <if test="keyword != null and keyword != ''">
+                            AND USER_ID LIKE CONCAT('%', #{keyword}, '%')
+                        </if>
+                    </when>
+                </choose>
+            </if>
+        </where>
+        /*||ORDER BY REG_DT DESC||*/
+    </select>
+
+    <!--getBoardListSetUserSeq-->
+    <select id="getBoardListSetUserSeq" parameterType="map" resultType="com.stoneitgt.common.LowerKeyMap">
+        SELECT *
+        FROM (
+        SELECT A.*
+        , (SELECT USER_ID FROM TB_USER U WHERE U.DEL_YN = 'N' AND U.USER_SEQ = A.REG_USER_SEQ) USER_ID
+        FROM TB_BOARD A
+        WHERE A.DEL_YN = 'N'
+        AND A.USE_YN = 'Y'
+        AND (A.REG_USER_SEQ = #{user_seq} OR A.RLS_YN = 'Y')
+        ) TB
+        <where>
+            TB.BOARD_TP = #{type} <!-- 추가된 조건 -->
+            <if test="field != null and field != ''">
+                <choose>
+                    <when test="field == 'title'">
+                        <if test="keyword != null and keyword != ''">
+                            AND BOARD_NM LIKE CONCAT('%', #{keyword}, '%')
+                        </if>
+                    </when>
+                    <when test="field == 'description'">
+                        <if test="keyword != null and keyword != ''">
+                            AND BOARD_SMP_DERPN LIKE CONCAT('%', #{keyword}, '%')
+                        </if>
+                    </when>
+                    <when test="field == 'author'">
+                        <if test="keyword != null and keyword != ''">
+                            AND USER_ID LIKE CONCAT('%', #{keyword}, '%')
+                        </if>
+                    </when>
+                </choose>
+            </if>
+        </where>
+        /*||ORDER BY REG_DT DESC||*/
+    </select>
+
+    <!--Board getBoardBySeq(String boardSeq);-->
+    <select id="getBoardBySeq" parameterType="String" resultType="com.stoneitgt.common.LowerKeyMap">
+        SELECT *
+        FROM (SELECT A.*
+                   , (SELECT USER_ID FROM TB_USER U WHERE U.DEL_YN = 'N' AND U.USER_SEQ = A.REG_USER_SEQ) USER_ID
+              FROM TB_BOARD A
+              WHERE A.DEL_YN = 'N'
+                AND A.USE_YN = 'Y'
+                AND A.BOARD_SEQ = #{boardSeq}) TB
+    </select>
+
+    <!--void saveBoard(Board board);-->
+    <insert id="saveBoard" parameterType="com.stoneitgt.dt.data.platform.domain.Board" keyProperty="boardSeq"
+            useGeneratedKeys="true">
+        INSERT INTO TB_BOARD(BOARD_TP, BOARD_NM, BOARD_SMP_DERPN, BOARD_DERPN, RLS_YN, USE_YN, DEL_YN,
+                             REG_USER_SEQ, REG_IP)
+        VALUES (#{boardTp}, #{boardNm}, #{boardSmpDerpn}, #{boardDerpn}, #{rlsYn}, #{useYn}, #{delYn}, #{regUserSeq},
+                #{regIp});
+    </insert>
+
+    <!--void updateBoard(Board board);-->
+    <update id="updateBoard" parameterType="com.stoneitgt.dt.data.platform.domain.Board">
+        UPDATE TB_BOARD
+        SET BOARD_NM=#{boardNm},
+            BOARD_SMP_DERPN=#{boardSmpDerpn},
+            BOARD_DERPN=#{boardDerpn},
+            BOARD_TP=#{boardTp},
+            RLS_YN=#{rlsYn},
+            MDFCN_DT=NOW(),
+            MDFCN_USER_SEQ=#{mdfcnUserSeq},
+            MDFCN_IP=#{mdfcnIp}
+        WHERE BOARD_SEQ = #{boardSeq}
+    </update>
+
+    <!--void deleteBoardByBoardSeqAndType(int boardSeq, String type);-->
+    <update id="deleteBoardByBoardSeqAndType" parameterType="com.stoneitgt.dt.data.platform.domain.Board">
+        UPDATE
+            TB_BOARD
+        SET DEL_YN       = #{delYn},
+            DEL_IP=#{delIp},
+            DEL_USER_SEQ = #{delUserSeq},
+            DEL_DT       = NOW()
+        WHERE BOARD_SEQ = #{boardSeq}
+          AND BOARD_TP = #{boardTp}
+    </update>
+</mapper>

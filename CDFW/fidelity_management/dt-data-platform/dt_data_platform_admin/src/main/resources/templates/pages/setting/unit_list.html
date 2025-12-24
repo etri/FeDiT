@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/platform_layout}">
+
+<head>
+    <title th:text="${breadcrumb.menu_nm}">코드관리</title>
+</head>
+
+<div layout:fragment="content">
+    <div class="page-title">
+        <div class="contain">
+            <h1 th:text="${breadcrumb.menu_nm}">코드 관리</h1>
+        </div>
+    </div>
+
+    <section class="data-section">
+        <div class="contain">
+            <div class="row">
+                <div class="col-4">
+                    <div class="row">
+                        <div class="col-12 pt-3">
+                            <div style="display: flex; justify-content: space-between;">
+                                <label class="col-form-label">단위 목록</label>
+                            </div>
+                        </div>
+                        <div class="col-12 pt-3">
+                            <div class="table-box">
+                                <table class="data-table">
+                                    <colgroup>
+                                        <col>
+                                        <col>
+                                    </colgroup>
+                                    <thead>
+                                    <tr>
+                                        <th>단위 코드</th>
+                                        <th>단위 코드명</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="item : ${masterList}"
+                                        th:class="${item.dtl_cd} == ${dtlCd} ? 'table-info' : ''"
+                                        th:data-group-unit="${item.dtl_cd}">
+                                        <td>
+                                            <a th:href="@{/setting/unit(dtlCd=${item.dtl_cd},menuCd=${params.menuCd})}"
+                                               th:text="${item.dtl_cd}">dtl_cd</a>
+                                        </td>
+                                        <td>
+                                            <a th:href="@{/setting/unit(dtlCd=${item.dtl_cd},menuCd=${params.menuCd})}"
+                                               th:text="${item.dtl_cd_nm}">grp_cd_nm</a>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-8">
+                    <div class="row">
+                        <div class="col-12 pt-3">
+                            <div style="display: flex; justify-content: space-between;">
+                                <label class="col-form-label">세부 단위</label>
+                                <button type="button" class="ui-button primary sm btn-add-detail">등록
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-12 pt-3">
+                            <div class="table-box">
+                                <table class="data-table">
+                                    <colgroup>
+                                        <col style="width: 5%;">
+                                        <col style="width: 15%;">
+                                        <col style="width: 15%;">
+                                        <col style="width: 15%;">
+                                        <col style="width: 5%;">
+                                        <col style="width: 10%;">
+                                        <col style="width: 25%;">
+                                    </colgroup>
+                                    <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>현재 단위명</th>
+                                        <th>변경 단위명</th>
+                                        <th>변환식</th>
+                                        <th>사용여부</th>
+                                        <th>등록일</th>
+                                        <th class="ta-r">기능</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <th:block th:include="fragments/table_empty:: table_empty(7)"
+                                              th:if="${#lists.isEmpty(detailList)}"></th:block>
+                                    <tr th:each="item, row : ${detailList}" th:unless="${#lists.isEmpty(detailList)}">
+                                        <td th:text="${row.index + 1}"></td>
+                                        <td th:text="${item.unit_nm_1}">unit</td>
+                                        <td th:text="${item.unit_nm_2}">dtl_cd_nm</td>
+                                        <td th:text="${item.unit_formula}">dtl_cd_nm</td>
+                                        <td th:text="${item.use_yn == 'Y'} ? '사용' : '미사용'">use_yn</td>
+                                        <td th:text="${item.reg_dt}">reg_dt</td>
+                                        <td class="ta-r">
+                                            <button type="button"
+                                                    class="ui-button primary sm btn-modify-detail"
+                                                    th:data-unit-seq="${item.unit_seq}">수정
+                                            </button>
+                                            <button type="button"
+                                                    class="ui-button danger sm btn-delete-detail"
+                                                    th:data-unit-seq="${item.unit_seq}">삭제
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <th:block th:include="fragments/modal/admin-modal-unit"></th:block>
+        </div>
+    </section>
+</div>
+<th:block layout:fragment="custom_css">
+</th:block>
+<th:block layout:fragment="custom_js">
+    <script th:src="@{/assets/js/pages/setting/unit_list.js}"></script>
+</th:block>
+</html>

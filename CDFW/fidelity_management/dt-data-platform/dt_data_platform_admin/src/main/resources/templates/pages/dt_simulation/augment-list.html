@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/platform_dt_layout}">
+<head>
+    <title th:text="${breadcrumb.menu_nm}">사용자관리</title>
+</head>
+<div layout:fragment="content">
+    <div class="page-title">
+        <div class="contain">
+            <h1 th:text="${breadcrumb.menu_nm}">Data Twin Simulation</h1>
+        </div>
+    </div>
+    <div class="list-top">
+        <div class="contain">
+            <form name="searchForm" th:action="@{/dt/simulation/augment/list(menuCd=${params.menuCd})}"
+                  th:object="${params}"
+                  method="GET" style="display: none;">
+                <input type="hidden" th:field="*{menuCd}">
+                <input type="hidden" id="pagingPage" name="page" th:value="${paging.page}">
+                <input type="hidden" id="pagingSize" name="size" th:value="${paging.size}">
+                <input type="hidden" id="subPagingPage" name="subPage" th:value="${subPaging.page}">
+                <input type="hidden" id="subPagingSize" name="subSize" th:value="${subPaging.size}">
+                <input type="hidden" th:field="*{sortName}">
+                <input type="hidden" th:field="*{sortType}">
+                <input type="hidden" th:field="*{subSortName}">
+                <input type="hidden" th:field="*{subSortType}">
+                <input type="hidden" th:field="*{field}"/>
+                <input type="hidden" th:field="*{keyword}"/>
+                <button type="submit" class="ui-button primary btn-search">조회</button>
+            </form>
+            <div class="filter-wrap">
+                <!-- 유형 -->
+                <div class="filter-layer-box"><!-- 옵션 선택시 :: is-selected 클래스 추가 -->
+                    <button type="button" class="filter-toggle">유형<span class="filter-value"
+                                                                        th:data-initialize="${params.field}">제목</span>
+                    </button>
+                    <div class="filter-layer" aria-expanded="false" style="position: absolute; top: calc(100% + 2px);">
+                        <ul class="option-list">
+                            <li>
+                                <input type="radio" id="searchType1" name="searchType" value="title"
+                                       th:checked="${params.field == 'title' or params.field == null}">
+                                <label for="searchType1">제목</label>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 검색어 -->
+                <div class="filter-layer-box">
+                    <button type="button" class="filter-toggle">검색어<span class="filter-value"
+                                                                         th:if="${params.keyword != null && params.keyword != ''}"
+                                                                         th:text="${params.keyword}"></span></button>
+                    <div class="filter-layer exclude-layer form-control-wrap"
+                         style="position: absolute; top: calc(100% + 2px);"
+                         aria-expanded="false">
+                        <div class="input-group">
+                            <input type="text" id="filterKeyword" class="form-control md" placeholder="검색어를 입력해주세요">
+                            <button type="button" class="form-right-action" id="filterKeywordAction">입력</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="buttons-group">
+                <button type="button" th:data-href="@{|/dt/simulation/augment/form?${pageParams}|}"
+                        class="ui-button xs primary ico">
+                    <img src="/assets/images/platform/ico_add_wh.svg" alt="">등록
+                </button>
+            </div>
+        </div>
+    </div>
+    <section class="data-section">
+        <div class="contain">
+            <div class="row">
+                <div class="col-12">
+                    <ul class="my-3">
+                        <li>
+                            <div class="bg-box">
+                                <p class="dot-desc">시뮬레이션 유형은 데이터를 전처리해주는 전처리와 전처리 후 데이터를 증강하는 증강이 있습니다.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="bg-box">
+                                <p class="dot-desc">증강 유형은 파일 업로드로 데이터를 학습한 모델에서 사용되는 추론과 메타 연계로 업로드한 데이터를 학습한 모델에서 사용되는 일회성 및 주기성이있습니다.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="bg-box">
+                                <p class="dot-desc">주기성은 주기적으로 메타 연계하여 데이터를 확보하여 전처리 및 데이터를 증강합니다.<br/>일회성은 한번만 작업을 진행합니다.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="table-box">
+                        <table class="data-table">
+                            <colgroup>
+                                <col style="width: auto;">
+                                <col style="width: 30%;">
+                                <col style="width: 30%;">
+                                <col style="width: auto;">
+                                <col style="width: auto;">
+                                <col style="width: auto;">
+                                <col style="width: auto;">
+                                <col style="width: auto;">
+                            </colgroup>
+                            <thead>
+                            <tr>
+                                <th>순번</th>
+                                <th>제목</th>
+                                <th>설명</th>
+                                <th>시뮬레이션 유형</th>
+                                <th>증강유형</th>
+                                <th>증강상태</th>
+                                <th>등록일</th>
+                                <th>기능</th>
+                            </tr>
+                            </thead>
+                            <!--REAL-->
+                            <tbody class="table-text-nowrap">
+                            <th:block th:include="fragments/table_empty:: table_empty(8)"
+                                      th:if="${#lists.isEmpty(list)}"></th:block>
+                            <tr th:each="item : ${list}" th:unless="${#lists.isEmpty(list)}">
+                                <td th:text="${paging.total - item.rnum + 1}"></td>
+                                <td class="wrap">
+                                    <a th:href="@{|/dt/simulation/augment/${item.augment_seq}?${pageParams}|}"
+                                       th:text="${item.title}">제목</a>
+                                </td>
+                                <td class="wrap" th:text="${item.derpn}"></td>
+                                <td>
+                                    <th:block th:if="${item.sim_tp=='A'}">
+                                        <span class="badge blue" th:text="${item.sim_tp_nm}"></span>
+                                    </th:block>
+                                    <th:block th:if="${item.sim_tp=='P'}">
+                                        <span class="badge yellow" th:text="${item.sim_tp_nm}"></span>
+                                    </th:block>
+                                    <th:block th:if="${item.sim_tp!='A' && item.sim_tp!='P'}">
+                                        <span class="badge gray" th:text="${item.sim_tp_nm}"></span>
+                                    </th:block>
+                                </td>
+                                <td>
+                                    <th:block th:if="${item.augment_tp=='R'}">
+                                        <span class="badge blue" th:text="${item.augment_tp_nm}"></span>
+                                    </th:block>
+                                    <th:block th:if="${item.augment_tp=='F'}">
+                                        <span class="badge yellow" th:text="${item.augment_tp_nm}"></span>
+                                    </th:block>
+                                    <th:block th:if="${item.augment_tp!='R' && item.augment_tp!='F'}">
+                                        <span class="badge gray" th:text="${item.augment_tp_nm}"></span>
+                                    </th:block>
+                                </td>
+                                <td>
+                                    <th:block th:if="${item.augment_status=='T'}">
+                                            <span class="badge blue"><th:block
+                                                    th:text="${item.augment_status_nm}"></th:block></span>
+                                    </th:block>
+                                    <th:block th:if="${item.augment_status=='E'}">
+                                            <span class="badge red"><th:block
+                                                    th:text="${item.augment_status_nm}"></th:block></span>
+                                    </th:block>
+                                    <th:block th:if="${item.augment_status=='C'}">
+                                            <span class="badge green"><th:block
+                                                    th:text="${item.augment_status_nm}"></th:block></span>
+                                    </th:block>
+                                    <th:block th:if="${item.augment_status=='S'}">
+                                            <span class="badge yellow"><th:block
+                                                    th:text="${item.augment_status_nm}"></th:block></span>
+                                    </th:block>
+                                    <th:block
+                                            th:unless="${item.augment_status == 'T' || item.augment_status == 'E' || item.augment_status == 'C' || item.augment_status == 'S'}">
+                                        <span class="badge green">완료</span>
+                                    </th:block>
+                                </td>
+                                <td th:text="${item.reg_dt}"></td>
+                                <td>
+                                    <button type="button" class="ui-button danger sm"
+                                            data-action-type="delete" th:data-number="${item.augment_seq}">
+                                        삭제
+                                    </button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <th:block th:include="fragments/platform_paging_multi"></th:block>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!--Error Modal-->
+    <th:block th:include="fragments/modal/modal_error_info"></th:block>
+</div>
+<th:block layout:fragment="custom_css">
+</th:block>
+<th:block layout:fragment="custom_js">
+    <script th:src="@{/assets/js/pages/dt_simulation/list.js}"></script>
+</th:block>
+</html>

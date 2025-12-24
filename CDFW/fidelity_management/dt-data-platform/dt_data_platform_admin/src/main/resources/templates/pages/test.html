@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>DT_DATA_PLATFORM :: 로그인</title>
+    <link rel="shortcut icon" th:href="@{/assets/images/favicon.ico}" type="image/x-icon">
+    <link rel="stylesheet" th:href="@{/assets/vendors/core/core.css}">
+    <th:block th:with="ver=${@environment.getProperty('system.version')}">
+        <link rel="stylesheet" th:href="@{/assets/css/demo_1/style.css(ver=${ver})}">
+        <link rel="stylesheet" th:href="@{/assets/css/common.css(ver=${ver})}">
+    </th:block>
+</head>
+
+<body>
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <iframe src="http://localhost:9102/dt/board/notice/list?menuCd=M0401" frameborder="1" width="1080" height="720"></iframe>
+        </div>
+        <div class="col-12">
+            <iframe src="http://192.168.88.129:9102/dt/board/notice/list?menuCd=M0401" frameborder="1" width="1080" height="720"></iframe>
+        </div>
+        <div class="col-12">
+            <iframe src="http://192.168.88.108:9102/dt/board/notice/list?menuCd=M0401" frameborder="1" width="1080" height="720"></iframe>
+        </div>
+        <div class="col-12">
+            <iframe src="http://220.124.222.85:9102/dt/board/notice/list?menuCd=M0401" frameborder="1" width="1080" height="720"></iframe>
+        </div>
+    </div>
+</div>
+</body>
+</html>

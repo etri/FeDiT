@@ -1,0 +1,759 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.n2m.platform.meta.schema.model.mapper.ModelMapper">
+
+    <sql id="limitPage">
+        <if test="isPaging">    
+        	OFFSET #{startIndex} LIMIT #{pageListSize}
+        </if>
+        <if test="!isPaging">    
+    		OFFSET 0 LIMIT #{limitListSize}
+    	</if>   
+    </sql>
+    
+    <sql id="whereByModel">
+    	<!-- 검색모드 -->
+    	<choose>
+	        <when test="@org.apache.commons.lang3.StringUtils@equals(searchMode, 'domain')">
+	        	AND model.model_id = 'Class' OR( model.up_model_id = 'Class' and model.model_type_mtcd = 'object_type' )
+	        </when>
+	        <when test="@org.apache.commons.lang3.StringUtils@equals(searchMode, 'range')">
+	        	AND model.model_id != 'DataType' AND (model.up_model_id = 'Class' OR model.up_model_id = 'DataType')
+	        </when>
+	        <when test="@org.apache.commons.lang3.StringUtils@equals(searchMode, 'type')">
+	        	AND model.up_model_id = 'Class' AND model.model_type_mtcd = 'object_type'
+	        </when>
+	        <when test="@org.apache.commons.lang3.StringUtils@equals(searchMode, 'std')">
+	        	AND model.model_type_mtcd = 'object_type' AND model.up_model_id != 'Class'
+	        </when>
+	        <when test="@org.apache.commons.lang3.StringUtils@equals(searchMode, 'dataType')">
+	        	AND model.up_model_id = 'DataType'
+	        </when>
+	        <when test="@org.apache.commons.lang3.StringUtils@equals(searchMode, 'objectType')">
+	        	AND model.model_type_mtcd = 'object_type' AND model.model_id != 'Class' 
+	        </when>
+
+    		<otherwise>
+    		<!-- searchMode가 all인경우 아무조건없이 -->
+    		</otherwise>
+    	</choose>
+    	<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(searchAmdStDt)">
+			<![CDATA[  AND model.model_amd_dt >= to_timestamp(#{searchAmdStDt}, 'YYYY-MM-DD HH24:MI:SS') ]]>
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(searchAmdEdDt)">
+			<![CDATA[  AND model.model_amd_dt < TO_TIMESTAMP(#{searchAmdEdDt} || ' 00:00:00', 'YYYY-MM-DD HH24:MI:SS') + INTERVAL '1 day' ]]>
+		</if>
+    	<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(modelDataSttusMtcd)">
+			AND model.model_data_sttus_mtcd = #{modelDataSttusMtcd}
+		</if>
+    	<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(searchName)">
+    	    AND (UPPER(model.model_nm) LIKE UPPER('%'||#{searchName}||'%') OR UPPER(model.model_logic_nm) LIKE UPPER('%'||#{searchName}||'%'))
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(typeModelId)">
+			AND model.type_model_id = #{typeModelId}
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(structdModelYn)">
+			AND model.structd_model_yn = #{structdModelYn}
+		</if>
+	</sql>
+	
+	<sql id="orderByModel">
+		ORDER BY rownum
+	</sql>
+    
+    <select id="selectModelCount" parameterType="modelSearchVo" resultType="int">
+		SELECT	/* SQL_ID: ModelMapper.selectModelCount */ 
+			COUNT(*)
+		FROM dtmeta.tb_meta_model model
+		LEFT JOIN dtmeta.tb_meta_model typemodel on typemodel.model_id = model.type_model_id 
+		LEFT JOIN dtmeta.tb_meta_model up_model on model.up_model_id = up_model.model_id
+		LEFT JOIN dtmeta.tb_portal_code code on model.model_data_sttus_mtcd = code.mtcd and code.mtcd_grp_id  = 'MCG00002'
+		WHERE 1=1
+		<include refid="whereByModel"/>
+	</select>
+	
+	<select id="selectModelList" parameterType="modelSearchVo" resultType="modelListDto">
+		SELECT /* SQL_ID: ModelMapper.selectModelList */
+			(ROW_NUMBER() OVER(ORDER BY model.model_sort_odrg)) AS rownum,
+			model.model_id ,
+			model.model_nm ,
+            model.model_logic_nm ,			
+            model.type_model_id ,
+            typemodel.model_nm AS type_model_nm ,            
+			model.up_model_id ,
+			up_model.model_nm AS up_model_nm,
+		    model.data_type_mtcd,
+			model.model_data_sttus_mtcd,
+			code.mtcd_nm  AS model_data_sttus_mtcd_nm,
+			model.model_type_mtcd,
+			to_char(model.model_amd_dt,#{sqlDateFormat}) as model_amd_dt
+		FROM dtmeta.tb_meta_model model
+		LEFT JOIN dtmeta.tb_meta_model typemodel on typemodel.model_id = model.type_model_id 
+		LEFT JOIN dtmeta.tb_meta_model up_model on model.up_model_id = up_model.model_id
+		LEFT JOIN dtmeta.tb_portal_code code on model.model_data_sttus_mtcd = code.mtcd and code.mtcd_grp_id  = 'MCG00002'
+		WHERE 1=1 
+        <include refid="whereByModel"/>
+        <include refid="orderByModel"/>
+        <include refid="limitPage"/>
+	</select>
+    
+    <resultMap id="modelTreeDtoMap" type="modelTreeDto">
+        <result column="depth"                      property="depth" />
+        <result column="model_id"                   property="modelId" />
+        <result column="model_nm"                   property="modelNm" />
+        <result column="model_logic_nm"             property="modelLogicNm" />
+        <result column="type_model_id"              property="typeModelId" />
+        <result column="type_model_nm"              property="typeModelNm" />
+        <result column="type_model_logic_nm"        property="typeModelLogicNm" />
+        <result column="up_model_id"                property="upModelId" />
+        <result column="abstrt_model_yn"            property="abstrtModelYn" />
+        <result column="structd_model_yn"           property="structdModelYn" />
+        <result column="structd_model_schma_mtcd"   property="structdModelSchmaMtcd" />
+        <result column="model_data_sttus_mtcd"      property="modelDataSttusMtcd" />
+        <result column="id_path"                    property="idPath"       javaType="string"  typeHandler="org.apache.ibatis.type.ArrayTypeHandler" />
+        <result column="nm_path"                    property="nmPath"       javaType="string"  typeHandler="org.apache.ibatis.type.ArrayTypeHandler" />
+        <result column="logic_nm_path"              property="logicNmPath"  javaType="string"  typeHandler="org.apache.ibatis.type.ArrayTypeHandler" />
+        <result column="odrg_path"                  property="odrgPath"     javaType="int"     typeHandler="org.apache.ibatis.type.ArrayTypeHandler" />
+    </resultMap>   
+    <select id="selectModelTreeList" resultMap="modelTreeDtoMap">
+        /* SQL_ID: ModelMapper.selectModelTreeList */
+        WITH RECURSIVE classes (type_model_id, up_model_id, model_id, model_nm, model_logic_nm
+                              , abstrt_model_yn, structd_model_yn, structd_model_schma_mtcd, model_data_sttus_mtcd, model_type_mtcd, model_sort_odrg
+                              , depth, id_path, nm_path, logic_nm_path, odrg_path, cycle) AS (
+            SELECT m.type_model_id 
+                 , m.up_model_id
+                 , m.model_id
+                 , m.model_nm 
+                 , m.model_logic_nm 
+                 , m.abstrt_model_yn
+                 , m.structd_model_yn
+                 , m.structd_model_schma_mtcd
+                 , m.model_data_sttus_mtcd                 
+                 , m.model_type_mtcd 
+                 , m.model_sort_odrg
+                 , 0 
+                 , ARRAY [m.model_id::text]          
+                 , ARRAY [m.model_nm::text] 
+                 , ARRAY [m.model_logic_nm::text]
+                 , ARRAY [ROW_NUMBER() OVER(ORDER BY m.model_sort_odrg, m.model_nm)::int4] 
+                 , false
+              FROM dtmeta.tb_meta_model m
+             WHERE m.up_model_id IS NULL 
+             UNION ALL
+            SELECT m.type_model_id 
+                 , m.up_model_id
+                 , m.model_id
+                 , m.model_nm 
+                 , m.model_logic_nm          
+                 , m.abstrt_model_yn
+                 , m.structd_model_yn
+                 , m.structd_model_schma_mtcd
+                 , m.model_data_sttus_mtcd                 
+                 , m.model_type_mtcd
+                 , m.model_sort_odrg
+                 , c.depth + 1 
+                 , ARRAY_APPEND(c.id_path, m.model_id::text)
+                 , ARRAY_APPEND(c.nm_path, m.model_nm::text)
+                 , ARRAY_APPEND(c.logic_nm_path, m.model_logic_nm::text)
+                 , ARRAY_APPEND(c.odrg_path, ROW_NUMBER() OVER(ORDER BY m.model_sort_odrg, m.model_nm)::int4)
+                 , m.model_id = ANY(c.id_path)
+              FROM dtmeta.tb_meta_model m
+                 , classes c
+             WHERE m.up_model_id = c.model_id
+             <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(modelTypeMtcd)">
+               AND m.model_type_mtcd           = #{modelTypeMtcd}
+             </if>
+             <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(structdModelYn)">
+               AND m.structd_model_yn          = #{structdModelYn}
+             </if>
+	         <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(modelDataSttusMtcd)">
+	           AND m.model_data_sttus_mtcd     = #{modelDataSttusMtcd}
+	         </if>
+               AND NOT CYCLE   
+        )
+        SELECT m.depth
+             , m.model_id
+             , m.model_nm
+             , m.model_logic_nm
+             , m.type_model_id 
+             , t1.model_nm        AS type_model_nm
+             , t1.model_logic_nm  AS type_model_logic_nm
+             , m.up_model_id
+             , m.abstrt_model_yn
+             , m.structd_model_yn
+             , m.structd_model_schma_mtcd
+             , m.model_data_sttus_mtcd             
+             , m.id_path
+             , m.nm_path
+             , m.logic_nm_path
+             , m.odrg_path
+          FROM classes m
+          LEFT OUTER JOIN dtmeta.tb_meta_model t1  ON m.type_model_id = t1.model_id
+         ORDER BY m.odrg_path       
+    </select>	
+	
+	<select id="selectModel" parameterType="modelVo" resultType="modelVo">
+		SELECT /* SQL_ID: ModelMapper.selectModel */
+			 model.model_id
+			,model.up_model_id
+            ,upmodel.model_nm       AS up_model_nm 
+            ,upmodel.model_logic_nm AS up_model_logic_nm 
+            ,model.type_model_id
+            ,typemodel.model_nm       AS type_model_nm            
+            ,typemodel.model_logic_nm AS type_model_logic_nm
+			,model.model_nm
+			,model.model_logic_nm
+			,model.model_desc
+			,model.model_data_sttus_mtcd
+			,code.mtcd_nm AS modelDataSttusMtcdNm
+			,model.model_sort_odrg
+			,model.model_type_mtcd
+			,model.abstrt_model_yn
+			,model.structd_model_yn
+			,model.structd_model_schma_mtcd
+			,code1.mtcd_nm AS structdModelSchmaMtcd
+			,model.model_data_uri
+			,model.model_data_id_pfix
+			,model.data_type_mtcd
+			,model.data_type_val_exam
+			,model.mtcd_grp_id
+			,model.use_lang_mtcd
+			,langCode.mtcd_nm as useLangMtcdNm
+			,model.model_regr_id
+			,model.model_regr_nm
+			,to_char(model.model_reg_dt,#{sqlDateFormat}) as modelRegDt
+			,model.model_amdr_id
+			,model.model_amdr_nm
+			,to_char(model.model_amd_dt,#{sqlDateFormat}) as modelAmdDt
+		FROM dtmeta.tb_meta_model model
+		LEFT JOIN dtmeta.tb_portal_code code on model.model_data_sttus_mtcd = code.mtcd and code.mtcd_grp_id  = 'MCG00002'
+		LEFT JOIN dtmeta.tb_portal_code code1 on model.structd_model_schma_mtcd = code1.mtcd and code1.mtcd_grp_id  = 'MCG00008'
+		LEFT JOIN dtmeta.tb_portal_code langCode on model.use_lang_mtcd = langCode.mtcd and langCode.mtcd_grp_id  = 'MCG00006'
+		LEFT JOIN dtmeta.tb_meta_model typemodel on typemodel.model_id = model.type_model_id 
+		LEFT JOIN dtmeta.tb_meta_model upmodel on upmodel.model_id = model.up_model_id 
+		WHERE 
+			model.model_id = #{modelId}
+	</select>
+	
+	<select id="selectModelByName" resultType="modelVo">
+        SELECT /* SQL_ID: ModelMapper.selectModelByName */
+             model.model_id
+            ,model.up_model_id
+            ,upmodel.model_nm       AS up_model_nm 
+            ,upmodel.model_logic_nm AS up_model_logic_nm 
+            ,model.type_model_id
+            ,typemodel.model_nm       AS type_model_nm            
+            ,typemodel.model_logic_nm AS type_model_logic_nm
+            ,model.model_nm
+            ,model.model_logic_nm
+            ,model.model_desc
+            ,model.model_data_sttus_mtcd
+            ,code.mtcd_nm AS model_data_sttus_mtcd_nm
+            ,model.model_sort_odrg
+            ,model.model_type_mtcd
+            ,model.abstrt_model_yn
+            ,model.structd_model_yn
+            ,model.structd_model_schma_mtcd
+            ,code1.mtcd_nm AS structd_model_schma_mtcd_nm
+            ,model.model_data_uri
+            ,model.model_data_id_pfix
+            ,model.data_type_mtcd
+            ,model.data_type_val_exam
+            ,model.mtcd_grp_id
+            ,model.use_lang_mtcd
+            ,langCode.mtcd_nm as use_lang_mtcd_nm
+            ,model.model_regr_id
+            ,model.model_regr_nm
+            ,to_char(model.model_reg_dt, #{sqlDateFormat})  AS model_reg_dt
+            ,model.model_amdr_id
+            ,model.model_amdr_nm
+            ,to_char(model.model_amd_dt, #{sqlDateFormat})  AS model_amd_dt
+        FROM dtmeta.tb_meta_model model
+        LEFT JOIN dtmeta.tb_portal_code code on model.model_data_sttus_mtcd = code.mtcd and code.mtcd_grp_id  = 'MCG00002'
+        LEFT JOIN dtmeta.tb_portal_code code1 on model.structd_model_schma_mtcd = code1.mtcd and code1.mtcd_grp_id  = 'MCG00008'
+        LEFT JOIN dtmeta.tb_portal_code langCode on model.use_lang_mtcd = langCode.mtcd and langCode.mtcd_grp_id  = 'MCG00006'
+        LEFT JOIN dtmeta.tb_meta_model typemodel on typemodel.model_id = model.type_model_id 
+        LEFT JOIN dtmeta.tb_meta_model upmodel on upmodel.model_id = model.up_model_id         
+        WHERE 
+            model.model_nm = #{modelNm}
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(modelDataSttusMtcd)">
+            AND model.model_data_sttus_mtcd = #{modelDataSttusMtcd}
+        </if>            
+    </select>
+    
+    <select id="selectTypeModelByDataUri"  resultType="modelVo">
+        SELECT /* SQL_ID: ModelMapper.selectTypeModelByDataUri */
+               model_id 
+             , model_nm 
+             , model_logic_nm
+          FROM dtmeta.tb_meta_model model
+         WHERE model.up_model_id            = 'Class'
+           AND model.model_data_sttus_mtcd  = 'use'
+           AND model.model_data_uri         = #{modelDataUri}
+    </select>    
+	
+	<select id="selectModelNameCheck" parameterType="String" resultType="int">
+		SELECT /* SQL_ID: ModelMapper.selectModelNameCheck */
+			COUNT(model.model_nm) 
+		FROM dtmeta.tb_meta_model model
+		WHERE REPLACE(UPPER(model.model_nm),' ','')  = REPLACE(UPPER(#{modelNm}),' ','') 
+	</select>
+	
+	<select id="selectModelUriCheck" parameterType="modelVo" resultType="int">
+		SELECT /* SQL_ID: ModelMapper.selectModelUriCheck */
+		       SUM(cnt)
+        FROM   (      
+			    SELECT COUNT(model.model_data_uri) AS cnt
+				FROM dtmeta.tb_meta_model model
+				WHERE UPPER(model.model_data_uri)  = UPPER(#{modelDataUri})
+				  AND model.up_model_id            = 'Class'
+				 <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(modelId)">
+				  AND model.model_id              != #{modelId}
+				 </if>
+				UNION ALL
+				/* 예약된 리소스 URI */
+				SELECT COUNT(code.mtcd) AS cnt 
+                FROM dtmeta.tb_portal_code code 
+                WHERE code.mtcd_grp_id  = 'MCG00022'
+                  AND code.mtcd_use_yn  = 'Y'
+                  AND UPPER(code.mtcd)  = UPPER(#{modelDataUri})
+               ) a
+	</select>
+	
+	<sql id="whereByDataTypeModel">
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(searchAmdStDt)">
+			<![CDATA[  AND model.model_amd_dt >= to_timestamp(#{searchAmdStDt}, 'YYYY-MM-DD HH24:MI:SS') ]]>
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(searchAmdEdDt)">
+			<![CDATA[  AND model.model_amd_dt < TO_TIMESTAMP(#{searchAmdEdDt} || ' 00:00:00', 'YYYY-MM-DD HH24:MI:SS') + INTERVAL '1 day' ]]>
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(modelDataSttusMtcd)">
+			AND model.model_data_sttus_mtcd = #{modelDataSttusMtcd}
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(searchName)">
+			AND ( model.model_nm = #{searchName} OR model.model_logic_nm = #{searchName} )
+		</if>
+	</sql>
+	
+	<select id="selectDataTypeModelCount" parameterType="modelSearchVo" resultType="int">
+		SELECT /* SQL_ID: ModelMapper.selectDataTypeModelCount */
+			COUNT(*)
+		FROM dtmeta.tb_meta_model model
+		LEFT JOIN dtmeta.tb_portal_code code on model.model_data_sttus_mtcd = code.mtcd and code.mtcd_grp_id  = 'MCG00002'
+		WHERE model.up_model_id  = 'DataType'
+		<include refid="whereByModel"/>
+	</select>
+	
+	<select id="selectDataTypeModelList" parameterType="modelSearchVo" resultType="dataTypeModelDto">
+		SELECT /* SQL_ID: ModelMapper.selectDataTypeModelList */
+			(ROW_NUMBER() OVER(ORDER BY model.model_sort_odrg)) AS rownum 
+			,model.model_id
+			,model.model_nm
+			,model.model_logic_nm
+			,model.model_desc
+			,model.data_type_mtcd
+            ,model.data_type_val_exam
+			,model.mtcd_grp_id
+			,codeGroup.mtcd_grp_nm as mtcdGrpIdNm
+            ,model.use_lang_mtcd
+            ,langCode.mtcd_nm as useLangMtcdNm			
+			,model.model_data_sttus_mtcd
+			,code.mtcd_nm  as modelDataSttusMtcdNm
+			,model.model_type_mtcd
+			,to_char(model.model_amd_dt,#{sqlDateFormat}) as modelAmdDt
+		FROM dtmeta.tb_meta_model model
+		LEFT JOIN dtmeta.tb_portal_code code on model.model_data_sttus_mtcd = code.mtcd and code.mtcd_grp_id  = 'MCG00002'
+		LEFT JOIN dtmeta.tb_portal_codegroup codeGroup on codeGroup.mtcd_grp_id =  model.mtcd_grp_id
+		LEFT JOIN dtmeta.tb_portal_code langCode on model.use_lang_mtcd = langCode.mtcd and langCode.mtcd_grp_id  = 'MCG00006'
+		WHERE model.up_model_id  = 'DataType'
+		<include refid="whereByModel"/>
+        <include refid="orderByModel"/>
+        <include refid="limitPage"/>
+	</select>
+	
+	<insert id="insertDataTypeModel" parameterType="modelVo">
+		INSERT /* SQL_ID: ModelMapper.insertDataTypeModel */
+	      INTO dtmeta.tb_meta_model
+			 ( 
+			   model_id
+			 , up_model_id
+			 , type_model_id
+			 , model_nm
+			 , model_logic_nm
+			 , model_desc
+			 , model_data_sttus_mtcd
+			 , model_sort_odrg
+			 , model_type_mtcd
+			 , abstrt_model_yn
+			 , structd_model_yn
+			 , structd_model_schma_mtcd
+			 , model_data_uri
+			 , model_data_id_pfix
+			 , data_type_mtcd
+			 , data_type_val_exam
+			 , mtcd_grp_id
+			 , use_lang_mtcd
+			 , model_regr_id
+			 , model_regr_nm
+			 , model_reg_dt
+			 , model_amdr_id
+			 , model_amdr_nm
+			 , model_amd_dt
+			 ) 
+	    VALUES 
+			 ( 
+			   #{modelId}
+			 , 'DataType'
+			 , 'DataType'
+			 , #{modelNm}
+			 , #{modelLogicNm}
+			 , #{modelDesc}
+			 , #{modelDataSttusMtcd}
+			 , #{modelSortOdrg}
+			 , 'data_type'
+			 , 'N'
+			 , 'N'
+			 , null
+			 , null
+			 , null
+			 , #{dataTypeMtcd}
+			 , #{dataTypeValExam}
+			 , #{mtcdGrpId}
+			 , #{useLangMtcd}
+			 , #{modelRegrId}
+			 , #{modelRegrNm}
+			 , current_timestamp
+			 , #{modelAmdrId}
+			 , #{modelAmdrNm}
+			 , current_timestamp
+			 )
+	</insert>
+	
+	<update id="updateDataTypeModel" parameterType="modelVo">
+		UPDATE /* SQL_ID: ModelMapper.updateDataTypeModel*/
+               dtmeta.tb_meta_model
+		   SET model_logic_nm               = #{modelLogicNm}
+			 , model_desc                   = #{modelDesc}
+			 , model_data_sttus_mtcd        = #{modelDataSttusMtcd}
+			 , model_sort_odrg              = #{modelSortOdrg}
+			 , data_type_mtcd               = #{dataTypeMtcd}
+			 , data_type_val_exam			= #{dataTypeValExam}
+			 , mtcd_grp_id                  = #{mtcdGrpId}
+			 , use_lang_mtcd                = #{useLangMtcd}
+			 , model_amdr_id                = #{modelAmdrId}
+			 , model_amdr_nm                = #{modelAmdrNm}
+			 , model_amd_dt                 = current_timestamp
+		 WHERE model_id		        		= #{modelId}
+	</update>
+	
+	<select id="selectDataTypeModelDeleteCheck" parameterType="String" resultType="int">
+		SELECT /* SQL_ID: ModelMapper.selectDataTypeModelDeleteCheck*/
+			COUNT(*)
+		FROM dtmeta.tb_meta_propertydefine def, dtmeta.tb_meta_modelproperty prpty
+		WHERE 
+			prpty.model_id = #{modelId} OR def.domn_model_id = #{modelId} OR def.range_model_id = #{modelId}
+	</select>
+	
+	<update id="updateModelSttus" parameterType="modelVo">
+		UPDATE /* SQL_ID: ModelMapper.updateModelSttus*/
+               dtmeta.tb_meta_model
+		   SET model_data_sttus_mtcd        = #{modelDataSttusMtcd}
+			 , model_amdr_id                = #{modelAmdrId}
+			 , model_amdr_nm                = #{modelAmdrNm}
+			 , model_amd_dt                 = current_timestamp
+		 WHERE model_id		        		= #{modelId}
+	</update>
+	
+	<delete id="deleteModel" parameterType="String">
+		DELETE /* SQL_ID: ModelMapper.deleteModel*/ 
+		FROM dtmeta.tb_meta_model
+		WHERE model_id = #{modelId}
+	</delete>
+
+	<select id="selectTypeModelCount" parameterType="modelSearchVo" resultType="int">
+		SELECT /* SQL_ID: ModelMapper.selectTypeModelCount */
+			COUNT(*)  
+		FROM dtmeta.tb_meta_model model
+		LEFT JOIN dtmeta.tb_portal_code code on model.model_data_sttus_mtcd = code.mtcd and code.mtcd_grp_id  = 'MCG00002'
+		WHERE model.model_type_mtcd = 'object_type'
+		AND   model.up_model_id = 'Class'
+		<include refid="whereByModel"/>
+	</select>
+	
+	<select id="selectTypeModelList" parameterType="modelSearchVo" resultType="objectTypeModelDto">
+		SELECT  /* SQL_ID: ModelMapper.selectTypeModelList */
+			(ROW_NUMBER() OVER(ORDER BY model.model_sort_odrg)) AS rownum
+            ,model.model_id
+            ,model.model_nm
+            ,model.model_logic_nm
+            ,model.model_desc
+            ,model.up_model_id
+            ,up_md.model_nm          AS up_model_nm
+            ,up_md.model_logic_nm    AS up_model_logic_nm
+            ,model.type_model_id
+            ,type_md.model_nm        AS type_model_nm
+            ,type_md.model_logic_nm  AS type__model_logic_nm
+            ,model.model_data_uri
+            ,model.model_data_id_pfix
+            ,model.abstrt_model_yn
+            ,model.structd_model_yn
+            ,model.structd_model_schma_mtcd
+            ,code1.mtcd_nm AS structdModelSchmaMtcdNm           
+            ,model.model_data_sttus_mtcd
+            ,code.mtcd_nm AS modelDataSttusMtcdNm
+            ,model.model_type_mtcd
+            ,to_char(model.model_amd_dt,#{sqlDateFormat}) as modelAmdDt
+        FROM dtmeta.tb_meta_model model
+        LEFT JOIN dtmeta.tb_portal_code code on model.model_data_sttus_mtcd = code.mtcd and code.mtcd_grp_id  = 'MCG00002'
+        LEFT JOIN dtmeta.tb_portal_code code1 on model.structd_model_schma_mtcd = code1.mtcd and code1.mtcd_grp_id  = 'MCG00008'
+        LEFT JOIN dtmeta.tb_meta_model up_md  on model.up_model_id = up_md.model_id
+        LEFT JOIN dtmeta.tb_meta_model type_md  on model.up_model_id = type_md.model_id
+        WHERE model.model_type_mtcd = 'object_type'
+        AND   model.up_model_id = 'Class'
+		<include refid="whereByModel"/>
+        <include refid="orderByModel"/>
+        <include refid="limitPage"/>
+	</select>
+	
+	<insert id="insertTypeModel" parameterType="modelVo">
+		INSERT /* SQL_ID: ModelMapper.insertTypeModel */
+	      INTO dtmeta.tb_meta_model
+			 ( 
+			   model_id
+			 , up_model_id
+			 , type_model_id
+			 , model_nm
+			 , model_logic_nm
+			 , model_desc
+			 , model_data_sttus_mtcd
+			 , model_sort_odrg
+			 , model_type_mtcd
+			 , abstrt_model_yn
+			 , structd_model_yn
+			 , structd_model_schma_mtcd
+			 , model_data_uri
+			 , model_data_id_pfix
+			 , data_type_mtcd
+			 , data_type_val_exam
+			 , mtcd_grp_id
+			 , use_lang_mtcd
+			 , model_regr_id
+			 , model_regr_nm
+			 , model_reg_dt
+			 , model_amdr_id
+			 , model_amdr_nm
+			 , model_amd_dt
+			 ) 
+	    VALUES 
+			 ( 
+			   #{modelId}
+			 , 'Class'
+			 , #{typeModelId}
+			 , #{modelNm}
+			 , #{modelLogicNm}
+			 , #{modelDesc}
+			 , #{modelDataSttusMtcd}
+			 , #{modelSortOdrg}
+			 , 'object_type'
+			 , 'Y'
+			 , #{structdModelYn}
+			 , #{structdModelSchmaMtcd}
+			 , #{modelDataUri}
+			 , #{modelDataIdPfix}
+			 , #{dataTypeMtcd}
+			 , #{dataTypeValExam}
+			 , #{mtcdGrpId}
+			 , #{useLangMtcd}
+			 , #{modelRegrId}
+			 , #{modelRegrNm}
+			 , current_timestamp
+			 , #{modelAmdrId}
+			 , #{modelAmdrNm}
+			 , current_timestamp
+			 )
+	</insert>
+	
+	<update id="updateTypeModel" parameterType="modelVo">
+		UPDATE /* SQL_ID: ModelMapper.updateTypeModel*/
+               dtmeta.tb_meta_model
+		   SET structd_model_yn				= #{structdModelYn}
+		   <if test='@org.apache.commons.lang3.StringUtils@equals(structdModelYn, "Y")'>
+			 , structd_model_schma_mtcd		= #{structdModelSchmaMtcd}
+	       </if>
+			 , model_data_uri				= #{modelDataUri}
+		   	 , model_logic_nm               = #{modelLogicNm}
+			 , model_desc                   = #{modelDesc}
+			 , model_data_sttus_mtcd        = #{modelDataSttusMtcd}
+			 , model_sort_odrg              = #{modelSortOdrg}
+			 , model_data_id_pfix			= #{modelDataIdPfix}
+			 , model_amdr_id                = #{modelAmdrId}
+			 , model_amdr_nm                = #{modelAmdrNm}
+			 , model_amd_dt                 = current_timestamp
+		 WHERE model_id		        		= #{modelId}
+	</update>
+	
+	<select id="selectTypeModelDeleteCheck" parameterType="String" resultType="int">
+		SELECT /* SQL_ID: ModelMapper.selectTypeModelDeleteCheck */ 
+		SUM(a.cnt) AS cnt FROM (
+			SELECT 
+			COUNT(*) AS cnt
+			FROM dtmeta.tb_meta_model model 
+			WHERE model.up_model_id = #{modelId} OR (model.type_model_id = #{modelId} AND model.up_model_id != 'Class')
+			UNION ALL
+			SELECT COUNT(*) AS cnt
+			FROM dtmeta.tb_meta_propertydefine def
+			WHERE def.domn_model_id = #{modelId} OR def.range_model_id = #{modelId}
+			UNION all
+			SELECT COUNT(*) AS cnt
+			FROM dtmeta.tb_meta_modelproperty prpty
+            WHERE prpty.model_id = #{modelId}
+		) a
+	</select>
+	
+	<select id="selectStdModelDeleteCheck" parameterType="String" resultType="int">
+		SELECT /* SQL_ID: ModelMapper.selectStdModelDeleteCheck */ 
+		SUM(a.cnt) AS cnt FROM (
+			SELECT 
+			COUNT(*) AS cnt
+			FROM dtmeta.tb_meta_model model 
+			WHERE model.up_model_id = #{modelId} OR model.type_model_id = #{modelId}
+			UNION ALL
+			SELECT COUNT(*) AS cnt
+			FROM dtmeta.tb_meta_propertydefine def
+			WHERE def.domn_model_id = #{modelId} OR def.range_model_id = #{modelId}
+			UNION all
+			SELECT COUNT(*) AS cnt
+			FROM dtmeta.tb_meta_modelproperty prpty
+		    WHERE prpty.model_id = #{modelId}
+		) a
+	</select>
+	
+	<select id="selectStdModelCount" parameterType="modelSearchVo" resultType="int">
+		SELECT /* SQL_ID: ModelMapper.selectStdModelCount*/
+			COUNT(*)  
+		FROM dtmeta.tb_meta_model model
+		LEFT JOIN dtmeta.tb_portal_code code on model.model_data_sttus_mtcd = code.mtcd and code.mtcd_grp_id  = 'MCG00002'
+		LEFT JOIN dtmeta.tb_portal_code code1 on model.structd_model_schma_mtcd = code1.mtcd and code1.mtcd_grp_id  = 'MCG00008'
+	   WHERE model.model_type_mtcd = 'object_type' 
+	     AND model.up_model_id != 'Class'
+        <include refid="whereByModel"/>		
+	</select>
+	
+	<select id="selectStdModelList" resultType="objectTypeModelDto">
+        SELECT /* SQL_ID: ModelMapper.selectStdModelList*/ 
+             (ROW_NUMBER() OVER(ORDER BY model.model_sort_odrg)) AS rownum
+            ,model.model_id
+            ,model.model_nm
+            ,model.model_logic_nm   
+            ,model.model_desc
+            ,model.up_model_id
+            ,up_md.model_nm          AS up_model_nm
+            ,up_md.model_logic_nm    AS up_model_logic_nm
+            ,model.type_model_id
+            ,type_md.model_nm        AS type_model_nm
+            ,type_md.model_logic_nm  AS type__model_logic_nm
+            ,model.model_data_uri
+            ,model.model_data_id_pfix
+            ,model.abstrt_model_yn
+            ,model.structd_model_yn
+            ,model.structd_model_schma_mtcd
+            ,code1.mtcd_nm AS structdModelSchmaMtcdNm           
+            ,model.model_data_sttus_mtcd
+            ,code.mtcd_nm AS modelDataSttusMtcdNm
+            ,model.model_type_mtcd
+            ,to_char(model.model_amd_dt,#{sqlDateFormat}) as modelAmdDt
+        FROM dtmeta.tb_meta_model model
+        LEFT JOIN dtmeta.tb_portal_code code on model.model_data_sttus_mtcd = code.mtcd and code.mtcd_grp_id  = 'MCG00002'
+        LEFT JOIN dtmeta.tb_portal_code code1 on model.structd_model_schma_mtcd = code1.mtcd and code1.mtcd_grp_id  = 'MCG00008'
+        LEFT JOIN dtmeta.tb_meta_model up_md  on model.up_model_id = up_md.model_id
+        LEFT JOIN dtmeta.tb_meta_model type_md  on model.up_model_id = type_md.model_id
+	   WHERE model.model_type_mtcd = 'object_type' 
+	     AND model.up_model_id != 'Class'
+        <include refid="whereByModel"/>
+        <include refid="orderByModel"/>
+        <include refid="limitPage"/>
+	</select>
+	
+	<insert id="insertStdModel" parameterType="modelVo">
+		INSERT /* SQL_ID: ModelMapper.insertStdModel */
+	      INTO dtmeta.tb_meta_model
+			 ( 
+			   model_id
+			 , up_model_id
+			 , type_model_id
+			 , model_nm
+			 , model_logic_nm
+			 , model_desc
+			 , model_data_sttus_mtcd
+			 , model_sort_odrg
+			 , model_type_mtcd
+			 , abstrt_model_yn
+			 , structd_model_yn
+			 , structd_model_schma_mtcd
+			 , model_data_uri
+			 , model_data_id_pfix
+			 , data_type_mtcd
+			 , data_type_val_exam
+			 , mtcd_grp_id
+			 , use_lang_mtcd
+			 , model_regr_id
+			 , model_regr_nm
+			 , model_reg_dt
+			 , model_amdr_id
+			 , model_amdr_nm
+			 , model_amd_dt
+			 ) 
+	    VALUES 
+			 ( 
+			   #{modelId}
+			 , #{upModelId}
+			 , #{typeModelId}
+			 , #{modelNm}
+			 , #{modelLogicNm}
+			 , #{modelDesc}
+			 , #{modelDataSttusMtcd}
+			 , #{modelSortOdrg}
+			 , 'object_type'
+			 , #{abstrtModelYn}
+			 , #{structdModelYn}
+			 , #{structdModelSchmaMtcd}
+			 , #{modelDataUri}
+			 , #{modelDataIdPfix}
+			 , #{dataTypeMtcd}
+			 , #{dataTypeValExam}
+			 , #{mtcdGrpId}
+			 , #{useLangMtcd}
+			 , #{modelRegrId}
+			 , #{modelRegrNm}
+			 , current_timestamp
+			 , #{modelAmdrId}
+			 , #{modelAmdrNm}
+			 , current_timestamp
+			 )
+	</insert>
+	
+	<update id="updateStdModel" parameterType="modelVo">
+		UPDATE /* SQL_ID: ModelMapper.updateStdModel */
+               dtmeta.tb_meta_model
+		   SET 
+		   	   model_logic_nm               = #{modelLogicNm}
+		   	 , abstrt_model_yn				= #{abstrtModelYn}
+			 , model_data_sttus_mtcd        = #{modelDataSttusMtcd}
+			 , model_sort_odrg              = #{modelSortOdrg}
+			 , model_desc                   = #{modelDesc}
+			 , model_amdr_id                = #{modelAmdrId}
+			 , model_amdr_nm                = #{modelAmdrNm}
+			 , model_amd_dt                 = current_timestamp
+		 WHERE model_id		        		= #{modelId}
+	</update>
+	
+	<select id="selectSubModelCountMapByModelId" resultType="camelCaseMap">
+       SELECT /* SQL_ID: ModelMapper.selectSubModelCountMapByModelId */
+              COUNT(*) AS tot_sub_cnt
+            , COALESCE( SUM(CASE WHEN model.model_data_sttus_mtcd = 'use'    THEN 1 ELSE 0 END), 0) AS use_sub_cnt
+            , COALESCE( SUM(CASE WHEN model.model_data_sttus_mtcd = 'disuse' THEN 1 ELSE 0 END), 0) AS disuse_sub_cnt
+         FROM dtmeta.tb_meta_model model
+	    WHERE model.up_model_id           = #{modelId}
+	</select>
+	
+</mapper>

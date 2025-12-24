@@ -1,0 +1,2 @@
+io.aiven.connect.jdbc.dialect.GenericDatabaseDialect$Provider
+io.aiven.connect.jdbc.dialect.PostgreSqlDatabaseDialect$Provider

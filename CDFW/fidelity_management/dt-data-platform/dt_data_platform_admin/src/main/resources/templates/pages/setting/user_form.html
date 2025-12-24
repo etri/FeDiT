@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/platform_layout}">
+
+<head>
+    <title th:text="${breadcrumb.menu_nm}">사용자관리</title>
+</head>
+
+<div layout:fragment="content">
+    <div class="page-title">
+        <div class="contain">
+            <h1 th:text="${breadcrumb.menu_nm}">사용자관리</h1>
+        </div>
+    </div>
+
+    <section class="data-edit-section">
+        <div class="contain-sm">
+            <div class="form-frame">
+                <div class="form-frame-header" th:value="${user.userSeq}">
+                    <th:block th:if="${user.userSeq==0}">
+                        <h2 class="title">사용자 등록</h2>
+                    </th:block>
+                    <th:block th:unless="${user.userSeq==0}">
+                        <h2 class="title">사용자 수정</h2>
+                    </th:block>
+                </div>
+                <div class="form-frame-body">
+                    <!---- form 내용 ---->
+                    <form class="form-wrap" name="editForm" th:action="@{/setting/user/form}" th:object="${user}"
+                          method="POST">
+                        <input type="hidden" th:field="*{userSeq}">
+                        <input type="hidden" name="menuCd" th:value="${menuCd}">
+                        <input type="hidden" name="pageParams" th:value="${pageParams}">
+                        <input type="hidden" name="userAuthCd" th:value="*{userAuthCd}">
+                        <div class="form-control-wrap">
+                            <label class="form-label" for="id">아이디 <span
+                                    class="badge required">필수</span></label>
+                            <th:block th:if="*{userSeq == 0}">
+                                <input type="text" th:field="*{id}" class="form-control sm alphabet_number_only"
+                                       placeholder="아이디를 입력해주세요."
+                                       maxlength="20" required="required">
+                                <th:block
+                                        th:include="fragments/form_invalid:: form_invalid('id')"></th:block>
+                            </th:block>
+                            <th:block th:unless="*{userSeq == 0}">
+                                <input type="text" th:field="*{id}" class="form-control sm alphabet_number_only"
+                                       placeholder="아이디를 입력해주세요."
+                                       readonly="readonly"
+                                       maxlength="20" required="required" th:value="*{id}">
+                            </th:block>
+                        </div>
+                        <th:block th:if="${user.userSeq == 0}">
+                            <div class="form-control-wrap">
+                                <label class="form-label" for="password">비밀번호 <span
+                                        class="badge required">필수</span></label>
+                                <input type="password" maxlength="20" th:field="*{password}" class="form-control sm"
+                                       placeholder="비밀번호를 입력해주세요." required="required">
+                                <th:block
+                                        th:include="fragments/form_invalid:: form_invalid('password')"></th:block>
+                            </div>
+                            <div class="form-control-wrap">
+                                <label class="form-label" for="passwordConfirm">비밀번호 확인 <span
+                                        class="badge required">필수</span></label>
+                                <input type="password" maxlength="20" th:field="*{passwordConfirm}"
+                                       class="form-control sm"
+                                       placeholder="비밀번호 확인을 입력해주세요." required="required">
+                                <th:block
+                                        th:include="fragments/form_invalid:: form_invalid('passwordConfirm')"></th:block>
+                            </div>
+                        </th:block>
+                        <th:block th:unless="${user.userSeq == 0}">
+                            <div class="form-control-wrap">
+                                <label class="form-label" for="tempPassword">비밀번호 재설정</label>
+                                <input type="password" maxlength="20" id="tempPassword" name="tempPassword"
+                                       class="form-control sm"
+                                       placeholder="비밀번호를 입력해주세요." required="required">
+                                <th:block
+                                        th:include="fragments/form_invalid:: form_invalid('tempPassword')"></th:block>
+                            </div>
+                            <div class="form-control-wrap">
+                                <label class="form-label" for="tempPasswordConfirm">비밀번호 재설정 확인</label>
+                                <input type="password" maxlength="20" id="tempPasswordConfirm"
+                                       name="tempPasswordConfirm" class="form-control sm"
+                                       placeholder="비밀번호 확인을 입력해주세요." required="required">
+                                <th:block
+                                        th:include="fragments/form_invalid:: form_invalid('tempPasswordConfirm')"></th:block>
+                            </div>
+                        </th:block>
+                        <div class="form-control-wrap">
+                            <label class="form-label" for="userAuthCd">메뉴 접근 권한 <span
+                                    class="badge required">필수</span>
+                            </label>
+                            <div class="dropdown-wrapper">
+                                <div class="dropdown-box">
+                                    <button type="button" id="userAuthCd" class="form-control sm dropdown-toggle"
+                                            th:data-value="*{userAuthCd}">
+                                        <!-- 조건을 만족하는 항목이 있을 경우 -->
+                                        <th:block th:each="item : ${authList}" th:if="${item.dtl_cd == user.userAuthCd}"
+                                                  th:text="${item.dtl_cd_nm}">
+                                            메뉴 접근 권한
+                                        </th:block>
+                                    </button>
+                                    <div id="userAuthCd_selection" class="dropdown-layer" aria-expanded="false">
+                                        <ul class="option-list">
+                                            <li th:each="item : ${authList}">
+                                                <input type="radio"
+                                                       th:id="${'input_' + 'userAuthCd' + '_' + item.dtl_cd}"
+                                                       name="userAuthCd_input"
+                                                       th:value="${item.dtl_cd}">
+                                                <label th:for="${'input_' + 'userAuthCd' + '_' + item.dtl_cd}"
+                                                       th:text="${item.dtl_cd_nm}">권한 명</label>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-control-wrap">
+                            <label class="form-label" for="username">이름 <span
+                                    class="badge required">필수</span></label>
+                            <input type="text" maxlength="20" th:field="*{username}" class="form-control sm"
+                                   placeholder="이름을 입력해주세요." required="required">
+                            <th:block
+                                    th:include="fragments/form_invalid:: form_invalid('username')"></th:block>
+                        </div>
+                        <div class="form-control-wrap">
+                            <label class="form-label" for="userEml">이메일 <span
+                                    class="badge required">필수</span></label>
+                            <input type="text" maxlength="50" th:field="*{userEml}" class="form-control sm"
+                                   placeholder="이메일을 입력해주세요." required="required">
+                            <th:block
+                                    th:include="fragments/form_invalid:: form_invalid('userEml')"></th:block>
+                        </div>
+                        <div class="form-control-wrap">
+                            <label class="form-label" for="userHp1">휴대폰번호 <span
+                                    class="badge required">필수</span></label>
+                            <div style="display: flex; width: 100%;">
+                                <div style="width: 33.3333%; padding: 0 4px 0 0;">
+                                    <input type="text" maxlength="3" th:field="*{userHp1}"
+                                           class="form-control sm number_only" placeholder="앞 번호 3자리"
+                                           required="required">
+                                </div>
+                                <div style="width: 33.3333%; padding: 0 4px;">
+                                    <input type="text" maxlength="4" th:field="*{userHp2}"
+                                           class="form-control sm number_only" placeholder="중간 번호 4자리"
+                                           required="required">
+                                </div>
+                                <div style="width: 33.3333%; padding: 0 0 0 4px;">
+                                    <input type="text" maxlength="4" th:field="*{userHp3}"
+                                           class="form-control sm number_only" placeholder="뒷 번호 4자리"
+                                           required="required">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-control-wrap">
+                            <label class="form-label" for="userCont1">전화번호</label>
+                            <div style="display: flex; width: 100%;">
+                                <div style="width: 33.3333%; padding: 0 4px 0 0;">
+                                    <input type="text" maxlength="3" th:field="*{userCont1}"
+                                           class="form-control sm number_only" placeholder="앞 번호 3자리"
+                                           required="required">
+                                </div>
+                                <div style="width: 33.3333%; padding: 0 4px;">
+                                    <input type="text" maxlength="4" th:field="*{userCont2}"
+                                           class="form-control sm number_only" placeholder="중간 번호 4자리"
+                                           required="required">
+                                </div>
+                                <div style="width: 33.3333%; padding: 0 0 0 4px;">
+                                    <input type="text" maxlength="4" th:field="*{userCont3}"
+                                           class="form-control sm number_only" placeholder="뒷 번호 4자리"
+                                           required="required">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                    <form style="display: none;" name="deleteForm"
+                          th:action="@{|/admin/management/user/delete/${user.userSeq}|}"
+                          th:object="${user}" method="POST">
+                        <input type="hidden" name="userSeq" th:value="${user.userSeq}"/>
+                    </form>
+                    <!---- form 내용 END ---->
+                </div>
+                <div class="form-frame-footer buttons">
+                    <button type="button" class="ui-button primary sm"
+                            th:data-href="@{|/setting/user?${pageParams}|}">
+                        목록
+                    </button>
+                    <th:block th:if="${user.userSeq==0}">
+                        <button type="button" class="ui-button primary sm btn-insert-user">
+                            등록
+                        </button>
+                    </th:block>
+                    <th:block th:unless="${user.userSeq==0}">
+                        <button type="button" class="ui-button primary sm btn-update-user">
+                            수정
+                        </button>
+                    </th:block>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<th:block layout:fragment="custom_css">
+</th:block>
+<th:block layout:fragment="custom_js">
+    <script th:src="@{/assets/js/pages/setting/user_view.js}"></script>
+</th:block>
+</html>

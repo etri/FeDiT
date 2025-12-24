@@ -1,0 +1,101 @@
+<template>
+
+<div class="listTable">
+		<el-row>
+			<el-col :span="24">
+				<ul>
+					<li class="list-row"	v-for="item in props.myDigitalTwinList" :key="item" 
+						@click="elementClick(item)"
+						>
+						<div class="list-col">
+							<div class="list-title">{{ item.medataSetNm }}</div>
+							<ul class="list-info">
+								<li class="dt">ID</li>
+								<li class="dd">{{ item.medataSetId }} </li>
+								<li class="dt">상태</li>
+								<li class="dd">{{ item.medataSetSttusMtcdNm }} </li>		
+								<!-- 2025 카테고리와 Agent 를 사용안해서 검색조건에서 숨김.
+								<li class="dt">카테고리</li> -->
+								<li class="dd">{{ item.categoryNm }} </li>
+								<li class="dt">모델</li>
+								<li class="dd">{{ item.modelNm }}</li>
+								<li class="dt">수정일</li>
+								<li class="dd">{{ item.medataSetAmdDt }}</li>
+								<li class="dt">키워드</li>
+								<li class="dd">{{ item.keywordsKo }}</li>								
+							</ul>
+						</div>
+					</li>
+        </ul>				
+			</el-col>
+		</el-row>
+		<el-row v-show="props.myDigitalTwinList.length == 0">
+			<el-col :span="24">
+				<ul>
+					<li class="list-row-empty">데이터 없음</li>
+				</ul>
+			</el-col>
+		</el-row>
+    <ComnPagination :totalPage="props.totalPage" :curPage="props.curPage" @pagemove="pagemove" />
+	</div>
+
+</template>
+<script setup>
+import ComnPagination from "@/components/common/ComnPagination.vue";
+
+import { ref, reactive, defineProps, getCurrentInstance } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { getUser } from "@/assets/js/auth.js";
+import { 
+  getGlobalProperties,
+  isAmdYn, 
+  isReadYn 
+} from "@/assets/js/common.js";
+import util from "util";
+
+const route = useRoute();
+const router = useRouter();
+const $axios = getGlobalProperties().$axios;
+const $apiUrls = getGlobalProperties().$apiUrls;
+const $emitter =
+  getCurrentInstance().appContext.config.globalProperties.$emitter;
+
+const emits = defineEmits(["pageMove", "clickDigitalTwin"]);
+
+const props = defineProps({
+	myDigitalTwinList: {
+		type: Array,
+		required: true,
+	},
+	totalPage: {
+		type: Number,
+		required: true,
+	},
+  curPage: {
+    type: Number,
+    required: true,
+  },
+});
+
+const state = reactive({
+	myDigitalTwin: {},
+  pageInfo: {
+    curPage: 1,
+    totalListSize: 0,
+    pageListSize: 10,
+    blockSize: 5,    
+  }
+});
+
+const elementClick = (item) => {
+	console.log(item);
+  emits("clickDigitalTwin", item);
+};
+
+const pagemove = (payload) => {
+  emits("pageMove", payload);
+};
+
+</script>
+<style lang="scss">
+</style>
