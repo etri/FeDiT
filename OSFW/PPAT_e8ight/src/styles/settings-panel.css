@@ -1,0 +1,430 @@
+/* Settings Panel Styles */
+.settings-panel {
+  position: absolute;
+  top: 0;
+  right: -350px; /* Hidden by default */
+  width: 350px;
+  height: 100%;
+  background: #ffffff;
+  border-left: 1px solid #dee2e6;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  transition: right 0.3s ease-in-out;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-panel.visible {
+  right: 0; /* Slide in */
+}
+
+.settings-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+  background: #f8f9fa;
+}
+
+.settings-panel-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.settings-panel-content {
+  flex: 1;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.settings-group {
+  margin-bottom: 2rem;
+}
+
+.settings-group-title {
+  font-size: 1rem;
+  color: #555;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e9ecef;
+  font-weight: 500;
+}
+
+.settings-item {
+  margin-bottom: 1.5rem;
+}
+
+.settings-item.horizontal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settings-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #666;
+}
+
+.settings-item.horizontal .settings-label {
+  margin-bottom: 0;
+}
+
+.settings-control {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.color-code {
+  color: #888;
+  font-size: 0.85rem;
+  font-family: 'Courier New', monospace;
+  background: #f8f9fa;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+}
+
+/* Scrollbar Styles */
+.settings-panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.settings-panel-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.settings-panel-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.settings-panel-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Lighting Sub-groups */
+.settings-sub-group {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.settings-sub-title {
+  font-size: 0.85rem;
+  color: #495057;
+  margin: 0 0 0.75rem 0;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Grid Layout */
+.grid {
+  display: grid;
+}
+
+.grid-cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.gap-1 {
+  gap: 0.25rem;
+}
+
+.gap-2 {
+  gap: 0.4rem;
+}
+
+.gap-3 {
+  gap: 0.5rem;
+}
+
+/* Flex utilities */
+.flex {
+  display: flex;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.align-items-center {
+  align-items: center;
+}
+
+.align-items-end {
+  align-items: flex-end;
+}
+
+.mt-1 {
+  margin-top: 0.25rem;
+}
+
+/* Compact styling for position controls */
+.settings-sub-group .text-xs {
+  font-size: 0.75rem;
+}
+
+.settings-sub-group .text-gray-600 {
+  color: #6c757d;
+}
+
+.settings-sub-group .mb-1 {
+  margin-bottom: 0.25rem;
+}
+
+.settings-sub-group .block {
+  display: block;
+}
+
+/* PrimeReact Component Overrides */
+.settings-panel .p-colorpicker-preview {
+  width: 2rem;
+  height: 2rem;
+}
+
+.settings-panel .p-inputswitch {
+  width: 2.5rem;
+  height: 1.5rem;
+}
+
+.settings-panel .p-inputswitch-slider {
+  transition: all 0.2s;
+}
+
+/* Compact input numbers for position controls */
+.settings-sub-group .p-inputnumber {
+  min-width: 0;
+  width: 100%;
+}
+
+.settings-sub-group .p-inputnumber-input {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.4rem;
+  text-align: center;
+  width: 100%;
+}
+
+/* Camera control specific styling */
+.settings-sub-group .grid-cols-3 .p-inputnumber {
+  width: 100% !important;
+}
+
+.settings-sub-group .grid-cols-3 .p-inputnumber-input {
+  width: 100% !important;
+  min-width: 70px;
+}
+
+/* FloatLabel styling for camera controls */
+.settings-sub-group .p-float-label {
+  width: 100%;
+}
+
+.settings-sub-group .p-float-label > label {
+  font-size: 0.8rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Camera control button layout */
+.settings-sub-group .flex.gap-2 {
+  flex-wrap: nowrap;
+}
+
+.settings-sub-group .flex.gap-2 .p-button {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  font-size: 0.75rem;
+}
+
+.settings-sub-group .flex.gap-2 .p-button .p-button-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Remove any button styling that might remain */
+.settings-panel .p-inputnumber .p-inputnumber-buttons-stacked,
+.settings-panel .p-inputnumber .p-inputnumber-buttons-horizontal {
+  display: none !important;
+}
+
+/* Ensure proper spacing in flex containers */
+.settings-sub-group .flex.align-items-center {
+  min-height: 2.5rem;
+}
+
+/* Fix overlapping by ensuring proper flex behavior */
+.settings-sub-group .grid-cols-3 > div {
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* PanelMenu Styles */
+.settings-panel .p-panelmenu {
+  border: none;
+}
+
+.settings-panel .p-panelmenu .p-panelmenu-panel {
+  margin-bottom: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.settings-panel .p-panelmenu .p-panelmenu-header-link {
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border-radius: 6px 6px 0 0;
+  font-weight: 600;
+}
+
+.settings-panel .p-panelmenu .p-panelmenu-header-link:hover {
+  background: #e9ecef;
+}
+
+.settings-panel .p-panelmenu .p-panelmenu-content {
+  padding: 0;
+  border-radius: 0 0 6px 6px;
+}
+
+/* Panel Menu Item Styles */
+.panel-menu-item {
+  padding: 1rem;
+  border-bottom: 1px solid #f1f3f4;
+  background: white;
+}
+
+.panel-menu-item:last-child {
+  border-bottom: none;
+  border-radius: 0 0 6px 6px;
+}
+
+.panel-menu-item .settings-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #495057;
+}
+
+/* Control Item Styles */
+.control-item {
+  margin-bottom: 1rem;
+}
+
+.control-item:last-child {
+  margin-bottom: 0;
+}
+
+.control-item .settings-label {
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+}
+
+/* Vertical Layout: InputNumber first, then Slider */
+.panel-menu-item .p-inputnumber {
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.panel-menu-item .p-slider {
+  width: 100%;
+}
+
+/* Vector Controls */
+.vector-controls {
+  padding-top: 0.75rem;
+  border-top: 1px solid #f1f3f4;
+}
+
+/* Utility Classes */
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+.mt-3 {
+  margin-top: 0.75rem;
+}
+
+/* Accordion Styles */
+.settings-panel .p-accordion {
+  border: none;
+}
+
+.settings-panel .p-accordion .p-accordion-tab {
+  margin-bottom: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.settings-panel .p-accordion .p-accordion-header-link {
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border-radius: 6px 6px 0 0;
+  font-weight: 600;
+}
+
+.settings-panel .p-accordion .p-accordion-header-link:hover {
+  background: #e9ecef;
+}
+
+.settings-panel .p-accordion .p-accordion-content {
+  padding: 0;
+  border-radius: 0 0 6px 6px;
+  background: white;
+}
+
+/* Accordion Content */
+.accordion-content {
+  padding: 1rem;
+}
+
+.accordion-content .settings-item {
+  margin-bottom: 1rem;
+}
+
+.accordion-content .settings-item:last-child {
+  margin-bottom: 0;
+}
+
+.accordion-content .settings-item.horizontal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.accordion-content .settings-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #495057;
+}
+
+.accordion-content .settings-item.horizontal .settings-label {
+  margin-bottom: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .settings-panel {
+    width: 280px;
+    right: -280px;
+  }
+}
+
+@media (max-width: 480px) {
+  .settings-panel {
+    width: 100%;
+    right: -100%;
+  }
+}

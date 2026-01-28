@@ -1,0 +1,13 @@
+/* Override PrimeReact Accordion content padding */
+
+.p-accordion-header-link {
+  padding: 1rem 1rem 1rem 1rem !important;
+}
+
+.p-accordion-content {
+  padding: 1.2rem 0.7rem 0.5rem 0.7rem !important;
+}
+
+.p-accordion .p-accordion-tab{
+  margin-bottom: 20px !important;
+}
