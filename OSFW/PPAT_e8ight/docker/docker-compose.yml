@@ -1,0 +1,42 @@
+# ============================================
+# Docker Compose - Production deployment
+# Build image and dynamically inject environment variables
+# ============================================
+
+services:
+  web:
+    # Build image using Dockerfile
+    build:
+      context: ..  # Project root as context
+      dockerfile: docker/Dockerfile
+
+    # Container name
+    container_name: ${IMAGE_NAME:-iitp-pre-web}
+
+    # Tag built image
+    image: ${IMAGE_NAME:-iitp-pre-web}:${VERSION:-latest}
+
+    # Port mapping (host:container)
+    ports:
+      - "${NGINX_PORT:-3000}:80"
+
+    # Environment variables - for runtime injection
+    environment:
+      # API-related environment variables
+      - IITP_ENV_API_URL=${VITE_API_URL}
+
+      # Additional environment variables (if needed)
+      - IITP_ENV_ENV_MODE=${VITE_ENV_MODE:-production}
+      
+      # Timezone configuration
+      - TZ=Asia/Seoul
+
+    # Restart policy
+    restart: always
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
