@@ -268,7 +268,10 @@ cd ../kafka-sink-connector
 ```bash
 # 폴더 확인
 ls /sync_engine/plugin/kafka-connector
+# 없으면 생성
+mkdir /sync_engine/plugin/kafka-connector
 
+# 빌드 성공 후 생성된 jar파일 복사
 cp connector/jdbc-connector-for-apache-kafka/build/libs/*.jar \
    /sync_engine/plugin/kafka-connector/
 
