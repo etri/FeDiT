@@ -190,8 +190,6 @@ cd kafka_2.11-2.4.0/config
 ls
 ```
 
----
-
 ## 2. Kafka Connect 설정 (config/connect-distributed.properties)
 
 - connect-distributed.properties 파일 수정(주석제거 및 주소입력)
@@ -236,8 +234,6 @@ plugin.path=/sync_engine/plugin/kafka-connector
 > ⚠️ **중요**
 > plugin.path 경로에는 아래의 안내에 따라 직접 빌드한 커스텀 커넥터 JAR들이 위치해야 합니다.
 
----
-
 ## 3. 커넥터 디렉토리 구조
 
 ```bash
@@ -248,8 +244,6 @@ connector/
 ```
 
 각 디렉토리는 Gradle 기반이며 JAR 빌드 후 connect-distributed.properties에 지정한 plugin.path로 이동해야 합니다.
-
----
 
 ## 4. 커넥터 빌드 및 JAR 배치
 
@@ -285,8 +279,6 @@ cp connector/kafka-sink-connector/build/libs/*.jar \
    /sync_engine/plugin/kafka-connector/
 ```
 
----
-
 ## 5. Broker 설정 (config/server.properties)
 
 ```bash
@@ -300,8 +292,6 @@ vi server.properties
 listeners=PLAINTEXT://:9092
 advertised.listeners=PLAINTEXT://aaa.bbb.ccc.ddd:9092
 ```
-
----
 
 ## 6. PostgreSQL JDBC 드라이버 추가
 
@@ -321,8 +311,6 @@ wget https://archive.apache.org/dist/flink/flink-1.17.0/flink-1.17.0-bin-scala_2
 tar -xvzf flink-1.17.0-bin-scala_2.12.tgz
 ```
 
----
-
 ## 2. Flink 라이브러리 세팅
 
 ### 2-1) 기본 라이브러리 복사
@@ -340,8 +328,6 @@ cp /sync_engine/plugin/flink-lib/* flink-1.17.0/lib/
 - flink-connector-jdbc-3.1.0-1.17.jar
 - flink-json-1.17.0.jar
 
----
-
 ### 2-2) Sedona Flink 라이브러리 추가 (중요)
 
 ```bash
@@ -352,8 +338,6 @@ cp sedona-flink-shaded_2.12-1.5.1-SNAPSHOT.jar flink-1.17.0/lib/
 ```
 
 > ⚠️ Sedona JAR는 반드시 `flink-1.17.0/lib/`에 위치해야 합니다.
-
----
 
 ## 3. flink-conf.yaml 설정
 
@@ -398,8 +382,6 @@ sql-gateway.session.idle-timeout: 0
 rest.flamegraph.enabled: true
 ```
 
----
-
 ## 4. /etc/profile 환경 변수 설정
 
 ```bash
@@ -410,8 +392,6 @@ export PATH=$PATH:$FLINK_HOME/bin
 ```bash
 source /etc/profile
 ```
-
----
 
 ## 5. Flink 클러스터 구성 (선택 사항)
 
@@ -455,8 +435,6 @@ postgres soft nproc 65535
 postgres hard nproc 65535
 ```
 
----
-
 ## 2. 의존 패키지 설치
 
 **[v.CentOS]**
@@ -464,8 +442,6 @@ postgres hard nproc 65535
 ```bash
 yum install -y gcc gcc-c++ make autoconf readline readline-devel zlib zlib-devel openssl openssl-devel gettext gettext-devel python python-devel wget
 ```
-
----
 
 ## 3. 설치 및 초기화
 
@@ -492,8 +468,6 @@ sudo systemctl start postgresql
 sudo systemctl enable postgresql
 sudo systemctl status postgresql
 ```
-
----
 
 ## 4. 외부 접속 허용
 
@@ -551,9 +525,7 @@ host all all 0.0.0.0/0 md5
 sudo systemctl restart postgresql
 ```
 
----
-
-**🔐 공통 설정 (CentOS / Ubuntu)**
+## **🔐 공통 설정 (CentOS / Ubuntu)**
 
 ## 5. 비밀번호 설정 및 DB 생성
 
@@ -691,8 +663,6 @@ bin/kafka-server-start.sh -daemon config/server.properties
 bin/connect-distributed.sh -daemon config/connect-distributed.properties
 ```
 
----
-
 ## Flink 실행
 
 ```bash
@@ -733,6 +703,5 @@ pm2 start federatedDigitalBrain/app.js
 pm2 start federatedDigitalConnector/app.js
 ```
 
----
-
-# **License**
+- 실행 화면 예시
+  ![alt text](image.png)
