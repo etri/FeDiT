@@ -669,6 +669,11 @@ bin/connect-distributed.sh -daemon config/connect-distributed.properties
 ## Flink 실행
 
 ```bash
+cd ~/flink-1.17.0
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 # 클러스터 실행
 bin/start-cluster.sh
 
