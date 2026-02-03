@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.DtEvtTracking.trackEntTrigger.mapper.TrackingControlTaskInfoMapper">
+  	
+  	
+  	
+	  	<select id="getTrackingControlTaskInfo" parameterType="Map" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.DataEventTrackingRequestInfo">
+	  		SELECT
+			  	request_tracking_id,
+			    req_trck_cmd_type,
+			    req_trck_cmd_time,
+			    req_trck_cmd_status,
+			    result_callback_url,
+			    req_tracking_cmd,
+			    tracking_identifier,
+			    req_status_change_time,
+			    transmission_status,
+			    transmission_time,
+			    req_identifier
+			FROM 
+			   data_event_tracking_request_info
+			   where 1=1 
+			 <if test='requestTrackingId != null'>
+				and request_tracking_id = #{requestTrackingId}
+			</if>
+		    <if test='reqTrckCmdStatus != null'>
+				and req_trck_cmd_status = #{reqTrckCmdStatus}
+			</if>
+			order by request_tracking_id desc
+  		</select>
+	  	
+	  	
+  		<select id="getDataEventTrackingControlTaskInfo" parameterType="Map" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.DataEventTrackingRequestInfo">
+	  		SELECT
+	  		  	request_tracking_id,
+			    req_trck_cmd_type,
+			    req_trck_cmd_time,
+			    req_trck_cmd_status,
+			    result_callback_url,
+			    req_tracking_cmd,
+			    tracking_identifier,
+			    req_status_change_time,
+			    transmission_status,
+			    transmission_time,
+			    req_identifier
+			FROM 
+			   data_event_tracking_request_info
+			   where 1=1 
+			    <if test='requestTrackingId != null'>
+					and request_tracking_id = #{requestTrackingId}
+				</if>
+			    <if test='reqTrckCmdStatus != null'>
+					or req_trck_cmd_status = #{reqTrckCmdStatus}
+				</if>
+				<if test='reqTrckCmdStatusErr != null'>
+					and req_trck_cmd_status = #{reqTrckCmdStatusErr}
+				</if>
+				order by request_tracking_id desc
+		
+  		</select>
+	  	
+  	
+  	
+</mapper>
