@@ -1,0 +1,81 @@
+version: '3'
+services:
+  feditapigwService:
+    container_name: feditapigwService
+    image: msa-fag
+    ports:
+      - 8762:8761
+      - 8001:8000
+      - 23419:23419
+      - 23429:23429
+      - 23439:23439
+      - 23449:23449
+    volumes:
+      - type: bind
+        source: /data/fedit/receiver
+        target: /hdd/fedit/receiver
+      - type: bind
+        source: /data/fedit/ctrlCmdProc
+        target: /hdd/fedit/ctrlCmdProc
+      - type: bind
+        source: /data/fedit/responser
+        target: /hdd/fedit/responser
+      - type: bind
+        source: /data/fedit/transmitter
+        target: /hdd/fedit/transmitter
+    env_file: .env.prod
+    networks:
+      - fag-network 
+    restart: unless-stopped
+  rabbitmq:
+    container_name: rabbitmq_fag
+    image: rabbitmq:3.7.14-management-alpine 
+    volumes:
+      - /hdd/rabbitmq/data/fag:/var/lib/rabbitmq/mnesia
+      - /hdd/rabbitmq/logs/fag:/var/log/rabbitmq/
+    environment: 
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - "5673:5672" 
+      - "15673:15672"
+      - "4370:4369"
+      - "5670:5671"
+      - "15670:15671"
+      - "25673:25672"
+      - "1884:1883"
+      - "8884:8883"
+      - "61615:61613"
+      - "61616:61614"
+    networks:
+      - fag-network
+    restart: unless-stopped 
+  mariadb:
+    image: mariadb:10
+    ports:
+      - 21218:3306
+    volumes:
+      - ./db/conf.d:/etc/mysql/conf.d
+      - /hdd/dataTest/mariadb2:/hdd/data/mariadb
+      - ./db/initdb.d:/docker-entrypoint-initdb.d
+    env_file: .env
+    environment:
+      TZ: Asia/Seoul
+    networks:
+      - fag-network
+    restart: unless-stopped
+networks:
+ fag-network:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.19.0.0/16
+          gateway: 172.19.0.1
+
+
+
+
+
+
+
+
