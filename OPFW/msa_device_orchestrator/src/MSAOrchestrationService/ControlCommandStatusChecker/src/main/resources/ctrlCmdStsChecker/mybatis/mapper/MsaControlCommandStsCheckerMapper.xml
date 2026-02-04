@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.msaOrchstr.ctrlCmdStsChekcer.mapper.MsaControlCommandStsCheckerMapper">
+	
+	
+		<select id="getReqCtrlCmdIdList" parameterType="Map" resultType="int">
+			SELECT 
+			    request_control_command_id
+			FROM
+			    msa_request_control_command_info A
+			WHERE 1=1
+			<if test='reqCtrlCmdStatus != null and reqCtrlCmdStatus == "CS99"'>
+	  			 AND req_ctrl_cmd_status = #{reqCtrlCmdStatus}
+	  			 AND transmission_status is null
+	  		</if>
+	  		<if test='sessionCheckStatus != null and sessionCheckStatus != ""'>
+	  			 AND (req_ctrl_cmd_status = 'CS99' or req_ctrl_cmd_status = 'CS44') 
+	  			 AND transmission_status is null
+	  		</if>
+  			<if test='reqCtrlCmdStatus != null'>
+	  			 AND req_ctrl_cmd_status = #{reqCtrlCmdStatus}
+	  		</if>
+	  		<if test='reqCtrlCmdStatusList != null'>
+				AND
+				<foreach collection="reqCtrlCmdStatusList" item="item" index="index" separator="or" open="(" close=")">
+					req_ctrl_cmd_status = #{item}
+				</foreach>			
+			</if>
+	  		
+ 			<if test='timeUnit != null and timeUnit == "M"'>
+			   <![CDATA[ 
+  			 	AND req_status_change_time <  DATE_ADD(now(3), INTERVAL #{timeSession} MINUTE)
+  			  	]]>
+			</if>
+			<if test='timeUnit != null and timeUnit == "S"'>
+			   <![CDATA[ 
+  			 	AND req_status_change_time <  DATE_ADD(now(3), INTERVAL #{timeSession} SECOND)
+  			  	]]>
+			</if>
+		</select>
+		
+			<select id="getReqCmdIdAndSeqIdList" parameterType="Map" resultType="iitp.federatedTwins.msaOrchstr.common.dto.MsaControlCommandSequenceInfo">
+				SELECT 
+				    rci.request_control_command_id, ctrl_cmd_sequence_id
+				FROM
+				    msa_request_control_command_info rci
+				INNER JOIN msa_control_command_sequence_info csi ON rci.request_control_command_id = csi.request_control_command_id
+				WHERE 1=1
+  			<if test='reqCtrlCmdStatus != null'>
+	  			 AND req_ctrl_cmd_status = #{reqCtrlCmdStatus}
+	  		</if>
+  			<if test='sequenceStatus != null'>
+	  			 AND sequence_status = #{sequenceStatus}
+	  		</if>
+			<if test='timeUnit != null and timeUnit == "M"'>
+			   <![CDATA[ 
+  			 	AND seqeunce_status_change_time <  DATE_ADD(now(3), INTERVAL #{timeSession} MINUTE)
+  			  	]]>
+			</if>
+			<if test='timeUnit != null and timeUnit == "S"'>
+			   <![CDATA[ 
+  			 	AND seqeunce_status_change_time <  DATE_ADD(now(3), INTERVAL #{timeSession} SECOND)
+  			  	]]>
+			</if>
+		</select>
+	
+	
+	<update id="updateReqCtrlCmdStatus" parameterType="Map">
+  		UPDATE msa_request_control_command_info
+			SET			
+			<if test="reqCtrlCmdStatus != null">
+				req_ctrl_cmd_status = #{reqCtrlCmdStatus},
+			</if>
+			req_status_change_time = NOW(3)
+		WHERE
+			<choose>
+				<when test="procReqIdList != null">
+					request_control_command_id in 
+					<foreach collection="procReqIdList" item="item" index="index" separator="," open="(" close=")">
+						#{item}
+					</foreach>
+				</when>
+				<otherwise>
+					request_control_command_id = #{requestControlCommandId} 
+				</otherwise>
+			</choose> 
+  	</update>
+  	
+	<update id="updateCtrlCmdSeqStatus" parameterType="Map">
+  		UPDATE msa_control_command_sequence_info
+			SET			
+			<if test="sequenceStatus != null">
+				sequence_status = #{sequenceStatus},
+			</if>
+			seqeunce_status_change_time = NOW(3)
+		WHERE
+			<choose>
+				<when test="procSeqIdList != null">
+					ctrl_cmd_sequence_id in 
+					<foreach collection="procSeqIdList" item="item" index="index" separator="," open="(" close=")">
+						#{item}
+					</foreach>
+				</when>
+				<otherwise>
+					ctrl_cmd_sequence_id = #{ctrlCmdSequenceId} 
+				</otherwise>
+			</choose> 
+  	</update>
+  	
+  	<insert id="insertCtrlCmdSeqChangeHisMultiProcInfo" parameterType="map">
+  		insert into msa_sequence_status_change_record(ctrl_cmd_sequence_id, request_control_command_id, change_status, status_update_time, status_result_msg)
+		SELECT ctrl_cmd_sequence_id,  request_control_command_id, sequence_status, NOW(3), #{statusResultMsg} status_result_msg
+		FROM msa_control_command_sequence_info
+		WHERE 1=1
+			<if test="sequenceStatus != null">
+	  			and sequence_status = #{sequenceStatus}
+	  		</if>	
+			<choose>
+				<when test="procSeqIdList != null">
+					and ctrl_cmd_sequence_id in 
+					<foreach collection="procSeqIdList" item="item" index="index" separator="," open="(" close=")">
+						#{item}
+					</foreach>
+				</when>
+				<otherwise>
+					and ctrl_cmd_sequence_id = #{ctrlCmdSequenceId} 
+				</otherwise>
+			</choose> 
+  	</insert>
+  	  	
+  	<insert id="insertReqCtrlCmdChangeHisMultiProcInfo" parameterType="map">
+  		insert into msa_control_command_status_change_record(request_control_command_id, change_status, status_update_time, status_result_msg)
+		SELECT request_control_command_id, req_ctrl_cmd_status, NOW(3), #{statusResultMsg} status_result_msg
+		FROM msa_request_control_command_info
+		WHERE 1=1
+			<if test="reqCtrlCmdStatus != null">
+	  			and req_ctrl_cmd_status = #{reqCtrlCmdStatus}
+	  		</if>	
+			<choose>
+				<when test="procReqIdList != null">
+					and request_control_command_id in 
+					<foreach collection="procReqIdList" item="item" index="index" separator="," open="(" close=")">
+						#{item}
+					</foreach>
+				</when>
+				<otherwise>
+					and request_control_command_id = #{requestControlCommandId} 
+				</otherwise>
+			</choose> 
+  	</insert>
+</mapper>
