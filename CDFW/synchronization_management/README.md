@@ -1,17 +1,63 @@
 # **FederatedTwin**
 
-Implementation of a Digital Twin Platform supporting large-scale federated services
+Implementation of a Federated Digital Twin Platform supporting large-scale federated services
 based on federated object composition and heterogeneous data processing.
 
----
-
-## **Features**
-
-- A platform based on federated object composition and data processing core technology to provide large-scale federated services by combining public sector digital twins from different heterogeneous domains
+The platform integrates multiple technologies including Kafka, Flink, MQTT, PostgreSQL, Airflow, and provides APIs to manage and operate Federated Digital Twins and Digital Objects.
 
 ---
 
-# **Installation Guide**
+# 🚀 Quick Start
+
+Run the entire FederatedTwin platform with Docker Compose.
+
+```bash
+git clone https://github.com/KETICoTLab/FederatedTwin.git
+cd FederatedTwin
+
+docker compose up -d --build
+```
+
+---
+
+## Features
+
+- Federated Digital Twin management
+
+- Digital Object composition
+
+- Real-time data ingestion and processing
+
+- External data connector integration
+
+- Stream processing using Flink
+
+- Kafka-based data pipeline
+
+- MQTT sensor data ingestion
+
+- Workflow orchestration using Airflow
+
+---
+
+## System Architecture
+
+FederatedTwin is composed of multiple distributed services that collaborate to manage Digital Twin data.
+
+| Component         | Description                  |
+| ----------------- | ---------------------------- |
+| PostgreSQL        | Stores Digital Twin metadata |
+| Kafka             | Data streaming backbone      |
+| Kafka Connect     | External system integration  |
+| MQTT              | Sensor data ingestion        |
+| Flink             | Real-time data processing    |
+| Digital Brain     | Core platform API            |
+| Digital Connector | External data ingestion      |
+| Airflow           | Data workflow scheduling     |
+
+---
+
+# Installation Guide
 
 ⚠️ **운영체제(OS)별 설치 명령어 주의**
 
@@ -30,7 +76,7 @@ based on federated object composition and heterogeneous data processing.
 
 ---
 
-## **OpenJDK 11 설치 및 JAVA_HOME설정**
+## OpenJDK 11 설치 및 JAVA_HOME설정
 
 **[v.CentOS]**
 
@@ -92,7 +138,7 @@ echo $JAVA_HOME
 
 ---
 
-## **Node.js (v16) 설치**
+## Node.js (v16) 설치
 
 **[v.CentOS]**
 
@@ -135,7 +181,7 @@ npm -v
 
 ---
 
-## **PM2 설치 및 실행**
+## PM2 설치 및 실행
 
 ```bash
 sudo npm install -g pm2
@@ -155,7 +201,7 @@ pm2 log <procID>
 
 ---
 
-## **MQTT (Mosquitto)**
+## MQTT (Mosquitto)
 
 **[v.CentOS]**
 
@@ -331,7 +377,7 @@ cp /sync_engine/plugin/flink-lib/* flink-1.17.0/lib/
 - flink-connector-jdbc-3.1.0-1.17.jar
 - flink-json-1.17.0.jar
 
-### 2-2) Sedona Flink 라이브러리 추가 (중요)
+### 2-2) Sedona Flink 라이브러리 추가
 
 ```bash
 wget https://repo1.maven.org/maven2/org/apache/sedona/sedona-flink-shaded-3.0_2.12/1.5.1/sedona-flink-shaded-3.0_2.12-1.5.1.jar \
@@ -340,7 +386,7 @@ wget https://repo1.maven.org/maven2/org/apache/sedona/sedona-flink-shaded-3.0_2.
 cp sedona-flink-shaded_2.12-1.5.1-SNAPSHOT.jar flink-1.17.0/lib/
 ```
 
-> ⚠️ Sedona JAR는 반드시 `flink-1.17.0/lib/`에 위치해야 합니다.
+> ⚠️ 반드시 위에서 설치한 `flink-1.17.0/lib/`에 위치
 
 ## 3. flink-conf.yaml 설정
 
@@ -474,34 +520,7 @@ sudo systemctl status postgresql
 
 ## 4. 외부 접속 허용
 
-**[v.CentOS]**
-
-- postgresql.conf
-
-```bash
-sudo vi /etc/postgresql/12/main/postgresql.conf
-```
-
-```conf
-listen_addresses = '*'
-port = 5432
-```
-
-- pg_hba.conf
-
-```bash
-sudo vi /etc/postgresql/12/main/pg_hba.conf
-```
-
-```conf
-host all all 0.0.0.0/0 md5
-```
-
-```bash
-sudo systemctl restart postgresql-12
-```
-
-**[v.Ubuntu]**
+**[v.CentOS / Ubuntu 공통]**
 
 - postgresql.conf
 
@@ -528,23 +547,31 @@ host all all 0.0.0.0/0 md5
 sudo systemctl restart postgresql
 ```
 
-## **🔐 공통 설정 (CentOS / Ubuntu)**
-
 ## 5. 비밀번호 설정 및 DB 생성
 
 ```bash
 sudo -u postgres psql
-ALTER USER postgres PASSWORD '<passwd지정>';
-CREATE DATABASE federated_digital_twin;
 ```
-
-종료:
 
 ```sql
-\q
+ALTER USER postgres PASSWORD '<passwd지정>';
 ```
 
-## 6. Dump 파일 Import
+## 6. Database 생성 (init script 사용)
+
+```bash
+psql -U postgres -f docker/postgres/init/01-create-dbs.sql
+```
+
+> 📌 해당 스크립트는 아래 DB를 생성합니다:
+>
+> - federated_digital_twin
+> - airflow_db
+
+⚠️ 이미 DB가 존재하는 경우 에러가 발생할 수 있습니다.
+필요 시 기존 DB를 삭제하거나 해당 구문을 주석 처리하세요.
+
+## 7. Dump 파일 Import
 
 ```bash
 su - postgres
@@ -559,81 +586,243 @@ psql federated_digital_twin < federated_digital_twin-dump.sql
 > ⚠️ 반드시 `federated_digital_twin-dump.sql` 파일이 해당 디렉토리에 존재해야 합니다.
 > (예: `/sync_engine/import/federated_digital_twin-dump.sql`)
 
+🔎 Notes
+
+- federated_digital_twin-dump.sql 파일에는 CREATE DATABASE 구문이 포함되어 있지 않습니다
+- 반드시 01-create-dbs.sql을 먼저 실행해야 합니다
+- Docker 환경에서는 해당 스크립트가 자동 실행됩니다
+
+---
+
+# **Apache Airflow 설치 및 설정**
+
+⚠️ Airflow는 커넥터 스케줄링 및 실행 관리를 위한 선택 구성 요소입니다.  
+PostgreSQL 메타데이터 DB 설정이 먼저 완료되어 있어야 합니다.
+
+## 1. Python 가상환경 생성
+
+**[v.Ubuntu]**
+
+```bash
+python3 -m venv /home/USER/venvs/airflow
+source /home/USER/venvs/airflow/bin/activate
+pip install --upgrade pip setuptools wheel
+```
+
+**[v.CentOS]**
+
+```bash
+python3 -m venv /home/USER/venvs/airflow
+source /home/USER/venvs/airflow/bin/activate
+pip install --upgrade pip setuptools wheel
+```
+
+> ⚠️ USER는 실제 사용자 계정명으로 변경하세요.
+
+## 2. Apache Airflow 설치
+
+> 아래 예시는 Airflow 2.9.3 / Python 3.12 기준입니다.
+> Python 버전이 다르면 PYTHON_VERSION 값을 실제 버전에 맞게 변경해야 합니다.
+
+```bash
+export AIRFLOW_VERSION=2.9.3
+export PYTHON_VERSION=3.12
+export CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
+
+pip install "apache-airflow==${AIRFLOW_VERSION}" --constraint "${CONSTRAINT_URL}"
+pip install apache-airflow-providers-postgres --constraint "${CONSTRAINT_URL}"
+```
+
+설치 확인:
+
+```bash
+airflow version
+```
+
+## 3. AIRFLOW_HOME 설정
+
+```bash
+export AIRFLOW_HOME=~/airflow
+```
+
+필요 시 ~/.bashrc에 영구 적용:
+
+```bash
+echo 'export AIRFLOW_HOME=~/airflow' >> ~/.bashrc
+source ~/.bashrc
+```
+
+## 4. airflow.cfg 설정
+
+Airflow 초기 실행 후 생성된 `airflow.cfg` 파일을 수정합니다.
+
+```bash
+cd ~/airflow
+vi airflow.cfg
+```
+
+아래 항목을 수정합니다.
+
+```bash
+sql_alchemy_conn = postgresql+psycopg2://postgres:<postgresql비밀번호>@<POSTGRES_HOST>:5432/airflow_db
+result_backend = db+postgresql://postgres:<postgresql비밀번호>@<POSTGRES_HOST>:5432/airflow_db
+executor = LocalExecutor
+load_examples = False
+```
+
+예시:
+
+```bash
+sql_alchemy_conn = postgresql+psycopg2://postgres:keti123@localhost:5432/airflow_db
+result_backend = db+postgresql://postgres:keti123@localhost:5432/airflow_db
+executor = LocalExecutor
+load_examples = False
+```
+
+> ⚠️ POSTGRES_HOST는 PostgreSQL 서버 주소를 의미합니다.
+> 단일 서버 환경이면 localhost, 분리된 DB 서버를 사용하는 경우 해당 서버 IP를 입력하세요.
+
+## 5. Airflow DB 초기화 및 관리자 계정 생성
+
+DB 마이그레이션:
+
+```bash
+airflow db migrate
+```
+
+관리자 계정 생성:
+
+```bash
+airflow users create \
+  --username admin \
+  --firstname admin \
+  --lastname user \
+  --role Admin \
+  --email admin@example.com \
+  --password admin
+```
+
+## 6. Airflow Code Editor 설치
+
+```bash
+pip install airflow-code-editor
+pip install "fsspec>=2024.3.0,<2025"
+pip install s3fs
+```
+
+## 7. 커스텀 플러그인 경로 설정
+
+커스텀 커넥터 런타임을 사용할 경우 plugins 디렉토리를 Python import 경로에 추가합니다.
+
+```bash
+export PYTHONPATH=/home/USER/airflow/plugins:$PYTHONPATH
+```
+
+필요 시 ~/.bashrc에 영구 적용:
+
+```bash
+echo 'export PYTHONPATH=/home/USER/airflow/plugins:$PYTHONPATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+> ⚠️ USER는 실제 사용자 계정명으로 변경하세요.
+
+## 8. Airflow 실행
+
+### 8-1. Scheduler 실행
+
+```bash
+source /home/USER/venvs/airflow/bin/activate
+export AIRFLOW_HOME=~/airflow
+export PYTHONPATH=/home/USER/airflow/plugins:$PYTHONPATH
+
+airflow scheduler
+```
+
+### 8-2. Webserver 실행
+
+다른 터미널에서:
+
+```bash
+source /home/USER/venvs/airflow/bin/activate
+export AIRFLOW_HOME=~/airflow
+export PYTHONPATH=/home/USER/airflow/plugins:$PYTHONPATH
+
+airflow webserver -p 8080
+```
+
+접속 예시:
+
+```bash
+http://localhost:8080
+```
+
+## Connector Development Guide (Using Airflow web)
+
+FederatedTwin allows developers to create custom connectors for ingesting external data.
+
+ℹ️ FederatedTwin\airflow\CREATE_CONNECTOR.md 참고
+
 ---
 
 # **federatedDigitalBrain/federatedDigitalConnector 설정**
 
-⚠️ 이 단계에서는 Brain과 Connector의 설정 파일을 모두 수정해야 합니다.
-두 서비스는 서로 다른 포트를 사용하지만 같은 서버 IP를 공유합니다.
+### ⚙️ 환경 설정 (.env.node)
 
-## 1. 설정 파일 위치
+ℹ️ **.env.node 작성 안내**
+프로젝트 루트 경로에 `.env.node` 파일을 생성하여 환경 설정값을 작성할 수 있습니다.
+
+`.env.node` 파일이 존재하지 않거나 특정 값이 정의되지 않은 경우,
+시스템은 **기본 설정값(default configuration)** 으로 실행됩니다.
+
+**📁 File Location**
+
+`.env.node` 파일의 프로젝트 루트 위치 확인
+
+```
+FederatedTwin
+├── .env.node
+├── docker-compose.yml
+├── federatedDigitalBrain
+├── federatedDigitalConnector
+└── ...
+```
+
+**🌐 서버 IP 주소 설정**
+
+설정 파일 곳곳에 등장하는 `aaa.bbb.ccc.ddd` 값은  
+**현재 서버의 실제 IP 주소로 반드시 변경해야 합니다.**
+
+> 서버가 **1대일 경우 `localhost` 사용 가능**
+
+⚠️ Kafka / Flink / PostgreSQL 서버가 각기 다른 서버에 있다면 `host` 값을 **해당 서버의 IP 주소로 변경해야 합니다.**
+
+**Example**
+
+```env
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=<postgresql설정 시 지정한 비밀번호 작성>
+
+KAFKA_HOST=localhost:9092
+
+MQTT_HOST=localhost
+MQTT_PORT=1883
+
+SEDONA_JAR_PATH=/home/User/flink-1.17.0/lib/
+```
+
+**⚠️ Sedona JAR 위치 찾기**
 
 ```bash
-# Brain 설정
-cd /sync_engine/federatedDigitalBrain
-vi config/index.js
-
-# Connector 설정
-cd /sync_engine/federatedDigitalConnector
-vi config/index.js
-```
-
-> ⚠️ 두 디렉토리 모두 config/index.js를 수정해야 합니다.
-
-## 2. 서버 IP 주소 설정 (aaa.bbb.ccc.ddd 변경)
-
-설정 파일 곳곳에 등장하는 aaa.bbb.ccc.ddd 는 현재 서버의 실제 IP 주소로 반드시 변경해야 합니다. (서버 1대일 경우 localhost로 진행가능)
-⚠️ kafka, flink, DB 서버가 다른 서버에 있다면 host를 해당 서버 IP로 변경
-
-```
-# aaa.bbb.ccc.ddd 값에 서버의 실제 IP를 사용해야 합니다.
-
-🔹 Kafka / Kafka Connect 주소
-exports.kafka = {
-  host: "192.168.145.13:9092",
-  connectHost: "192.168.145.13:8083",
-};
-
-🔹 Flink SQL Gateway 주소
-exports.flink = {
-  gwOption: {
-    host: "192.168.145.13:8087",
-    hostname: "192.168.145.13",
-    port: 8087,
-  },
-  ...
-};
-
-🔹 postgresql 주소 및 비밀번호 설정
-exports.postgresPool = {
-  host: "localhost",
-  port: 5432,
-  user: "postgres",
-  password: "<postgresql설정 시 지정한 비밀번호 작성>",
-  database: "federated_digital_twin",
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-};
-```
-
-## 3. Sedona JAR 경로 수정 (sedonaJarLocation)
-
-### 3-1. Sedona JAR 실제 위치 찾기
-
-```bash
-# Flink lib에 넣었다면:
+# Flink lib:
 ls $FLINK_HOME/lib | grep sedona
 ```
 
-### 3-2. 설정 예시
+---
 
-```bash
-# 위에서 찾은 sedona jar 실제 위치 작성
-sedonaJarLocation: "/home/USER/flink-1.17.0/lib/sedona-flink-shaded_2.12-1.5.1-SNAPSHOT.jar"
-```
-
-## 4) 패키지 설치 (Brain / Connector)
+## 패키지 설치 (Brain / Connector)
 
 ```bash
 cd sync_engine\federatedDigitalBrain
@@ -669,11 +858,6 @@ bin/connect-distributed.sh -daemon config/connect-distributed.properties
 ## Flink 실행
 
 ```bash
-cd ~/flink-1.17.0
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
 # 클러스터 실행
 bin/start-cluster.sh
 
@@ -703,7 +887,7 @@ SqlGateway
 
 ---
 
-## 동기화 엔진 PM2 실행
+## 동기화 엔진(DigitalBrain/DigitalConnector) 실행
 
 ```bash
 cd sync_engine
@@ -713,3 +897,139 @@ pm2 start federatedDigitalConnector/app.js
 
 - 실행 화면 예시
   ![alt text](image.png)
+
+---
+
+# **Docker Compose 실행 가이드**
+
+본 플랫폼은 **Docker Compose 기반으로 전체 서비스를 일괄 실행**할 수 있습니다.  
+PostgreSQL, Kafka, Kafka Connect, MQTT, Flink, Digital Brain, Digital Connector, Airflow가 하나의 네트워크에서 동작합니다.
+
+## 1. 사전 요구사항
+
+아래 소프트웨어가 설치되어 있어야 합니다.
+
+| Software       | Version   |
+| -------------- | --------- |
+| Docker         | 24.x 이상 |
+| Docker Compose | v2 이상   |
+
+설치 확인
+
+```bash
+docker --version
+docker compose version
+```
+
+## 2. 환경 구성
+
+Create .env file in the project root.
+
+Example:
+
+```
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=keti123
+POSTGRES_DB=federated_digital_twin
+
+AIRFLOW_ADMIN_USERNAME=admin
+AIRFLOW_ADMIN_PASSWORD=admin1234
+AIRFLOW_ADMIN_EMAIL=admin@example.com
+
+TZ=Asia/Seoul
+
+KAFKA_HOST=kafka:9092
+KAFKA_CONNECT_HOST=kafka-connect:8083
+
+MQTT_HOST=mqtt
+MQTT_PORT=1883
+
+FLINK_GATEWAY_HOST=flink:8087
+FLINK_GATEWAY_HOSTNAME=flink
+FLINK_GATEWAY_PORT=8087
+
+KAFKA_EXTERNAL_HOST=localhost
+KAFKA_EXTERNAL_PORT=19092
+```
+
+## 3. Platform 실행
+
+**First execution**
+
+```
+docker compose up --build
+```
+
+or background execution
+
+```
+docker compose up -d --build
+```
+
+**Start existing containers**
+
+```
+docker compose up -d
+```
+
+**Restart services**
+
+```
+docker compose restart
+```
+
+**Stop services**
+
+```
+docker compose down
+```
+
+**View logs**
+
+```
+docker compose logs -f
+```
+
+Specific service logs:
+
+```
+docker compose logs -f digital-brain
+docker compose logs -f digital-connector
+```
+
+## Service Endpoints
+
+After the platform starts, the following services become available.
+| Service | URL |
+| --------------------- | ---------------------------------------------- |
+| Airflow Web UI | [http://localhost:8080](http://localhost:8080) |
+| Kafka Connect API | [http://localhost:8083](http://localhost:8083) |
+| Flink Web UI | [http://localhost:8081](http://localhost:8081) |
+| Digital Brain API | [http://localhost:1213](http://localhost:1213) |
+| Digital Connector API | [http://localhost:1219](http://localhost:1219) |
+
+## Container Status
+
+Check running containers:
+
+```
+docker compose ps
+```
+
+Example output:
+
+```
+federatedtwin-postgres
+federatedtwin-kafka
+federatedtwin-kafka-connect
+federatedtwin-mqtt
+federatedtwin-flink
+federatedtwin-digital-brain
+federatedtwin-digital-connector
+federatedtwin-airflow-webserver
+federatedtwin-airflow-scheduler
+```
+
+---

@@ -99,8 +99,9 @@ public class HttpSinkSimulationSlideStepTask extends SinkTask {
     }
 
     @Override
-    public void put(Collection<SinkRecord> records) {
+    public void put(Collection<SinkRecord> records) { // record 를 가져와서 데이터 처리
 
+        // topic 에서 polling 되어 처리가 되어야 하는 다수의 레코드
         if (records.isEmpty()) {
             return;
         }
@@ -108,23 +109,26 @@ public class HttpSinkSimulationSlideStepTask extends SinkTask {
         try {
             switch (resource_type) {
                 case "digital_object":
+                    //System.out.println("resource type: digital_object");
                     sendDOpostRequest(records);
                     break;
                 case "simulation":
+                    //System.out.println("resource type: simulation");
                     break;
                 case "federated_digital_object":
+                    //System.out.println("resource type: digital_object");
                     sendFDOpostRequest(records);
                     break;
                 default:
+                    //System.out.println("resource type: not case");
+                    //sendPostRequest(records);
                     break;
             }
 
         } catch (Exception e) {
-            // ❌ 기존: throw new RuntimeException(e);
-            // ✅ 커넥터가 죽지 않도록 로그만 찍고 계속 진행
-            System.out.println("[WARN] HttpSinkSimulationSlideStepTask.put() error: " + e.getMessage());
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
+
     }
 
     private void getInitDOdataFromPostgresReverse() throws IOException {
@@ -137,19 +141,9 @@ public class HttpSinkSimulationSlideStepTask extends SinkTask {
 
             List<JSONObject> rows = new ArrayList<>();
             while (resultSet.next()) {
-                String data = resultSet.getString("data");
-                String rowtime = resultSet.getString("rowtime");
-
-                // ✅ rowtime null/빈 값/문자열 "null" 이면 스킵
-                if (rowtime == null || rowtime.trim().isEmpty()
-                        || "null".equalsIgnoreCase(rowtime.trim())) {
-                    System.out.println("[WARN] Skip init DO row because rowtime is null or empty. data=" + data);
-                    continue;
-                }
-
                 JSONObject row = new JSONObject();
-                row.put("data", data);
-                row.put("rowtime", rowtime);
+                row.put("data", resultSet.getString("data"));
+                row.put("rowtime", resultSet.getString("rowtime"));
                 rows.add(row);
             }
 
@@ -275,7 +269,9 @@ public class HttpSinkSimulationSlideStepTask extends SinkTask {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
     }
+
 
     private void getInitFDOdataFromPostgresReverse() throws IOException {
         try {
@@ -286,19 +282,9 @@ public class HttpSinkSimulationSlideStepTask extends SinkTask {
 
             List<JSONObject> rows = new ArrayList<>();
             while (resultSet.next()) {
-                String data = resultSet.getString("data");
-                String rowtime = resultSet.getString("rowtime");
-
-                // ✅ rowtime null/빈 값/문자열 "null" 이면 스킵
-                if (rowtime == null || rowtime.trim().isEmpty()
-                        || "null".equalsIgnoreCase(rowtime.trim())) {
-                    System.out.println("[WARN] Skip init FDO row because rowtime is null or empty. data=" + data);
-                    continue;
-                }
-
                 JSONObject row = new JSONObject();
-                row.put("data", data);
-                row.put("rowtime", rowtime);
+                row.put("data", resultSet.getString("data"));
+                row.put("rowtime", resultSet.getString("rowtime"));
                 rows.add(row);
             }
 
@@ -422,8 +408,8 @@ public class HttpSinkSimulationSlideStepTask extends SinkTask {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-    }
 
+    }
 
     private void sendDOpostRequest(final Collection<SinkRecord> records) throws IOException {
 
