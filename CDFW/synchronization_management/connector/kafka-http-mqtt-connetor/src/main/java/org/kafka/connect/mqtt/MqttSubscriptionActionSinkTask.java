@@ -5,93 +5,57 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
-
-import com.hivemq.client.mqtt.datatypes.MqttQos;
-import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
-import com.hivemq.client.mqtt.mqtt3.Mqtt3BlockingClient;
-
+import org.eclipse.paho.client.mqttv3.*;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
-public class MqttSubscriptionActionSinkTask extends SinkTask {
+public class MqttSubscriptionActionSinkTask extends SinkTask implements MqttCallback {
 
     private final Logger logger = LoggerFactory.getLogger(MqttSubscriptionActionSinkConnector.class);
-    private MqttSubscriptionActionSinkConnectorConfig config;
-    private String key_topic;
-    private String resource_type;
+    MqttSubscriptionActionSinkConnectorConfig config;
+    String key_topic;
+    String resource_type;
     private String connectorName;
     private String mqttTopic;
     private String mqttClientId;
     private String mqttBrokerUri;
+    private MqttClient mqttClient;
+    private MqttConnectOptions mqttOptions;
     private List filtering_condition;
     private List filtering_action;
-    private Mqtt3BlockingClient mqttClient;
 
     @Override
     public String version() {
         return "1.0";
     }
 
-    private static class HostPort {
-        final String host;
-        final int port;
-        HostPort(String host, int port) { this.host = host; this.port = port; }
-    }
-
-    private HostPort parseBroker(String uri) {
-        try {
-            URI u = URI.create(uri.replace("mqtt://", "tcp://"));
-            String host = (u.getHost() != null) ? u.getHost() : "localhost";
-            int port = (u.getPort() > 0) ? u.getPort()
-                    : ("ssl".equalsIgnoreCase(u.getScheme()) ? 8883 : 1883);
-            return new HostPort(host, port);
-        } catch (Exception e) {
-            logger.warn("Invalid MQTT broker URI '{}', fallback to localhost:1883", uri, e);
-            return new HostPort("localhost", 1883);
-        }
-    }
-
     private void initMqttClient() {
-        HostPort hp = parseBroker(mqttBrokerUri);
+        // init variables
+        mqttOptions = new MqttConnectOptions();
+        mqttOptions.setCleanSession(true);
+        mqttOptions.setKeepAliveInterval(30);
 
-        var asyncClient = Mqtt3Client.builder()
-                .identifier((mqttClientId != null && !mqttClientId.isEmpty())
-                        ? mqttClientId : UUID.randomUUID().toString())
-                .serverHost(hp.host)
-                .serverPort(hp.port)
-                .automaticReconnect()
-                    .initialDelay(1, TimeUnit.SECONDS)
-                    .maxDelay(30, TimeUnit.SECONDS)
-                    .applyAutomaticReconnect()
-                .build()
-                .toAsync();
-
-        mqttClient = asyncClient.toBlocking();
-
+        // mqtt connect
         try {
-            mqttClient.connectWith()
-                    .keepAlive(30)
-                    .cleanSession(true)
-                    .send();
-            logger.info("[MqttSubscriptionActionSinkTask] Connected to MQTT broker({}:{}) '{}'", hp.host, hp.port, connectorName);
-        } catch (Exception e) {
-            logger.error("[MqttSubscriptionActionSinkTask] Failed to connect to MQTT broker({}:{}) '{}'", hp.host, hp.port, connectorName, e);
-            throw new RuntimeException("MQTT connect failed", e);
+            mqttClient = new MqttClient(mqttBrokerUri, mqttClientId, new MemoryPersistence());
+            mqttClient.setCallback(this);
+            mqttClient.connect(mqttOptions);
+            logger.info("[MqttSubscriptionActionSinkTask] SUCCESS to connect MQTT broker({}), connector name: '{}'", mqttBrokerUri, connectorName);
+            // logging
+        } catch (MqttException e) {
+            e.printStackTrace();
         }
 
+        // mqtt subscribe
         try {
-            mqttClient.subscribeWith()
-                    .topicFilter(mqttTopic)
-                    .qos(MqttQos.AT_MOST_ONCE)
-                    .send();
-            logger.info("[MqttSubscriptionActionSinkTask] Subscribed MQTT topic({}) '{}'", mqttTopic, connectorName);
-        } catch (Exception e) {
-            logger.warn("[MqttSubscriptionActionSinkTask] Subscription failed topic({}) '{}'", mqttTopic, connectorName, e);
+            mqttClient.subscribe(mqttTopic, 0);
+            logger.info("[MqttSubscriptionActionSinkTask] SUCCESS to subscribe MQTT topic({}), connector name: '{}'", mqttTopic, connectorName);
+        } catch (MqttException e) {
+            e.printStackTrace();
         }
     }
 
@@ -112,141 +76,198 @@ public class MqttSubscriptionActionSinkTask extends SinkTask {
 
     @Override
     public void put(Collection<SinkRecord> records) {
-        if (records == null || records.isEmpty()) return;
-
+        if (records.isEmpty()) {
+            return;
+        }
         try {
             if ("digital_object".equals(resource_type)) {
-                handleDigitalObjects(records);
+                tryExecute(records);
             } else if ("federated_digital_object".equals(resource_type)) {
-                handleFederatedObjects(records);
+                tryFDOExecute(records);
             } else {
-                logger.warn("Unsupported resource_type: {}", resource_type);
+                System.out.println("Unsupported resource_type: " + resource_type);
             }
-        } catch (Exception e) {
-            logger.error("Error in MQTT Sink put(): {}", e.getMessage(), e);
+        } catch (MqttException e) {
+            e.printStackTrace();
         }
+
     }
 
-    private boolean isFilteringListMatch(String value, String condition) {
-        try {
-            return !JsonPath.read(value, condition).toString().equals("[]");
-        } catch (Exception e) {
-            logger.debug("JsonPath evaluation error: {}", e.getMessage());
-            return false;
-        }
+    private boolean isFilteringListMatch(String value, String condition) {//
+//        logger.info("JsonPath: " + JsonPath.read(value, condition).toString());
+//        logger.info("JsonPath-result: " + !JsonPath.read(value, condition).toString().equals("[]"));
+        return !JsonPath.read(value, condition).toString().equals("[]");
     }
 
-    private void getMatchingAction(String value, String record_value) {
-        List<List> condLists = new ArrayList<>(Arrays.asList(filtering_condition));
-        List<List> actionLists = new ArrayList<>(Arrays.asList(filtering_action));
+    private void getMatchingAction(String value, String record_value) throws MqttException {
+        ArrayList<List> filtering_condition_lists = new ArrayList<List>(Arrays.asList(filtering_condition));
+        ArrayList<List> filtering_action_lists = new ArrayList<List>(Arrays.asList(filtering_action));
+        List filtering_condition_list = filtering_condition_lists.get(0);
+        List filtering_action_list = filtering_action_lists.get(0);
 
-        List condList = condLists.get(0);
-        List actList = actionLists.get(0);
-
-        for (int i = 0; i < condList.size(); i++) {
-            String condition = condList.get(i).toString();
-            String action = actList.get(i).toString();
-
-            JSONObject jsonObject = new JSONObject(record_value);
+        if (filtering_condition_list.size() != filtering_action_list.size()) {
+//            logger.info("filtering_condition_list.size() != filtering_action_list.size()");
+        }
+//        logger.info("filtering_action : " + filtering_condition_list);
+//        logger.info("filtering_condition : " + filtering_action_list);
+        for (int i = 0; i < filtering_condition_list.size(); i++) {
+            String condition = filtering_condition_list.get(i).toString();
+            String action = filtering_action_list.get(i).toString();
+//            logger.info("[action] : " + filtering_condition_list);
+//            logger.info("[condition] : " + action);
             if (isFilteringListMatch(value, condition)) {
+//                logger.info("isFilteringListMatch: if");
+                // If the condition is satisfied
+                JSONObject jsonObject = new JSONObject(record_value);
                 jsonObject.put("actionFunc", action);
+                sendMqttMessage(jsonObject.toString());
+            } else {
+                JSONObject jsonObject = new JSONObject(record_value);
+                sendMqttMessage(jsonObject.toString());
             }
-            sendMqttMessageSafe(jsonObject.toString());
         }
     }
 
-    private void sendMqttMessageSafe(String value) {
+    private void sendMqttMessage(String value) throws MqttException {
         try {
-            if (mqttClient != null) {
-                mqttClient.publishWith()
-                        .topic(mqttTopic)
-                        .payload(value.getBytes())
-                        .qos(MqttQos.AT_MOST_ONCE)
-                        .send();
+            MqttMessage message = new MqttMessage();
+            message.setPayload(value.getBytes());
+            if (mqttClient.isConnected()) {
+                mqttClient.publish(mqttTopic, message);
+            } else {
+                mqttClient.reconnect();
+                mqttClient.publish(mqttTopic, message);
             }
-        } catch (Exception e) {
-            logger.error("Failed to send MQTT message: {}", e.getMessage(), e);
+        } catch (MqttException e) {
+            logger.info(String.valueOf(e));
         }
     }
 
-    private void handleDigitalObjects(Collection<SinkRecord> records) {
+    private void tryExecute(final Collection<SinkRecord> records) throws MqttException {
         for (SinkRecord record : records) {
-            if (record == null || record.value() == null) continue;
-            String record_topic = record.topic();
-            String record_value = record.value().toString();
-
-            if (!"latestDigitalObjects".equals(record_topic)) {
-                sendMqttMessageSafe(record_value);
+            if (record == null || record.value() == null) {
                 continue;
             }
-
-            try {
-                String digital_Id = JsonPath.read(record_value, "$.digital_object_id");
-                String[] key_topicArray = key_topic.split(",");
-                for (String topic : key_topicArray) {
-                    if (digital_Id.equals(topic)) {
-                        if (!filtering_condition.get(0).equals("default")) {
-                            JSONObject jsonRecordObject = new JSONObject(record_value);
-                            String data = jsonRecordObject.optString("data", "{}");
-                            getMatchingAction(data, record_value);
-                        } else {
-                            sendMqttMessageSafe(record_value);
+            String record_topic = record.topic();
+            String record_value = record.value().toString();
+            if (record_topic.equals("latestDigitalObjects")) {
+                try {
+                    String digital_Id = JsonPath.read(record.value().toString(), "$.digital_object_id");
+                    String[] key_topicArray = key_topic.toString().split(",");
+                    for (String topic : key_topicArray) {
+                        if (digital_Id.equals(topic)) {
+                            if (!filtering_condition.get(0).equals("default")) {
+                                JSONObject jsonRecordObject = new JSONObject(record_value);
+//                                logger.info("jsonRecordObject: " + jsonRecordObject);
+                                String data = jsonRecordObject.getString("data");
+//                                logger.info("data: " + data);
+                                JSONObject jsonRecordData = new JSONObject(data);
+//                                logger.info("jsonRecordData: " + jsonRecordData);
+                                getMatchingAction(jsonRecordData.toString(), record_value);
+                            } else {
+//                                logger.info("### [else] filtering_condition.get(0).equals(\"default\")");
+                                sendMqttMessage(record_value);
+                            }
                         }
                     }
+                } catch (Exception e) {
+//                    logger.info("### [tryExecute - catch]");
+//                    logger.info(String.valueOf(e));
                 }
-            } catch (Exception e) {
-                logger.warn("DigitalObject processing error: {}", e.getMessage());
+            } else {
+//                logger.info("### [else] record_topic.equals(\"latestDigitalObjects\")");
+                sendMqttMessage(record.value().toString());
             }
         }
     }
 
-    private void handleFederatedObjects(Collection<SinkRecord> records) {
+    private void tryFDOExecute(final Collection<SinkRecord> records) throws MqttException {
         for (SinkRecord record : records) {
-            if (record == null || record.value() == null) continue;
+            if (record == null || record.value() == null) {
+                continue;
+            }
             String record_topic = record.topic();
             String value = record.value().toString();
-
-            String[] key_topicArray = key_topic.split(",");
-            for (String topic : key_topicArray) {
+            if (record_topic.equals("latestFederatedDigitalObjects")) {
                 try {
-                    String idPath;
-                    switch (record_topic) {
-                        case "latestFederatedDigitalObjects":
-                        case "fdo_control_result":
-                            idPath = "$.federated_digital_object_id";
-                            break;
-                        case "UnalliedDigitalObjects":
-                        case "do_control_result":
-                            idPath = "$.digital_object_id";
-                            break;
-                        default:
-                            sendMqttMessageSafe(value);
-                            continue;
-                    }
-                    String digital_Id = JsonPath.read(value, idPath);
-                    if (digital_Id.equals(topic)) {
-                        sendMqttMessageSafe(value);
+                    String digital_Id = JsonPath.read(record.value().toString(), "$.federated_digital_object_id");
+                    String[] key_topicArray = key_topic.toString().split(",");
+                    for (String topic : key_topicArray) {
+                        if (digital_Id.equals(topic)) {
+                            sendMqttMessage(value);
+                        }
                     }
                 } catch (Exception e) {
-                    logger.debug("FederatedObject topic({}) parse error: {}", record_topic, e.getMessage());
-                    sendMqttMessageSafe(value);
+                    logger.info(String.valueOf(e));
+                    sendMqttMessage(value);
                 }
+            } else if (record_topic.equals("UnalliedDigitalObjects")) {
+                try {
+                    String digital_Id = JsonPath.read(record.value().toString(), "$.digital_object_id");
+                    String[] key_topicArray = key_topic.toString().split(",");
+                    for (String topic : key_topicArray) {
+                        if (digital_Id.equals(topic)) {
+                            sendMqttMessage(value);
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.info(String.valueOf(e));
+                    sendMqttMessage(value);
+                }
+            } else if (record_topic.equals("fdo_control_result")) {
+                try {
+                    String digital_Id = JsonPath.read(record.value().toString(), "$.federated_digital_object_id");
+                    String[] key_topicArray = key_topic.toString().split(",");
+                    for (String topic : key_topicArray) {
+                        if (digital_Id.equals(topic)) {
+                            sendMqttMessage(value);
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.info(String.valueOf(e));
+                    sendMqttMessage(value);
+                }
+            } else if (record_topic.equals("do_control_result")) {
+                try {
+                    String digital_Id = JsonPath.read(record.value().toString(), "$.digital_object_id");
+                    String[] key_topicArray = key_topic.toString().split(",");
+                    for (String topic : key_topicArray) {
+                        if (digital_Id.equals(topic)) {
+                            sendMqttMessage(value);
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.info(String.valueOf(e));
+                    sendMqttMessage(value);
+                }
+            } else {
+                sendMqttMessage(value);
             }
         }
     }
 
     @Override
-    public void flush(Map<TopicPartition, OffsetAndMetadata> currentOffsets) {
-        // ignored
+    public void flush(Map<TopicPartition, OffsetAndMetadata> currentOffsets) { // 어디까지 데이터가 처리되었는지에 대한 정보를 받아서 commit 시점마다 어느 offset 까지 처리했는지 확인할 수 있음
+//        super.flush(currentOffsets);
+        //ignored
     }
 
     @Override
     public void stop() {
-        logger.info("Stopping MqttSubscriptionActionSinkTask '{}'", connectorName);
-        try {
-            if (mqttClient != null) mqttClient.disconnect();
-        } catch (Exception e) {
-            logger.warn("Error during MQTT disconnect: {}", e.getMessage());
-        }
+    }
+
+    @Override
+    public void connectionLost(Throwable cause) {
+
+    }
+
+    @Override
+    public void messageArrived(String topic, MqttMessage message) throws Exception {
+
+    }
+
+    @Override
+    public void deliveryComplete(IMqttDeliveryToken token) {
+
     }
 }

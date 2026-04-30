@@ -8,29 +8,26 @@ const joi = require("../../../../../middlewares/joi");
  * simulation Creation
  */
 router.post("/", joi.simulationsLight.create, async function (req, res) {
-   try {
-      const { digital_twin_id } = req;
-      const result = await services.simulations.create(
-         digital_twin_id,
-         req.body
-      );
+  try {
+    const { digital_twin_id } = req;
+    const result = await services.simulations.create(digital_twin_id, req.body);
 
-      res.success(201, result);
-   } catch (e) {
-      if (!(e instanceof ErrorHandler)) {
-         logger.error(e);
-         e = new ErrorHandler(
-            500,
-            500,
-            "Internal Server Error of creating simulation"
-         );
-      }
-      e.handle(
-         req,
-         res,
-         `POST /fedit/v1/digital-twins/{digital_twin_id}/simulations ${e}`
+    res.success(201, result);
+  } catch (e) {
+    if (!(e instanceof ErrorHandler)) {
+      logger.error(e);
+      e = new ErrorHandler(
+        500,
+        500,
+        "Internal Server Error of creating simulation",
       );
-   }
+    }
+    e.handle(
+      req,
+      res,
+      `POST /fedit/v1/digital-twins/{digital_twin_id}/simulations ${e}`,
+    );
+  }
 });
 
 /**
@@ -39,36 +36,36 @@ router.post("/", joi.simulationsLight.create, async function (req, res) {
  * @returns {Json} {}
  */
 router.get("/", async (req, res) => {
-   try {
-      const { digital_twin_id } = req;
-      const { name } = req.query;
-      let result;
-      if (name) {
-         result = await services.simulations.search({
-            digital_twin_id,
-            name,
-         });
-      } else {
-         result = await services.simulations.getAll({
-            digital_twin_id,
-         });
-      }
-      res.success(200, result);
-   } catch (e) {
-      if (!(e instanceof ErrorHandler)) {
-         logger.error(e);
-         e = new ErrorHandler(
-            500,
-            500,
-            "Internal Server Error of searching simulation"
-         );
-      }
-      e.handle(
-         req,
-         res,
-         `Search /fedit/v1/digital-twins/{digital_twin_id}/simulations/{simulation_id}`
+  try {
+    const { digital_twin_id } = req;
+    const { name } = req.query;
+    let result;
+    if (name) {
+      result = await services.simulations.search({
+        digital_twin_id,
+        name,
+      });
+    } else {
+      result = await services.simulations.getAll({
+        digital_twin_id,
+      });
+    }
+    res.success(200, result);
+  } catch (e) {
+    if (!(e instanceof ErrorHandler)) {
+      logger.error(e);
+      e = new ErrorHandler(
+        500,
+        500,
+        "Internal Server Error of searching simulation",
       );
-   }
+    }
+    e.handle(
+      req,
+      res,
+      `Search /fedit/v1/digital-twins/{digital_twin_id}/simulations/{simulation_id}`,
+    );
+  }
 });
 
 /**
@@ -77,30 +74,30 @@ router.get("/", async (req, res) => {
  * @returns {Json} {}
  */
 router.get("/:simulation_id", async (req, res) => {
-   try {
-      const { digital_twin_id } = req;
-      const { simulation_id } = req.params;
-      const result = await services.simulations.retrieve({
-         digital_twin_id,
-         simulation_id,
-      });
+  try {
+    const { digital_twin_id } = req;
+    const { simulation_id } = req.params;
+    const result = await services.simulations.retrieve({
+      digital_twin_id,
+      simulation_id,
+    });
 
-      res.success(200, result);
-   } catch (e) {
-      if (!(e instanceof ErrorHandler)) {
-         logger.error(e);
-         e = new ErrorHandler(
-            500,
-            500,
-            "Internal Server Error of simulation retrieving"
-         );
-      }
-      e.handle(
-         req,
-         res,
-         `Retrieve /fedit/v1/digital-twins/{digital_twin_id}/simulation/{simulation_id}`
+    res.success(200, result);
+  } catch (e) {
+    if (!(e instanceof ErrorHandler)) {
+      logger.error(e);
+      e = new ErrorHandler(
+        500,
+        500,
+        "Internal Server Error of simulation retrieving",
       );
-   }
+    }
+    e.handle(
+      req,
+      res,
+      `Retrieve /fedit/v1/digital-twins/{digital_twin_id}/simulation/{simulation_id}`,
+    );
+  }
 });
 
 /**
@@ -111,35 +108,35 @@ router.get("/:simulation_id", async (req, res) => {
  * @returns {Json} {}
  */
 router.patch(
-   "/:simulation_id",
-   joi.simulationsLight.update,
-   async function (req, res) {
-      try {
-         const { digital_twin_id } = req;
-         const { simulation_id } = req.params;
+  "/:simulation_id",
+  joi.simulationsLight.update,
+  async function (req, res) {
+    try {
+      const { digital_twin_id } = req;
+      const { simulation_id } = req.params;
 
-         const result = await services.simulations.update(
-            { digital_twin_id, simulation_id },
-            req.body
-         );
+      const result = await services.simulations.update(
+        { digital_twin_id, simulation_id },
+        req.body,
+      );
 
-         res.success(201, result);
-      } catch (e) {
-         if (!(e instanceof ErrorHandler)) {
-            logger.error(e);
-            e = new ErrorHandler(
-               500,
-               500,
-               "Internal Server Error of updating simulation"
-            );
-         }
-         e.handle(
-            req,
-            res,
-            `POST /fedit/v1/digital-twins/{digital_twin_id}/simulations/{simulation_id} ${e}`
-         );
+      res.success(201, result);
+    } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+        logger.error(e);
+        e = new ErrorHandler(
+          500,
+          500,
+          "Internal Server Error of updating simulation",
+        );
       }
-   }
+      e.handle(
+        req,
+        res,
+        `POST /fedit/v1/digital-twins/{digital_twin_id}/simulations/{simulation_id} ${e}`,
+      );
+    }
+  },
 );
 
 /**
@@ -148,30 +145,30 @@ router.patch(
  * @returns {Json} {}
  */
 router.delete("/:simulation_id", async (req, res) => {
-   try {
-      const { digital_twin_id } = req;
-      const { simulation_id } = req.params;
-      const result = await services.simulations.delete({
-         digital_twin_id,
-         simulation_id,
-      });
+  try {
+    const { digital_twin_id } = req;
+    const { simulation_id } = req.params;
+    const result = await services.simulations.delete({
+      digital_twin_id,
+      simulation_id,
+    });
 
-      res.success(200, result);
-   } catch (e) {
-      if (!(e instanceof ErrorHandler)) {
-         logger.error(e);
-         e = new ErrorHandler(
-            500,
-            500,
-            "Internal Server Error of deleting simulation in FDT"
-         );
-      }
-      e.handle(
-         req,
-         res,
-         `Delete /fedit/v1/digital-twins/{digital_twin_id}/simulations/{simulation_id} ${e}`
+    res.success(200, result);
+  } catch (e) {
+    if (!(e instanceof ErrorHandler)) {
+      logger.error(e);
+      e = new ErrorHandler(
+        500,
+        500,
+        "Internal Server Error of deleting simulation in FDT",
       );
-   }
+    }
+    e.handle(
+      req,
+      res,
+      `Delete /fedit/v1/digital-twins/{digital_twin_id}/simulations/{simulation_id} ${e}`,
+    );
+  }
 });
 
 /**
@@ -185,24 +182,24 @@ router.delete("/:simulation_id", async (req, res) => {
  * @returns {Json} {}
  */
 router.post("/:simulation_id/execute", async function (req, res) {
-   try {
-      const { digital_twin_id } = req;
-      const { simulation_id } = req.params;
-      const result = await services.simulations.dataCreate(
-         {
-            digital_twin_id,
-            simulation_id,
-         },
-         req.body
-      );
-      res.success(200, result);
-   } catch (e) {
-      if (!(e instanceof ErrorHandler)) {
-         logger.error(e);
-         e = new ErrorHandler(500, 500, "Internal Server Error");
-      }
-      e.handle(req, res, `POST /DigitalTwin/simulations/data`);
-   }
+  try {
+    const { digital_twin_id } = req;
+    const { simulation_id } = req.params;
+    const result = await services.simulations.dataCreate(
+      {
+        digital_twin_id,
+        simulation_id,
+      },
+      req.body,
+    );
+    res.success(200, result);
+  } catch (e) {
+    if (!(e instanceof ErrorHandler)) {
+      logger.error(e);
+      e = new ErrorHandler(500, 500, "Internal Server Error");
+    }
+    e.handle(req, res, `POST /DigitalTwin/simulations/data`);
+  }
 });
 
 /**
@@ -212,27 +209,27 @@ router.post("/:simulation_id/execute", async function (req, res) {
  * @returns {Json} {}
  */
 router.post(
-   "/:simulation_id/data/:simulation_data_id/result",
-   async function (req, res) {
-      try {
-         const { digital_twin_id } = req;
-         const { simulation_id, simulation_data_id } = req.params;
-         const result_data = req.body;
-         const result = await services.simulations.resultAsyncUpdate({
-            digital_twin_id,
-            simulation_id,
-            simulation_data_id,
-            result_data,
-         });
-         res.success(200, result);
-      } catch (e) {
-         if (!(e instanceof ErrorHandler)) {
-            logger.error(e);
-            e = new ErrorHandler(500, 500, "Internal Server Error");
-         }
-         e.handle(req, res, `POST /DigitalTwin/simulations/data/result`);
+  "/:simulation_id/data/:simulation_data_id/result",
+  async function (req, res) {
+    try {
+      const { digital_twin_id } = req;
+      const { simulation_id, simulation_data_id } = req.params;
+      const result_data = req.body;
+      const result = await services.simulations.resultAsyncUpdate({
+        digital_twin_id,
+        simulation_id,
+        simulation_data_id,
+        result_data,
+      });
+      res.success(200, result);
+    } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+        logger.error(e);
+        e = new ErrorHandler(500, 500, "Internal Server Error");
       }
-   }
+      e.handle(req, res, `POST /DigitalTwin/simulations/data/result`);
+    }
+  },
 );
 
 /**
@@ -241,25 +238,25 @@ router.post(
  * @returns {Json} {}
  */
 router.get("/:simulation_id/data", async function (req, res) {
-   try {
-      const { digital_twin_id } = req;
-      const { simulation_id } = req.params;
-      const { from, to, count } = req.query;
-      const result = await services.simulations.dataRetrieve({
-         digital_twin_id,
-         simulation_id,
-         from,
-         to,
-         count,
-      });
-      res.success(200, result);
-   } catch (e) {
-      if (!(e instanceof ErrorHandler)) {
-         logger.error(e);
-         e = new ErrorHandler(500, 500, "Internal Server Error");
-      }
-      e.handle(req, res, `POST /DigitalTwin/simulations/data`);
-   }
+  try {
+    const { digital_twin_id } = req;
+    const { simulation_id } = req.params;
+    const { from, to, count } = req.query;
+    const result = await services.simulations.dataRetrieve({
+      digital_twin_id,
+      simulation_id,
+      from,
+      to,
+      count,
+    });
+    res.success(200, result);
+  } catch (e) {
+    if (!(e instanceof ErrorHandler)) {
+      logger.error(e);
+      e = new ErrorHandler(500, 500, "Internal Server Error");
+    }
+    e.handle(req, res, `POST /DigitalTwin/simulations/data`);
+  }
 });
 
 module.exports = router;

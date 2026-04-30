@@ -2,61 +2,29 @@ apply plugin: 'java'
 
 group 'com.keti'
 version '1.0'
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-}
+sourceCompatibility = JavaVersion.VERSION_1_8
 
 repositories {
     mavenCentral()
 }
 
-/**
- * 라이선스 이슈 나는 트랜지티브 전역 차단
- * - javax.ws.rs:javax.ws.rs-api (EPL/GPL)
- * - junit:junit (CPL가 런타임에 섞이는 구버전 POM 이슈 방지)
- */
-configurations.all {
-    exclude group: "javax.ws.rs", module: "javax.ws.rs-api"
-    exclude group: "javax.mail"           // 옛 그룹
-    exclude group: "com.sun.mail"         // 새로운 그룹
-    exclude group: "javax.servlet", module: "javax.servlet-api"
-    exclude group: "ch.qos.logback"       // classic/core 모두 제거
-    exclude group: "junit", module: "junit"
-    exclude group: "org.eclipse.paho", module: "org.eclipse.paho.client.mqttv3"
-}
-
 ext {
-    set('connectApi', '2.8.0')     // 하나로 통일 (기존 2.5.0 + 2.8.0 중복 제거)
+    set('connectApi', '2.8.0')
     set('slf4jSimple', '1.7.30')
     set('jsonPath', '2.6.0')
 }
 
 dependencies {
-    // Kafka Connect API
     implementation "org.apache.kafka:connect-api:${connectApi}"
-
-    // json-simple 유지 시, 안전하게 한 번 더 제외(중복 방어)
-    implementation("com.googlecode.json-simple:json-simple:1.1.1") {
-        exclude group: "junit", module: "junit"
-    }
-
     implementation "org.slf4j:slf4j-simple:${slf4jSimple}"
-    implementation "com.jayway.jsonpath:json-path:${jsonPath}"
-    implementation "com.fasterxml.jackson.core:jackson-databind:2.12.5"
+    implementation "com.jayway.jsonpath:json-path:2.6.0"
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.5'
 }
 
-/**
- * fat/uber JAR
- */
 task uberJar(type: Jar) {
-    archiveClassifier = 'all'
     from sourceSets.main.output
     dependsOn configurations.runtimeClasspath
     from {
         configurations.runtimeClasspath.findAll { it.name.endsWith('jar') }.collect { zipTree(it) }
     }
-    // (중복 메타정보 충돌 시 필요)
-    // duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

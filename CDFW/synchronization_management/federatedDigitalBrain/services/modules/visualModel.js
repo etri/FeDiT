@@ -39,8 +39,8 @@ class VisualModel {
          const selectedDTdata = await model.postgres.selectData({
             sql: selectDTsql,
          });
-         visualModelCount =
-            parseInt(selectedDTdata.number_of_visual_models) + 1;
+         selectedDTdata.number_of_visual_models ? visualModelCount =
+            parseInt(selectedDTdata.number_of_visual_models) + 1 : visualModelCount = 1
       }
       const { visual_model_name, description, keywords, creator_id } = req.body;
       const visual_data = req.file;
@@ -260,13 +260,13 @@ class VisualModel {
       });
 
       if (isExistID) {
-         const selectDTsql = `select * from digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
+         const selectDTsql = `select * from federated_digital_twins where federated_digital_twin_id = '${federated_digital_twin_id}'`;
          const selectedDTdata = await model.postgres.selectData({
             sql: selectDTsql,
          });
          const visualModelCount =
             parseInt(selectedDTdata.number_of_visual_models) - 1;
-         const updatevisualModelCountSQL = `update digital_twins set number_of_visual_models = ${visualModelCount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}'; `;
+         const updatevisualModelCountSQL = `update federated_digital_twins set number_of_visual_models = ${visualModelCount}, modification_time = '${lib.timestamp()}' where federated_digital_twin_id = '${federated_digital_twin_id}'; `;
 
          const { location, visual_model_format } = await this.retrieve({
             federated_digital_twin_id,
@@ -274,10 +274,10 @@ class VisualModel {
          });
          try {
             fs.unlinkSync(
-               `${location}/${visual_model_id}${visual_model_format}`
+               `${location}${visual_model_id}${visual_model_format}`
             );
             logger.info(
-               `Visual Model File Delete Success : ${location}/${visual_model_id}${visual_model_format}`
+               `Visual Model File Delete Success : ${location}${visual_model_id}${visual_model_format}`
             );
          } catch (e) {
             logger.error("Visual Model File Delete Fail : ", e);

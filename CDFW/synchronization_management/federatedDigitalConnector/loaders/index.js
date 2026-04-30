@@ -3,6 +3,7 @@ const expressLoader = require("./express");
 const mqttLoader = require("./mqtt");
 const kafkaLoader = require("./kafka");
 const postgresLoader = require("./postgres");
+const multerLoader = require("./multer");
 const logger = require("../lib/logger");
 
 exports.start = async ({ app }) => {
@@ -11,6 +12,6 @@ exports.start = async ({ app }) => {
   mqttLoader.init();
   kafkaLoader.init();
   postgresLoader.init();
-
+  multerLoader.init();
   logger.info("all loaders initialized");
 };

@@ -4,20 +4,13 @@
 
 -- Dumped from database version 12.13 (Ubuntu 12.13-1.pgdg18.04+1)
 -- Dumped by pg_dump version 15.2
-
-
-CREATE DATABASE federated_digital_twin;
-
-ALTER DATABASE federated_digital_twin OWNER TO postgres;
-
-\connect federated_digital_twin
-
+-- removed CREATE DATABASE / \connect for docker init import
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
+SELECT pg_catalog.set_config('search_path', 'public', false);
 SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
@@ -52,6 +45,8 @@ CREATE TABLE public.digital_object_controllers (
     control_delivery_time timestamp with time zone,
     control_delivery_result text,
     control_command jsonb,
+    delivery_status text,
+    delivery_error text
 );
 
 
@@ -87,16 +82,19 @@ CREATE TABLE public.digital_objects (
     creation_time timestamp with time zone,
     modification_time timestamp with time zone,
     digital_object_data_access_type text,
+    digital_object_data_source_type text,
+    digital_object_data_source_base_url text,
+    digital_object_data_source_url text,
     digital_object_data_access_url text,
     digital_object_control_url text,
+    digital_object_control_delivery_timeout integer,
+    digital_object_control_execution_timeout integer,
     digital_object_data_model json,
     digital_object_data_interval integer,
     digital_object_control_request_model jsonb,
     do_metadata jsonb,
     preliminary_field jsonb,
-    subjects text[],
-    digital_object_data_source_type text,
-    digital_object_data_source_url text
+    subjects text[]
 );
 
 
@@ -136,6 +134,7 @@ ALTER TABLE public.digital_twins OWNER TO postgres;
 
 CREATE TABLE public.fdo_compositions (
     compose_id text NOT NULL,
+    compose_numeric_id integer,
     federated_digital_twin_id text,
     federated_digital_object_id text,
     digital_object_id text,
@@ -153,6 +152,7 @@ ALTER TABLE public.fdo_compositions OWNER TO postgres;
 
 CREATE TABLE public.fdo_sync_compositions (
     compose_id text,
+    compose_numeric_id integer,
     federated_digital_twin_id text,
     federated_digital_object_id text,
     time_sync integer,
@@ -190,13 +190,23 @@ ALTER TABLE public.federated_augment_models OWNER TO postgres;
 --
 
 CREATE TABLE public.federated_control_result (
+    federated_digital_object_control_result_id text,
     federated_digital_object_control_data_id text,
     federated_digital_object_id text,
     digital_object_id text,
     federated_digital_object_control_execution_time timestamp with time zone,
-    federated_digital_object_control_execution_result text
+    federated_digital_object_control_execution_result text,
+    control_status text NOT NULL DEFAULT 'PENDING',
+    attempt_count integer NOT NULL DEFAULT 0,
+    updated_at timestamp with time zone,
+    last_error text
 );
 
+CREATE INDEX idx_fcr_fdo_control
+ON public.federated_control_result (
+  federated_digital_object_id,
+  federated_digital_object_control_data_id
+);
 
 ALTER TABLE public.federated_control_result OWNER TO postgres;
 
@@ -538,16 +548,28 @@ CREATE TABLE public.federated_visual_models (
     visual_model_access_url text,
     visual_model_format text,
     visual_model_file_size integer,
-    location jsonb
+    location text
 );
-
 
 ALTER TABLE public.federated_visual_models OWNER TO postgres;
 
---
--- TOC entry 229 (class 1259 OID 41708)
--- Name: object_classification_facility; Type: TABLE; Schema: public; Owner: postgres
---
+
+CREATE TABLE public.visual_models (
+    visual_model_id TEXT,
+    digital_twin_id TEXT,
+    visual_model_name TEXT,
+    description TEXT,
+    creation_time timestamp with time zone,
+    modification_time timestamp with time zone,
+    visual_model_access_url TEXT,
+    visual_model_format TEXT,
+    visual_model_file_size TEXT,
+    level_of_details INTEGER,
+    subjects TEXT[],
+    keywords TEXT[]
+);
+
+ALTER TABLE public.visual_models OWNER TO postgres;
 
 CREATE TABLE public.object_classification_facility (
     code_number character varying(5) NOT NULL,
@@ -671,7 +693,7 @@ CREATE TABLE public.simulations (
 ALTER TABLE public.simulations OWNER TO postgres;
 
 
-CREATE TABLE connectors (
+CREATE TABLE public.connectors (
     connector_id VARCHAR(255),
     base_url TEXT,                -- The base URL used by the connector
     poll_interval INTEGER,
@@ -897,7 +919,8 @@ CREATE INDEX index_digital_objects ON public.digital_object_data USING btree (di
 
 
 
---
+CREATE INDEX idx_fdo_compositions_numeric_id ON public.fdo_compositions (compose_numeric_id);
+
 -- TOC entry 2978 (class 1259 OID 49498)
 -- Name: index_federated_digital_objectswindow_data_1; Type: INDEX; Schema: public; Owner: postgres
 --
@@ -921,8 +944,126 @@ CREATE INDEX index_federated_digital_objectswindow_data_10 ON public.federated_d
 CREATE INDEX index_federated_digital_objectswindow_data_60 ON public.federated_digital_object_window_data_60 USING btree (federated_digital_twin_id, federated_digital_object_id, rowtime);
 
 
-CREATE TABLE identifiers (
+CREATE TABLE public.identifiers (
     id SERIAL PRIMARY KEY,
     identifier_type VARCHAR(255) NOT NULL UNIQUE,
     current_serial INT NOT NULL DEFAULT 1
 );
+
+/* =========================================================
+   CONTROL NOTIFICATION TABLES (UPSERT SAFE)
+========================================================= */
+
+/* 1. Subscription Table */
+CREATE TABLE IF NOT EXISTS control_notification_subscriptions (
+  subscription_id BIGSERIAL PRIMARY KEY,
+  federated_digital_object_id TEXT NOT NULL,
+  digital_object_id TEXT NULL,
+  event_type TEXT NOT NULL,
+  target_type TEXT NOT NULL DEFAULT 'WEBHOOK',
+  target_endpoint TEXT NOT NULL,
+  description TEXT NULL,
+  is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
+/* 2. Outbox Table */
+CREATE TABLE IF NOT EXISTS control_notification_outbox (
+  notification_id BIGSERIAL PRIMARY KEY,
+  event_key TEXT NOT NULL UNIQUE,
+  federated_digital_object_id TEXT NOT NULL,
+  federated_digital_object_control_data_id TEXT NOT NULL,
+  digital_object_id TEXT NULL,
+  event_type TEXT NOT NULL,
+  payload JSONB NOT NULL,
+  send_status TEXT NOT NULL DEFAULT 'PENDING',
+  send_attempt_count INTEGER NOT NULL DEFAULT 0,
+  last_error TEXT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  sent_at TIMESTAMPTZ NULL
+);
+
+
+/* =========================================================
+   INDEXES (PERFORMANCE)
+========================================================= */
+
+/* 기존 인덱스 제거 (존재할 경우만) */
+DROP INDEX IF EXISTS idx_cns_fdo;
+DROP INDEX IF EXISTS idx_cno_pending;
+
+/* Subscription 조회 최적화 */
+CREATE INDEX IF NOT EXISTS idx_cns_match
+ON control_notification_subscriptions (
+  federated_digital_object_id,
+  event_type,
+  digital_object_id,
+  is_enabled
+);
+
+/* Outbox worker 조회 최적화 */
+CREATE INDEX IF NOT EXISTS idx_cno_worker
+ON control_notification_outbox (
+  send_status,
+  send_attempt_count,
+  created_at
+);
+
+
+/* =========================================================
+   CONSTRAINTS (DATA INTEGRITY)
+========================================================= */
+
+/* send_status 값 제한 */
+ALTER TABLE control_notification_outbox
+DROP CONSTRAINT IF EXISTS chk_send_status;
+
+ALTER TABLE control_notification_outbox
+ADD CONSTRAINT chk_send_status
+CHECK (send_status IN ('PENDING', 'SENT', 'FAILED'));
+
+
+/* event_type 값 제한 */
+ALTER TABLE control_notification_subscriptions
+DROP CONSTRAINT IF EXISTS chk_event_type;
+
+ALTER TABLE control_notification_subscriptions
+ADD CONSTRAINT chk_event_type
+CHECK (
+  event_type IN (
+    'CONTROL_NO_ACK',
+    'CONTROL_DELIVERY_FAILED',
+    'CONTROL_FAILED',
+    'CONTROL_TIMEOUT',
+    'CONTROL_SUCCEEDED'
+  )
+);
+
+
+/* =========================================================
+   UPDATED_AT 자동 갱신 트리거
+========================================================= */
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+
+DROP TRIGGER IF EXISTS trg_update_cns_updated_at
+ON control_notification_subscriptions;
+
+CREATE TRIGGER trg_update_cns_updated_at
+BEFORE UPDATE ON control_notification_subscriptions
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
+
+-- 7일 지난 SENT 삭제
+DELETE FROM control_notification_outbox
+WHERE send_status = 'SENT'
+AND created_at < NOW() - INTERVAL '7 days';
