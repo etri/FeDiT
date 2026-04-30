@@ -1,3 +1,22 @@
+/**
+ * FederatedTwin Configuration
+ * Supports Docker environment variables (.env)
+ */
+
+const env = (key, def) => process.env[key] || def;
+const num = (key, def) => Number(process.env[key] || def);
+
+/**
+ * nginx (optional)
+ */
+exports.nginx = {
+  url: env("NGINX_URL", null),
+  ip: env("NGINX_IP", null),
+  port: env("NGINX_PORT", null),
+  base: env("NGINX_BASE", null),
+};
+
+// federatedDigitalConnector config
 exports.type = {
   federatedigitalTwin: 0,
   digitalTwin: 1,
@@ -12,68 +31,106 @@ exports.type = {
   subscription: 10,
 };
 
-exports.nginx = {
-  url: null,
-  ip: null,
-  port: null,
-  base: null,
-};
-
+/**
+ * Federated Digital Brain
+ */
 exports.federatedDigitalBrain = {
-  ip: "localhost",
-  port: "1213",
-  base: "fedit/v1/federated-twins",
-};
-
-exports.federatedDigitalConnector = {
-  ip: "localhost",
-  port: "1219",
+  ip: env("BRAIN_HOST", "localhost"),
+  port: env("BRAIN_PORT", "1213"),
   base: "fedit/v1/federated-twins",
 };
 
 /**
- * 네이밍 규칙 만들기 (abbreviation)
+ * Federated Digital Connector
+ */
+exports.federatedDigitalConnector = {
+  ip: env("CONNECTOR_HOST", "localhost"),
+  port: env("CONNECTOR_PORT", "1219"),
+  base: "fedit/v1",
+};
+
+/**
+ * Log Server
  */
 exports.logServer = {
-  ip: "localhost",
-  port: "7890",
-  projectName: "LAKE",
-  serverName: "CN",
+  ip: env("LOG_SERVER_IP", "localhost"),
+  port: env("LOG_SERVER_PORT", "7890"),
+  projectName: env("LOG_PROJECT", "LAKE"),
+  serverName: env("LOG_SERVER_NAME", "BR"),
 };
 
+/**
+ * MQTT
+ */
 exports.mqtt = {
-  ip: "localhost",
-  port: "1883",
+  ip: env("MQTT_HOST", "localhost"),
+  port: env("MQTT_PORT", "1883"),
 };
 
+/**
+ * Kafka
+ */
 exports.kafka = {
-  host: "localhost:9092",
-  connectHost: "localhost:8083",
+  host: env("KAFKA_HOST", "localhost:9092"),
+  connectHost: env("KAFKA_CONNECT_HOST", "localhost:8083"),
 };
 
+/**
+ * Flink configuration
+ */
 exports.flink = {
   ksqlOptions: {
-    hostname: "localhost",
-    port: 8088,
+    hostname: env("KSQL_HOST", "localhost"),
+    port: num("KSQL_PORT", 8088),
     headers: {
       "Content-Type": "application/vnd.ksql.v1+json",
       Accept: "application/vnd.ksql.v1+json",
     },
   },
+
   gwOption: {
-    host: "localhost:8087",
-    hostname: "localhost",
-    port: 8087,
+    host: env("FLINK_GATEWAY_HOST", "localhost:8087"),
+    hostname: env("FLINK_GATEWAY_HOSTNAME", "localhost"),
+    port: num("FLINK_GATEWAY_PORT", 8087),
   },
 };
 
+/**
+ * PostgreSQL connection pool
+ */
 exports.postgresPool = {
-  host: "localhost",
-  port: 5432,
-  user: "postgres",
-  password: "keti123",
-  database: "federated_digital_twin",
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  host: env("POSTGRES_HOST", "localhost"),
+  port: num("POSTGRES_PORT", 5432),
+  user: env("POSTGRES_USER", "postgres"),
+  password: env("POSTGRES_PASSWORD", "postgres"),
+  database: env("POSTGRES_DB", "federated_digital_twin"),
+
+  max: num("POSTGRES_POOL_MAX", 20),
+  idleTimeoutMillis: num("POSTGRES_IDLE_TIMEOUT", 30000),
+  connectionTimeoutMillis: num("POSTGRES_CONN_TIMEOUT", 2000),
+};
+
+exports.multer = {
+  uploadFolder: env("UPLOAD_FOLDER", "visual-model-assets/"),
+  fileSizeLimit: num("UPLOAD_MAX_SIZE", 100 * 1024 * 1024),
+  allowMimetype: [
+    ".fbx",
+    ".dae",
+    ".3ds",
+    ".dxf",
+    ".obj",
+    ".ma",
+    ".mb",
+    ".max",
+    ".c4d",
+    ".blend",
+    ".bmp",
+    ".tif",
+    ".tga",
+    ".jpg",
+    ".jpeg",
+    ".psd",
+    ".png",
+    ".zip",
+  ],
 };
