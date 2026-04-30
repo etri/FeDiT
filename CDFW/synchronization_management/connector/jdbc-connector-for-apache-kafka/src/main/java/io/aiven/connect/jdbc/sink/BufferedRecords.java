@@ -25,7 +25,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.Set;
-
+import java.time.temporal.ChronoField;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -78,12 +77,12 @@ public class BufferedRecords {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    // 'yyyy-MM-dd HH:mm:ss', '.S', '.SS', '.SSS' 까지 허용
     private static final DateTimeFormatter FORMATTER =
         new DateTimeFormatterBuilder()
             .appendPattern("yyyy-MM-dd HH:mm:ss")
             .optionalStart()
-                // millisecond 1~3자리 허용 (.S, .SS, .SSS)
-                .appendFraction(ChronoField.MILLI_OF_SECOND, 1, 3, true)
+            .appendFraction(ChronoField.NANO_OF_SECOND, 1, 3, true)
             .optionalEnd()
             .toFormatter();
 
@@ -211,7 +210,8 @@ public class BufferedRecords {
             final Object val = e.getValue();
             try {
                 if (isTimestampKey(key)) {
-                    final LocalDateTime ldt = LocalDateTime.parse(String.valueOf(val), FORMATTER);
+                    final String ts = String.valueOf(val).trim();
+                    final LocalDateTime ldt = LocalDateTime.parse(ts, FORMATTER);
                     final long epoch = ldt.toInstant(ZoneOffset.UTC).toEpochMilli();
                     struct.put(key, new Date(epoch));
                 } else if ("data".equals(key) || "control_command".equals(key)) {
@@ -482,13 +482,11 @@ public class BufferedRecords {
     }
 
     public void close() throws SQLException {
-        log.info("Closing BufferedRecords with preparedStatement: {}", preparedStatement);
         if (preparedStatement != null) {
             preparedStatement.close();
             preparedStatement = null;
         }
 
-        log.info("Closing BufferedRecords with deletePreparedStatement: {}", deletePreparedStatement);
         if (deletePreparedStatement != null) {
             deletePreparedStatement.close();
             deletePreparedStatement = null;

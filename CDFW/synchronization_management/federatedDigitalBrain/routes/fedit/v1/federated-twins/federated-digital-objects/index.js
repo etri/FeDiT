@@ -9,29 +9,25 @@ const joi = require("../../../../../middlewares/joi");
  * FDO Creation (federated Digital Object Creation)
  */
 router.post("/", joi.federatedDigitalObjects.create, async function (req, res) {
-   try {
-      const { federated_digital_twin_id } = req;
-      const result = await services.federatedDigitalObjects.create(
-         federated_digital_twin_id,
-         req.body
-      );
+  try {
+    const { federated_digital_twin_id } = req;
+    const result = await services.federatedDigitalObjects.create(
+      federated_digital_twin_id,
+      req.body,
+    );
 
-      res.success(201, result);
-   } catch (e) {
-      if (!(e instanceof ErrorHandler)) {
-         logger.error(e);
-         e = new ErrorHandler(
-            500,
-            500,
-            "Internal Server Error of FDO Creation"
-         );
-      }
-      e.handle(
-         req,
-         res,
-         `POST /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects ${e}`
-      );
-   }
+    res.success(201, result);
+  } catch (e) {
+    if (!(e instanceof ErrorHandler)) {
+      logger.error(e);
+      e = new ErrorHandler(500, 500, "Internal Server Error of FDO Creation");
+    }
+    e.handle(
+      req,
+      res,
+      `POST /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects ${e}`,
+    );
+  }
 });
 
 /**
@@ -42,32 +38,32 @@ router.post("/", joi.federatedDigitalObjects.create, async function (req, res) {
  * @returns {Json} {}
  */
 router.get("/", async (req, res) => {
-   try {
-      const { federated_digital_twin_id } = req;
-      const { name } = req.query;
-      let result;
-      if (name) {
-         result = await services.federatedDigitalObjects.Search({
-            federated_digital_twin_id,
-            name,
-         });
-      } else {
-         result = await services.federatedDigitalObjects.getAll({
-            federated_digital_twin_id,
-         });
-      }
-      res.success(200, result);
-   } catch (e) {
-      if (!(e instanceof ErrorHandler)) {
-         logger.error(e);
-         e = new ErrorHandler(500, 500, "Internal Server Error of search FDO");
-      }
-      e.handle(
-         req,
-         res,
-         `Search /fedit/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`
-      );
-   }
+  try {
+    const { federated_digital_twin_id } = req;
+    const { name } = req.query;
+    let result;
+    if (name) {
+      result = await services.federatedDigitalObjects.Search({
+        federated_digital_twin_id,
+        name,
+      });
+    } else {
+      result = await services.federatedDigitalObjects.getAll({
+        federated_digital_twin_id,
+      });
+    }
+    res.success(200, result);
+  } catch (e) {
+    if (!(e instanceof ErrorHandler)) {
+      logger.error(e);
+      e = new ErrorHandler(500, 500, "Internal Server Error of search FDO");
+    }
+    e.handle(
+      req,
+      res,
+      `Search /fedit/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`,
+    );
+  }
 });
 
 /**
@@ -78,30 +74,26 @@ router.get("/", async (req, res) => {
  * @returns {Json} {}
  */
 router.get("/:federated_digital_object_id", async (req, res) => {
-   try {
-      const { federated_digital_twin_id } = req;
-      const { federated_digital_object_id } = req.params;
-      const result = await services.federatedDigitalObjects.Retrieve({
-         federated_digital_twin_id,
-         federated_digital_object_id,
-      });
+  try {
+    const { federated_digital_twin_id } = req;
+    const { federated_digital_object_id } = req.params;
+    const result = await services.federatedDigitalObjects.Retrieve({
+      federated_digital_twin_id,
+      federated_digital_object_id,
+    });
 
-      res.success(200, result);
-   } catch (e) {
-      if (!(e instanceof ErrorHandler)) {
-         logger.error(e);
-         e = new ErrorHandler(
-            500,
-            500,
-            "Internal Server Error of retrieve FDO"
-         );
-      }
-      e.handle(
-         req,
-         res,
-         `Retrieve /fedit/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`
-      );
-   }
+    res.success(200, result);
+  } catch (e) {
+    if (!(e instanceof ErrorHandler)) {
+      logger.error(e);
+      e = new ErrorHandler(500, 500, "Internal Server Error of retrieve FDO");
+    }
+    e.handle(
+      req,
+      res,
+      `Retrieve /fedit/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`,
+    );
+  }
 });
 
 /**
@@ -115,32 +107,32 @@ router.get("/:federated_digital_object_id", async (req, res) => {
  * @returns {Json} {}
  */
 router.get("/:federated_digital_object_id/data", async function (req, res) {
-   try {
-      const { federated_digital_twin_id } = req;
-      const { federated_digital_object_id } = req.params;
-      const { from, to, count, window, offset } = req.query;
+  try {
+    const { federated_digital_twin_id } = req;
+    const { federated_digital_object_id } = req.params;
+    const { from, to, count, window, offset } = req.query;
 
-      const result = await services.federatedDigitalObjects.getData({
-         federated_digital_twin_id,
-         id: federated_digital_object_id,
-         from,
-         to,
-         count,
-         window,
-         offset,
-      });
-      res.success(201, result);
-   } catch (e) {
-      if (!(e instanceof ErrorHandler)) {
-         logger.error(e);
-         e = new ErrorHandler(500, 500, "Internal Server Error of getData FDO");
-      }
-      e.handle(
-         req,
-         res,
-         "GET /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/data"
-      );
-   }
+    const result = await services.federatedDigitalObjects.getData({
+      federated_digital_twin_id,
+      id: federated_digital_object_id,
+      from,
+      to,
+      count,
+      window,
+      offset,
+    });
+    res.success(201, result);
+  } catch (e) {
+    if (!(e instanceof ErrorHandler)) {
+      logger.error(e);
+      e = new ErrorHandler(500, 500, "Internal Server Error of getData FDO");
+    }
+    e.handle(
+      req,
+      res,
+      "GET /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/data",
+    );
+  }
 });
 
 /*
@@ -148,100 +140,96 @@ router.get("/:federated_digital_object_id/data", async function (req, res) {
  * localhost:1005/fedit/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}
  */
 router.delete("/:federated_digital_object_id", async (req, res) => {
-   try {
-      const { federated_digital_twin_id } = req;
-      const { federated_digital_object_id } = req.params;
-      const result = await services.federatedDigitalObjects.delete({
-         federated_digital_twin_id,
-         id: federated_digital_object_id,
-      });
+  try {
+    const { federated_digital_twin_id } = req;
+    const { federated_digital_object_id } = req.params;
+    const result = await services.federatedDigitalObjects.delete({
+      federated_digital_twin_id,
+      id: federated_digital_object_id,
+    });
 
-      res.success(200, result);
-   } catch (e) {
-      if (!(e instanceof ErrorHandler)) {
-         logger.error(e);
-         e = new ErrorHandler(500, 500, "Internal Server Error of delete FDO");
-      }
-      e.handle(
-         req,
-         res,
-         `Retrieve /fedit/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`
-      );
-   }
+    res.success(200, result);
+  } catch (e) {
+    if (!(e instanceof ErrorHandler)) {
+      logger.error(e);
+      e = new ErrorHandler(500, 500, "Internal Server Error of delete FDO");
+    }
+    e.handle(
+      req,
+      res,
+      `Retrieve /fedit/v1/federated-twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`,
+    );
+  }
 });
 
 /*
  * FDO UPDATE
  */
 router.patch(
-   "/:federated_digital_object_id",
-   joi.federatedDigitalObjects.update,
-   async (req, res) => {
-      try {
-         const { federated_digital_twin_id } = req;
-         const { federated_digital_object_id } = req.params;
+  "/:federated_digital_object_id",
+  joi.federatedDigitalObjects.update,
+  async (req, res) => {
+    try {
+      const { federated_digital_twin_id } = req;
+      const { federated_digital_object_id } = req.params;
 
-         const result = await services.federatedDigitalObjects.update(
-            {
-               federated_digital_twin_id,
-               id: federated_digital_object_id,
-            },
-            req.body
-         );
+      const result = await services.federatedDigitalObjects.update(
+        {
+          federated_digital_twin_id,
+          id: federated_digital_object_id,
+        },
+        req.body,
+      );
 
-         res.success(201, result);
-      } catch (e) {
-         if (!(e instanceof ErrorHandler)) {
-            logger.error(e);
-            e = new ErrorHandler(
-               500,
-               500,
-               "Internal Server Error of update FDO"
-            );
-         }
-         e.handle(
-            req,
-            res,
-            `UPDATE /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`
-         );
+      res.success(201, result);
+    } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+        logger.error(e);
+        e = new ErrorHandler(500, 500, "Internal Server Error of update FDO");
       }
-   }
+      e.handle(
+        req,
+        res,
+        `UPDATE /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}`,
+      );
+    }
+  },
 );
 
 /**
  * FDO Control Creation (federated Digital Object control message Creation)
  */
 router.post(
-   "/:federated_digital_object_id/control",
-   joi.federatedDigitalObjects.controlCreate,
-   async function (req, res) {
-      try {
-         const { federated_digital_twin_id } = req;
-         const { federated_digital_object_id } = req.params;
+  "/:federated_digital_object_id/control",
+  joi.federatedDigitalObjects.controlCreate,
+  async function (req, res) {
+    try {
+      const { federated_digital_twin_id } = req;
+      const { federated_digital_object_id } = req.params;
 
-         const result = await services.federatedDigitalObjects.createControl(
-            federated_digital_twin_id,
-            federated_digital_object_id,
-            req.body
-         );
+      const result = await services.federatedDigitalObjects.createControl(
+        federated_digital_twin_id,
+        federated_digital_object_id,
+        req.body,
+      );
 
-         res.success(201, result);
-      } catch (e) {
-         if (!(e instanceof ErrorHandler)) {
-            logger.error(e);
-            e = new ErrorHandler(
-               500,
-               500,
-               "Internal Server Error of FDO Creation"
-            );
-         }
-         e.handle(
-            req,
-            res,
-            `POST /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/control`
-         );
+      res.success(201, result);
+    } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+        logger.error(e);
+        e = new ErrorHandler(
+          500,
+          500,
+          "Internal Server Error of FDO Control Creation",
+        );
       }
-   }
+      e.handle(
+        req,
+        res,
+        `POST /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/control`,
+      );
+    }
+  },
 );
 
 /**
@@ -252,29 +240,29 @@ router.post(
  * @returns {Json} {}
  */
 router.get("/:federated_digital_object_id/control", async (req, res) => {
-   try {
-      const { federated_digital_twin_id } = req;
-      const { federated_digital_object_id } = req.params;
-      const { from, to, count } = req.query;
-      const result = await services.federatedDigitalObjects.searchControl({
-         federated_digital_twin_id,
-         federated_digital_object_id,
-         from,
-         to,
-         count,
-      });
-      res.success(200, result);
-   } catch (e) {
-      if (!(e instanceof ErrorHandler)) {
-         logger.error(e);
-         e = new ErrorHandler(500, 500, "Internal Server Error of search FDO");
-      }
-      e.handle(
-         req,
-         res,
-         `Search /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/control`
-      );
-   }
+  try {
+    const { federated_digital_twin_id } = req;
+    const { federated_digital_object_id } = req.params;
+    const { from, to, count } = req.query;
+    const result = await services.federatedDigitalObjects.searchControl({
+      federated_digital_twin_id,
+      federated_digital_object_id,
+      from,
+      to,
+      count,
+    });
+    res.success(200, result);
+  } catch (e) {
+    if (!(e instanceof ErrorHandler)) {
+      logger.error(e);
+      e = new ErrorHandler(500, 500, "Internal Server Error of search FDO");
+    }
+    e.handle(
+      req,
+      res,
+      `Search /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/control`,
+    );
+  }
 });
 
 /**
@@ -284,36 +272,140 @@ router.get("/:federated_digital_object_id/control", async (req, res) => {
  * @returns {Json} {}
  */
 router.get(
-   "/:federated_digital_object_id/control/:federated_digital_object_control_data_id",
-   async (req, res) => {
-      try {
-         const { federated_digital_twin_id } = req;
-         const {
-            federated_digital_object_id,
-            federated_digital_object_control_data_id,
-         } = req.params;
-         const result = await services.federatedDigitalObjects.retrieveControl({
-            federated_digital_twin_id,
-            federated_digital_object_id,
-            federated_digital_object_control_data_id,
-         });
-         res.success(200, result);
-      } catch (e) {
-         if (!(e instanceof ErrorHandler)) {
-            logger.error(e);
-            e = new ErrorHandler(
-               500,
-               500,
-               "Internal Server Error of search FDO"
-            );
-         }
-         e.handle(
-            req,
-            res,
-            `Search /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/control/{federated_digital_object_control_data_id}`
-         );
+  "/:federated_digital_object_id/control/:federated_digital_object_control_data_id",
+  async (req, res) => {
+    try {
+      const { federated_digital_twin_id } = req;
+      const {
+        federated_digital_object_id,
+        federated_digital_object_control_data_id,
+      } = req.params;
+      const result = await services.federatedDigitalObjects.retrieveControl({
+        federated_digital_twin_id,
+        federated_digital_object_id,
+        federated_digital_object_control_data_id,
+      });
+      res.success(200, result);
+    } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+        logger.error(e);
+        e = new ErrorHandler(500, 500, "Internal Server Error of search FDO");
       }
-   }
+      e.handle(
+        req,
+        res,
+        `Search /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/control/{federated_digital_object_control_data_id}`,
+      );
+    }
+  },
+);
+
+/**
+ * FDO Control Notification Subscription Creation
+ */
+router.post(
+  "/:federated_digital_object_id/control-notifications",
+  async function (req, res) {
+    try {
+      const { federated_digital_twin_id } = req;
+      const { federated_digital_object_id } = req.params;
+
+      const result =
+        await services.federatedDigitalObjects.createControlNotification(
+          federated_digital_twin_id,
+          federated_digital_object_id,
+          req.body,
+        );
+
+      res.success(201, result);
+    } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+        logger.error(e);
+        e = new ErrorHandler(
+          500,
+          500,
+          "Internal Server Error of FDO Control Notification Creation",
+        );
+      }
+      e.handle(
+        req,
+        res,
+        "POST /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/control-notifications",
+      );
+    }
+  },
+);
+
+/**
+ * FDO Control Notification Subscription Search
+ */
+router.get(
+  "/:federated_digital_object_id/control-notifications",
+  async function (req, res) {
+    try {
+      const { federated_digital_twin_id } = req;
+      const { federated_digital_object_id } = req.params;
+
+      const result =
+        await services.federatedDigitalObjects.searchControlNotifications({
+          federated_digital_twin_id,
+          federated_digital_object_id,
+        });
+
+      res.success(200, result);
+    } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+        logger.error(e);
+        e = new ErrorHandler(
+          500,
+          500,
+          "Internal Server Error of FDO Control Notification Search",
+        );
+      }
+      e.handle(
+        req,
+        res,
+        "GET /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/control-notifications",
+      );
+    }
+  },
+);
+
+/**
+ * FDO Control Notification Subscription Update
+ */
+router.patch(
+  "/:federated_digital_object_id/control-notifications/:subscription_id",
+  async function (req, res) {
+    try {
+      const { federated_digital_twin_id } = req;
+      const { federated_digital_object_id, subscription_id } = req.params;
+
+      const result =
+        await services.federatedDigitalObjects.updateControlNotification({
+          federated_digital_twin_id,
+          federated_digital_object_id,
+          subscription_id,
+          params: req.body,
+        });
+
+      res.success(200, result);
+    } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+        logger.error(e);
+        e = new ErrorHandler(
+          500,
+          500,
+          "Internal Server Error of FDO Control Notification Update",
+        );
+      }
+      e.handle(
+        req,
+        res,
+        "PATCH /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/control-notifications/{subscription_id}",
+      );
+    }
+  },
 );
 
 /**
@@ -326,32 +418,32 @@ router.get(
  * @returns {Json} {}
  */
 router.post(
-   "/:federated_digital_object_id/control-result",
-   joi.federatedDigitalObjects.dataResultCreate,
-   async function (req, res) {
-      try {
-         const { federated_digital_twin_id } = req;
-         const { federated_digital_object_id } = req.params;
-         const result =
-            await services.federatedDigitalObjects.createFDOExecutionData(
-               federated_digital_twin_id,
-               federated_digital_object_id,
-               req.body // controller_id, execution result
-            );
+  "/:federated_digital_object_id/control-result",
+  joi.federatedDigitalObjects.dataResultCreate,
+  async function (req, res) {
+    try {
+      const { federated_digital_twin_id } = req;
+      const { federated_digital_object_id } = req.params;
+      const result =
+        await services.federatedDigitalObjects.createFDOExecutionData(
+          federated_digital_twin_id,
+          federated_digital_object_id,
+          req.body, // controller_id, execution result
+        );
 
-         res.success(201, result);
-      } catch (e) {
-         if (!(e instanceof ErrorHandler)) {
-            logger.error(e);
-            e = new ErrorHandler(500, 500, "Internal Server Error");
-         }
-         e.handle(
-            req,
-            res,
-            "POST /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/control-result"
-         );
+      res.success(201, result);
+    } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+        logger.error(e);
+        e = new ErrorHandler(500, 500, "Internal Server Error");
       }
-   }
+      e.handle(
+        req,
+        res,
+        "POST /fedit/v1/federated_twins/{federated_digital_twin_id}/federated_digital_objects/{federated_digital_object_id}/control-result",
+      );
+    }
+  },
 );
 
 module.exports = router;

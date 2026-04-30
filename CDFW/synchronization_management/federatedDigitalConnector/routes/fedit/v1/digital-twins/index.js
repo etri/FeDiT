@@ -91,6 +91,43 @@ router.get("/", async (req, res) => {
 });
 
 /**
+ * digital-twins Sensor Data Count For Monitoring WEB
+ * ?name=SIcrain
+ * @param {string} name (required)
+ * @returns {Json} {}
+ */
+
+router.get("/data_count", async (req, res) => {
+   try {
+      const { from } = req.query;
+      const result = await services.digitalTwins.retrieveSensorDataCount({
+         from,
+      });
+
+      res.success(201, result);
+   } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+         logger.error(e);
+         e = new ErrorHandler(500, 500, "Internal Server Error");
+      }
+      e.handle(req, res, `Get /fedit/v1/digital-twins/data_count`);
+   }
+});
+
+router.get("/data_count_all", async function (req, res) {
+   try {
+      const result = await services.digitalTwins.retrieveSensorDataCountAll();
+      res.success(201, result);
+   } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+         logger.error(e);
+         e = new ErrorHandler(500, 500, "Internal Server Error");
+      }
+      e.handle(req, res, `Get /fedit/v1/digital-twins/data_count_all`);
+   }
+});
+
+/**
  * digital-twins Retrieve
  * @param {string} digital_twin_id (required)
  * @returns {Json} {}
@@ -162,6 +199,7 @@ router.delete("/:digital_twin_id", async (req, res) => {
       e.handle(req, res, `Delete /fedit/v1/digital-twins`);
    }
 });
+
 
 const receiveDigitalTwinId = (req, res, next) => {
    req.digital_twin_id = req.params.digital_twin_id;

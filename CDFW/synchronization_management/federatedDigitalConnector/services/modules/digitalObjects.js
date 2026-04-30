@@ -32,13 +32,37 @@ class DigitalObjects {
       throw new ErrorHandler(
         412,
         412,
-        "digital_object_identifier already in use"
+        "digital_object_identifier already in use",
       );
+    }
+
+    /* ================================
+     * control URL reachable check
+     * ================================ */
+    if (params.digital_object_control_url) {
+      try {
+        const resp = await axios.get(params.digital_object_control_url, {
+          timeout: 5000,
+        }); // 5초 제한
+        if (resp.status < 200 || resp.status >= 400) {
+          throw new Error();
+        } else {
+          console.log(
+            `digital_object_control_url "${params.digital_object_control_url}" is reachable.response.status: ${resp.status}`,
+          );
+        }
+      } catch (e) {
+        throw new ErrorHandler(
+          412,
+          412,
+          `digital_object_control_url "${params.digital_object_control_url}" is not reachable or invalid (HTTP connection failed)`,
+        );
+      }
     }
 
     const formattedCreationTime = await this.formatTime(params.creation_time);
     const formattedModificationTime = await this.formatTime(
-      params.modification_time
+      params.modification_time,
     );
     if (
       params.digital_object_data_source_base_url &&
@@ -56,7 +80,7 @@ class DigitalObjects {
       digital_object_id,
       params,
       formattedCreationTime,
-      formattedModificationTime
+      formattedModificationTime,
     );
     await model.postgres.sendQuery({ sql });
 
@@ -87,7 +111,7 @@ class DigitalObjects {
     digital_object_id,
     params,
     creation_time,
-    modification_time
+    modification_time,
   ) {
     return `INSERT INTO digital_objects (
          digital_twin_id,
@@ -104,6 +128,8 @@ class DigitalObjects {
          digital_object_data_source_url,
          digital_object_data_access_url,
          digital_object_control_url,
+         digital_object_control_delivery_timeout,
+         digital_object_control_execution_timeout,
          digital_object_data_model,
          digital_object_data_interval,
          digital_object_control_request_model,
@@ -124,6 +150,8 @@ class DigitalObjects {
             '${params.digital_object_data_source_url}',
             '${params.digital_object_data_access_url}',
             '${params.digital_object_control_url}',
+            ${params.digital_object_control_delivery_timeout},
+            ${params.digital_object_control_execution_timeout},
             '${JSON.stringify(params.digital_object_data_model)}',
             ${params.digital_object_data_interval},
             '${JSON.stringify(params.digital_object_control_request_model)}',
@@ -142,7 +170,7 @@ class DigitalObjects {
         throw new ErrorHandler(
           412,
           412,
-          "When the digital_object_data_source_type is set to POLL the digital_object_data_source_url is required"
+          "When the digital_object_data_source_type is set to POLL the digital_object_data_source_url is required",
         );
       }
 
@@ -150,7 +178,7 @@ class DigitalObjects {
         throw new ErrorHandler(
           412,
           412,
-          "Check that the digital_object_data_source_url starts with 'http://'."
+          "Check that the digital_object_data_source_url starts with 'http://'.",
         );
       }
 
@@ -164,7 +192,7 @@ class DigitalObjects {
         throw new ErrorHandler(
           412,
           412,
-          `digital_object_data_source_url "${source_url}" is already registered by digital_object_id: ${doWithSameUrl.digital_object_id}`
+          `digital_object_data_source_url "${source_url}" is already registered by digital_object_id: ${doWithSameUrl.digital_object_id}`,
         );
       }
       // 실제 연결 가능한 URL인지 체크
@@ -174,14 +202,14 @@ class DigitalObjects {
           throw new Error();
         } else {
           console.log(
-            `digital_object_data_source_url "${source_url}" is reachable.response.status: ${resp.status}`
+            `digital_object_data_source_url "${source_url}" is reachable.response.status: ${resp.status}`,
           );
         }
       } catch (e) {
         throw new ErrorHandler(
           412,
           412,
-          `digital_object_data_source_url "${source_url}" is not reachable or invalid (HTTP connection failed)`
+          `digital_object_data_source_url "${source_url}" is not reachable or invalid (HTTP connection failed)`,
         );
       }
 
@@ -190,7 +218,7 @@ class DigitalObjects {
           throw new ErrorHandler(
             412,
             412,
-            "Check that digital_object_data_source_base_url starts with digital_object_data_source_url."
+            "Check that digital_object_data_source_base_url starts with digital_object_data_source_url.",
           );
         }
         base_url = base_url.replace(/\/$/, "");
@@ -207,7 +235,7 @@ class DigitalObjects {
             digital_twin_id,
             digital_object_id,
             changeUrl,
-            poll_interval
+            poll_interval,
           );
         } else {
           await this.createNewConnector(
@@ -215,7 +243,7 @@ class DigitalObjects {
             digital_twin_id,
             digital_object_id,
             changeUrl,
-            poll_interval
+            poll_interval,
           );
         }
       } else {
@@ -224,7 +252,7 @@ class DigitalObjects {
           digital_twin_id,
           digital_object_id,
           "",
-          poll_interval
+          poll_interval,
         );
       }
     }
@@ -245,7 +273,7 @@ class DigitalObjects {
     digital_twin_id,
     digital_object_id,
     changeUrl,
-    interval
+    interval,
   ) {
     const connector = await model.kafka.GetConnectorConfig({
       connector_id: `${existingConnector.connector_id}`,
@@ -277,7 +305,7 @@ class DigitalObjects {
         digital_twin_id,
         digital_object_id,
         changeUrl,
-        interval
+        interval,
       );
     }
     return;
@@ -288,7 +316,7 @@ class DigitalObjects {
     digital_twin_id,
     digital_object_id,
     changeUrl,
-    interval
+    interval,
   ) {
     const newConnectorId = `HttpSource${uuid()}`;
     const insertConnectorSQL = `INSERT INTO connectors (connector_id, base_url, poll_interval, digital_object_id, digital_twin_id, change_url) VALUES (
@@ -319,7 +347,7 @@ class DigitalObjects {
       throw new ErrorHandler(
         404,
         404,
-        `Unregistered digital_object ${digital_object_id}`
+        `Unregistered digital_object ${digital_object_id}`,
       );
     }
 
@@ -354,12 +382,12 @@ class DigitalObjects {
         // 변경이 하나도 없으면 커넥터 로직 스킵
         if (!isBaseUrlChanged && !isSourceUrlChanged && !isIntervalChanged) {
           console.log(
-            `[update] No change detected in base_url/source_url/interval, skipping connector update.`
+            `[update] No change detected in base_url/source_url/interval, skipping connector update.`,
           );
           await this.updateDigitalObject(
             digital_twin_id,
             digital_object_id,
-            params
+            params,
           );
           return { update: digital_object_id };
         }
@@ -369,19 +397,19 @@ class DigitalObjects {
           try {
             const response = await axios.get(
               params.digital_object_data_source_url,
-              { timeout: 5000 }
+              { timeout: 5000 },
             );
             if (response.status < 200 || response.status >= 400) {
               throw new Error();
             }
             console.log(
-              `[update] Verified reachable URL: ${params.digital_object_data_source_url}`
+              `[update] Verified reachable URL: ${params.digital_object_data_source_url}`,
             );
           } catch (err) {
             throw new ErrorHandler(
               412,
               412,
-              `digital_object_data_source_url "${params.digital_object_data_source_url}" is not reachable or invalid (HTTP connection failed)`
+              `digital_object_data_source_url "${params.digital_object_data_source_url}" is not reachable or invalid (HTTP connection failed)`,
             );
           }
         }
@@ -390,7 +418,7 @@ class DigitalObjects {
           await this.updateDigitalObject(
             digital_twin_id,
             digital_object_id,
-            params
+            params,
           );
 
           return { update: digital_object_id };
@@ -401,7 +429,7 @@ class DigitalObjects {
         if (dataSourceType === "POLL") {
           const connectorData = await this.getConnectorData(
             digital_twin_id,
-            digital_object_id
+            digital_object_id,
           );
           if (connectorData.connector_id) {
             // 이미 커넥터 존재 시 업데이트 or 삭제
@@ -410,7 +438,7 @@ class DigitalObjects {
               digital_object_id,
               digital_twin_id,
               selectedData,
-              params
+              params,
             );
           } else {
             // 새 커넥터 생성
@@ -420,7 +448,7 @@ class DigitalObjects {
               params.digital_object_data_interval,
               selectedData,
               digital_twin_id,
-              digital_object_id
+              digital_object_id,
             );
           }
           // PUSH 타입 처리
@@ -432,7 +460,7 @@ class DigitalObjects {
             throw new ErrorHandler(
               412,
               412,
-              "Check the digital_object_data_source_type."
+              "Check the digital_object_data_source_type.",
             );
           }
           await this.createOrUpdateConnector(
@@ -441,7 +469,7 @@ class DigitalObjects {
             params.digital_object_data_interval,
             selectedData,
             digital_twin_id,
-            digital_object_id
+            digital_object_id,
           );
         }
       }
@@ -461,57 +489,57 @@ class DigitalObjects {
       throw new ErrorHandler(
         412,
         412,
-        "Check that the digital_object_data_source_url starts with 'http://'."
+        "Check that the digital_object_data_source_url starts with 'http://'.",
       );
     }
     if (params.digital_object_data_source_url) {
       if (
         params.digital_object_data_source_base_url &&
         !params.digital_object_data_source_url.startsWith(
-          params.digital_object_data_source_base_url
+          params.digital_object_data_source_base_url,
         )
       ) {
         throw new ErrorHandler(
           412,
           412,
-          "Check that digital_object_data_source_base_url starts with digital_object_data_source_url."
+          "Check that digital_object_data_source_base_url starts with digital_object_data_source_url.",
         );
       } else if (
         !params.digital_object_data_source_base_url &&
         selectedData.digital_object_data_source_base_url != "null" &&
         !params.digital_object_data_source_url.startsWith(
-          selectedData.digital_object_data_source_base_url
+          selectedData.digital_object_data_source_base_url,
         )
       ) {
         throw new ErrorHandler(
           412,
           412,
-          "Check that digital_object_data_source_base_url starts with digital_object_data_source_url."
+          "Check that digital_object_data_source_base_url starts with digital_object_data_source_url.",
         );
       }
     } else {
       if (
         params.digital_object_data_source_base_url &&
         !selectedData.digital_object_data_source_url.startsWith(
-          params.digital_object_data_source_base_url
+          params.digital_object_data_source_base_url,
         )
       ) {
         throw new ErrorHandler(
           412,
           412,
-          "Check that digital_object_data_source_base_url starts with digital_object_data_source_url."
+          "Check that digital_object_data_source_base_url starts with digital_object_data_source_url.",
         );
       } else if (
         !params.digital_object_data_source_base_url &&
         selectedData.digital_object_data_source_base_url != "null" &&
         !selectedData.digital_object_data_source_url.startsWith(
-          selectedData.digital_object_data_source_base_url
+          selectedData.digital_object_data_source_base_url,
         )
       ) {
         throw new ErrorHandler(
           412,
           412,
-          "Check that digital_object_data_source_base_url starts with digital_object_data_source_url."
+          "Check that digital_object_data_source_base_url starts with digital_object_data_source_url.",
         );
       }
     }
@@ -528,7 +556,7 @@ class DigitalObjects {
     digital_object_id,
     digital_twin_id,
     selectedData,
-    params
+    params,
   ) {
     const [connectorCount, Connector_config] = await Promise.all([
       this.getConnectorCount(connectorData.connector_id),
@@ -554,7 +582,7 @@ class DigitalObjects {
       params.digital_object_data_interval,
       selectedData,
       digital_twin_id,
-      digital_object_id
+      digital_object_id,
     );
     return;
   }
@@ -571,7 +599,7 @@ class DigitalObjects {
     interval,
     selectedData,
     twin_id,
-    object_id
+    object_id,
   ) {
     if (base_url && base_url.endsWith("/")) {
       base_url = base_url.replace(/\/$/, "");
@@ -590,7 +618,7 @@ class DigitalObjects {
           twin_id,
           object_id,
           changeUrl,
-          interval
+          interval,
         );
       } else {
         await this.createNewConnector(
@@ -598,7 +626,7 @@ class DigitalObjects {
           twin_id,
           object_id,
           changeUrl,
-          interval
+          interval,
         );
       }
     } else if (interval && source_url) {
@@ -617,7 +645,7 @@ class DigitalObjects {
             twin_id,
             object_id,
             changeUrl,
-            interval
+            interval,
           );
         } else {
           await this.createNewConnector(
@@ -625,7 +653,7 @@ class DigitalObjects {
             twin_id,
             object_id,
             changeUrl,
-            interval
+            interval,
           );
         }
       } else {
@@ -635,7 +663,7 @@ class DigitalObjects {
           twin_id,
           object_id,
           "",
-          interval
+          interval,
         );
       }
     } else if (source_url && base_url) {
@@ -651,7 +679,7 @@ class DigitalObjects {
           twin_id,
           object_id,
           changeUrl,
-          selectedData.digital_object_data_interval
+          selectedData.digital_object_data_interval,
         );
       } else {
         await this.createNewConnector(
@@ -659,7 +687,7 @@ class DigitalObjects {
           twin_id,
           object_id,
           changeUrl,
-          selectedData.digital_object_data_interval
+          selectedData.digital_object_data_interval,
         );
       }
     } else if (interval && base_url) {
@@ -669,7 +697,7 @@ class DigitalObjects {
 
       const changeUrl = selectedData.digital_object_data_source_url.replace(
         base_url,
-        ""
+        "",
       );
 
       if (existingConnector.connector_id) {
@@ -679,7 +707,7 @@ class DigitalObjects {
           twin_id,
           object_id,
           changeUrl,
-          interval
+          interval,
         );
       } else {
         await this.createNewConnector(
@@ -687,7 +715,7 @@ class DigitalObjects {
           twin_id,
           object_id,
           changeUrl,
-          interval
+          interval,
         );
       }
     } else if (base_url) {
@@ -697,7 +725,7 @@ class DigitalObjects {
 
       const changeUrl = selectedData.digital_object_data_source_url.replace(
         base_url,
-        ""
+        "",
       );
       if (existingConnector.connector_id) {
         await this.updateExistingConnector(
@@ -706,7 +734,7 @@ class DigitalObjects {
           twin_id,
           object_id,
           changeUrl,
-          selectedData.digital_object_data_interval
+          selectedData.digital_object_data_interval,
         );
       } else {
         await this.createNewConnector(
@@ -714,7 +742,7 @@ class DigitalObjects {
           twin_id,
           object_id,
           changeUrl,
-          selectedData.digital_object_data_interval
+          selectedData.digital_object_data_interval,
         );
       }
     } else if (source_url) {
@@ -732,7 +760,7 @@ class DigitalObjects {
             twin_id,
             object_id,
             changeUrl,
-            selectedData.digital_object_data_interval
+            selectedData.digital_object_data_interval,
           );
         } else {
           await this.createNewConnector(
@@ -740,7 +768,7 @@ class DigitalObjects {
             twin_id,
             object_id,
             changeUrl,
-            selectedData.digital_object_data_interval
+            selectedData.digital_object_data_interval,
           );
         }
       } else {
@@ -749,7 +777,7 @@ class DigitalObjects {
           twin_id,
           object_id,
           "",
-          selectedData.digital_object_data_interval
+          selectedData.digital_object_data_interval,
         );
       }
     } else if (interval) {
@@ -770,7 +798,7 @@ class DigitalObjects {
             twin_id,
             object_id,
             changeUrl,
-            interval
+            interval,
           );
         } else {
           await this.createNewConnector(
@@ -778,7 +806,7 @@ class DigitalObjects {
             twin_id,
             object_id,
             changeUrl,
-            interval
+            interval,
           );
         }
       } else {
@@ -787,7 +815,7 @@ class DigitalObjects {
           twin_id,
           object_id,
           "",
-          interval
+          interval,
         );
       }
     }
@@ -886,14 +914,13 @@ class DigitalObjects {
     // 2. fdo_compositions에 연합 여부 확인
     const fdoCheckSQL = `SELECT federated_digital_object_id FROM fdo_compositions WHERE digital_object_id = '${digital_object_id}';`;
     const fdoResult = await model.postgres.selectDataS({ sql: fdoCheckSQL });
-    console.log("fdoResult: ", fdoResult);
     if (fdoResult && fdoResult.length > 0) {
       throw new ErrorHandler(
         409,
         409,
         `Cannot delete: digital_object is federated in fdo_compositions. federated_digital_object_id(s): ${JSON.stringify(
-          fdoResult
-        )}`
+          fdoResult,
+        )}`,
       );
     }
 
@@ -906,7 +933,7 @@ class DigitalObjects {
     if (selectedData.digital_object_data_source_type === "POLL") {
       const connectorData = await this.getConnectorData(
         digital_twin_id,
-        digital_object_id
+        digital_object_id,
       );
       const [connectorCount, Connector_config] = await Promise.all([
         this.getConnectorCount(connectorData.connector_id),
@@ -1009,7 +1036,7 @@ class DigitalObjects {
         digital_object_id,
         body.data,
         rowtime,
-        geojsonToWkt
+        geojsonToWkt,
       );
     } else {
       await this.processSingleData(
@@ -1017,7 +1044,7 @@ class DigitalObjects {
         digital_object_id,
         body.data,
         rowtime,
-        geojsonToWkt
+        geojsonToWkt,
       );
     }
 
@@ -1031,7 +1058,7 @@ class DigitalObjects {
       throw new ErrorHandler(
         412,
         412,
-        "location requires a valid GeoJSON Feature or geometry object as input"
+        "location requires a valid GeoJSON Feature or geometry object as input",
       );
     }
   }
@@ -1041,7 +1068,7 @@ class DigitalObjects {
     digital_object_id,
     dataArray,
     rowtime,
-    geojsonToWkt
+    geojsonToWkt,
   ) {
     const tasks = dataArray.map((item) =>
       this.processSingleData(
@@ -1049,8 +1076,8 @@ class DigitalObjects {
         digital_object_id,
         item,
         rowtime,
-        geojsonToWkt
-      )
+        geojsonToWkt,
+      ),
     );
     await Promise.all(tasks);
   }
@@ -1060,7 +1087,7 @@ class DigitalObjects {
     digital_object_id,
     dataItem,
     rowtime,
-    geojsonToWkt
+    geojsonToWkt,
   ) {
     const valueObjectMessage = {
       digital_twin_id,
@@ -1070,7 +1097,6 @@ class DigitalObjects {
       location: geojsonToWkt,
     };
 
-    // console.log(valueObjectMessage);
     const kafkaKey = { digital_object_id };
     await model.kafka.kafkaProducer({
       topic: "UnalliedDigitalObjects",
@@ -1165,6 +1191,7 @@ class DigitalObjects {
   async createDOControlData(digital_twin_id, digital_object_id, params) {
     const control_creation_time = lib.timestamp();
     const control_message = params;
+    const esc = (v) => String(v ?? "").replace(/'/g, "''");
     if (!digital_twin_id || !digital_object_id) {
       throw new ErrorHandler(412, 5252, "please check mandatory field.");
     }
@@ -1183,40 +1210,97 @@ class DigitalObjects {
     /**
      * DO Control Access URL 조회
      */
-    let { digital_object_control_url } = await this.Retrieve({
+    let {
+      digital_object_control_url,
+      digital_object_control_delivery_timeout,
+    } = await this.Retrieve({
       digital_twin_id,
       digital_object_id,
     });
 
-    /**
-     * control message 처리
-     */
-    let httpResponse = await lib.request({
-      url: digital_object_control_url,
-      bodyParams: control_message,
-    });
+    if (!digital_object_control_url) {
+      throw new ErrorHandler(
+        412,
+        5252,
+        "digital_object_control_url is not configured",
+      );
+    }
 
-    if (Object.prototype.toString.call(httpResponse) === "[object Object]") {
-      httpResponse = JSON.stringify(httpResponse);
+    /**
+     * delivery timeout 결정
+     * - null / undefined → 기본값
+     * - 숫자(ms) → 해당 값 사용
+     */
+    const DEFAULT_DELIVERY_TIMEOUT_MS = 5000;
+    const deliveryTimeout =
+      typeof digital_object_control_delivery_timeout === "number" &&
+      digital_object_control_delivery_timeout > 0
+        ? digital_object_control_delivery_timeout
+        : DEFAULT_DELIVERY_TIMEOUT_MS;
+
+    /**
+     * delivery_status 계산 규칙(확장):
+     * - DELIVERED        : 컨트롤러가 응답(ACK)을 줌 (응답 내용이 fail이어도 "전달"은 성공)
+     * - NO_ACK           : 응답이 비어있거나(undefined/null/빈문자열) "No controller response"
+     * - DELIVERY_FAILED  : timeout/네트워크/서버 오류로 요청 자체 실패
+     */
+    let httpResponse;
+    let delivery_status = "NO_ACK";
+    let delivery_error = null;
+
+    /**
+     * control message 전달 (timeout 적용)
+     */
+    try {
+      httpResponse = await lib.request({
+        url: digital_object_control_url,
+        bodyParams: control_message,
+        timeout: deliveryTimeout,
+      });
+
+      // response normalize
+      if (Object.prototype.toString.call(httpResponse) === "[object Object]") {
+        httpResponse = JSON.stringify(httpResponse);
+      }
+
+      // 응답 존재 여부로 delivery_status 결정
+      if (
+        httpResponse !== undefined &&
+        httpResponse !== null &&
+        httpResponse !== ""
+      ) {
+        delivery_status = "DELIVERED";
+      } else {
+        delivery_status = "NO_ACK";
+        httpResponse = "No controller response";
+      }
+    } catch (err) {
+      delivery_status = "DELIVERY_FAILED";
+      delivery_error =
+        err?.code === "ECONNABORTED"
+          ? `Delivery timeout (${deliveryTimeout} ms)`
+          : `Delivery error: ${err?.message || String(err)}`;
+
+      // 실패도 delivery_result로 저장
+      httpResponse = delivery_error;
     }
 
     const control_delivery_time = lib.timestamp();
-    if (httpResponse) {
-      let sql = `insert into digital_object_controllers (digital_twin_id, digital_object_id, control_creation_time, control_delivery_time, control_delivery_result, control_command) values ('${digital_twin_id}', '${digital_object_id}', '${control_creation_time}', '${control_delivery_time}', '${httpResponse}', '${JSON.stringify(
-        control_message
-      )}');`;
-      await model.postgres.sendQuery({ sql });
-      return httpResponse;
-    } else if (httpResponse == undefined) {
-      let control_delivery_result = "No controller response";
-      let sql = `insert into digital_object_controllers (digital_twin_id, digital_object_id, control_creation_time, control_delivery_time, control_delivery_result, control_command) values ('${digital_twin_id}', '${digital_object_id}', '${control_creation_time}', '${control_delivery_time}', '${control_delivery_result}', '${JSON.stringify(
-        control_message
-      )}');`;
-      await model.postgres.sendQuery({ sql });
-      return control_delivery_result;
-    } else {
-      throw new ErrorHandler(412, 5252, "Something Control Error");
-    }
+    const control_delivery_result =
+      httpResponse !== undefined ? httpResponse : "No controller response";
+
+    const sql = `
+    INSERT INTO digital_object_controllers
+      (digital_twin_id, digital_object_id, control_creation_time, control_delivery_time, control_delivery_result, control_command, delivery_status, delivery_error)
+    VALUES
+      ('${esc(digital_twin_id)}', '${esc(digital_object_id)}', '${esc(control_creation_time)}', '${esc(control_delivery_time)}',
+       '${esc(control_delivery_result)}', '${esc(JSON.stringify(control_message))}', '${esc(delivery_status)}', ${
+         delivery_error ? `'${esc(delivery_error)}'` : "NULL"
+       });
+  `;
+    await model.postgres.sendQuery({ sql });
+
+    return control_delivery_result;
   }
 
   /**
@@ -1279,7 +1363,6 @@ class DigitalObjects {
    * @returns {Json}
    */
   async SearchTwinByObjectId({ digital_object_id }) {
-    console.log("SearchTwinByObjectId: ", digital_object_id);
     const isExistDOid = await model.postgres.checkIdExist({
       table: "digital_objects",
       check: "digital_object_id",
