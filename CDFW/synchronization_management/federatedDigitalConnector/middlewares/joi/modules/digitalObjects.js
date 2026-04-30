@@ -84,6 +84,7 @@ exports.update = (req, res, next) => {
 
 exports.dataCreate = (req, res, next) => {
   const schema = Joi.object({
+    rowtime: Joi.string().allow(),
     data: Joi.alternatives().try(Joi.object(), Joi.array()).required(),
     location: Joi.object().empty({}).default(null),
   });

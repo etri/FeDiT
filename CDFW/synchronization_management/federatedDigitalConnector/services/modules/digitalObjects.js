@@ -1015,20 +1015,7 @@ class DigitalObjects {
     if (!isExistID) {
       throw new ErrorHandler(412, 412, "Unregistered digital_object");
     }
-    // "observedAt" check
-    const findObservedAt = (data) => {
-      if (typeof data !== "object" || data === null) return null;
-      if (data.hasOwnProperty("observedAt")) return data.observedAt;
-
-      for (const key in data) {
-        const result = findObservedAt(data[key]);
-        if (result) return result;
-      }
-
-      return null;
-    };
-
-    let rowtime = (await findObservedAt(body.data)) || lib.timestamp();
+    const rowtime = this.normalizeRowtime(body.rowtime) || lib.timestamp();
     let geojsonToWkt = this.getGeojsonToWkt(body.location);
     if (Array.isArray(body.data)) {
       await this.processMultipleData(
@@ -1049,6 +1036,21 @@ class DigitalObjects {
     }
 
     return 0;
+  }
+
+  normalizeRowtime(t) {
+    if (!t || typeof t !== "string") return null;
+    const stripped = t
+      .trim()
+      .replace(/Z$/i, "")
+      .replace(/[+-]\d{2}:?\d{2}$/, "")
+      .replace("T", " ");
+    const m = stripped.match(
+      /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})(?:\.(\d{1,3}))?$/,
+    );
+    if (!m) return null;
+    const ms = (m[3] || "").padEnd(3, "0").substring(0, 3);
+    return `${m[1]} ${m[2]}.${ms}`;
   }
 
   getGeojsonToWkt(location) {
