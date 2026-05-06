@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:8080"  # Frontend & API & Websocket
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - dt_network
+    depends_on:
+      - foxglove_bridge
+
+  zenoh_router:
+    image: eclipse/zenoh-bridge-dds:latest
+    ports:
+      - "7447:7447/tcp"  # Zenoh 라우터 리스너 (TCP)
+      - "7447:7447/udp"  # Zenoh 라우터 리스너 (UDP)
+    command: ["-l", "tcp/0.0.0.0:7447", "-l", "udp/0.0.0.0:7447"]
+    networks:
+      - dt_network
+
+  dl_worker:
+    build:
+      context: ./apps/dl_worker
+    environment:
+      - MODULE_NAME=dl_worker
+      - CAMERA_MANAGER_URL=http://camera_manager:80
+      - ROS_DOMAIN_ID=0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    networks:
+      - dt_network
+    depends_on:
+      - zenoh_router
+
+  camera_manager:
+    build:
+      context: ./apps/camera_manager
+    ports:
+      - "8003:80"
+    environment:
+      - MODULE_NAME=camera_manager
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://dt_admin:dt_password@postgres_db:5432/dt_metadata
+    networks:
+      - dt_network
+    depends_on:
+      - redis
+      - postgres_db
+
+  foxglove_bridge:
+    build:
+      context: ./apps/foxglove_bridge
+    ports:
+      - "8765:8765"  # Foxglove WebSocket 기본 포트
+    environment:
+      - ROS_DOMAIN_ID=0
+    networks:
+      - dt_network
+    depends_on:
+      - zenoh_router
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - dt_network
+    # 성능 최적화를 위해 디스크 저장을 최소화하고 메모리에만 올리도록 설정
+    command: redis-server --save "" --appendonly no
+
+  postgres_db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: dt_admin
+      POSTGRES_PASSWORD: dt_password
+      POSTGRES_DB: dt_metadata
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - dt_network
+
+networks:
+  dt_network:
+    driver: bridge
+
+volumes:
+  pgdata:
