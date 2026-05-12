@@ -1,9 +1,7 @@
 package kr.co.n2m.platform.meta.resource.keyword.service;
 
-import java.util.Arrays;
 import java.util.List;
 
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,7 +79,8 @@ public class KeywordService {
 	 */
 	public int saveKeywordList(String keywords, String langMtcd) {
 		if (keywords == null) return 0;
-		List<String> list = Arrays.asList(keywords.split(","));
+		//List<String> list = Arrays.asList(keywords.split(","));
+		List<String> list = KeywordUtil.splitByComma(keywords);
 		return saveKeywordList(list, langMtcd);
 	}
 	

@@ -25,10 +25,13 @@
             AND t1.model_id                 = #{modelId} 
         </if>		
         <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(medataSetSttusMtcd)">
-            AND t1.medata_set_sttus_mtcd    = #{medataSetSttusMtcd} 
+            AND t1.medata_set_sttus_mtcd    = #{medataSetSttusMtcd}
+        </if>
+        <if test='!"Y".equals(includeDisuseYn)'>
+            AND t1.medata_set_sttus_mtcd   != 'disuse'
         </if>
         <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(medataSetRegrId)">
-            AND t1.medata_set_regr_id       = #{medataSetRegrId} 
+            AND t1.medata_set_regr_id       = #{medataSetRegrId}
         </if>
         <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(srchStartDd)">
             <![CDATA[  

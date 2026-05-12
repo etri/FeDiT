@@ -77,7 +77,7 @@ public class MetadataSearchVo extends SearchVo implements Serializable {
 	@Schema(description="프라퍼티 데이터 배열 여부")
 	private String prptyDataArrayYn;
 	
-	@Getter(AccessLevel.NONE)
+	//@Getter(AccessLevel.NONE)
 	@Schema(description="리소스 URL", hidden=true)
 	private String resourceUrl;
 	
@@ -88,6 +88,9 @@ public class MetadataSearchVo extends SearchVo implements Serializable {
 	
 	@Schema(description="object_type 프라퍼티만 조회 여부")
 	private String onlyObjectTypeYn;
+
+	@Schema(description="제외(폐기) 상태 데이터 포함 여부 (Y/N). 기본 N — 폐기 데이터 검색 결과에 미포함.")
+	private String includeDisuseYn;
 	
 	@Override
 	public String toString() {
