@@ -33,7 +33,7 @@
 
           <el-form-item label="제목" v-if="!searchWordVisibleYn">
             <el-input
-              class="w-50 m-2"
+              class="w-100 m-2"
               v-model="pageInfo.qnaTitle"
               placeholder="제목을 입력하세요."
               @keyup.enter="getQnaList(1)" />

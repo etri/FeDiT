@@ -6,7 +6,14 @@
 				<ul>
 					<li class="list-row" v-for="item in props.metadataSetList" :key="item" @click="elementClick(item)">
 						<div class="list-col">
-							<div class="list-title">{{ item.medataSetNm }}</div>
+							<div class="list-title">
+								{{ item.medataSetNm }}
+								<span
+									v-if="item.medataSetSttusMtcd"
+									class="meta-status-badge ml10"
+									:class="`is-${item.medataSetSttusMtcd}`"
+								>{{ item.medataSetSttusMtcdNm }}</span>
+							</div>
 							<ul class="list-info">
 								<li class="dt">ID</li>
 								<li class="dd">{{ item.medataSetId }} </li>

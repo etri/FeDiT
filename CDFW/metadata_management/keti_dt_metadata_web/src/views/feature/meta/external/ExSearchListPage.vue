@@ -43,6 +43,7 @@ const state = reactive({
 		keyword: "",
 		keywordType: "",
 		polygon: "",
+		includeDisuseYn: "",
 		totalListSize: 0,
 		pageListSize: 10,
 		blockSize: 5,
@@ -64,6 +65,7 @@ const exSearchList = (payload) => {
 	state.pageInfo.keyword = payload.pageInfo.keyword;
 	state.pageInfo.keywordType = payload.pageInfo.keywordType;
 	state.pageInfo.polygon = payload.pageInfo.polygon;
+	state.pageInfo.includeDisuseYn = payload.pageInfo.includeDisuseYn;
 	getMetadataList();
 };
 
@@ -77,7 +79,8 @@ const getMetadataList = () => {
 				srchText: state.pageInfo.srchText,
 				keyword: state.pageInfo.keyword,
 				keywordType: state.pageInfo.keywordType,
-				polygon: state.pageInfo.polygon
+				polygon: state.pageInfo.polygon,
+				includeDisuseYn: state.pageInfo.includeDisuseYn,
 			},
 		})
 		.then((res) => {

@@ -6,9 +6,11 @@
 			<div class="boxLayout">
 				<div class="boxTit">
 					<h3>메타데이터 목록</h3>
+					<!--
 					<div class="taR">
 						<p style="color: #4a4a4a !important;">'사용' 상태인 메타데이터만 조회됩니다.</p>
 					</div>
+					-->
 				</div>
 				<div class="boxCnt">
 					<div style="overflow-x: hidden; overflow-y: auto">
@@ -49,7 +51,8 @@ const state = reactive({
 		prptyId: "",
 		prptyNm: "",
 		srchVal: "",
-		medataSetSttusMtcd: "use",
+		medataSetSttusMtcd: "",
+		includeDisuseYn: "",
 		totalListSize: 0,
 		pageListSize: 10,
 		blockSize: 5,
@@ -69,6 +72,7 @@ const searchRetrievalMetadataList = (payload) => {
 	state.pageInfo.prptyId = payload.pageInfo.prptyId;
 	state.pageInfo.modelId = payload.pageInfo.modelId;
 	state.pageInfo.srchVal = payload.pageInfo.srchVal;
+	state.pageInfo.includeDisuseYn = payload.pageInfo.includeDisuseYn;
 	getMetadataList();
 };
 
@@ -94,6 +98,7 @@ const getMetadataList = () => {
 				prptyId: state.pageInfo.prptyId,
 				srchVal: state.pageInfo.srchVal,
 				medataSetSttusMtcd: state.pageInfo.medataSetSttusMtcd,
+				includeDisuseYn: state.pageInfo.includeDisuseYn,
 			},
 		})
 		.then((res) => {

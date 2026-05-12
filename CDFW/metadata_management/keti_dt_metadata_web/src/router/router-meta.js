@@ -92,6 +92,7 @@ import ElasticsearchQueryResultPage from "@/views/feature/meta/search/elasticsea
 
 import KeywordChartPage from "@/views/feature/meta/search/keyword/KeywordChartPage.vue";
 import RagChatPage from "@/views/feature/meta/search/rag/RagChatPage.vue";
+import DiscoveryPage from "@/views/feature/meta/search/discovery/DiscoveryPage.vue";
 
 import MetadataListPage from "@/views/feature/meta/manage/dataset/MetadataListPage.vue";
 import MetadataDetailManagePage from "@/views/feature/meta/manage/dataset/MetadataDetailManagePage.vue";
@@ -569,18 +570,30 @@ export const metaRoutes = {
         {
           path: "intgrdata",
           name: "meta_IntegratedSearch",
-          meta: { title: "메타데이터 통합 검색" },   
+          meta: { title: "메타데이터 통합 검색" },
           children: [
             {
               path: ":",
               name: "meta_IntgrdataListPage",
               components: { default: ExSearchListPage },
-            },  
+            },
             {
               path: "page/:medataSetId",
               name: "meta_IntgrdataPage",
               components: { default: ExMetadataPage },
-            },           
+            },
+          ],
+        },
+        {
+          path: "discovery",
+          name: "meta_Discovery",
+          meta: { title: "통합 검색" },
+          children: [
+            {
+              path: ":",
+              name: "meta_DiscoveryPage",
+              components: { default: DiscoveryPage },
+            },
           ],
         },
         {

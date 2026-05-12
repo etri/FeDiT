@@ -76,6 +76,8 @@ const state = reactive({
 		medataSetRegrId: "",
 		srchText: "",
 		typeModelId: "DigitalTwin",
+		medataSetId: "",
+		includeDisuseYn: "",
 
 		totalListSize: 0,
 		pageListSize: 10,
@@ -145,6 +147,8 @@ const getMetadataSetList = () => {
 				agntId: state.pageInfo.agntId,
 				medataSetRegrId: state.pageInfo.medataSetRegrId,
 				medataSetSttusMtcd: state.pageInfo.medataSetSttusMtcd,
+				medataSetId: (state.pageInfo.medataSetId || "").trim(),
+				includeDisuseYn: state.pageInfo.includeDisuseYn,
 				modelId: state.pageInfo.modelId,
 				srchText: state.pageInfo.srchText,
 				typeModelId: state.pageInfo.typeModelId,
@@ -173,6 +177,8 @@ const searchMetadataSet = (payload) => {
 	state.pageInfo.medataSetSttusMtcd = payload.pageInfo.medataSetSttusMtcd;
 	state.pageInfo.medataSetRegrId = payload.pageInfo.medataSetRegrId;
 	state.pageInfo.srchText = payload.pageInfo.srchText;
+	state.pageInfo.medataSetId = payload.pageInfo.medataSetId;
+	state.pageInfo.includeDisuseYn = payload.pageInfo.includeDisuseYn;
 	getMetadataSetList();
 };
 
