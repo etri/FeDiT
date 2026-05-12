@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 import kr.co.n2m.platform.admin.feature.group.entity.Group;
 
 @Repository
-public interface GroupRepository extends JpaRepository<Group, Long>{
+public interface GroupRepository extends JpaRepository<Group, String>{
 
 }

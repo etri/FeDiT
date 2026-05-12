@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 import kr.co.n2m.platform.admin.feature.auth.entity.Auth;
 
 @Repository
-public interface AuthRepository extends JpaRepository<Auth, Long>{
+public interface AuthRepository extends JpaRepository<Auth, String>{
 
 }
