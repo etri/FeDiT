@@ -114,8 +114,8 @@ module.exports = {
           " ] 님!</h1>" +
           "<h3>비밀번호 찾기 인증용 메일입니다. 15분 내로 인증해주세요.</h3>" +
           "<h3>아래의 링크를 클릭하여 비밀번호 변경을 진행해주세요. 본인이 아닌 경우 메일을 삭제하시기 바랍니다.</h3>" +
-          "<a href='http://" +
-          serverInfo.emailSendIp +
+          "<a href='" +
+          serverInfo.emailSendUrl +
           "/accounts/resetPwd?email=" +
           userEmail +
           "&verifyCode=" +
