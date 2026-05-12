@@ -15,6 +15,78 @@ const bcrypt = require('bcrypt');
 const server = oauth2orize.createServer();
 const openid_server =openidorize.createServer();
 
+const { URL } = require('url');
+
+const bTestLogging = false; // TODO false 로 놓을 것!
+
+// 2026-02-09 redirect uri DB 값 JSON 배열로 변경.
+// ---- redirect_uri allowlist helpers (backward compatible) ----
+function parseRedirectUris(raw) {
+  if (!raw) return [];
+
+  // 1) JSON array 형태면 우선 처리: ["https://...","http://..."]
+  const s = String(raw).trim();
+  if (s.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(s);
+      if (Array.isArray(parsed)) {
+        return parsed.map(x => String(x).trim()).filter(Boolean);
+      }
+    } catch (e) {
+      // JSON 파싱 실패 시 아래 legacy 처리로 fallthrough
+    }
+  }
+
+  // 2) 콤마 구분 legacy 지원: "a,b,c"
+  if (s.includes(',')) {
+    return s.split(',').map(x => x.trim()).filter(Boolean);
+  }
+
+  // 3) 기존 단일 문자열
+  return [s];
+}
+
+function normalizeRedirectUri(uri) {
+  // OAuth 보안상: protocol/host/port/path 정확히 일치시키기 위한 정규화
+  const u = new URL(uri);
+
+  const protocol = u.protocol.toLowerCase(); // "http:" / "https:"
+  const hostname = u.hostname.toLowerCase();
+
+  // 기본 포트 보정 (명시 안 됐을 때)
+  const port = u.port || (protocol === 'https:' ? '443' : '80');
+
+  // trailing slash 제거(정규화)
+  const pathname = (u.pathname || '/').replace(/\/$/, '') || '/';
+
+  return { protocol, hostname, port, pathname };
+}
+
+function isRedirectUriAllowed(requestUri, allowedUris) {
+  let reqNorm;
+  try {
+    reqNorm = normalizeRedirectUri(requestUri);
+  } catch (e) {
+    return false; // 요청 redirect_uri 자체가 URL 형식 아니면 거절
+  }
+
+  return allowedUris.some(dbUri => {
+    try {
+      const a = normalizeRedirectUri(dbUri);
+      return (
+        reqNorm.protocol === a.protocol &&
+        reqNorm.hostname === a.hostname &&
+        reqNorm.port === a.port &&
+        reqNorm.pathname === a.pathname
+      );
+    } catch (e) {
+      // DB에 잘못된 값이 섞여있으면 무시
+      return false;
+    }
+  });
+}
+// --------------------------------------------------------------
+
 // Client id serialization function to define user
 server.serializeClient(function(client, done){
   return done(null, client.application_id_pk);
@@ -53,64 +125,98 @@ server.grant(openid.grant.idTokenToken(
 ));
 
 openid_server.grant(oauth2orize.grant.code((client, redirectUri, user, ares, areq, done) => {
-  console.log(ares);
+  if (bTestLogging) console.log("[GRANT:openid] client=", client);
+  if (bTestLogging) console.log("[GRANT:openid] client.application_id_pk=", client && client.application_id_pk);
+  if (bTestLogging) console.log(ares);
+
   DB.getClientsByValue('APPLICATION','APPLICATION_ID_PK', client.application_id_pk,(err,app, cnt)=>{
     if(err){
         return done(err);
     }
-    else if(cnt) {
-      let compRedirectUri;
-      console.log("code response")
-      console.log(redirectUri);
-      if(redirectUri[redirectUri.length-1]=='/'){
-        redirectUri = redirectUri.substring(0,redirectUri.length-1);
-      }
-      if(app[0].redirect_uri[app[0].redirect_uri.length-1]=='/'){
-        compRedirectUri = app[0].redirect_uri.substring(0,app[0].redirect_uri.length-1);
-      } else {
-        compRedirectUri = app[0].redirect_uri;
-      }
-      if(redirectUri != compRedirectUri){
-        console.log("return done");
-        return done();
-      }
-    }
-  });
 
-  if(client.is_trusted == false && ares.allow == true){
-    console.log("client is not turested");
-    DB.getMapInfo(client.application_id_pk, user.user_id_pk,(err,value,cnt)=>{
+    if (!cnt || !app || !app[0]) {
+      console.log("[GRANT:openid] client not found");
+      return done(); // 거절
+    }
+
+    console.log("[GRANT:openid] code response")
+    console.log('[GRANT:openid] redirectUri:', redirectUri);
+    if (bTestLogging) console.log('[GRANT:openid] proto:', areq && areq.protocol, 'secure:', areq && areq.secure);
+    if (bTestLogging) console.log('[GRANT:openid] x-forwarded-proto:', areq && areq.headers && areq.headers['x-forwarded-proto']);
+    if (bTestLogging) console.log('[GRANT:openid] host:', areq && (areq.get ? areq.get('host') : (areq.headers && areq.headers.host)));
+
+
+    // redirectUri가 없으면 바로 거절 (방어코드)
+    if (!redirectUri || typeof redirectUri !== 'string') {
+      console.log("[GRANT:openid] redirect_uri missing");
+      return done(); // 거절
+    }
+
+    redirectUri = redirectUri.trim();
+    // if(redirectUri[redirectUri.length-1]=='/'){
+    //   redirectUri = redirectUri.substring(0,redirectUri.length-1);
+    // }
+    // let compRedirectUri;      
+    // if(app[0].redirect_uri[app[0].redirect_uri.length-1]=='/'){
+    //   compRedirectUri = app[0].redirect_uri.substring(0,app[0].redirect_uri.length-1);
+    // } else {
+    //   compRedirectUri = app[0].redirect_uri;
+    // }
+    // if(redirectUri != compRedirectUri){
+    //   console.log("return done");
+    //   return done();
+    // }
+
+    // DB 값(단일/콤마/JSON) -> 배열로 파싱
+    const allowedRedirectUris = parseRedirectUris(app[0].redirect_uri);
+
+    if (bTestLogging) console.log("[GRANT:openid] [REDIRECT CHECK] requested=", redirectUri);
+    if (bTestLogging) console.log("[GRANT:openid] [REDIRECT CHECK] db=", app[0].redirect_uri);
+    if (bTestLogging) console.log("[GRANT:openid] [REDIRECT CHECK] parsed=", allowedRedirectUris);    
+
+    // 정확 비교(정규화 포함)
+    if (!isRedirectUriAllowed(redirectUri, allowedRedirectUris)) {
+      console.log("[GRANT:openid] redirect_uri mismatch. requested=", redirectUri);
+      console.log("[GRANT:openid] allowed=", allowedRedirectUris);
+      return done(); // 거절
+    }
+
+    if(client.is_trusted == false && ares.allow == true){
+      console.log("[GRANT:openid] client is not trusted");
+      DB.getMapInfo(client.application_id_pk, user.user_id_pk,(err,value,cnt)=>{
+        if(err)
+          return done(err);
+        else if(!cnt){
+          DB.insertMapinfo(client.application_id_pk,user.user_id_pk,(err,result)=>{
+            if(err)
+              return done(err);
+          });
+        }
+      })
+    }
+
+    DB.deleteAuthCode(client.application_id_pk, user.user_id_pk, (err,result)=>{
+      console.log("[GRANT:openid] delete authocode");
       if(err)
         return done(err);
-      else if(!cnt){
-        DB.insertMapinfo(client.application_id_pk,user.user_id_pk,(err,result)=>{
-          if(err)
+      else{
+        let newAuthCode = uid.getUid(32);
+        let newAuthCodeInfo = {
+          clientId : client.application_id_pk,
+          userId : user.user_id_pk,
+          code : newAuthCode,
+          redirectUri : redirectUri,
+        };
+        DB.insertAuthCode(newAuthCodeInfo, (err,code)=>{
+          if(err){
             return done(err);
+          }
+          return done(null, code);
         });
       }
-    })
-  }
-
-  DB.deleteAuthCode(client.application_id_pk, user.user_id_pk, (err,result)=>{
-    console.log("delete authocode");
-    if(err)
-      return done(err);
-    else{
-      let newAuthCode = uid.getUid(32);
-      let newAuthCodeInfo = {
-        clientId : client.application_id_pk,
-        userId : user.user_id_pk,
-        code : newAuthCode,
-        redirectUri : redirectUri,
-      };
-      DB.insertAuthCode(newAuthCodeInfo, (err,code)=>{
-        if(err){
-          return done(err);
-        }
-        return done(null, code);
-      });
-    }
-  });
+    });
+   
+  });  
 }));
 
 // A function that exchanges an access token after receiving authorization from the user
@@ -138,7 +244,8 @@ openid_server.exchange(oauth2orize.exchange.code((client, code, redirectUri, don
         let rexpire_time = (issued_at_time + (ms('20d')/1000)); //20days
         let type;
 
-        (user.role == 'Marketplace_User' || user.role == 'Analytics_User')? type = 'userSystem' : type ='adminSystem';
+        (user.role.indexOf('Admin') > -1)? type = 'adminSystem' : type ='userSystem';
+
           let payload = {
               type : type,
               userId : user.user_id_pk,
@@ -189,63 +296,98 @@ openid_server.exchange(oauth2orize.exchange.code((client, code, redirectUri, don
 
 
 server.grant(oauth2orize.grant.code((client, redirectUri, user, ares, areq, done) => {
-  console.log(ares);
+  if (bTestLogging) console.log("[GRANT:server] client=", client);
+  if (bTestLogging) console.log("[GRANT:server] client.application_id_pk=", client && client.application_id_pk);
+  if (bTestLogging) console.log(ares);
+
   DB.getClientsByValue('APPLICATION','APPLICATION_ID_PK', client.application_id_pk,(err,app, cnt)=>{
     if(err){
         return done(err);
     }
-    else if(cnt) {
-      let compRedirectUri;
-      console.log("code response")
-      console.log(redirectUri);
-      if(redirectUri[redirectUri.length-1]=='/'){
-        redirectUri = redirectUri.substring(0,redirectUri.length-1);
-      }
-      if(app[0].redirect_uri[app[0].redirect_uri-1]=='/'){
-        compRedirectUri = app[0].redirect_uri.substring(0,app[0].redirect_uri.length-1);
-      } else {
-        compRedirectUri = app[0].redirect_uri;
-      }
-      if(redirectUri != compRedirectUri){
-        console.log("return done");
-        return done();
-      }
-    }
-  });
 
-  if(client.is_trusted == false && ares.allow == true){
-    console.log("client is not turested");
-    DB.getMapInfo(client.application_id_pk, user.user_id_pk,(err,value,cnt)=>{
+    if (!cnt || !app || !app[0]) {
+      console.log("[GRANT:server] client not found");
+      return done(); // 거절
+    }
+
+    console.log("[GRANT:server] code response")
+    console.log('[GRANT:server] redirectUri:', redirectUri);
+    if (bTestLogging) console.log('[GRANT:server] proto:', areq && areq.protocol, 'secure:', areq && areq.secure);
+    if (bTestLogging) console.log('[GRANT:server] x-forwarded-proto:', areq && areq.headers && areq.headers['x-forwarded-proto']);
+    if (bTestLogging) console.log('[GRANT:server] host:', areq && (areq.get ? areq.get('host') : (areq.headers && areq.headers.host)));
+
+
+    // redirectUri가 없으면 바로 거절 (방어코드)
+    if (!redirectUri || typeof redirectUri !== 'string') {
+      console.log("[GRANT:server] redirect_uri missing");
+      return done(); // 거절
+    }
+
+    redirectUri = redirectUri.trim();      
+    // if(redirectUri[redirectUri.length-1]=='/'){
+    //   redirectUri = redirectUri.substring(0,redirectUri.length-1);
+    // }
+    // let compRedirectUri;
+    // if(app[0].redirect_uri[app[0].redirect_uri-1]=='/'){
+    //   compRedirectUri = app[0].redirect_uri.substring(0,app[0].redirect_uri.length-1);
+    // } else {
+    //   compRedirectUri = app[0].redirect_uri;
+    // }
+    // if(redirectUri != compRedirectUri){
+    //   console.log("return done");
+    //   return done();
+    // }
+
+    // DB 값(단일/콤마/JSON) -> 배열로 파싱
+    const allowedRedirectUris = parseRedirectUris(app[0].redirect_uri);
+    
+    if (bTestLogging) console.log("[GRANT:server] [REDIRECT CHECK] requested=", redirectUri);
+    if (bTestLogging) console.log("[GRANT:server] [REDIRECT CHECK] db=", app[0].redirect_uri);
+    if (bTestLogging) console.log("[GRANT:server] [REDIRECT CHECK] parsed=", allowedRedirectUris);
+
+    // 정확 비교(정규화 포함)
+    if (!isRedirectUriAllowed(redirectUri, allowedRedirectUris)) {
+      console.log("[GRANT:server] redirect_uri mismatch. requested=", redirectUri);
+      console.log("[GRANT:server] allowed=", allowedRedirectUris);
+      return done(); // 거절
+    }
+    
+
+    if(client.is_trusted == false && ares.allow == true){
+      console.log("[GRANT:server] client is not trusted");
+      DB.getMapInfo(client.application_id_pk, user.user_id_pk,(err,value,cnt)=>{
+        if(err)
+          return done(err);
+        else if(!cnt){
+          DB.insertMapinfo(client.application_id_pk,user.user_id_pk,(err,result)=>{
+            if(err)
+              return done(err);
+          });
+        }
+      })
+    }
+
+    DB.deleteAuthCode(client.application_id_pk, user.user_id_pk, (err,result)=>{
+      console.log("[GRANT:server] delete authocode");
       if(err)
         return done(err);
-      else if(!cnt){
-        DB.insertMapinfo(client.application_id_pk,user.user_id_pk,(err,result)=>{
-          if(err)
+      else{
+        let newAuthCode = uid.getUid(32);
+        let newAuthCodeInfo = {
+          clientId : client.application_id_pk,
+          userId : user.user_id_pk,
+          code : newAuthCode,
+          redirectUri : redirectUri,
+        };
+        DB.insertAuthCode(newAuthCodeInfo, (err,code)=>{
+          if(err){
             return done(err);
+          }
+          return done(null, code);
         });
       }
-    })
-  }
+    });
 
-  DB.deleteAuthCode(client.application_id_pk, user.user_id_pk, (err,result)=>{
-    console.log("delete authocode");
-    if(err)
-      return done(err);
-    else{
-      let newAuthCode = uid.getUid(32);
-      let newAuthCodeInfo = {
-        clientId : client.application_id_pk,
-        userId : user.user_id_pk,
-        code : newAuthCode,
-        redirectUri : redirectUri,
-      };
-      DB.insertAuthCode(newAuthCodeInfo, (err,code)=>{
-        if(err){
-          return done(err);
-        }
-        return done(null, code);
-      });
-    }
   });
 }));
 
@@ -274,7 +416,7 @@ server.exchange(oauth2orize.exchange.code((client, code, redirectUri, done) =>{
           let rexpire_time = (issued_at_time + (ms('20d')/1000)); //20days
           let type;
 
-          (user.role == 'Marketplace_User' || user.role == 'Analytics_User')? type = 'userSystem' : type ='adminSystem';
+          (user.role.indexOf('Admin') > -1)? type = 'adminSystem' : type ='userSystem';
 
           let payload = {
             type : type,
@@ -340,7 +482,7 @@ server.exchange(oauth2orize.exchange.refreshToken((client, refreshToken, scope, 
       let expire_time = (issued_at_time + ms('3h')/1000);//*1000; //3hour
       let rexpire_time = (issued_at_time + ms('20d')/1000); //20days
       let type;
-      (user.role == 'Marketplace_User' || user.role == 'Analytics_User')? type = 'userSystem' : type ='adminSystem';
+      (user.role.indexOf('Admin') > -1)? type = 'adminSystem' : type ='userSystem';
 
       let payload = {
         type : type,
@@ -412,7 +554,7 @@ server.exchange(oauth2orize.exchange.password((client, username, password, scope
               let rexpire_time = (issued_at_time + ms('20d')/1000); //20days
 
               let type;
-              (user.role == 'Marketplace_User' || user.role == 'Analytics_User')? type = 'userSystem' : type ='adminSystem';
+              (user.role.indexOf('Admin') > -1)? type = 'adminSystem' : type ='userSystem';
               let payload = {
                   type : type,
                   userId : user.user_id_pk,

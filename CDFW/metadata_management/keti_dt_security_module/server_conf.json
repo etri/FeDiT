@@ -8,7 +8,8 @@
   "dbPort": 5432,
   "emailAccountId": "",
   "emailAccountPwd": "",
+  "emailSendUrl": "http://{email send url}",
   "token_type": "JWS",
-  "program_type": "general"
+  "program_type": "general",
+  "default_url": "{server ip}:{server port}"
 }
-
