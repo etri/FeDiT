@@ -111,7 +111,7 @@ def upsert_vector(medataSetId):
     # 1) 임베딩 생성
     emb_text = _make_embedding_text(body)
     model = embedding_model
-    embedding = model.encode(emb_text).tolist()
+    embedding = model.embed_query(emb_text)  # List[float] 직접 반환 (384 길이)
     if len(embedding) != EMBEDDING_DIMS:
         return jsonify({"error": f"embedding dim must be {EMBEDDING_DIMS}"}), 400
 
