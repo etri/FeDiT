@@ -7,9 +7,6 @@
 			<div class="boxLayout">
 				<div class="boxTit">
 					<h3>디지털트윈 목록</h3>
-					<div class="taR">
-						<p style="color: #4a4a4a !important;">'사용' 상태인 디지털트윈만 조회됩니다.</p>
-					</div>
 				</div>
 				<div class="boxCnt">
 					<div style="overflow-x: hidden; overflow-y: auto">
@@ -58,10 +55,11 @@ const state = reactive({
 		agntNm: "",
 		keyword: "",
 		modelId: "",
-		medataSetSttusMtcd: "use",
+		medataSetSttusMtcd: "",
 		medataSetRegrId: "",
 		srchText: "",
 		typeModelId: "DigitalTwin",
+		includeDisuseYn: "",
 
 		totalListSize: 0,
 		pageListSize: 10,
@@ -88,6 +86,7 @@ const getMetadataSetList = () => {
 				modelId: state.pageInfo.modelId,
 				srchText: state.pageInfo.srchText,
 				typeModelId: state.pageInfo.typeModelId,
+				includeDisuseYn: state.pageInfo.includeDisuseYn,
 			},
 		})
 		.then((res) => {
@@ -113,6 +112,7 @@ const searchRetrievalMetadataSet = (payload) => {
 	state.pageInfo.medataSetSttusMtcd = payload.pageInfo.medataSetSttusMtcd;
 	state.pageInfo.medataSetRegrId = payload.pageInfo.medataSetRegrId;
 	state.pageInfo.srchText = payload.pageInfo.srchText;
+	state.pageInfo.includeDisuseYn = payload.pageInfo.includeDisuseYn;
 	getMetadataSetList();
 };
 

@@ -48,7 +48,7 @@
 
 		<template v-if="!isNotFound" v-for="prptyNm of state.geoJsonPropertyNmList" :key="prptyNm">
 			<div class="boxLayout" v-if="state.dataMap[prptyNm].prptyScrnIndcYn == 'Y'">
-				<RetrievalGeneralProperty :generalProperty="state.dataMap[prptyNm]" 
+				<ExRetrievalGeneralProperty :generalProperty="state.dataMap[prptyNm]" 
 				:medataSetId="state.medataSetId" 
 				:medataSet="state.medataSet" 
 				:backPageName="backPageName"
@@ -59,7 +59,7 @@
 		
 		<template v-if="!isNotFound" v-for="prptyNm of state.jsonEtcPropertyNmList" :key="prptyNm">
 			<div class="boxLayout" v-if="state.dataMap[prptyNm].prptyScrnIndcYn == 'Y'">
-				<RetrievalGeneralProperty :generalProperty="state.dataMap[prptyNm]" 
+				<ExRetrievalGeneralProperty :generalProperty="state.dataMap[prptyNm]" 
 					:medataSetId="state.medataSetId" 
 					:medataSet="state.medataSet" 
 					:backPageName="backPageName"
@@ -71,7 +71,7 @@
 
 		<template v-if="!isNotFound" v-for="prptyNm of state.arrayPropertyNmList" :key="prptyNm">
 			<div class="boxLayout" v-if="state.dataMap[prptyNm].prptyScrnIndcYn == 'Y'">
-				<RetrievalGeneralProperty :generalProperty="state.dataMap[prptyNm]" 
+				<ExRetrievalGeneralProperty :generalProperty="state.dataMap[prptyNm]" 
 					:medataSetId="state.medataSetId" 
 					:medataSet="state.medataSet" 
 					:backPageName="backPageName"
@@ -83,25 +83,15 @@
 	</div>
 
 	
-	<el-dialog v-model="dialogLogInfo" title="프라퍼티 정보">
-		<div class="dialog-area">
-			<JsonEditorVue class="dialog_jsonEditor_setting" v-model="selectedInfo" v-bind="{
-				readOnly: true,
-				mode: 'text',
-				theme: 'light',
-				mainMenuBar: false,
-				navigationBar: false,
-				parser: undefined,
-			}" />
-		</div>
-	</el-dialog>
+	<JsonInfoDialog v-model="dialogLogInfo" :data="selectedInfo" title="프라퍼티 정보" />
 
 </template>
 <script setup>
 import UpperDigitalTwinList from "@/components/meta/dataset/UpperDigitalTwinList.vue";
 import MetadataSetBasicInfo from "@/components/meta/retrievaldt/MetadataSetBasicInfo.vue";
 import MetadataNameValueList from "@/components/meta/retrievaldt/MetadataNameValueList.vue";
-import RetrievalGeneralProperty from "@/components/meta/retrievaldt/RetrievalGeneralProperty.vue";
+import ExRetrievalGeneralProperty from "@/components/meta/external/ExRetrievalGeneralProperty.vue";
+import JsonInfoDialog from "@/components/meta/common/JsonInfoDialog.vue";
 
 import { reactive, ref, onMounted, watch, onBeforeMount, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";

@@ -109,7 +109,10 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 // });
 
 axios.interceptors.request.use((config) => {
-  emitter.emit("loading", true);
+  // skipLoading=true 인 요청은 전역 로딩바 무시 (자동완성 등 백그라운드 호출용)
+  if (!config.skipLoading) {
+    emitter.emit("loading", true);
+  }
   //console.log("TODO :: axios pre-handler");
   let access_token = getToken();
   if(access_token) {
@@ -128,7 +131,7 @@ axios.interceptors.response.use(
     return response;
   },
   async (err) => {
-    //401 에러 시 refreshToken 만료로 판단, 재 로그인 요청 
+    //401 에러 시 refreshToken 만료로 판단, 재 로그인 요청
     //(로그아웃해서 쿠키 삭제 + 로그인페이지로 이동)
     if(err.response && err.response.status === 401) {
       cookie.remove('token');

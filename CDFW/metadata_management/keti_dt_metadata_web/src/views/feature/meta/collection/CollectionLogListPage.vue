@@ -21,28 +21,13 @@
       </div>
     </div>
   </div>
-  <el-dialog v-model="dialogLogMappingInfo" title="수집 로그 매핑 정보">
-      <div class="dialog-area">
-        <div class="boxLayout">
-            <div class="boxTit"><h3>수집 로그 매핑 정보</h3></div>
-            <div class="boxCnt">
-              <JsonEditorVue class="dialog_jsonEditor_setting" v-model="selectedMappingInfo" v-bind="{
-                readOnly: true,
-                mode: 'text',
-                theme: 'light',
-                mainMenuBar: false,
-                navigationBar: false,
-                parser: undefined,
-              }" />
-            </div>
-          </div>
-      </div>
-  </el-dialog>
+  <JsonInfoDialog v-model="dialogLogMappingInfo" :data="selectedMappingInfo" title="수집 로그 매핑 정보" />
 </template>
 <script setup>
 import CollectionLogSearchForm from "@/components/meta/collection/CollectionLogSearchForm.vue";
 import ComnList from "@/components/common/ComnList";
 import ComnPagination from "@/components/common/ComnPagination.vue";
+import JsonInfoDialog from "@/components/meta/common/JsonInfoDialog.vue";
 import {
   getGlobalProperties,
   getCookie,

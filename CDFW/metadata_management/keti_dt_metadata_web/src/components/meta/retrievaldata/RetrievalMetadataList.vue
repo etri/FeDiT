@@ -7,6 +7,11 @@
 						<div class="list-col">
 							<div class="list-title">
 								{{ item.medataVal ? item.medataVal : (item.geodataVal ? item.geodataVal : '<null>') }}
+								<span
+									v-if="item.medataSetSttusMtcd"
+									class="meta-status-badge ml10"
+									:class="`is-${item.medataSetSttusMtcd}`"
+								>{{ item.medataSetSttusMtcdNm }}</span>
 							</div>
 							<ul class="list-info">
 								<li class="dt">모델</li>

@@ -5,7 +5,16 @@
 			:tableHeader="tableHeader"
 			:tableData="metadataList"
 			@row-click="goPage"
-			  />
+			>
+				<template #medataSetNm="{ row }">
+					{{ row.medataSetNm }}
+					<span
+						v-if="row.medataSetSttusMtcd"
+						class="meta-status-badge ml10"
+						:class="`is-${row.medataSetSttusMtcd}`"
+					>{{ row.medataSetSttusMtcdNm }}</span>
+				</template>
+			</ComnList>
 		</div>
 
 		<ComnPagination :totalPage="props.totalListSize" :curPage="props.curPage" @pagemove="pagemove" />
@@ -56,6 +65,7 @@ const tableHeader = ref([
     prop: "medataSetNm",
     label: "메타데이터 셋 명",
     width: 150,
+    columnType: "custom",
   },
   {
     prop: "typeModelNm",

@@ -16,35 +16,40 @@
 			</el-button>
 			<el-button type="primary"
 				v-show="('regist' == medataSet.medataSetSttusMtcd || 'unused' == medataSet.medataSetSttusMtcd)"
-				@click="requestChangeSttus('use')" >사용 (활성화)
+				@click="requestChangeSttus('use')" >확인 상태로 변경
 			</el-button>
 			<el-button type="primary" plain
 				v-show="'use' == medataSet.medataSetSttusMtcd" 
-				@click="requestChangeSttus('unused')" >미사용 (비활성화)
+				@click="requestChangeSttus('unused')" >보완 상태로 변경
 			</el-button>			
 			<el-button type="primary" plain
 				v-show="('use' == medataSet.medataSetSttusMtcd || 'unused' == medataSet.medataSetSttusMtcd)"
-				@click="requestChangeSttus('disuse')" >폐기
+				@click="requestChangeSttus('disuse')" >제외 상태로 변경
 			</el-button>
-
 
       <!-- 25.02.18 MetadataChangeHistory 를 MetadataDiffDialog로 교체 -->
 			<el-button type="primary" plain
 				v-show="'regist' != medataSet.medataSetSttusMtcd"
 				@click="goToDiffDialog" >변경이력
-			</el-button>
+			</el-button>			
 		  
 			<el-button type="default" @click="gotoList">목록</el-button>			
 		</div>
 
-		<el-dialog v-model="dialogVisibleHistory" title="Diff" :key="diffDialogKey">
-			<MetadataDiffDialog :medataSetId="route.query.medataSetId" :medataSetNm="medataSet.medataSetNm" />			
+		<el-dialog v-model="dialogVisibleDiff" title="Diff" :key="diffDialogKey">
+			<MetadataDiffDialog :medataSetId="route.query.medataSetId" :medataSetNm="medataSet.medataSetNm" />
 		</el-dialog>
 
-		<el-dialog v-model="dialogVisibleModify" title="디지털트윈 편집">
+		<el-dialog v-if="props.medataSet.typeModelId === 'DigitalTwin'" v-model="dialogVisibleModify" title="디지털트윈 편집">
 			<ExDigitalTwinDialogModify
-				:medataSetId="state.medataSet.medataSetId" 
-				@cancelModifyDialog="cancelModifyDialog" 
+				:medataSetId="state.medataSet.medataSetId"
+				@cancelModifyDialog="cancelModifyDialog"
+				@modifyMetadataSetInfo="modifyMetadataSetInfo" />
+		</el-dialog>
+		<el-dialog v-else v-model="dialogVisibleModify" title="메타데이터 셋 편집">
+			<ExMetadataSetDialogModify
+				:medataSetId="state.medataSet.medataSetId"
+				@cancelModifyDialog="cancelModifyDialog"
 				@modifyMetadataSetInfo="modifyMetadataSetInfo" />
 		</el-dialog>
 
@@ -113,13 +118,14 @@
 </template>
 <script setup>
 import ExDigitalTwinDialogModify from "@/components/meta/external/ExDigitalTwinDialogModify.vue";
+import ExMetadataSetDialogModify from "@/components/meta/external/ExMetadataSetDialogModify.vue";
 import MetadataChangeHistory from "@/components/meta/dataset/MetadataChangeHistory.vue";
 import MetadataDiffDialog from "@/components/meta/dataset/MetadataDiffDialog.vue";
 import RdfViewPopupPage from "@/views/feature/meta/setting/rdfmapping/RdfViewPopupPage.vue";
 import MetadataPopover from "@/components/meta/dataset//MetadataPopover.vue";
 
 import { useRoute, useRouter } from "vue-router";
-import { defineProps, reactive, ref, getCurrentInstance } from "vue";
+import { defineProps, reactive, ref, computed, getCurrentInstance } from "vue";
 import { isAmdYn, isReadYn, getCookie, routerPush, nowTimestamp } from "@/assets/js/common.js";
 import { getGlobalProperties } from "@/assets/js/common.js";
 import metaCommon from "@/assets/js/metaCommon.js";
@@ -162,6 +168,9 @@ const props = defineProps({
 const state = reactive({
 	medataSet: {},
 });
+
+// DO(디지털트윈 객체) 여부 확인
+const isDigitalTwinObject = computed(() => props.medataSet.typeModelId === 'DigitalTwinObject');
 
 const getRdfStr = () => {
 	refreshKey.value.nowDate = Date.now();
@@ -223,11 +232,11 @@ const requestChangeSttus = (medataSetSttusMtcd) => {
 
 	let confirmMsg = '';
 	if (medataSetSttusMtcd === 'use') {
-		confirmMsg = "해당 메타데이터 셋의 상태를 [사용]으로 변경합니다.\n하위의 메타데이터 셋들이 전부 [사용] 상태여야 변경이 가능합니다.\n변경하시겠습니까?\n(하위 셋들이 많으면 시간이 오래 걸릴 수 있습니다.)";
+		confirmMsg = "해당 메타데이터 셋의 상태를 [확인됨]으로 변경합니다.\n하위의 메타데이터 셋들이 전부 [확인됨] 상태거나 [확인됨] 처리가 가능한 상태여야 변경이 가능합니다.\n변경하시겠습니까?\n(하위 셋들이 많으면 시간이 오래 걸릴 수 있습니다.)";
 	} else if (medataSetSttusMtcd === 'unused') {
-		confirmMsg = "해당 메타데이터 셋의 상태를 [미사용]으로 변경합니다. 변경하시겠습니까?";
+		confirmMsg = "해당 메타데이터 셋의 상태를 [보완]으로 변경합니다.\n하위 셋의 상태는 변경되지 않습니다.\n변경하시겠습니까?";
 	} else if (medataSetSttusMtcd === 'disuse') {
-		confirmMsg = "해당 메타데이터 셋의 상태를 [폐기]로 변경합니다. 변경하시겠습니까?";
+		confirmMsg = "해당 메타데이터 셋의 상태를 [제외]로 변경합니다.\n[제외] 처리 후에는 다시 다른 상태로 변경할 수 없습니다.\n하위 셋의 상태는 변경되지 않습니다.\n변경하시겠습니까?";
 	} else {
 		alert('상태코드가 잘못되었습니다.');
 		return;
@@ -274,13 +283,38 @@ const gotoList = () => {
 		if (!confirm("저장되지 않은 데이터가 있습니다. 목록으로 이동하시겠습니까?")) return;
 	}
 
+	const currentPath = route.path;
+	const isExternal = currentPath.includes('/external');
+	const basePrefix = isExternal ? '/meta/external' : '/meta';
+	let targetPath;
+
+	if (currentPath.includes('/exsearch')) {
+		targetPath = `${basePrefix}/exsearch/list`;
+	} else {
+		targetPath = `${basePrefix}/exmanage/dt`;
+	}
+
 	router.push({
 		path: '/loginpass',
 		query: {
-			to: `/meta/exmanage/dt`,
+			to: targetPath,
 		}
 	});
 };
 
 </script>
-<style lang="scss"></style>
+<style lang="scss" scoped>
+/* 버튼 내 커스텀 아이콘 이미지 */
+.btn-icon-basket {
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+    margin-right: 6px;
+    display: inline-block;
+}
+.el-button.is-circle .btn-icon-basket {
+    margin-right: 0;
+    width: 14px;
+    height: 14px;
+}
+</style>

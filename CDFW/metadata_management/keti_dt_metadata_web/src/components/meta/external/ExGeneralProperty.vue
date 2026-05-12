@@ -6,6 +6,9 @@
 				프라퍼티 (총 {{ generalProperty.propertyListCnt ? generalProperty.propertyListCnt : 0 }} 건)
 			</h3>
 			<div class="btnSec taR">
+				<el-button v-if="metaConst.ARR_ETCJSON_DATATYPE.includes(generalProperty.rangeDataTypeMtcd) && generalProperty.propertyListCnt > 0" type="primary" @click="showJson(generalProperty.propertyList[0].medataVal)">
+					JSON 보기
+				</el-button>
 				<el-button type="primary" @click="dialogVisibleModifyMetadata = true">
 					값 {{ dataEditableYn == 'Y' ? '편집' : '조회' }}
 				</el-button>
@@ -98,14 +101,16 @@
 import ComnList from "@/components/common/ComnList";
 import MetadataArrayDialogModify from "@/components/meta/dt/MetadataArrayDialogModify.vue";
 
-import { defineProps, reactive, ref, onMounted, getCurrentInstance, watch, nextTick } from "vue";
+import { defineProps, reactive, ref, computed, onMounted, getCurrentInstance, watch, nextTick } from "vue";
 import metaCommon from "@/assets/js/metaCommon.js";
-import { useRouter } from "vue-router";
 import metaConst from "@/assets/js/metaConst.js";
+import { getGlobalProperties } from "@/assets/js/common.js";
+import util from "util";
 
-const emits = defineEmits(["dataSaved"]);
+const $axios = getGlobalProperties().$axios;
+const $apiUrls = getGlobalProperties().$apiUrls;
 
-const router = useRouter();
+const emits = defineEmits(["dataSaved", "selectedProperty"]);
 
 const dialogVisibleModifyMetadata = ref(false); //메타데이터 배열 편집 팝업
 const dialogModifyMetadataRef = ref(null);
@@ -157,37 +162,40 @@ const arrTypePropertyTableHeader = ref([
 	}
 ]);
 
-// object type property용 헤더
-const objTypePropertyTableHeader = ref([
-	{
-		prop: "",
-		label: "번호",
-		width: 45,
-		align: "center",
-		type: "index",
-	},
-	{
-		prop: "medataVal",
-		label: "메타데이터 값",
-		width: 150,
-		columnType: "custom",
-	},
-	{
-		prop: "medataValNm",
-		label: "값의 메타데이터 셋 명",
-		width: 200,
-	},
-	{
-		prop: "medataValSttusMtcdNm",
-		label: "상태",
-		width: 100,
-	},
-	{
-		prop: "medataValAmdDt",
-		label: "수정일",
-		width: 100,
-	}
-]);
+// object type property용 헤더 (장바구니 버튼 조건부 포함)
+const objTypePropertyTableHeader = computed(() => {
+	const baseHeaders = [
+		{
+			prop: "",
+			label: "번호",
+			width: 45,
+			align: "center",
+			type: "index",
+		},
+		{
+			prop: "medataVal",
+			label: "메타데이터 값",
+			width: 150,
+			columnType: "custom",
+		},
+		{
+			prop: "medataValNm",
+			label: "값의 메타데이터 셋 명",
+			width: 200,
+		},
+		{
+			prop: "medataValSttusMtcdNm",
+			label: "상태",
+			width: 100,
+		},
+		{
+			prop: "medataValAmdDt",
+			label: "수정일",
+			width: 100,
+		}
+	];
+	return baseHeaders;
+});
 
 onMounted(() => {
 	initInfo();
@@ -241,12 +249,10 @@ const initMap = () => {
 }
 
 const goToMetadataManagePage1 = (payload) => {
-	// console.log(`props.backPageName : ${props.backPageName}`);
-	router.push({
-		path: '/loginpass',
-		query: {
-			to: `/meta/exmanage/dt/detail?medataSetId=${payload.medataVal}`,
-		}
+	metaCommon.goToMetadataManagePage({
+		medataSetId: payload.medataVal,
+		typeModelId: props.generalProperty.rangeTypeModelId,
+		backPageName: props.backPageName,
 	});
 }
 
@@ -258,5 +264,10 @@ const onBeforeCloseDialogModifyMetadata = (done) => {
 	done(); // close
 }
 
+const showJson = (json) => {
+	emits("selectedProperty", JSON.parse(json));
+};
+
 </script>
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+</style>

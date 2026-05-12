@@ -25,23 +25,11 @@
   	</div>
 	</div>
 
-  <el-dialog v-model="dialogLogInfo" title="Elasticsearch Query 결과 정보">
-      <div class="dialog-area">
-        <div class="boxLayout">
-            <div class="boxTit"><h3>{{ selectedId }}</h3></div>
-            <div class="boxCnt">
-              <JsonEditorVue class="dialog_jsonEditor_setting" v-model="selectedInfo" v-bind="{
-                readOnly: true,
-                mode: 'text',
-                theme: 'light',
-                mainMenuBar: false,
-                navigationBar: false,
-                parser: undefined,
-              }" />
-            </div>
-          </div>
-      </div>
-  </el-dialog>
+  <JsonInfoDialog
+    v-model="dialogLogInfo"
+    :data="selectedInfo"
+    :title="`Elasticsearch Query 결과 정보 - ${selectedId}`"
+  />
 </template>
 
 <script setup>
@@ -53,6 +41,7 @@ import {
 import util from "util";
 import ComnList from "@/components/common/ComnList";
 import ComnPagination from "@/components/common/ComnPagination.vue";
+import JsonInfoDialog from "@/components/meta/common/JsonInfoDialog.vue";
 
 const $axios = getGlobalProperties().$axios;
 const $apiUrls = getGlobalProperties().$apiUrls;

@@ -6,12 +6,17 @@
 				<ul>
 					<li class="list-row" v-for="item in props.metadataSetList" :key="item" @click="elementClick(item)">
 						<div class="list-col">
-							<div class="list-title">{{ item.medataSetNm }}</div>
+							<div class="list-title">
+								{{ item.medataSetNm }}
+								<span
+									v-if="item.medataSetSttusMtcd"
+									class="meta-status-badge ml10"
+									:class="`is-${item.medataSetSttusMtcd}`"
+								>{{ item.medataSetSttusMtcdNm }}</span>
+							</div>
 							<ul class="list-info">
 								<li class="dt">ID</li>
 								<li class="dd">{{ item.medataSetId }} </li>
-								<li class="dt">상태</li>
-								<li class="dd">{{ item.medataSetSttusMtcdNm }} </li>
 								<!-- 2025 카테고리와 Agent 를 사용안해서 검색조건에서 숨김.
 								<li class="dt">카테고리</li>
 								<li class="dd"> {{ item.categoryNm }}</li> -->
