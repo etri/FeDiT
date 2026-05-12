@@ -31,7 +31,7 @@ public class MetadataApiSetPropertySearchVo extends SearchVo implements Serializ
 	@Schema(description="유형 모델 ID")
 	private String typeModelId;	
 	
-	@Getter(AccessLevel.NONE)
+	//@Getter(AccessLevel.NONE)
 	@Schema(description="리소스 URL", hidden=true)
 	private String resourceUrl;
 	

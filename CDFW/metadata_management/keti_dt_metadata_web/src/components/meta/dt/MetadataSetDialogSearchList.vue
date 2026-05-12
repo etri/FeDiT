@@ -6,9 +6,17 @@
       :height="440"
       @row-click="rowClick"
     >
+      <template #medataSetNm="{ row }">
+        {{ row.medataSetNm }}
+        <span
+          v-if="row.medataSetSttusMtcd"
+          class="meta-status-badge ml10"
+          :class="`is-${row.medataSetSttusMtcd}`"
+        >{{ row.medataSetSttusMtcdNm }}</span>
+      </template>
     </comn-list>
     <ComnPagination :totalPage="totalPage" :curPage="props.curPage" @pagemove="pagemove" />
-  </div> 
+  </div>
 </template>
 <script setup>
 import ComnList from "@/components/common/ComnList";
@@ -41,6 +49,7 @@ const tableHeader = ref([
     prop: "medataSetNm",
     label: "메타데이터 셋 명",
     width: 200,
+    columnType: "custom",
 	},
 	{
     prop: "modelNm",
@@ -51,12 +60,7 @@ const tableHeader = ref([
     prop: "modelLogicNm",
     label: "모델 논리명",
     width: 120,
-	},  
-	{
-    prop: "medataSetSttusMtcdNm",
-    label: "상태",
-    width: 80,	
-	}
+	},
 ]);
 
 const rowClick = (rowData) => {

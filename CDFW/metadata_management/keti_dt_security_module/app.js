@@ -81,6 +81,10 @@ require('./routes/passport');
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
+// nginx 에서 proxy 로 호출하기 때문에 설정.
+// 전체 trust
+app.set('trust proxy', true);
+
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

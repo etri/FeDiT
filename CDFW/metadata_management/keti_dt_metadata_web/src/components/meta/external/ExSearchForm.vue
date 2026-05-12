@@ -11,7 +11,7 @@
 		<div class="boxCnt">
 			<el-form :inline="true" :model="pageInfo" class="demo-form-inline search-form" label-width="150px" label-position="left">
 				<el-row :gutter="20">
-					<el-col :span="12">
+					<el-col :span="8">
 						<el-form-item label="디지털트윈">
 							<el-select v-model="pageInfo.digitalTwinId" @change="" placeholder="선택">
 								<el-option label="전체" value="" />
@@ -20,7 +20,7 @@
 							</el-select>
 						</el-form-item>
 					</el-col>
-					<el-col :span="12">
+					<el-col :span="8">
 						<el-form-item label="메타데이터 유형">
 							<el-select v-model="pageInfo.typeModelId" @change="changeTypeModelId" placeholder="선택">
 								<el-option label="전체" value="" />
@@ -29,23 +29,31 @@
 							</el-select>
 						</el-form-item>
 					</el-col>
+					<el-col :span="8">
+						<el-form-item label="제외 데이터">
+							<el-select v-model="pageInfo.includeDisuseYn" placeholder="제외">
+								<el-option label="제외" value="" />
+								<el-option label="포함" value="Y" />
+							</el-select>
+						</el-form-item>
+					</el-col>
 				</el-row>
 
 				<el-row :gutter="20">
-					<el-col :span="12">
+					<el-col :span="8">
 						<el-form-item label="메타데이터 셋 명">
-							<el-input class="" v-model="pageInfo.srchText" placeholder="메타데이터 셋 물리명/논리명" style=""
+							<el-input v-model="pageInfo.srchText" placeholder="메타데이터 셋 물리명/논리명"
 								@keydown.enter.prevent="getExSearchList(1)" />
 						</el-form-item>
 					</el-col>
-					<el-col :span="12">
+					<el-col :span="8">
 						<el-form-item label="키워드">
-							<el-select v-model="pageInfo.keywordType" placeholder="선택" style="width: 150px;">
+							<el-select v-model="pageInfo.keywordType" placeholder="선택" style="width: 100px;">
 								<el-option label="일치검색" value="match" />
 								<el-option label="포함검색" value="include" />
 							</el-select>
-							<el-input class="ml10" v-model="pageInfo.keyword" placeholder="키워드 입력" style=""
-								@keydown.enter.prevent="getExSearchList(1)" />
+							<el-input class="ml10" v-model="pageInfo.keyword" placeholder="키워드 입력"
+								@keydown.enter.prevent="getExSearchList(1)" style="width: calc(100% - 110px);" />
 						</el-form-item>
 					</el-col>
 				</el-row>
@@ -100,6 +108,7 @@ const pageInfo = reactive({
 	keyword: "",
 	keywordType: "match",
 	polygon: "",
+	includeDisuseYn: "",
 	totalListSize: 0,
 	pageListSize: 10,
 	blockSize: 5,
@@ -178,6 +187,7 @@ const refresh = () => {
 	pageInfo.keywordType = "match";
 	pageInfo.polygon = "";
 	pageInfo.geoData = "";
+	pageInfo.includeDisuseYn = "";
 	polygonSearch.value = false;
 };
 

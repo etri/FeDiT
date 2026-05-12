@@ -1,5 +1,37 @@
 @charset 'utf-8';
 
+/* BLUEGRAY 테마 — Element Plus primary 색 변수 override (#7da5d7 기준)
+   (var(--el-color-primary*) 사용하는 모든 곳에 자동 반영) */
+:root {
+  --el-color-primary: #7da5d7;
+  --el-color-primary-light-3: color-mix(in srgb, #7da5d7 70%, #fff);
+  --el-color-primary-light-5: color-mix(in srgb, #7da5d7 50%, #fff);
+  --el-color-primary-light-7: color-mix(in srgb, #7da5d7 30%, #fff);
+  --el-color-primary-light-8: color-mix(in srgb, #7da5d7 20%, #fff);
+  --el-color-primary-light-9: color-mix(in srgb, #7da5d7 10%, #fff);
+  --el-color-primary-dark-1: color-mix(in srgb, #7da5d7 90%, #000);
+  --el-color-primary-dark-2: color-mix(in srgb, #7da5d7 80%, #000);
+}
+
+/* BLUEGRAY 디스커버리 우측 상단 boxSectionTit 는 좌측 카드 톤과 통일 (보더선은 원래 sub.css 색 유지) */
+.boxSectionTit.discovery-section-tit {
+  background: var(--el-color-primary-light-9) !important;
+  border-top: 2px solid #5F6679 !important;
+}
+.boxSectionTit.discovery-section-tit h3 {
+  color: #444 !important;
+}
+
+/* BLUEGRAY 디스커버리 상세 검색 패널 — boxTit 톤보다 옅게 */
+.discovery-advanced-panel {
+  background: #f5f7fa !important;
+}
+
+/* BLUEGRAY 디스커버리 글로벌 카운트 바 — boxTit 보다 살짝 블루 톤 (차분하지만 색감 있음) */
+.discovery-global-counts-bar {
+  background: #dde6f2 !important;
+}
+
 /* header, nav */
 .lftMenu .el-menu .btnSet .el-button {
   background-color: transparent !important;

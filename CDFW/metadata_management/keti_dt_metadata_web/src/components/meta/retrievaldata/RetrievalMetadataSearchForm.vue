@@ -11,25 +11,7 @@
 		<div class="boxCnt">
 			<el-form :inline="true" :model="pageInfo" class="demo-form-inline search-form" label-width="150px" label-position="left">
 				<el-row :gutter="20">
-					<el-col :span="12">
-						<ComnFormItemInput2Btns label="메타데이터 셋" v-model="pageInfo.medataSetNm"
-							@click-search="dialogVisibleSearchMetadataSet = true" @click-refresh="refreshMetadataSetInfo" />
-						<el-dialog v-model="dialogVisibleSearchMetadataSet" title="메타데이터 셋 검색">
-							<MetadataSetDialogSearch :searchSttusCd="searchSttusCdForDt" :searchMode="searchModeForDt"
-								@selectedRow="selectedMetaDataSet" />
-						</el-dialog>
-					</el-col>
-					<el-col :span="12">
-						<ComnFormItemInput2Btns label="프라퍼티" v-model="pageInfo.prptyNm"
-							@click-search="dialogVisiblePropertySearch = true" @click-refresh="refreshProperty" />
-						<el-dialog v-model="dialogVisiblePropertySearch" title="프라퍼티 검색">
-							<PropertyDialogSearch @selectedRow="selectedProperty" />
-						</el-dialog>
-					</el-col>
-				</el-row>
-
-				<el-row :gutter="20">
-					<el-col :span="12">
+					<el-col :span="8">
 						<el-form-item label="메타데이터 유형">
 							<el-select v-model="pageInfo.typeModelId" @change="changeTypeModelId" placeholder="선택">
 								<el-option label="전체" value="" />
@@ -37,8 +19,8 @@
 									:label="`${item.modelNm} ${item.modelLogicNm}`" :value="item.modelId" />
 							</el-select>
 						</el-form-item>
-					</el-col>					
-					<el-col :span="12">
+					</el-col>
+					<el-col :span="8">
 						<ComnFormItemInput2Btns label="메타데이터 모델" v-model="pageInfo.modelNm"
 							@click-search="dialogVisibleModelSearch = true" @click-refresh="refreshModelInfo" />
 						<el-dialog v-model="dialogVisibleModelSearch" title="메타데이터 모델 검색">
@@ -46,35 +28,38 @@
 								:typeModelId="searchTypeModelId" @selectedRow="selectedMetaDataModel" />
 						</el-dialog>
 					</el-col>
+					<el-col :span="8">
+						<el-form-item label="제외 데이터">
+							<el-select v-model="pageInfo.includeDisuseYn" placeholder="제외">
+								<el-option label="제외" value="" />
+								<el-option label="포함" value="Y" />
+							</el-select>
+						</el-form-item>
+					</el-col>
 				</el-row>
 
 				<el-row :gutter="20">
-					<el-col :span="12">
+					<el-col :span="8">
+						<ComnFormItemInput2Btns label="메타데이터 셋" v-model="pageInfo.medataSetNm"
+							@click-search="dialogVisibleSearchMetadataSet = true" @click-refresh="refreshMetadataSetInfo" />
+						<el-dialog v-model="dialogVisibleSearchMetadataSet" title="메타데이터 셋 검색">
+							<MetadataSetDialogSearch :searchSttusCd="searchSttusCdForDt" :searchMode="searchModeForDt"
+								@selectedRow="selectedMetaDataSet" />
+						</el-dialog>
+					</el-col>
+					<el-col :span="8">
+						<ComnFormItemInput2Btns label="프라퍼티" v-model="pageInfo.prptyNm"
+							@click-search="dialogVisiblePropertySearch = true" @click-refresh="refreshProperty" />
+						<el-dialog v-model="dialogVisiblePropertySearch" title="프라퍼티 검색">
+							<PropertyDialogSearch @selectedRow="selectedProperty" />
+						</el-dialog>
+					</el-col>
+					<el-col :span="8">
 						<el-form-item label="검색어">
-							<el-input class="" v-model="pageInfo.srchVal" placeholder="값" style=""
+							<el-input v-model="pageInfo.srchVal" placeholder="값"
 								@keydown.enter.prevent="getRetrievalMetadataList(1)" />
 						</el-form-item>
 					</el-col>
-					<!-- 2025 카테고리와 Agent 를 사용안해서 검색조건에서 숨김.
-					<el-col :span="12">
-						< !-- 2023-07-27 정형모델 사용안함 
-						<ComnFormItemInput2Btns label="제공자 (대리인)" v-model="pageInfo.agntNm"
-							@click-search="dialogVisibleSearchAgent = true" @click-refresh="refreshAgent" />
-						<el-dialog v-model="dialogVisibleSearchAgent" title="대리인 검색">
-							<AgentDialogSearch @selectAgent="selectedAgent" />
-						</el-dialog>
-						-- >
-						<ComnFormItemInput2Btns label="제공자 (대리인)" v-model="pageInfo.agntNm"
-							@click-search="dialogVisibleSearchAgent = true" @click-refresh="refreshAgent" />
-						<el-dialog v-model="dialogVisibleSearchAgent" title="제공자 (대리인) 메타데이터 셋 검색">
-							<MetadataSetDialogSearch 
-								searchSttusCd="use" searchMode="type"
-								typeModelId="Agent" typeModelNm="제공자 (대리인)"
-								:searchMetaTypeFix='true' :searchMetaTypeId="'Agent'" 
-								@selectedRow="selectedAgent" />
-						</el-dialog>						
-					</el-col>
-					-->
 				</el-row>
 
 			</el-form>
@@ -126,6 +111,7 @@ const pageInfo = reactive({
 	prptyId: "", //프라퍼티 ID
 	prptyNm: "", //프라퍼티 명
 	srchVal: "", //검색어 (메타데이터 검색용)
+	includeDisuseYn: "", //제외(폐기) 포함 여부
 });
 
 onMounted(() => {
@@ -221,6 +207,7 @@ const refresh = () => {
 	pageInfo.prptyId = ""; //프라퍼티 ID
 	pageInfo.prptyNm = ""; //프라퍼티 명
 	pageInfo.srchVal = ""; //검색어
+	pageInfo.includeDisuseYn = ""; //제외(폐기) 포함 여부
 };
 
 </script>

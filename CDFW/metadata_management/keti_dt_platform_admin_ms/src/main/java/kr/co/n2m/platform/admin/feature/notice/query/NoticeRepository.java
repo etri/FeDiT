@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 import kr.co.n2m.platform.admin.feature.notice.entity.Notice;
 
 @Repository
-public interface NoticeRepository extends JpaRepository<Notice, Long> {
+public interface NoticeRepository extends JpaRepository<Notice, String> {
 
 }

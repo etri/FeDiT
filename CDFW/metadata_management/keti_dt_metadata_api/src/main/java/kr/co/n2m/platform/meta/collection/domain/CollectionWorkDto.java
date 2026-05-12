@@ -18,8 +18,8 @@ public class CollectionWorkDto extends CollectionWorkVo {
 
 	private String colecWrkSttusMtcdNm;
 
-	@Getter(AccessLevel.NONE)
-	@Setter(AccessLevel.NONE)
+	//@Getter(AccessLevel.NONE)
+	//@Setter(AccessLevel.NONE)
 	@Schema(description = "생성 메타데이터셋 아이디 목록")
 	private List<String> medataSetIdList;
 

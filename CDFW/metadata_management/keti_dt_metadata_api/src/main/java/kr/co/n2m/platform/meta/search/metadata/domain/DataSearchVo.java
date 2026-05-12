@@ -47,6 +47,7 @@ public class DataSearchVo extends SearchVo implements Serializable {
 	
 	@Schema(description="메타데이터 셋 ID list")
 	private List<String> medataSetIds;
-	
-	
+
+	@Schema(description="제외(폐기) 상태 데이터 포함 여부 (Y/N). 기본 N — 폐기 데이터 검색 결과에 미포함.")
+	private String includeDisuseYn;
 }

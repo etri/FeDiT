@@ -2,6 +2,7 @@ import re, json, dateparser
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
+
 # -----------------------------
 # 지역명 필터
 # -----------------------------
@@ -313,20 +314,35 @@ def parse_time_expression(question: str):
 # ============================================================
 # 시간 필터 보정 (LLM 생성값을 ISO 포맷으로)
 # ============================================================
+# ============================================================
+# 시간 필터 보정 (LLM 생성값을 ISO 포맷으로 변환)
+# ============================================================
 def _normalize_time_filter(filter_dict):
-    """LLM이 만든 자연어 날짜("3개월 전", "2년 이내")를 실제 ISO 포맷으로 변환"""
+    """
+    LLM이 만든 자연어 날짜("3개월 전", "2년 이내" 등)을 ISO 포맷으로 변환
+    - 모든 depth의 dict 순회 지원
+    - 변환 성공 시 Elasticsearch range에 바로 사용 가능
+    """
+
     now = datetime.now()
+
     if not isinstance(filter_dict, dict):
         return filter_dict
 
-    for k, v in filter_dict.items():
-        if isinstance(v, dict):
-            _normalize_time_filter(v)
-        elif isinstance(v, str):
-            if match := re.search(r"(\d+)\s*(일|주|개월|달|년)\s*(전|이내|내)?", v):
-                num, unit = int(match.group(1)), match.group(2)
+    normalized = {}
 
-                # 기간 단위별로 안전하게 변환
+    for key, value in filter_dict.items():
+        # 하위 dict 재귀 처리
+        if isinstance(value, dict):
+            normalized[key] = _normalize_time_filter(value)
+
+        elif isinstance(value, str):
+            match = re.search(r"(\d+)\s*(일|주|개월|달|년)\s*(전|이내|내)?", value)
+            if match:
+                num = int(match.group(1))
+                unit = match.group(2)
+
+                # 단위별 delta
                 if unit == "일":
                     delta = relativedelta(days=num)
                 elif unit == "주":
@@ -338,6 +354,12 @@ def _normalize_time_filter(filter_dict):
                 else:
                     delta = relativedelta(days=0)
 
-                v = (now - delta).isoformat()
-                filter_dict[k] = v
-    return filter_dict
+                iso_time = (now - delta).replace(microsecond=0).isoformat()
+                normalized[key] = iso_time
+                print(f"[TIME][NORMALIZE] '{value}' → '{iso_time}'")
+            else:
+                normalized[key] = value
+        else:
+            normalized[key] = value
+
+    return normalized

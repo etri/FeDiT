@@ -5,9 +5,21 @@
 			<h3>{{ medataSet.medataSetNm }}</h3>
 		</div>
 
+		<div v-if="medataSet.typeModelId && medataSet.typeModelId !== 'DigitalTwin'" class="boxLayout">
+			<div class="boxTit">
+				<h3>디지털트윈</h3>
+			</div>
+			<div class="boxCnt">
+				<div style="overflow-x: hidden; overflow-y: auto">
+					<UpperDigitalTwinList :upperMetadataSetDtwListBySubSetId="state.upperMetadataSetDtwListBySubSetId"
+						:backPageName="'ExDigitalTwinDetailManagePage'" />
+				</div>
+			</div>
+		</div>
+
 		<div class="boxLayout">
 			<div class="boxTit">
-				<h3>디지털트윈 정보</h3>
+				<h3>{{ medataSet.typeModelId === 'DigitalTwin' ? '디지털트윈 정보' : '메타데이터 셋 정보' }}</h3>
 			</div>
 			<div class="boxCnt">
 				<ExDigitalTwinDetail :medataSet="medataSet" :dataStatusList="dataStatusList"
@@ -20,39 +32,48 @@
 				<h3>메타데이터 목록 {{ state.pageInfoForMetadataListWithSetId.totalListSize }} 건</h3>
 			</div>
 			<div class="boxCnt">
-				<ExMetadataListForSave :dataEditableYn="state.dataEditableYn" 
-				  :metadataListWithSetId="state.metadataListWithSetId"
-					:medataSet="medataSet"
-					:generalPropertyMap="state.generalPropertyMap"
-					:refPropertyNmMap="state.refPropertyNmMap"
-					:backPageName="'DigitalTwinDetailManagePage'"
-					@modifyMetadataListForSaveInfo="modifyMetadataListForSaveInfo"
-					@on-data-changed="onSingleDataChanged"
-					/><!-- :totalPage="state.pageInfoForMetadataListWithSetId.totalListSize" -->
+					<ExMetadataListForSave :dataEditableYn="state.dataEditableYn" 
+						:metadataListWithSetId="state.metadataListWithSetId"
+						:medataSet="medataSet"
+						:generalPropertyMap="state.generalPropertyMap"
+						:refPropertyNmMap="state.refPropertyNmMap"
+						:backPageName="'ExDigitalTwinDetailManagePage'"
+						@modifyMetadataListForSaveInfo="modifyMetadataListForSaveInfo"
+						@on-data-changed="onSingleDataChanged"
+						/><!-- :totalPage="state.pageInfoForMetadataListWithSetId.totalListSize" -->
+				</div>
 			</div>
-		</div>
 
+		<!-- geo type property -->
 		<div class="boxLayout" v-for="prptyNm of state.geoJsonPropertyNmList" :key="prptyNm">
 			<ExGeneralProperty :dataEditableYn="state.dataEditableYn" :generalProperty="state.arrayPropertyMap[prptyNm]"
-				:medataSetId="medataSet.medataSetId" :medataSet="medataSet" @data-saved="generalPropertyDataSaved" />
+				:medataSetId="medataSet.medataSetId" :medataSet="medataSet" :backPageName="'ExDigitalTwinDetailManagePage'" @data-saved="generalPropertyDataSaved" />
 		</div>
 
+		<!-- etc json type property (not geo json) -->
 		<div class="boxLayout" v-for="prptyNm of state.jsonEtcPropertyNmList" :key="prptyNm">
 			<ExGeneralProperty :dataEditableYn="state.dataEditableYn" :generalProperty="state.arrayPropertyMap[prptyNm]"
-				:medataSetId="medataSet.medataSetId" :medataSet="medataSet" @data-saved="generalPropertyDataSaved" />
+				:medataSetId="medataSet.medataSetId" :medataSet="medataSet" :backPageName="'ExDigitalTwinDetailManagePage'" @data-saved="generalPropertyDataSaved" @selectedProperty="selectedProperty" />
 		</div>
 
+		<!-- array type & object type property -->
 		<div class="boxLayout" v-for="prptyNm of state.arrayPropertyNmList" :key="prptyNm">
 			<ExGeneralProperty :dataEditableYn="state.dataEditableYn" :generalProperty="state.arrayPropertyMap[prptyNm]"
-				:medataSetId="medataSet.medataSetId" :medataSet="medataSet" :backPageName="'DigitalTwinDetailManagePage'" @data-saved="generalPropertyDataSaved" />
+				:medataSetId="medataSet.medataSetId" :medataSet="medataSet" :backPageName="'ExDigitalTwinDetailManagePage'" @data-saved="generalPropertyDataSaved" />
 		</div>
 
 	</div>
+
+	<!-- digitalTwinObjectData JSON 보기 dialog (공통 컴포넌트) -->
+	<JsonInfoDialog v-model="dialogLogInfo" :data="selectedInfo" title="프라퍼티 정보" />
+
 </template>
 <script setup>
+import UpperDigitalTwinList from "@/components/meta/dataset/UpperDigitalTwinList.vue";
 import ExDigitalTwinDetail from "@/components/meta/external/ExDigitalTwinDetail.vue";
 import ExMetadataListForSave from "@/components/meta/external/ExMetadataListForSave.vue";
 import ExGeneralProperty from "@/components/meta/external/ExGeneralProperty.vue";
+import JsonInfoDialog from "@/components/meta/common/JsonInfoDialog.vue";
 
 import { reactive, ref, onMounted, getCurrentInstance, watch, onBeforeMount, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -68,6 +89,14 @@ const store = useStore();
 const route = useRoute();
 const router = useRouter();
 
+// digitalTwinObjectData type(객체 데이터 정보 프라퍼티) JSON 보기
+const dialogLogInfo = ref(false);
+const selectedInfo = ref({});
+const selectedProperty = (payload) => {
+	dialogLogInfo.value = true;
+	selectedInfo.value = payload;
+	};
+
 const dataStatusList = ref([]);
 const medataSet = ref({});
 const emptyPrptyShowYn = ref("N");
@@ -76,6 +105,7 @@ const isUnsavedData = ref(false);
 const arrEditableSttus = ['regist', 'unused'];
 
 const state = reactive({
+	upperMetadataSetDtwListBySubSetId: [],
 	metadataListWithSetId: [],
 
 	pageInfoForMetadataListWithSetId: {
@@ -99,7 +129,7 @@ const state = reactive({
 	geoJsonPropertyMap: {},
 
 	jsonEtcPropertyNmList: [],
-
+	//typeModelId: "",
 	dataEditableYn: 'N',
 	refPropertyNmMap: {},
 });
@@ -128,6 +158,7 @@ onMounted(() => {
 	$emitter.on("modifyMetadataSetInfo", () => {
 		getMetadataSetDetail();
 		getMetadataListWithSetIdForSave();
+		getMetadataSetDtwListBySubSetId();
 	});
 
 });
@@ -141,6 +172,7 @@ const initAllMetadataSetInfoExceptMtcd = () => {
 	getModelInfoBySetId();
 	getMetadataSetDetail();
 	getMetadataListWithSetIdForSave();
+	getMetadataSetDtwListBySubSetId();
 };
 
 const getMetadataSetDetail = () => {
@@ -177,6 +209,18 @@ const getMetadataListWithSetIdForSave = () => {
 		.catch((err) => {
 			console.log(err);
 		});
+	};
+
+const getMetadataSetDtwListBySubSetId = () => {
+	let medataSetId = route.query.medataSetId;
+	$axios
+		.get(util.format($apiUrls.meta.resource.metadatasets.getMetadataSetDtwListBySubSetId, medataSetId))
+		.then((res) => {
+			state.upperMetadataSetDtwListBySubSetId = res.data.list;
+		})
+		.catch((err) => {
+			console.log(err);
+		});
 };
 
 const getModelInfoBySetId = async () => {
@@ -190,6 +234,7 @@ const getModelInfoBySetId = async () => {
 			state.generalPropertyMap = res.data.propertyMap;
 			state.geoJsonPropertyNmList = res.data.geoJsonPropertyNmList;
 			state.jsonEtcPropertyNmList = res.data.jsonEtcPropertyNmList;
+			state.arrayPropertyMap = {};
 
 			propertySet(state.geoJsonPropertyNmList, state.generalPropertyMap);
 			propertySet(state.arrayPropertyNmList, state.generalPropertyMap);
@@ -207,10 +252,11 @@ const propertySet = (arrayPropertyNmList, generalPropertyMap) => {
 	for (let propertyNm of arrayPropertyNmList) {
 
 		for (let property in generalPropertyMap) {
+			let currentProperty = generalPropertyMap[property];
 
-			if (propertyNm === generalPropertyMap[property].prptyId) {
+			if (propertyNm === currentProperty.prptyId || propertyNm === currentProperty.prptyNm) {
 
-				let arrTypeProperty = { ...generalPropertyMap[property], propertyList: [], propertyListCnt: 0 };
+				let arrTypeProperty = { ...currentProperty, propertyList: [], propertyListCnt: 0 };
 				propertyListSetByPrptNm(medataSetId, propertyNm, arrTypeProperty);
 			}
 		}

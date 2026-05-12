@@ -8,10 +8,10 @@
 				<el-button type="primary" size="large" 
 					@click="dialogVisibleEdit = true">등록</el-button>
 			</div>
-			<el-dialog v-model="dialogVisibleEdit" title="디지털트윈 등록">
-				<DigitalTwinDialogEdit @cancelDialog="cancelDialog" @editMetadataSetInfo="editMetadataSetInfo" 
-									   :countryCodeList="countryCodeList" :idSchmDtList="idSchmDtList"/>
-			</el-dialog>
+				<el-dialog v-model="dialogVisibleEdit" title="디지털트윈 등록">
+					<DigitalTwinDialogEdit @cancelDialog="cancelDialog" @editMetadataSetInfo="editMetadataSetInfo" 
+						:countryCodeList="countryCodeList" :idSchmDtList="idSchmDtList"/>
+				</el-dialog>
 
 			<div class="boxLayout">
 				<div class="boxTit">
@@ -180,7 +180,7 @@ const editMetadataSetInfo = (payload) => {
 	dialogVisibleEdit.value = false;
 
 	let platform = 'meta'; // getCookie("pltfrmId");
-	let query = { medataSetId: payload };
+	let query = { medataSetId: payload, backPageName: 'ExDigitalTwinListPage' };
 	routerPush(platform, "ExDigitalTwinDetailManagePage", query);
 
 	// router.push({
@@ -196,16 +196,17 @@ const cancelDialog = () => {
 };
 
 const detailMetadataSet = (payload) => {
-	let platform = 'meta'; // getCookie("pltfrmId");
-	let query = { medataSetId: payload.medataSetId };
-	routerPush(platform, "ExDigitalTwinDetailManagePage", query);
-	
-	// router.push({
-	// 	path: '/loginpass',
-	// 	query: {
-	// 		to: `/meta/exmanage/dt/detail?medataSetId=${payload.medataSetId}`,
-	// 	}
-	// });
+	if (!route.meta?.auth || isReadYn(route.meta.auth)) {
+		let platform = 'meta'; // getCookie("pltfrmId");
+		let query = { medataSetId: payload.medataSetId, backPageName: 'ExDigitalTwinListPage' };
+		if (payload.typeModelId === 'DigitalTwin') {
+			routerPush(platform, "ExDigitalTwinDetailManagePage", query);
+		} else {
+			routerPush(platform, "ExDigitalTwinDetailManagePage", query);
+		}
+	} else {
+		alert("읽기 권한이 없습니다.");
+	}
 };
 
 const pageMove = (payload) => {

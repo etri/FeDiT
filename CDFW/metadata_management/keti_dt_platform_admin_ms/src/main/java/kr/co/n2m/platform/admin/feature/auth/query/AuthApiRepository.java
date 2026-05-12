@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 import kr.co.n2m.platform.admin.feature.auth.entity.AuthApi;
 
 @Repository
-public interface AuthApiRepository extends JpaRepository<AuthApi, Long> {
+public interface AuthApiRepository extends JpaRepository<AuthApi, AuthApi> {
 
 }

@@ -7,7 +7,7 @@ import kr.co.n2m.platform.admin.feature.group.entity.GroupUser;
 
 
 @Repository
-public interface GroupUserRepository extends JpaRepository<GroupUser, Long>{
+public interface GroupUserRepository extends JpaRepository<GroupUser, GroupUser>{
 
 
 }

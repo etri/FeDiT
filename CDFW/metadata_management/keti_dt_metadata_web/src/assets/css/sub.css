@@ -16,6 +16,7 @@
     --el-color-primary-light-7: #9cdae2 /* #c6e2ff*/;
     --el-color-primary-light-8: #ceecf1 /* #d9ecff*/;
     --el-color-primary-light-9: #e6f6f8 /* #ecf5ff*/;
+    --el-color-primary-dark-1: #048d9f /* primary 와 dark-2 의 중간 */;
     --el-color-primary-dark-2: #007888 /* #337ecc*/;
     --el-fill-color: #F8F8F8 /* #f0f2f5 */;
     --el-fill-color-light: #F8F8F8 /* #f0f2f5 */;
@@ -701,4 +702,117 @@ input + label{cursor:pointer; vertical-align:middle; margin-left:5px;}
 .demo-tabs .el-tabs__nav {border:1px solid transparent !important;}
 .demo-tabs .el-tabs__item {background-color: #ddd; color: #aaa; border-bottom: 0 !important; border-radius: 5px 5px 0 0; margin-top: 1px; margin-left: 1px;}
 .demo-tabs .el-tabs__item.is-active {background-color: #ccc; color: #555;}
+
+/* neo4jd3 컨테이너 — MedataGraphPage / DiscoveryPage 등 공통 사용 */
+.neo4jd3-container { width: 100%; height: 100%; }
+.neo4jd3-container .neo4jd3-graph { border: 1px solid #ddd; background-color: white; border-radius: 5px; height: calc(100vh - 350px); }
+.neo4jd3-container .neo4jd3-info { font-size: 16px; padding: 10px; position: absolute; }
+.neo4jd3-container .neo4jd3-info a { border: 1px solid; display: inline-block; font-size: 14px; line-height: 1.428571429; margin-left: 5px; margin-top: 5px; padding: 6px 12px; }
+.neo4jd3-container .neo4jd3-info a.class { color: white; }
+.neo4jd3-container .neo4jd3-info a.property { background-color: #fff; border-color: #ccc; color: #333; }
+.neo4jd3-container .neo4jd3-info a.btn { margin-left: 5px; margin-top: 5px; opacity: 1; }
+.neo4jd3-container .neo4jd3-info a.info { background-color: #a5abb6; border: 1px solid #9aa1ac; color: white; }
+.neo4jd3-container .node.node-highlighted .ring { opacity: .5; stroke: #888; stroke-width: 12px; }
+.neo4jd3-container .node .outline { cursor: pointer; fill: #a5abb6; pointer-events: all; stroke: #9aa1ac; stroke-width: 2px; }
+.neo4jd3-container .node .ring { fill: none; opacity: 0; stroke: #6ac6ff; stroke-width: 8px; }
+.neo4jd3-container .node .text.icon { font-family: FontAwesome; }
+.neo4jd3-container .node.selected .ring,
+.neo4jd3-container .node:hover .ring { opacity: .3; }
+.neo4jd3-container .relationship { cursor: default; }
+.neo4jd3-container .relationship line { stroke: #aaa; }
+.neo4jd3-container .relationship .outline { cursor: default; }
+.neo4jd3-container .relationship .overlay { cursor: default; fill: #6ac6ff; opacity: 0; }
+.neo4jd3-container .relationship text { cursor: default; }
+.neo4jd3-container .relationship.selected .overlay,
+.neo4jd3-container .relationship:hover .overlay { opacity: .3; }
+.neo4jd3-container svg { height: 100%; width: 100%; }
+
+/* ─────────────────────────────────────────────────────────────
+   배지 시스템 (모두 11px / padding 1px 8px / radius 4px)
+   - meta-status-badge       : 메타데이터 상태 (4가지: 등록/확인됨/보완/제외)
+   - badge-primary(-dot)     : 프라이머리 톤 (점 옵션)
+   - badge-gray              : 회색 톤 (.is-red 옵션)
+   - 공통 modifier .dark-border : 보더를 글자색과 동일하게
+   ───────────────────────────────────────────────────────────── */
+
+/* 메타데이터 상태 배지 */
+.meta-status-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.5;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+.meta-status-badge.is-regist,
+.meta-status-badge.is-unused {
+    /* 등록 / 보완 — 옅은 노랑 */
+    background: #fff9e7;
+    color: #a48121;
+    border-color: #f2e5ac;
+}
+.meta-status-badge.is-use {
+    /* 확인됨 — 프라이머리 (양성 마커) */
+    background: var(--el-color-primary-light-9);
+    color: var(--el-color-primary-dark-1);
+    border-color: var(--el-color-primary-light-7);
+}
+.meta-status-badge.is-disuse {
+    /* 제외 — 옅은 회색 */
+    background: #f5f5f5;
+    color: #777;
+    border-color: #ddd;
+}
+
+/* 프라이머리 배지 (점 유무) */
+.badge-primary,
+.badge-primary-dot {
+    display: inline-block;
+    background: var(--el-color-primary-light-9);
+    color: var(--el-color-primary-dark-1);
+    border: 1px solid var(--el-color-primary-light-7);
+    border-radius: 4px;
+    padding: 1px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+.badge-primary-dot::before {
+    content: "•";
+    margin-right: 4px;
+    color: var(--el-color-primary);
+}
+
+/* 회색 배지 */
+.badge-gray {
+    display: inline-block;
+    background: #f5f5f5;
+    color: #666;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 1px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+.badge-gray.is-red {
+    /* 검색 매칭 등 강조 */
+    background: #fdecea;
+    color: #d33;
+    border-color: #f6cccc;
+}
+
+/* 공통: 진한 보더 (글자색과 동일) */
+.meta-status-badge.dark-border,
+.badge-primary.dark-border,
+.badge-primary-dot.dark-border {
+    border-color: currentColor;
+}
 /*# sourceMappingURL=sub.css.map */

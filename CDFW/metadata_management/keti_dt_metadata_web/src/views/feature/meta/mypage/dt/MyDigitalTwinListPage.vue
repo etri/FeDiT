@@ -55,6 +55,7 @@ const state = reactive({
 		medataSetSttusMtcd: "",
 		srchText: "",
 		typeModelId: "DigitalTwin",
+		includeDisuseYn: "Y",
 
 		totalListSize: 0,
 		pageListSize: 10,
@@ -78,6 +79,7 @@ const getMyDigitalTwinList = () => {
 				medataSetSttusMtcd: state.pageInfo.medataSetSttusMtcd,
 				srchText: state.pageInfo.srchText,
 				typeModelId: state.pageInfo.typeModelId,
+				includeDisuseYn: state.pageInfo.includeDisuseYn,
 			},
 		})
 		.then((res) => {

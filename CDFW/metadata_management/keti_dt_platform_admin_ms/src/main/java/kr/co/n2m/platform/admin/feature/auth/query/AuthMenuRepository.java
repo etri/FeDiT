@@ -7,6 +7,6 @@ import kr.co.n2m.platform.admin.feature.auth.entity.AuthMenu;
 
 
 @Repository
-public interface AuthMenuRepository extends JpaRepository<AuthMenu, Long>{
+public interface AuthMenuRepository extends JpaRepository<AuthMenu, AuthMenu>{
 
 }
