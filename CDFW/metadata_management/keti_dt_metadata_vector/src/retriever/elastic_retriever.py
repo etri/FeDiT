@@ -39,6 +39,35 @@ def search_in_elasticsearch(query_dict: dict, question: str = None):
     lower_q = (question or "").lower()
     sort_option = None
 
+    semantic_keywords = [
+        "관련된",
+        "유사한",
+        "비슷한",
+        "주제",
+        "의미",
+        "관련",
+        "연관",
+        "동물",
+        "환경",
+        "스마트시티",
+        "에너지",
+        "건축",
+        "기후",
+        "생태",
+    ]
+    if question and any(word in question for word in semantic_keywords):
+        print(f"[FORCE] 의미형 질의 감지 ('{question}') → 벡터 검색 강제 전환")
+        query_dict["vector_search"] = True
+
+    # ----------------------------------------------------------
+    # [0] ID 기반 질의 감지 → 강제 키워드 검색 전환
+    # ----------------------------------------------------------
+    if question and re.search(
+        r"\bid\s*[=:]\s*['\"]?[\w\-~]+['\"]?", question, re.IGNORECASE
+    ):
+        print("[FORCE] ID 기반 질의 감지 → 키워드 검색으로 전환 (벡터 비활성화)")
+        query_dict["vector_search"] = False
+
     # ----------------------------------------------------------
     # [1] 전체 목록 질의 감지 ("전체", "목록", "모두" 등)
     # ----------------------------------------------------------
@@ -142,38 +171,61 @@ def search_in_elasticsearch(query_dict: dict, question: str = None):
 def _search_match_all(query_dict, sort_option):
     print("[INFO] match_all 쿼리 실행")
 
-    # 전체 문서 수 파악
+    # --------------------------------------------------------
+    # [1] must / filter 절 구성
+    # --------------------------------------------------------
+    must_clauses = _build_must_clauses(query_dict.get("must", {}))
+
+    # 항상 리스트로 초기화 (None 방지)
+    filter_clauses = _build_filter_clauses(query_dict.get("filter", {})) or []
+    if not isinstance(filter_clauses, list):
+        filter_clauses = [filter_clauses]
+
+    # LLM이 감지한 추가 시간 필터(_extra_filters) 병합
+    if "_extra_filters" in query_dict:
+        extra_filters = query_dict["_extra_filters"]
+        if extra_filters:
+            print(f"[TIME][APPLY] match_all에 시간 필터 병합: {len(extra_filters)}개")
+            filter_clauses.extend(extra_filters)
+
+    # --------------------------------------------------------
+    # [2] 전체 문서 수 계산 (필터 포함)
+    # --------------------------------------------------------
     body_count = {
         "size": 0,
         "track_total_hits": True,
-        "query": {"bool": {"must": []}},
+        "query": {
+            "bool": {
+                "must": must_clauses,
+                "filter": filter_clauses,
+            }
+        },
     }
-
-    if "must" in query_dict and isinstance(query_dict["must"], dict):
-        for k, v in query_dict["must"].items():
-            body_count["query"]["bool"]["must"].append({"term": {k: v}})
 
     res_total = es.search(index=ES_INDEX_NAME, body=body_count)
     total_count = res_total.get("hits", {}).get("total", {}).get("value", 0)
     print(f"[INFO] 전체 문서 총 {total_count}개")
 
-    #  실제 문서 조회 (최근 생성순 10개)
+    # --------------------------------------------------------
+    # [3] 실제 문서 조회 (필터 + 정렬 포함)
+    # --------------------------------------------------------
     size_limit = 10
     body_detail = {
         "size": size_limit,
-        "query": {"bool": {"must": []}},
+        "query": {
+            "bool": {
+                "must": must_clauses,
+                "filter": filter_clauses,
+            }
+        },
         "sort": sort_option or [{"creationTime": "desc"}],
     }
-
-    if "must" in query_dict and isinstance(query_dict["must"], dict):
-        for k, v in query_dict["must"].items():
-            body_detail["query"]["bool"]["must"].append({"term": {k: v}})
 
     res = es.search(index=ES_INDEX_NAME, body=body_detail)
     hits = res.get("hits", {}).get("hits", [])
     docs = [{**h["_source"], "_id": h["_id"]} for h in hits if "_source" in h]
 
-    print(f"[INFO] 최근 생성 순으로 {len(hits)}개 문서를 반환합니다.")
+    print(f"[INFO] 필터 적용 후 {len(hits)}개 문서를 반환합니다.")
 
     return {
         "total_count": total_count,
@@ -189,39 +241,90 @@ def _search_match_all(query_dict, sort_option):
 
 def aggregate_search(query_dict: dict):
     """
-    LLM 생성 JSON 기반 Elasticsearch 집계 검색
+    Elasticsearch 집계 검색 - 최종 통합 버전
+
+    지원 기능:
+    1) 전체 집계 (metaTypeModel → metaModel)
+    2) 특정 metaTypeModel 필터 집계 (Sensor 등)
+       - 전체 개수 + 하위 metaModel 개수
+    3) 지역(Location) 기반 집계
+       - group_by = "location" OR 질문에서 지역 단어 감지 시
     """
+
     try:
+        # 1) 시간 필터 정규화
         query_dict["filter"] = _normalize_time_filter(query_dict.get("filter", {}))
-        must = _build_must_clauses(query_dict.get("must", {}))
+
+        must_dict = query_dict.get("must", {})
+        must = _build_must_clauses(must_dict)
         filter_ = _build_filter_clauses(query_dict.get("filter", {}))
+
+        meta_type_filter = None
+        if isinstance(must_dict, dict):
+            meta_type_filter = must_dict.get("metaTypeModel")
+
+        group_by = query_dict.get("group_by", None)  # LLM이 직접 설정한 group_by
+
+        base_query = (
+            {"bool": {"must": must, "filter": filter_}}
+            if must or filter_
+            else {"match_all": {}}
+        )
+
+        body = {"size": 0, "query": base_query}
+
+        # ============================================================
+        # 1) LLM이 직접 aggs 제공
+        # ============================================================
         aggs_from_llm = query_dict.get("aggs", None)
-
-        body = {
-            "size": 0,
-            "query": (
-                {"bool": {"must": must, "filter": filter_}}
-                if must or filter_
-                else {"match_all": {}}
-            ),
-        }
-
-        # LLM이 직접 aggs를 생성했으면 그대로 사용
         if aggs_from_llm:
             body["aggs"] = aggs_from_llm
+
+        # ============================================================
+        # 2) 지역(Location) 집계
+        # ============================================================
+        elif group_by == "location":
+            body["aggs"] = {
+                "group_by_region": {
+                    "terms": {
+                        "field": "customFields.location.addressRegion",
+                        "size": 200,
+                        "missing": "Unknown",
+                    }
+                }
+            }
+
+        # ============================================================
+        # 3) 특정 metaTypeModel 필터 집계 (Sensor 등)
+        # ============================================================
+        elif meta_type_filter:
+            body["aggs"] = {
+                # Sensor 전체 개수
+                "total_count": {
+                    "filter": {"term": {"metaTypeModel": meta_type_filter}},
+                    "aggs": {"count_all": {"value_count": {"field": "metaModel"}}},
+                },
+                # Sensor 하위 metaModel 개수
+                "group_by_metaModel": {
+                    "terms": {"field": "metaModel", "size": 1000, "missing": "Unknown"}
+                },
+            }
+
+        # ============================================================
+        # 4) 전체 집계
+        # ============================================================
         else:
-            # 수정: .keyword 제거 (매핑에 이미 keyword 타입)
             body["aggs"] = {
                 "group_by_metaTypeModel": {
                     "terms": {
-                        "field": "metaTypeModel",  # ← .keyword 제거
+                        "field": "metaTypeModel",
                         "size": 1000,
-                        "missing": "Unknown",  # ← 누락값 처리
+                        "missing": "Unknown",
                     },
                     "aggs": {
                         "group_by_metaModel": {
                             "terms": {
-                                "field": "metaModel",  # ← .keyword 제거
+                                "field": "metaModel",
                                 "size": 1000,
                                 "missing": "Unknown",
                             }
@@ -230,29 +333,74 @@ def aggregate_search(query_dict: dict):
                 }
             }
 
-        print("[DEBUG] 최종 집계 body:")
-        print(json.dumps(body, ensure_ascii=False, indent=2))
-
+        # ------------------------------------------------------------
+        # ES 실행
+        # ------------------------------------------------------------
         res = es.search(index=ES_INDEX_NAME, body=body)
-
-        # 디버깅: 실제 ES 응답 확인
-        print("[DEBUG] ES 집계 응답:")
-        aggs_response = res.get("aggregations", {})
-        print(json.dumps(aggs_response, ensure_ascii=False, indent=2))
-
-        # 집계 결과 파싱
         aggs = res.get("aggregations", {})
-        results = []
 
-        # group_by_metaTypeModel 처리
+        # ============================================================
+        # (A) 지역(Location) 집계 결과 처리
+        # ============================================================
+        if "group_by_region" in aggs:
+            buckets = aggs["group_by_region"]["buckets"]
+
+            results = [{"key": b["key"], "count": b["doc_count"]} for b in buckets]
+
+            total_count = sum(r["count"] for r in results)
+
+            summary_lines = []
+            for r in results:
+                summary_lines.append(f"- {r['key']}: {r['count']}개")
+            summary_lines.append(f"\n→ 총 {total_count}개입니다.")
+
+            return [
+                {
+                    "aggregations": results,
+                    "total_count": total_count,
+                    "summary": "\n".join(summary_lines),
+                }
+            ]
+
+        # ============================================================
+        # (B) 특정 metaTypeModel 집계 (Sensor 등)
+        # ============================================================
+        if meta_type_filter and "group_by_metaModel" in aggs:
+            total_count = aggs["total_count"]["count_all"]["value"]
+
+            results = [
+                {
+                    "aggregation_name": "metaModel",
+                    "key": b["key"],
+                    "count": b["doc_count"],
+                }
+                for b in aggs["group_by_metaModel"]["buckets"]
+            ]
+
+            summary_lines = [f"{meta_type_filter}: {total_count}개"]
+            for r in results:
+                summary_lines.append(f"  └─ {r['key']}: {r['count']}개")
+            summary_lines.append(f"\n→ 총 {total_count}개입니다.")
+
+            return [
+                {
+                    "aggregations": results,
+                    "total_count": total_count,
+                    "summary": "\n".join(summary_lines),
+                }
+            ]
+
+        # ============================================================
+        # (C) 전체 집계 처리
+        # ============================================================
+        results_all = []
         if "group_by_metaTypeModel" in aggs:
-            type_buckets = aggs["group_by_metaTypeModel"].get("buckets", [])
+            for tb in aggs["group_by_metaTypeModel"]["buckets"]:
 
-            for tb in type_buckets:
-                type_name = tb.get("key", "Unknown")
-                type_count = tb.get("doc_count", 0)
+                type_name = tb["key"]
+                type_count = tb["doc_count"]
 
-                results.append(
+                results_all.append(
                     {
                         "aggregation_name": "metaTypeModel",
                         "key": type_name,
@@ -260,89 +408,34 @@ def aggregate_search(query_dict: dict):
                     }
                 )
 
-                # 하위 집계 (metaModel)
-                sub_buckets = tb.get("group_by_metaModel", {}).get("buckets", [])
-                for sb in sub_buckets:
-                    sub_name = sb.get("key", "Unknown")
-                    sub_count = sb.get("doc_count", 0)
-                    results.append(
+                for sb in tb["group_by_metaModel"]["buckets"]:
+                    results_all.append(
                         {
                             "aggregation_name": "metaModel",
                             "parent": type_name,
-                            "key": sub_name,
-                            "count": sub_count,
+                            "key": sb["key"],
+                            "count": sb["doc_count"],
                         }
                     )
 
-        # 다른 집계 형식도 처리 (유연성 확보)
-        else:
-            for agg_name, agg_value in aggs.items():
-                if "buckets" in agg_value:
-                    for b in agg_value["buckets"]:
-                        results.append(
-                            {
-                                "aggregation_name": agg_name,
-                                "key": b.get("key"),
-                                "count": b.get("doc_count"),
-                            }
-                        )
-                elif "doc_count" in agg_value:
-                    results.append(
-                        {
-                            "aggregation_name": agg_name,
-                            "count": agg_value["doc_count"],
-                        }
-                    )
+        total_count = sum(
+            r["count"] for r in results_all if r["aggregation_name"] == "metaTypeModel"
+        )
 
-        # 총계 계산 (최상위 레벨만)
-        if "group_by_metaTypeModel" in aggs:
-            root_field = "metaTypeModel"
-        elif "group_by_metaModel" in aggs:
-            root_field = "metaModel"
-        else:
-            root_field = None
-
-        if root_field:
-            total_count = sum(
-                r.get("count", 0)
-                for r in results
-                if r.get("aggregation_name") == root_field
-            )
-        else:
-            # fallback: 그냥 전체 다 더하기
-            total_count = sum(r.get("count", 0) for r in results)
-
-        # summary 생성
-        summary_lines = ["- 집계 검색 결과:"]
-
-        if "group_by_metaTypeModel" in aggs:
-            type_buckets = aggs["group_by_metaTypeModel"].get("buckets", [])
-            for tb in type_buckets:
-                type_name = tb.get("key", "Unknown")
-                type_count = tb.get("doc_count", 0)
-                summary_lines.append(f"  - {type_name}: {type_count}개")
-
-                sub_buckets = tb.get("group_by_metaModel", {}).get("buckets", [])
-                for sb in sub_buckets:
-                    sub_name = sb.get("key", "Unknown")
-                    sub_count = sb.get("doc_count", 0)
-                    summary_lines.append(f"    └─ {sub_name}: {sub_count}개")
-        else:
-            for r in results:
-                key = r.get("key", "")
-                count = r.get("count", 0)
-                summary_lines.append(f"  - {key}: {count}개")
-
-        summary_lines.append(f"\n→ 총계: {total_count}개")
-        summary = "\n".join(summary_lines)
-
-        print(summary)
+        summary = []
+        for r in results_all:
+            if r["aggregation_name"] == "metaTypeModel":
+                summary.append(f"- {r['key']}: {r['count']}개")
+                for x in results_all:
+                    if x.get("parent") == r["key"]:
+                        summary.append(f"    └─ {x['key']}: {x['count']}개")
+        summary.append(f"\n→ 총 {total_count}개입니다.")
 
         return [
             {
-                "aggregations": results,
+                "aggregations": results_all,
                 "total_count": total_count,
-                "summary": summary,
+                "summary": "\n".join(summary),
             }
         ]
 
@@ -375,14 +468,23 @@ def _vector_search(query_dict: dict, question: str, sort_option=None):
         bool_query = {"must": must or [], "filter": filter_ or []}
 
         body = {
-            "size": 50,
-            "query": {"bool": bool_query},
+            "size": 100,
             "knn": {
                 "field": "embedding",
                 "query_vector": embedding,
-                "k": 20,
+                "k": 30,
                 "num_candidates": 100,
                 "filter": {"bool": bool_query},
+            },
+            "query": {
+                "bool": {
+                    "should": [
+                        {"match": {"text_all": {"query": question, "boost": 2.0}}},
+                        {"match": {"description": question}},
+                        {"match": {"keywords_text": question}},
+                    ],
+                    "minimum_should_match": 1,
+                }
             },
         }
 
@@ -538,7 +640,7 @@ def _keyword_search(query_dict: dict, sort_option=None, question: str = None):
                 "bool": {
                     "must": must_clauses,
                     "should": all_should,
-                    "filter": filter_clauses,  
+                    "filter": filter_clauses,
                     "minimum_should_match": 1,
                 }
             },
@@ -592,6 +694,7 @@ def _build_must_clauses(must_dict: dict):
         return [must_dict]
 
     keyword_fields = {
+        "name",
         "metaTypeModel",
         "metaModel",
         "owner",
@@ -676,7 +779,7 @@ def _build_filter_clauses(filter_dict: dict):
                     continue
 
                 # 일반 match 필드
-                if field in ["description", "keywords", "subjects"]:
+                if field in ["description", "keywords", "subjects", "name"]:
                     enhanced_should.extend(
                         [
                             {"match": {"text_all": {"query": value, "boost": 2.0}}},
@@ -726,6 +829,7 @@ def _build_filter_clauses(filter_dict: dict):
     # 일반 필드 처리
     # ==========================================================
     keyword_fields = {
+        "name",
         "metaTypeModel",
         "metaModel",
         "owner",
