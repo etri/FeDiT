@@ -44,8 +44,11 @@
     </sql>
 
     <sql id="whereByMetadata">
+        <if test='!@org.apache.commons.lang3.StringUtils@equals(includeDisuseYn, "Y")'>
+            AND t1.medata_set_sttus_mtcd   != 'disuse'
+        </if>
 		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(typeModelId)">
-            AND t2.type_model_id            = #{typeModelId} 
+            AND t2.type_model_id            = #{typeModelId}
         </if>
 		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(srchText)">
             AND (

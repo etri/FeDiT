@@ -90,7 +90,76 @@ public class Neo4jService {
 	@PostConstruct
 	public void init() {
 		metadataSetService.setNeo4jService(this); // 순환참조 오류 방지
-	}	
+	}
+
+	/**
+	 * 자원 1-depth 양방향 이웃 (디스커버리 페이지 우측 관계 그래프용).
+	 *  - parents:  medataResource → me  (incoming)
+	 *  - children: me → medataResource  (outgoing, medata)
+	 *  - keywords: me → ConceptKeyword  (outgoing, 키워드)
+	 *
+	 * medata 노드의 이름/유형은 호출 측에서 PG로 보강.
+	 * 키워드 노드는 Neo4j에 이미 name(=kywrdDisp) 있으니 그대로 반환.
+	 */
+	public java.util.Map<String, Object> getDiscoveryNeighbors(String medataSetId) {
+		java.util.List<java.util.Map<String, Object>> parents = new java.util.ArrayList<>();
+		java.util.List<java.util.Map<String, Object>> children = new java.util.ArrayList<>();
+		java.util.List<java.util.Map<String, Object>> keywords = new java.util.ArrayList<>();
+		try (org.neo4j.driver.Session session = neo4jDriver.session()) {
+			// 부모 (medataResource → me) — name/metaModel 도 가져와 PG 보강 실패 시 fallback
+			String parentQuery =
+				"MATCH (n:medataResource {medataSetId: $id})<-[r]-(p:medataResource) " +
+				"RETURN p.medataSetId AS id, p.name AS name, p.metaModel AS metaModel, type(r) AS via";
+			org.neo4j.driver.Result rs = session.run(parentQuery,
+					org.neo4j.driver.Values.parameters("id", medataSetId));
+			while (rs.hasNext()) {
+				org.neo4j.driver.Record rec = rs.next();
+				java.util.Map<String, Object> n = new java.util.HashMap<>();
+				n.put("id",        rec.get("id").asString(""));
+				n.put("name",      rec.get("name").asString(""));
+				n.put("metaModel", rec.get("metaModel").asString(""));
+				n.put("via",       rec.get("via").asString(""));
+				parents.add(n);
+			}
+			// 자식 medata (me → medataResource)
+			String childQuery =
+				"MATCH (n:medataResource {medataSetId: $id})-[r]->(c:medataResource) " +
+				"RETURN c.medataSetId AS id, c.name AS name, c.metaModel AS metaModel, type(r) AS via";
+			rs = session.run(childQuery,
+					org.neo4j.driver.Values.parameters("id", medataSetId));
+			while (rs.hasNext()) {
+				org.neo4j.driver.Record rec = rs.next();
+				java.util.Map<String, Object> n = new java.util.HashMap<>();
+				n.put("id",        rec.get("id").asString(""));
+				n.put("name",      rec.get("name").asString(""));
+				n.put("metaModel", rec.get("metaModel").asString(""));
+				n.put("via",       rec.get("via").asString(""));
+				children.add(n);
+			}
+			// 자식 keyword (me → ConceptKeyword)
+			String keywordQuery =
+				"MATCH (n:medataResource {medataSetId: $id})-[r]->(k:ConceptKeyword) " +
+				"RETURN k.value AS value, k.name AS name, k.lang AS lang, type(r) AS via";
+			rs = session.run(keywordQuery,
+					org.neo4j.driver.Values.parameters("id", medataSetId));
+			while (rs.hasNext()) {
+				org.neo4j.driver.Record rec = rs.next();
+				java.util.Map<String, Object> n = new java.util.HashMap<>();
+				n.put("value", rec.get("value").asString(""));
+				n.put("name",  rec.get("name").asString(""));
+				n.put("lang",  rec.get("lang").asString(""));
+				n.put("via",   rec.get("via").asString(""));
+				keywords.add(n);
+			}
+		} catch (Exception e) {
+			log.error("[디스커버리 neighbors 조회 실패] id={} : {}", medataSetId, e.getMessage(), e);
+		}
+		java.util.Map<String, Object> resp = new java.util.HashMap<>();
+		resp.put("parents", parents);
+		resp.put("children", children);
+		resp.put("keywords", keywords);
+		return resp;
+	}
 	
 	@Autowired
 	private MetadataApiService metadataApiService;
@@ -2362,11 +2431,12 @@ public class Neo4jService {
 
 	            List<String> rawVals = (List<String>) dataMap.get(prptyId);
 	            if (rawVals != null && !rawVals.isEmpty()) {
-	                List<String> canonList = rawVals.stream()
-	                    .map(v -> KeywordUtil.toNormKeyword(v)) // 의미 정규화 키(canonical 키)
-	                    .filter(StringUtils::isNotBlank)
-	                    .distinct()
-	                    .collect(Collectors.toList());
+	            	List<String> canonList = rawVals.stream()
+	            		    .flatMap(v -> KeywordUtil.splitByComma(v).stream())
+	            		    .map(KeywordUtil::toNormKeyword) // 의미 정규화 키(canonical 키)
+	            		    .filter(StringUtils::isNotBlank)
+	            		    .distinct()
+	            		    .collect(Collectors.toList());
 
 	                if (!canonList.isEmpty()) {
 	                    normKeywordsByPrptyId.put(prptyId, canonList);
@@ -2434,7 +2504,7 @@ public class Neo4jService {
 	        KeywordSearchVo keywordSearchVo = new KeywordSearchVo();
 	        keywordSearchVo.setNormKeywordList(new ArrayList<>(allNormKeywords));
 	        List<KeywordVo> keywordList = keywordMapper.selectKeywordList(keywordSearchVo);
-	        if (keywordList == null) throw new ResBizInfoException("개념키워드 DB 정보가 존재하지 않습니다."); // 일어나면 안되는 오류
+	        if (keywordList == null || keywordList.isEmpty()) throw new ResBizInfoException("개념키워드 DB 정보가 존재하지 않습니다.(" + allNormKeywords + ")"); // 일어나면 안되는 오류
 	        
 	    	List<Map<String, Object>> keywordInfoMapList = MapperUtil.dtoListToMapList(keywordList);
 
@@ -2448,7 +2518,10 @@ public class Neo4jService {
 	                .filter(m -> normKwList.contains(m.get("kywrdNorm")))
 	                .collect(Collectors.toList());
 
-	            if (filteredList.isEmpty()) throw new ResBizInfoException("[" + prptyId + "] 프라퍼티의 개념키워드 DB 정보가 존재하지 않습니다."); // 일어나면 안되는 오류
+	            if (filteredList.isEmpty()) {
+	            	log.debug("[{}] 프라퍼티의 개념키워드 DB 정보가 존재하지 않습니다.({})", prptyId, allNormKeywords);
+	            	continue;
+	            }
 	            keywordInfoByNormKw.put(prptyId, filteredList);
 	        }
 	    }

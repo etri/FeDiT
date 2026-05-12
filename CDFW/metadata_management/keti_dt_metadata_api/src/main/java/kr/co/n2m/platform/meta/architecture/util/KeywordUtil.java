@@ -3,6 +3,8 @@ package kr.co.n2m.platform.meta.architecture.util;
 import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -216,5 +218,27 @@ public class KeywordUtil {
         String v = s.replace("\\", "\\\\").replace("\"", "\\\"");
         return v;
     }
+    
+    /**
+     * 콤마(",")로 구분된 문자열을 분해하여 각 항목을 List로 반환한다.
+     *
+     * - 콤마 기준으로 split
+     * - 항목별 trim 적용
+     * - null/빈 값 제거
+     *
+     * 예)
+     *   "사과, 바나나 , 오렌지" → ["사과","바나나","오렌지"]
+     *   "   " → 빈 리스트
+     */
+    public static List<String> splitByComma(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return Arrays.stream(raw.split("\\s*,\\s*"))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+    }   
 	
 }
