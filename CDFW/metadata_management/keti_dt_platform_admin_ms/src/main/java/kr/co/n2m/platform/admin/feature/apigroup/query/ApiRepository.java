@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 import kr.co.n2m.platform.admin.feature.apigroup.entity.Api;
 
 @Repository
-public interface ApiRepository extends JpaRepository<Api, Long> {
+public interface ApiRepository extends JpaRepository<Api, String> {
 
 }

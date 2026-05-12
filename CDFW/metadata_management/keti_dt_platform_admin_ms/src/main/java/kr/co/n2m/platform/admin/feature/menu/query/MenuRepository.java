@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 import kr.co.n2m.platform.admin.feature.menu.entity.Menu;
 import kr.co.n2m.platform.common.entity.CamelCaseMap;
 
-public interface MenuRepository extends JpaRepository<Menu, Long> {
+public interface MenuRepository extends JpaRepository<Menu, String> {
 
 	@Query(nativeQuery = true, value=""
 			+ "select "

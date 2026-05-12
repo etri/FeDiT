@@ -8,7 +8,7 @@ import kr.co.n2m.platform.admin.feature.auth.entity.AuthUser;
 
 
 @Repository
-public interface AuthUserRepository extends JpaRepository<AuthUser, Long>{
+public interface AuthUserRepository extends JpaRepository<AuthUser, AuthUser>{
 
 
 }

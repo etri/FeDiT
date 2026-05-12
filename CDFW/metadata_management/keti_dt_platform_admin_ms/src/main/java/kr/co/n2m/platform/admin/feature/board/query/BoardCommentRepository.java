@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 import kr.co.n2m.platform.admin.feature.board.entity.BoardComment;
 
 @Repository
-public interface BoardCommentRepository extends JpaRepository<BoardComment, Long>{
+public interface BoardCommentRepository extends JpaRepository<BoardComment, String>{
 
 }

@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 import kr.co.n2m.platform.admin.feature.platform.entity.Platform;
 
 @Repository
-public interface PlatformRepository extends JpaRepository<Platform, Long> {
+public interface PlatformRepository extends JpaRepository<Platform, String> {
 
 }
