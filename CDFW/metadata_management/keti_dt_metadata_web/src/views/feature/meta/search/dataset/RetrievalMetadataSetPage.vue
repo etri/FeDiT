@@ -74,18 +74,7 @@
 
 
 
-	<el-dialog v-model="dialogLogInfo" title="프라퍼티 정보">
-		<div class="dialog-area">
-			<JsonEditorVue class="dialog_jsonEditor_setting" v-model="selectedInfo" v-bind="{
-				readOnly: true,
-				mode: 'text',
-				theme: 'light',
-				mainMenuBar: false,
-				navigationBar: false,
-				parser: undefined,
-			}" />
-		</div>
-	</el-dialog>
+	<JsonInfoDialog v-model="dialogLogInfo" :data="selectedInfo" title="프라퍼티 정보" />
 
 
 </template>
@@ -96,6 +85,7 @@ import MetadataNameValueList from "@/components/meta/retrievaldt/MetadataNameVal
 import RetrievalGeneralProperty from "@/components/meta/retrievaldt/RetrievalGeneralProperty.vue";
 import RdfViewPopupPage from "@/views/feature/meta/setting/rdfmapping/RdfViewPopupPage.vue";
 import MetadataPopover from "@/components/meta/dataset//MetadataPopover.vue";
+import JsonInfoDialog from "@/components/meta/common/JsonInfoDialog.vue";
 
 import { reactive, ref, onMounted, getCurrentInstance, watch, onBeforeMount } from "vue";
 import { useRoute, useRouter } from "vue-router";

@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 import kr.co.n2m.platform.admin.feature.attachfile.entity.AttachFile;
 
 @Repository
-public interface QnaAttachFileRepository extends JpaRepository<AttachFile, Long> {
+public interface QnaAttachFileRepository extends JpaRepository<AttachFile, String> {
 
 }

@@ -12,7 +12,7 @@
 		<div class="boxCnt">
 			<el-form :inline="true" :model="pageInfo" class="demo-form-inline search-form" label-width="150px" label-position="left">
 				<el-row :gutter="20">
-					<el-col :span="12">
+					<el-col :span="8">
 						<el-form-item label="수정일">
 							<div class="inline-area">
 								<div class="demo-date-picker">
@@ -31,17 +31,25 @@
 							</div>
 						</el-form-item>
 					</el-col>
-					<el-col :span="12">
+					<el-col :span="8">
 						<ComnFormItemInput2Btns label="메타데이터 모델" v-model="pageInfo.modelNm"
 							@click-search="dialogVisibleModelSearch = true" @click-refresh="refreshModelInfo" />
 						<el-dialog v-model="dialogVisibleModelSearch" title="메타데이터 모델 검색">
-							<MetaDataModelSearchPage 
-								:searchSttusCd="searchSttusCd" 
+							<MetaDataModelSearchPage
+								:searchSttusCd="searchSttusCd"
 								:searchMode="searchMode"
-								:typeModelId="searchTypeModelId" 
+								:typeModelId="searchTypeModelId"
 								@selectedRow="selectedMetaDataModel" />
 						</el-dialog>
-					</el-col>					
+					</el-col>
+					<el-col :span="8">
+						<el-form-item label="제외 데이터">
+							<el-select v-model="pageInfo.includeDisuseYn" placeholder="제외">
+								<el-option label="제외" value="" />
+								<el-option label="포함" value="Y" />
+							</el-select>
+						</el-form-item>
+					</el-col>
 				</el-row>
 
 				<!-- 2025 카테고리와 Agent 를 사용안해서 검색조건에서 숨김.
@@ -75,24 +83,20 @@
 				-->
 
 				<el-row :gutter="20">
-					<el-col :span="12">
+					<el-col :span="8">
 						<el-form-item label="디지털트윈 명">
 							<el-input
-								class=""
 								v-model="pageInfo.srchText"
 								placeholder="검색어 (물리명 또는 논리명)"
-								style=""
 								@keydown.enter.prevent="getRetrievalMetadataSetList(1)"
-								/>					
+								/>
 						</el-form-item>
 					</el-col>
-					<el-col :span="12">
+					<el-col :span="8">
 						<el-form-item label="키워드">
 							<el-input
-								class=""
 								v-model="pageInfo.keyword"
 								placeholder="키워드"
-								style=""
 								@keydown.enter.prevent="getRetrievalMetadataSetList(1)"
 								/>
 						</el-form-item>
@@ -137,8 +141,9 @@ const pageInfo = reactive({
 	keyword: "", //키워드
 	modelId: "", //모델 ID
 	modelNm: "", //모델 명	
-	medataSetSttusMtcd: "use", //메타데이터 셋 상태
+	medataSetSttusMtcd: "", //메타데이터 셋 상태
 	srchText: "", //디지털트윈 명
+	includeDisuseYn: "", //제외(폐기) 포함 여부 ("" 제외 / "Y" 제외 포함)
 });
 
 const getRetrievalMetadataSetList = (data) => {
@@ -219,9 +224,10 @@ const refresh = () => {
 	pageInfo.agntNm = "";
 	pageInfo.keyword = "";
 	pageInfo.modelId = "";
-	pageInfo.medataSetSttusMtcd = "use";
+	pageInfo.medataSetSttusMtcd = "";
 	pageInfo.medataSetRegrId = "";
 	pageInfo.srchText = "";
+	pageInfo.includeDisuseYn = "";
 };
 
 </script>

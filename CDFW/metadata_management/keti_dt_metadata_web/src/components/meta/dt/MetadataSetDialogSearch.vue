@@ -28,11 +28,10 @@
 					label-width="130px"
 				>
 					<el-row :gutter="20">
-						<el-col :span="12">
+						<el-col :span="8">
 							<el-form-item label="메타데이터 상태">
 								<el-select
 									v-model="state.pageInfo.medataSetSttusMtcd"
-									v-bind:disabled="searchSttusCd == 'use'"
 									@change="changeCd"
 									placeholder="전체"
 								>
@@ -46,7 +45,7 @@
 								</el-select>
 							</el-form-item>
 						</el-col>
-						<el-col :span="12">
+						<el-col :span="8">
 							<el-form-item label="메타데이터 유형">
 								<el-select
 									v-model="state.pageInfo.typeModelId"
@@ -79,9 +78,17 @@
 								</el-select>
 							</el-form-item>
 						</el-col>
+						<el-col :span="8">
+							<el-form-item label="제외 데이터">
+								<el-select v-model="state.pageInfo.includeDisuseYn" placeholder="제외">
+									<el-option label="제외" value="" />
+									<el-option label="포함" value="Y" />
+								</el-select>
+							</el-form-item>
+						</el-col>
 					</el-row>
 					<el-row :gutter="20">
-						<el-col :span="12">
+						<el-col :span="8">
 							<el-form-item label="메타데이터 셋 명">
 								<el-input
 									class="w-auto m-2"
@@ -91,7 +98,7 @@
 								/>
 							</el-form-item>
 						</el-col>
-						<el-col :span="12">
+						<el-col :span="8">
 							<el-form-item label="메타데이터 모델명">
 								<el-input
 									class="w-auto m-2"
@@ -101,6 +108,7 @@
 								/>
 							</el-form-item>
 						</el-col>
+						<el-col :span="8"></el-col>
 					</el-row>
 				</el-form>
 			</div>
@@ -193,6 +201,7 @@ const state = reactive({
 		medataSetSttusMtcd: "",
 		srchModelNm: "",
 		srchText: "",
+		includeDisuseYn: "",
 	},
 	metadataSetList: [],
 	typeModelList: []
@@ -253,7 +262,7 @@ const init = async () => {
 
 	state.pageInfo.curPage = 1;
 	state.pageInfo.searchMode = props.searchMode;
-	state.pageInfo.medataSetSttusMtcd = props.searchSttusCd;
+	state.pageInfo.medataSetSttusMtcd = ""; // 기본값 전체 (호출처 searchSttusCd 무시)
 	
 	getMetadataSetList();
 };
@@ -265,10 +274,11 @@ const getMetadataSetList = () => {
         curPage: state.pageInfo.curPage,
 
 				medataSetSttusMtcd: state.pageInfo.medataSetSttusMtcd,
-				srchText: state.pageInfo.srchText,				
+				srchText: state.pageInfo.srchText,
 				modelId: state.pageInfo.modelId,
-				typeModelId: state.pageInfo.typeModelId, 
-				srchModelNm: state.pageInfo.srchModelNm, 
+				typeModelId: state.pageInfo.typeModelId,
+				srchModelNm: state.pageInfo.srchModelNm,
+				includeDisuseYn: state.pageInfo.includeDisuseYn,
       },
     })
     .then((res) => {

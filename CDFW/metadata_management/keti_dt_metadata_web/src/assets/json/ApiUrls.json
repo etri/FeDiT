@@ -163,6 +163,12 @@
         "metadata": {
           "getMetadataList"  :  "/api/meta/api/v1/public/search/metadata",
           "geometryValidate" :  "/api/meta/api/v1/public/search/metadata/geometry/validate"
+        },
+        "discovery": {
+          "list"        : "/api/meta/api/v1/public/search/discovery",
+          "suggest"     : "/api/meta/api/v1/public/search/discovery/suggest",
+          "composition" : "/api/meta/api/v1/public/search/discovery/composition",
+          "summary"     : "/api/meta/api/v1/public/search/discovery/summary"
         }
       },
       "data": {

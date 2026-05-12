@@ -12,7 +12,7 @@
 		<div class="boxCnt">
 			<el-form :inline="true" :model="pageInfo" class="demo-form-inline search-form" label-width="150px" label-position="left">
 				<el-row :gutter="20">
-					<el-col :span="12">
+					<el-col :span="8">
 						<el-form-item label="수정일">
 							<div class="inline-area">
 								<div class="demo-date-picker">
@@ -31,30 +31,7 @@
 							</div>
 						</el-form-item>
 					</el-col>
-					<el-col :span="12">
-						<!-- 2023-07-27 정형모델 사용안함 
-						<ComnFormItemInput2Btns label="제공자 (대리인)" v-model="pageInfo.agntNm"
-							@click-search="dialogVisibleSearchAgent = true" @click-refresh="refreshAgent" />
-						<el-dialog v-model="dialogVisibleSearchAgent" title="대리인 검색">
-							<AgentDialogSearch @selectAgent="selectedAgent" />
-						</el-dialog>
-						-->
-						<!-- 2025 카테고리와 Agent 를 사용안해서 검색조건에서 숨김.
-						<ComnFormItemInput2Btns label="제공자 (대리인)" v-model="pageInfo.agntNm"
-								@click-search="dialogVisibleSearchAgent = true" @click-refresh="refreshAgent" />
-						<el-dialog v-model="dialogVisibleSearchAgent" title="제공자 (대리인) 메타데이터 셋 검색">
-							<MetadataSetDialogSearch 
-								searchSttusCd="use" searchMode="type"
-								typeModelId="Agent" typeModelNm="제공자 (대리인)"
-								:searchMetaTypeFix='true' searchMetaTypeId="Agent" 
-								@selectedRow="selectedAgent" />
-						</el-dialog>
-						-->
-					</el-col>
-				</el-row>
-
-				<el-row :gutter="20">
-					<el-col :span="12">
+					<el-col :span="8">
 						<el-form-item label="메타데이터 유형">
 							<el-select v-model="pageInfo.typeModelId" @change="changeTypeModelId" placeholder="선택">
 								<el-option label="전체" value="" />
@@ -63,7 +40,18 @@
 							</el-select>
 						</el-form-item>
 					</el-col>
-					<el-col :span="12">
+					<el-col :span="8">
+						<el-form-item label="제외 데이터">
+							<el-select v-model="pageInfo.includeDisuseYn" placeholder="제외">
+								<el-option label="제외" value="" />
+								<el-option label="포함" value="Y" />
+							</el-select>
+						</el-form-item>
+					</el-col>
+				</el-row>
+
+				<el-row :gutter="20">
+					<el-col :span="8">
 						<ComnFormItemInput2Btns label="메타데이터 모델" v-model="pageInfo.modelNm"
 							@click-search="dialogVisibleModelSearch = true" @click-refresh="refreshModelInfo" />
 						<el-dialog v-model="dialogVisibleModelSearch" title="메타데이터 모델 검색">
@@ -71,19 +59,16 @@
 								:typeModelId="searchTypeModelId" @selectedRow="selectedMetaDataModel" />
 						</el-dialog>
 					</el-col>
-				</el-row>
-
-				<el-row :gutter="20">
-					<el-col :span="12">
+					<el-col :span="8">
 						<ComnFormItemInput2Btns label="프라퍼티" v-model="pageInfo.prptyNm"
 							@click-search="dialogVisiblePropertySearch = true" @click-refresh="refreshProperty" />
 						<el-dialog v-model="dialogVisiblePropertySearch" title="프라퍼티 검색">
 							<PropertyDialogSearch @selectedRow="selectedProperty" />
 						</el-dialog>
 					</el-col>
-					<el-col :span="12">
+					<el-col :span="8">
 						<el-form-item label="메타데이터 셋 명">
-							<el-input class="" v-model="pageInfo.srchText" placeholder="메타데이터 셋 명" style=""
+							<el-input v-model="pageInfo.srchText" placeholder="메타데이터 셋 명"
 								@keydown.enter.prevent="getRetrievalMetadataSetList(1)" />
 						</el-form-item>
 					</el-col>
@@ -135,12 +120,13 @@ const pageInfo = reactive({
 	keyword: "", //키워드
 	modelId: "", //모델 ID
 	modelNm: "", //모델 명	
-	medataSetSttusMtcd: "use", //메타데이터 셋 상태
+	medataSetSttusMtcd: "", //메타데이터 셋 상태
 	srchText: "", //디지털트윈 명
 	medataSetId: "", //디지털트윈 ID (메타데이터 셋 ID)
 	medataSetNm: "", //디지털트윈 명 (메타데이터 셋 명)
 	prptyId: "", //프라퍼티 ID
 	prptyNm: "", //프라퍼티 명
+	includeDisuseYn: "", //제외(폐기) 포함 여부 ("" 제외 / "Y" 제외 포함)
 });
 
 onMounted(() => {
@@ -262,12 +248,13 @@ const refresh = () => {
 	pageInfo.keyword = "";
 	pageInfo.modelId = "";
 	pageInfo.modelNm = "";
-	pageInfo.medataSetSttusMtcd = "use";
+	pageInfo.medataSetSttusMtcd = "";
 	pageInfo.srchText = "";
 	pageInfo.medataSetId = "";
 	pageInfo.medataSetNm = "";
 	pageInfo.prptyId = "";
 	pageInfo.prptyNm = "";
+	pageInfo.includeDisuseYn = "";
 };
 
 </script>

@@ -115,7 +115,10 @@ def hybrid_chain(question: str):
         # ------------------------------------------------------
         # STEP 2. Elasticsearch 검색 실행
         # ------------------------------------------------------
+        print("=" * 80)
         print("\n[STEP 2] Elasticsearch 검색 실행 중...")
+        print("=" * 80)
+
         docs = []
 
         try:
@@ -130,7 +133,6 @@ def hybrid_chain(question: str):
                         f"[INFO] 집계 결과: total_count = {aggregation_result.get('total_count')}"
                     )
             else:
-                print("[MODE] 일반 검색 실행")
                 docs = search_in_elasticsearch(search_query, question)
 
                 # match_all 모드일 경우 dict로 반환됨 → docs 추출
@@ -163,6 +165,8 @@ def hybrid_chain(question: str):
             context = "검색 결과 없음"
 
         else:
+            is_vector_mode = search_query.get("vector_search", False)
+
             print(f"[INFO] {len(docs)}개의 문서를 검색했습니다.")
             context_list = []
 
@@ -237,11 +241,19 @@ def hybrid_chain(question: str):
             ):
                 sort_hint = "시간 기반 필터 적용됨"
 
-            if total_count > len(docs):
-                header_line = f"총 {total_count}개 문서 중 상위 {len(docs)}개만 표시 ({sort_hint})"
-            else:
-                header_line = f"총 {len(docs)}개 문서. {sort_hint}"
+            # 벡터 검색 여부 판단
+            is_vector_mode = search_query.get("vector_search", False)
 
+            # 벡터/키워드 모드에 따라 헤더 문구 분리
+            if is_vector_mode:
+                header_line = f"{len(docs)}개의 유사 문서를 찾았습니다. {sort_hint}"
+            else:
+                if total_count > len(docs):
+                    header_line = f"총 {total_count}개 문서 중 상위 {len(docs)}개만 표시 ({sort_hint})"
+                else:
+                    header_line = f"총 {len(docs)}개 문서가 검색되었습니다. {sort_hint}"
+
+            # 나머지 부분 동일
             context = f"{header_line}\n\n" f"{'-'*60}\n" + "\n".join(context_list)
 
             if len(context) > 6000:
@@ -249,7 +261,10 @@ def hybrid_chain(question: str):
         # ------------------------------------------------------
         # STEP 3. LLM 응답 생성
         # ------------------------------------------------------
+        print("=" * 80)
         print("[STEP 3] LLM 응답 생성 중...")
+        print("=" * 80)
+
         prompt = response_prompt_agg if is_aggregation else response_prompt
         formatted_prompt = prompt.format(question=question, context=context)
 

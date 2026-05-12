@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.n2m.platform.meta.search.discovery.mapper.DiscoveryMapper">
+
+	<!--
+		디스커버리 검색 — 최적화 쿼리.
+		입력 파라미터(DiscoverySearchVo extends SearchVo):
+		- q              : 통합 검색어 (이름·논리명·설명·키워드/주제어 OR ILIKE)
+		- digitalTwinId  : 디지털트윈 한정 (해당 DT + 하위 자원, 재귀 CTE descendant 트래버설)
+		- typeModelId    : 유형 모델 ID — tb_meta_model.type_model_id 와 매칭
+		- polygon        : WKT 폴리곤 (PostGIS ST_Contains + 재귀 CTE ancestor)
+		- curPage / pageListSize : 페이징
+
+		키워드/주제어 속성 식별: tb_meta_propertydefine.range_model 의 data_type_mtcd 가
+		('keywordsKo','keywordsEn'). subjects/keywords 등 표준 변동에도 자동 적용.
+
+		Step 2 (TODO): SELECT 절에 matched_fields 산출
+		Step 3 (TODO): SELECT 절에 breadcrumb 산출 (object_type 속성 추적)
+	-->
+
+	<!-- 폴리곤 매칭 데이터셋 ID 추출 (MetadataSql.xml 패턴과 동일) -->
+	<sql id="withPolygonCte">
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(polygon)">
+			WITH RECURSIVE medata_set_ids AS (
+				SELECT DISTINCT dt1.medata_set_id, dt1.medata_set_id AS root_id, 1 AS depth
+				  FROM dtmeta.tb_meta_data dt1
+				 WHERE dt1.geodata_val IS NOT NULL
+				   AND dtmeta.ST_Contains(
+				         dtmeta.ST_SetSRID(dtmeta.ST_GeomFromText(#{polygon}), 4326),
+				         dtmeta.ST_SetSRID(dt1.geodata_val, 4326)
+				       )
+				UNION ALL
+				SELECT DISTINCT dt1.medata_set_id, ids.root_id, ids.depth + 1
+				  FROM dtmeta.tb_meta_data dt1
+				  JOIN medata_set_ids ids ON dt1.medata_val = ids.medata_set_id
+				 WHERE ids.depth <![CDATA[ < ]]> 5
+			)
+		</if>
+	</sql>
+
+	<!-- 다수 dataset id 의 이름/유형 일괄 조회 — Neo4j neighbors 결과 보강용. -->
+	<select id="selectDatasetSummariesByIds" resultType="kr.co.n2m.platform.meta.architecture.domain.CamelCaseMap">
+		SELECT ds.medata_set_id                                            AS id
+		     , ds.medata_set_nm                                            AS name
+		     , m.type_model_id                                             AS type_id
+		     , COALESCE(tm.model_logic_nm, tm.model_nm, m.type_model_id)   AS type
+		  FROM dtmeta.tb_meta_dataset ds
+		  LEFT OUTER JOIN dtmeta.tb_meta_model m  ON m.model_id  = ds.model_id
+		  LEFT OUTER JOIN dtmeta.tb_meta_model tm ON tm.model_id = m.type_model_id
+		 WHERE ds.medata_set_id IN
+		    <foreach item="i" collection="ids" open="(" separator="," close=")">#{i}</foreach>
+	</select>
+
+	<!-- object_type 속성 prpty_id 전체 — Service 가 미리 조회해서 inline 으로 사용. -->
+	<select id="selectObjectPrptyIds" resultType="string">
+		SELECT DISTINCT pp.prpty_id
+		  FROM dtmeta.tb_meta_property        pp
+		  JOIN dtmeta.tb_meta_propertydefine  pd ON pd.prpty_id = pp.prpty_id
+		                                       AND pd.prpty_def_chg_yn = 'N'
+		  JOIN dtmeta.tb_meta_model           rm ON rm.model_id = pd.range_model_id
+		                                       AND rm.model_type_mtcd = 'object_type'
+		  JOIN dtmeta.tb_meta_modelproperty   mp ON mp.prpty_id = pp.prpty_id
+		                                       AND mp.model_prpty_del_yn = 'N'
+		 WHERE pp.prpty_data_sttus_mtcd = 'use'
+	</select>
+
+	<!-- DT 한정 시 그 DT의 하위(descendant) 자원 ID 추출.
+	     자식 참조 식별: prpty_id 가 object_type 속성(=다른 dataset 가리키는 속성) 인 것.
+	     PG 재귀 CTE 안에서 다른 CTE 참조하면 "relation does not exist" 에러나서, prpty_id 들은
+	     Service 가 미리 selectObjectPrptyIds 로 가져와 objectPrptyIds 리스트로 inline 한다. -->
+	<sql id="withDtDescendantsCte">
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(digitalTwinId)">
+			<choose>
+				<when test="@org.apache.commons.lang3.StringUtils@isNotEmpty(polygon)">,</when>
+				<otherwise>WITH RECURSIVE</otherwise>
+			</choose>
+			dt_scope(medata_set_id, depth) AS (
+				SELECT t1.medata_set_id::text, 0
+				  FROM dtmeta.tb_meta_dataset t1
+				 WHERE t1.medata_set_id = #{digitalTwinId}
+				UNION ALL
+				SELECT t3.medata_val::text, s.depth + 1
+				  FROM dt_scope s
+				  JOIN dtmeta.tb_meta_data t3 ON t3.medata_set_id = s.medata_set_id
+				 WHERE t3.medata_val IS NOT NULL
+				   AND t3.medata_val != ''
+				   AND s.depth <![CDATA[ < ]]> 5
+				   <if test="objectPrptyIds != null and !objectPrptyIds.isEmpty()">
+				   AND t3.prpty_id IN
+				    <foreach item="pid" collection="objectPrptyIds" open="(" separator="," close=")">#{pid}</foreach>
+				   </if>
+			)
+		</if>
+	</sql>
+
+	<sql id="discoveryWhere">
+		WHERE 1=1
+		<if test='!@org.apache.commons.lang3.StringUtils@equals(includeDisuseYn, "Y")'>
+			AND ds.medata_set_sttus_mtcd != 'disuse'
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(q)">
+			AND (
+				ds.medata_set_nm                ILIKE CONCAT('%', #{q}, '%')
+				OR ds.medata_set_logic_nm       ILIKE CONCAT('%', #{q}, '%')
+				OR COALESCE(ds.medata_set_desc, '') ILIKE CONCAT('%', #{q}, '%')
+				<!-- 키워드/주제어 속성에서만 값 매칭.
+					 속성 식별은 동적: 활성/정의변경여부/삭제여부 + range_model.data_type_mtcd
+					 (subjects/keywords 외 같은 data_type_mtcd 신규 속성이 표준에 추가되면 자동 포함) -->
+				OR EXISTS (
+					SELECT 1
+					  FROM dtmeta.tb_meta_data            dd_q
+					  JOIN dtmeta.tb_meta_property        pp_q ON pp_q.prpty_id = dd_q.prpty_id
+					                                          AND pp_q.prpty_data_sttus_mtcd = 'use'
+					  JOIN dtmeta.tb_meta_propertydefine  pd_q ON pd_q.prpty_id = pp_q.prpty_id
+					                                          AND pd_q.prpty_def_chg_yn = 'N'
+					  JOIN dtmeta.tb_meta_model           rm_q ON rm_q.model_id = pd_q.range_model_id
+					                                          AND rm_q.data_type_mtcd IN ('keywordsKo', 'keywordsEn')
+					  JOIN dtmeta.tb_meta_modelproperty   mp_q ON mp_q.prpty_id = pp_q.prpty_id
+					                                          AND mp_q.model_prpty_del_yn = 'N'
+					 WHERE dd_q.medata_set_id = ds.medata_set_id
+					   AND dd_q.medata_val ILIKE CONCAT('%', #{q}, '%')
+				)
+			)
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(typeModelId)">
+			AND m.type_model_id = #{typeModelId}
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(digitalTwinId)">
+			AND ds.medata_set_id IN (SELECT medata_set_id FROM dt_scope)
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(polygon)">
+			AND ds.medata_set_id IN (SELECT medata_set_id FROM medata_set_ids)
+		</if>
+	</sql>
+
+	<select id="selectDiscoveryCount" parameterType="kr.co.n2m.platform.meta.search.discovery.domain.DiscoverySearchVo" resultType="int">
+		<include refid="withPolygonCte" />
+		<include refid="withDtDescendantsCte" />
+		SELECT COUNT(*)
+		  FROM dtmeta.tb_meta_dataset ds
+		  LEFT OUTER JOIN dtmeta.tb_meta_model m ON m.model_id = ds.model_id
+		<include refid="discoveryWhere" />
+	</select>
+
+	<!--
+		직속 부모(depth 1) 일괄 조회.
+
+		규칙: 자식 ID = #{ids} 의 자원에 대해, 그 ID 를 medata_val 로 참조하는 모든 dataset 을 부모로 반환.
+		프라퍼티는 object_type (active/non-deleted/non-changed) 모두 포함.
+		재귀 안 함 — 2단계 프라퍼티는 거의 참조성이라 의미 없음 (사용자 확인).
+
+		여러 부모가 나올 수 있음 (예: 같은 sensor 가 DT 의 sensors 와 Object 의 referenceSensors 양쪽에 들어 있을 때).
+		Java 단에서 Twin 타입만 유지하는 식으로 진짜 소속만 추려냄.
+	-->
+	<select id="selectAncestorsForIds" resultType="kr.co.n2m.platform.meta.architecture.domain.CamelCaseMap">
+		WITH object_prpty_ids AS (
+			SELECT DISTINCT pp.prpty_id
+			  FROM dtmeta.tb_meta_property        pp
+			  JOIN dtmeta.tb_meta_propertydefine  pd ON pd.prpty_id = pp.prpty_id
+			                                       AND pd.prpty_def_chg_yn = 'N'
+			  JOIN dtmeta.tb_meta_model           rm ON rm.model_id = pd.range_model_id
+			                                       AND rm.model_type_mtcd = 'object_type'
+			  JOIN dtmeta.tb_meta_modelproperty   mp ON mp.prpty_id = pp.prpty_id
+			                                       AND mp.model_prpty_del_yn = 'N'
+			 WHERE pp.prpty_data_sttus_mtcd = 'use'
+		)
+		SELECT dd.medata_val          AS descendant_id
+		     , parent_ds.medata_set_id AS ancestor_id
+		     , parent_ds.medata_set_nm AS ancestor_nm
+		     , parent_m.type_model_id  AS ancestor_type_id
+		  FROM dtmeta.tb_meta_data dd
+		  JOIN dtmeta.tb_meta_dataset parent_ds ON parent_ds.medata_set_id = dd.medata_set_id
+		  LEFT OUTER JOIN dtmeta.tb_meta_model parent_m ON parent_m.model_id = parent_ds.model_id
+		 WHERE dd.prpty_id IN (SELECT prpty_id FROM object_prpty_ids)
+		   AND dd.medata_val IN
+		    <foreach item="id" collection="ids" open="(" separator="," close=")">#{id}</foreach>
+	</select>
+
+	<select id="selectDiscoveryList" parameterType="kr.co.n2m.platform.meta.search.discovery.domain.DiscoverySearchVo" resultType="kr.co.n2m.platform.meta.architecture.domain.CamelCaseMap">
+		<include refid="withPolygonCte" />
+		<include refid="withDtDescendantsCte" />
+		SELECT ds.medata_set_id                                            AS id
+		     , ds.medata_set_nm                                            AS name
+		     , COALESCE(tm.model_logic_nm, tm.model_nm, m.model_nm)        AS type
+		     , m.type_model_id                                             AS type_id
+		     , ds.medata_set_desc                                          AS description
+		     , ds.medata_set_amd_dt                                        AS updated_at
+		     , ''                                                          AS breadcrumb
+		     <!-- 매칭 근거: q + polygon 활성 시 어디서 잡혔는지.
+		          백엔드는 식별자만 반환, 프론트가 라벨 매핑.
+		          식별자: name/desc/keywords/subjects/polygon
+		          - polygon 은 자원 본인 geometry 가 폴리곤 안인 경우만 (자식 때문에 끌려온 부모는 제외) -->
+		     , ARRAY_TO_STRING(ARRAY_REMOVE(ARRAY[
+		         <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(q)">
+		               CASE WHEN ds.medata_set_nm       ILIKE CONCAT('%', #{q}, '%')
+		                      OR ds.medata_set_logic_nm ILIKE CONCAT('%', #{q}, '%') THEN 'name' END
+		             , CASE WHEN COALESCE(ds.medata_set_desc, '') ILIKE CONCAT('%', #{q}, '%') THEN 'desc' END
+		             , CASE WHEN EXISTS (
+		                   SELECT 1
+		                     FROM dtmeta.tb_meta_data     dd_k
+		                     JOIN dtmeta.tb_meta_property pp_k ON pp_k.prpty_id = dd_k.prpty_id
+		                                                      AND pp_k.prpty_nm = 'keywords'
+		                                                      AND pp_k.prpty_data_sttus_mtcd = 'use'
+		                    WHERE dd_k.medata_set_id = ds.medata_set_id
+		                      AND dd_k.medata_val ILIKE CONCAT('%', #{q}, '%')
+		               ) THEN 'keywords' END
+		             , CASE WHEN EXISTS (
+		                   SELECT 1
+		                     FROM dtmeta.tb_meta_data     dd_s
+		                     JOIN dtmeta.tb_meta_property pp_s ON pp_s.prpty_id = dd_s.prpty_id
+		                                                      AND pp_s.prpty_nm = 'subjects'
+		                                                      AND pp_s.prpty_data_sttus_mtcd = 'use'
+		                    WHERE dd_s.medata_set_id = ds.medata_set_id
+		                      AND dd_s.medata_val ILIKE CONCAT('%', #{q}, '%')
+		               ) THEN 'subjects' END
+		             ,
+		         </if>
+		         <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(polygon)">
+		               CASE WHEN EXISTS (
+		                   SELECT 1
+		                     FROM dtmeta.tb_meta_data dd_g
+		                    WHERE dd_g.medata_set_id = ds.medata_set_id
+		                      AND dd_g.geodata_val IS NOT NULL
+		                      AND dtmeta.ST_Contains(
+		                            dtmeta.ST_SetSRID(dtmeta.ST_GeomFromText(#{polygon}), 4326),
+		                            dtmeta.ST_SetSRID(dd_g.geodata_val, 4326)
+		                          )
+		               ) THEN 'polygon' END
+		             ,
+		         </if>
+		         NULL
+		     ], NULL), ',') AS matched_fields
+		  FROM dtmeta.tb_meta_dataset ds
+		  LEFT OUTER JOIN dtmeta.tb_meta_model m  ON m.model_id  = ds.model_id
+		  LEFT OUTER JOIN dtmeta.tb_meta_model tm ON tm.model_id = m.type_model_id
+		<include refid="discoveryWhere" />
+		ORDER BY ds.medata_set_amd_dt DESC NULLS LAST, ds.medata_set_id
+		LIMIT #{pageListSize} OFFSET (#{curPage} - 1) * #{pageListSize}
+	</select>
+
+	<!--
+		자동완성 — 두 종류:
+		  1) 이름/논리명 prefix 매칭 (kind='name')
+		  2) keywords/subjects 속성 값 prefix 매칭 (kind='keyword')
+		각각 LIMIT 10. UNION 결과를 화면에서 분리 표시.
+		응답 컬럼: kind, value(=이름 또는 키워드값), cnt
+	-->
+	<select id="selectSuggestions" resultType="kr.co.n2m.platform.meta.architecture.domain.CamelCaseMap">
+		(
+			SELECT 'name'                          AS kind
+			     , ds.medata_set_nm                AS value
+			     , COUNT(*)                        AS cnt
+			     , MAX(ds.medata_set_amd_dt)       AS latest
+			  FROM dtmeta.tb_meta_dataset ds
+			 WHERE ds.medata_set_sttus_mtcd != 'disuse'
+			   AND (
+			         ds.medata_set_nm       ILIKE CONCAT(#{q}, '%')
+			      OR ds.medata_set_logic_nm ILIKE CONCAT(#{q}, '%')
+			   )
+			 GROUP BY ds.medata_set_nm
+			 ORDER BY CASE WHEN ds.medata_set_nm = #{q} THEN 0 ELSE 1 END
+			        , MAX(ds.medata_set_amd_dt) DESC NULLS LAST
+			        , length(ds.medata_set_nm)
+			        , ds.medata_set_nm
+			 LIMIT 10
+		)
+		UNION ALL
+		(
+			SELECT 'keyword'                       AS kind
+			     , dd.medata_val                   AS value
+			     , COUNT(*)                        AS cnt
+			     , MAX(ds.medata_set_amd_dt)       AS latest
+			  FROM dtmeta.tb_meta_data     dd
+			  JOIN dtmeta.tb_meta_property pp ON pp.prpty_id = dd.prpty_id
+			                                AND pp.prpty_nm IN ('keywords', 'subjects')
+			                                AND pp.prpty_data_sttus_mtcd = 'use'
+			  JOIN dtmeta.tb_meta_dataset  ds ON ds.medata_set_id = dd.medata_set_id
+			 WHERE dd.medata_val IS NOT NULL
+			   AND dd.medata_val ILIKE CONCAT(#{q}, '%')
+			 GROUP BY dd.medata_val
+			 ORDER BY CASE WHEN dd.medata_val = #{q} THEN 0 ELSE 1 END
+			        , MAX(ds.medata_set_amd_dt) DESC NULLS LAST
+			        , length(dd.medata_val)
+			        , dd.medata_val
+			 LIMIT 10
+		)
+	</select>
+
+	<!--
+		유형별 카운트 — typeModelId 외 모든 필터(q, polygon, dt 한정) 적용.
+		typeModelId 만 제외 (그게 그루핑 차원). 합계는 결과 카운트와 일치.
+	-->
+	<sql id="discoveryWhereExceptType">
+		WHERE 1=1
+		<if test='!@org.apache.commons.lang3.StringUtils@equals(includeDisuseYn, "Y")'>
+			AND ds.medata_set_sttus_mtcd != 'disuse'
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(q)">
+			AND (
+				ds.medata_set_nm                ILIKE CONCAT('%', #{q}, '%')
+				OR ds.medata_set_logic_nm       ILIKE CONCAT('%', #{q}, '%')
+				OR COALESCE(ds.medata_set_desc, '') ILIKE CONCAT('%', #{q}, '%')
+				OR EXISTS (
+					SELECT 1
+					  FROM dtmeta.tb_meta_data            dd_q
+					  JOIN dtmeta.tb_meta_property        pp_q ON pp_q.prpty_id = dd_q.prpty_id
+					                                          AND pp_q.prpty_data_sttus_mtcd = 'use'
+					  JOIN dtmeta.tb_meta_propertydefine  pd_q ON pd_q.prpty_id = pp_q.prpty_id
+					                                          AND pd_q.prpty_def_chg_yn = 'N'
+					  JOIN dtmeta.tb_meta_model           rm_q ON rm_q.model_id = pd_q.range_model_id
+					                                          AND rm_q.data_type_mtcd IN ('keywordsKo', 'keywordsEn')
+					  JOIN dtmeta.tb_meta_modelproperty   mp_q ON mp_q.prpty_id = pp_q.prpty_id
+					                                          AND mp_q.model_prpty_del_yn = 'N'
+					 WHERE dd_q.medata_set_id = ds.medata_set_id
+					   AND dd_q.medata_val ILIKE CONCAT('%', #{q}, '%')
+				)
+			)
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(digitalTwinId)">
+			AND ds.medata_set_id IN (SELECT medata_set_id FROM dt_scope)
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(polygon)">
+			AND ds.medata_set_id IN (SELECT medata_set_id FROM medata_set_ids)
+		</if>
+	</sql>
+
+	<!-- 결과 분포 — 모든 필터(typeModelId 포함) 적용. 합계 = 결과 카운트. -->
+	<select id="selectTypeCounts" parameterType="kr.co.n2m.platform.meta.search.discovery.domain.DiscoverySearchVo" resultType="kr.co.n2m.platform.meta.architecture.domain.CamelCaseMap">
+		<include refid="withPolygonCte" />
+		<include refid="withDtDescendantsCte" />
+		SELECT m.type_model_id                                            AS type_id
+		     , COALESCE(tm.model_logic_nm, tm.model_nm, m.type_model_id)  AS type_name
+		     , COUNT(*)                                                   AS cnt
+		  FROM dtmeta.tb_meta_dataset ds
+		  LEFT OUTER JOIN dtmeta.tb_meta_model m  ON m.model_id  = ds.model_id
+		  LEFT OUTER JOIN dtmeta.tb_meta_model tm ON tm.model_id = m.type_model_id
+		<include refid="discoveryWhere" />
+		 GROUP BY m.type_model_id
+		        , COALESCE(tm.model_logic_nm, tm.model_nm, m.type_model_id)
+		        , tm.model_sort_odrg
+		 ORDER BY tm.model_sort_odrg NULLS LAST, type_name
+	</select>
+
+	<!--
+		하위 구성 요약 — 입력 자원 id 의 모든 descendant(자기 제외)를 유형별 그룹핑.
+		자식 참조 = object_type 속성 (selectAncestorsForIds / withDtDescendantsCte 와 동일 식별).
+		Leaf 자원(센서/서비스 등)은 결과 0건 — 화면에서 hide.
+	-->
+	<select id="selectComposition" resultType="kr.co.n2m.platform.meta.architecture.domain.CamelCaseMap">
+		WITH RECURSIVE descendants(medata_set_id, depth) AS (
+			SELECT t1.medata_set_id::text, 0
+			  FROM dtmeta.tb_meta_dataset t1
+			 WHERE t1.medata_set_id = #{id}
+			UNION ALL
+			SELECT t3.medata_val::text, d.depth + 1
+			  FROM descendants d
+			  JOIN dtmeta.tb_meta_data t3 ON t3.medata_set_id = d.medata_set_id
+			 WHERE t3.medata_val IS NOT NULL
+			   AND t3.medata_val != ''
+			   AND d.depth <![CDATA[ < ]]> 5
+			   <if test="objectPrptyIds != null and !objectPrptyIds.isEmpty()">
+			   AND t3.prpty_id IN
+			    <foreach item="pid" collection="objectPrptyIds" open="(" separator="," close=")">#{pid}</foreach>
+			   </if>
+		)
+		SELECT m.type_model_id                                           AS type_id
+		     , COALESCE(tm.model_logic_nm, tm.model_nm, m.type_model_id) AS type_name
+		     , COUNT(*)                                                  AS cnt
+		  FROM (SELECT DISTINCT medata_set_id FROM descendants WHERE medata_set_id != #{id}) d
+		  JOIN dtmeta.tb_meta_dataset ds ON ds.medata_set_id = d.medata_set_id
+		                                AND ds.medata_set_sttus_mtcd != 'disuse'
+		  LEFT OUTER JOIN dtmeta.tb_meta_model m  ON m.model_id  = ds.model_id
+		  LEFT OUTER JOIN dtmeta.tb_meta_model tm ON tm.model_id = m.type_model_id
+		 GROUP BY m.type_model_id
+		        , COALESCE(tm.model_logic_nm, tm.model_nm, m.type_model_id)
+		        , tm.model_sort_odrg
+		 ORDER BY tm.model_sort_odrg NULLS LAST, type_name
+	</select>
+
+	<!-- 글로벌 분포 — 검색 필터 무관, includeDisuseYn 토글만 반영. 페이지 항상 표시. -->
+	<select id="selectGlobalTypeCounts" resultType="kr.co.n2m.platform.meta.architecture.domain.CamelCaseMap">
+		SELECT m.type_model_id                                            AS type_id
+		     , COALESCE(tm.model_logic_nm, tm.model_nm, m.type_model_id)  AS type_name
+		     , COUNT(*)                                                   AS cnt
+		  FROM dtmeta.tb_meta_dataset ds
+		  LEFT OUTER JOIN dtmeta.tb_meta_model m  ON m.model_id  = ds.model_id
+		  LEFT OUTER JOIN dtmeta.tb_meta_model tm ON tm.model_id = m.type_model_id
+		 WHERE 1=1
+		<if test='!@org.apache.commons.lang3.StringUtils@equals(includeDisuseYn, "Y")'>
+		   AND ds.medata_set_sttus_mtcd != 'disuse'
+		</if>
+		 GROUP BY m.type_model_id
+		        , COALESCE(tm.model_logic_nm, tm.model_nm, m.type_model_id)
+		        , tm.model_sort_odrg
+		 ORDER BY tm.model_sort_odrg NULLS LAST, type_name
+	</select>
+
+</mapper>

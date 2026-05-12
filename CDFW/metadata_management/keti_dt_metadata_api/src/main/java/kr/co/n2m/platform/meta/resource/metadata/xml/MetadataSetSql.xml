@@ -28,10 +28,13 @@
             AND t2.model_nm                 ILIKE CONCAT('%', #{srchModelNm}, '%')
         </if>           		
         <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(medataSetSttusMtcd)">
-            AND t1.medata_set_sttus_mtcd    = #{medataSetSttusMtcd} 
+            AND t1.medata_set_sttus_mtcd    = #{medataSetSttusMtcd}
+        </if>
+        <if test='!"Y".equals(includeDisuseYn)'>
+            AND t1.medata_set_sttus_mtcd   != 'disuse'
         </if>
         <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(medataSetRegrId)">
-            AND t1.medata_set_regr_id       = #{medataSetRegrId} 
+            AND t1.medata_set_regr_id       = #{medataSetRegrId}
         </if>
         <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(srchStartDd)">
             <![CDATA[  
@@ -170,8 +173,8 @@
           LEFT OUTER JOIN dtmeta.tb_portal_code   c1  ON t1.medata_set_sttus_mtcd = c1.mtcd AND c1.mtcd_grp_id = 'MCG00001'
           LEFT OUTER JOIN (
                     SELECT a1.medata_set_id 
-                         , string_agg(CASE WHEN a2.data_type_mtcd = 'keywordsKo' THEN a1.medata_val ELSE NULL END, ',')  AS keywords_ko
-                         , string_agg(CASE WHEN a2.data_type_mtcd = 'keywordsEn' THEN a1.medata_val ELSE NULL END, ',')  AS keywords_en
+                         , string_agg(DISTINCT CASE WHEN a2.data_type_mtcd = 'keywordsKo' THEN a1.medata_val ELSE NULL END, ',')  AS keywords_ko
+                         , string_agg(DISTINCT CASE WHEN a2.data_type_mtcd = 'keywordsEn' THEN a1.medata_val ELSE NULL END, ',')  AS keywords_en
                          , MAX(CASE WHEN a2.data_type_mtcd = 'categoryId'        THEN a1.medata_val ELSE NULL END)       AS category_id
                          , MAX(CASE WHEN a2.data_type_mtcd = 'categoryConcept'   THEN a1.medata_val ELSE NULL END)       AS category_concept
                          , MAX(CASE WHEN a2.type_model_id  = 'Agent'             THEN a1.medata_val ELSE NULL END)       AS agent_id

@@ -115,10 +115,12 @@ const Buttons = {
 //router에 등록한 페이지명
 // [managePageNameArr] 관리용 메뉴 (디지털트윈 관리 상세, 메타데이터 관리 상세)
 // [retrievalPageNameArr] 검색용 메뉴 (디지털트윈 검색, 메타데이터셋 검색, 메타데이터 검색)
+// [exManagePageNameArr] 외부제공용 exmanage 계열 (query param으로 이동)
 // [externalPageNameArr] 외부제공용 메타데이터 통합 검색
 // [intgrdataPageNameArr] 메타데이터 통합 검색
 const managePageNameArr = ['DigitalTwinDetailManagePage', 'MetadataDetailManagePage'];
 const retrievalPageNameArr = ['RetrievalMetadataSetPage', 'RetrievalDigitalTwinDatasetPage', 'RetrievalMetadataPage'];
+const exManagePageNameArr =  ['ExDigitalTwinDetailManagePage'];
 const externalPageNameArr =  ['ExSearchListPage', 'ExMetadataPage'];
 const intgrdataPageNameArr =  ['IntgrdataListPage', 'IntgrdataPage'];
 
@@ -179,7 +181,9 @@ const goToMetadataManagePage = ({medataSetId, typeModelId, backPageName}) => {
         router.push({path: `/meta/search/intgrdata/page/${medataSetId}`});
       }
 
-    } else { // 외부제공용
+    } else if (exManagePageNameArr.includes(backPageName)) { //외부제공용 exmanage 계열 (query param)
+      router.push({ name: platform + "_" + backPageName, query: query });
+    } else { // 외부제공용 exsearch 계열 (path param)
       router.push({ name: platform + "_" + backPageName, params: query });
     }
 
@@ -200,7 +204,9 @@ const goToMetadataManagePage = ({medataSetId, typeModelId, backPageName}) => {
         router.push({path: `/meta/search/intgrdata/page/${medataSetId}`});
       }
 
-    } else { // 외부제공용
+    } else if (exManagePageNameArr.includes(backPageName)) { //외부제공용 exmanage 계열 (query param)
+      router.push({ name: platform + "_" + backPageName, query: query });
+    } else { // 외부제공용 exsearch 계열 (path param)
       router.push({ name: platform + "_" + backPageName, params: query });
     }
 

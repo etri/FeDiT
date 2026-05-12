@@ -10,8 +10,8 @@
     <div class="boxCnt">
 			<el-form :inline="true"	:model="pageInfo"	class="demo-form-inline search-form" label-width="150px" label-position="left">
 				<el-row :gutter="20">
-					<el-col :span="12">
-						<el-form-item label="수정일">	
+					<el-col :span="8">
+						<el-form-item label="수정일">
 							<div class="inline-area">
 								<div class="demo-date-picker">
 									<div class="block">
@@ -22,7 +22,6 @@
 											format="YYYY-MM-DD"
 											value-format="YYYY-MM-DD"
 											:disabled-date="disabledDate1"
-											style=""
 										/>
 									</div>
 								</div>
@@ -36,29 +35,36 @@
 											format="YYYY-MM-DD"
 											value-format="YYYY-MM-DD"
 											:disabled-date="disabledDate2"
-											style=""
 											@change="changeDate"
 										/>
 									</div>
 								</div>
 							</div>
-						</el-form-item>									
+						</el-form-item>
 					</el-col>
-				  <el-col :span="12">
+					<el-col :span="8">
 						<ComnFormItemInput2Btns
 						  label="메타데이터 모델"
 							v-model="pageInfo.modelNm"
 						  @click-search="dialogVisibleModelSearch = true"
 							@click-refresh="refreshModelInfo"
-						/>						
+						/>
 						<el-dialog v-model="dialogVisibleModelSearch" title="메타데이터 모델 검색">
-							<MetaDataModelSearchPage 
-								:searchSttusCd="searchSttusCd" 
+							<MetaDataModelSearchPage
+								:searchSttusCd="searchSttusCd"
 								:searchMode="searchMode"
-								:typeModelId="searchTypeModelId" 
+								:typeModelId="searchTypeModelId"
 								@selectedRow="selectedMetaDataModel" />
 						</el-dialog>
-					</el-col>						
+					</el-col>
+					<el-col :span="8">
+						<el-form-item label="제외 데이터">
+							<el-select v-model="pageInfo.includeDisuseYn" placeholder="제외">
+								<el-option label="제외" value="" />
+								<el-option label="포함" value="Y" />
+							</el-select>
+						</el-form-item>
+					</el-col>
 				</el-row>
 				<!-- 2025 카테고리와 Agent 를 사용안해서 검색조건에서 숨김.
 				<el-row :gutter="20">
@@ -98,9 +104,9 @@
 				</el-row>
 				-->
 				<el-row :gutter="20">
-					<el-col :span="12">
+					<el-col :span="8">
 						<el-form-item label="상태">
-							<el-select 
+							<el-select
 								v-model="pageInfo.medataSetSttusMtcd"
 								@change="changeCd"
 								placeholder="선택">
@@ -112,12 +118,12 @@
 									:value="item.mtcd"
 								/>
 							</el-select>
-						</el-form-item>  
+						</el-form-item>
 					</el-col>
-					<el-col :span="12">
+					<el-col :span="8">
 						<ComnFormItemInput2Btns
 						  label="등록자"
-							v-model="pageInfo.medataSetRegrId"							
+							v-model="pageInfo.medataSetRegrId"
 							placeholder=""
 							search-btn-label="나"
 							search-icon-class=""
@@ -125,26 +131,32 @@
 							@click-refresh="refreshUserInfo"
 						/>
 					</el-col>
+					<el-col :span="8"></el-col>
 				</el-row>
 				<el-row :gutter="20">
-					<el-col :span="12">
+					<el-col :span="8">
 						<el-form-item label="디지털트윈 명">
 							<el-input
-								class=""
 								v-model="pageInfo.srchText"
 								placeholder="검색어 (물리명 또는 논리명)"
-								style=""
 								@keydown.enter.prevent="getMetadataSetList(1)"
 								/>
 						</el-form-item>
 					</el-col>
-					<el-col :span="12">
+					<el-col :span="8">
 						<el-form-item label="키워드">
 							<el-input
-								class=""
 								v-model="pageInfo.keyword"
 								placeholder="키워드"
-								style=""
+								@keydown.enter.prevent="getMetadataSetList(1)"
+								/>
+						</el-form-item>
+					</el-col>
+					<el-col :span="8">
+						<el-form-item label="디지털트윈 ID">
+							<el-input
+								v-model="pageInfo.medataSetId"
+								placeholder=""
 								@keydown.enter.prevent="getMetadataSetList(1)"
 								/>
 						</el-form-item>
@@ -190,6 +202,8 @@ const pageInfo = reactive({
 	medataSetSttusMtcd: "", //메타데이터 셋 상태
 	medataSetRegrId: "", //메타데이터 셋 등록자 ID
 	srchText: "", //디지털트윈 명
+	medataSetId: "", //디지털트윈 ID
+	includeDisuseYn: "", //제외(폐기) 포함 여부
 });
 
 const props = defineProps({
@@ -276,6 +290,8 @@ const refresh = () => {
 	pageInfo.medataSetSttusMtcd = "";
 	pageInfo.medataSetRegrId = "";
 	pageInfo.srchText = "";
+	pageInfo.medataSetId = "";
+	pageInfo.includeDisuseYn = "";
 };
 
 const getUserInfo = () => {

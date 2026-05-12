@@ -117,6 +117,7 @@ const state = reactive({
 		medataSetSttusMtcd: "",
 		medataSetRegrId: "",
 		medataSetId: "",
+		includeDisuseYn: "",
 		srchText: "",
 		totalListSize: 0,
 		pageListSize: 10,
@@ -227,8 +228,9 @@ const getMetadataSetList = () => {
 				ctgryId: state.pageInfo.ctgryId,
 				agntId: state.pageInfo.agntId,
 				medataSetRegrId: state.pageInfo.medataSetRegrId,
-				medataSetId: state.pageInfo.medataSetId,
+				medataSetId: (state.pageInfo.medataSetId || "").trim(),
 				medataSetSttusMtcd: state.pageInfo.medataSetSttusMtcd,
+				includeDisuseYn: state.pageInfo.includeDisuseYn,
 				srchText: state.pageInfo.srchText,
 				typeModelId: state.pageInfo.typeModelId,
 				modelId: state.pageInfo.modelId,
@@ -272,6 +274,7 @@ const searchMetadataSetList = (payload) => {
 	state.pageInfo.srchText = payload.pageInfo.srchText;
 	state.pageInfo.typeModelId = payload.pageInfo.typeModelId;
 	state.pageInfo.modelId = payload.pageInfo.modelId;
+	state.pageInfo.includeDisuseYn = payload.pageInfo.includeDisuseYn;
 	getMetadataSetList();
 };
 

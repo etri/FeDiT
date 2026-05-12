@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 import kr.co.n2m.platform.admin.feature.qna.entity.Qna;
 
 @Repository
-public interface QnaRepository extends JpaRepository<Qna, Long> {
+public interface QnaRepository extends JpaRepository<Qna, String> {
 
 }

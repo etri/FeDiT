@@ -15,7 +15,7 @@
           label-width="120px"
         >
           <el-row :gutter="20">
-            <el-col :span="24">
+            <el-col :span="12">
               <el-form-item label="수정일">
                 <div class="inline-area">
                   <div class="demo-date-picker">
@@ -47,6 +47,14 @@
                     </div>
                   </div>
                 </div>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="제외 데이터">
+                <el-select v-model="pageInfo.includeDisuseYn" placeholder="제외">
+                  <el-option label="제외" value="" />
+                  <el-option label="포함" value="Y" />
+                </el-select>
               </el-form-item>
             </el-col>
           </el-row>
@@ -162,6 +170,7 @@ const pageInfo = reactive({
   medataSetSttusMtcd: "", //메타데이터 셋 상태
   srchText: "", //메타데이터 셋 명
   medataSetId: "",
+  includeDisuseYn: "", //제외(폐기) 포함 여부 ("" 제외 / "Y" 포함)
 });
 
 defineExpose({
