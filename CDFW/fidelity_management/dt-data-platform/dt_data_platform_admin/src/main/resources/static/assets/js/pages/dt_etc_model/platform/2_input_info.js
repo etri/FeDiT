@@ -297,18 +297,18 @@ function getBaseDataSetRangeCol(param) {
 
 function reGetBaseDataCallbackFunction(data, callback) {
     let sendData = {
-        digital_twins: data.digitalTwinId,
-        digital_objects: data.digitalObjectId,
-        base_file_path: data.base_file_path,
-        base_file_name: data.base_file_nm,
-        target_start_date: data.target_start_date.length != 0 ? data.target_start_date : null,
-        target_end_date: data.target_end_date.length != 0 ? data.target_end_date : null,
-        target_row_count: data.target_row_count
+        digital_twin_id: data.digitalTwinId,
+        digital_twin_object_id: data.digitalObjectId,
+        file_path: data.base_file_path,
+        file_name: data.base_file_nm,
+        from: data.target_start_date.length !== 0 ? data.target_start_date : null,
+        to: data.target_end_date.length !== 0 ? data.target_end_date : null,
+        count: data.target_row_count
     }
     showProgressBar({element: null, process_id: 'process-12'});
-    ajaxPost('/dt/meta/api/v1/resource/objects/detail/reset/file/META_ETC_MODEL', sendData, function (result) {
+    ajaxPost('/dt/meta/base/file/reset/META_ETC_MODEL', sendData, function (result) {
         console.log('result', result);
-        if (result.code === 200) {
+        if (result.status === 200) {
             if (result.data_list.length === 0 || result.header_list.length === 0) {
                 console.debug('error : ', result);
                 closeProgressBar({element: null, process_id: 'process-12'});
@@ -320,8 +320,8 @@ function reGetBaseDataCallbackFunction(data, callback) {
             let data_list = result.data_list;
 
             let preProcData = preProcTemplate();
-            preProcData.preproc_property_info[0].twin_id = data.digitalTwinId;
-            preProcData.preproc_property_info[0].twin_obj_id = data.digitalObjectId;
+            preProcData.preproc_property_info[0].twin_id = sendData.digital_twin_id;
+            preProcData.preproc_property_info[0].twin_obj_id = sendData.digital_twin_object_id;
             preProcData.preproc_property_info[0].base_dir = result.base_dir;
             preProcData.preproc_property_info[0].base_file_nm = result.file_name;
             preProcData.preproc_property_info[0].data_use_tp = 'M';

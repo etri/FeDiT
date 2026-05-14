@@ -382,6 +382,7 @@ input.custom-range-obj.form-control[disabled] {
     border: none;
 }
 
+/*TODO FEDIT THEME DISABLED DEFAULT*/
 .header .flat-menu {
     display: none;
 }

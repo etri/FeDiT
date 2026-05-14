@@ -1,27 +1,27 @@
 package com.stoneitgt.dt.data.platform.admin.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stoneitgt.common.GlobalConstant;
 import com.stoneitgt.dt.data.platform.admin.config.WebConfig;
 import com.stoneitgt.dt.data.platform.admin.service.DTModelApiService;
 import com.stoneitgt.dt.data.platform.admin.service.DTModelService;
-import com.stoneitgt.dt.data.platform.domain.DigitalObjectInfo;
+import com.stoneitgt.dt.data.platform.admin.service.MetaAPIService;
+import com.stoneitgt.dt.data.platform.admin.service.SyncEngineAPIService;
+import com.stoneitgt.dt.data.platform.domain.meta.BaseFileRequest;
+import com.stoneitgt.dt.data.platform.domain.meta.DigitalTwinMetadata;
+import com.stoneitgt.dt.data.platform.domain.meta.PaginatedDigitalTwinMetadata;
 import com.stoneitgt.dt.data.platform.enums.ModelType;
-import com.stoneitgt.dt.data.platform.util.ConvertUtil;
 import com.stoneitgt.dt.data.platform.util.JSONParser;
 import com.stoneitgt.dt.data.platform.util.TimeUtil;
 import com.stoneitgt.dt.data.platform.util.file.FileReader;
 import com.stoneitgt.dt.data.platform.util.file.FileUtil;
-import com.stoneitgt.dt.data.platform.util.file.FileWriter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,301 +38,265 @@ public class DTMetaApiController extends BaseController {
     @Autowired
     private DTModelService dtModelService;
 
-    @PostMapping(value = "/api/v1/resource/dts")
+    @Autowired
+    private MetaAPIService metaAPIService;
+
+    @Autowired
+    private SyncEngineAPIService syncEngineAPIService;
+
+    @GetMapping("/digital-twins")
     @ResponseBody
-    public Map<String, Object> resourceDts(@RequestBody Map<String, Object> param) throws Exception {
-        Map<String, Object> result = new HashMap<>();
-        ResponseEntity<?> resultResourceObject = dtModelApiService.getResourceDts(param);
-        ObjectMapper objectMapper = new ObjectMapper();
-        List<Map<String, String>> resultList = new ArrayList<>();
+    public ResponseEntity<Map<String, Object>> getDigitalTwins(@RequestParam(value = "curPage", defaultValue = "1") Integer curPage,
+                                                               @RequestParam(value = "pageListSize", defaultValue = "10") Integer pageListSize,
+                                                               @RequestParam(value = "arrayDataLimit", defaultValue = "200") Integer arrayDataLimit,
+                                                               @RequestParam(value = "objectRefFormat", defaultValue = "object") String objectRefFormat,
+                                                               @RequestParam(value = "dTw_objs_attr", defaultValue = "digitalTwinObjects") String dTw_objs_attr,
+                                                               @RequestParam(value = "dTw_attr_name", required = false) String dTw_attr_name) {
+        Map<String, Object> response = new HashMap<>();
         try {
-            // JSON 문자열을 JsonNode 객체로 변환
-            JsonNode rootNode = objectMapper.readTree(resultResourceObject.getBody().toString());
-
-            // "list" 배열에 있는 각 객체에서 필요한 필드 추출
-            for (JsonNode node : rootNode.path("list")) {
-                Map<String, String> map = new HashMap<>();
-                map.put("metaModel", node.path("metaModel").asText());
-                map.put("digitalTwinId", node.path("digitalTwinId").asText());
-                map.put("digitalTwinName", node.path("digitalTwinName").asText());
-                map.put("tags", node.path("tags").asText());
-                map.put("subject", node.path("subject").asText());
-                map.put("description", node.path("description").asText());
-                map.put("owner", node.path("owner").asText());
-                resultList.add(map);
-            }
-
+            PaginatedDigitalTwinMetadata paginatedDigitalTwinMetadata = metaAPIService.getDigitalTwins(curPage, pageListSize, arrayDataLimit, objectRefFormat, dTw_objs_attr, dTw_attr_name);
+            response.put("status", GlobalConstant.API_STATUS.SUCCESS);
+            response.put("data", paginatedDigitalTwinMetadata);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error fetching digital twins", e);
+            response.put("status", GlobalConstant.API_STATUS.FAIL);
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
-
-        result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-        result.put("data", resultList);
-        return result;
-
     }
 
-    @PostMapping(value = "/api/v1/resource/objects")
+    @GetMapping("/digital-twins/{dTw_attr_dtid}/digital-objects")
     @ResponseBody
-    public Map<String, Object> resourceObject(@RequestBody Map<String, Object> param) throws Exception {
-        Map<String, Object> result = new HashMap<>();
-
-        ResponseEntity<?> resultResourceObject = dtModelApiService.getResourceObject(param);
-        ObjectMapper objectMapper = new ObjectMapper();
-        List<Map<String, String>> resultList = new ArrayList<>();
-
+    public ResponseEntity<Map<String, Object>> getDigitalTwinObjects(@RequestParam(value = "curPage", defaultValue = "1") Integer curPage,
+                                                                     @RequestParam(value = "pageListSize", defaultValue = "10") Integer pageListSize,
+                                                                     @RequestParam(value = "arrayDataLimit", defaultValue = "200") Integer arrayDataLimit,
+                                                                     @RequestParam(value = "objectRefFormat", defaultValue = "object") String objectRefFormat,
+                                                                     @RequestParam(value = "dTw_objs_attr", defaultValue = "digitalTwinObjects") String dTw_objs_attr,
+                                                                     @PathVariable(value = "dTw_attr_dtid", required = false) String dTw_attr_dtid) {
+        Map<String, Object> response = new HashMap<>();
         try {
-            // JSON 문자열을 JsonNode 객체로 변환
-            JsonNode rootNode = objectMapper.readTree(resultResourceObject.getBody().toString());
-
-            // "list" 배열에 있는 각 객체에서 필요한 필드 추출
-
-            for (JsonNode node : rootNode.path("list")) {
-                Map<String, String> map = new HashMap<>();
-                map.put("metaModel", node.path("metaModel").asText());
-                map.put("digitalObjectId", node.path("digitalObjectId").asText());
-                map.put("digitalObjectName", node.path("digitalObjectName").asText());
-                map.put("tags", node.path("tags").asText());
-                map.put("subject", node.path("subject").asText());
-                map.put("description", node.path("description").asText());
-                map.put("objectdata", node.path("objectdata").asText());
-
-                map.put("digitalTwinId", param.get("digitalTwinId").toString());
-                resultList.add(map);
-            }
-
+            List<DigitalTwinMetadata.DigitalTwinObject> digitalTwinObjects = metaAPIService.getDigitalTwinObjects(curPage, pageListSize, arrayDataLimit, objectRefFormat, dTw_objs_attr, dTw_attr_dtid);
+            response.put("status", GlobalConstant.API_STATUS.SUCCESS);
+            response.put("data", digitalTwinObjects);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error fetching digital twin objects", e);
+            response.put("status", GlobalConstant.API_STATUS.FAIL);
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
-
-        result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-        result.put("data", resultList);
-        return result;
     }
 
-    @PostMapping(value = "/api/v1/resource/objects/detail")
+    @GetMapping("/digital-twins/{dTw_attr_dtid}/digital-objects/{obj_attr_dtoid}")
     @ResponseBody
-    public Map<String, Object> resourceObjectDetail(@RequestBody Map<String, Object> param) throws Exception {
-        Map<String, Object> result = new HashMap<>();
-        log.info("resourceObjectDetail param -> {}", param);
-        ResponseEntity<?> resultResourceFullObject = dtModelApiService.getResourceObjectDetailFull(param);
-        log.info("resultResourceFullObject.getBody() -> {}", resultResourceFullObject.getBody().toString());
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode infoNode = objectMapper.readTree(resultResourceFullObject.getBody().toString());
-
-        // JsonNode를 DigitalObjectInfo 객체로 변환
-        DigitalObjectInfo digitalObjectInfo = objectMapper.treeToValue(infoNode, DigitalObjectInfo.class);
-
-        result.put("data", digitalObjectInfo);
-        result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-        //log.info("result -> {}", result);
-        return result;
+    public ResponseEntity<Map<String, Object>> getDigitalTwinObjectInfo(@RequestParam(value = "curPage", defaultValue = "1") Integer curPage,
+                                                                        @RequestParam(value = "pageListSize", defaultValue = "10") Integer pageListSize,
+                                                                        @RequestParam(value = "arrayDataLimit", defaultValue = "200") Integer arrayDataLimit,
+                                                                        @RequestParam(value = "objectRefFormat", defaultValue = "object") String objectRefFormat,
+                                                                        @RequestParam(value = "dTw_objs_attr", defaultValue = "digitalTwinObjects") String dTw_objs_attr,
+                                                                        @PathVariable(value = "dTw_attr_dtid", required = false) String dTw_attr_dtid,
+                                                                        @PathVariable(value = "obj_attr_dtoid", required = false) String obj_attr_dtoid) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            DigitalTwinMetadata.DigitalTwinObject digitalTwinObject = metaAPIService.getDigitalTwinObject(curPage, pageListSize, arrayDataLimit, objectRefFormat, dTw_objs_attr, dTw_attr_dtid, obj_attr_dtoid);
+            response.put("status", GlobalConstant.API_STATUS.SUCCESS);
+            response.put("data", digitalTwinObject);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error fetching digital twin object", e);
+            response.put("status", GlobalConstant.API_STATUS.FAIL);
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
 
-    @PostMapping(value = "/api/v1/resource/objects/detail/set/file/{type}")
+    @PostMapping(value = "/base/file/set/{type}")
     @ResponseBody
-    public Map<String, Object> getBaseData(@RequestBody Map<String, Object> param, @PathVariable ModelType type) throws Exception {
-        Map<String, Object> result = new HashMap<>();
-        log.info("getBaseData -> " + param.toString());
-        Map<String, Object> findParsingParam = new HashMap<>();
-        int limit = systemProperties.getLimitCsvRowCount();
-        findParsingParam.put("limit", limit);
-        Map<String, Object> metaDepth = dtModelService.getMetaDataJsonDepth(param);
-        findParsingParam.put("digital_twins", param.get("digital_twins").toString());
-        findParsingParam.put("digital_objects", param.get("digital_objects").toString());
-        findParsingParam.put("object_id", param.get("digital_objects").toString());
-        findParsingParam.put("target_row_count", param.get("target_row_count") != null ? param.get("target_row_count").toString() : limit);
+    public ResponseEntity<Map<String, Object>> setBaseFile(@RequestBody BaseFileRequest baseFileRequest, @PathVariable ModelType type) throws Exception {
+        log.info("setBaseFile -> {}, {}", baseFileRequest, type);
+        Map<String, Object> response = new HashMap<>();
+        try {
+            // 1. 메타데이터 Depth 정보 조회
+            Map<String, Object> depthSearchParams = new HashMap<>();
+            depthSearchParams.put("digital_twins", baseFileRequest.getDigital_twin_id());
+            depthSearchParams.put("digital_objects", baseFileRequest.getDigital_twin_object_id());
+            Map<String, Object> dataPathInfo = dtModelService.getMetaDataJsonDepth(depthSearchParams);
 
-        List<Map<String, Object>> data = dtModelApiService.getResourceObjectDataAndParse(findParsingParam, metaDepth);
-        //data 정보
-        param.put("data", data);
-        param.put("user_tmp_key", WebConfig.getSessionInfo().getUserId() + TimeUtil.getCurrentTimeMillis());
-        ResponseEntity<?> resultOriginFileSet = dtModelApiService.makeBaseDataFile(type, param);
+            String dataPath = null;
+            String timePath = null;
 
-        //결과 json을 먼저 풀고
-        Map<String, Object> resultJson = extractDataKeyValues(resultOriginFileSet);
-
-        //csv를 읽어들인다
-        //가져올 갯수 0은 전체, 나머지는 환경세팅에서
-        FileReader fileReader = FileReader.getInstance();
-        Map<String, Object> resultCsv = fileReader.readCSVWithLimit(resultJson.get("file_path") + File.separator + resultJson.get("file_name"), limit);
-
-        /**
-         * 가져온 데이터 날짜 중복 제거
-         * */
-        String indexColumn = ConvertUtil.findDateColumn((List<String>) resultCsv.get("header_list"), (List<List<String>>) resultCsv.get("data_list"));
-
-        log.info("indexColumn -> {}", indexColumn);
-
-        if (indexColumn != null) {
-            List<Map<String, Object>> readTempData = FileReader.getInstance().readCSVToListObjectMap(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name"));
-            String findColumnKey = indexColumn;
-            boolean duplicateDataCheck = JSONParser.isDuplicateDataByKey(readTempData, findColumnKey);
-            if (duplicateDataCheck) {
-                List<Map<String, Object>> removedDuplicatedData = JSONParser.removeDuplicateDataByKey(readTempData, findColumnKey);
-                FileWriter.getInstance().writeCSV(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name"), removedDuplicatedData);
-            }
-        }
-
-        resultCsv = fileReader.readCSVWithLimit(resultJson.get("file_path") + File.separator + resultJson.get("file_name"), limit);
-
-        /**
-         * 2024-07-26 정렬 로직 추가
-         * */
-        HashMap<String, Object> convertHashMap = ConvertUtil.moveAndReOrderHeaderDatas((List<String>) resultCsv.get("header_list"), (List<List<String>>) resultCsv.get("data_list"));
-
-        ArrayList<String> headers = (ArrayList<String>) convertHashMap.get("headers");
-        List<List<String>> rearrangedDataList = (List<List<String>>) convertHashMap.get("datas");
-
-        FileWriter.getInstance().writeCSV(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name"), headers, rearrangedDataList);
-
-        if (convertHashMap != null) {
-            result.put("header_list", convertHashMap.get("headers"));
-            result.put("data_list", convertHashMap.get("datas"));
-        } else {
-            result.put("header_list", resultCsv.get("header_list"));
-            result.put("data_list", resultCsv.get("data_list"));
-        }
-        result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-        result.put("base_dir", resultJson.get("base_dir").toString());
-        result.put("file_name", resultJson.get("file_name").toString());
-        result.put("file_path", resultJson.get("file_path").toString());
-        result.put("limit", limit);
-        result.put("target_row_count", findParsingParam.get("target_row_count").toString());
-        return result;
-    }
-
-    @PostMapping(value = "/api/v1/resource/objects/detail/reset/file/{type}")
-    @ResponseBody
-    public Map<String, Object> reGetBaseData(@RequestBody Map<String, Object> param, @PathVariable ModelType type) throws Exception {
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-        log.info("reGetBaseData -> " + param.toString());
-
-        Map<String, Object> findParsingParam = new HashMap<>();
-        int limit = systemProperties.getLimitCsvRowCount();
-        findParsingParam.put("limit", limit);
-
-        /**
-         * 파일 업로드 기능 추가
-         * digital_twins null
-         * digital_objects null
-         * */
-        if (param.get("digital_twins") != null && param.get("digital_objects") != null && !param.get("digital_twins").toString().isEmpty() && !param.get("digital_objects").toString().isEmpty()) {
-            /**
-             * 디렉토리 삭제 후 조회 다시 원본 파일 생성
-             * 이후 조회 버튼 로직 그대로 수행하게된다.
-             * */
-            String filePath = type == ModelType.META_MODEL ? systemProperties.getDtMetaFilePath() : systemProperties.getDtEtcMetaFilePath();
-            File directory = new File(filePath.replace("\\", File.separator) + File.separator + "tmp" + File.separator + param.get("base_file_path").toString());
-            log.info("Delete to " + directory.getAbsolutePath() + " directory");
-            if (FileUtil.deleteDirectory(directory)) {
-                log.info("Directory deleted successfully.");
+            if (dataPathInfo.get("data_depth_1") != null && dataPathInfo.get("data_depth_2") != null) {
+                dataPath = dataPathInfo.get("data_depth_1").toString();
+                timePath = dataPathInfo.get("data_depth_2").toString();
+                log.info("dataPath -> {}, timePath -> {}", dataPath, timePath);
             } else {
-                log.info("Failed to delete the directory.");
+                response.put("status", GlobalConstant.API_STATUS.FAIL);
+                response.put("message", "Data path information is missing.");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
             }
 
-            //디지털 트윈 데이터
-            //컬럼 정보
-            Map<String, Object> metaDepth = dtModelService.getMetaDataJsonDepth(param);
-            findParsingParam.put("digital_twins", param.get("digital_twins").toString());
-            findParsingParam.put("digital_objects", param.get("digital_objects").toString());
-            findParsingParam.put("object_id", param.get("digital_objects").toString());
-            findParsingParam.put("target_row_count", param.get("target_row_count") != null ? param.get("target_row_count").toString() : limit);
-            findParsingParam.put("target_start_date", param.get("target_start_date") != null ? param.get("target_start_date").toString() : null);
-            findParsingParam.put("target_end_date", param.get("target_end_date") != null ? param.get("target_end_date").toString() : null);
+            // 2. 디지털 트윈 오브젝트 데이터 조회
+            List<Map<String, Object>> digitalTwinObjectData = syncEngineAPIService.getDigitalTwinObjectData(
+                    baseFileRequest.getDigital_twin_id(),
+                    baseFileRequest.getDigital_twin_object_id(),
+                    baseFileRequest.getCount() != null ? baseFileRequest.getCount() <= systemProperties.getLimitCsvRowCount() ? baseFileRequest.getCount() : systemProperties.getLimitCsvRowCount() : systemProperties.getLimitCsvRowCount(),
+                    baseFileRequest.getFrom() != null ? baseFileRequest.getFrom() : null,
+                    baseFileRequest.getTo() != null ? baseFileRequest.getTo() : null
+            );
 
-            List<Map<String, Object>> data = dtModelApiService.getResourceObjectDataAndParse(findParsingParam, metaDepth);
+            // 3. 베이스 파일 생성 전 데이터 파싱 및 전처리
+            log.info("digitalTwinObjectData Size -> {}", digitalTwinObjectData.size());
+            List<Map<String, Object>> parsedData = JSONParser.parseDigitalTwinObjectData(digitalTwinObjectData, dataPath, timePath);
+            log.info("parsedData Size -> {}", parsedData.size());
+            log.info("parsedData -> {}", parsedData.get(0));
 
-            param.put("data", data);
+            // 4. 베이스 파일 생성
+            Map<String, Object> param = new HashMap<>();
+            param.put("digital_twins", baseFileRequest.getDigital_twin_id());
+            param.put("digital_objects", baseFileRequest.getDigital_twin_object_id());
+            param.put("data", parsedData);
             param.put("user_tmp_key", WebConfig.getSessionInfo().getUserId() + TimeUtil.getCurrentTimeMillis());
-            ResponseEntity<?> resultOriginFileSet = dtModelApiService.makeBaseDataFile(type, param);
+            Map<String, Object> makeDataFileResponse = extractDataKeyValues(dtModelApiService.makeBaseDataFile(type, param));
+            log.info("makeDataFileResponse FilePath -> {}, FileName -> {}", makeDataFileResponse.get("file_path"), makeDataFileResponse.get("file_name"));
 
-            //결과 json을 먼저 풀고
-            Map<String, Object> resultJson = extractDataKeyValues(resultOriginFileSet);
+            response.put("status", GlobalConstant.API_STATUS.SUCCESS);
+            response.put("data", parsedData);
 
-            //csv를 읽어들인다
-            //가져올 갯수 0은 전체, 나머지는 환경세팅에서
-            Map<String, Object> resultCsv = FileReader.getInstance().readCSVWithLimit(resultJson.get("file_path") + File.separator + resultJson.get("file_name"), limit);
+            response.put("base_dir", makeDataFileResponse.get("base_dir").toString());
+            response.put("file_name", makeDataFileResponse.get("file_name").toString());
+            response.put("file_path", makeDataFileResponse.get("file_path").toString());
 
-            /**
-             * 가져온 데이터 날짜 중복 제거
-             * */
-            String indexColumn = ConvertUtil.findDateColumn((List<String>) resultCsv.get("header_list"), (List<List<String>>) resultCsv.get("data_list"));
+            // 5. UI 표시에 사용될 Data 추출
+            response.put("limit", systemProperties.getLimitCsvRowCount());
+            response.put("target_row_count", baseFileRequest.getCount() != null ? baseFileRequest.getCount() <= systemProperties.getLimitCsvRowCount() ? baseFileRequest.getCount() : systemProperties.getLimitCsvRowCount() : systemProperties.getLimitCsvRowCount());
 
-            log.info("indexColumn -> {}", indexColumn);
+            Map<String, Object> read = FileReader.getInstance().readCSVWithLimit(makeDataFileResponse.get("file_path") + File.separator + makeDataFileResponse.get("file_name"),
+                    baseFileRequest.getCount() != null ? baseFileRequest.getCount() <= systemProperties.getLimitCsvRowCount() ? baseFileRequest.getCount() : systemProperties.getLimitCsvRowCount() : systemProperties.getLimitCsvRowCount());
+            response.put("header_list", read.get("header_list"));
+            response.put("data_list", read.get("data_list"));
 
-            if (indexColumn != null) {
-                List<Map<String, Object>> readTempData = FileReader.getInstance().readCSVToListObjectMap(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name").toString());
-                String findColumnKey = indexColumn;
-                boolean duplicateDataCheck = JSONParser.isDuplicateDataByKey(readTempData, findColumnKey);
-                if (duplicateDataCheck) {
-                    List<Map<String, Object>> removedDuplicatedData = JSONParser.removeDuplicateDataByKey(readTempData, findColumnKey);
-                    FileWriter.getInstance().writeCSV(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name").toString(), removedDuplicatedData);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error fetching digital twin object", e);
+            response.put("status", GlobalConstant.API_STATUS.FAIL);
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    @PostMapping(value = "/base/file/reset/{type}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> resetBaseFile(@RequestBody BaseFileRequest baseFileRequest, @PathVariable ModelType type) throws Exception {
+        log.info("resetBaseFile -> {}, {}", baseFileRequest, type);
+        Map<String, Object> response = new HashMap<>();
+        try {
+            // 메타 연계 데이터 파일 재생성 로직
+            if (baseFileRequest.getDigital_twin_id() != null && baseFileRequest.getDigital_twin_object_id() != null) {
+
+                // 1. 디렉토리 삭제
+                String filePath = type == ModelType.META_MODEL ? systemProperties.getDtMetaFilePath() : systemProperties.getDtEtcMetaFilePath();
+                FileUtil.deleteDirectory(new File(filePath.replace("\\", File.separator) + File.separator + "tmp" + File.separator + baseFileRequest.getFile_path().toString()));
+
+                // 2. 메타데이터 Depth 정보 조회
+                Map<String, Object> depthSearchParams = new HashMap<>();
+                depthSearchParams.put("digital_twins", baseFileRequest.getDigital_twin_id());
+                depthSearchParams.put("digital_objects", baseFileRequest.getDigital_twin_object_id());
+                Map<String, Object> dataPathInfo = dtModelService.getMetaDataJsonDepth(depthSearchParams);
+
+                String dataPath = null;
+                String timePath = null;
+
+                if (dataPathInfo.get("data_depth_1") != null && dataPathInfo.get("data_depth_2") != null) {
+                    dataPath = dataPathInfo.get("data_depth_1").toString();
+                    timePath = dataPathInfo.get("data_depth_2").toString();
+                    log.info("dataPath -> {}, timePath -> {}", dataPath, timePath);
+                } else {
+                    response.put("status", GlobalConstant.API_STATUS.FAIL);
+                    response.put("message", "Data path information is missing.");
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
                 }
+
+                // 3. 디지털 트윈 오브젝트 데이터 조회
+                List<Map<String, Object>> digitalTwinObjectData = syncEngineAPIService.getDigitalTwinObjectData(
+                        baseFileRequest.getDigital_twin_id(),
+                        baseFileRequest.getDigital_twin_object_id(),
+                        baseFileRequest.getCount() != null ? baseFileRequest.getCount() <= systemProperties.getLimitCsvRowCount() ? baseFileRequest.getCount() != 0 ? baseFileRequest.getCount() : systemProperties.getLimitCsvRowCount() : systemProperties.getLimitCsvRowCount() : systemProperties.getLimitCsvRowCount(),
+                        baseFileRequest.getFrom() != null ? TimeUtil.parseToYYYYMMDDHHMMSSFromZoneDateTime(TimeUtil.parseToYYYYMMDDHHMMSS(false, baseFileRequest.getFrom())) : null,
+                        baseFileRequest.getTo() != null ? TimeUtil.parseToYYYYMMDDHHMMSSFromZoneDateTime(TimeUtil.parseToYYYYMMDDHHMMSS(true, baseFileRequest.getTo())) : null
+                );
+
+                /*if (digitalTwinObjectData.isEmpty()) {
+                    response.put("status", GlobalConstant.API_STATUS.FAIL);
+                    response.put("message", "No data found for the specified digital twin object.");
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+                }*/
+
+                // 4. 베이스 파일 생성 전 데이터 파싱 및 전처리
+                log.info("digitalTwinObjectData Size -> {}", digitalTwinObjectData.size());
+                List<Map<String, Object>> parsedData = JSONParser.parseDigitalTwinObjectData(digitalTwinObjectData, dataPath, timePath);
+                log.info("parsedData Size -> {}", parsedData.size());
+
+                // 5. 베이스 파일 생성
+                Map<String, Object> param = new HashMap<>();
+                param.put("digital_twins", baseFileRequest.getDigital_twin_id());
+                param.put("digital_objects", baseFileRequest.getDigital_twin_object_id());
+                param.put("data", parsedData);
+                param.put("user_tmp_key", WebConfig.getSessionInfo().getUserId() + TimeUtil.getCurrentTimeMillis());
+                Map<String, Object> makeDataFileResponse = extractDataKeyValues(dtModelApiService.makeBaseDataFile(type, param));
+                log.info("makeDataFileResponse FilePath -> {}, FileName -> {}", makeDataFileResponse.get("file_path"), makeDataFileResponse.get("file_name"));
+
+                response.put("status", GlobalConstant.API_STATUS.SUCCESS);
+                response.put("data", parsedData);
+
+                response.put("base_dir", makeDataFileResponse.get("base_dir").toString());
+                response.put("file_name", makeDataFileResponse.get("file_name").toString());
+                response.put("file_path", makeDataFileResponse.get("file_path").toString());
+
+                // 5. UI 표시에 사용될 Data 추출
+                response.put("limit", systemProperties.getLimitCsvRowCount());
+                response.put("target_row_count", baseFileRequest.getCount() <= systemProperties.getLimitCsvRowCount() ? baseFileRequest.getCount() != 0 ? baseFileRequest.getCount() : systemProperties.getLimitCsvRowCount() : systemProperties.getLimitCsvRowCount());
+
+                Map<String, Object> read = FileReader.getInstance().readCSVWithLimit(makeDataFileResponse.get("file_path") + File.separator + makeDataFileResponse.get("file_name"), baseFileRequest.getCount() <= systemProperties.getLimitCsvRowCount() ? baseFileRequest.getCount() != 0 ? baseFileRequest.getCount() : systemProperties.getLimitCsvRowCount() : systemProperties.getLimitCsvRowCount());
+                response.put("header_list", read.get("header_list"));
+                response.put("data_list", read.get("data_list"));
             }
+            // 파일 연계 데이터 파일 재생성 로직
+            else {
+                int limit = systemProperties.getLimitCsvRowCount();
+                //파일 업로드 데이터
+                //컬럼 정보
+                String filePath = type == ModelType.META_MODEL ? systemProperties.getDtMetaFilePath() : systemProperties.getDtEtcMetaFilePath();
+                filePath = filePath.replace("\\", File.separator) + File.separator + "tmp" + File.separator + baseFileRequest.getFile_path() + File.separator + baseFileRequest.getFile_name();
+                log.info("filePath -> {}", filePath);
 
-            resultCsv = FileReader.getInstance().readCSVWithLimit(resultJson.get("file_path") + File.separator + resultJson.get("file_name"), limit);
+                List<Map<String, Object>> data = FileReader.getInstance().readCSVToListObjectMap(filePath);
+                Map<String, Object> param = new HashMap<>();
+                param.put("data", data);
+                param.put("user_tmp_key", WebConfig.getSessionInfo().getUserId() + TimeUtil.getCurrentTimeMillis());
+                Map<String, Object> makeDataFileResponse = extractDataKeyValues(dtModelApiService.makeBaseDataFile(type, param));
+                log.info("makeDataFileResponse FilePath -> {}, FileName -> {}", makeDataFileResponse.get("file_path"), makeDataFileResponse.get("file_name"));
 
-            /**
-             * 2024-07-26 정렬 로직 추가
-             * */
-            HashMap<String, Object> convertHashMap = ConvertUtil.moveAndReOrderHeaderDatas((List<String>) resultCsv.get("header_list"), (List<List<String>>) resultCsv.get("data_list"));
+                //csv를 읽어들인다
+                //가져올 갯수 0은 전체, 나머지는 환경세팅에서
+                Map<String, Object> read = FileReader.getInstance().readCSVWithLimit(makeDataFileResponse.get("file_path") + File.separator + makeDataFileResponse.get("file_name"), limit);
 
-            ArrayList<String> headers = (ArrayList<String>) convertHashMap.get("headers");
-            List<List<String>> rearrangedDataList = (List<List<String>>) convertHashMap.get("datas");
+                response.put("status", GlobalConstant.API_STATUS.SUCCESS);
+                response.put("data", data);
+                response.put("base_dir", makeDataFileResponse.get("base_dir").toString());
+                response.put("file_name", makeDataFileResponse.get("file_name").toString());
+                response.put("file_path", makeDataFileResponse.get("file_path").toString());
 
-            FileWriter.getInstance().writeCSV(resultJson.get("file_path").toString() + File.separator + resultJson.get("file_name").toString(), headers, rearrangedDataList);
-
-            if (convertHashMap != null) {
-                result.put("header_list", convertHashMap.get("headers"));
-                result.put("data_list", convertHashMap.get("datas"));
-            } else {
-                result.put("header_list", resultCsv.get("header_list"));
-                result.put("data_list", resultCsv.get("data_list"));
+                response.put("header_list", read.get("header_list"));
+                response.put("data_list", read.get("data_list"));
+                response.put("target_row_count", baseFileRequest.getCount() != null ? Math.min(baseFileRequest.getCount(), ((List<List<String>>) read.get("data_list")).size()) : Math.min(((List<List<String>>) read.get("data_list")).size(), limit));
             }
-            result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-            result.put("base_dir", resultJson.get("base_dir").toString());
-            result.put("file_name", resultJson.get("file_name").toString());
-            result.put("file_path", resultJson.get("file_path").toString());
-            result.put("target_row_count", param.get("target_row_count") != null ? Math.min(Integer.parseInt(param.get("target_row_count").toString()), limit) : limit);
-        } else {
-            //파일 업로드 데이터
-            //컬럼 정보
-            String filePath = type == ModelType.META_MODEL ? systemProperties.getDtMetaFilePath() : systemProperties.getDtEtcMetaFilePath();
-            filePath = filePath.replace("\\", File.separator) + File.separator + "tmp" + File.separator + param.get("base_file_path") + File.separator + param.get("base_file_name");
-            log.info("filePath -> {}", filePath);
-
-            List<Map<String, Object>> data = FileReader.getInstance().readCSVToListObjectMap(filePath);
-            param.put("data", data);
-            param.put("user_tmp_key", WebConfig.getSessionInfo().getUserId() + TimeUtil.getCurrentTimeMillis());
-            ResponseEntity<?> resultOriginFileSet = dtModelApiService.makeBaseDataFile(type, param);
-
-            //결과 json을 먼저 풀고
-            Map<String, Object> resultJson = extractDataKeyValues(resultOriginFileSet);
-
-            //csv를 읽어들인다
-            //가져올 갯수 0은 전체, 나머지는 환경세팅에서
-            FileReader fileReader = FileReader.getInstance();
-            Map<String, Object> resultCsv = fileReader.readCSVWithLimit(resultJson.get("file_path") + File.separator + resultJson.get("file_name"), limit);
-
-            /**
-             * 2024-07-26 정렬 로직 추가
-             * */
-            HashMap<String, Object> convertHashMap = ConvertUtil.moveAndReOrderHeaderDatas((List<String>) resultCsv.get("header_list"), (List<List<String>>) resultCsv.get("data_list"));
-            if (convertHashMap != null) {
-                result.put("header_list", convertHashMap.get("headers"));
-                result.put("data_list", convertHashMap.get("datas"));
-            } else {
-                result.put("header_list", resultCsv.get("header_list"));
-                result.put("data_list", resultCsv.get("data_list"));
-            }
-            result.put("code", GlobalConstant.API_STATUS.SUCCESS);
-            result.put("base_dir", resultJson.get("base_dir").toString());
-            result.put("file_name", resultJson.get("file_name").toString());
-            result.put("file_path", resultJson.get("file_path").toString());
-            result.put("target_row_count", param.get("target_row_count") != null ? Math.min(Integer.parseInt(param.get("target_row_count").toString()), ((List<List<String>>) resultCsv.get("data_list")).size()) : Math.min(((List<List<String>>) resultCsv.get("data_list")).size(), limit));
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error fetching digital twin object", e);
+            response.put("status", GlobalConstant.API_STATUS.FAIL);
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
-        return result;
     }
 }

@@ -4,22 +4,22 @@ spring:
 
   main:
     allow-bean-definition-overriding: true
-    
+
   jackson:
     serialization:
       fail-on-empty-beans: false
-    
+
   http:
     encoding:
       force: true
       force-request: true
       force-response: true
-      
+
   servlet:
     multipart:
       max-file-size: 20MB
       max-request-size: 60MB
-      
+
   thymeleaf:
     cache: false
 
@@ -29,7 +29,7 @@ server:
       timeout: 120m
       persistent: true
       cookie:
-        name: [JSESSIONID]
+        name: [ JSESSIONID ]
         http-only: true
   tomcat:
     uri-encoding: UTF-8
@@ -37,9 +37,9 @@ server:
     whitelabel:
       enabled: false
     include-stacktrace: on-trace-param
-    
+
 ---
-    
+
 spring:
   profiles: local
   output:
@@ -49,50 +49,47 @@ spring:
     log-request-details: true
   servlet:
     multipart:
-      location: ~PATH\DT_FILE_TMP\DT_FILE\temp
+      location: ~PATH\DT_FILE\temp
 
   primary:
     datasource:
       driver-class-name: org.mariadb.jdbc.Driver
-      jdbc-url: [MARIADB_URL]
-      username: [MARIADB_USER]
-      password: [MARIADB_PASSWORD]
+      jdbc-url: [ JDBC URL ]
+      username: [ DB USER NAME ]
+      password: [ DB USER PASSWORD ]
   second:
     datasource:
       driver-class-name: org.mariadb.jdbc.Driver
-      jdbc-url: [MARIADB_URL]
-      username: [MARIADB_USER]
-      password: [MARIADB_PASSWORD]
-      
-      
+      jdbc-url: [ JDBC URL ]
+      username: [ DB USER NAME ]
+      password: [ DB USER PASSWORD ]
+
+
 server:
-  port: [PORT]
+  port: [ PORT ]
 
 system:
-  username: [AUTO LOGIN ADMIN USERNAME]
-  password: [AUTO LOGIN ADMIN PASSWORD]
-  upload-file-path: ~PATH\DT_FILE_TMP\DT_FILE\files
+  username: [ ADMIN ID ]
+  password: [ ADMIN PASSWORD ]
+  upload-file-path: ~PATH\DT_FILE\files
   upload-file-url: /resource
   limit-csv-row-count: 10000
-  dt-file-path: ~PATH\DT_FILE_TMP\DT_FILE\files\storage
-  dt-meta-file-path: ~PATH:\DT_FILE_TMP\DT_META_FILE\files\storage
-  dt-etc-meta-file-path: ~PATH:\DT_FILE_TMP\DT_ETC_META_FILE\files\storage
-  dt-api-url: [DT_DATA_API_URL]
-  tmp-sample-data: ~PATH:\DT_FILE_TMP\DT_META_FILE\files\TESTFILE.ext
-  #메타 서버
-  dt-meta-api-url: [DT_META_API_URL:PORT]
-  #동기화 엔진 서버
-  dt-keti-api-url: [DT_KETI_API_URL:PORT]
-  dt-api-key: [DT_DATA_API_KEY]
-  #메타 서버 키
-  dt-n2m-key: [N2M_KEY]
+  dt-file-path: ~PATH\DT_FILE\files\storage
+  dt-meta-file-path: ~PATH\DT_META_FILE\files\storage
+  dt-etc-meta-file-path: ~PATH\DT_ETC_META_FILE\files\storage
+  tmp-sample-data: ~PATH\DT_META_FILE\files\201901_201912유동인구.csv
+  dt-api-url: [ DT API URL ]
+  dt-meta-api-url: [ META API URL ]
+  dt-keti-api-url: [ KETI SYNC ENGINE API URL ]
+  dt-api-key: [ DT API KEY ]
+  dt-meta-key: [ META API KEY ]
   limit-make-model-cnt: 4
 
 logging:
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
     file: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
-#    file: "%d %-5level [%thread] %logger : %msg%n" 
+  #    file: "%d %-5level [%thread] %logger : %msg%n"
   level:
     root: info
     jdbc: off
@@ -103,112 +100,110 @@ logging:
     jdbc.connection: off
     log4jdbc: off
     log4jdbc.sql: off
- 
+
 ---
 
 spring:
   profiles: virtual
-  output:
-    ansi:
-      enabled: detect
-  http:
-    log-request-details: true
   servlet:
     multipart:
-      location: ~PATH\DT_FILE_TMP\DT_FILE\temp
+      location: ~PATH/dt_file/temp
 
   primary:
     datasource:
-      driver-class-name: org.mariadb.jdbc.Driver
-      jdbc-url: [MARIADB_URL]
-      username: [MARIADB_USER]
-      password: [MARIADB_PASSWORD]
+      driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+      jdbc-url: [ JDBC URL ]
+      username: [ DB USER NAME ]
+      password: [ DB USER PASSWORD ]
   second:
     datasource:
-      driver-class-name: org.mariadb.jdbc.Driver
-      jdbc-url: [MARIADB_URL]
-      username: [MARIADB_USER]
-      password: [MARIADB_PASSWORD]
-
+      driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+      jdbc-url: [ JDBC URL ]
+      username: [ DB USER NAME ]
+      password: [ DB USER PASSWORD ]
 
 server:
-  port: [PORT]
+  port: [ PORT ]
 
 system:
-  username: [AUTO LOGIN ADMIN USERNAME]
-  password: [AUTO LOGIN ADMIN PASSWORD]
-  upload-file-path: ~PATH\DT_FILE_TMP\DT_FILE\files
+  username: [ ADMIN ID ]
+  password: [ ADMIN PASSWORD ]
+  upload-file-path: ~PATH\DT_FILE\files
   upload-file-url: /resource
   limit-csv-row-count: 10000
-  dt-file-path: ~PATH\DT_FILE_TMP\DT_FILE\files\storage
-  dt-meta-file-path: ~PATH:\DT_FILE_TMP\DT_META_FILE\files\storage
-  dt-etc-meta-file-path: ~PATH:\DT_FILE_TMP\DT_ETC_META_FILE\files\storage
-  dt-api-url: [DT_DATA_API_URL]
-  tmp-sample-data: ~PATH:\DT_FILE_TMP\DT_META_FILE\files\TESTFILE.ext
-  #메타 서버
-  dt-meta-api-url: [DT_META_API_URL:PORT]
-  #동기화 엔진 서버
-  dt-keti-api-url: [DT_KETI_API_URL:PORT]
-  dt-api-key: [DT_DATA_API_KEY]
-  #메타 서버 키
-  dt-n2m-key: [N2M_KEY]
+  dt-file-path: ~PATH\DT_FILE\files\storage
+  dt-meta-file-path: ~PATH\DT_META_FILE\files\storage
+  dt-etc-meta-file-path: ~PATH\DT_ETC_META_FILE\files\storage
+  tmp-sample-data: ~PATH\DT_META_FILE\files\201901_201912유동인구.csv
+  dt-api-url: [ DT API URL ]
+  dt-meta-api-url: [ META API URL ]
+  dt-keti-api-url: [ KETI SYNC ENGINE API URL ]
+  dt-api-key: [ DT API KEY ]
+  dt-meta-key: [ META API KEY ]
   limit-make-model-cnt: 4
+
+logging:
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
+    file: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
+  #    file: "%d %-5level [%thread] %logger : %msg%n"
+  level:
+    root: info
+    jdbc: off
+    jdbc.sqlonly: debug
+    jdbc.sqltiming: off
+    jdbc.resultset: off
+    jdbc.resultsettable: off
+    jdbc.connection: off
+    log4jdbc: off
+    log4jdbc.sql: off
 
 ---
 
 spring:
   profiles: dev
-  output:
-    ansi:
-      enabled: detect
-  http:
-    log-request-details: true
   servlet:
     multipart:
-      location: ~PATH\DT_FILE_TMP\DT_FILE\temp
+      location: ~PATH/dt_file/temp
 
   primary:
     datasource:
-      driver-class-name: org.mariadb.jdbc.Driver
-      jdbc-url: [MARIADB_URL]
-      username: [MARIADB_USER]
-      password: [MARIADB_PASSWORD]
+      driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+      jdbc-url: [ JDBC URL ]
+      username: [ DB USER NAME ]
+      password: [ DB USER PASSWORD ]
   second:
     datasource:
-      driver-class-name: org.mariadb.jdbc.Driver
-      jdbc-url: [MARIADB_URL]
-      username: [MARIADB_USER]
-      password: [MARIADB_PASSWORD]
-
+      driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+      jdbc-url: [ JDBC URL ]
+      username: [ DB USER NAME ]
+      password: [ DB USER PASSWORD ]
 
 server:
   port: [PORT]
 
 system:
-  username: [AUTO LOGIN ADMIN USERNAME]
-  password: [AUTO LOGIN ADMIN PASSWORD]
-  upload-file-path: ~PATH\DT_FILE_TMP\DT_FILE\files
+  username: [ ADMIN ID ]
+  password: [ ADMIN PASSWORD ]
+  upload-file-path: ~PATH\DT_FILE\files
   upload-file-url: /resource
   limit-csv-row-count: 10000
-  dt-file-path: ~PATH\DT_FILE_TMP\DT_FILE\files\storage
-  dt-meta-file-path: ~PATH:\DT_FILE_TMP\DT_META_FILE\files\storage
-  dt-etc-meta-file-path: ~PATH:\DT_FILE_TMP\DT_ETC_META_FILE\files\storage
-  dt-api-url: [DT_DATA_API_URL]
-  tmp-sample-data: ~PATH:\DT_FILE_TMP\DT_META_FILE\files\TESTFILE.ext
-  #메타 서버
-  dt-meta-api-url: [DT_META_API_URL:PORT]
-  #동기화 엔진 서버
-  dt-keti-api-url: [DT_KETI_API_URL:PORT]
-  dt-api-key: [DT_DATA_API_KEY]
-  #메타 서버 키
-  dt-n2m-key: [N2M_KEY]
+  dt-file-path: ~PATH\DT_FILE\files\storage
+  dt-meta-file-path: ~PATH\DT_META_FILE\files\storage
+  dt-etc-meta-file-path: ~PATH\DT_ETC_META_FILE\files\storage
+  tmp-sample-data: ~PATH\DT_META_FILE\files\201901_201912유동인구.csv
+  dt-api-url: [ DT API URL ]
+  dt-meta-api-url: [ META API URL ]
+  dt-keti-api-url: [ KETI SYNC ENGINE API URL ]
+  dt-api-key: [ DT API KEY ]
+  dt-meta-key: [ META API KEY ]
   limit-make-model-cnt: 4
-  
+
 logging:
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
     file: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
-#    file: "%d %-5level [%thread] %logger : %msg%n" 
+  #    file: "%d %-5level [%thread] %logger : %msg%n"
   level:
     root: info
     jdbc: off
@@ -223,57 +218,48 @@ logging:
 
 spring:
   profiles: prod
-  output:
-    ansi:
-      enabled: detect
-  http:
-    log-request-details: true
   servlet:
     multipart:
-      location: ~PATH\DT_FILE_TMP\DT_FILE\temp
+      location: ~PATH\DT_FILE\temp
 
   primary:
     datasource:
-      driver-class-name: org.mariadb.jdbc.Driver
-      jdbc-url: [MARIADB_URL]
-      username: [MARIADB_USER]
-      password: [MARIADB_PASSWORD]
+      driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+      jdbc-url: [ JDBC URL ]
+      username: [ DB USER NAME ]
+      password: [ DB USER PASSWORD ]
   second:
     datasource:
-      driver-class-name: org.mariadb.jdbc.Driver
-      jdbc-url: [MARIADB_URL]
-      username: [MARIADB_USER]
-      password: [MARIADB_PASSWORD]
-
+      driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+      jdbc-url: [ JDBC URL ]
+      username: [ DB USER NAME ]
+      password: [ DB USER PASSWORD ]
 
 server:
   port: [PORT]
 
 system:
-  username: [AUTO LOGIN ADMIN USERNAME]
-  password: [AUTO LOGIN ADMIN PASSWORD]
-  upload-file-path: ~PATH\DT_FILE_TMP\DT_FILE\files
+  username: [ ADMIN ID ]
+  password: [ ADMIN PASSWORD ]
+  upload-file-path: ~PATH\DT_FILE\files
   upload-file-url: /resource
   limit-csv-row-count: 10000
-  dt-file-path: ~PATH\DT_FILE_TMP\DT_FILE\files\storage
-  dt-meta-file-path: ~PATH:\DT_FILE_TMP\DT_META_FILE\files\storage
-  dt-etc-meta-file-path: ~PATH:\DT_FILE_TMP\DT_ETC_META_FILE\files\storage
-  dt-api-url: [DT_DATA_API_URL]
-  tmp-sample-data: ~PATH:\DT_FILE_TMP\DT_META_FILE\files\TESTFILE.ext
-  #메타 서버
-  dt-meta-api-url: [DT_META_API_URL:PORT]
-  #동기화 엔진 서버
-  dt-keti-api-url: [DT_KETI_API_URL:PORT]
-  dt-api-key: [DT_DATA_API_KEY]
-  #메타 서버 키
-  dt-n2m-key: [N2M_KEY]
+  dt-file-path: ~PATH\DT_FILE\files\storage
+  dt-meta-file-path: ~PATH\DT_META_FILE\files\storage
+  dt-etc-meta-file-path: ~PATH\DT_ETC_META_FILE\files\storage
+  tmp-sample-data: ~PATH\DT_META_FILE\files\201901_201912유동인구.csv
+  dt-api-url: [ DT API URL ]
+  dt-meta-api-url: [ META API URL ]
+  dt-keti-api-url: [ KETI SYNC ENGINE API URL ]
+  dt-api-key: [ DT API KEY ]
+  dt-meta-key: [ META API KEY ]
   limit-make-model-cnt: 4
-  
+
 logging:
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
     file: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
-#    file: "%d %-5level [%thread] %logger : %msg%n" 
+  #    file: "%d %-5level [%thread] %logger : %msg%n"
   level:
     root: info
     jdbc: off

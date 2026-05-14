@@ -7,13 +7,11 @@ import com.stoneitgt.dt.data.platform.admin.config.DatabaseConfig;
 import com.stoneitgt.dt.data.platform.admin.config.WebConfig;
 import com.stoneitgt.dt.data.platform.admin.service.*;
 import com.stoneitgt.dt.data.platform.domain.*;
-import com.stoneitgt.dt.data.platform.enums.TimeUnit;
+import com.stoneitgt.dt.data.platform.domain.model.ModelSettingInfo;
 import com.stoneitgt.dt.data.platform.util.JSONParser;
 import com.stoneitgt.dt.data.platform.util.MetaRelateUtil;
-import com.stoneitgt.dt.data.platform.util.TimeUtil;
 import com.stoneitgt.dt.data.platform.util.file.FileReader;
 import com.stoneitgt.dt.data.platform.util.file.FileUtil;
-import com.stoneitgt.dt.data.platform.util.file.FileWriter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.HashedMap;
 import org.json.JSONArray;
@@ -58,11 +56,11 @@ public class MetaDTSimulationController extends BaseController {
     @Autowired
     private FilesService fileService;
 
-    @Transactional(DatabaseConfig.PRIMARY_TRANSACTION_MANAGER)
+    /*@Transactional(DatabaseConfig.PRIMARY_TRANSACTION_MANAGER)
     @PostMapping(value = "/dt/sch/onetime/simulation")
     @ResponseBody
     public Map<String, Object> metaSimulationFitWindowSizeOnetime(@ModelAttribute DTAugment dtAugment) throws Exception {
-        log.info("metaSimulationFitWindowSizeOnetime -> {}", dtAugment);
+        log.info("증강 및 전처리 모델을 활용한 일회성 시뮬레이션");
         Map<String, Object> result = new HashMap<>();
         DTAugmentLog.DTAugmentLogBuilder errorLogBuilder = DTAugmentLog.builder();
 
@@ -70,27 +68,27 @@ public class MetaDTSimulationController extends BaseController {
         List<String> headers = FileReader.getInstance().readHeaders(dtAugment.getAttachFiles().get(0), 1);
 
         boolean headerCheck = true;
-        String headerStrings = Arrays.toString(headers.toArray(new String[headers.size()]));
-        for (int i = 0; i < dtAugment.getPreprocTrgtCol().size(); i++) {
-            if (!headerStrings.contains(dtAugment.getPreprocTrgtCol().get(i))) {
-                // 필수 열이 하나라도 누락된 경우 오류 처리
-                log.error("CSV 파일에 필수 열이 누락되었습니다. -> 누락된 열 {}", dtAugment.getPreprocTrgtCol().get(i));
+        List<String> targetColumns = dtAugment.getPreprocTrgtCol();
+
+        log.info("데이터 파일의 데이터 컬럼 -> {}", headers);
+        log.info("증강 또는 전처리 모델의 지원 컬럼 -> {}", targetColumns);
+
+        for (String targetColumn : targetColumns) {
+            // headers 리스트에 targetColumn과 '정확히 일치하는' 요소가 있는지 검사
+            if (!headers.contains(targetColumn)) {
+                log.error("CSV 파일에 필수 열이 누락되었습니다. -> 누락된 열: {}", targetColumn);
                 headerCheck = false;
-            } else {
-                result.put("code", GlobalConstant.API_STATUS.SUCCESS);
+                // 누락된 컬럼을 모두 로그에 찍고 싶다면 여기서 break를 하지 않습니다.
+                // 하나라도 누락되면 바로 멈추고 싶다면 break; 를 추가하세요.
             }
         }
 
-        //json형태로 변환
+        // 파일의 컬럼들이 증강 또는 전처리 모델에서 설정한 컬럼들과 일치하지 존재하지 않을 때
         if (!headerCheck) {
-            Exception e = new Exception("모델에 사용하는 헤더와 일치하지 않습니다.");
-            e.printStackTrace();
             result.put("code", GlobalConstant.API_STATUS.FAIL_MAPPING);
-            result.put("message", e.getMessage());
+            result.put("message", "모델에 사용하는 헤더와 일치하지 않습니다.");
             return result;
         }
-
-        //공동 변수 구역
 
         // 날짜 범위 설정
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy/MM");
@@ -116,10 +114,10 @@ public class MetaDTSimulationController extends BaseController {
             dtSimulationService.getSimulationSaveAugmentOnetime(dtAugment);
             errorLogBuilder.augmentSeq(dtAugment.getAugmentSeq()).modelSeq(dtAugment.getModelSeq());
 
-            /**
-             * 2025-03-14
-             * 증강 생성시 데이터 증강 도구에 이력 남기기
-             * */
+            *//**
+     * 2025-03-14
+     * 증강 생성시 데이터 증강 도구에 이력 남기기
+     * *//*
             ModelReferenceLog modelReferenceLog = new ModelReferenceLog();
             modelReferenceLog.setRefSimulationSeq(dtAugment.getAugmentSeq());
             modelReferenceLog.setModelSeq(dtAugment.getModelSeq());
@@ -317,7 +315,6 @@ public class MetaDTSimulationController extends BaseController {
 
             try (java.io.FileWriter fileWriter = new java.io.FileWriter(originFilePath)) {
                 fileWriter.write(originJsonArray.toString());
-                log.info("JSON 저장 완료 -> {}", originFilePath);
                 Files originFiles = new Files();
                 File originFile = new File(originFilePath);
                 originFiles.setAugmentFileSeq(augmentFileSeq);
@@ -361,10 +358,13 @@ public class MetaDTSimulationController extends BaseController {
             dtSimulationService.getSimulationSaveAugmentOnetime(dtAugment);
             errorLogBuilder.augmentSeq(dtAugment.getAugmentSeq()).modelSeq(dtAugment.getModelSeq());
 
-            /**
-             * 2025-03-14
-             * 증강 생성시 데이터 증강 도구에 이력 남기기
-             * */
+            */
+
+    /**
+     * 2025-03-14
+     * 증강 생성시 데이터 증강 도구에 이력 남기기
+     *
+     *//*
             ModelReferenceLog modelReferenceLog = new ModelReferenceLog();
             modelReferenceLog.setRefSimulationSeq(dtAugment.getAugmentSeq());
             modelReferenceLog.setModelSeq(dtAugment.getModelSeq());
@@ -456,7 +456,250 @@ public class MetaDTSimulationController extends BaseController {
 
             try (java.io.FileWriter fileWriter = new java.io.FileWriter(originFilePath)) {
                 fileWriter.write(originJsonArray.toString());
-                log.info("JSON 저장 완료 -> {}", originFilePath);
+                Files originFiles = new Files();
+                File originFile = new File(originFilePath);
+                originFiles.setAugmentFileSeq(preprocessFileSeq);
+                originFiles.setFileNm(originFile.getName());
+                originFiles.setStrgFileNm(originFile.getName());
+                originFiles.setFilePath(base_dir);
+                originFiles.setFileSz(originFile.length());
+                originFiles.setFileExtn(FileUtil.getFileExtension(originFile.getName()));
+                originFiles.setRefTp(GlobalConstant.FILE_REF_TYPE.ORIGIN.toUpperCase());
+                originFiles.setRefSeq(dtAugment.getAugmentSeq());
+                Path saveLastFile = Paths.get(originFilePath);
+                originFiles.setFileContsTp(java.nio.file.Files.probeContentType(saveLastFile));
+                handleCreateMetaAugmentVisualFile(originFiles);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            // 증강된 JSON 데이터 파일 저장
+            Files dataFiles = (Files) preProcessResult.get("dataFiles");
+            handleCreateMetaAugmentVisualFile(dataFiles);
+
+            // Validation된 JSON 데이터 파일 저장
+            Files validationFiles = (Files) preProcessResult.get("validationFiles");
+            handleCreateMetaAugmentVisualFile(validationFiles);
+
+            // Outlier된 JSON 데이터 파일 저장
+            Files outlierFiles = (Files) preProcessResult.get("outlierFiles");
+            handleCreateMetaAugmentVisualFile(outlierFiles);
+
+            ArrayList<Files> fileses = fileService.getAugmentVisualFilesByAugmentFileSeq(preprocessFileSeq);
+
+            result.put("code", GlobalConstant.API_STATUS.SUCCESS);
+        }
+        return result;
+    }*/
+    @Transactional(DatabaseConfig.PRIMARY_TRANSACTION_MANAGER)
+    @PostMapping(value = "/dt/sch/onetime/simulation")
+    @ResponseBody
+    public Map<String, Object> metaSimulationFitWindowSizeOnetime(@ModelAttribute DTAugment dtAugment) throws Exception {
+        log.info("증강 및 전처리 모델을 활용한 일회성 시뮬레이션");
+        Map<String, Object> result = new HashMap<>();
+        DTAugmentLog.DTAugmentLogBuilder errorLogBuilder = DTAugmentLog.builder();
+
+        List<Map<String, Object>> data = FileReader.getInstance().readCSVToListObjectMap(dtAugment.getAttachFiles().get(0));
+        List<String> headers = FileReader.getInstance().readHeaders(dtAugment.getAttachFiles().get(0), 1);
+
+        boolean headerCheck = true;
+        List<String> targetColumns = dtAugment.getPreprocTrgtCol();
+
+        log.info("데이터 파일의 데이터 컬럼 -> {}", headers);
+        log.info("증강 또는 전처리 모델의 지원 컬럼 -> {}", targetColumns);
+
+        for (String targetColumn : targetColumns) {
+            // headers 리스트에 targetColumn과 '정확히 일치하는' 요소가 있는지 검사
+            if (!headers.contains(targetColumn)) {
+                log.error("CSV 파일에 필수 열이 누락되었습니다. -> 누락된 열: {}", targetColumn);
+                headerCheck = false;
+                // 누락된 컬럼을 모두 로그에 찍고 싶다면 여기서 break를 하지 않습니다.
+                // 하나라도 누락되면 바로 멈추고 싶다면 break; 를 추가하세요.
+            }
+        }
+
+        // 파일의 컬럼들이 증강 또는 전처리 모델에서 설정한 컬럼들과 일치하지 존재하지 않을 때
+        if (!headerCheck) {
+            result.put("code", GlobalConstant.API_STATUS.FAIL_MAPPING);
+            result.put("message", "모델에 사용하는 헤더와 일치하지 않습니다.");
+            return result;
+        }
+
+        // 날짜 범위 설정
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy/MM");
+        Calendar calendar = Calendar.getInstance();
+
+        Map<String, Object> targetModel = makeMetaSimulationSchedulerService.getTargetModel(dtAugment.getModelSeq());
+        String from_date = dtAugment.getCycleBgngDsgnYmd();
+        String to_date = dtAugment.getCycleEndDsgnYmd();
+        ModelSettingInfo modelSettingInfo = new ModelSettingInfo(null, null,
+                targetModel.get("user_pprcs_full_stng_value").toString(),
+                targetModel.get("index_trgt_col").toString());
+        modelSettingInfo.setModelJsonProperty(jsonPropertyService.propertyParsingToObject(modelSettingInfo.getUserPprcsFullStngValue()));
+        dtAugment.setRegUserSeq(authenticationFacade.getLoginUserSeq());
+        dtAugment.setRegIp(authenticationFacade.getLoginUserIp());
+        dtSimulationService.getSimulationSaveAugmentOnetime(dtAugment);
+        errorLogBuilder.augmentSeq(dtAugment.getAugmentSeq()).modelSeq(dtAugment.getModelSeq());
+
+        //증강 및 전처리 생성시 데이터 증강 도구에 이력 남기기
+        ModelReferenceLog modelReferenceLog = new ModelReferenceLog();
+        modelReferenceLog.setRefSimulationSeq(dtAugment.getAugmentSeq());
+        modelReferenceLog.setModelSeq(dtAugment.getModelSeq());
+        modelReferenceLog.setRegUserSeq(authenticationFacade.getLoginUserSeq());
+        modelReferenceLog.setRegIp(authenticationFacade.getLoginUserIp());
+        logService.insertDtModelReferenceLog(modelReferenceLog);
+        data = JSONParser.isDuplicateDataByKey(data, modelSettingInfo.getIndexTrgtCol()) == true ? JSONParser.removeDuplicateDataByKey(data, modelSettingInfo.getIndexTrgtCol()) : data;
+
+        // 파일 경로 및 이름 설정
+        String currentYearMonthDir = simpleDateFormat.format(calendar.getTime());
+        String base_dir = "/augment/" + currentYearMonthDir + "/" + dtAugment.getAugmentSeq();
+        String file_path = systemProperties.getDtMetaFilePath().replace("\\", "/") + base_dir;
+
+        // 전처리에서 사용될 최소 데이터 개수
+        int preprocessLimitCount = 300;
+
+        //csv 파일 생성
+        String file_name = WebConfig.getSessionInfo().getUserId() + "_origin" + "_" + MetaRelateUtil.generateFileNameTime("H") + ".csv";
+
+        // CSV 파일 생성
+        Map<String, Object> param = new HashMap<>();
+        param.put("data", data);
+        param.put("file_path", file_path);
+        param.put("file_name", file_name);
+        param.put("index_trgt_col", modelSettingInfo.getIndexTrgtCol());
+        ResponseEntity<?> resultSimulationOriginFileSet = dtModelApiService.makeBaseSimulationDataFile(param);
+        int statusCode = resultSimulationOriginFileSet.getStatusCodeValue();
+        if (statusCode != 200) {
+            Exception e = new Exception("The connection to the Python server was lost.");
+            e.printStackTrace();
+            errorLogBuilder.augmentStatus("E").errTp("P")
+                    .errCd(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()))
+                    .errNm(HttpStatus.INTERNAL_SERVER_ERROR.name())
+                    .errCn(e.getMessage() != null ? e.getMessage() : e.getStackTrace().toString())
+                    .dataCrtLastHr(from_date);
+            handleSimulationProcessError(errorLogBuilder);
+            result.put("code", GlobalConstant.API_STATUS.FAIL);
+            result.put("message", e.getMessage());
+        }
+
+        JsonNode rootNode = new ObjectMapper().readTree(resultSimulationOriginFileSet.getBody().toString());
+        int dataCount = dtSimulationService.simulationDataCount(rootNode.path("data").path("data"));
+        log.info("생성된 시뮬레이션 원본 파일의 데이터 개수 -> {}", dataCount);
+
+        //데이터가 부족하지 않을 시 작업 진행
+        //생성된 파일의 시계열 컬럼 데이터 중복 체크
+        if (dataCount < preprocessLimitCount) {
+            //데이터 200개 미만일시 이상치에서 문제가 생길 수 도있음
+            Exception e = new Exception("데이터가 부족합니다.");
+            e.printStackTrace();
+            errorLogBuilder.augmentStatus("E").errTp("P").errCd(String.valueOf(HttpStatus.PRECONDITION_REQUIRED.value())).errNm(HttpStatus.PRECONDITION_REQUIRED.name())
+                    .errCn(e.getMessage() != null ? e.getMessage() : e.getStackTrace().toString()).dataCrtLastHr(from_date);
+            handleSimulationProcessError(errorLogBuilder);
+            result.put("code", GlobalConstant.API_STATUS.FAIL);
+            result.put("message", e.getMessage());
+            return result;
+        }
+
+        // 증강
+        if (Objects.equals("A", dtAugment.getSimTp())) {
+            HashMap<String, Object> preProcessResult = dtSimulationService.twinSimulateFileData(modelSettingInfo.getModelJsonProperty(), base_dir, file_path, file_name, dtAugment.getIndexTrgtCol(), WebConfig.getSessionInfo().getUserId(), dtAugment.getModelSeq(), dtAugment.getAugmentSeq(), from_date, to_date, from_date);
+            if (!Boolean.parseBoolean(preProcessResult.get("status").toString())) {
+                if (preProcessResult.get("isSizeAvailable") != null && Boolean.parseBoolean(preProcessResult.get("isSizeAvailable").toString())) {
+                    errorLogBuilder.augmentStatus("E").errTp("P").errCd(String.valueOf(HttpStatus.PRECONDITION_REQUIRED.value())).errNm(HttpStatus.PRECONDITION_REQUIRED.name())
+                            .errCn("데이터가 부족합니다.").dataCrtLastHr(from_date);
+                    handleSimulationProcessError(errorLogBuilder);
+                } else if (preProcessResult.get("code") != null && preProcessResult.get("message") != null && preProcessResult.get("detail") != null) {
+                    Exception e = new Exception(preProcessResult.get("message").toString());
+                    e.printStackTrace();
+                    errorLogBuilder.augmentStatus("E").errTp("P").errCd(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value())).errNm(HttpStatus.INTERNAL_SERVER_ERROR.name())
+                            .errCn(e.getMessage() != null ? e.getMessage() : e.getStackTrace().toString()).dataCrtLastHr(from_date);
+                    handleSimulationProcessError(errorLogBuilder);
+                } else {
+                    //여기로 들어온건 에러 처리가 된 부분 전처리 에러시 들어온다. 데이터 시작점만 원상복구
+                    Map<String, Object> logParams = new HashMap<String, Object>();
+                    logParams.put("augment_seq", dtAugment.getAugmentSeq());
+                    logParams.put("data_crt_last_hr", from_date);
+                    makeMetaSimulationSchedulerService.updateAugmentMain(logParams);
+                }
+                result.put("code", GlobalConstant.API_STATUS.FAIL);
+                return result;
+            }
+
+            int augmentFileSeq = (int) preProcessResult.get("augmentFileSeq");
+
+            // 원본 JSON 데이터 파일 생성 및 DB 저장
+            LocalDateTime now = LocalDateTime.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            String notification_time = now.format(formatter);
+            List<Map<String, Object>> originCsvData = FileReader.getInstance().readCSVToListObjectMap(file_path + File.separator + file_name);
+            String jsonFileName = notification_time.replaceAll("[ :]", "") + "_origin.json";
+            JSONArray originJsonArray = JSONParser.convertListMapToJson(originCsvData);
+            String originFilePath = file_path + File.separator + jsonFileName;
+
+            try (java.io.FileWriter fileWriter = new java.io.FileWriter(originFilePath)) {
+                fileWriter.write(originJsonArray.toString());
+                Files originFiles = new Files();
+                File originFile = new File(originFilePath);
+                originFiles.setAugmentFileSeq(augmentFileSeq);
+                originFiles.setFileNm(originFile.getName());
+                originFiles.setStrgFileNm(originFile.getName());
+                originFiles.setFilePath(base_dir);
+                originFiles.setFileSz(originFile.length());
+                originFiles.setFileExtn(FileUtil.getFileExtension(originFile.getName()));
+                originFiles.setRefTp(GlobalConstant.FILE_REF_TYPE.ORIGIN.toUpperCase());
+                originFiles.setRefSeq(dtAugment.getAugmentSeq());
+                Path saveLastFile = Paths.get(originFilePath);
+                originFiles.setFileContsTp(java.nio.file.Files.probeContentType(saveLastFile));
+                handleCreateMetaAugmentVisualFile(originFiles);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            // 증강된 JSON 데이터 파일 저장
+            Files dataFiles = (Files) preProcessResult.get("dataFiles");
+            handleCreateMetaAugmentVisualFile(dataFiles);
+
+            // Validation된 JSON 데이터 파일 저장
+            Files validationFiles = (Files) preProcessResult.get("validationFiles");
+            handleCreateMetaAugmentVisualFile(validationFiles);
+
+            // Outlier된 JSON 데이터 파일 저장
+            Files outlierFiles = (Files) preProcessResult.get("outlierFiles");
+            handleCreateMetaAugmentVisualFile(outlierFiles);
+
+            ArrayList<Files> fileses = fileService.getAugmentVisualFilesByAugmentFileSeq(augmentFileSeq);
+            result.put("code", GlobalConstant.API_STATUS.SUCCESS);
+        }
+        // 전처리
+        else {
+            HashMap<String, Object> preProcessResult = dtSimulationService.twinPreprocessFileData(modelSettingInfo.getModelJsonProperty(), base_dir, file_path, file_name, modelSettingInfo.getIndexTrgtCol(), WebConfig.getSessionInfo().getUserId(), dtAugment.getModelSeq(), dtAugment.getAugmentSeq(), from_date, to_date, from_date);
+            if (!Boolean.parseBoolean(preProcessResult.get("status").toString())) {
+                if (preProcessResult.get("isSizeAvailable") != null && !Boolean.parseBoolean(preProcessResult.get("isSizeAvailable").toString())) {
+                    errorLogBuilder.augmentStatus("E").errTp("P").errCd(String.valueOf(HttpStatus.PRECONDITION_REQUIRED.value())).errNm(HttpStatus.PRECONDITION_REQUIRED.name())
+                            .errCn("데이터가 부족합니다.").dataCrtLastHr(from_date);
+                    handleSimulationProcessError(errorLogBuilder);
+                } else {
+                    //여기로 들어온건 에러 처리가 된 부분 전처리 에러시 들어온다. 데이터 시작점만 원상복구
+                    Map<String, Object> logParams = new HashMap<String, Object>();
+                    logParams.put("augment_seq", dtAugment.getAugmentSeq());
+                    logParams.put("data_crt_last_hr", from_date);
+                    makeMetaSimulationSchedulerService.updateAugmentMain(logParams);
+                }
+                result.put("code", GlobalConstant.API_STATUS.FAIL);
+                return result;
+            }
+            int preprocessFileSeq = (int) preProcessResult.get("preprocessFileSeq");
+
+            LocalDateTime now = LocalDateTime.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            String notification_time = now.format(formatter);
+            List<Map<String, Object>> originCsvData = FileReader.getInstance().readCSVToListObjectMap(file_path + File.separator + file_name);
+            String jsonFileName = notification_time.replaceAll("[ :]", "") + "_origin.json";
+            JSONArray originJsonArray = JSONParser.convertListMapToJson(originCsvData);
+            String originFilePath = file_path + File.separator + jsonFileName;
+
+            try (java.io.FileWriter fileWriter = new java.io.FileWriter(originFilePath)) {
+                fileWriter.write(originJsonArray.toString());
                 Files originFiles = new Files();
                 File originFile = new File(originFilePath);
                 originFiles.setAugmentFileSeq(preprocessFileSeq);
@@ -493,7 +736,7 @@ public class MetaDTSimulationController extends BaseController {
         return result;
     }
 
-    @Transactional(DatabaseConfig.PRIMARY_TRANSACTION_MANAGER)
+    /*@Transactional(DatabaseConfig.PRIMARY_TRANSACTION_MANAGER)
     @PostMapping(value = "/dt/sch/predict/simulation")
     @ResponseBody
     public Map<String, Object> metaSimulationPredict(@RequestBody Map<String, Object> param) throws Exception {
@@ -528,13 +771,13 @@ public class MetaDTSimulationController extends BaseController {
 
         ObjectMapper objectMapper = new ObjectMapper();
 
-        /**
+        *//**
          * 2024-07-10
          * 증강 모델 생성시 디지털 트윈 객체 생성 관련 로직 수정 및 추가
          *
          * 증강 모델 생성 SEQ 가져와서 바로 Select 차후 로직 실행
          * @author kimwoosik
-         * */
+         * *//*
         log.info("metaSimulationPredict End param -> {}", param);
         int augmentSeq = dtSimulationService.getSimulationPredictSaveAugment(param);
 
@@ -543,10 +786,10 @@ public class MetaDTSimulationController extends BaseController {
         log.info("augmentSeq -> {}", augmentSeq);
         log.info("Prediction 로직 시작");
 
-        /**
+        *//**
          * 2025-03-14
          * 증강 생성시 데이터 증강 도구에 이력 남기기
-         * */
+         * *//*
         ModelReferenceLog modelReferenceLog = new ModelReferenceLog();
         modelReferenceLog.setRefSimulationSeq(augmentSeq);
         modelReferenceLog.setModelSeq(modelSeq);
@@ -730,26 +973,191 @@ public class MetaDTSimulationController extends BaseController {
         }
         result.put("code", GlobalConstant.API_STATUS.SUCCESS);
         return result;
+    }*/
+
+
+    @Transactional(DatabaseConfig.PRIMARY_TRANSACTION_MANAGER)
+    @PostMapping(value = "/dt/sch/predict/simulation")
+    @ResponseBody
+    public Map<String, Object> metaSimulationPredict(@RequestBody Map<String, Object> param) throws Exception {
+        log.info("증강 모델을 활용한 추론 (데이터 파일로 모델 생성 -> 데이터 파일로 증강) -> {}", param);
+        Map<String, Object> result = new HashMap<>();
+        DTAugmentLog.DTAugmentLogBuilder errorLogBuilder = DTAugmentLog.builder();
+
+        String from_date = param.get("cycle_bgng_dsgn_ymd") != null ? param.get("cycle_bgng_dsgn_ymd").toString() : null;
+        String to_date = param.get("cycle_end_dsgn_ymd") != null ? param.get("cycle_end_dsgn_ymd").toString() : null;
+
+        if (from_date == null || to_date == null) {
+            Exception e = new Exception("날짜 범위가 올바르지 않습니다.");
+            e.printStackTrace();
+            errorLogBuilder.augmentStatus("E").errTp("P").errCd(String.valueOf(HttpStatus.BAD_REQUEST.value())).errNm(HttpStatus.BAD_REQUEST.name())
+                    .errCn(e.getMessage() != null ? e.getMessage() : e.getStackTrace().toString()).dataCrtLastHr(from_date);
+            handleSimulationProcessError(errorLogBuilder);
+            result.put("code", GlobalConstant.API_STATUS.FAIL);
+            result.put("message", e.getMessage());
+            return result;
+        }
+
+        int modelSeq = Integer.parseInt(param.get("model_seq").toString());
+
+        Map<String, Object> targetModel = makeMetaSimulationSchedulerService.getTargetModel(modelSeq);
+        ModelSettingInfo modelSettingInfo = new ModelSettingInfo(null, null,
+                targetModel.get("user_pprcs_full_stng_value").toString(),
+                targetModel.get("index_trgt_col").toString());
+        modelSettingInfo.setModelJsonProperty(jsonPropertyService.propertyParsingToObject(modelSettingInfo.getUserPprcsFullStngValue()));
+
+        // 추론 저장
+        param.put("user_seq", authenticationFacade.getLoginUserSeq());
+        param.put("user_ip", authenticationFacade.getLoginUserIp());
+        int augmentSeq = dtSimulationService.getSimulationPredictSaveAugment(param);
+        errorLogBuilder.augmentSeq(augmentSeq).modelSeq(modelSeq);
+
+        // 날짜 범위 설정
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy/MM");
+        Calendar calendar = Calendar.getInstance();
+
+        //추론 생성시 데이터 증강 도구에 이력 남기기
+        ModelReferenceLog modelReferenceLog = new ModelReferenceLog();
+        modelReferenceLog.setRefSimulationSeq(augmentSeq);
+        modelReferenceLog.setModelSeq(modelSeq);
+        modelReferenceLog.setRegUserSeq(authenticationFacade.getLoginUserSeq());
+        modelReferenceLog.setRegIp(authenticationFacade.getLoginUserIp());
+        logService.insertDtModelReferenceLog(modelReferenceLog);
+
+        // 파일 경로 및 이름 설정
+        String currentYearMonthDir = simpleDateFormat.format(calendar.getTime());
+        String base_dir = "/augment/" + currentYearMonthDir + "/" + augmentSeq;
+        String file_path = systemProperties.getDtMetaFilePath().replace("\\", "/") + base_dir;
+        String user_id = WebConfig.getSessionInfo().getUserId();
+        String file_name = user_id + "_origin" + "_" + MetaRelateUtil.generateFileNameTime("H") + ".csv";
+
+        // 전처리에서 사용될 최소 데이터 개수
+        int preprocessLimitCount = 300;
+
+        // 파일 가져오기
+        String dataFilePath = systemProperties.getDtMetaFilePath().replace("\\", "/") + targetModel.get("file_path").toString();
+        String dataFileName = targetModel.get("file_nm").toString();
+        List<Map<String, Object>> data = FileReader.getInstance().readCSVToListObjectMap(dataFilePath + dataFileName);
+
+        // 데이터 중복 제거 (시간 중복 제거 Millis 단위까지)
+        log.info("데이터 중복 제거 전 데이터 개수 -> {}", data.size());
+        data = JSONParser.isDuplicateDataByKey(data, modelSettingInfo.getIndexTrgtCol()) == true ? JSONParser.removeDuplicateDataByKey(data, modelSettingInfo.getIndexTrgtCol()) : data;
+        log.info("데이터 중복 제거 후 데이터 개수 -> {}", data.size());
+
+        Map<String, Object> originParam = new HashedMap<>();
+        originParam.put("index_trgt_col", modelSettingInfo.getIndexTrgtCol());
+        originParam.put("data", data);
+        originParam.put("file_path", file_path);
+        originParam.put("file_name", file_name);
+
+        ResponseEntity<?> resultSimulationOriginFileSet = dtModelApiService.makeBaseSimulationDataFile(originParam);
+        int statusCode = resultSimulationOriginFileSet.getStatusCodeValue();
+        if (statusCode != 200) {
+            Exception e = new Exception("The connection to the Python server was lost.");
+            e.printStackTrace();
+            errorLogBuilder.augmentStatus("E").errTp("P").errCd(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value())).errNm(HttpStatus.INTERNAL_SERVER_ERROR.name())
+                    .errCn(e.getMessage() != null ? e.getMessage() : e.getStackTrace().toString()).dataCrtLastHr(from_date);
+            handleSimulationProcessError(errorLogBuilder);
+            result.put("code", GlobalConstant.API_STATUS.FAIL);
+            return result;
+        }
+
+        JsonNode rootNode = new ObjectMapper().readTree(resultSimulationOriginFileSet.getBody().toString());
+        int dataCount = dtSimulationService.simulationDataCount(rootNode.path("data").path("data"));
+        log.info("생성된 시뮬레이션 원본 파일의 데이터 개수 -> {}", dataCount);
+
+        //데이터가 부족하지 않을 시 작업 진행
+        //생성된 파일의 시계열 컬럼 데이터 중복 체크
+        if (dataCount < preprocessLimitCount) {
+            //데이터 200개 미만일시 이상치에서 문제가 생길 수 도있음
+            Exception e = new Exception("데이터가 부족합니다.");
+            e.printStackTrace();
+            errorLogBuilder.augmentStatus("E").errTp("P").errCd(String.valueOf(HttpStatus.PRECONDITION_REQUIRED.value())).errNm(HttpStatus.PRECONDITION_REQUIRED.name())
+                    .errCn(e.getMessage() != null ? e.getMessage() : e.getStackTrace().toString()).dataCrtLastHr(from_date);
+            handleSimulationProcessError(errorLogBuilder);
+            result.put("code", GlobalConstant.API_STATUS.FAIL);
+            result.put("message", e.getMessage());
+            return result;
+        }
+
+        HashMap<String, Object> preProcessResult = dtSimulationService.twinSimulatePredict(modelSettingInfo.getModelJsonProperty(),
+                base_dir, file_path, file_name,
+                modelSettingInfo.getIndexTrgtCol(), user_id,
+                modelSeq, augmentSeq,
+                from_date, to_date, from_date);
+        if (!Boolean.parseBoolean(preProcessResult.get("status").toString())) {
+            if (preProcessResult.get("isSizeAvailable") != null && !Boolean.parseBoolean(preProcessResult.get("isSizeAvailable").toString())) {
+                errorLogBuilder.augmentStatus("E").errTp("P").errCd(String.valueOf(HttpStatus.PRECONDITION_REQUIRED.value())).errNm(HttpStatus.PRECONDITION_REQUIRED.name())
+                        .errCn("데이터가 부족합니다.").dataCrtLastHr(from_date);
+                handleSimulationProcessError(errorLogBuilder);
+            } else if (preProcessResult.get("code") != null && preProcessResult.get("message") != null && preProcessResult.get("detail") != null) {
+                Exception e = new Exception(preProcessResult.get("message").toString());
+                e.printStackTrace();
+                errorLogBuilder.augmentStatus("E").errTp("P").errCd(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value())).errNm(HttpStatus.INTERNAL_SERVER_ERROR.name())
+                        .errCn(e.getMessage() != null ? e.getMessage() : e.getStackTrace().toString()).dataCrtLastHr(from_date);
+                handleSimulationProcessError(errorLogBuilder);
+            } else {
+                //여기로 들어온건 에러 처리가 된 부분 전처리 에러시 들어온다. 데이터 시작점만 원상복구
+                Map<String, Object> logParams = new HashMap<String, Object>();
+                logParams.put("augment_seq", augmentSeq);
+                logParams.put("data_crt_last_hr", from_date);
+                makeMetaSimulationSchedulerService.updateAugmentMain(logParams);
+            }
+            result.put("code", GlobalConstant.API_STATUS.FAIL);
+            return result;
+        }
+
+        int augmentFileSeq = (int) preProcessResult.get("augmentFileSeq");
+
+        // 원본 JSON 데이터 파일 생성 및 DB 저장
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        String notification_time = now.format(formatter);
+        List<Map<String, Object>> originCsvData = FileReader.getInstance().readCSVToListObjectMap(file_path + File.separator + file_name);
+        String jsonFileName = notification_time.replaceAll("[ :]", "") + "_origin.json";
+        JSONArray originJsonArray = JSONParser.convertListMapToJson(originCsvData);
+        String originFilePath = file_path + File.separator + jsonFileName;
+
+        try (java.io.FileWriter fileWriter = new java.io.FileWriter(originFilePath)) {
+            fileWriter.write(originJsonArray.toString());
+            Files originFiles = new Files();
+            File originFile = new File(originFilePath);
+            originFiles.setAugmentFileSeq(augmentFileSeq);
+            originFiles.setFileNm(originFile.getName());
+            originFiles.setStrgFileNm(originFile.getName());
+            originFiles.setFilePath(base_dir);
+            originFiles.setFileSz(originFile.length());
+            originFiles.setFileExtn(FileUtil.getFileExtension(originFile.getName()));
+            originFiles.setRefTp(GlobalConstant.FILE_REF_TYPE.ORIGIN.toUpperCase());
+            originFiles.setRefSeq(augmentSeq);
+            Path saveLastFile = Paths.get(originFilePath);
+            originFiles.setFileContsTp(java.nio.file.Files.probeContentType(saveLastFile));
+            handleCreateMetaAugmentVisualFile(originFiles);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // 증강된 JSON 데이터 파일 저장
+        Files dataFiles = (Files) preProcessResult.get("dataFiles");
+        handleCreateMetaAugmentVisualFile(dataFiles);
+
+        // Validation된 JSON 데이터 파일 저장
+        Files validationFiles = (Files) preProcessResult.get("validationFiles");
+        handleCreateMetaAugmentVisualFile(validationFiles);
+
+        // Outlier된 JSON 데이터 파일 저장
+        Files outlierFiles = (Files) preProcessResult.get("outlierFiles");
+        handleCreateMetaAugmentVisualFile(outlierFiles);
+
+        ArrayList<Files> fileses = fileService.getAugmentVisualFilesByAugmentFileSeq(augmentFileSeq);
+        result.put("code", GlobalConstant.API_STATUS.SUCCESS);
+        return result;
     }
 
     // 에러 처리 메소드
     private void handleSimulationProcessError(DTAugmentLog.DTAugmentLogBuilder builder) {
         DTAugmentLog logEntry = builder.build();
         makeMetaSimulationSchedulerService.saveAugmentLog(logEntry);
-    }
-
-    // DecisionTree 를 사용했는지 그리고 LABEL 이란 속성이 있는지 확인 (테스트 코드 및 조건부 테스트)
-    private boolean checkDecisionTreeUses(DTModelJsonProperty property) {
-        List<DTModelJsonPropertySubSet> dtModelJsonPropertySubSets = property.getPreproc_property_info().get(0).getPreproc_property().get(2).getPreproc_set();
-        boolean isDecisionTreeModel = false;
-        String feature = null;
-        for (DTModelJsonPropertySubSet dtModelJsonPropertySubSet : dtModelJsonPropertySubSets) {
-            if (dtModelJsonPropertySubSet.getInterpl_tp() != null && Objects.equals(dtModelJsonPropertySubSet.getInterpl_tp(), "decisiontree")) {
-                isDecisionTreeModel = true;
-                feature = dtModelJsonPropertySubSet.getInterpl_feature();
-            }
-        }
-        return isDecisionTreeModel && Objects.equals(feature, "LABEL");
     }
 
     // Interval Conversion Option 사용 여부 확인

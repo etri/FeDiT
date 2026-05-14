@@ -106,5 +106,7 @@ public class DTAugment {
     
     private String indexTrgtCol;
     private int dataMaxLimitCnt;
-    
+
+    private String twinObjId;
+    private String twinId;
 }
