@@ -6,7 +6,7 @@ import sys
 
 # 기본 클라우드 접속 주소 (서버 IP로 변경 가능)
 CLOUD_ZENOH_IP = "127.0.0.1" 
-CLOUD_ZENOH_PORT = 20525
+CLOUD_ZENOH_PORT = 10050
 
 def echo_handler(sample):
     recv_time = time.time()
