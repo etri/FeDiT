@@ -5,9 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stoneitgt.dt.data.platform.admin.component.MetaDTEtcModelScheduler;
 import com.stoneitgt.dt.data.platform.admin.component.MetaDTModelScheduler;
 import com.stoneitgt.dt.data.platform.admin.component.MetaDTSimulationScheduler;
-import com.stoneitgt.dt.data.platform.admin.service.MakeMetaEtcModelSchedulerService;
-import com.stoneitgt.dt.data.platform.admin.service.MakeMetaModelSchedulerService;
-import com.stoneitgt.dt.data.platform.admin.service.MakeMetaSimulationSchedulerService;
+import com.stoneitgt.dt.data.platform.admin.service.*;
+import com.stoneitgt.dt.data.platform.domain.meta.DigitalTwinMetadata;
+import com.stoneitgt.dt.data.platform.domain.meta.PaginatedDigitalTwinMetadata;
 import com.stoneitgt.dt.data.platform.enums.TimeUnit;
 import com.stoneitgt.dt.data.platform.util.TimeUtil;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +17,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,59 @@ public class TaskSchedulerService {
     private final MetaDTEtcModelScheduler metaDTEtcModelScheduler;
     private final MakeMetaSimulationSchedulerService makeMetaSimulationSchedulerService;
     private final MetaDTSimulationScheduler metaDTSimulationScheduler;
+
+    /**
+     * 디지털 트윈 수집기
+     *
+     */
+    private final MetaAPIService metaAPIService;
+    private final DTModelService dtModelService;
+
+    @PostConstruct
+    public void loadTwinCollectorTask() {
+        log.info("LoadTwinCollector Executed");
+        // Twin Collector 작업 로직 구현
+        try {
+            Integer curPage = 1;
+            Integer pageListSize = 5;
+            Integer arrayDataLimit = 200;
+            String objectRefFormat = "object";
+            String dTw_objs_attr = "digitalTwinObjects";
+            String dTw_attr_name = null;
+
+            boolean hasNext = true;
+
+            while (hasNext) {
+                log.info("Fetching page: {}", curPage);
+
+                // 1. API 호출
+                PaginatedDigitalTwinMetadata response = metaAPIService.getDigitalTwins(
+                        curPage, pageListSize, arrayDataLimit, objectRefFormat, dTw_objs_attr, dTw_attr_name
+                );
+
+                if (curPage == 1) {
+                    log.info("loadTwinCollectorTask response -> {}", response.getData());
+                }
+
+                // 2. 데이터 처리 (비즈니스 로직)
+                if (response != null && response.getData() != null && !response.getData().isEmpty()) {
+                    processDigitalTwins(response.getData()); // 아래 별도 메서드로 분리 권장
+                }
+
+                // 3. 종료 조건 체크
+                // 현재 페이지가 전체 페이지 수(totalPage)보다 크거나 같으면 종료
+                if (response == null || curPage >= response.getTotalPage()) {
+                    hasNext = false;
+                    log.info("Finished fetching all pages. Total pages: {}", curPage);
+                } else {
+                    curPage++; // 다음 페이지로 이동
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("Error fetching digital twins", e);
+        }
+    }
 
     /**
      * 데이터 증강 모델 생성에 관한 초기화 로직
@@ -105,8 +159,12 @@ public class TaskSchedulerService {
          * */
         List<Map<String, Object>> selectJobList = makeMetaSimulationSchedulerService.getJobList();
         for (Map<String, Object> job : selectJobList) {
+            if (job.get("augment_crt_bgng") == null) {
+                continue;
+            }
             int augmentSeq = Integer.parseInt(job.get("augment_seq").toString());
             String cycle_tp = job.get("cycle_tp").toString();
+
             //이전 타임 증강 중을 증강 대기 상태로 복구
             makeMetaSimulationSchedulerService.updateAugmentCrtBgng(augmentSeq, null);
             //이전 타임 증강 끝난 시간으로 복구
@@ -199,7 +257,7 @@ public class TaskSchedulerService {
         }
     }
 
-    // @Scheduled(initialDelay = 1000 * 30, fixedDelay = 1000 * 30)
+    @Scheduled(initialDelay = 1000 * 30, fixedDelay = 1000 * 30)
     public void loadAugmentTasks() {
         log.info("LoadAugmentTasks Executed");
         /* 시뮬레이션 로직에서 주기 유형 선택에 따른 시간차 계산
@@ -215,11 +273,12 @@ public class TaskSchedulerService {
          * */
         List<Map<String, Object>> selectJobList = makeMetaSimulationSchedulerService.getJobList();
         for (Map<String, Object> job : selectJobList) {
+            log.info("job -> {}", job);
             //증강 시작 시간
-            String augment_crt_bgng = job.get("augment_crt_bgng") != null ? job.get("augment_crt_bgng").toString() : null;
+            String augment_crt_bgng = job.get("augment_crt_bgng") != null ? ((java.sql.Timestamp) job.get("augment_crt_bgng")).toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null;
 
             //증강 종료 시간
-            String augment_crt_end = job.get("augment_crt_end") != null ? job.get("augment_crt_end").toString() : null;
+            String augment_crt_end = job.get("augment_crt_end") != null ? ((java.sql.Timestamp) job.get("augment_crt_end")).toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null;
 
             //시작이 비어있지 않으면 증강 실행 중
             if (augment_crt_bgng != null) {
@@ -231,9 +290,6 @@ public class TaskSchedulerService {
                 //주기 종류(H, D, W, M)
                 String cycle_tp = job.get("cycle_tp").toString();
                 long durationSeconds = TimeUtil.getPastDuration(augment_crt_end, null);
-                log.info("data_crt_last_hr -> {}", job.get("data_crt_last_hr"));
-                log.info("augment_crt_end -> {}", augment_crt_end);
-                log.info("durationSeconds -> {}", durationSeconds);
                 switch (cycle_tp) {
                     case "T": {
                         // 1분 초과로 차이 나는 경우 로직 실행
@@ -277,10 +333,6 @@ public class TaskSchedulerService {
                         int interval = TimeUnit.getTimeType(job.get("data_crt_intvl_tp").toString());
                         int time = Integer.parseInt(job.get("data_crt_intvl_value").toString());
 
-                        log.info("interval -> {}", interval);
-                        log.info("time -> {}", time);
-                        log.info("interval * time -> {}", interval * time);
-
                         if (durationSeconds > interval * time) {
                             isReady = true;
                         }
@@ -316,7 +368,7 @@ public class TaskSchedulerService {
                     log.info("모델 번호 : {}", job.get("model_seq").toString());
                     log.info("증강 제목 : {}", job.get("title").toString());
                     log.info("증강 시작 시간 -> {}, 증강 종료 시간 -> {}", currentJob.get("augment_crt_bgng"), currentJob.get("augment_crt_end"));
-                    metaDTSimulationScheduler.executeAugment((HashMap<String, Object>) currentJob);
+                    metaDTSimulationScheduler.executeTwinSimulate((HashMap<String, Object>) currentJob);
                     taskResult.put("message", "DATA_AUGMENT 작업 성공 - Job ID: " + currentJob.get("augment_seq") + ", DATA_AUGMENT Name: " + currentJob.get("title")); // 예시: job에서 ID 가져오기
                     log.info("DATA_AUGMENT 작업 결과: {}", taskResult);
                     return new ObjectMapper().writeValueAsString(taskResult);
@@ -326,6 +378,101 @@ public class TaskSchedulerService {
                     log.info("Finally Executed");
                     makeMetaSimulationSchedulerService.updateAugmentCrtBgng(Integer.parseInt(currentJob.get("augment_seq").toString()), null);
                     makeMetaSimulationSchedulerService.updateAugmentCrtEnd(Integer.parseInt(currentJob.get("augment_seq").toString()), TimeUtil.getCurrentDateTime());
+                }
+            });
+        }
+    }
+
+    private void processDigitalTwins(List<DigitalTwinMetadata> dtList) {
+        for (DigitalTwinMetadata dt : dtList) {
+            // DB 저장 혹은 분석 로직 수행
+            if (dt.getDigitalTwinObjects() == null || dt.getDigitalTwinObjects().isEmpty()) {
+                continue;
+            }
+            dt.getDigitalTwinObjects().parallelStream().forEach(dto -> {
+                log.info("Processing Digital Twin Object - DT ID: {}, Name: {}, Object ID: {}, Name: {}",
+                        dt.getDtid(), dt.getName(), dto.getDtoid(), dto.getName());
+                // 경로 추출
+                if (dto.getDigitalTwinObjectData() == null) {
+                    return;
+                }
+                if (dto.getDigitalTwinObjectData().getSchemaInformation() == null) {
+                    return;
+                }
+
+                Map<String, Object> schema = dto.getDigitalTwinObjectData().getSchemaInformation();
+
+                if (schema.get("required") == null) {
+                    log.info("Required field is empty in schema for Object ID: {}", dto.getDtoid());
+                    return;
+                }
+
+                List<String> requiredList = (List<String>) schema.get("required");
+                if (requiredList.isEmpty()) {
+                    log.info("Required field is empty in schema for Object ID: {}", dto.getDtoid());
+                    return;
+                }
+
+                Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+
+                if (schema.get("properties") == null) {
+                    log.info("Properties field is missing in schema for Object ID: {}", dto.getDtoid());
+                    return;
+                }
+
+                String dataPath = null;
+                String dataTimePath = null;
+
+                // 기존 Data Schema 구조에서 Properties에 data가 포함 되어있다면 data 필드의 경로와 rowtime 필드의 경로를 추출
+                String schemaType = metaAPIService.checkSchemaType(schema);
+                if (dt.getDtid().equals("KR-01-O84213-20260001")
+                        && (dto.getDtoid().equals("KR-104111-0021")
+                        || dto.getDtoid().equals("KR-104111-0022")
+                        || dto.getDtoid().equals("KR-104111-0023"))) {
+                    log.info("Processing Digital Twin Object - DT ID: {}, Name: {}, Object ID: {}, Name: {}, schemaType: {}",
+                            dt.getDtid(), dt.getName(), dto.getDtoid(), dto.getName(), metaAPIService.checkSchemaType(schema));
+                }
+                /*if (dt.getDtid().equals("KR-01-O84213-20260002")
+                        && (dto.getDtoid().equals("KR-104111-0024")
+                        || dto.getDtoid().equals("KR-104111-0025")
+                        || dto.getDtoid().equals("KR-104111-0026"))) {
+                    log.info("Processing Digital Twin Object - DT ID: {}, Name: {}, Object ID: {}, Name: {}, schemaType: {}",
+                            dt.getDtid(), dt.getName(), dto.getDtoid(), dto.getName(), metaAPIService.checkSchemaType(schema));
+                }*/
+                if (Objects.equals(schemaType, "DATA")) {
+                    dataPath = "data.{key}";
+                    dataTimePath = "rowtime";
+                } else if (Objects.equals(schemaType, "NGSI_LD")) {
+                    dataPath = "data.{key}.value";
+                    dataTimePath = "rowtime";
+                } else {
+                    log.info("Unknown schema type for Object ID: {}, schemaType: {}", dto.getDtoid(), schemaType);
+                    dataPath = "data.{key}";
+                    dataTimePath = "rowtime";
+                }
+
+                // TB_META_DATA_DEPTH DB 존재 여부 확인
+                Map<String, Object> checkParams = new HashMap<>();
+                checkParams.put("twin_id", dt.getDtid());
+                checkParams.put("twin_obj_id", dto.getDtoid());
+                int count = dtModelService.countMetaDataDepth(checkParams);
+                if (count == 0) {
+                    log.info("Inserting new metadata depth for Twin ID: {}, Object ID: {}", dt.getDtid(), dto.getDtoid());
+                    // TB_META_DATA_DEPTH DB 저장 로직 호출
+                    Map<String, Object> params = new HashMap<>();
+                    params.put("twin_id", dt.getDtid());
+                    params.put("twin_nm", dt.getName());
+                    params.put("twin_obj_id", dto.getDtoid());
+                    params.put("twin_obj_nm", dto.getName());
+
+                    params.put("data_depth_1", dataPath);
+                    params.put("data_depth_2", dataTimePath);
+
+                    params.put("reg_user_seq", 1);
+                    params.put("reg_ip", "0.0.0.0");
+                    params.put("data_time_yn", "Y");
+                    log.info("Metadata depth parameters: {}", params);
+                    dtModelService.insertMetaDataDepth(params);
                 }
             });
         }

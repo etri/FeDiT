@@ -190,6 +190,7 @@
                         if (simTp === 'A' && augmentTp === 'R') {
                             console.log('windowSize', model_property.hyperparam.window_size);
                             $('#windowSize').val(model_property.hyperparam.window_size);
+                            $('#dataMaxLimitCnt').val(parseInt(model_property.hyperparam.window_size) * 5)
                         }
                         let url = contextPath + `/dt/model/`;
                         url += `model/${model_seq}?menuCd=${menu_cd}`;

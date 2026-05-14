@@ -991,4 +991,23 @@
         FROM TB_META_USER_ITEM
         WHERE MODEL_SEQ = #{modelSeq};
     </select>
+
+    <!--void insertMetaDataDepth(Map<String, Object> params);-->
+    <insert id="insertMetaDataDepth" parameterType="map">
+        /* file : DTModelMapper.xml, id : insertMetaDataDepth */
+        INSERT
+        INTO TB_META_DATA_DEPTH (TWIN_ID, TWIN_NM, TWIN_OBJ_ID, TWIN_OBJ_NM, DATA_DEPTH_1, DATA_DEPTH_2, REG_USER_SEQ,
+                                 REG_IP, DATA_TIME_YN)
+        VALUES (#{twin_id}, #{twin_nm}, #{twin_obj_id}, #{twin_obj_nm}, #{data_depth_1}, #{data_depth_2},
+                #{reg_user_seq}, #{reg_ip}, #{data_time_yn})
+    </insert>
+
+    <!--int countMetaDataDepth(Map<String, Object> checkParams);-->
+    <select id="countMetaDataDepth" parameterType="map" resultType="int">
+        /* file : DTModelMapper.xml, id : countMetaDataDepth */
+        SELECT COUNT(*)
+        FROM TB_META_DATA_DEPTH A
+        WHERE A.TWIN_ID = #{twin_id}
+          AND A.TWIN_OBJ_ID = #{twin_obj_id}
+    </select>
 </mapper>

@@ -7,98 +7,101 @@
          */
         let augmentTp = document.querySelector('#augmentTp').dataset.value;
         if (augmentTp !== 'F') { //전처리 및 증강 일회성 및 연속성 로직에서만 보여준다.
-            let augmentVisualSelectRange = document.querySelector('#augmentVisualSelectRange');
-            let augmentFileContainer = augmentVisualSelectRange.querySelector('#augmentFileContainer');
-            let augmentFileAs = augmentFileContainer.querySelectorAll('.augment-file-section > a');
+        }
 
-            augmentFileAs.forEach(function (augmentFileA) {
-                augmentFileA.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
+        let augmentVisualSelectRange = document.querySelector('#augmentVisualSelectRange');
+        let augmentFileContainer = augmentVisualSelectRange.querySelector('#augmentFileContainer');
+        let augmentFileAs = augmentFileContainer.querySelectorAll('.augment-file-section > a');
 
-                    let augmentSeq = this.dataset.augmentSeq;
-                    let fileSeq = this.dataset.fileSeq;
-                    console.log('augmentSeq', augmentSeq, 'fileSeq', fileSeq);
+        augmentFileAs.forEach(function (augmentFileA) {
+            augmentFileA.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
 
-                    // 클릭 직후 API 호출 전에 한 번
-                    clearAllVisualViews();
+                let augmentSeq = this.dataset.augmentSeq;
+                let fileSeq = this.dataset.fileSeq;
+                console.log('augmentSeq', augmentSeq, 'fileSeq', fileSeq);
 
-                    // API 호출
-                    getVisualListOne(augmentSeq, fileSeq, function (res, error) {
-                        if (!res) {
-                            console.error('Error fetching visual data:', error);
-                            alert(error);
-                            return;
+                // 클릭 직후 API 호출 전에 한 번
+                clearAllVisualViews();
+
+                // API 호출
+                getVisualListOne(augmentSeq, fileSeq, function (res, error) {
+                    if (!res) {
+                        console.error('Error fetching visual data:', error);
+                        alert(error);
+                        return;
+                    }
+
+                    // 패널 열기
+                    document.getElementById('augmentVisualRange').style.display = '';
+
+                    const result = res; // 그대로 사용 (res.code 등 포함)
+                    const DATE_KEY = result.date_key || 'date';   // <<<<<< x축 키 강제
+
+                    // 데이터 정규화 (문자열 JSON 대비)
+                    const originRaw = ensureArrayMaybeString(result.origin);
+                    console.log('originRow', originRaw);
+                    const augmentRaw = ensureArrayMaybeString(result.augment);
+                    console.log('augmentRow', augmentRaw);
+                    const validateRaw = ensureArrayMaybeString(result.validate);
+                    console.log('validateRow', validateRaw);
+                    const outlierRaw = ensureArrayMaybeString(result.outlier);
+                    console.log('outlierRow', outlierRaw);
+
+                    // 1) ORIGIN -> view3 (모든 수치 컬럼 시리즈로)
+                    (function renderOrigin() {
+                        let display = document.querySelector('#originVisualChart');
+                        if (originRaw) {
+                            display.style.display = 'block';
+                            const rows = Array.isArray(originRaw) ? originRaw : [];
+                            if (rows !== null && rows.length === 0) {
+                                display.style.display = 'none';
+                                return;
+                            }
+                            const s = rowsToSeries(rows, '', DATE_KEY);
+                            viewTypeDefault('line', {
+                                series: s.series,
+                                title: '원본 데이터(Origin)',
+                                subtitle: ''
+                            }, 3, true, false, true);
+                        } else {
+                            display.style.display = 'none';
                         }
+                    })();
 
-                        // 패널 열기
-                        document.getElementById('augmentVisualRange').style.display = '';
-
-                        const result = res; // 그대로 사용 (res.code 등 포함)
-                        const DATE_KEY = result.date_key || 'date';   // <<<<<< x축 키 강제
-
-                        // 데이터 정규화 (문자열 JSON 대비)
-                        const originRaw = ensureArrayMaybeString(result.origin);
-                        console.log('originRow', originRaw);
-                        const augmentRaw = ensureArrayMaybeString(result.augment);
-                        console.log('augmentRow', augmentRaw);
-                        const validateRaw = ensureArrayMaybeString(result.validate);
-                        console.log('validateRow', validateRaw);
-                        const outlierRaw = ensureArrayMaybeString(result.outlier);
-                        console.log('outlierRow', outlierRaw);
-
-                        // 1) ORIGIN -> view3 (모든 수치 컬럼 시리즈로)
-                        (function renderOrigin() {
-                            let display = document.querySelector('#originVisualChart');
-                            if (originRaw) {
-                                display.style.display = 'block';
-                                const rows = Array.isArray(originRaw) ? originRaw : [];
-                                if (rows !== null && rows.length === 0) {
-                                    display.style.display = 'none';
-                                    return;
-                                }
-                                const s = rowsToSeries(rows, '', DATE_KEY);
-                                viewTypeDefault('line', {
-                                    series: s.series,
-                                    title: '원본 데이터(Origin)',
-                                    subtitle: ''
-                                }, 3, true, false, true);
-                            } else {
+                    // 2) AUGMENT -> view4 (모든 수치 컬럼 시리즈로)
+                    (function renderAugment() {
+                        let display = document.querySelector('#augmentVisualChart');
+                        if (augmentRaw) {
+                            display.style.display = 'block';
+                            const rows = Array.isArray(augmentRaw) ? augmentRaw : [];
+                            if (rows !== null && rows.length === 0) {
                                 display.style.display = 'none';
+                                return;
                             }
-                        })();
+                            const s = rowsToSeries(rows, '', DATE_KEY);
+                            viewTypeDefault('line', {
+                                series: s.series,
+                                title: '증강 데이터(Augment)',
+                                subtitle: ''
+                            }, 4, true, false, true);
+                        } else {
+                            display.style.display = 'none';
+                        }
+                    })();
 
-                        // 2) AUGMENT -> view4 (모든 수치 컬럼 시리즈로)
-                        (function renderAugment() {
-                            let display = document.querySelector('#augmentVisualChart');
-                            if (augmentRaw) {
-                                display.style.display = 'block';
-                                const rows = Array.isArray(augmentRaw) ? augmentRaw : [];
-                                if (rows !== null && rows.length === 0) {
-                                    display.style.display = 'none';
-                                    return;
-                                }
-                                const s = rowsToSeries(rows, '', DATE_KEY);
-                                viewTypeDefault('line', {
-                                    series: s.series,
-                                    title: '증강 데이터(Augment)',
-                                    subtitle: ''
-                                }, 4, true, false, true);
-                            } else {
+                    // 3) VALIDATE -> view5 (특수 구조: [{ col, data, ... }] 의 col만 추출)
+                    (function renderValidate() {
+                        let display = document.querySelector('#validateVisualChart');
+                        if (validateRaw) {
+                            display.style.display = 'block';
+                            if (validateRaw.length === 0) {
                                 display.style.display = 'none';
+                                return;
                             }
-                        })();
-
-                        // 3) VALIDATE -> view5 (특수 구조: [{ col, data, ... }] 의 col만 추출)
-                        (function renderValidate() {
-                            let display = document.querySelector('#validateVisualChart');
-                            if (validateRaw) {
-                                display.style.display = 'block';
-                                if (validateRaw.length === 0) {
-                                    display.style.display = 'none';
-                                    return;
-                                }
-                                const series = seriesForColumns(validateRaw, '검증', DATE_KEY);
+                            const series = seriesForColumns(validateRaw, '검증', DATE_KEY);
+                            if (series && series.length > 0) {
                                 viewTypeDefault('line', {
                                     series,
                                     title: '검증 데이터(Validate)',
@@ -107,18 +110,22 @@
                             } else {
                                 display.style.display = 'none';
                             }
-                        })();
+                        } else {
+                            display.style.display = 'none';
+                        }
+                    })();
 
-                        // 4) OUTLIER -> view6 (특수 구조: [{ col, data, ... }] 의 col만 추출)
-                        (function renderOutlier() {
-                            let display = document.querySelector('#outlierVisualChart');
-                            if (outlierRaw) {
-                                display.style.display = 'block';
-                                if (outlierRaw.length === 0) {
-                                    display.style.display = 'none';
-                                    return;
-                                }
-                                const series = seriesForColumns(outlierRaw, '이상치', DATE_KEY);
+                    // 4) OUTLIER -> view6 (특수 구조: [{ col, data, ... }] 의 col만 추출)
+                    (function renderOutlier() {
+                        let display = document.querySelector('#outlierVisualChart');
+                        if (outlierRaw) {
+                            display.style.display = 'block';
+                            if (outlierRaw.length === 0) {
+                                display.style.display = 'none';
+                                return;
+                            }
+                            const series = seriesForColumns(outlierRaw, '이상치', DATE_KEY);
+                            if (series && series.length > 0) {
                                 viewTypeDefault('line', {
                                     series,
                                     title: '이상치 데이터(Outlier)',
@@ -127,11 +134,13 @@
                             } else {
                                 display.style.display = 'none';
                             }
-                        })();
-                    });
+                        } else {
+                            display.style.display = 'none';
+                        }
+                    })();
                 });
             });
-        }
+        });
     });
 
     // /dt/simulation/get/visual/list/{augment_seq}/{augment_file_seq}
@@ -216,7 +225,7 @@
         const items = Array.isArray(arr) ? arr : [arr];
 
         items.forEach((item, idx) => {
-            if (!item || !item.col || !Array.isArray(item.data) || !item.data.length) return;
+            if (!item || !item.col || !Array.isArray(item.data) || item.data.length === 0) return;
 
             // 데이터에 들어있는 컬럼 키는 소문자(m60 등)인 경우가 많으므로 정규화
             const colKey = String(item.col).trim();
