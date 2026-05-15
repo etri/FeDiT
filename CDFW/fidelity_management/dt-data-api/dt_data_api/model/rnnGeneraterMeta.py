@@ -2057,8 +2057,12 @@ class Manager:
         print("==간격 파라미터 유지 체크=")
         print(resmpl_intvl_tp)
         print(resmpl_intvl_value)
-        current_year = datetime.now().year
-        print("시작시간", target_start_date)
+        # target_start_date가 없다면 현재 연도 사용
+        if target_start_date:
+            current_year = datetime.strptime(target_start_date, "%Y-%m-%d %H:%M:%S").year
+        else:
+            current_year = datetime.now().year
+        print(f"적용된 연도: {current_year}")
         set_start_date = datetime.strptime(target_start_date, "%Y-%m-%d %H:%M:%S")
         set_last_date = datetime.strptime(target_last_date, "%Y-%m-%d %H:%M:%S")
 

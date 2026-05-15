@@ -367,4 +367,17 @@
           AND USE_YN = 'Y'
         ORDER BY ORDBY, DTL_CD_NM
     </select>
+    <!--
+    void updateSimulationSaveAugment(@Param("augmentSeq") int augmentSeq,
+                                     @Param("digitalTwinId") String digitalTwinId,
+                                     @Param("newDigitalTwinObjectId") String newDigitalTwinObjectId);
+    -->
+    <update id="updateSimulationSaveAugment" parameterType="map">
+        UPDATE TB_META_AUGMENT
+        SET TWIN_ID     = #{digitalTwinId},
+            TWIN_OBJ_ID = #{newDigitalTwinObjectId}
+        WHERE AUGMENT_SEQ = #{augmentSeq}
+          AND DEL_YN = 'N'
+          AND USE_YN = 'Y'
+    </update>
 </mapper>

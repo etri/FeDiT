@@ -1706,7 +1706,7 @@ function makeMetaApiListTable(data, container, datatable_id) {
      * */
     let thead = document.createElement('thead');
     let tr = document.createElement('tr');
-    ['#', '메타모델', '트윈아이디', '트윈명', '설명'].forEach(function (header) {
+    ['#', '트윈타입', '트윈아이디', '트윈명', '설명', '생성 및 수정일시'].forEach(function (header) {
         let th = document.createElement('th');
         th.innerHTML = `${header}`;
         tr.appendChild(th);
@@ -1722,10 +1722,11 @@ function makeMetaApiListTable(data, container, datatable_id) {
     data.forEach(function (rowData, index) {
         let tr = document.createElement('tr');
         tr.innerHTML = `<td>${(index + 1)}</td>
-                        <td>${rowData.metaModel}</td>
-                        <td><a href="#" class="btn-object-list" data-twin-id="${rowData.digitalTwinId}" data-meta-model="${rowData.metaModel}">${rowData.digitalTwinId}</a></td>
-                        <td><a href="#" class="btn-object-list" data-twin-id="${rowData.digitalTwinId}" data-meta-model="${rowData.metaModel}">${rowData.digitalTwinName}</a></td>
-                        <td>${rowData.description}</td>`;
+                        <td>${rowData.type && rowData.type.length > 0 ? rowData.type : '없음'}</td>
+                        <td><a href="#" class="btn-object-list" data-twin-id="${rowData.dtid}">${rowData.dtid}</a></td>
+                        <td><a href="#" class="btn-object-list" data-twin-id="${rowData.dtid}">${rowData.name}</a></td>
+                        <td>${rowData.description && rowData.description.length > 0 ? rowData.description : '없음'}</td>
+                        <td>${rowData.creationTime <= rowData.modificationTime ? rowData.modificationTime : rowData.creationTime}</td>`;
         tbody.appendChild(tr);
     });
     table.appendChild(tbody);
@@ -1746,7 +1747,7 @@ function makeMetaApiObjectListTable(data, container, datatable_id) {
      * */
     let thead = document.createElement('thead');
     let tr = document.createElement('tr');
-    ['#', '오브젝트명', '설명'].forEach(function (header) {
+    ['#', '오브젝트아이디', '오브젝트명', '설명', '키워드', '생성 및 수정일시'].forEach(function (header) {
         let th = document.createElement('th');
         th.innerHTML = `${header}`;
         tr.appendChild(th);
@@ -1762,8 +1763,11 @@ function makeMetaApiObjectListTable(data, container, datatable_id) {
     data.forEach(function (rowData, index) {
         let tr = document.createElement('tr');
         tr.innerHTML = `<td>${(index + 1)}</td>
-                        <td><a href="#" class="btn-pop-api-view btn-popup-open" data-action="custom" data-popup-id="modalApiView" data-twin-id="${rowData.digitalTwinId}" data-object-id="${rowData.digitalObjectId}">${rowData.digitalObjectName}</a></td>
-                        <td>${rowData.description}</td>`;
+                        <td><a href="#" class="btn-pop-api-view btn-popup-open" data-action="custom" data-popup-id="modalApiView" data-twin-id="${rowData.dtid}" data-object-id="${rowData.dtoid}">${rowData.dtoid}</a></td>
+                        <td><a href="#" class="btn-pop-api-view btn-popup-open" data-action="custom" data-popup-id="modalApiView" data-twin-id="${rowData.dtid}" data-object-id="${rowData.dtoid}">${rowData.name}</a></td>
+                        <td>${rowData.description && rowData.description.length > 0 ? rowData.description : '없음'}</td>
+                        <td>${rowData.keywords && rowData.keywords.length > 0 ? rowData.keywords : '없음'}</td>
+                        <td>${rowData.creationTime <= rowData.modificationTime ? rowData.modificationTime : rowData.creationTime}</td>`;
         tbody.appendChild(tr);
     });
     table.appendChild(tbody);

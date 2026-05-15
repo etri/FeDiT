@@ -473,6 +473,9 @@ $(document).ready(function () {
         }
     }
 
+    /**
+     * TODO 2025-03-13
+     * */
     $(document).on('click', '#tab_history', function () {
         $('#tab_getdata').attr('class', 'nav-link');
         $('#tab_info').attr('class', 'nav-link');

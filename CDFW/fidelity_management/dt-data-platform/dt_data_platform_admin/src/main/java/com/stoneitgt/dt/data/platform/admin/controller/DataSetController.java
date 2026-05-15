@@ -225,9 +225,17 @@ public class DataSetController extends BaseController {
 
         //csv를 읽어들인다
         //가져올 갯수 0은 전체, 나머지는 환경세팅에서
-        FileReader fileReader = FileReader.getInstance();
-        Map<String, Object> resultCsv = fileReader.readCSV(resultJson.get("file_path") + File.separator + resultJson.get("base_file_nm_set_range_row"));
+        List<Map<String, Object>> readCSVToListObjectMap = FileReader.getInstance().readCSVToListObjectMap(resultJson.get("file_path") + File.separator + resultJson.get("base_file_nm_set_range_row"));
 
+        // Label(time) 중복이면 일부 ETC 모델 및 증강 모델 터짐방지 (컬럼 순서 꼬임 Python에서 처리함)
+        /*String indexTrgtCol = resultJson.get("index_trgt_col").toString();
+        boolean duplicateDataCheck = JSONParser.isDuplicateDataByKey(readCSVToListObjectMap, indexTrgtCol);
+        if (duplicateDataCheck) {
+            List<Map<String, Object>> removedDuplicatedData = JSONParser.removeDuplicateDataByKey(readCSVToListObjectMap, indexTrgtCol);
+            FileWriter.getInstance().writeCSV(resultJson.get("file_path") + File.separator + resultJson.get("base_file_nm_set_range_row"), removedDuplicatedData);
+        }*/
+
+        Map<String, Object> resultCsv = FileReader.getInstance().readCSV(resultJson.get("file_path") + File.separator + resultJson.get("base_file_nm_set_range_row"));
         result.put("code", GlobalConstant.API_STATUS.SUCCESS);
         result.put("index_trgt_col", resultJson.get("index_trgt_col").toString());
         result.put("target_start_date", resultJson.get("target_start_date").toString());

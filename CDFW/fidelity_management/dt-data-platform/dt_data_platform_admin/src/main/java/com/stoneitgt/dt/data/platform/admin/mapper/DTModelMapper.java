@@ -122,4 +122,8 @@ public interface DTModelMapper {
     int countMetaModelByAlgrmSeq(int modelAlgrmSeq);
 
     String findPreprocessJSONByModelSeq(int modelSeq);
+
+    void insertMetaDataDepth(Map<String, Object> params);
+
+    int countMetaDataDepth(Map<String, Object> checkParams);
 }

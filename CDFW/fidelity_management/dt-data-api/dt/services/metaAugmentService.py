@@ -448,6 +448,7 @@ class augmentService(object):
             is_indpds = False
 
         try:
+            print("params", paramData)
             # df=pd.read_csv(dataFile, header=0, index_col=paramData['index_column'], parse_dates=True)
 
             # 입력 파일 로드(샘플링된 데이터.)
@@ -2677,7 +2678,12 @@ class augmentService(object):
             end_index = df[df[index_col] <= end_date].index[-1]
             df_cut = df.loc[start_index:end_index]
 
-            new_year = date.today().year
+            # new_year = date.today().year
+            # df_cut[index_col] = df_cut[index_col].apply(
+            #     lambda x: x.replace(year=new_year).strftime("%Y-%m-%d %H:%M:%S")
+            # )
+            ref_date = pd.to_datetime(start_date) if start_date else datetime.now()
+            new_year = ref_date.year
             df_cut[index_col] = df_cut[index_col].apply(
                 lambda x: x.replace(year=new_year).strftime("%Y-%m-%d %H:%M:%S")
             )
@@ -2733,10 +2739,16 @@ class augmentService(object):
             end_index = df[df[index_col] <= end_date].index[-1]
             df_cut = df.loc[start_index:end_index]
 
-            new_year = date.today().year
+            # new_year = date.today().year
+            # df_cut[index_col] = df_cut[index_col].apply(
+            #     lambda x: x.replace(year=new_year).strftime("%Y-%m-%d %H:%M:%S")
+            # )
+            ref_date = pd.to_datetime(start_date) if start_date else datetime.now()
+            new_year = ref_date.year
             df_cut[index_col] = df_cut[index_col].apply(
                 lambda x: x.replace(year=new_year).strftime("%Y-%m-%d %H:%M:%S")
             )
+            
             df_cut.to_csv(test_file_path, index=False)
         else:
             data_frame.to_csv(test_file_path, index=False)

@@ -2,7 +2,11 @@ function prettyJson(jsonString) {
     try {
         return JSON.stringify(JSON.parse(jsonString), true, 4);
     } catch (e) {
-        console.error(e);
+        try {
+            return JSON.stringify(jsonString, true, 4);
+        } catch (err) {
+            console.error(err);
+        }
     }
 }
 

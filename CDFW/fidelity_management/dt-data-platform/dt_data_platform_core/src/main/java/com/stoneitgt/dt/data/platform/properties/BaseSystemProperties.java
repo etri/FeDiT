@@ -42,7 +42,7 @@ public class BaseSystemProperties {
 
     private String dtApiKey;
 
-    private String dtN2mKey;
+    private String dtMetaKey;
 
     private String dtMetaFilePath;
 

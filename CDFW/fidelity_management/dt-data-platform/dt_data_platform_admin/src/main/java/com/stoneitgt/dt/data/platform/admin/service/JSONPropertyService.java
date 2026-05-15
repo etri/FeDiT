@@ -1,6 +1,7 @@
 package com.stoneitgt.dt.data.platform.admin.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stoneitgt.dt.data.platform.domain.DTModelJsonHyperParamSub;
 import com.stoneitgt.dt.data.platform.domain.DTModelJsonProperty;
 import com.stoneitgt.dt.data.platform.domain.DTModelJsonPropertySubSet;
 import lombok.Data;
@@ -18,6 +19,12 @@ import java.util.Map;
 @Data
 @Slf4j
 public class JSONPropertyService {
+
+    /*public static void main(String[] args) {
+        JSONPropertyService jsonPropertyService = new JSONPropertyService();
+        DTModelJsonProperty dtModelJsonProperty = jsonPropertyService.propertyParsingToObject("{\"preproc_property_info\":[{\"model_derpn\":\"TEST\",\"preproc_property\":[{\"preproc_type\":\"validate\",\"preproc_order\":1,\"preproc_set\":[]},{\"preproc_type\":\"outlier\",\"preproc_order\":2,\"preproc_set\":[]},{\"preproc_type\":\"missing\",\"preproc_order\":3,\"preproc_set\":[]},{\"preproc_type\":\"interval\",\"preproc_order\":4,\"preproc_set\":[{\"validate_data\":[],\"missing_data\":[],\"resmpl_tp_nm\":\"분\",\"resmpl_removed_data\":[],\"resmpl_added_data\":[],\"outlier_data\":[],\"set_order\":1,\"resmpl_count\":10327,\"outlier_count\":0,\"resmpl_removed_count\":0,\"resmpl_tp\":\"T\",\"interpl_window_size\":0,\"row_count\":\"10000\",\"missing_count\":0,\"trgt_file_nm\":\"admin1743756334123_resample_1743756395002.csv\",\"validate_count\":0,\"interpl_etc_model_seq\":0,\"resmpl_added_count\":328,\"resmpl_intvl_value\":\"1\"}]},{\"preproc_type\":\"unit\",\"preproc_order\":5,\"preproc_set\":[]}],\"model_create\":\"Y\",\"loginUserSeq\":0,\"model_property\":[{\"algorithm_seq\":1,\"independent\":[\"secondary_value\",\"quarternary_value\",\"third_value\"],\"hyperparam\":{\"meterics_nm\":\"MSE\",\"window_size\":\"50\",\"data_size\":\"100\",\"loss\":\"HUB\",\"batch_size\":\"16\",\"optimizer\":\"ADAM\",\"optimizer_nm\":\"ADAM\",\"test_size\":\"0.2\",\"meterics\":\"MSE\",\"epochs\":\"5\",\"loss_nm\":\"Huber\",\"optimizer_lr\":\"0.0005\"},\"dependent\":[\"primary_value\"],\"algorithm\":\"LSTM\"}],\"target_row_count\":\"10000\",\"rls_yn\":\"N\",\"last_step_preproc_order\":4,\"twin_id\":\"KR-02-K10000-20240001\",\"index_trgt_col\":\"measurement_date\",\"model_nm\":\"TEST\",\"data_use_tp\":\"M\",\"base_file_nm_set_range_row\":\"admin1743756334123_origin_20250404174534_set_row.csv\",\"base_file_nm\":\"admin1743756334123_origin_20250404174534.csv\",\"base_file_nm_set_range_col\":\"admin1743756334123_origin_20250404174534_set_col.csv\",\"base_dir\":\"admin1743756334123\",\"last_step_preproc_file_nm\":\"admin1743756334123_resample_1743756395002.csv\",\"twin_obj_id\":\"KR-104710-0003\",\"preproc_trgt_col\":[\"secondary_value\",\"device_id\",\"primary_value\",\"measurement_id\",\"min_adjustment\",\"quarternary_value\",\"third_value\"]}]}");
+        log.info("dtModelJsonProperty -> {}", dtModelJsonProperty.getPreproc_property_info().get(0).getModel_property().get(0).getHyperparam().getData_size());
+    }*/
 
     public Map<String, Object> propertyParsingMap(String propertyJson) throws IOException {
         LinkedHashMap<String, Object> infoMap = new LinkedHashMap<>();
@@ -66,6 +73,14 @@ public class JSONPropertyService {
 
     public DTModelJsonPropertySubSet getIntervalProperty(DTModelJsonProperty property) {
         List<DTModelJsonPropertySubSet> dtModelJsonPropertySubSets = property.getPreproc_property_info().get(0).getPreproc_property().get(3).getPreproc_set();
-        return dtModelJsonPropertySubSets.get(0);
+        if(dtModelJsonPropertySubSets.size() > 0){
+            return dtModelJsonPropertySubSets.get(0);
+        }
+        return null;
+    }
+
+    public DTModelJsonHyperParamSub getModelProperty(DTModelJsonProperty property) {
+        List<DTModelJsonHyperParamSub> modelProperties = property.getPreproc_property_info().get(0).getModel_property();
+        return  modelProperties.get(0);
     }
 }
