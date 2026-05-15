@@ -491,4 +491,12 @@ public class DTModelService extends BaseService {
     public DTModelJsonProperty findPreprocessJSONByModelSeq(int modelSeq) throws IOException {
         return new ObjectMapper().readValue(dtModelMapper.findPreprocessJSONByModelSeq(modelSeq), DTModelJsonProperty.class);
     }
+
+    public void insertMetaDataDepth(Map<String, Object> params) {
+        dtModelMapper.insertMetaDataDepth(params);
+    }
+
+    public int countMetaDataDepth(Map<String, Object> checkParams) {
+        return dtModelMapper.countMetaDataDepth(checkParams);
+    }
 }

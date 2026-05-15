@@ -55,4 +55,9 @@ public interface DTSimulationMapper {
     int countMetaSimulation();
 
     List<Map<String, Object>> getModelDataTerm();
+
+    // void updateSimulationSaveAugment(int augmentSeq, String digitalTwinId, String newDigitalTwinObjectId);
+    void updateSimulationSaveAugment(@Param("augmentSeq") int augmentSeq,
+                                     @Param("digitalTwinId") String digitalTwinId,
+                                     @Param("newDigitalTwinObjectId") String newDigitalTwinObjectId);
 }

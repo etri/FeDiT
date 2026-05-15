@@ -65,12 +65,16 @@
                         console.log('wrapper', wrapper);
                         console.log('preProcessMakeHTMLExcludeDataTable is completed');
                         $('#predictionResultTableInner').DataTable({
+                            columnDefs: [{
+                                targets: '_all', className: 'text-nowrap', searchable: false
+                            }],
                             order: [[0, "asc"]],
                             searching: false,
                             info: false,
                             lengthChange: false,
-                            autoWidth: false,
+                            autoWidth: true,
                             lengthMenu: [[10], [10]],
+                            scrollX: true,
                             initComplete: function (settings, json) {
                                 console.log('DataTable has finished its initialisation.');
                                 wrapper.parentElement.style.display = 'block';

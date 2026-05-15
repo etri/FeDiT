@@ -743,10 +743,13 @@ public class DTModelController extends BaseController {
         String dateKey = params.get("index_target_col").toString();
         String origin_file_path = (String) outlierParameters.get("file_path");
         String origin_file_name = (String) outlierParameters.get("file_name");
+        log.info("이상치 탐지 원본 파일 -> {}", origin_file_path + File.separator + origin_file_name);
         Map<String, Object> prevResultCsv = FileReader.getInstance().readCSVWithLimit(origin_file_path + File.separator + origin_file_name, 10);
-        log.info("getOutlierInfo prevResultCsv -> {}", prevResultCsv);
+        Map<String, Object> resultCsv = FileReader.getInstance().readCSV(origin_file_path + File.separator + origin_file_name);
+        int dataCount = resultCsv.get("data_list") != null ? ((List<List<String>>) resultCsv.get("data_list")).size() : 0;
         List<String> originHeaders = (List<String>) prevResultCsv.get("header_list");
         List<List<String>> originDatas = (List<List<String>>) prevResultCsv.get("data_list");
+        log.info("이상치 탐지 파일 데이터 샘플 개수 -> {}", originDatas.size());
         int dateIndex = MetaRelateUtil.findDateIndex(originHeaders, dateKey);
         String dateFormat = null;
         for (List<String> row : originDatas) {
@@ -756,8 +759,6 @@ public class DTModelController extends BaseController {
                 break;
             }
         }
-
-        log.info("getOutlierInfo dateFormat -> {}", dateFormat);
 
         String outlier_type = params.get("outlier_type").toString();
 
@@ -798,10 +799,7 @@ public class DTModelController extends BaseController {
                 return null;
         }
 
-        log.info("getOutlierInfo outlierSet -> {}", outlierSet);
-
         JSONObject outlierJSONObject = new JSONObject(outlierSet.getBody().toString());
-        log.info("getOutlierInfo outlierJSONObject -> {}", outlierJSONObject);
         try {
             JsonNode jsonNode = new ObjectMapper().readTree(outlierSet.getBody().toString());
             JsonNode histNode = jsonNode.path("data").path("hist");
@@ -819,7 +817,7 @@ public class DTModelController extends BaseController {
                         result.put("info", infoNode);
                         result.put("headers", normalizeParams.get("headers"));
                         result.put("datas", normalizeParams.get("datas"));
-                        result.put("row_count", params.get("target_row_count"));
+                        result.put("row_count", dataCount);
                     }
                     break;
                 }
@@ -838,7 +836,7 @@ public class DTModelController extends BaseController {
                             result.put("headers", dumps);
                         }
                         result.put("datas", makeDataNormalizeKMean.get("datas"));
-                        result.put("row_count", params.get("target_row_count"));
+                        result.put("row_count", dataCount);
                     }
                     break;
                 }
@@ -857,7 +855,7 @@ public class DTModelController extends BaseController {
                             result.put("headers", dumps);
                         }
                         result.put("datas", makeDataNormalizeDBSCAN.get("datas"));
-                        result.put("row_count", params.get("target_row_count"));
+                        result.put("row_count", dataCount);
                     }
                     break;
                 }
@@ -945,6 +943,12 @@ public class DTModelController extends BaseController {
         }
         setParam.put("isCreate", "Y");
 
+        /**
+         * TODO 2025-04-24
+         * 보간 옵션에서 parse_dates 선택 여부
+         * 데이터의 시간을 긁어와서 형태가 "YYYY-MM-DD HH:MM:SS" 라면 parse_dates 없음
+         * 그게 아니라면 parse_dates False
+         * */
         Map<String, Object> justOneResult = FileReader.getInstance().readCSVWithLimit(setParam.get("file_path").toString() + File.separator + setParam.get("file_name").toString(), 1);
         List<List<String>> oneData = (List<List<String>>) justOneResult.get("data_list");
         String format = ConvertUtil.tryParseFindFormat(ConvertUtil.DATEFORMATS, oneData.get(0).get(0));
@@ -1087,6 +1091,12 @@ public class DTModelController extends BaseController {
         String file_path = systemProperties.getDtMetaFilePath() + "/tmp/" + params.get("file_path").toString();
         String file_name = params.get("file_name").toString();
 
+        /**
+         * TODO 2025-04-24
+         * 보간 옵션에서 parse_dates 선택 여부
+         * 데이터의 시간을 긁어와서 형태가 "YYYY-MM-DD HH:MM:SS" 라면 parse_dates 없음
+         * 그게 아니라면 parse_dates False
+         * */
         Map<String, Object> justOneResult = FileReader.getInstance().readCSVWithLimit(file_path + File.separator + file_name, 1);
         List<List<String>> oneData = (List<List<String>>) justOneResult.get("data_list");
         String format = ConvertUtil.tryParseFindFormat(ConvertUtil.DATEFORMATS, oneData.get(0).get(0));
@@ -1254,6 +1264,12 @@ public class DTModelController extends BaseController {
         String file_path = systemProperties.getDtMetaFilePath() + "/tmp/" + params.get("file_path").toString();
         String file_name = params.get("file_name").toString();
 
+        /**
+         * TODO 2025-04-24
+         * 보간 옵션에서 parse_dates 선택 여부
+         * 데이터의 시간을 긁어와서 형태가 "YYYY-MM-DD HH:MM:SS" 라면 parse_dates 없음
+         * 그게 아니라면 parse_dates False
+         * */
         Map<String, Object> justOneResult = FileReader.getInstance().readCSVWithLimit(file_path + File.separator + file_name, 1);
         List<List<String>> oneData = (List<List<String>>) justOneResult.get("data_list");
         String format = ConvertUtil.tryParseFindFormat(ConvertUtil.DATEFORMATS, oneData.get(0).get(0));

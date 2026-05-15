@@ -16,13 +16,12 @@ public class ConvertUtil {
     public static String[] DATEFORMATS = {
             "yyyy-MM-dd HH:mm:ss",
             "yyyy/MM/dd HH:mm:ss",
-            "dd-MM-yyyy HH:mm:ss",
-            "MM/dd/yyyy HH:mm:ss",
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", // Z를 문자열로 취급하여 파싱
+            "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+            "yyyy-MM-dd'T'HH:mm:ss.SSSX",   // ISO 8601 시간대 대응
             "yyyy-MM-dd'T'HH:mm:ss",
             "yyyy-MM-dd'T'HH:mm:ssZ",
-            "yyyy-MM-dd'T'HH:mm:ss.SSSX",
             "yyyy-MM-dd",
-            "yyyy/MM/dd"
     };
 
     public static JsonNode requestBodyParsing(String body) {
@@ -190,6 +189,17 @@ public class ConvertUtil {
 
     // 문자열이 날짜 형식인지 확인하는 메서드
     public static boolean isDate(String[] dateFormats, String dateString) {
+        if (dateString == null || dateString.isEmpty()) return false;
+
+        // 1. ISO_INSTANT 형식 (2026-04-13T00:40:00.809Z) 우선 확인
+        try {
+            java.time.Instant.parse(dateString);
+            return true;
+        } catch (Exception e) {
+            // ISO 형식이 아니면 다음 단계로
+        }
+
+        // 2. 기존 SimpleDateFormat 방식 수행
         for (String format : dateFormats) {
             SimpleDateFormat dateFormat = new SimpleDateFormat(format);
             dateFormat.setLenient(false);
@@ -197,7 +207,7 @@ public class ConvertUtil {
                 dateFormat.parse(dateString);
                 return true;
             } catch (ParseException e) {
-                // 계속 진행
+                continue;
             }
         }
         return false;

@@ -25,8 +25,9 @@ public class TimeUtil {
         // LocalDateTime 객체를 ZonedDateTime 객체로 변환하여 UTC 시간대 설정
         ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneOffset.UTC);
 
-        // ZonedDateTime 객체를 yyyy-MM-dd'T'HH:mm:ss'Z' 형태의 String으로 포맷팅
-        String formattedDateTime = zonedDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+        // ZonedDateTime 객체를 yyyy-MM-dd'T'HH:mm:ss.000'Z' 형태의 String으로 포맷팅
+        // String formattedDateTime = zonedDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+        String formattedDateTime = zonedDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.000'Z'"));
         return formattedDateTime;
     }
 
