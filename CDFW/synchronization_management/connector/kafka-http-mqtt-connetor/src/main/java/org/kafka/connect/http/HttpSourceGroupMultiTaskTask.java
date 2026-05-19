@@ -5,7 +5,7 @@ import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.header.ConnectHeaders;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
-import org.json.JSONObject;
+import org.kafka.connect.util.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
