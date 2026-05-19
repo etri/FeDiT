@@ -22,6 +22,8 @@ exports.create = (req, res, next) => {
       digital_object_data_source_url: Joi.string().allow("").default(null),
       digital_object_data_source_base_url: Joi.string().empty("").default(null),
       digital_object_control_url: Joi.string().allow("").default(null),
+      digital_object_control_execution_timeout: Joi.number().default(null),
+      digital_object_control_delivery_timeout: Joi.number().default(null),
       digital_object_data_model: Joi.object().default(null),
       digital_object_data_interval: Joi.number().default(5000),
       digital_object_control_request_model: Joi.object().default(null),

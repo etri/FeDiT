@@ -29,10 +29,15 @@ class Kafka {
     };
   }
 
-  createTopics({ topic }) {
-    producer.createTopics([topic], true, function (err, data) {
-      if (err) logger.error(err);
-    });
+  async createTopics({ topic }) {
+    try {
+      await admin.createTopics({
+        topics: [{ topic }],
+        waitForLeaders: true,
+      });
+    } catch (e) {
+      logger.error(`Kafka admin.createTopics(${topic}) failed: ${e.message}`);
+    }
     return 0;
   }
 
@@ -90,18 +95,20 @@ class Kafka {
     return;
   }
 
-  kafkaProducer({ topic, kafkaKey, data }) {
-    let payload = [
-      {
-        topic: topic,
-        key: kafkaKey,
-        messages: data, //sensor_data post body
-      },
-    ];
-
-    producer.send(payload, function (err, data) {
-      if (err) logger.error(err);
-    });
+  async kafkaProducer({ topic, kafkaKey, data }) {
+    try {
+      await producer.send({
+        topic,
+        messages: [
+          {
+            key: kafkaKey,
+            value: typeof data === "string" ? data : JSON.stringify(data),
+          },
+        ],
+      });
+    } catch (e) {
+      logger.error(`Kafka producer.send(${topic}) failed: ${e.message}`);
+    }
     return 0;
   }
 

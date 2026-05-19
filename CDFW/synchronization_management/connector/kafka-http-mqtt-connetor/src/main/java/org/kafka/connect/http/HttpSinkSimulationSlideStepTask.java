@@ -7,7 +7,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
-import org.json.JSONObject;
+import org.kafka.connect.util.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;

@@ -1,7 +1,7 @@
 package org.kafka.connect.http;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.kafka.connect.util.JSONException;
+import org.kafka.connect.util.JSONObject;
 //import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.header.ConnectHeaders;

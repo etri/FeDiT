@@ -1,3 +1,0 @@
-CREATE TABLE "myTable" (
-"pk1" INTEGER NOT NULL,
-PRIMARY KEY("pk1"))

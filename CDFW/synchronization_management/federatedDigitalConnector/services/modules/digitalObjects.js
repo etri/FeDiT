@@ -6,6 +6,59 @@ const model = new Model();
 const { stringify } = require("wkt");
 const axios = require("axios");
 
+const KAFKA_CONNECT_RETRY_MAX = 5;
+const KAFKA_CONNECT_RETRY_DELAY_MS = 1500;
+
+/**
+ * Kafka Connect REST 호출 (409 리밸런스 시 backoff retry, 404는 옵션으로 무시)
+ */
+async function kafkaConnectCall({ method, url, data, allow404 = false }) {
+  let lastErr;
+  for (let attempt = 1; attempt <= KAFKA_CONNECT_RETRY_MAX; attempt++) {
+    try {
+      const res = await axios({
+        method,
+        url,
+        data,
+        headers: { "Content-Type": "application/json" },
+      });
+      return res.data;
+    } catch (e) {
+      const status = e.response?.status;
+      if (status === 404 && allow404) return null;
+      if (status === 409 && attempt < KAFKA_CONNECT_RETRY_MAX) {
+        await new Promise((r) =>
+          setTimeout(r, KAFKA_CONNECT_RETRY_DELAY_MS * attempt)
+        );
+        lastErr = e;
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw lastErr;
+}
+
+/**
+ * connectors 테이블의 row 배열에서 HttpSourceGroupConnector config body 생성
+ */
+function buildHttpGroupConfig(rows) {
+  return {
+    "connector.class": "org.kafka.connect.http.HttpSourceGroupConnector",
+    "kafka.topic": "UnalliedDigitalObjects",
+    "api.base.url": rows[0].base_url,
+    "api.change.url": rows.map((r) => r.change_url).join(","),
+    "digital.twin.id": rows.map((r) => r.digital_twin_id).join(","),
+    "digital.object.id": rows.map((r) => r.digital_object_id).join(","),
+    headers:
+      "Content-Type:application/json|Accept-Encoding: application/json",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "data.source.format": "json",
+    "poll.interval.ms": rows[0].poll_interval,
+  };
+}
+
 class DigitalObjects {
   /**
    * [POST] digital_object
@@ -275,39 +328,51 @@ class DigitalObjects {
     changeUrl,
     interval,
   ) {
-    const connector = await model.kafka.GetConnectorConfig({
-      connector_id: `${existingConnector.connector_id}`,
+    const connector_id = existingConnector.connector_id;
+    const kafkaBase = `http://${config.kafka.connectHost}/connectors`;
+
+    // 1) DB의 현재 멤버 조회 (Kafka GET 사용 안 함 → 409 race 회피)
+    const existingRows = await model.postgres.selectDataS({
+      sql: `SELECT * FROM connectors WHERE connector_id = '${connector_id}'`,
     });
 
-    if (connector) {
-      const updatedChangeUrls = `${connector["api.change.url"]},${changeUrl}`;
-      const updatedTwinIds = `${connector["digital.twin.id"]},${digital_twin_id}`;
-      const updatedObjectIds = `${connector["digital.object.id"]},${digital_object_id}`;
-      const baseUrl = connector["api.base.url"];
+    // 2) 중복 방지: 같은 (twin_id, do_id, change_url) 이미 있으면 스킵
+    const isDuplicate = existingRows.some(
+      (r) =>
+        r.digital_twin_id === digital_twin_id &&
+        r.digital_object_id === digital_object_id &&
+        r.change_url === changeUrl
+    );
+    if (isDuplicate) {
+      logger.warn(
+        `[digitalObjects.updateExistingConnector] duplicate entry skip: ${connector_id} / ${digital_twin_id} / ${digital_object_id}`
+      );
+      return;
+    }
 
-      await model.kafka.updateSourceHttpConnectorGroup({
-        name: `${existingConnector.connector_id}`,
-        base_url: baseUrl,
-        change_urls: updatedChangeUrls,
-        digital_object_ids: updatedObjectIds,
-        digital_twin_ids: updatedTwinIds,
-        digital_object_data_interval: interval,
-      });
-
-      const insertConnectorSQL = `INSERT INTO connectors (connector_id, base_url, poll_interval, digital_object_id, digital_twin_id, change_url) VALUES (
-            '${existingConnector.connector_id}', '${baseUrl}', ${interval}, 
-            '${digital_object_id}', '${digital_twin_id}', '${changeUrl}'
-         )`;
-      await model.postgres.sendQuery({ sql: insertConnectorSQL });
-    } else {
-      await this.createNewConnector(
+    // 3) 새 엔트리 합쳐서 PUT (retry 포함)
+    const newRows = [
+      ...existingRows,
+      {
         base_url,
+        poll_interval: interval,
         digital_twin_id,
         digital_object_id,
-        changeUrl,
-        interval,
-      );
-    }
+        change_url: changeUrl,
+      },
+    ];
+    await kafkaConnectCall({
+      method: "put",
+      url: `${kafkaBase}/${connector_id}/config`,
+      data: buildHttpGroupConfig(newRows),
+    });
+
+    // 4) PUT 성공 후 connectors 테이블에 INSERT
+    const insertConnectorSQL = `INSERT INTO connectors (connector_id, base_url, poll_interval, digital_object_id, digital_twin_id, change_url) VALUES (
+          '${connector_id}', '${base_url}', ${interval},
+          '${digital_object_id}', '${digital_twin_id}', '${changeUrl}'
+       )`;
+    await model.postgres.sendQuery({ sql: insertConnectorSQL });
     return;
   }
 
@@ -319,20 +384,32 @@ class DigitalObjects {
     interval,
   ) {
     const newConnectorId = `HttpSource${uuid()}`;
+    const kafkaBase = `http://${config.kafka.connectHost}/connectors`;
+
+    // 1) Kafka에 먼저 POST (retry 포함). 실패 시 throw → DB INSERT 안 됨 → drift 방지.
+    await kafkaConnectCall({
+      method: "post",
+      url: kafkaBase,
+      data: {
+        name: newConnectorId,
+        config: buildHttpGroupConfig([
+          {
+            base_url,
+            poll_interval: interval,
+            digital_twin_id,
+            digital_object_id,
+            change_url: changeUrl,
+          },
+        ]),
+      },
+    });
+
+    // 2) POST 성공 후 connectors 테이블에 INSERT
     const insertConnectorSQL = `INSERT INTO connectors (connector_id, base_url, poll_interval, digital_object_id, digital_twin_id, change_url) VALUES (
-         '${newConnectorId}', '${base_url}', ${interval}, 
+         '${newConnectorId}', '${base_url}', ${interval},
          '${digital_object_id}', '${digital_twin_id}', '${changeUrl}'
       )`;
     await model.postgres.sendQuery({ sql: insertConnectorSQL });
-
-    await model.kafka.createSourceHttpConnectorGroup({
-      name: newConnectorId,
-      base_url,
-      change_urls: changeUrl,
-      digital_object_ids: digital_object_id,
-      digital_twin_ids: digital_twin_id,
-      digital_object_data_interval: interval,
-    });
     return;
   }
 
@@ -558,24 +635,15 @@ class DigitalObjects {
     selectedData,
     params,
   ) {
-    const [connectorCount, Connector_config] = await Promise.all([
-      this.getConnectorCount(connectorData.connector_id),
-      model.kafka.GetConnectorConfig({
-        connector_id: `${connectorData.connector_id}`,
-      }),
-    ]);
+    // DB 기반 정리: 기존 (twin_id, object_id) 엔트리를 Kafka에서 제거
+    // GET 호출 없이 connectors 테이블로 잔여 멤버를 계산 → 1회 PUT/DELETE
+    await this.cleanupConnectorEntry({
+      connector_id: connectorData.connector_id,
+      digital_twin_id,
+      digital_object_id,
+    });
 
-    if (connectorCount > 1) {
-      await this.updateConnector({
-        connectorData,
-        Connector_config,
-        digital_object_id,
-        digital_twin_id,
-      });
-    } else {
-      await this.deleteConnector({ connectorData });
-    }
-
+    // 새 파라미터로 (재)등록
     await this.createOrUpdateConnector(
       params.digital_object_data_source_base_url,
       params.digital_object_data_source_url,
@@ -585,6 +653,147 @@ class DigitalObjects {
       digital_object_id,
     );
     return;
+  }
+
+  /**
+   * 특정 (connector_id, twin_id, object_id) 엔트리를 Kafka와 connectors 테이블에서 제거.
+   * - 잔여 멤버 0개: Kafka 커넥터 전체 DELETE
+   * - 잔여 멤버 있음: 잔여 멤버로 config PUT
+   * - 어느 쪽이든 connectors 테이블의 해당 row 삭제
+   * - Kafka 측 실패는 logger.error만 남기고 DB 정리는 진행
+   */
+  async cleanupConnectorEntry({
+    connector_id,
+    digital_twin_id,
+    digital_object_id,
+  }) {
+    if (!connector_id) return;
+
+    const kafkaBase = `http://${config.kafka.connectHost}/connectors`;
+    const allRows = await model.postgres.selectDataS({
+      sql: `SELECT * FROM connectors WHERE connector_id = '${connector_id}'`,
+    });
+    const remaining = allRows.filter(
+      (r) =>
+        !(
+          r.digital_object_id === digital_object_id &&
+          r.digital_twin_id === digital_twin_id
+        )
+    );
+
+    try {
+      if (remaining.length === 0) {
+        await kafkaConnectCall({
+          method: "delete",
+          url: `${kafkaBase}/${connector_id}`,
+          allow404: true,
+        });
+      } else {
+        await kafkaConnectCall({
+          method: "put",
+          url: `${kafkaBase}/${connector_id}/config`,
+          data: buildHttpGroupConfig(remaining),
+        });
+      }
+    } catch (e) {
+      logger.error(
+        `[digitalObjects.cleanupConnectorEntry] Kafka cleanup failed for ${connector_id}: ${e.message}`
+      );
+    }
+
+    await model.postgres.sendQuery({
+      sql: `DELETE FROM connectors WHERE connector_id = '${connector_id}' AND digital_object_id = '${digital_object_id}' AND digital_twin_id = '${digital_twin_id}'`,
+    });
+  }
+
+  /**
+   * (twin_id, object_id) 조합을 들고 있는 잔존 Kafka 그룹 커넥터를 정리.
+   * DB에 없지만 Kafka 쪽에만 남은 drift 보정용.
+   * skipConnectorId로 이미 처리한 connector_id를 제외.
+   */
+  async sweepOrphanKafkaEntries({
+    digital_twin_id,
+    digital_object_id,
+    skipConnectorId,
+  }) {
+    const kafkaBase = `http://${config.kafka.connectHost}/connectors`;
+    let allConnectors;
+    try {
+      allConnectors = await kafkaConnectCall({
+        method: "get",
+        url: kafkaBase,
+      });
+    } catch (e) {
+      logger.error(
+        `[digitalObjects.sweepOrphanKafkaEntries] list connectors failed: ${e.message}`
+      );
+      return;
+    }
+
+    const httpGroupNames = (allConnectors ?? []).filter(
+      (name) => typeof name === "string" && name.startsWith("HttpSource")
+    );
+
+    for (const name of httpGroupNames) {
+      if (name === skipConnectorId) continue;
+
+      let cfgRes;
+      try {
+        cfgRes = await kafkaConnectCall({
+          method: "get",
+          url: `${kafkaBase}/${name}`,
+          allow404: true,
+        });
+      } catch (e) {
+        logger.error(
+          `[digitalObjects.sweepOrphanKafkaEntries] get config ${name} failed: ${e.message}`
+        );
+        continue;
+      }
+      if (!cfgRes) continue;
+
+      const cfg = cfgRes.config ?? cfgRes;
+      const twinIds = String(cfg?.["digital.twin.id"] ?? "").split(",");
+      const objIds = String(cfg?.["digital.object.id"] ?? "").split(",");
+
+      const len = Math.min(twinIds.length, objIds.length);
+      let hasMatch = false;
+      for (let i = 0; i < len; i++) {
+        if (
+          twinIds[i] === digital_twin_id &&
+          objIds[i] === digital_object_id
+        ) {
+          hasMatch = true;
+          break;
+        }
+      }
+      if (!hasMatch) continue;
+
+      // 잔존 발견 → DB 기준으로 강제 reconcile
+      const dbRows = await model.postgres.selectDataS({
+        sql: `SELECT * FROM connectors WHERE connector_id = '${name}'`,
+      });
+
+      try {
+        if (dbRows.length === 0) {
+          await kafkaConnectCall({
+            method: "delete",
+            url: `${kafkaBase}/${name}`,
+            allow404: true,
+          });
+        } else {
+          await kafkaConnectCall({
+            method: "put",
+            url: `${kafkaBase}/${name}/config`,
+            data: buildHttpGroupConfig(dbRows),
+          });
+        }
+      } catch (e) {
+        logger.error(
+          `[digitalObjects.sweepOrphanKafkaEntries] reconcile ${name} failed: ${e.message}`
+        );
+      }
+    }
   }
 
   async getConnectorCount(connector_id) {
@@ -927,32 +1136,35 @@ class DigitalObjects {
     const selectSQL = `SELECT * FROM digital_objects WHERE digital_object_id = '${digital_object_id}' AND digital_twin_id = '${digital_twin_id}'`;
     const selectedData = await model.postgres.selectData({ sql: selectSQL });
 
-    const deleteSQL = `DELETE FROM digital_objects WHERE digital_object_id = '${digital_object_id}'`;
+    // 3. digital_objects 삭제 - (do_id, twin_id) 복합키로 지정
+    const deleteSQL = `DELETE FROM digital_objects WHERE digital_object_id = '${digital_object_id}' AND digital_twin_id = '${digital_twin_id}'`;
     await model.postgres.sendQuery({ sql: deleteSQL });
 
+    // 4. POLL DO면 Kafka 그룹 커넥터에서 해당 엔트리 제거
+    let primaryConnectorId = null;
     if (selectedData.digital_object_data_source_type === "POLL") {
       const connectorData = await this.getConnectorData(
         digital_twin_id,
         digital_object_id,
       );
-      const [connectorCount, Connector_config] = await Promise.all([
-        this.getConnectorCount(connectorData.connector_id),
-        model.kafka.GetConnectorConfig({
-          connector_id: `${connectorData.connector_id}`,
-        }),
-      ]);
-
-      if (connectorCount > 1) {
-        await this.updateConnector({
-          connectorData,
-          Connector_config,
-          digital_object_id,
+      if (connectorData?.connector_id) {
+        primaryConnectorId = connectorData.connector_id;
+        // DB 기반 정리 (GET 없음, 409 race 회피)
+        await this.cleanupConnectorEntry({
+          connector_id: primaryConnectorId,
           digital_twin_id,
+          digital_object_id,
         });
-      } else {
-        await this.deleteConnector({ connectorData });
       }
     }
+
+    // 5. Drift sweep — DB엔 없지만 Kafka에 (twin_id, object_id) 잔존이 있으면 reconcile
+    //    이미 처리한 connector_id는 skipConnectorId로 제외
+    await this.sweepOrphanKafkaEntries({
+      digital_twin_id,
+      digital_object_id,
+      skipConnectorId: primaryConnectorId,
+    });
 
     return { delete: digital_object_id };
   }

@@ -47,6 +47,8 @@ exports.request = async ({ method, url, headers, bodyParams }) => {
 
       return response;
    } catch (e) {
+      // 409 Conflict는 startup 시 이미 존재하는 Kafka 커넥터 재등록 등에서 정상적으로 발생할 수 있어 로그 생략
+      if (e.response?.status === 409) return;
       logger.error(e);
    }
 };
