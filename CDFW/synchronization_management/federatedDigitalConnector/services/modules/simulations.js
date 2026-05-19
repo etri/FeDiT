@@ -98,11 +98,16 @@ class Simulations {
       '${JSON.stringify(preliminary_field)}');`;
     await model.postgres.sendQuery({ sql });
 
-    client.refreshMetadata([`${simulation_id}_result`], (err) => {
-      if (err) {
-        console.warn("Error refreshing kafka metadata", err);
-      }
-    });
+    try {
+      await admin.createTopics({
+        topics: [{ topic: `${simulation_id}_result` }],
+        waitForLeaders: true,
+      });
+    } catch (e) {
+      console.warn(
+        `Error ensuring kafka topic ${simulation_id}_result: ${e.message}`
+      );
+    }
 
     return { simulation_id };
   }

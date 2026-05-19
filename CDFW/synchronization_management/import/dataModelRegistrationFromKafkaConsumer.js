@@ -3,7 +3,7 @@ const axios = require("axios");
 
 const kafka = new Kafka({
   clientId: "client-keti",
-  brokers: ["220.124.222.84:9092"],
+  brokers: ["localhost:9092"], //220.124.222.84:9092, localhost:9092
 });
 
 const consumer = kafka.consumer({ groupId: "twin-meta" });
@@ -15,11 +15,6 @@ const consumer = kafka.consumer({ groupId: "twin-meta" });
  */
 const HOST_CONNECTOR = "http://localhost:1219";
 const HOST_BRAIN = "http://localhost:1213";
-
-/**
- * FDO 연계로 생성되는 파생 DO를 수용하는 전용 DT
- */
-const DERIVED_DO_TWIN_ID = "KR-01-SYSFDO-20260001";
 
 const initKafka = async () => {
   console.log("start subscribe");
@@ -152,19 +147,25 @@ async function processJsonObject(jsonData) {
 
       /**
        * DigitalTwinObject
-       * - upSetList[0].upModelId === FederatedDigitalTwin 이면 연합 객체(FDO) 등록/수정/삭제
+       * - 부모가 FederatedDigitalTwin 이고 upPrptyId === "federatedDigitalTwinObjects" 이면
+       *   연합 객체(FDO) 등록/수정/삭제로 처리
+       * - 부모가 FederatedDigitalTwin 이고 upPrptyId === "digitalTwinObjects" 이면
+       *   연합 트윈 하위에 등록된 단일 객체로, 미러 DT(id=fdt_id) 하위에 단일 DO로 처리
        * - 그 외는 기존 단일 트윈 하위 DO 등록/수정/삭제 유지
        */
       case "DigitalTwinObject": {
         const parentTwinType = resolveParentTwinTypeForObject(jsonData);
-        const isFederatedParent = parentTwinType === "FederatedDigitalTwin";
+        const parentPropertyId = jsonData?.upSetList?.[0]?.upPrptyId ?? null;
+        const isFDO =
+          parentTwinType === "FederatedDigitalTwin" &&
+          parentPropertyId === "federatedDigitalTwinObjects";
 
         if (!dtwId) {
           console.error("[error] dtwId not found for DigitalTwinObject");
           return;
         }
 
-        if (isFederatedParent) {
+        if (isFDO) {
           // 연합 객체(FDO)
           if (action === "create") {
             url = `${HOST_BRAIN}/fedit/v1/federated-twins/${dtwId}/federated-digital-objects`;
@@ -188,10 +189,45 @@ async function processJsonObject(jsonData) {
           }
         } else {
           // 기존 단일 트윈 하위 디지털 객체(DO)
-          if (action === "create") {
+          const isFDTSingleDOCreate =
+            parentTwinType === "FederatedDigitalTwin" &&
+            parentPropertyId === "digitalTwinObjects" &&
+            action === "create";
+
+          if (isFDTSingleDOCreate) {
+            // FDT 하위 단일 DO create는 후처리 단계의 createMirrorDigitalObject로 위임
+            // (url 미설정 → 메인 요청 자동 스킵)
+          } else if (action === "create") {
             url = `${HOST_CONNECTOR}/fedit/light/digital-twins/${dtwId}/digital-objects`;
             modifiedObject["digital_object_identifier"] = key;
             modifiedObject["digital_object_name"] = jsonData?.metadata?.name;
+
+            const accessUrl =
+              jsonData?.metadata?.digitalTwinObjectData?.dataAccessURL;
+            if (accessUrl) {
+              try {
+                const urlObj = new URL(accessUrl);
+                const source_base_url = `${urlObj.protocol}//${urlObj.host}`;
+                modifiedObject["digital_object_data_source_base_url"] =
+                  source_base_url;
+                modifiedObject["digital_object_data_source_url"] = accessUrl;
+                modifiedObject["digital_object_data_source_type"] = "POLL";
+              } catch (e) {
+                console.warn(`[warn] Invalid digitalAccessURL: ${accessUrl}`);
+              }
+            }
+
+            modifiedObject["digital_object_data_access_url"] =
+              jsonData?.metadata?.digitalTwinObjectData?.contextURL;
+            modifiedObject["digital_object_data_interval"] =
+              jsonData?.metadata?.digitalTwinObjectData?.updateInterval;
+            modifiedObject["digital_object_data_model"] =
+              jsonData?.metadata?.digitalTwinObjectData?.schemaInformation;
+            modifiedObject["digital_object_data_access_type"] = "http";
+            modifiedObject["digital_object_control_url"] =
+              jsonData?.metadata?.digitalObjectControlUrl;
+            modifiedObject["digital_object_control_request_model"] =
+              jsonData?.metadata?.digitalObjectControlRequestModel;
           } else if (action === "modify" || action === "delete") {
             url = `${HOST_CONNECTOR}/fedit/v1/digital-twins/${dtwId}/digital-objects/${key}`;
 
@@ -276,7 +312,43 @@ async function processJsonObject(jsonData) {
         return;
     }
 
-    if (method && url) {
+    const parentTwinType = resolveParentTwinTypeForObject(jsonData);
+    const parentPropertyId = jsonData?.upSetList?.[0]?.upPrptyId ?? null;
+    const isUnderFDT =
+      metaTypeModel === "DigitalTwinObject" &&
+      parentTwinType === "FederatedDigitalTwin";
+    const isFDOCreate =
+      isUnderFDT &&
+      parentPropertyId === "federatedDigitalTwinObjects" &&
+      action === "create";
+    const isSingleDOUnderFDTCreate =
+      isUnderFDT &&
+      parentPropertyId === "digitalTwinObjects" &&
+      action === "create";
+
+    const hasRelatedDtObjects =
+      Array.isArray(jsonData?.metadata?.relatedDigitalTwinObjects) &&
+      jsonData.metadata.relatedDigitalTwinObjects.length > 0;
+
+    // relatedDigitalTwinObjects가 없는 FDO create면 FDO 자체 생성은 건너뜀
+    const skipMainRequest = isFDOCreate && !hasRelatedDtObjects;
+
+    /**
+     * FDT 하위 DO create (FDO든 단일 DO든) 의 경우, 메인 요청 전에
+     * 커넥터 쪽 미러 DT(id=fdt_id)가 존재하는지 확인하고 없으면 먼저 생성한다.
+     * - FDO create: 메인 요청은 브레인(FDO 등록)이지만 이후 미러 DO 생성을 위해 DT 필요
+     * - 단일 DO create: 메인 요청이 커넥터의 DT 하위 DO 등록이므로 DT가 반드시 존재해야 함
+     */
+    if ((isFDOCreate || isSingleDOUnderFDTCreate) && dtwId) {
+      const dtExists = await checkDigitalTwinExists(dtwId);
+      if (!dtExists) {
+        await createMirrorDigitalTwin(dtwId);
+      } else {
+        console.log(`[info] DT ${dtwId} already exists, skip DT create`);
+      }
+    }
+
+    if (method && url && !skipMainRequest) {
       console.log({
         metaTypeModel,
         data: modifiedObject,
@@ -292,39 +364,32 @@ async function processJsonObject(jsonData) {
       });
 
       console.log(`res:`, response.data);
+    } else if (skipMainRequest) {
+      console.log(
+        `[info] Skip FDO create for ${key}: relatedDigitalTwinObjects is empty`,
+      );
+    }
 
-      const parentTwinType = resolveParentTwinTypeForObject(jsonData);
-      const isFederatedParent =
-        metaTypeModel === "DigitalTwinObject" &&
-        parentTwinType === "FederatedDigitalTwin";
-
-      /**
-       * FDO 생성 성공 후, 전용 DT 하위에 파생 DO 자동 생성
-       */
-      if (isFederatedParent && action === "create") {
-        const autoDoInfo = getAutoCreateDOInfo({
-          sourceFdtId: dtwId,
-          sourceFdoId: key,
-          metadata: jsonData?.metadata,
-        });
-
-        const doPayload = buildDerivedDigitalObjectFromFDO(autoDoInfo);
-
-        console.log({
-          message: "Creating derived DO from created FDO",
-          targetTwinId: DERIVED_DO_TWIN_ID,
-          doPayload,
-        });
-
-        const doResponse = await sendHTTPRequest({
-          metaTypeModel: "DigitalTwinObject(FDO->DerivedDO)",
-          data: doPayload.data,
-          method: "POST",
-          url: doPayload.url,
-        });
-
-        console.log("Derived DO create res:", doResponse.data);
-      }
+    /**
+     * FDT 하위 DO create 의 미러 DO 등록을 통일된 경로로 처리한다.
+     * - FDO(federatedDigitalTwinObjects): 메인은 브레인 FDO 등록, 이후 커넥터 미러 DO 등록
+     * - 단일 DO(digitalTwinObjects): 메인 요청은 스킵(case에서 url 미설정), 동일 경로로 미러 DO 등록
+     * preliminary_field.generated_from 으로 출처를 구분한다.
+     */
+    if (isFDOCreate) {
+      await createMirrorDigitalObject({
+        fdtId: dtwId,
+        fdoId: key,
+        fdoMetadata: jsonData?.metadata,
+        generatedFrom: "federated_digital_object",
+      });
+    } else if (isSingleDOUnderFDTCreate) {
+      await createMirrorDigitalObject({
+        fdtId: dtwId,
+        fdoId: key,
+        fdoMetadata: jsonData?.metadata,
+        generatedFrom: "digital_twin_object_under_federated_twin",
+      });
     }
   } catch (error) {
     console.error("[error] Invalid action or metaTypeModel", error);
@@ -364,102 +429,157 @@ const sendHTTPRequest = async ({ metaTypeModel, data, method, url }) => {
   }
 };
 
-function buildDerivedDigitalObjectFromFDO({
-  targetDtwId,
-  dataAccessURL,
-  digital_object_identifier,
-  digital_object_name,
-  description,
-  keywords,
-  subjects,
-  updateInterval,
-  digitalObjectDataModel,
-  sourceFdtId,
-  sourceFdoId,
-  sourceFdoName,
-}) {
-  const now = new Date().toISOString();
+async function checkDigitalTwinExists(dtId) {
+  const url = `${HOST_CONNECTOR}/fedit/v1/digital-twins/${dtId}`;
+  try {
+    const response = await axios.get(url);
+    const data = response.data;
+    // 빈 배열 응답은 존재하지 않음을 의미
+    if (Array.isArray(data) && data.length === 0) {
+      return false;
+    }
+    return true;
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return false;
+    }
+    console.error(
+      `[checkDigitalTwinExists] ${dtId} check failed:`,
+      error.message,
+    );
+    throw error;
+  }
+}
 
-  const modifiedObject = {
-    digital_object_identifier,
-    digital_object_name,
+async function fetchFederatedTwin(fdtId) {
+  const url = `${HOST_BRAIN}/fedit/v1/federated-twins/${fdtId}`;
+  try {
+    const response = await axios.get(url);
+    const data = response.data;
+    if (Array.isArray(data) && data.length === 0) return null;
+    return Array.isArray(data) ? data[0] : data;
+  } catch (error) {
+    console.warn(`[fetchFederatedTwin] ${fdtId} fetch failed:`, error.message);
+    return null;
+  }
+}
+
+async function createMirrorDigitalTwin(fdtId) {
+  const fdt = await fetchFederatedTwin(fdtId);
+  const now = new Date()
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d+Z$/, "");
+
+  const derivedFromTag = `[연합트윈 ${fdtId}에서 파생된 단일 트윈]`;
+  const description = fdt?.description
+    ? `${derivedFromTag} ${fdt.description}`
+    : derivedFromTag;
+
+  const payload = {
+    digital_twin_identifier: fdtId,
+    digital_twin_name: fdt?.federated_digital_twin_name ?? fdtId,
     description,
-    keywords,
-    subjects,
+    keywords: Array.isArray(fdt?.keywords) ? fdt.keywords : [],
+    owner: fdt?.owner ?? null,
+    point_of_access: fdt?.point_of_access ?? null,
+    creator_id: fdt?.creator_id ?? null,
     creation_time: now,
     modification_time: now,
+  };
+
+  const url = `${HOST_CONNECTOR}/fedit/light/digital-twins`;
+  const response = await sendHTTPRequest({
+    metaTypeModel: "DigitalTwin(MirrorFromFDT)",
+    data: payload,
+    method: "POST",
+    url,
+  });
+  console.log("Mirror DT create res:", response.data);
+  return response.data;
+}
+
+async function createMirrorDigitalObject({
+  fdtId,
+  fdoId,
+  fdoMetadata,
+  generatedFrom = "federated_digital_object",
+}) {
+  const now = new Date().toISOString();
+  const doData = fdoMetadata?.digitalTwinObjectData ?? {};
+
+  let dataSourceBaseUrl = null;
+  if (doData.dataAccessURL) {
+    try {
+      const urlObj = new URL(doData.dataAccessURL);
+      dataSourceBaseUrl = `${urlObj.protocol}//${urlObj.host}`;
+    } catch (e) {
+      console.warn(`[warn] Invalid dataAccessURL: ${doData.dataAccessURL}`);
+    }
+  }
+
+  const derivedLabel =
+    generatedFrom === "federated_digital_object"
+      ? "연합 객체"
+      : "연합트윈 하위 단일 객체";
+  const derivedFromTag = `[연합트윈 ${fdtId}의 ${derivedLabel} ${fdoId}에서 파생된 단일 객체]`;
+  const description = fdoMetadata?.description
+    ? `${derivedFromTag} ${fdoMetadata.description}`
+    : derivedFromTag;
+
+  const payload = {
+    digital_object_identifier: fdoId,
+    digital_object_name: fdoMetadata?.name ?? fdoId,
+    description,
+    keywords: Array.isArray(fdoMetadata?.keywords) ? fdoMetadata.keywords : [],
+    subjects: Array.isArray(fdoMetadata?.subjects) ? fdoMetadata.subjects : [],
+    creation_time: fdoMetadata?.creationTime ?? now,
+    modification_time: fdoMetadata?.modificationTime ?? now,
     digital_object_data_access_type: "http",
-    digital_object_data_access_url: dataAccessURL,
     digital_object_data_source_type: "POLL",
-    digital_object_data_source_url: null,
-    digital_object_data_source_base_url: null,
-    digital_object_data_model: digitalObjectDataModel ?? {},
-    digital_object_data_interval: updateInterval,
-    digital_object_control_request_model: {},
+    digital_object_data_model: doData.schemaInformation ?? {},
+    digital_object_control_request_model:
+      fdoMetadata?.digitalObjectControlRequestModel ?? {},
     do_metadata: {
       sensors: [],
       controllers: [],
       visual_models: {},
     },
     preliminary_field: {
-      generated_from: "federated_digital_object",
-      linked_federated_digital_twin_id: sourceFdtId,
-      linked_federated_digital_object_id: sourceFdoId,
-      linked_federated_digital_object_name: sourceFdoName,
+      generated_from: generatedFrom,
+      linked_federated_digital_twin_id: fdtId,
+      linked_federated_digital_object_id: fdoId,
+      linked_federated_digital_object_name: fdoMetadata?.name ?? fdoId,
       generated_at: now,
     },
   };
 
-  try {
-    const urlObj = new URL(dataAccessURL);
-    const source_base_url = `${urlObj.protocol}//${urlObj.host}`;
-    modifiedObject["digital_object_data_source_base_url"] = source_base_url;
-    modifiedObject["digital_object_data_source_url"] = dataAccessURL;
-  } catch (e) {
-    console.warn(`[warn] Invalid digitalAccessURL: ${dataAccessURL}`);
+  // nullable string/number 필드는 값이 있을 때만 포함 (서버가 null 거부)
+  if (doData.contextURL) {
+    payload.digital_object_data_access_url = doData.contextURL;
+  }
+  if (doData.dataAccessURL) {
+    payload.digital_object_data_source_url = doData.dataAccessURL;
+  }
+  if (dataSourceBaseUrl) {
+    payload.digital_object_data_source_base_url = dataSourceBaseUrl;
+  }
+  if (typeof doData.updateInterval === "number") {
+    payload.digital_object_data_interval = doData.updateInterval;
+  }
+  if (fdoMetadata?.digitalObjectControlUrl) {
+    payload.digital_object_control_url = fdoMetadata.digitalObjectControlUrl;
   }
 
-  return {
-    url: `${HOST_CONNECTOR}/fedit/v1/digital-twins/${targetDtwId}/digital-objects`,
-    data: modifiedObject,
-  };
-}
-
-function getAutoCreateDOInfo({ sourceFdtId, sourceFdoId, metadata }) {
-  const sourceFdoName = metadata?.name ?? sourceFdoId;
-  const sourceDescription =
-    metadata?.description ??
-    `${sourceFdoName} 연합 객체와 연계되어 자동 생성된 파생 디지털 객체`;
-
-  const sourceKeywords = Array.isArray(metadata?.keywords)
-    ? metadata.keywords
-    : [];
-
-  const sourceSubjects = Array.isArray(metadata?.subjects)
-    ? metadata.subjects
-    : [];
-
-  return {
-    targetDtwId: DERIVED_DO_TWIN_ID,
-    // dataAccessURL은 n2m? 에서 API 주소 제공할거라 생각함. 일단 포맷은 이렇게 잡아두겠음
-    dataAccessURL: `http://localhost:3001/ngsi-ld/objects/${sourceFdoId}`,
-    digital_object_identifier: `${sourceFdoId}`,
-    digital_object_name: `${sourceFdoName} 파생 DO`,
-    description: sourceDescription,
-    keywords: [
-      ...new Set([...sourceKeywords, "fdo-derived", "auto-generated"]),
-    ],
-    subjects:
-      sourceSubjects.length > 0
-        ? [...new Set([...sourceSubjects, "federated-digital-object"])]
-        : ["federated-digital-object", "derived-digital-object"],
-    updateInterval: metadata?.digitalTwinObjectData?.updateInterval ?? 600000, // 기본 10분
-    digitalObjectDataModel:
-      metadata?.digitalTwinObjectData?.schemaInformation ?? {},
-    sourceFdtId,
-    sourceFdoId,
-    sourceFdoName,
-  };
+  const url = `${HOST_CONNECTOR}/fedit/light/digital-twins/${fdtId}/digital-objects`;
+  const response = await sendHTTPRequest({
+    metaTypeModel: `DigitalTwinObject(Mirror:${generatedFrom})`,
+    data: payload,
+    method: "POST",
+    url,
+  });
+  console.log("Mirror DO create res:", response.data);
+  return response.data;
 }
 
 initKafka();

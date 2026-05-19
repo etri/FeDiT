@@ -65,11 +65,14 @@ exports.init = async () => {
         refreshMetadataTopics.push(`FDOsyncWindows${term}`);
       }
 
-      client.refreshMetadata(refreshMetadataTopics, (err) => {
-        if (err) {
-          console.warn("Error refreshing kafka metadata", err);
-        }
-      });
+      try {
+        await admin.createTopics({
+          topics: refreshMetadataTopics.map((topic) => ({ topic })),
+          waitForLeaders: true,
+        });
+      } catch (e) {
+        console.warn(`Error ensuring kafka topics: ${e.message}`);
+      }
 
       for (let i of sqlArr) {
         let StatementObj = {

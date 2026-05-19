@@ -1,0 +1,340 @@
+const express = require("express");
+const asyncify = require("express-asyncify");
+const router = asyncify(express.Router());
+const services = require("../../../../../services");
+const ErrorHandler = require("../../../../../lib/error-handler");
+const auth = require("../../../../../middlewares/auth");
+const joi = require("../../../../../middlewares/joi");
+/**
+ * DO Creation
+ */
+router.post("/", joi.digitalObjects.create, async function (req, res) {
+   try {
+      const { digital_twin_id } = req;
+      const result = await services.digitalObjects.create(
+         digital_twin_id,
+         req.body
+      );
+
+      res.success(201, result);
+   } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+         logger.error(e);
+         e = new ErrorHandler(
+            500,
+            500,
+            "Internal Server Error when creating digital objects"
+         );
+      }
+      e.handle(
+         req,
+         res,
+         `POST /fedit/v1/digital-twins/{digital_twin_id}}/digital-objects ${e}`
+      );
+   }
+});
+
+/**
+ * digital-object Search
+ * @param {string} name (required)
+ * @returns {Json} {}
+ */
+
+router.get("/", async (req, res) => {
+   try {
+      const { digital_twin_id } = req;
+      const { name } = req.query;
+      let result;
+      if (name) {
+         result = await services.digitalObjects.Search({
+            digital_twin_id,
+            name,
+         });
+      } else {
+         result = await services.digitalObjects.getAll({
+            digital_twin_id,
+         });
+      }
+      res.success(200, result);
+   } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+         logger.error(e);
+         e = new ErrorHandler(500, 500, "Internal Server Error");
+      }
+      e.handle(
+         req,
+         res,
+         `Search /fedit/v1/digital-twins/digital-objects/digital-objects`
+      );
+   }
+});
+
+/**
+ * digital-object Retrieve
+ * @param {string} digital_object_id (required)
+ * @returns {Json} {}
+ */
+router.get("/:digital_object_id", async (req, res) => {
+   try {
+      const { digital_twin_id } = req;
+      const { digital_object_id } = req.params;
+      const result = await services.digitalObjects.Retrieve({
+         digital_twin_id,
+         digital_object_id,
+      });
+
+      res.success(200, result);
+   } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+         logger.error(e);
+         e = new ErrorHandler(500, 500, "Internal Server Error");
+      }
+      e.handle(
+         req,
+         res,
+         `Retrieve /fedit/v1/{digital_twin_id}/digital-objects`
+      );
+   }
+});
+
+/**
+ * DO data Creation
+ */
+router.post(
+   "/:digital_object_id/data",
+   joi.digitalObjects.dataCreate,
+   async function (req, res) {
+      try {
+         const { digital_twin_id } = req;
+         const { digital_object_id } = req.params;
+         const result = await services.digitalObjects.createDigitalObjectData(
+            { digital_twin_id, digital_object_id },
+            req.body
+         );
+
+         res.success(201, result);
+      } catch (e) {
+         if (!(e instanceof ErrorHandler)) {
+            logger.error(e);
+            e = new ErrorHandler(
+               500,
+               500,
+               "Internal Server Error when creating digital objects"
+            );
+         }
+         e.handle(
+            req,
+            res,
+            `POST /fedit/v1/digital-twins/{digital_twin_id}}/digital-objects ${e}`
+         );
+      }
+   }
+);
+
+/**
+ * get digital object data
+ * @body {String} fedit_id (required)
+ * @body {String} digital_twin_id (required)
+ * @body {String} digital_object_id (required)
+ * @body {String} timestamp (system)
+ * @body {Json} location (optional)
+ * @body {String} data (required)
+ * @returns {Json} {}
+ */
+router.get("/:digital_object_id/data", async function (req, res) {
+   try {
+      const { digital_twin_id } = req;
+      const { digital_object_id } = req.params;
+      const { from, to, count, offset } = req.query;
+
+      const result = await services.digitalObjects.getData({
+         digital_twin_id,
+         id: digital_object_id,
+         from,
+         to,
+         count,
+         offset,
+      });
+      res.success(201, result);
+   } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+         logger.error(e);
+         e = new ErrorHandler(500, 500, "Internal Server Error");
+      }
+      e.handle(
+         req,
+         res,
+         "GET /fedit/v1/{digital_twin_id}/digital-objects/{digital_object_id}/data"
+      );
+   }
+});
+
+/*
+ * DO DELETE
+ */
+router.delete("/:digital_object_id", async (req, res) => {
+   try {
+      const { digital_twin_id } = req;
+      const { digital_object_id } = req.params;
+      const result = await services.digitalObjects.delete({
+         digital_twin_id,
+         digital_object_id,
+      });
+
+      res.success(200, result);
+   } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+         logger.error(e);
+         e = new ErrorHandler(500, 500, "Internal Server Error");
+      }
+      e.handle(
+         req,
+         res,
+         `delete /fedit/v1/{digital_twin_id}/digital-objects/{digital_object_id}`
+      );
+   }
+});
+
+/*
+ * DO UPDATE
+ */
+router.patch(
+   "/:digital_object_id",
+   joi.digitalObjects.update,
+   async (req, res) => {
+      try {
+         const { digital_twin_id } = req;
+         const { digital_object_id } = req.params;
+
+         const result = await services.digitalObjects.update(
+            {
+               digital_twin_id,
+               digital_object_id,
+            },
+            req.body
+         );
+
+         res.success(201, result);
+      } catch (e) {
+         if (!(e instanceof ErrorHandler)) {
+            logger.error(e);
+            e = new ErrorHandler(500, 500, "Internal Server Error");
+         }
+         e.handle(
+            req,
+            res,
+            `UPDATE /fedit/v1/{digital_twin_id}/digital-objects/{digital_object_id}`
+         );
+      }
+   }
+);
+
+/**
+ * digital-object control data creation
+ * @body {String} digital_twin_id (required)
+ * @body {String} digital_object_id (required)
+ * @body {String} control_data_id (system)
+ * @body {Json Array} control_messages (controller_id, control_data_creator command)
+ * @returns {Json} {}
+ */
+router.post(
+   "/:digital_object_id/control",
+   joi.controllers.DataCreate,
+   async function (req, res) {
+      try {
+         const { digital_twin_id } = req;
+         const { digital_object_id } = req.params;
+         // const { control_messages } = req.body;
+         const result = await services.digitalObjects.createDOControlData(
+            digital_twin_id,
+            digital_object_id,
+            req.body // control_data_creator, controller_id, control_command
+         );
+
+         res.success(201, result);
+      } catch (e) {
+         if (!(e instanceof ErrorHandler)) {
+            logger.error(e);
+            e = new ErrorHandler(500, 500, "Internal Server Error");
+         }
+         e.handle(
+            req,
+            res,
+            "POST /fedit/v1/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control"
+         );
+      }
+   }
+);
+
+// /**
+//  * digital-object control data creation
+//  * @body {String} digital_twin_id (required)
+//  * @body {String} digital_object_id (required)
+//  * @body {String} control_data_id (system)
+//  * @body {Json Array} control_messages (controller_id, control_data_creator command)
+//  * @returns {Json} {}
+//  */
+// router.post(
+//    "/:digital_object_id/control-result",
+//    joi.controllers.DataResultCreate,
+//    async function (req, res) {
+//       try {
+//          const { digital_twin_id } = req;
+//          const { digital_object_id } = req.params;
+
+//          const result = await services.digitalObjects.createDOExecutionData(
+//             digital_twin_id,
+//             digital_object_id,
+//             req.body // digital_object_control_data_id, execution result
+//          );
+
+//          res.success(201, result);
+//       } catch (e) {
+//          if (!(e instanceof ErrorHandler)) {
+//             logger.error(e);
+//             e = new ErrorHandler(500, 500, "Internal Server Error");
+//          }
+//          e.handle(
+//             req,
+//             res,
+//             "POST /fedit/v1/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control-result"
+//          );
+//       }
+//    }
+// );
+
+/**
+ * digital-object control data retrieve
+ * localhost:1203/fedit/v1/digital-twins/{digital_twin_id}/digital-objects/{digital_object_id}/control?from=2023-03-12T23:32:01.232&to=2023-04-12T06:48:45.232
+ * @param {string} name (required)
+ * @returns {Json} {}
+ */
+router.get("/:digital_object_id/control", async (req, res) => {
+   try {
+      const { digital_twin_id } = req;
+      const { digital_object_id } = req.params;
+      const { from, to, count } = req.query;
+
+      const result = await services.digitalObjects.searchControl({
+         digital_twin_id,
+         digital_object_id,
+         from,
+         to,
+         count,
+      });
+
+      res.success(200, result);
+   } catch (e) {
+      if (!(e instanceof ErrorHandler)) {
+         logger.error(e);
+         e = new ErrorHandler(500, 500, "Internal Server Error");
+      }
+      e.handle(
+         req,
+         res,
+         `Retrive /fedit/v1/{digital_twin_id}/digital-objects/{digital_object_id}/control`
+      );
+   }
+});
+
+module.exports = router;

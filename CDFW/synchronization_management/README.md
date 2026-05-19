@@ -295,6 +295,8 @@ connector/
 
 ### 4-1) 커넥터 빌드
 
+> ⚠️ gradlew: Permission denied는 wrapper 실행권한 문제 — chmod +x gradlew로 해결 가능
+
 ```bash
 # JDBC Connector
 cd connector/jdbc-connector-for-apache-kafka
@@ -921,38 +923,93 @@ docker --version
 docker compose version
 ```
 
-## 2. 환경 구성
+## 2. 환경 구성 (.env)
 
-Create .env file in the project root.
+ℹ️ **`.env` 작성 안내**
+`docker compose`는 프로젝트 루트의 `.env` 파일을 자동으로 읽어 컨테이너에 환경 변수를 주입합니다.  
+실행 전 반드시 `.env` 파일을 생성해야 합니다 (없으면 변수가 비어 컨테이너 시작 실패).
 
-Example:
+> 💡 위쪽 **`.env.node`** 는 로컬에서 `node app.js`로 직접 실행할 때 쓰는 파일이고,  
+> 이 섹션의 **`.env`** 는 **`docker compose`** 가 컨테이너에 주입하는 변수 모음입니다.  
+> 두 파일은 서로 다른 용도로 별도 관리됩니다.
+
+**📁 파일 위치**
 
 ```
+FederatedTwin
+├── .env                  ← 이 파일
+├── .env.node             ← (별도, 로컬 Node.js 실행용)
+├── docker-compose.yml
+└── ...
+```
+
+**📋 변수 설명**
+
+| 변수                                                                        | 용도                                                           | 변경 필요성                                            |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------ |
+| `POSTGRES_HOST`                                                             | brain/connector가 접속할 DB 호스트명                           | 컴포즈 내부는 `postgres` 고정                          |
+| `POSTGRES_PORT`                                                             | DB 포트                                                        | 보통 `5432`                                            |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD`                                       | DB 계정                                                        | **운영 시 반드시 강한 값으로 변경**                    |
+| `POSTGRES_DB`                                                               | brain/connector가 사용할 DB 이름                               | `federated_digital_twin`                               |
+| `AIRFLOW_ADMIN_USERNAME` / `AIRFLOW_ADMIN_PASSWORD` / `AIRFLOW_ADMIN_EMAIL` | Airflow 웹 UI 초기 관리자 계정                                 | **운영 시 반드시 강한 값으로 변경**                    |
+| `TZ`                                                                        | 컨테이너 타임존                                                | 기본 `Asia/Seoul`                                      |
+| `KAFKA_HOST`                                                                | 서비스 컨테이너가 Kafka에 접속할 주소 (컴포즈 내부)            | `kafka:9092` 고정                                      |
+| `KAFKA_CONNECT_HOST`                                                        | Kafka Connect REST API 주소 (컴포즈 내부)                      | `kafka-connect:8083` 고정                              |
+| `MQTT_HOST` / `MQTT_PORT`                                                   | MQTT 브로커 주소 (컴포즈 내부)                                 | `mqtt` / `1883` 고정                                   |
+| `FLINK_GATEWAY_HOST` / `FLINK_GATEWAY_HOSTNAME` / `FLINK_GATEWAY_PORT`      | Flink SQL Gateway 주소 (컴포즈 내부)                           | `flink:8087` 고정                                      |
+| `KAFKA_EXTERNAL_HOST`                                                       | **호스트 밖의 클라이언트**가 Kafka에 접속할 때 advertised host | 단일 머신이면 `localhost`, 원격이면 **서버의 공개 IP** |
+| `KAFKA_EXTERNAL_PORT`                                                       | 외부 advertised 포트                                           | `19092` (호스트 포트와 일치해야 함)                    |
+
+**Example** (개발용 기본값)
+
+```env
+# --- PostgreSQL ---
 POSTGRES_HOST=postgres
 POSTGRES_PORT=5432
 POSTGRES_USER=postgres
-POSTGRES_PASSWORD=keti123
+POSTGRES_PASSWORD=keti123          # ⚠️ 운영 시 변경
 POSTGRES_DB=federated_digital_twin
 
+# --- Airflow 관리자 ---
 AIRFLOW_ADMIN_USERNAME=admin
-AIRFLOW_ADMIN_PASSWORD=admin1234
+AIRFLOW_ADMIN_PASSWORD=admin1234   # ⚠️ 운영 시 변경
 AIRFLOW_ADMIN_EMAIL=admin@example.com
 
+# --- 공통 ---
 TZ=Asia/Seoul
 
+# --- Kafka (컴포즈 내부 통신) ---
 KAFKA_HOST=kafka:9092
 KAFKA_CONNECT_HOST=kafka-connect:8083
 
+# --- MQTT ---
 MQTT_HOST=mqtt
 MQTT_PORT=1883
 
+# --- Flink ---
 FLINK_GATEWAY_HOST=flink:8087
 FLINK_GATEWAY_HOSTNAME=flink
 FLINK_GATEWAY_PORT=8087
 
-KAFKA_EXTERNAL_HOST=localhost
+# --- Kafka 외부 노출 (호스트 밖 클라이언트용 advertised listener) ---
+KAFKA_EXTERNAL_HOST=localhost      # 원격 서버라면 해당 서버의 공개 IP로 변경
 KAFKA_EXTERNAL_PORT=19092
 ```
+
+**🌐 원격 서버에 배포할 때**
+
+`KAFKA_EXTERNAL_HOST`를 **서버의 공개 IP/도메인**으로 바꿔야 외부 클라이언트(예: 다른 머신에서 도는 producer/consumer)가 Kafka에 접속 가능합니다.
+
+```env
+KAFKA_EXTERNAL_HOST=220.124.222.84   # 예시: 실제 서버 IP
+KAFKA_EXTERNAL_PORT=19092
+```
+
+**🔒 보안 주의사항**
+
+- `.env`는 **git에 커밋하지 마세요** (`.gitignore`에 이미 포함됨)
+- `POSTGRES_PASSWORD`, `AIRFLOW_ADMIN_PASSWORD`는 운영 환경에서 추측 불가능한 값으로 변경
+- 비밀번호 변경 후엔 `docker compose down -v && docker compose up -d --build`로 볼륨 재생성 권장 (기존 DB의 user 자격은 초기화 안 됨)
 
 ## 3. Platform 실행
 

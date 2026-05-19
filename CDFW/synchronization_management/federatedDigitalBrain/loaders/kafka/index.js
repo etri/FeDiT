@@ -1,23 +1,68 @@
-const kafka = require("kafka-node");
+process.env.KAFKAJS_NO_PARTITIONER_WARNING = "1";
+const { Kafka, logLevel } = require("kafkajs");
 const config = require("../../config");
 const Model = require("../../models");
 const model = new Model();
 
 exports.init = async () => {
   try {
-    const HighLevelProducer = kafka.HighLevelProducer;
-    global.client = new kafka.KafkaClient({
-      kafkaHost: config.kafka.host,
+    const brokers = config.kafka.host.split(",").map((s) => s.trim());
+
+    const kafka = new Kafka({
+      clientId: "federated-digital-brain",
+      brokers,
+      logLevel: logLevel.WARN,
+      connectionTimeout: 10000,
+      requestTimeout: 30000,
+      retry: {
+        initialRetryTime: 1000,
+        retries: 8,
+        factor: 2,
+        maxRetryTime: 30000,
+      },
     });
-    global.producer = new HighLevelProducer(client, {
-      partitionerType: 3,
+
+    const producer = kafka.producer({
+      allowAutoTopicCreation: true,
+      retry: { retries: 5 },
     });
-    producer.on("ready", function () {
-      logger.info("Kafka Producer is on ready");
+    const admin = kafka.admin();
+
+    await producer.connect();
+    await admin.connect();
+
+    producer.on(producer.events.CONNECT, () => {
+      logger.info(`Kafka producer connected (brokers=${brokers.join(",")})`);
     });
-    producer.on("error", function (err) {
-      logger.error("error" + err);
+    producer.on(producer.events.DISCONNECT, () => {
+      logger.warn(
+        `Kafka producer disconnected (brokers=${brokers.join(",")})`
+      );
     });
+    producer.on(producer.events.REQUEST_TIMEOUT, (e) => {
+      logger.error(
+        `Kafka producer request timeout (brokers=${brokers.join(",")}): ${
+          e?.payload?.broker ?? ""
+        }`
+      );
+    });
+
+    global.kafka = kafka;
+    global.producer = producer;
+    global.admin = admin;
+
+    const gracefulShutdown = async () => {
+      try {
+        await producer.disconnect();
+        await admin.disconnect();
+      } catch (e) {
+        logger.error(`Kafka graceful shutdown error: ${e.message}`);
+      }
+    };
+    process.once("SIGINT", gracefulShutdown);
+    process.once("SIGTERM", gracefulShutdown);
+
+    logger.info("Kafka Producer is on ready");
 
     const status = await model.kafka.GetConnectorCheck({
       connectors: [
