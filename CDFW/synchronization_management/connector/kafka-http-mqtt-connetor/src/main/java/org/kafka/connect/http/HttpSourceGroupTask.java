@@ -5,8 +5,8 @@ import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.header.ConnectHeaders;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.kafka.connect.util.JSONException;
+import org.kafka.connect.util.JSONObject;
 
 import javax.net.ssl.SSLException;
 import javax.ws.rs.core.Response;

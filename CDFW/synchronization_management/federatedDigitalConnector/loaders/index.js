@@ -10,7 +10,7 @@ exports.start = async ({ app }) => {
   globalLoader.init();
   expressLoader.init({ app });
   mqttLoader.init();
-  kafkaLoader.init();
+  await kafkaLoader.init();
   postgresLoader.init();
   multerLoader.init();
   logger.info("all loaders initialized");

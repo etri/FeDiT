@@ -11,7 +11,7 @@ const controlNotificationWorkerLoader = require("./controlNotificationWorker");
 exports.start = async ({ app }) => {
   globalLoader.init();
   postgresLoader.init();
-  kafkaLoader.init();
+  await kafkaLoader.init();
   flinkLoader.init();
   mqttLoader.init();
   expressLoader.init({ app });

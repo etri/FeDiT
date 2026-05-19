@@ -1,1 +1,0 @@
-UPDATE customers SET age = ?, firstName = ?, lastName = ? WHERE id = ?

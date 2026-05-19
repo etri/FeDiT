@@ -7,7 +7,7 @@ import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
-import org.json.JSONObject;
+import org.kafka.connect.util.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

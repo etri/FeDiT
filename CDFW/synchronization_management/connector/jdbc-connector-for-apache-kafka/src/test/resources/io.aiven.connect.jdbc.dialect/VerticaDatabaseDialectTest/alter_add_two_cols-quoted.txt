@@ -1,2 +1,0 @@
-ALTER TABLE "myTable" ADD "newcol1" INT NULL
-ALTER TABLE "myTable" ADD "newcol2" INT DEFAULT 42
