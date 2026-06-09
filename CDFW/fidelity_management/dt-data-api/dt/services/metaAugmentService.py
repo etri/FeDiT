@@ -28,7 +28,6 @@ from dt_data_api.common.lib import (
     regression,
     fid,
     rnnGenerater,
-    timeganGenerater,
     imputerganGenerater,
     imputerGenerater,
     rnnGeneraterMeta,
@@ -2748,7 +2747,7 @@ class augmentService(object):
             df_cut[index_col] = df_cut[index_col].apply(
                 lambda x: x.replace(year=new_year).strftime("%Y-%m-%d %H:%M:%S")
             )
-            
+
             df_cut.to_csv(test_file_path, index=False)
         else:
             data_frame.to_csv(test_file_path, index=False)
