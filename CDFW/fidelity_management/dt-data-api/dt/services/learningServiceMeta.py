@@ -27,7 +27,6 @@ from dt_data_api.common.lib import (
     regression,
     fid,
     rnnGeneraterMeta,
-    timeganGenerater,
     imputerganGenerater,
     imputerGenerater,
     randomForestGenerater,
@@ -720,45 +719,6 @@ class learningServiceMeta(object):
             result["resultMessage"] = score
         except Exception as e:
             errorMsg = "GetDataImageFID Error : "
-            for m in e.args:
-                errorMsg += str(m) + "-"
-            logging.error(errorMsg[:-1])
-            result["result"] = False
-            result["resultMessage"] = errorMsg
-
-        return result
-
-    def createLearningTimeGANMeta(self):
-        """
-        TimeGAN 학습모델 생성
-        Returns: 결과여부, 데이터 값
-            {'result': False, 'resultMessage':None}
-        """
-        result = {"result": False, "resultMessage": None}
-        # file='dt_data_api/data/test_data_201901_201902_2.csv'
-        file = "dt_data_api/data/201901_201912유동인구.csv"
-        # file='dt_data_api/data/1_문화누리카드 이용자 수_영향인자_O_연령대별_1원본.csv'
-        df = pd.read_csv(file, header=0, index_col=0, parse_dates=True)
-        # df=pd.read_csv(file)
-        df = df.sort_index()
-
-        # fileName = 'ID_' + str(datetime.now().date()).replace('-','') + '.h5'
-        # fileName = 'ID_2023.h5'
-
-        # fileName = 'ID_2023_pop_synthetic.pkl'
-        # item = 'w60'
-
-        fileName = "synthesizer_exp.pkl"
-        item = "w60"
-
-        try:
-            m = timeganGenerater.Manager(df)
-            m.modelTrainninSynthetic(fileName, item)
-
-            result["result"] = True
-            result["resultMessage"] = "학습완료"
-        except Exception as e:
-            errorMsg = "createLearningTimeGAN Error : "
             for m in e.args:
                 errorMsg += str(m) + "-"
             logging.error(errorMsg[:-1])
