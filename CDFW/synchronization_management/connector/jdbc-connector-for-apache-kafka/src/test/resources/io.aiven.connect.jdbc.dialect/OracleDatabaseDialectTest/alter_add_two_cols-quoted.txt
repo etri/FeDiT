@@ -1,3 +1,0 @@
-ALTER TABLE "myTable" ADD(
-"newcol1" NUMBER(10,0) NULL,
-"newcol2" NUMBER(10,0) DEFAULT 42)

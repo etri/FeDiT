@@ -1,2 +1,0 @@
-ALTER TABLE "myTable" ADD
-"newcol1" int NULL

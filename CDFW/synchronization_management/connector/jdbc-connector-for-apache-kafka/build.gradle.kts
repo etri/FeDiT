@@ -112,16 +112,18 @@ val slf4jVersion = "2.0.13"
 dependencies {
     compileOnly("org.apache.kafka:connect-api:$kafkaVersion")
 
-    runtimeOnly("org.xerial:sqlite-jdbc:3.46.0.1")
     runtimeOnly("org.postgresql:postgresql:42.7.3")
-    // Oracle JDBC (ojdbc8) removed for license cleanliness — Oracle Free Use Terms
-    // are non-OSS and incompatible with Apache-2.0 redistribution.
-    // If Oracle support is required at runtime, add the driver to your Kafka Connect
-    // plugin path at deployment time and accept Oracle's license separately.
-    runtimeOnly("net.sourceforge.jtds:jtds:1.3.1")
-    runtimeOnly("net.snowflake:snowflake-jdbc:3.16.1")
-    runtimeOnly("com.microsoft.sqlserver:mssql-jdbc:12.6.1.jre11")
-    runtimeOnly("com.mysql:mysql-connector-j:8.4.0")
+    // This deployment targets PostgreSQL only. Other JDBC drivers removed to shrink the
+    // dependency/license surface and to drop snowflake-jdbc, which shaded a vulnerable
+    // Apache Arrow 15.0.2 (CVE — critical/high). Re-add a driver here if another database
+    // is required at runtime:
+    //   runtimeOnly("org.xerial:sqlite-jdbc:3.46.0.1")
+    //   runtimeOnly("net.sourceforge.jtds:jtds:1.3.1")                // Sybase / legacy MSSQL
+    //   runtimeOnly("net.snowflake:snowflake-jdbc:3.16.1")            // bundles Apache Arrow
+    //   runtimeOnly("com.microsoft.sqlserver:mssql-jdbc:12.6.1.jre11")
+    //   runtimeOnly("com.mysql:mysql-connector-j:8.4.0")
+    // Oracle JDBC (ojdbc8) is intentionally excluded — Oracle Free Use Terms are non-OSS
+    // and incompatible with Apache-2.0 redistribution.
 
     implementation("com.google.guava:guava:33.2.1-jre")
     implementation("org.slf4j:slf4j-api:$slf4jVersion")

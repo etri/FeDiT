@@ -14,8 +14,7 @@ ext {
     set('connectApi', '2.5.0')
     set('jsonSimple', '1.1.1')
     set('mqttV3', '1.2.5')
-    set('jackson', '2.14.1')
-    set('json-path', '2.6.0')
+    set('jackson', '2.16.2')
 }
 
 dependencies {
@@ -30,11 +29,11 @@ dependencies {
     implementation "org.eclipse.paho:org.eclipse.paho.client.mqttv3:${mqttV3}"
     implementation "com.fasterxml.jackson.core:jackson-databind:${jackson}"
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:${jackson}"
-    implementation 'com.jayway.jsonpath:json-path:2.6.0'
+    implementation 'com.jayway.jsonpath:json-path:2.9.0'
     // SLF4J API + simple binding (MIT). logback-classic removed for license cleanliness (EPL/LGPL).
     implementation 'org.slf4j:slf4j-api:1.7.32'
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    implementation group: 'org.postgresql', name: 'postgresql', version: '42.6.0' // 추가
+    implementation group: 'org.postgresql', name: 'postgresql', version: '42.7.3' // 추가
     runtimeOnly 'org.postgresql:postgresql' // 추가
 }
 

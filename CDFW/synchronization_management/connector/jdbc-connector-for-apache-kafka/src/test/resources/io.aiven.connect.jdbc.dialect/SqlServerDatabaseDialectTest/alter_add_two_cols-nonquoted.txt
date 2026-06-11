@@ -1,3 +1,0 @@
-ALTER TABLE myTable ADD
-newcol1 int NULL,
-newcol2 int DEFAULT 42
