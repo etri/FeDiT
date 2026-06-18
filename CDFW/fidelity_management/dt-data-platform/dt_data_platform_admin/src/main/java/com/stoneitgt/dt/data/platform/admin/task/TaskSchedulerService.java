@@ -274,6 +274,19 @@ public class TaskSchedulerService {
         List<Map<String, Object>> selectJobList = makeMetaSimulationSchedulerService.getJobList();
         for (Map<String, Object> job : selectJobList) {
             log.info("job -> {}", job);
+            /**
+             * CYCLE_BGNG_DSGN_YMD (yyyy-MM-dd HH:mm:ss, String)
+             * CYCLE_END_DSGN_YMD (yyyy-MM-dd HH:mm:ss, String)
+             * 조건 검사 추가
+             * 현재 시간이 CYCLE_BGNG_DSGN_YMD <= NOW() <= CYCLE_END_DSGN_YMD 사이에 있는 것들만 진행
+             * */
+            String cycle_bgng_dsgn_ymd = job.get("cycle_bgng_dsgn_ymd").toString();
+            String cycle_end_dsgn_ymd = job.get("cycle_end_dsgn_ymd").toString();
+            if (!TimeUtil.isCurrentTimeInRange(cycle_bgng_dsgn_ymd, cycle_end_dsgn_ymd)) {
+                log.info("현재 시간이 증강 주기 설계 시작일과 종료일 사이에 있지 않음. 증강 번호: {}", job.get("augment_seq").toString());
+                continue;
+            }
+
             //증강 시작 시간
             String augment_crt_bgng = job.get("augment_crt_bgng") != null ? ((java.sql.Timestamp) job.get("augment_crt_bgng")).toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null;
 

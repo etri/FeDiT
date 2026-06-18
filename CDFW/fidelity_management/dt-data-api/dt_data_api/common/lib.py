@@ -3,7 +3,7 @@ from dt_data_api.common.enum import (
 )
 from dt_data_api.db.query import ExecuteQuery
 from dt_data_api.model import (
-    fillna, interpolate, resample, regression, imputerganGenerater, fid, rnnGenerater, rnnGeneraterMeta, timeganGenerater, imputerGenerater, imputerBritsGenerater, outlier, decisionTree, randomForestGenerater,
+    fillna, interpolate, resample, regression, imputerganGenerater, fid, rnnGenerater, rnnGeneraterMeta, imputerGenerater, imputerBritsGenerater, outlier, decisionTree, randomForestGenerater,
     deepARGenerater,arimaGenerater, nbeatsGenerater, imputerNaomiGenerater
 )
 from dt_data_api.model.utils import ModelParameters, InputParameters
