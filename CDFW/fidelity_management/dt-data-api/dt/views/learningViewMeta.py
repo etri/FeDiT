@@ -225,24 +225,6 @@ class learningViewSetMeta(viewsets.ViewSet):
         return Response(rd.getJson())
 
     @action(detail=False, methods=["POST", "GET"])
-    def timeGAN_create(self, request):
-        """
-        TimeGAN 학습모델 생성
-        """
-        data = self.service.createLearningTimeGANMeta()
-        if data["result"]:
-            rd = responseData(
-                code=status.HTTP_200_OK, message="OK", data=data["resultMessage"]
-            )
-        else:
-            rd = responseData(
-                code=status.HTTP_400_BAD_REQUEST,
-                message="BAD_REQUEST",
-                detail=data["resultMessage"],
-            )
-        return Response(rd.getJson())
-
-    @action(detail=False, methods=["POST", "GET"])
     def createModelGenerater(self, request):
         """
         RNN 학습모델 생성
@@ -1243,7 +1225,7 @@ class learningViewSetMeta(viewsets.ViewSet):
             num_segments=num_segments,
             segment_len=segment_len,
         )
-    
+
         if data["result"]:
             rd = responseData(
                 code=status.HTTP_200_OK, message="OK", data=data["resultMessage"]

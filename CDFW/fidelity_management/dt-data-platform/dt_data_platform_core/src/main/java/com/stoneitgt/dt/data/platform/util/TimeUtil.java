@@ -278,4 +278,11 @@ public class TimeUtil {
         LocalDateTime to = parseEndOf(toDate);
         return (!d.isBefore(from)) && (!d.isAfter(to)); // from <= d <= to
     }
+
+    public static boolean isCurrentTimeInRange(String cycleBgngDsgnYmd, String cycleEndDsgnYmd) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime start = LocalDateTime.parse(cycleBgngDsgnYmd, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        LocalDateTime end = LocalDateTime.parse(cycleEndDsgnYmd, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        return !now.isBefore(start) && !now.isAfter(end); // start <= now <= end
+    }
 }
