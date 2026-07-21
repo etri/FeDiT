@@ -1,0 +1,4 @@
+airflow-code-editor
+fsspec>=2024.3.0,<2025
+s3fs
+psycopg2-binary
