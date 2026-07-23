@@ -536,7 +536,6 @@ async function createMirrorDigitalObject({
     creation_time: fdoMetadata?.creationTime ?? now,
     modification_time: fdoMetadata?.modificationTime ?? now,
     digital_object_data_access_type: "http",
-    digital_object_data_source_type: "POLL",
     digital_object_data_model: doData.schemaInformation ?? {},
     digital_object_control_request_model:
       fdoMetadata?.digitalObjectControlRequestModel ?? {},
@@ -560,6 +559,7 @@ async function createMirrorDigitalObject({
   }
   if (doData.dataAccessURL) {
     payload.digital_object_data_source_url = doData.dataAccessURL;
+    payload.digital_object_data_source_type = "POLL";
   }
   if (dataSourceBaseUrl) {
     payload.digital_object_data_source_base_url = dataSourceBaseUrl;
