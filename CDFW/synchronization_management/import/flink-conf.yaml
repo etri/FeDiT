@@ -88,7 +88,7 @@ taskmanager.memory.process.size: 3456m
 
 # The number of task slots that each TaskManager offers. Each slot runs one parallel pipeline.
 
-taskmanager.numberOfTaskSlots: 32
+taskmanager.numberOfTaskSlots: 16
 
 # The parallelism used for programs that did not specify and other parallelism.
 
@@ -307,25 +307,8 @@ classloader.resolve-order: parent-first
 sql-gateway.endpoint.type: rest
 sql-gateway.endpoint.rest.address: 192.168.140.123
 sql-gateway.endpoint.rest.port: 8087
-
 #Timeout interval for closing the session when the session hasn't been accessed during the interval
 sql-gateway.session.idle-timeout: 0
 
-# table.exec.sink.not-null-enforcer: drop
-
 table.exec.state.ttl: 86400000
-# session:
-#   idle-timeout: 0                  # optional: Session will be closed when it's not accessed for this duration, which can be disabled by setting to zero. The minimum unit is in milliseconds. (1d by default)
-#   check-interval: 0                # optional: The check interval for session idle timeout, which can be disabled by setting to zero. The minimum unit is in milliseconds. (1h by default)
-#   max-count: 0                # optional: Max count of active sessions, which can be disabled by setting to zero. (1000000 by default)
-
-#table.exec.sink.not-null-enforcer: drop
-#akka.client.timeout: 300000
-# rest.flamegraph.enabled: true
-# jobmanager.memory.off-heap.size: 10gb
-# jobmanager.memory.jvm-metaspace.size: 10gb
-
-### RocksDB Configurable Options
-# state.backend.rocksdb.writebuffer.count: 10 #default:2
-#state.backend.rocksdb.writebuffer.size: 64mb
 table.exec.sink.upsert-materialize: NONE
