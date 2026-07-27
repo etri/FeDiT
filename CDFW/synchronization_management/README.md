@@ -236,13 +236,11 @@ cd kafka_2.11-2.4.0/config
 ls
 ```
 
-## 2. Kafka Connect 설정 (config/connect-distributed.properties)
+## 2. Kafka config 설정
 
-- connect-distributed.properties 파일 수정(주석제거 및 주소입력)
+### 2-1. 서버 IP 및 pluginpath 확인
 
-### 2-1. 서버 IP 확인
-
-아래 명령어로 Kafka가 실행 중인 서버의 IP 주소를 확인합니다.
+- 아래 명령어로 Kafka가 실행 중인 서버의 IP 주소를 확인합니다.
 
 ```bash
 hostname -I
@@ -254,17 +252,27 @@ hostname -I
 192.168.145.13
 ```
 
-### 2-2. 설정 파일 열기
+- 아래 명령어로 Kafka plugin 주소를 확인합니다. (**확인 후 복사**)
+
+```bash
+realpath FeDiT/CDFW/synchronization_management/plugin/kafka-connector/
+```
+
+예시 출력:
+
+```bash
+/home/jejutp/FeDiT/CDFW/synchronization_management/plugin/kafka-connector
+```
+
+### 2-2. connecter 설정 (config/connect-distributed.properties)
 
 ```bash
 cd kafka_2.11-2.4.0/config
 vi connect-distributed.properties
 ```
 
-### 2-3. 설정 파일 수정
-
 > 아래 설정에서 aaa.bbb.ccc.ddd 부분을
-> 위에서 확인한 서버의 실제 IP 주소로 반드시 변경하세요.
+> 위에서 확인한 서버의 실제 IP 주소로 변경하세요
 
 ```properties
 
@@ -274,16 +282,31 @@ rest.advertised.host.name=aaa.bbb.ccc.ddd
 rest.advertised.port=8083
 connector.client.config.override.policy=All
 consumer.auto.offset.reset=latest
+#복사한 plugin 주소 붙여넣기
 plugin.path=/sync_engine/plugin/kafka-connector
 ```
 
 > ⚠️ **중요**
 > plugin.path 경로에는 아래의 안내에 따라 직접 빌드한 커스텀 커넥터 JAR들이 위치해야 합니다.
 
+## 2-3. Broker 설정 (config/server.properties)
+
+```bash
+cd kafka_2.11-2.4.0/config
+vi server.properties
+```
+
+```properties
+# server.properties 파일 수정(주석제거 및 주소입력)
+
+listeners=PLAINTEXT://:9092
+advertised.listeners=PLAINTEXT://aaa.bbb.ccc.ddd:9092
+```
+
 ## 3. 커넥터 디렉토리 구조
 
 ```bash
-connector/
+/FeDiT/CDFW/synchronization_management/connector/
  ├── jdbc-connector-for-apache-kafka/
  ├── kafka-http-mqtt-connetor/
  └── kafka-sink-connector/
@@ -299,7 +322,7 @@ connector/
 
 ```bash
 # JDBC Connector
-cd connector/jdbc-connector-for-apache-kafka
+cd jdbc-connector-for-apache-kafka
 ./gradlew clean build
 
 # HTTP/MQTT Connector
@@ -315,36 +338,23 @@ cd ../kafka-sink-connector
 
 ```bash
 # 폴더 확인
-ls /sync_engine/plugin/kafka-connector
+cd ../../
+ls plugin/kafka-connector
 # 없으면 생성
 mkdir /sync_engine/plugin/kafka-connector
 
 # 빌드 성공 후 생성된 jar파일 복사
-cp connector/jdbc-connector-for-apache-kafka/build/libs/*.jar \
-   /sync_engine/plugin/kafka-connector/
+cp connector/jdbc-connector-for-apache-kafka/build/libs/*.jar plugin/kafka-connector/
 
-cp connector/kafka-http-mqtt-connetor/build/libs/*.jar \
-   /sync_engine/plugin/kafka-connector/
+cp connector/kafka-http-mqtt-connetor/build/libs/*.jar plugin/kafka-connector/
 
-cp connector/kafka-sink-connector/build/libs/*.jar \
-   /sync_engine/plugin/kafka-connector/
+cp connector/kafka-sink-connector/build/libs/*.jar plugin/kafka-connector/
+
+# plugin path에 복사완료된 jar파일 확인
+ls plugin/kafka-connector/
 ```
 
-## 5. Broker 설정 (config/server.properties)
-
-```bash
-cd kafka_2.11-2.4.0/config
-vi server.properties
-```
-
-```properties
-# server.properties 파일 수정(주석제거 및 주소입력)
-
-listeners=PLAINTEXT://:9092
-advertised.listeners=PLAINTEXT://aaa.bbb.ccc.ddd:9092
-```
-
-## 6. PostgreSQL JDBC 드라이버 추가
+## 5. PostgreSQL JDBC 드라이버 추가
 
 ```bash
 cd kafka_2.11-2.4.0/libs/
@@ -367,7 +377,8 @@ tar -xvzf flink-1.17.0-bin-scala_2.12.tgz
 ### 2-1) 기본 라이브러리 복사
 
 ```bash
-cp /sync_engine/plugin/flink-lib/* flink-1.17.0/lib/
+cd flink-1.17.0/lib
+cp /sync_engine/plugin/flink-lib/* .
 ```
 
 복사되는 파일:
@@ -382,15 +393,18 @@ cp /sync_engine/plugin/flink-lib/* flink-1.17.0/lib/
 ### 2-2) Sedona Flink 라이브러리 추가
 
 ```bash
-wget https://repo1.maven.org/maven2/org/apache/sedona/sedona-flink-shaded-3.0_2.12/1.5.1/sedona-flink-shaded-3.0_2.12-1.5.1.jar \
-     -O sedona-flink-shaded_2.12-1.5.1-SNAPSHOT.jar
-
-cp sedona-flink-shaded_2.12-1.5.1-SNAPSHOT.jar flink-1.17.0/lib/
+wget https://repo1.maven.org/maven2/org/apache/sedona/sedona-flink-shaded_2.12/1.5.1/sedona-flink-shaded_2.12-1.5.1.jar
+wget https://repo1.maven.org/maven2/org/datasyslab/geotools-wrapper/1.5.1-28.2/geotools-wrapper-1.5.1-28.2.jar
 ```
 
 > ⚠️ 반드시 위에서 설치한 `flink-1.17.0/lib/`에 위치
 
 ## 3. flink-conf.yaml 설정
+
+```bash
+cd flink-1.17.0/conf
+vi flink-conf.yaml
+```
 
 - 주석제거 및 주소입력
 
@@ -398,33 +412,13 @@ cp sedona-flink-shaded_2.12-1.5.1-SNAPSHOT.jar flink-1.17.0/lib/
 > **Flink JobManager가 실행되는 서버의 IP 주소**로 변경해야 합니다.
 
 ```yaml
-jobmanager.rpc.address: aaa.bbb.ccc.ddd
-jobmanager.rpc.port: 6123
-jobmanager.bind-host: 0.0.0.0
-jobmanager.memory.process.size: 3200m
-
-taskmanager.bind-host: aaa.bbb.ccc.ddd
-taskmanager.host: aaa.bbb.ccc.ddd
-taskmanager.memory.process.size: 3456m
-taskmanager.memory.flink.size: 2560m
-taskmanager.numberOfTaskSlots: 8
-
-parallelism.default: 1
-execution.checkpointing.interval: 3min
-execution.checkpointing.mode: EXACTLY_ONCE
-
-state.backend.type: rocksdb
-state.checkpoints.dir: file:///data/flink/flink-checkpoints
-state.savepoints.dir: file:///data/flink/flink-savepoints
-
-jobmanager.execution.failover-strategy: region
+taskmanager.numberOfTaskSlots: 16
 
 rest.port: 8081
 rest.address: aaa.bbb.ccc.ddd
 rest.bind-address: aaa.bbb.ccc.ddd
 
-io.tmp.dirs: /tmp/flink
-
+# 추가
 sql-gateway.endpoint.type: rest
 sql-gateway.endpoint.rest.address: aaa.bbb.ccc.ddd
 sql-gateway.endpoint.rest.port: 8087
@@ -444,7 +438,7 @@ export PATH=$PATH:$FLINK_HOME/bin
 source /etc/profile
 ```
 
-## 5. Flink 클러스터 구성 (선택 사항)
+## 5. Flink 클러스터 구성 (선택 사항. 필수 아님)
 
 - 모든 노드 동일 경로 설치
 - master 노드에서 `masters`, `workers` 파일 설정
@@ -557,12 +551,15 @@ sudo -u postgres psql
 
 ```sql
 ALTER USER postgres PASSWORD '<passwd지정>';
+\q
 ```
 
 ## 6. Database 생성 (init script 사용)
 
 ```bash
-psql -U postgres -f docker/postgres/init/01-create-dbs.sql
+cd FeDiT/CDFW/synchronization_management/docker/postgres/init
+sudo su postgres
+psql -f 01-create-dbs.sql
 ```
 
 > 📌 해당 스크립트는 아래 DB를 생성합니다:
@@ -576,17 +573,15 @@ psql -U postgres -f docker/postgres/init/01-create-dbs.sql
 ## 7. Dump 파일 Import
 
 ```bash
-su - postgres
-
-# import 폴더로 이동 (예: /sync_engine/import)
-cd /sync_engine/import
+# import 폴더로 이동 (FeDiT/CDFW/synchronization_management/import)
+cd ../../../import/
 
 # federated_digital_twin-dump.sql 파일을 DB에 import
 psql federated_digital_twin < federated_digital_twin-dump.sql
+exit
 ```
 
 > ⚠️ 반드시 `federated_digital_twin-dump.sql` 파일이 해당 디렉토리에 존재해야 합니다.
-> (예: `/sync_engine/import/federated_digital_twin-dump.sql`)
 
 🔎 Notes
 
@@ -598,7 +593,7 @@ psql federated_digital_twin < federated_digital_twin-dump.sql
 
 # **Apache Airflow 설치 및 설정**
 
-⚠️ Airflow는 커넥터 스케줄링 및 실행 관리를 위한 선택 구성 요소입니다.  
+⚠️ Airflow는 커넥터 스케줄링 및 실행 관리를 위한 **선택 구성 요소**입니다.  
 PostgreSQL 메타데이터 DB 설정이 먼저 완료되어 있어야 합니다.
 
 ## 1. Python 가상환경 생성
@@ -767,6 +762,80 @@ FederatedTwin allows developers to create custom connectors for ingesting extern
 
 ---
 
+## nginx
+
+```
+# 설치
+sudo apt update
+sudo apt install nginx
+
+# 설치 시 에러 주의 (nginx: [emerg] socket() [::]:80 failed (97: Address family not supported by protocol))
+# 이는 IPv6를 지원하지 않는 서버인데 nginx가 IPv6([::]:80)로 바인딩하려고 해서 발생한 오류입니다.
+ -  먼저 아래 명령을 실행해주세요.
+grep -R "\[::\]" /etc/nginx
+
+ - 아마 다음과 같은 결과가 나올 것입니다.
+/etc/nginx/sites-available/default:listen [::]:80 default_server;
+/etc/nginx/sites-available/default:listen [::]:80;
+
+# IPv6 listen 제거
+ - 편집기를 엽니다.
+sudo vi /etc/nginx/sites-available/default
+
+ - 다음 두 줄을 찾아 삭제하거나 앞에 #를 붙여 주석 처리합니다.
+listen [::]:80 default_server;
+listen [::]:80;
+
+ - 최종적으로는 아래처럼 남아있으면 됩니다.
+server {
+    listen 80 default_server;
+    # listen [::]:80 default_server;
+
+    root /var/www/html;
+}
+
+# 설정 검사
+sudo nginx -t
+
+ - 정상이라면 아래와 같이 출력됩니다
+syntax is ok
+test is successful
+
+# 설치 마무리
+sudo apt --fix-broken install
+
+# 서비스 시작
+sudo systemctl restart nginx
+
+# 상태 확인
+sudo systemctl status nginx
+
+# nginx.conf 파일 찾기 (보통 /etc/nginx/nginx.conf)
+sudo find / -name nginx.conf
+
+- FeDiT/CDFW/synchronization_management/import/nginx.conf 사용
+# 기존 nginx.conf 백업
+sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak
+
+# 새 nginx.conf 복사
+sudo cp synchronization_management/import/nginx.conf /etc/nginx/nginx.conf
+
+# IP 주소 변경 (외부 주소에 nginx로 진입하는 주소 작성 .e.g) sudo sed -i 's/220\.124\.222\.84/101.79.23.242/g' /etc/nginx/nginx.conf)
+sudo sed -i 's/220\.124\.222\.84/외부 주소/g' /etc/nginx/nginx.conf
+
+# 변경이 제대로 되었는지 확인하려면
+grep -n "외부 주소" /etc/nginx/nginx.conf
+
+# 문법 검사
+sudo nginx -t
+
+# 서비스 시작
+sudo systemctl restart nginx
+sudo systemctl status nginx
+```
+
+---
+
 # **federatedDigitalBrain/federatedDigitalConnector 설정**
 
 ### ⚙️ 환경 설정 (.env.node)
@@ -782,9 +851,8 @@ FederatedTwin allows developers to create custom connectors for ingesting extern
 `.env.node` 파일의 프로젝트 루트 위치 확인
 
 ```
-FederatedTwin
+synchronization_management
 ├── .env.node
-├── docker-compose.yml
 ├── federatedDigitalBrain
 ├── federatedDigitalConnector
 └── ...
@@ -807,12 +875,30 @@ POSTGRES_PORT=5432
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=<postgresql설정 시 지정한 비밀번호 작성>
 
+AIRFLOW_ADMIN_USERNAME=admin
+AIRFLOW_ADMIN_PASSWORD=admin1234
+AIRFLOW_ADMIN_EMAIL=admin@example.com
+
 KAFKA_HOST=localhost:9092
+KAFKA_CONNECT_HOST=localhost:8083
 
 MQTT_HOST=localhost
 MQTT_PORT=1883
 
-SEDONA_JAR_PATH=/home/User/flink-1.17.0/lib/
+FLINK_GATEWAY_HOST=localhost:8087
+FLINK_GATEWAY_HOSTNAME=localhost
+FLINK_GATEWAY_PORT=8087
+FLINK_TOTAL_ROWS=0
+FLINK_SCAN_PARTITION_NUM=0
+FLINK_PARTITION_MODE=none
+
+SEDONA_JAR_PATH=<sedona jar파일 위치 작성>
+
+KAFKA_EXTERNAL_HOST=localhost
+KAFKA_EXTERNAL_PORT=19092
+
+UPLOAD_FOLDER=visual-model-assets/
+UPLOAD_MAX_SIZE=100 * 1024 * 1024
 ```
 
 **⚠️ Sedona JAR 위치 찾기**
@@ -820,6 +906,9 @@ SEDONA_JAR_PATH=/home/User/flink-1.17.0/lib/
 ```bash
 # Flink lib:
 ls $FLINK_HOME/lib | grep sedona
+
+# FLINK_HOME 설정이 안됐을 경우 직접 찾기
+realpath flink-1.17.0/lib/sedona-flink-shaded_2.12-1.5.1.jar
 ```
 
 ---
@@ -827,11 +916,15 @@ ls $FLINK_HOME/lib | grep sedona
 ## 패키지 설치 (Brain / Connector)
 
 ```bash
-cd sync_engine\federatedDigitalBrain
+cd CDFW/synchronization_management/import
+npm i kafkajs axios
+
+cd ../federatedDigitalBrain
 npm install
 
 cd ../federatedDigitalConnector
 npm install
+
 ```
 
 ⚠️ npm i 중 에러가 나면 Node 버전(node -v)이 16인지 먼저 확인하세요
@@ -860,11 +953,13 @@ bin/connect-distributed.sh -daemon config/connect-distributed.properties
 ## Flink 실행
 
 ```bash
+cd ~/flink-1.17.0
+
 # 클러스터 실행
 bin/start-cluster.sh
 
 # SQL Gateway 실행
-bin/sql-gateway.sh start
+bin/sql-gateway.sh
 ```
 
 ---
@@ -892,9 +987,11 @@ SqlGateway
 ## 동기화 엔진(DigitalBrain/DigitalConnector) 실행
 
 ```bash
-cd sync_engine
+cd FeDiT/CDFW/synchronization_management/
 pm2 start federatedDigitalBrain/app.js
 pm2 start federatedDigitalConnector/app.js
+cd ../import
+pm2 start dataModelRegistrationFromKafkaConsumer.js
 ```
 
 - 실행 화면 예시
