@@ -535,29 +535,16 @@ psql -h localhost -U "$DB_USERNAME" -d dtmeta -c "\dt dtmeta.*" | head
 # 시퀀스 5개가 생성됐는지 확인
 psql -h localhost -U "$DB_USERNAME" -d dtmeta -c "\ds dtmeta.*"
 
-# 인증 서버 초기 데이터가 들어갔는지 확인 (application 2건, users 8건)
-psql -h localhost -U "$HUBSECURITY_USERNAME" -d hubsecurity -c "select count(*) from application;"
-psql -h localhost -U "$HUBSECURITY_USERNAME" -d hubsecurity -c "select count(*) from users;"
+# OAuth 앱이 들어갔는지 확인 (security 는 :33000, metaweb 은 :8084/redirect 로 나와야 한다)
+psql -h localhost -U "$HUBSECURITY_USERNAME" -d hubsecurity -c "select application_id_pk, application_name, redirect_uri from application;"
+
+# 계정이 들어갔는지 확인 (8건. 비밀번호는 모두 rhksflwk1!, 운영 서버에서는 변경한다)
+#   meta_admin / keti_dt / admin / n2m_iot   시스템 관리자 (설치 확인은 meta_admin)
+#   meta_tester1~4                           제공자 / 관리자 / 조회자 / 기본 사용자
+psql -h localhost -U "$HUBSECURITY_USERNAME" -d hubsecurity -c "select user_id_pk, role from users;"
 
 # 비밀번호 환경변수 해제
 unset PGPASSWORD
-
-########################################
-# 여기서 만들어진 로그인 계정
-#   전부 비밀번호는 rhksflwk1! 이다. 운영 서버에서는 반드시 변경한다.
-#
-#   meta_admin      시스템 관리자  (설치 확인은 이 계정으로 한다)
-#   keti_dt         시스템 관리자
-#   admin           시스템 관리자
-#   n2m_iot         시스템 관리자
-#   meta_tester1    메타데이터 제공자
-#   meta_tester2    메타데이터 관리자
-#   meta_tester3    조회자
-#   meta_tester4    기본 사용자
-#
-#   로그인 자체는 hubsecurity DB 의 users 가, 화면에 보이는 메뉴는
-#   dtmeta DB 의 common.tb_com_authusermap 이 결정한다. 둘 다 있어야 정상 동작한다.
-########################################
 
 
 ########################################
@@ -913,6 +900,14 @@ docker exec influxdb2 influx bucket list -t "$INFLUX_TOKEN" -o dtmeta
 #
 #   각 앱 폴더의 .env.example 에 설정할 수 있는 값이 정리돼 있다.
 #   값을 지정하지 않으면 소스의 기본값(이 문서 기준)이 그대로 쓰인다.
+#
+#   .env 를 고쳤으면 docker restart 가 아니라 컨테이너를 다시 만들어야 한다.
+#   --env-file 은 컨테이너를 만들 때 한 번만 읽는다.
+#     docker rm -f <컨테이너명> 후 docker run 을 다시 실행
+#     docker exec <컨테이너명> printenv <변수명> 으로 반영 확인
+#
+#   값은 ~/dt.env 부터 고치고 앱 .env 를 다시 만든다.
+#   ~/dt.env 가 비어 있으면 앱 .env 도 빈 값으로 덮어써진다.
 ################################################################################
 
 
@@ -1099,6 +1094,16 @@ grep SECURITY_SECRET_KEY ~/dt.env
 #      RDF 네임스페이스 주소로 쓰이기 때문이다.
 ########################################
 
+# 기본값이 없는 두 값을 먼저 확인한다 (비어 있으면 안 된다)
+echo "SECURITY_SECRET_KEY = [$SECURITY_SECRET_KEY]"
+echo "INFLUX_TOKEN        = [$INFLUX_TOKEN]"
+
+# INFLUX_TOKEN 이 비었으면 6-1 에서 만든 값을 되살린다
+# export INFLUX_TOKEN=$(grep DOCKER_INFLUXDB_INIT_ADMIN_TOKEN $DT_DIR/influxdb2/.env.influxdb2 | cut -d= -f2-)
+# sed -i "s|^export INFLUX_TOKEN=.*|export INFLUX_TOKEN='$INFLUX_TOKEN'|" ~/dt.env
+
+# SECURITY_SECRET_KEY 가 비었으면 9-2 를 다시 실행한다
+
 # 설정 파일 디렉터리 생성
 mkdir -p $DT_DIR/meta-api
 
@@ -1123,6 +1128,9 @@ EOF
 
 # 작성 결과 확인 (SECURITY_SECRET_KEY 와 INFLUX_TOKEN 이 비어 있으면 안 된다)
 cat $DT_DIR/meta-api/.env
+
+# 토큰이 실제로 통하는지 확인 (버킷 목록이 나와야 한다. 401 이면 토큰이 틀린 것)
+docker exec influxdb2 influx bucket list -t "$INFLUX_TOKEN" -o dtmeta
 
 
 ########################################
@@ -1152,11 +1160,16 @@ docker logs --tail 30 keti-dt-metadata-api
 #      context-path 는 /meta 다.
 ########################################
 
-# 상태 확인
-curl -s http://localhost:16997/meta/actuator/health
+# 상태 확인 (UP 이 나와야 한다)
+curl -s http://localhost:16997/meta/actuator/health;  echo
 
 # 저장소 연결 오류가 없는지 로그로 확인
 docker logs keti-dt-metadata-api | grep -iE "error|exception|refused" | head -20
+
+# InfluxDB 인증이 되는지 확인 (401 이 나오면 INFLUX_TOKEN 이 틀린 것)
+# 이 값이 틀리면 기동은 되고 로그인도 되지만, 나중에 키워드 등록에서 500 이 난다
+docker logs keti-dt-metadata-api | grep -i "unauthorized" | head -3
+echo "위에 아무것도 안 나오면 정상"
 
 # Elasticsearch 인덱스에 접근되는지 확인 (5-7 에서 만든 dtmeta)
 curl -s -u "$ELASTIC_USERNAME:$ELASTIC_PASSWORD" http://localhost:9200/_cat/indices?v
@@ -1243,12 +1256,15 @@ echo "$WEB_SERVER_URL"
 # 브라우저가 https 로 바꿔 접속하면 인증서 경고가 뜬다. 이 시스템은 http 만 쓴다.
 # 주소창에 http:// 를 직접 붙이거나, 크롬 설정에서 "항상 보안 연결 사용" 을 끈다.
 #
-# [로그인이 안 될 때]
-#   redirect_uri mismatch  -> DB 의 application.redirect_uri 와
-#                             웹 빌드 시 넘긴 WEB_SERVER_URL 이 다른 경우
-#                             아래로 DB 값을 확인하고 맞춘다
-#   로그인은 되는데 메뉴가 비어 있음
-#                          -> common.tb_com_authusermap 에 그 계정의 권한이 없는 경우
+# 로그인 후 메타데이터를 하나 등록하고 키워드까지 저장해 본다.
+# 등록이 성공해야 저장소 5종 연동이 모두 확인된다. 로그인만으로는 확인되지 않는다.
+#
+# [막힐 때]
+#   redirect_uri mismatch      -> DB 의 metaweb 앱 redirect_uri 와 웹 빌드값이 다름
+#   아이디/비밀번호 팝업이 뜸  -> DB 에 security 앱이 없음
+#   로그인 후 메뉴가 비어 있음 -> common.tb_com_authusermap 에 그 계정 권한이 없음
+#   저장은 되는데 키워드 500   -> INFLUX_TOKEN 이 틀림 (아래로 확인)
+#                                 docker logs keti-dt-metadata-api | grep -i unauthorized
 
 # DB 에 들어 있는 redirect_uri 확인
 export PGPASSWORD="$DB_PASSWORD"
