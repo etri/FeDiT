@@ -1,6 +1,6 @@
 const DB = require("../util/queries");
 const UID = require("../util/generateUid");
-const serverInfo = require("../server_conf.json");
+const serverInfo = require("../server_conf");
 const mailer = require("./mailer");
 const moment = require("moment");
 

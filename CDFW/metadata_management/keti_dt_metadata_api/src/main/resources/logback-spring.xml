@@ -56,7 +56,16 @@
 	        <appender-ref ref="CONSOLE" />
         </root>
     </springProfile>
-    <springProfile name="dev | test | prod">
+    <!-- 도커로 설치할 때 쓰는 프로필. docker logs 로 상태를 봐야 하므로 콘솔도 함께 남긴다. -->
+    <springProfile name="dev">
+        <logger name="kr.co.n2m.platform" level="DEBUG" />
+        <root level="INFO">
+	        <appender-ref ref="ASYNC_FILE_APPENDER" />
+	        <appender-ref ref="ASYNC_ERROR_FILE_APPENDER" />
+	        <appender-ref ref="CONSOLE" />
+        </root>
+    </springProfile>
+    <springProfile name="test | prod">
         <logger name="kr.co.n2m.platform" level="DEBUG" />
         <root level="INFO">
 	        <appender-ref ref="ASYNC_FILE_APPENDER" />

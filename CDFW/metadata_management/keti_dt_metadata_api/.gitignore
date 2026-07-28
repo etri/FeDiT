@@ -32,3 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 logs/
+
+# 실제 설정값 (.env.example 을 복사해 사용)
+.env

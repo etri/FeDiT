@@ -547,10 +547,11 @@ public class Neo4jService {
 			throw new ResForbiddenException("NEO4J 그래프 초기화 권한이 없습니다.");
 		}     
         
-    	/* 필요한 경우. neo4j 브라우저에서 실행
+    	/* 설치 시 1회 실행. 설치 스크립트 4-2 에 포함되어 있다.
     	 * --제약 사항 설정 (Neo4j에 저장할 때 uri가 중복되지 않도록 제약)
-    	 * CREATE CONSTRAINT n10s_unique_uri FOR (n:Resource) REQUIRE n.uri IS UNIQUE;
-    	 * 
+    	 * CREATE CONSTRAINT resource_uri_unique IF NOT EXISTS FOR (n:Resource) REQUIRE n.uri IS UNIQUE;
+    	 * (예전 버전에서는 이름이 n10s_unique_uri 였다. 기존 설치 서버에는 그 이름으로 남아 있을 수 있다)
+    	 *
     	 * --graph config 초기 설정
     	 * CALL n10s.graphconfig.init();
     	 */
@@ -2138,11 +2139,11 @@ public class Neo4jService {
 			throw new ResForbiddenException("NEO4J 그래프 초기화 권한이 없습니다.");
 		}     
         
-    	/* 필요한 경우. neo4j 브라우저에서 실행
+    	/* 설치 시 1회 실행. 설치 스크립트 4-2 에 포함되어 있다.
     	 * --제약 사항 설정 (Neo4j에 저장할 때 medataSetId가 중복되지 않도록 제약)
-    	 * CREATE CONSTRAINT FOR (n:medataResource) REQUIRE n.medataSetId IS UNIQUE;
+    	 * CREATE CONSTRAINT medata_resource_datasetid_unique IF NOT EXISTS FOR (n:medataResource) REQUIRE n.medataSetId IS UNIQUE;
     	 * --2025-10-29 개념 키워드 제약 설정
-    	 * CREATE CONSTRAINT concept_keyword_value_unique FOR (k:ConceptKeyword) REQUIRE k.value IS UNIQUE;
+    	 * CREATE CONSTRAINT concept_keyword_value_unique IF NOT EXISTS FOR (k:ConceptKeyword) REQUIRE k.value IS UNIQUE;
     	 */
     	
     	// 1. medataResource 전체 삭제 쿼리
