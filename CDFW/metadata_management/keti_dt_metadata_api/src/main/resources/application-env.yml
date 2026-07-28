@@ -7,6 +7,13 @@ spring:
     activate:
       on-profile:
       - local
+  # Spring Boot 기본 헬스체크(ElasticsearchRestClientHealthIndicator)가 보는 주소.
+  # 지정하지 않으면 localhost:9200 을 봐서 actuator/health 가 DOWN 으로 나온다.
+  # 앱이 실제로 쓰는 접속 정보는 아래 elastic 항목이며 이것과 별개다.
+  elasticsearch:
+    uris: http://${SERVER_HOST:localhost}:9200
+    username: ${ELASTIC_USERNAME:elastic}
+    password: ${ELASTIC_PASSWORD:rhksflwk1!}
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:5432/dtmeta
     username: ${DB_USERNAME:meta_manager}
@@ -134,6 +141,13 @@ spring:
     activate:
       on-profile:
       - dev
+  # Spring Boot 기본 헬스체크(ElasticsearchRestClientHealthIndicator)가 보는 주소.
+  # 지정하지 않으면 localhost:9200 을 봐서 actuator/health 가 DOWN 으로 나온다.
+  # 앱이 실제로 쓰는 접속 정보는 아래 elastic 항목이며 이것과 별개다.
+  elasticsearch:
+    uris: http://elasticsearch:9200
+    username: ${ELASTIC_USERNAME:elastic}
+    password: ${ELASTIC_PASSWORD:rhksflwk1!}
   datasource:
     url: jdbc:postgresql://${DB_HOST:172.25.0.1}:5432/dtmeta
     username: ${DB_USERNAME:meta_manager}
@@ -242,6 +256,13 @@ spring:
     activate:
       on-profile:
       - prod
+  # Spring Boot 기본 헬스체크(ElasticsearchRestClientHealthIndicator)가 보는 주소.
+  # 지정하지 않으면 localhost:9200 을 봐서 actuator/health 가 DOWN 으로 나온다.
+  # 앱이 실제로 쓰는 접속 정보는 아래 elastic 항목이며 이것과 별개다.
+  elasticsearch:
+    uris: http://elasticsearch:9200
+    username: ${ELASTIC_USERNAME:elastic}
+    password: ${ELASTIC_PASSWORD:rhksflwk1!}
   datasource:
     url: jdbc:postgresql://${DB_HOST:172.25.0.1}:5432/dtmeta
     username: ${DB_USERNAME:meta_manager}
