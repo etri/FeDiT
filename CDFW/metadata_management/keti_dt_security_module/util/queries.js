@@ -2,7 +2,7 @@
 
 const pg = require("pg");
 var UID = require("./generateUid");
-const serverInfo = require("../server_conf.json");
+const serverInfo = require("../server_conf");
 /**
  @param {String} qry
  @api private

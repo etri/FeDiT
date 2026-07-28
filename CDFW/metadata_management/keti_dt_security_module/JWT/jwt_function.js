@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const jose = require('node-jose');
-const type = require('../server_conf.json').token_type;
+const type = require('../server_conf').token_type;
 
 if(type=='JWE'){
    module.exports = {
