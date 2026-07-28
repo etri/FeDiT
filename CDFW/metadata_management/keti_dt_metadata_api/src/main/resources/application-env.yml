@@ -1,3 +1,6 @@
+### local 프로필 (개발자 PC 실행)
+###  컨테이너명으로는 접근할 수 없으므로 기본값이 localhost 다.
+###  다른 서버를 바라보려면 SERVER_HOST / DB_HOST 등을 환경변수로 지정한다.
 # DataBase
 spring:
   config:
@@ -5,124 +8,144 @@ spring:
       on-profile:
       - local
   datasource:
-    url: jdbc:postgresql://{postgresql}:5432/dtmeta
-    username: meta_manager
-    password: rhksflwk1!
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/dtmeta
+    username: ${DB_USERNAME:meta_manager}
+    password: ${DB_PASSWORD:rhksflwk1!}
     driver-class-name: org.postgresql.Driver
   kafka:
-    bootstrap-servers: {kafka server ip}:9092
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
     client-id : DT_PRODUCER
     auth:
-      user-id: 
-      user-pw: 
-    thread-sleep : 100  
-    
-# Spring Doc Open Api    
+      user-id: ${KAFKA_USERNAME:}
+      user-pw: ${KAFKA_PASSWORD:}
+    thread-sleep : 100
+
 springdoc.swagger-ui.enabled: true
 
 
-  
+
 # Security
 security:
-  secret-key: {key==}
+  secret-key: "${SECURITY_SECRET_KEY:XBcunwbKqe/4bxy6r0PneVHZd4IzMZ/dwh+S7VI0kec=}"
 
 oauth:
-  public-key: http://{security web server ip}:33000/security/publickey
-  access-token: http://{security web server ip}:33000/oauth2.0/token
-authorization: 
+  public-key: http://${SERVER_HOST:localhost}:33000/security/publickey
+  access-token: http://${SERVER_HOST:localhost}:33000/oauth2.0/token
+authorization:
   data : true
   default-auth:
-    use-flag: true  
+    use-flag: true
     list: AUT_META_DEFAULT
-  
-platform.common.api.url: http://{keti-dt-platformadmin-api}:6998
 
-# Metadata RDF URL (Namespace) 
+platform.common.api.url: http://${SERVER_HOST:localhost}:6998
+
+# Metadata RDF URL (Namespace)
 dtmeta:
   # TODO : 임시 정의, 추후 수정 필요
   resource:
-    base-url: http://{web server ip}:8084/meta/resource/page/
-    data-url: http://{web server ip}:8084/meta/api/v1/resource/data/
+    base-url: ${WEB_SERVER_URL:http://localhost:8084}/meta/resource/page/
+    data-url: ${WEB_SERVER_URL:http://localhost:8084}/meta/api/v1/resource/data/
   # TODO : 임시 정의, 추후 수정 필요
   rdf-schema:
-    base-url: http://{web server ip}:8084/meta/ns/digitaltwin#
-    skos-url: http://{web server ip}:8084/meta/skos/digitaltwin#
+    base-url: ${WEB_SERVER_URL:http://localhost:8084}/meta/ns/digitaltwin#
+    skos-url: ${WEB_SERVER_URL:http://localhost:8084}/meta/skos/digitaltwin#
   # 디지털트윈 연합 식별체계 적용
   id-scheme:
     digital-twin: DigitalTwin
     digital-twin-object: DigitalTwinObject
     digital-twin-object-vm: VisualModel
 
-# Virtuoso 
+# Virtuoso
 virtuoso:
   datasource:
-    url: jdbc:virtuoso://{virtuoso}:1111/charset=UTF-8
-    username: meta_manager
-    password: rhksflwk1!
+    url: jdbc:virtuoso://${SERVER_HOST:localhost}:1111/charset=UTF-8
+    username: ${VIRTUOSO_USERNAME:meta_manager}
+    password: ${VIRTUOSO_PASSWORD:rhksflwk1!}
   graph:
     dev: urn:dtmeta:graph:dev
     use: urn:dtmeta:graph:use
-  conductor-url: http://{virtuoso web server ip}:8890/conductor
+  conductor-url: http://${SERVER_HOST:localhost}:8890/conductor
   # 새로 추가 (jena 라이브러리 사용 변경으로 인한 속성 추가) (HTTP SPARQL / GSP 엔드포인트)
-  query-endpoint: http://{virtuoso web server ip}:8890/sparql
-  update-endpoint: http://{virtuoso web server ip}:8890/sparql-auth
-  gsp-endpoint: http://{virtuoso web server ip}:8890/sparql-graph-crud-auth
-    
+  query-endpoint: http://${SERVER_HOST:localhost}:8890/sparql
+  update-endpoint: http://${SERVER_HOST:localhost}:8890/sparql-auth
+  gsp-endpoint: http://${SERVER_HOST:localhost}:8890/sparql-graph-crud-auth
+
 # NEO4J
 neo4j:
   authentication:
-    username: neo4j
-    password: rhksflwk1!
-  uri: bolt://{neo4j}:7687
-  browser-url: http://{neo4j web server ip}:7474/browser
-  
+    username: ${NEO4J_USERNAME:neo4j}
+    password: ${NEO4J_PASSWORD:rhksflwk1!}
+  uri: bolt://${SERVER_HOST:localhost}:7687
+  browser-url: http://${SERVER_HOST:localhost}:7474/browser
+
 # Elastic Search
 elastic:
   authentication:
-    username: elastic
-    password: rhksflwk1!
+    username: ${ELASTIC_USERNAME:elastic}
+    password: ${ELASTIC_PASSWORD:rhksflwk1!}
   protocol: http
-  server-ip: {elasticsearch}
+  server-ip: ${SERVER_HOST:localhost}
   server-port: 9200
   kibana-port: 5601
-  fingerprint: {fingerprint==}
+  fingerprint: ${ELASTIC_FINGERPRINT:}
   index-name: dtmeta
-  kibana-url: http://{kibana web server ip}:5601
+  kibana-url: http://${SERVER_HOST:localhost}:5601
   # 벡터 저장 및 검색 (별도 Python 서버 API)
-  vector-url: http://{keti-dt-metadata-vector}:5000/vectors
-  
+  vector-url: http://${SERVER_HOST:localhost}:5000/vectors
+
 # InfluxDB
 influx:
   authentication:
-    username: meta_manager
-    password: rhksflwk1!
-  url: http://{influxdb2}:8086/
-  browser-url: http://{influxdb web server ip}:8086/
+    username: ${INFLUX_USERNAME:meta_manager}
+    password: ${INFLUX_PASSWORD:rhksflwk1!}
+  url: http://${SERVER_HOST:localhost}:8086/
+  browser-url: http://${SERVER_HOST:localhost}:8086/
   org: dtmeta
   bucket: metadata
   # admin token
-  token: {token==}
+  token: ${INFLUX_TOKEN}
 
 
 ---
 
+### dev 프로필 (도커 설치 기준)
+###  - 컨테이너끼리는 컨테이너명으로 통신하므로 호스트명은 고정값이다.
+###  - PostgreSQL 만 컨테이너가 아니므로 도커 게이트웨이 IP(172.25.0.1)로 접속한다.
+###
+###  ${변수:기본값} 은 환경변수가 없으면 기본값을 쓴다. 설치가이드대로 설치했다면
+###  기본값 그대로 동작하며, 값을 바꾼 항목만 환경변수로 넘기면 된다.
+###  ${변수} 는 기본값이 없어 반드시 넣어야 하며, 없으면 기동이 실패한다.
+###
+###  [반드시 넣을 것] 환경마다 새로 발급되는 값
+###    SECURITY_SECRET_KEY  INFLUX_TOKEN
+###
+###  [설치 시 넣을 것] 서버 주소
+###    WEB_SERVER_URL  브라우저가 접속하는 웹 주소. 예) http://203.0.113.10:8084
+###                    DB 의 RDF 네임스페이스 값과 반드시 같아야 한다.
+###    SERVER_HOST     관리 화면(Conductor/Kibana/Neo4j/InfluxDB) 링크에 쓰는 서버 주소
+###    KAFKA_SERVERS   외부 카프카 서버 주소
+###
+###  [기본값을 바꿀 때만] 계정/비밀번호. 컴포넌트마다 다른 비밀번호를 쓰는 것을 권장한다.
+###    DB_USERNAME / DB_PASSWORD                VIRTUOSO_USERNAME / VIRTUOSO_PASSWORD
+###    NEO4J_USERNAME / NEO4J_PASSWORD          ELASTIC_USERNAME / ELASTIC_PASSWORD
+###    INFLUX_USERNAME / INFLUX_PASSWORD        DB_HOST  ELASTIC_FINGERPRINT
 spring:
   config:
     activate:
       on-profile:
       - dev
   datasource:
-    url: jdbc:postgresql://{postgresql}:5432/dtmeta
-    username: meta_manager
-    password: rhksflwk1!
+    url: jdbc:postgresql://${DB_HOST:172.25.0.1}:5432/dtmeta
+    username: ${DB_USERNAME:meta_manager}
+    password: ${DB_PASSWORD:rhksflwk1!}
     driver-class-name: org.postgresql.Driver
   kafka:
-    bootstrap-servers: {kafka server ip}:9092
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
     client-id : DT_PRODUCER
     auth:
-      user-id: 
-      user-pw: 
-    thread-sleep : 100     
+      user-id: ${KAFKA_USERNAME:}
+      user-pw: ${KAFKA_PASSWORD:}
+    thread-sleep : 100
 
 springdoc.swagger-ui.enabled: true
 
@@ -130,194 +153,191 @@ springdoc.swagger-ui.enabled: true
 
 # Security
 security:
-  secret-key: {key==}
+  secret-key: "${SECURITY_SECRET_KEY:XBcunwbKqe/4bxy6r0PneVHZd4IzMZ/dwh+S7VI0kec=}"
 
 oauth:
-  public-key: http://{security web server ip}:33000/security/publickey
-  access-token: http://{security web server ip}:33000/oauth2.0/token
-authorization: 
+  public-key: http://keti-dt-security:33000/security/publickey
+  access-token: http://keti-dt-security:33000/oauth2.0/token
+authorization:
   data : true
   default-auth:
-    use-flag: true  
+    use-flag: true
     list: AUT_META_DEFAULT
-  
-platform.common.api.url: http://{keti-dt-platformadmin-api}:6998
 
-# Metadata RDF URL (Namespace) 
+platform.common.api.url: http://keti-dt-platformadmin-api:6998
+
+# Metadata RDF URL (Namespace)
 dtmeta:
   # TODO : 임시 정의, 추후 수정 필요
   resource:
-    base-url: http://{web server ip}:8084/meta/resource/page/
-    data-url: http://{web server ip}:8084/meta/api/v1/resource/data/
+    base-url: ${WEB_SERVER_URL:http://localhost:8084}/meta/resource/page/
+    data-url: ${WEB_SERVER_URL:http://localhost:8084}/meta/api/v1/resource/data/
   # TODO : 임시 정의, 추후 수정 필요
   rdf-schema:
-    base-url: http://{web server ip}:8084/meta/ns/digitaltwin#
-    skos-url: http://{web server ip}:8084/meta/skos/digitaltwin#
+    base-url: ${WEB_SERVER_URL:http://localhost:8084}/meta/ns/digitaltwin#
+    skos-url: ${WEB_SERVER_URL:http://localhost:8084}/meta/skos/digitaltwin#
   # 디지털트윈 연합 식별체계 적용
   id-scheme:
     digital-twin: DigitalTwin
     digital-twin-object: DigitalTwinObject
     digital-twin-object-vm: VisualModel
-    
-# Virtuoso 
+
+# Virtuoso
 virtuoso:
   datasource:
-    url: jdbc:virtuoso://{virtuoso}:1111/charset=UTF-8
-    username: meta_manager
-    password: rhksflwk1!
+    url: jdbc:virtuoso://virtuoso:1111/charset=UTF-8
+    username: ${VIRTUOSO_USERNAME:meta_manager}
+    password: ${VIRTUOSO_PASSWORD:rhksflwk1!}
   graph:
     dev: urn:dtmeta:graph:dev
     use: urn:dtmeta:graph:use
-  conductor-url: http://{virtuoso web server ip}:8890/conductor
+  conductor-url: http://${SERVER_HOST:localhost}:8890/conductor
   # 새로 추가 (jena 라이브러리 사용 변경으로 인한 속성 추가) (HTTP SPARQL / GSP 엔드포인트)
-  query-endpoint: http://{virtuoso web server ip}:8890/sparql
-  update-endpoint: http://{virtuoso web server ip}:8890/sparql-auth
-  gsp-endpoint: http://{virtuoso web server ip}:8890/sparql-graph-crud-auth
+  query-endpoint: http://virtuoso:8890/sparql
+  update-endpoint: http://virtuoso:8890/sparql-auth
+  gsp-endpoint: http://virtuoso:8890/sparql-graph-crud-auth
 
 # NEO4J
 neo4j:
   authentication:
-    username: neo4j
-    password: rhksflwk1!
-  uri: bolt://{neo4j}:7687
-  browser-url: http://{neo4j web server ip}:7474/browser
-  
+    username: ${NEO4J_USERNAME:neo4j}
+    password: ${NEO4J_PASSWORD:rhksflwk1!}
+  uri: bolt://neo4j:7687
+  browser-url: http://${SERVER_HOST:localhost}:7474/browser
+
 # Elastic Search
 elastic:
   authentication:
-    username: elastic
-    password: rhksflwk1!
+    username: ${ELASTIC_USERNAME:elastic}
+    password: ${ELASTIC_PASSWORD:rhksflwk1!}
   protocol: http
-  server-ip: {elasticsearch}
+  server-ip: elasticsearch
   server-port: 9200
   kibana-port: 5601
-  fingerprint: {fingerprint==}
+  fingerprint: ${ELASTIC_FINGERPRINT:}
   index-name: dtmeta
-  kibana-url: http://{kibana web server ip}:5601
+  kibana-url: http://${SERVER_HOST:localhost}:5601
   # 벡터 저장 및 검색 (별도 Python 서버 API)
-  vector-url: http://{keti-dt-metadata-vector}:5000/vectors
-  
+  vector-url: http://keti-dt-metadata-vector:5000/vectors
+
 # InfluxDB
 influx:
   authentication:
-    username: meta_manager
-    password: rhksflwk1!
-  url: http://{influxdb2}:8086/
-  browser-url: http://{influxdb web ip}:8086/
+    username: ${INFLUX_USERNAME:meta_manager}
+    password: ${INFLUX_PASSWORD:rhksflwk1!}
+  url: http://influxdb2:8086/
+  browser-url: http://${SERVER_HOST:localhost}:8086/
   org: dtmeta
   bucket: metadata
   # admin token
-  token: {token==}
-  
+  token: ${INFLUX_TOKEN}
+
 
 ---
-
+### prod 프로필 (운영 도커 설치)
+###  구성은 dev 와 같고 swagger-ui 만 꺼져 있다.
+###  값 설명은 위 dev 프로필 주석 참고.
 spring:
   config:
     activate:
       on-profile:
       - prod
   datasource:
-    url: jdbc:postgresql://{postgresql}:5432/dtmeta
-    username: meta_manager
-    password: rhksflwk1!
+    url: jdbc:postgresql://${DB_HOST:172.25.0.1}:5432/dtmeta
+    username: ${DB_USERNAME:meta_manager}
+    password: ${DB_PASSWORD:rhksflwk1!}
     driver-class-name: org.postgresql.Driver
   kafka:
-    bootstrap-servers: {kafka server ip}:9092
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
     client-id : DT_PRODUCER
     auth:
-      user-id: 
-      user-pw: 
-    thread-sleep : 100  
-    
-# Disabling the swagger-ui
+      user-id: ${KAFKA_USERNAME:}
+      user-pw: ${KAFKA_PASSWORD:}
+    thread-sleep : 100
+
 springdoc.swagger-ui.enabled: false
 
 
 
 # Security
 security:
-  secret-key: {key==}
+  secret-key: "${SECURITY_SECRET_KEY:XBcunwbKqe/4bxy6r0PneVHZd4IzMZ/dwh+S7VI0kec=}"
 
 oauth:
-  public-key: http://{security web server ip}:33000/security/publickey
-  access-token: http://{security web server ip}:33000/oauth2.0/token
-authorization: 
+  public-key: http://keti-dt-security:33000/security/publickey
+  access-token: http://keti-dt-security:33000/oauth2.0/token
+authorization:
   data : true
   default-auth:
-    use-flag: true  
+    use-flag: true
     list: AUT_META_DEFAULT
-  
-platform.common.api.url: http://{keti-dt-platformadmin-api}:6998
 
-# Metadata RDF URL (Namespace) 
+platform.common.api.url: http://keti-dt-platformadmin-api:6998
+
+# Metadata RDF URL (Namespace)
 dtmeta:
   # TODO : 임시 정의, 추후 수정 필요
   resource:
-    base-url: http://{web server ip}:8084/meta/resource/page/
-    data-url: http://{web server ip}:8084/meta/api/v1/resource/data/
-    #base-url: http://digitaltwin.keti.re.kr/meta/resource/page/
-    #data-url: http://digitaltwin.keti.re.kr/meta/api/v1/resource/data/
+    base-url: ${WEB_SERVER_URL:http://localhost:8084}/meta/resource/page/
+    data-url: ${WEB_SERVER_URL:http://localhost:8084}/meta/api/v1/resource/data/
   # TODO : 임시 정의, 추후 수정 필요
   rdf-schema:
-    base-url: http://{web server ip}:8084/meta/ns/digitaltwin#
-    skos-url: http://{web server ip}:8084/meta/skos/digitaltwin#
-    #base-url: http://vocab.keti.re.kr/meta/ns/digitaltwin#
-    #skos-url: http://vocab.keti.re.kr/meta/skos/digitaltwin#
+    base-url: ${WEB_SERVER_URL:http://localhost:8084}/meta/ns/digitaltwin#
+    skos-url: ${WEB_SERVER_URL:http://localhost:8084}/meta/skos/digitaltwin#
   # 디지털트윈 연합 식별체계 적용
   id-scheme:
     digital-twin: DigitalTwin
     digital-twin-object: DigitalTwinObject
     digital-twin-object-vm: VisualModel
-    
-# Virtuoso 
+
+# Virtuoso
 virtuoso:
   datasource:
-    url: jdbc:virtuoso://{virtuoso}:1111/charset=UTF-8
-    username: meta_manager
-    password: rhksflwk1!
+    url: jdbc:virtuoso://virtuoso:1111/charset=UTF-8
+    username: ${VIRTUOSO_USERNAME:meta_manager}
+    password: ${VIRTUOSO_PASSWORD:rhksflwk1!}
   graph:
     dev: urn:dtmeta:graph:dev
     use: urn:dtmeta:graph:use
-  conductor-url: http://{virtuoso web server ip}:8890/conductor
+  conductor-url: http://${SERVER_HOST:localhost}:8890/conductor
   # 새로 추가 (jena 라이브러리 사용 변경으로 인한 속성 추가) (HTTP SPARQL / GSP 엔드포인트)
-  query-endpoint: http://{virtuoso web server ip}:8890/sparql
-  update-endpoint: http://{virtuoso web server ip}:8890/sparql-auth
-  gsp-endpoint: http://{virtuoso web server ip}:8890/sparql-graph-crud-auth
-    
+  query-endpoint: http://virtuoso:8890/sparql
+  update-endpoint: http://virtuoso:8890/sparql-auth
+  gsp-endpoint: http://virtuoso:8890/sparql-graph-crud-auth
+
 # NEO4J
 neo4j:
   authentication:
-    username: neo4j
-    password: rhksflwk1!
-  uri: bolt://{neo4j}:7687
-  browser-url: http://{neo4j web server ip}:7474/browser
-  
+    username: ${NEO4J_USERNAME:neo4j}
+    password: ${NEO4J_PASSWORD:rhksflwk1!}
+  uri: bolt://neo4j:7687
+  browser-url: http://${SERVER_HOST:localhost}:7474/browser
+
 # Elastic Search
 elastic:
   authentication:
-    username: elastic
-    password: rhksflwk1!
+    username: ${ELASTIC_USERNAME:elastic}
+    password: ${ELASTIC_PASSWORD:rhksflwk1!}
   protocol: http
-  server-ip: {elasticsearch}
+  server-ip: elasticsearch
   server-port: 9200
   kibana-port: 5601
-  fingerprint: {fingerprint==}
+  fingerprint: ${ELASTIC_FINGERPRINT:}
   index-name: dtmeta
-  kibana-url: http://{kibana web server ip}:5601
+  kibana-url: http://${SERVER_HOST:localhost}:5601
   # 벡터 저장 및 검색 (별도 Python 서버 API)
-  vector-url: http://{keti-dt-metadata-vector}:5000/vectors
-  
+  vector-url: http://keti-dt-metadata-vector:5000/vectors
+
 # InfluxDB
 influx:
   authentication:
-    username: meta_manager
-    password: rhksflwk1!
-  url: http://{influxdb2}:8086/
-  browser-url: http://{influxdb web ip}:8086/
+    username: ${INFLUX_USERNAME:meta_manager}
+    password: ${INFLUX_PASSWORD:rhksflwk1!}
+  url: http://influxdb2:8086/
+  browser-url: http://${SERVER_HOST:localhost}:8086/
   org: dtmeta
   bucket: metadata
   # admin token
-  token: {token==}
+  token: ${INFLUX_TOKEN}
 
 
