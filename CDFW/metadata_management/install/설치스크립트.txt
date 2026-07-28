@@ -184,7 +184,7 @@ git --version || sudo apt-get install -y git
 
 # 소스 받기 (아이디와 토큰을 물으면 GitHub 아이디 / 발급받은 토큰 입력)
 cd $DT_DIR
-git clone --filter=blob:none --sparse -b CDFW_development_n2m https://github.com/etri/FeDiT.git
+git clone --filter=blob:none --sparse https://github.com/etri/FeDiT.git
 
 # 필요한 폴더만 받도록 지정
 cd $DT_DIR/FeDiT
