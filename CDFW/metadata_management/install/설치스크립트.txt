@@ -3,6 +3,15 @@
 # 대상: Ubuntu 22.04 이상 (빈 서버)
 # 상세 설명은 설치가이드.md 참조
 #
+# [이 문서를 여는 두 가지 경우]
+#   1) 문서만 따로 전달받았다면  -> 0 장부터 순서대로 진행한다.
+#                                  0-2 에서 값을 정하고 0-3 에서 소스를 받는다.
+#   2) 이미 소스를 받아 그 안의 문서를 보고 있다면
+#                                -> 0-3(소스 받기)은 이미 한 것이므로
+#                                   0-2 만 실행하되, SRC_DIR 을 소스를 받은
+#                                   실제 경로로 맞춘 뒤 1 장으로 넘어간다.
+#                                   확인 : ls $SRC_DIR/install
+#
 # [서버 사양]
 #            최소            권장
 #   CPU      4 core          8 core
@@ -586,28 +595,65 @@ docker logs --tail 20 virtuoso
 
 ########################################
 # 3-2. Virtuoso 계정 생성
-#      브라우저에서 수행한다. http://$SERVER_HOST:8890/conductor
-#      예) http://203.0.113.10:8890/conductor
-#
 #      여기서 만드는 meta_manager 계정이 Metadata API 의 접속 계정이다.
 #      계정명은 환경변수 VIRTUOSO_USERNAME, 비밀번호는 VIRTUOSO_PASSWORD 에 대응한다.
 #      기본값(meta_manager / rhksflwk1!)대로 만들면 환경변수를 넘기지 않아도 된다.
+#
+#      [방법 1] 아래 명령으로 만든다. 8890 을 열지 않아도 되고 브라우저도 필요 없다.
+#      [방법 2] 8890 이 열려 있으면 Conductor 화면에서 만들어도 된다 (아래 주석 참고).
 ########################################
 
-# 접속할 주소 출력
-echo "http://$SERVER_HOST:8890/conductor"
+# 비밀번호에 ! 가 들어가면 bash 가 특수문자로 해석하므로 먼저 꺼둔다
+set +H
 
-# 1) dba / 0-2 의 VIRTUOSO_DBA_PASSWORD 값 (기본값 rhksflwk1!) 로 로그인
-# 2) System Admin - User Accounts - Create New Account
-#      Account name  : 0-2 의 VIRTUOSO_USERNAME 값 (기본값 meta_manager)
-#      Password      : 0-2 의 VIRTUOSO_PASSWORD 값 (기본값 rhksflwk1!)
-#      User type     : SQL/ODBC
-#      Primary role  : dba
-# 3) Account Roles 에 아래 4개 부여
-#      SPARQL_LOAD_SERVICE_DATA / SPARQL_SELECT / SPARQL_SPONGE / SPARQL_UPDATE
-# 4) Default Permissions 전부 체크 후 저장
-# 5) meta_manager 로 재로그인 -> Linked Data - SPARQL 에서 아래 질의 실행
-#      select * where { ?s ?p ?o }
+# isql 을 짧게 쓰기 위한 함수. vdba 는 관리자로, vusr 은 만든 계정으로 실행한다
+vdba() { docker exec virtuoso isql 1111 dba "$VIRTUOSO_DBA_PASSWORD" exec="$*"; }
+vusr() { docker exec virtuoso isql 1111 "$VIRTUOSO_USERNAME" "$VIRTUOSO_PASSWORD" exec="$*"; }
+
+# 계정 생성과 SPARQL 권한 부여
+vdba "DB.DBA.USER_CREATE('$VIRTUOSO_USERNAME', '$VIRTUOSO_PASSWORD');"
+vdba "DB.DBA.USER_GRANT_ROLE('$VIRTUOSO_USERNAME', 'SPARQL_SELECT', 0);"
+vdba "DB.DBA.USER_GRANT_ROLE('$VIRTUOSO_USERNAME', 'SPARQL_UPDATE', 0);"
+vdba "DB.DBA.USER_GRANT_ROLE('$VIRTUOSO_USERNAME', 'SPARQL_SPONGE', 0);"
+vdba "DB.DBA.USER_GRANT_ROLE('$VIRTUOSO_USERNAME', 'SPARQL_LOAD_SERVICE_DATA', 0);"
+
+# 기본 그룹을 dba 로 지정 (Conductor 의 Primary role : dba 에 해당)
+# 이것을 하지 않으면 조회는 되지만 RDF 쓰기가 거부되어 10장에서 메타데이터 등록이 실패한다
+vdba "DB.DBA.USER_SET_OPTION('$VIRTUOSO_USERNAME', 'PRIMARY_GROUP', 'dba');"
+
+# 계정이 만들어졌는지 확인 (계정명이 나와야 한다)
+vdba "select U_NAME from DB.DBA.SYS_USERS where U_NAME='$VIRTUOSO_USERNAME';"
+
+# 조회 권한 확인 (결과가 나오면 정상)
+vusr "SPARQL select * where { ?s ?p ?o } limit 5;"
+
+# 쓰기 권한 확인 (Done. 이 나와야 한다. 앱이 메타데이터를 등록할 때 쓰는 경로다)
+vusr "SPARQL INSERT DATA { GRAPH <http://test/g> { <http://test/s> <http://test/p> 'v' } };"
+
+# 넣은 값이 조회되는지 확인
+vusr "SPARQL SELECT * WHERE { GRAPH <http://test/g> { ?s ?p ?o } };"
+
+# 확인용 데이터 삭제
+vusr "SPARQL CLEAR GRAPH <http://test/g>;"
+
+
+# [방법 2] Conductor 화면에서 만들 때 (8890 이 열려 있어야 한다)
+#   echo "http://$SERVER_HOST:8890/conductor"
+#
+#   1) dba / VIRTUOSO_DBA_PASSWORD 로 로그인
+#   2) System Admin - User Accounts - Create New Account
+#        Account name  : VIRTUOSO_USERNAME (기본값 meta_manager)
+#        Password      : VIRTUOSO_PASSWORD (기본값 rhksflwk1!)
+#        User type     : SQL/ODBC
+#        Primary role  : dba
+#   3) Account Roles 에 아래 4개 부여
+#        SPARQL_LOAD_SERVICE_DATA / SPARQL_SELECT / SPARQL_SPONGE / SPARQL_UPDATE
+#   4) Default Permissions 전부 체크 후 저장
+#   5) 만든 계정으로 재로그인 -> Linked Data - SPARQL 에서 select * where { ?s ?p ?o }
+#
+#   서버에 브라우저가 없고 8890 도 막혀 있으면 SSH 터널로 접근할 수 있다.
+#     ssh -L 8890:localhost:8890 사용자@서버IP
+#     접속을 유지한 채 내 PC 브라우저에서 http://localhost:8890/conductor
 
 
 ########################################
@@ -1158,7 +1204,7 @@ ELASTIC_USERNAME=$ELASTIC_USERNAME
 ELASTIC_PASSWORD=$ELASTIC_PASSWORD
 INFLUX_USERNAME=$INFLUX_USERNAME
 INFLUX_PASSWORD=$INFLUX_PASSWORD
-KAFKA_SERVERS=$KAFKA_SERVERS
+KAFKA_SERVERS=${KAFKA_SERVERS:-localhost:9092}
 KAFKA_USERNAME=$KAFKA_USERNAME
 KAFKA_PASSWORD=$KAFKA_PASSWORD
 EOF
