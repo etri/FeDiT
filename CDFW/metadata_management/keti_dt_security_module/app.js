@@ -93,7 +93,13 @@ app.use(bodyParser.json({extended: false}));
 app.use(bodyParser.urlencoded({extended:false}));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors());
-app.use(helmet());
+// HSTS 는 https 로 서비스할 때만 켠다.
+// http 로 서비스하면서 이 헤더를 보내면 브라우저가 이후 접속을 전부 https 로
+// 바꿔버려 접속이 안 된다(포트와 무관하게 호스트 전체에 적용된다).
+// https 를 쓰는 환경에서는 ENABLE_HSTS=true 로 켠다.
+app.use(helmet({
+  hsts: process.env.ENABLE_HSTS === 'true',
+}));
 
 // const logDir = path.join(__dirname, 'log');
 // fs.existsSync(logDir) || fs.mkdirSync(logDir);
