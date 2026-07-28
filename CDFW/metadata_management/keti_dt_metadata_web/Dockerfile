@@ -19,9 +19,10 @@ FROM node:lts-alpine AS build-stage
 ARG SERVER_HOST=localhost
 ARG WEB_SERVER_URL=http://localhost:8084
 
-# 인증 서버에 등록된 OAuth 앱 정보 (dml_hubsecurity_public_data.sql 의 security 앱)
-ARG CLIENT_ID=3eRofhrl6wPWauX2u0GT
-ARG CLIENT_SECRET=yFu9svjeJvCY3PLkkpFYF1CvWo7McL7F
+# 인증 서버에 등록된 OAuth 앱 정보 (dml_hubsecurity_public_data.sql 의 metaweb 앱)
+# security 앱(3eRofhrl6wPWauX2u0GT)은 인증 서버 자신이 쓰는 것이라 여기에 쓰면 안 된다.
+ARG CLIENT_ID=uFbj72aY5iJ266bI3T2O
+ARG CLIENT_SECRET=gMNbwCxutUNMq4MxYiwiZq20cx6E77Tq
 
 # 지도 기능을 쓸 때만 지정한다. 카카오 개발자 사이트에서 직접 발급받은 키를 넣는다.
 # 값을 비워 두면 지도만 동작하지 않고 나머지 기능은 정상이다.

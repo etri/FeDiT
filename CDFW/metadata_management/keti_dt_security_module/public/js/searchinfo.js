@@ -288,7 +288,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 password: pwd
             },
             headers: {
-                Authorization: 'Basic ZTRiWnhKQTNBNTJmM1p2SFVOWmk6bEJZQ0hER3c3NE9Yb0xRanZWbFhMSm5hUTFIM2FLMTE='
+                // security 앱의 client_id:client_secret 을 base64 로 인코딩한 값.
+                // dml_hubsecurity_public_data.sql 의 application 값과 같아야 한다.
+                //   3eRofhrl6wPWauX2u0GT:yFu9svjeJvCY3PLkkpFYF1CvWo7McL7F
+                Authorization: 'Basic M2VSb2Zocmw2d1BXYXVYMnUwR1Q6eUZ1OXN2amVKdkNZM1BMa2twRllGMUN2V283TWNMN0Y='
             },
             success: function(result) {
 
