@@ -534,6 +534,23 @@ psql -h localhost -U "$HUBSECURITY_USERNAME" -d hubsecurity -c "select count(*) 
 # 비밀번호 환경변수 해제
 unset PGPASSWORD
 
+########################################
+# 여기서 만들어진 로그인 계정
+#   전부 비밀번호는 rhksflwk1! 이다. 운영 서버에서는 반드시 변경한다.
+#
+#   meta_admin      시스템 관리자  (설치 확인은 이 계정으로 한다)
+#   keti_dt         시스템 관리자
+#   admin           시스템 관리자
+#   n2m_iot         시스템 관리자
+#   meta_tester1    메타데이터 제공자
+#   meta_tester2    메타데이터 관리자
+#   meta_tester3    조회자
+#   meta_tester4    기본 사용자
+#
+#   로그인 자체는 hubsecurity DB 의 users 가, 화면에 보이는 메뉴는
+#   dtmeta DB 의 common.tb_com_authusermap 이 결정한다. 둘 다 있어야 정상 동작한다.
+########################################
+
 
 ########################################
 # 3-1. Virtuoso 실행
@@ -947,15 +964,12 @@ docker logs --tail 20 keti-dt-security
 
 ########################################
 # 7-4. 접속 확인
-#      브라우저에서 인증 서버 로그인 화면이 뜨는지 본다.
-#      이 단계는 웹(10장)과 무관하며, 인증 서버와 DB 연결만 확인한다.
+#      서버가 응답하는지와 DB 가 붙었는지만 본다.
+#      실제 로그인은 웹까지 올린 뒤 10-4 에서 한다.
 ########################################
 
-# 접속할 주소 출력
-echo "http://$SERVER_HOST:33000/login"
-
-# 2-5 에서 넣은 계정으로 로그인되면 정상 (예: meta_admin)
-# 로그인 후에는 인증 서버 자신의 화면으로 이동한다.
+# 로그인 화면이 응답하는지 확인 (HTTP/1.1 200 OK 가 나오면 정상)
+curl -i http://localhost:33000/login | head -5
 
 # DB 접속이 되는지 로그로 확인 (연결 오류가 없어야 한다)
 docker logs keti-dt-security | tail -30
@@ -1214,7 +1228,12 @@ curl -s -o /dev/null -w "웹 응답 %{http_code}\n" http://localhost:8084
 # 접속할 주소 출력
 echo "$WEB_SERVER_URL"
 
-# 2-5 에서 넣은 계정으로 로그인한다 (예: meta_admin)
+# 2-5 에서 넣은 계정으로 로그인한다
+#   아이디   meta_admin
+#   비밀번호 rhksflwk1!
+#
+# 브라우저가 https 로 바꿔 접속하면 인증서 경고가 뜬다. 이 시스템은 http 만 쓴다.
+# 주소창에 http:// 를 직접 붙이거나, 크롬 설정에서 "항상 보안 연결 사용" 을 끈다.
 #
 # [로그인이 안 될 때]
 #   redirect_uri mismatch  -> DB 의 application.redirect_uri 와
