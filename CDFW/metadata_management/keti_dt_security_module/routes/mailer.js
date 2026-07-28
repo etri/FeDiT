@@ -1,5 +1,5 @@
 const nodemailer = require("nodemailer");
-const serverInfo = require("../server_conf.json");
+const serverInfo = require("../server_conf");
 
 const config = {
   service: "gmail",
