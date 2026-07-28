@@ -490,19 +490,27 @@ mkdir -p $DT_DIR/sql
 cp $SRC_DIR/install/sql/*.sql $DT_DIR/sql/
 ls -l $DT_DIR/sql
 
+# 인증 서버 주소 (로그인 화면이 쓰는 앱의 redirect_uri 가 된다)
+export SECURITY_SERVER_URL=http://$SERVER_HOST:33000
+
 # 치환에 쓸 값 확인 (0-2 에서 지정한 값)
-echo "$WEB_SERVER_URL"
+echo "WEB_SERVER_URL      = $WEB_SERVER_URL"
+echo "SECURITY_SERVER_URL = $SECURITY_SERVER_URL"
 
 # 웹서버 주소를 실제 값으로 치환 (DML 실행 전 필수)
-# 인증서버 redirect_uri 와 RDF 네임스페이스 주소에 쓰인다
+# 웹 앱의 redirect_uri 와 RDF 네임스페이스 주소에 쓰인다
 # 브라우저가 접속하는 주소를 적는다. 외부에서 접속하면 공인 IP 나 도메인을 쓴다
 # 뒤에 경로가 붙으므로 끝에 / 를 넣지 않는다
 sed -i "s|__WEB_SERVER_URL__|$WEB_SERVER_URL|g" $DT_DIR/sql/dml_hubsecurity_public_data.sql
 sed -i "s|__WEB_SERVER_URL__|$WEB_SERVER_URL|g" $DT_DIR/sql/dml_dtmeta_dtmeta_data.sql
 
-# 치환 결과 확인 (둘 다 0 이어야 한다)
+# 인증 서버 주소를 실제 값으로 치환
+sed -i "s|__SECURITY_SERVER_URL__|$SECURITY_SERVER_URL|g" $DT_DIR/sql/dml_hubsecurity_public_data.sql
+
+# 치환 결과 확인 (셋 다 0 이어야 한다)
 grep -c "__WEB_SERVER_URL__" $DT_DIR/sql/dml_hubsecurity_public_data.sql
 grep -c "__WEB_SERVER_URL__" $DT_DIR/sql/dml_dtmeta_dtmeta_data.sql
+grep -c "__SECURITY_SERVER_URL__" $DT_DIR/sql/dml_hubsecurity_public_data.sql
 
 # 접속 비밀번호 지정 (아래 psql 실행 동안만 사용)
 export PGPASSWORD="$DB_PASSWORD"

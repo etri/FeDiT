@@ -47,9 +47,20 @@ INSERT INTO users (user_id_pk, password, nickname, name, phone, email, email_ver
 -- 3. OAuth 애플리케이션
 --    ※ redirect_uri 호스트는 실제 Web 서버 주소로 바꾼다. (환경변수화 대상)
 -- ---------------------------------------------------------------------
--- ★필수: security 앱
+-- ★필수: 인증 서버 자신이 쓰는 앱
+--   인증 서버 로그인 화면(public/js/searchinfo.js)이 이 값으로 토큰을 요청한다.
+--   redirect_uri 는 인증 서버 자기 주소(:33000)다.
+--   이 행이 없으면 로그인 화면은 뜨지만 제출할 때 401 이 나고
+--   브라우저가 아이디/비밀번호 입력 팝업(Basic 인증)을 띄운다.
 INSERT INTO application (application_id_pk, application_fk1, application_name, application_secret, redirect_uri, scope, is_trusted) VALUES
-  ('3eRofhrl6wPWauX2u0GT', 'admin', 'security', 'yFu9svjeJvCY3PLkkpFYF1CvWo7McL7F', '__WEB_SERVER_URL__/redirect', 'read', 't');
+  ('3eRofhrl6wPWauX2u0GT', 'admin', 'security', 'yFu9svjeJvCY3PLkkpFYF1CvWo7McL7F', '__SECURITY_SERVER_URL__', 'read', 't');
+
+-- ★필수: 메타데이터 웹이 쓰는 앱
+--   웹 빌드 시 넘기는 CLIENT_ID / CLIENT_SECRET 과 같은 값이어야 한다.
+--   redirect_uri 는 로그인 후 웹으로 돌아올 주소이며, 웹의
+--   VUE_APP_N2M_REDIRECT_URI 와 글자까지 같아야 한다.
+INSERT INTO application (application_id_pk, application_fk1, application_name, application_secret, redirect_uri, scope, is_trusted) VALUES
+  ('uFbj72aY5iJ266bI3T2O', 'admin', 'metaweb', 'gMNbwCxutUNMq4MxYiwiZq20cx6E77Tq', '__WEB_SERVER_URL__/redirect', 'read', 't');
 
 -- 테스트/로컬 개발용 앱
 INSERT INTO application (application_id_pk, application_fk1, application_name, application_secret, redirect_uri, scope, is_trusted) VALUES
