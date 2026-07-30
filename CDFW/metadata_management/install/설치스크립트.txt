@@ -1320,7 +1320,7 @@ docker logs --tail 20 keti-dt-metadata-web
 #       앱 4종이 모두 떠 있어야 로그인이 된다.
 ########################################
 
-# 컨테이너 목록 (9개가 Up 상태여야 한다)
+# 컨테이너 목록 (10개가 Up 상태여야 한다. docker-elk-setup-1 은 설정만 하고 종료되므로 Exited 가 정상이다)
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 # 각 앱 상태 확인
