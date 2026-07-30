@@ -7,10 +7,8 @@ WORKDIR /src
 COPY pom.xml .
 COPY src ./src
 
-# 의존성은 캐시에 두고 다른 앱 빌드와 공유한다. 두 번째 빌드부터 훨씬 빠르다.
 # jar 가 만들어지지 않으면 여기서 바로 실패한다.
-RUN --mount=type=cache,target=/root/.m2 \
-    mvn -B clean package -DskipTests \
+RUN mvn -B clean package -DskipTests \
  && ls -l target/*.jar \
  && cp target/*.jar /build.jar
 
