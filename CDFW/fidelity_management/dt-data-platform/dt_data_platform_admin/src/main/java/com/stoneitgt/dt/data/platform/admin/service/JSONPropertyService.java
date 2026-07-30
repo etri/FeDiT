@@ -1,13 +1,12 @@
 package com.stoneitgt.dt.data.platform.admin.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stoneitgt.dt.data.platform.domain.DTModelJsonHyperParamSub;
 import com.stoneitgt.dt.data.platform.domain.DTModelJsonProperty;
 import com.stoneitgt.dt.data.platform.domain.DTModelJsonPropertySubSet;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -55,10 +54,17 @@ public class JSONPropertyService {
     }
 
     public String getFirstNodeProcInfo(String key, String json) {
-        JSONObject jsonObject = new JSONObject(json);
-        JSONArray preprocPropertyInfo = jsonObject.getJSONArray("preproc_property_info");
-        JSONObject firstElement = preprocPropertyInfo.getJSONObject(0); // Assuming only one element in preproc_property_info
-        return firstElement.optString(key, null);
+        try {
+            JsonNode jsonObject = new ObjectMapper().readTree(json);
+            JsonNode preprocPropertyInfo = jsonObject.get("preproc_property_info");
+            JsonNode firstElement = preprocPropertyInfo.get(0); // Assuming only one element in preproc_property_info
+            // optString(key, null) 과 동일하게 키가 없거나 null 이면 null 을 반환한다
+            JsonNode value = firstElement.get(key);
+            return (value == null || value.isNull()) ? null : value.asText();
+        } catch (IOException e) {
+            log.error("getFirstNodeProcInfo 파싱 실패 -> key: {}", key, e);
+            return null;
+        }
     }
 
     public DTModelJsonProperty propertyParsingToObject(String propertyJson) {

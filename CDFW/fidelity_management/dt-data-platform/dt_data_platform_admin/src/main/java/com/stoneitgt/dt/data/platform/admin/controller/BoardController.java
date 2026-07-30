@@ -21,6 +21,7 @@ import org.springframework.web.servlet.ModelAndView;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -239,6 +240,11 @@ public class BoardController extends BaseController {
                                              @Nullable @RequestParam("file") MultipartFile file,
                                              @PathVariable String type) {
         Map<String, Object> result = new HashMap<>();
+        //서버측 입력 검증 (Front-end 우회 방어)
+        Map<String, Object> validation = validateBoardInput(title, description, file);
+        if (validation != null) {
+            return validation;
+        }
         //게시물 기본 정보 등록
         Board board = new Board();
         board.setBoardNm(title);
@@ -294,6 +300,11 @@ public class BoardController extends BaseController {
                                            @PathVariable String type, @PathVariable String board_no) {
         Map<String, Object> result = new HashMap<>();
         log.info("boardUpdate -> {}, {}, {}, {}, {}, {}", title, description, rlsYn, file, type, board_no);
+        //서버측 입력 검증 (Front-end 우회 방어)
+        Map<String, Object> validation = validateBoardInput(title, description, file);
+        if (validation != null) {
+            return validation;
+        }
         //게시물 기본 정보 등록
         Board board = new Board();
         board.setBoardSeq(Integer.parseInt(board_no));
@@ -376,5 +387,60 @@ public class BoardController extends BaseController {
         boardService.deleteBoardByBoardSeqAndType(board);
         result.put("code", GlobalConstant.API_STATUS.SUCCESS);
         return result;
+    }
+
+    /** 게시판 제목 최대 길이 (tb_board.BOARD_NM varchar(200)) */
+    private static final int BOARD_TITLE_MAX_LENGTH = 200;
+    /** 게시판 첨부파일 최대 크기 (서버 multipart 한도와 동일, 20MB) */
+    private static final long BOARD_FILE_MAX_SIZE = 20L * 1024 * 1024;
+    /** 게시판 첨부파일 허용 확장자 */
+    private static final List<String> BOARD_FILE_ALLOWED_EXT = Arrays.asList(
+            "jpg", "jpeg", "png", "gif", "bmp", "webp", "pdf", "doc", "docx",
+            "xls", "xlsx", "ppt", "pptx", "hwp", "txt", "csv", "zip");
+
+    /**
+     * 게시판 입력값 서버측 검증. 유효하면 null, 위반 시 실패 결과 Map 반환.
+     */
+    private Map<String, Object> validateBoardInput(String title, String description, MultipartFile file) {
+        Map<String, Object> result = new HashMap<>();
+        if (title == null || title.trim().isEmpty()) {
+            result.put("code", GlobalConstant.API_STATUS.FAIL);
+            result.put("message", "제목을 입력해주세요.");
+            return result;
+        }
+        if (title.trim().length() > BOARD_TITLE_MAX_LENGTH) {
+            result.put("code", GlobalConstant.API_STATUS.FAIL);
+            result.put("message", "제목은 " + BOARD_TITLE_MAX_LENGTH + "자 이내로 입력해주세요.");
+            return result;
+        }
+        if (description == null || description.trim().isEmpty()) {
+            result.put("code", GlobalConstant.API_STATUS.FAIL);
+            result.put("message", "내용을 입력해주세요.");
+            return result;
+        }
+        if (!isAllowedBoardFile(file)) {
+            result.put("code", GlobalConstant.API_STATUS.FAIL);
+            result.put("message", "허용되지 않는 파일 형식이거나 파일 크기(20MB)를 초과하였습니다.");
+            return result;
+        }
+        return null;
+    }
+
+    /**
+     * 첨부파일 확장자/크기 검증. 파일 미첨부 시 true(선택 항목).
+     */
+    private boolean isAllowedBoardFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return true;
+        }
+        if (file.getSize() > BOARD_FILE_MAX_SIZE) {
+            return false;
+        }
+        String name = file.getOriginalFilename();
+        if (name == null || !name.contains(".")) {
+            return false;
+        }
+        String ext = name.substring(name.lastIndexOf('.') + 1).toLowerCase();
+        return BOARD_FILE_ALLOWED_EXT.contains(ext);
     }
 }

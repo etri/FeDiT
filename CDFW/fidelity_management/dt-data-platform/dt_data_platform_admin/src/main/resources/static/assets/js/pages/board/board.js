@@ -46,6 +46,9 @@ document.addEventListener('DOMContentLoaded', function () {
         item.addEventListener('click', function (event) {
             let board_no = this.dataset.number;
             let _this = this;
+            if (!confirm('선택한 게시글을 삭제하시겠습니까?')) {
+                return;
+            }
             let url;
             if (_this.dataset.type === 'NOTICE') {
                 url = `/dt/board/notice/${board_no}/delete`;
@@ -66,11 +69,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         location.href = window.location.href;
                     } else {
                         closeProgressBar({element: null, process_id: 'process-52'});
+                        alert('게시글 삭제에 실패하였습니다. 다시 시도해주세요.');
                         console.error('Error:', 'result.code is not success');
                     }
                 },
                 error: function (xhr, status, error) {
                     closeProgressBar({element: null, process_id: 'process-52'});
+                    alert('게시글 삭제 중 오류가 발생하였습니다. 다시 시도해주세요.');
                     console.error('error : ', error);
                 }
             });

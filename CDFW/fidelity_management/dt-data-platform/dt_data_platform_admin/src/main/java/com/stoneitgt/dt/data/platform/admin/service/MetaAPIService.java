@@ -1,12 +1,11 @@
 package com.stoneitgt.dt.data.platform.admin.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stoneitgt.dt.data.platform.domain.meta.DigitalTwinMetadata;
 import com.stoneitgt.dt.data.platform.domain.meta.PaginatedDigitalTwinMetadata;
 import lombok.extern.slf4j.Slf4j;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -46,22 +45,22 @@ public class MetaAPIService extends APIService {
             ResponseEntity<String> response = metaApiRequest("/meta/digitalTwins/search", params, HttpMethod.GET);
             if (response != null) {
                 log.debug("response -> {}", response.getBody());
-                JSONObject jsonObject = new JSONObject(Objects.requireNonNull(response.getBody()));
+                JsonNode jsonObject = new ObjectMapper().readTree(Objects.requireNonNull(response.getBody()));
                 //페이지 정보 설정
-                JSONObject pageInfo = jsonObject.getJSONObject("pageInfo");
-                paginatedDigitalTwinMetadata.setCurPage(pageInfo.getInt("curPage"));
-                paginatedDigitalTwinMetadata.setPageListSize(pageInfo.getInt("pageListSize"));
-                paginatedDigitalTwinMetadata.setPaging(pageInfo.getBoolean("isPaging"));
-                paginatedDigitalTwinMetadata.setStartIndex(pageInfo.getInt("startIndex"));
-                paginatedDigitalTwinMetadata.setTotalListSize(pageInfo.getInt("totalListSize"));
-                paginatedDigitalTwinMetadata.setTotalPage(pageInfo.getInt("totalPage"));
-                paginatedDigitalTwinMetadata.setLimitListSize(pageInfo.getInt("limitListSize"));
+                JsonNode pageInfo = jsonObject.get("pageInfo");
+                paginatedDigitalTwinMetadata.setCurPage(pageInfo.get("curPage").asInt());
+                paginatedDigitalTwinMetadata.setPageListSize(pageInfo.get("pageListSize").asInt());
+                paginatedDigitalTwinMetadata.setPaging(pageInfo.get("isPaging").asBoolean());
+                paginatedDigitalTwinMetadata.setStartIndex(pageInfo.get("startIndex").asInt());
+                paginatedDigitalTwinMetadata.setTotalListSize(pageInfo.get("totalListSize").asInt());
+                paginatedDigitalTwinMetadata.setTotalPage(pageInfo.get("totalPage").asInt());
+                paginatedDigitalTwinMetadata.setLimitListSize(pageInfo.get("limitListSize").asInt());
 
                 //데이터 설정
                 ObjectMapper objectMapper = new ObjectMapper();
                 paginatedDigitalTwinMetadata.setData(
                         objectMapper.readValue(
-                                jsonObject.getJSONArray("responseData").toString(), new TypeReference<List<DigitalTwinMetadata>>() {
+                                jsonObject.get("responseData").toString(), new TypeReference<List<DigitalTwinMetadata>>() {
                                 }
                         )
                 );
@@ -92,28 +91,28 @@ public class MetaAPIService extends APIService {
             String endpoint = "/meta/digitalTwins/" + digitalTwinId;
             ResponseEntity<String> response = metaApiRequestWithBody(endpoint, payload, HttpMethod.PUT);
             if (response != null && response.getBody() != null) {
-                // JSON 파싱 (org.json 패키지 사용)
-                JSONObject jsonObject = new JSONObject(response.getBody());
-                JSONArray responseData = jsonObject.optJSONArray("responseData");
+                // JSON 파싱 (Jackson 사용 — get() 은 키가 없으면 null 을 반환하므로 기존 opt* 와 동일하게 동작한다)
+                JsonNode jsonObject = new ObjectMapper().readTree(response.getBody());
+                JsonNode responseData = jsonObject.get("responseData");
 
-                if (responseData != null && responseData.length() > 0) {
-                    JSONObject dataObj = responseData.getJSONObject(0);
-                    JSONArray etcInfo = dataObj.optJSONArray("etcInfo");
+                if (responseData != null && responseData.size() > 0) {
+                    JsonNode dataObj = responseData.get(0);
+                    JsonNode etcInfo = dataObj.get("etcInfo");
 
-                    if (etcInfo != null && etcInfo.length() > 0) {
-                        JSONObject etcObj = etcInfo.getJSONObject(0);
-                        JSONObject outputData = etcObj.optJSONObject("outputData");
+                    if (etcInfo != null && etcInfo.size() > 0) {
+                        JsonNode etcObj = etcInfo.get(0);
+                        JsonNode outputData = etcObj.get("outputData");
 
                         if (outputData != null) {
-                            JSONObject relatedIds = outputData.optJSONObject("relatedIds");
+                            JsonNode relatedIds = outputData.get("relatedIds");
 
                             if (relatedIds != null) {
-                                JSONArray dtObjIds = relatedIds.optJSONArray("digitalTwinObjects");
+                                JsonNode dtObjIds = relatedIds.get("digitalTwinObjects");
 
                                 // 배열 데이터를 List<String>으로 변환
                                 if (dtObjIds != null) {
-                                    for (int i = 0; i < dtObjIds.length(); i++) {
-                                        createdObjectIds.add(dtObjIds.getString(i));
+                                    for (int i = 0; i < dtObjIds.size(); i++) {
+                                        createdObjectIds.add(dtObjIds.get(i).asText());
                                     }
                                 }
                             }
@@ -148,11 +147,11 @@ public class MetaAPIService extends APIService {
             ResponseEntity<String> response = metaApiRequest("/meta/digitalTwins/search", params, HttpMethod.GET);
             if (response != null) {
                 log.debug("response -> {}", response.getBody());
-                JSONObject jsonObject = new JSONObject(Objects.requireNonNull(response.getBody()));
+                JsonNode jsonObject = new ObjectMapper().readTree(Objects.requireNonNull(response.getBody()));
                 //데이터 설정
                 ObjectMapper objectMapper = new ObjectMapper();
                 List<DigitalTwinMetadata> digitalTwins = objectMapper.readValue(
-                        jsonObject.getJSONArray("responseData").toString(), new TypeReference<List<DigitalTwinMetadata>>() {
+                        jsonObject.get("responseData").toString(), new TypeReference<List<DigitalTwinMetadata>>() {
                         }
                 );
 
@@ -192,19 +191,19 @@ public class MetaAPIService extends APIService {
             ResponseEntity<String> response = metaApiRequest("/meta/digitalTwins/search", params, HttpMethod.GET);
             if (response != null) {
                 log.debug("response -> {}", response.getBody());
-                JSONObject jsonObject = new JSONObject(Objects.requireNonNull(response.getBody()));
+                JsonNode jsonObject = new ObjectMapper().readTree(Objects.requireNonNull(response.getBody()));
                 //데이터 설정
                 ObjectMapper objectMapper = new ObjectMapper();
                 List<DigitalTwinMetadata> digitalTwins = objectMapper.readValue(
-                        jsonObject.getJSONArray("responseData").toString(), new TypeReference<List<DigitalTwinMetadata>>() {
+                        jsonObject.get("responseData").toString(), new TypeReference<List<DigitalTwinMetadata>>() {
                         }
                 );
 
                 if (!digitalTwins.isEmpty()) {
-                    log.debug("digitalTwins.get(0).getDigitalTwinObjects().get(0) -> {}", digitalTwins.get(0).getDigitalTwinObjects().get(0));
                     for (DigitalTwinMetadata.DigitalTwinObject object : digitalTwins.get(0).getDigitalTwinObjects()) {
                         if (object.getDtoid().equals(objAttrDtoid)) {
                             digitalTwinObject = object;
+                            log.info("digitalTwinObject -> {}", digitalTwinObject);
                         }
                     }
                 }

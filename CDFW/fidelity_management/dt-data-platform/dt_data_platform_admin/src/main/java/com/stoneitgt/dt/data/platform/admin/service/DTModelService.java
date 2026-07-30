@@ -1,5 +1,6 @@
 package com.stoneitgt.dt.data.platform.admin.service;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stoneitgt.common.GlobalConstant;
 import com.stoneitgt.dt.data.platform.admin.config.DatabaseConfig;
@@ -9,7 +10,6 @@ import com.stoneitgt.dt.data.platform.admin.mapper.LogMapper;
 import com.stoneitgt.dt.data.platform.domain.*;
 import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -127,7 +127,9 @@ public class DTModelService extends BaseService {
                 }
             }
         }
-        dtModelMetaUserItem.setUserPprcsFullStngValue(new JSONObject(sss).toString());
+        // 기존 빈(bean) 직렬화는 값이 null 인 필드를 생략했으므로, 저장 문자열을 동일하게 유지하기 위해 NON_NULL 로 직렬화한다
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        dtModelMetaUserItem.setUserPprcsFullStngValue(objectMapper.writeValueAsString(sss));
         dtModelMapper.insertDTModelMetaUserItem(dtModelMetaUserItem);
 
         integers.forEach(integer -> {

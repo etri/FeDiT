@@ -27,6 +27,11 @@
                 return false;
             }
 
+            if (model_nm.length > 200) {
+                alert('모델명은 200자 이내로 입력하세요.');
+                return false;
+            }
+
             if (input_info_check === 'N') {
                 alert('조회 후  다른 이벤트가 발생 했거나 조회 버튼을 클릭하지 않았습니다.');
                 return false;
@@ -34,6 +39,13 @@
 
             //타겟 파일로 컬럼 정보 보여주는 api로 넘김
             let preProcData = JSON.parse($('#preprocProPerty').val());
+
+            // 데이터 확인(조회)으로 생성되는 base 파일이 없으면 진행 차단
+            let _baseInfo = preProcData.preproc_property_info && preProcData.preproc_property_info[0];
+            if (!_baseInfo || !_baseInfo.base_dir || !_baseInfo.base_file_nm_set_range_row) {
+                alert('데이터 확인(조회)을 먼저 진행해주세요.');
+                return false;
+            }
 
             // base_dir 및 사용자가 로우 갯수와 인덱스를 지정한 파일 가져와서 정보 보여줌
             preProcData.preproc_property_info[0].model_nm = model_nm;
@@ -177,7 +189,7 @@
             $('.preprocProPerty').val(prettyJson(JSON.stringify(preProcData)));
             let index_trgt_col = document.querySelector('#index_trgt_col').dataset.value;
 
-            if (!index_trgt_col || (index_trgt_col === 0 || index_trgt_col === '0')) {
+            if (!index_trgt_col || index_trgt_col === '0') {
                 alert('시계열 컬럼은 필수 선택입니다. \n시간 데이터가 아닌 컬럼을 지정할 경우 오류가 발생합니다.');
                 return false;
             }
@@ -203,13 +215,30 @@
                 index_trgt_col
             }
             console.log('clicked event', 'data', data);
-            if (parseInt(data.target_row_count) !== 0) {
+
+            // 시작일/종료일은 함께 입력해야 함 (한쪽만 입력 차단)
+            let _startDate = data.target_start_date || '';
+            let _endDate = data.target_end_date || '';
+            if ((_startDate.length !== 0) !== (_endDate.length !== 0)) {
+                alert('시작일과 종료일은 함께 입력해야 합니다.');
+                return false;
+            }
+            // 날짜 형식/선후 검증을 서버 호출 전에 선행
+            if (_startDate.length !== 0 && _endDate.length !== 0 && !validateDates(_startDate, _endDate)) {
+                return false;
+            }
+
+            // 데이터 개수(>0) 또는 날짜 범위(시작+종료) 중 하나는 지정되어야 함
+            let _rowCount = parseInt(data.target_row_count, 10) || 0;
+            let _hasDateRange = _startDate.length !== 0 && _endDate.length !== 0;
+            if (_rowCount > 0 || _hasDateRange) {
                 reGetBaseDataCallbackFunction(data, function (data) {
                     if (data) {
                         checkIndexTimeColumn(data, function (err, result, data) {
                             console.log('checkIndexTimeColumn', 'data', data);
                             if (err) {
                                 console.error('Error', err);
+                                alert('시계열 컬럼 확인 중 오류가 발생했습니다. 다시 시도해주세요.');
                                 return false;
                             } else {
                                 console.log('Result', result);
@@ -217,7 +246,7 @@
                                     alert('선택하신 컬럼은 시계열이 아닙니다.');
                                     return false;
                                 }
-                                if ((data.target_row_count === 0) && (data.target_start_date.length === 0 || data.target_end_date.length === 0)) {
+                                if (((parseInt(data.target_row_count, 10) || 0) === 0) && (data.target_start_date.length === 0 || data.target_end_date.length === 0)) {
                                     alert('시작일과 종료일 둘다 입력 해야합니다.');
                                     return false;
                                 }
@@ -228,7 +257,7 @@
                                         return false;
                                     }
                                 } else {
-                                    if (data.target_row_count.length === 0) {
+                                    if ((parseInt(data.target_row_count, 10) || 0) === 0) {
                                         alert('날짜를 지정하거나 불러올 데이터 갯수를 지정해야합니다.');
                                         return false;
                                     }
@@ -245,7 +274,7 @@
                     }
                 });
             } else {
-                alert('데이터 개수를 선택해야합니다.');
+                alert('불러올 데이터 갯수를 지정하거나 시작일·종료일을 모두 지정해야 합니다.');
             }
         });
     });

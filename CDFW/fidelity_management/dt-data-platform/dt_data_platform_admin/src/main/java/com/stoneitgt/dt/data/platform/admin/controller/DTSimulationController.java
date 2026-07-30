@@ -15,9 +15,8 @@ import com.stoneitgt.dt.data.platform.util.TimeUtil;
 import com.stoneitgt.dt.data.platform.util.file.FileReader;
 import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
@@ -292,7 +291,7 @@ public class DTSimulationController extends BaseController {
 
     @PostMapping(value = "/{augmentSeq}/prediction")
     @ResponseBody
-    public Map<String, Object> getSimulationPredictionView(HttpServletRequest request, @PathVariable String augmentSeq) throws IOException, JSONException {
+    public Map<String, Object> getSimulationPredictionView(HttpServletRequest request, @PathVariable String augmentSeq) throws IOException {
         Map<String, Object> result = new HashMap<>();
         Map<String, Object> predictionViewParam = dtSimulationService.getSimulationPredictionView(Integer.parseInt(augmentSeq));
         log.info("predictionViewParam -> {}", predictionViewParam);
@@ -309,7 +308,7 @@ public class DTSimulationController extends BaseController {
 
     @PostMapping(value = "/insertSimulationViewResult")
     @ResponseBody
-    public Map<String, Object> insertSimulationViewResult(@RequestBody Map<String, Object> params, HttpServletRequest request) throws IOException, JSONException {
+    public Map<String, Object> insertSimulationViewResult(@RequestBody Map<String, Object> params, HttpServletRequest request) throws IOException {
         Map<String, Object> result = new HashMap<>();
         int augmentSeq = Integer.parseInt(params.get("augmentSeq").toString());
         List<Map<String, Object>> fileList = dtSimulationService.getDTSimulationFileList(augmentSeq);
@@ -595,10 +594,10 @@ public class DTSimulationController extends BaseController {
         }
 
         log.info("originFilePath -> {}, augmentFilePath -> {}, validateFilePath -> {}, outlierFilePath -> {}", originFilePath, augmentFilePath, validateFilePath, outlierFilePath);
-        JSONArray originJSONArray = null;
-        JSONArray augmentJSONArray = null;
-        JSONObject validateJSON = null;
-        JSONObject outlierJSON = null;
+        ArrayNode originJSONArray = null;
+        ArrayNode augmentJSONArray = null;
+        ObjectNode validateJSON = null;
+        ObjectNode outlierJSON = null;
         if (originFilePath != null) {
             originJSONArray = FileReader.getInstance().readJSONArray(originFilePath);
             result.put("origin", originJSONArray.toString());
@@ -610,12 +609,12 @@ public class DTSimulationController extends BaseController {
         if (validateFilePath != null) {
             validateJSON = FileReader.getInstance().readJSON(validateFilePath);
             // 여러개 존재 가능
-            result.put("validate", validateJSON.getJSONArray("validation").toString());
+            result.put("validate", validateJSON.get("validation").toString());
         }
         if (outlierFilePath != null) {
             outlierJSON = FileReader.getInstance().readJSON(outlierFilePath);
             // 여러개 존재 가능
-            result.put("outlier", outlierJSON.getJSONArray("outlier").toString());
+            result.put("outlier", outlierJSON.get("outlier").toString());
         }
 
         DTAugment augment = dtSimulationService.getDTSimulation(augmentSeq);

@@ -124,6 +124,9 @@ document.addEventListener('DOMContentLoaded', function () {
     listItems?.forEach(function (item) {
         item.addEventListener('click', function (event) {
             let model_seq = this.dataset.number;
+            if (!confirm('선택한 모델을 삭제하시겠습니까?')) {
+                return;
+            }
             let data = {
                 model_seq
             }
@@ -149,16 +152,16 @@ document.addEventListener('DOMContentLoaded', function () {
                             case 'restrict':
                                 switch (result.model_type) {
                                     case 'AE':
-                                        alert('이상치 옵션에서 사용되는 Data Twin Model이 존재합니다.\n삭제할 수 없습니다.');
+                                        alert('이상치(AutoEncoder) 옵션에서 사용 중인 Data Twin Model이 존재하여\n삭제할 수 없습니다.');
                                         break;
                                     case 'RF':
-                                        alert('보간 옵션에서 사용되는 Data Twin Model이 존재합니다.\n삭제할 수 없습니다.');
+                                        alert('보간(Random Forest) 옵션에서 사용 중인 Data Twin Model이 존재하여\n삭제할 수 없습니다.');
                                         break;
                                     case 'BRITS':
-                                        alert('보간 옵션에서 사용되는 Data Twin Model이 존재합니다.\n삭제할 수 없습니다.');
+                                        alert('보간(BRITS) 옵션에서 사용 중인 Data Twin Model이 존재하여\n삭제할 수 없습니다.');
                                         break;
                                     case 'NAOMI':
-                                        alert('보간 옵션에서 사용되는 Data Twin Model이 존재합니다.\n삭제할 수 없습니다.');
+                                        alert('보간(NAOMI) 옵션에서 사용 중인 Data Twin Model이 존재하여\n삭제할 수 없습니다.');
                                         break;
                                     default: {
                                         alert('다른 옵션에서 사용되는 Data Twin Model이 존재합니다.\n삭제할 수 없습니다.');

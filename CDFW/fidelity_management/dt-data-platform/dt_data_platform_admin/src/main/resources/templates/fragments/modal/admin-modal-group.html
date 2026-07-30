@@ -39,7 +39,7 @@
             <button type="button" class="ui-button sm outline-primary btn-cancel btn-popup-close"
                     data-popup-id="modal-group">취소
             </button>
-            <button type="button" class="ui-button sm primary btn-popup-save btn-popup-close btn-register-master"
+            <button type="button" class="ui-button sm primary btn-popup-save btn-register-master"
                     data-popup-id="modal-group">저장
             </button>
         </div>
@@ -79,19 +79,19 @@
                 <label id="dtl_cd_dtl_label" class="form-label" for="dtl_cd_dtl">코드 <span
                         class="badge required">필수</span></label>
                 <input type="text" id="dtl_cd_dtl" class="form-control sm" placeholder="코드를 입력해주세요."
-                       aria-labelledby="dtl_cd_dtl_label" maxlength="50">
+                       aria-labelledby="dtl_cd_dtl_label" maxlength="50" required="required">
             </div>
             <div class="form-control-wrap">
                 <label id="dtl_cd_nm_dtl_label" class="form-label" for="dtl_cd_nm_dtl">코드명 <span
                         class="badge required">필수</span></label>
                 <input type="text" id="dtl_cd_nm_dtl" class="form-control sm" placeholder="코드명을 입력해주세요."
-                       aria-labelledby="dtl_cd_nm_dtl_label" maxlength="50">
+                       aria-labelledby="dtl_cd_nm_dtl_label" maxlength="50" required="required">
             </div>
             <div class="form-control-wrap">
                 <label id="ordby_label" class="form-label" for="ordby">정렬 순서 <span
                         class="badge required">필수</span></label>
-                <input type="number" id="ordby" class="form-control sm" placeholder="정렬 순서를 입력해주세요."
-                       aria-labelledby="ordby_label" maxlength="2">
+                <input type="number" id="ordby" class="form-control sm" placeholder="정렬 순서를 입력해주세요. (0~999)"
+                       aria-labelledby="ordby_label" min="0" max="999" required="required">
             </div>
             <div class="form-control-wrap">
                 <span class="form-label">사용 여부 <span class="badge required">필수</span></span>
@@ -113,7 +113,7 @@
             <button type="button" class="ui-button sm outline-primary btn-cancel btn-popup-close"
                     data-popup-id="modal-detail">취소
             </button>
-            <button type="button" class="ui-button sm primary btn-popup-save btn-popup-close btn-register-detail"
+            <button type="button" class="ui-button sm primary btn-popup-save btn-register-detail"
                     data-popup-id="modal-detail">저장
             </button>
         </div>

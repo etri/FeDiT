@@ -273,126 +273,135 @@ public class TaskSchedulerService {
          * */
         List<Map<String, Object>> selectJobList = makeMetaSimulationSchedulerService.getJobList();
         for (Map<String, Object> job : selectJobList) {
-            log.info("job -> {}", job);
-            /**
-             * CYCLE_BGNG_DSGN_YMD (yyyy-MM-dd HH:mm:ss, String)
-             * CYCLE_END_DSGN_YMD (yyyy-MM-dd HH:mm:ss, String)
-             * 조건 검사 추가
-             * 현재 시간이 CYCLE_BGNG_DSGN_YMD <= NOW() <= CYCLE_END_DSGN_YMD 사이에 있는 것들만 진행
-             * */
-            String cycle_bgng_dsgn_ymd = job.get("cycle_bgng_dsgn_ymd").toString();
-            String cycle_end_dsgn_ymd = job.get("cycle_end_dsgn_ymd").toString();
-            if (!TimeUtil.isCurrentTimeInRange(cycle_bgng_dsgn_ymd, cycle_end_dsgn_ymd)) {
-                log.info("현재 시간이 증강 주기 설계 시작일과 종료일 사이에 있지 않음. 증강 번호: {}", job.get("augment_seq").toString());
-                continue;
-            }
-
-            //증강 시작 시간
-            String augment_crt_bgng = job.get("augment_crt_bgng") != null ? ((java.sql.Timestamp) job.get("augment_crt_bgng")).toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null;
-
-            //증강 종료 시간
-            String augment_crt_end = job.get("augment_crt_end") != null ? ((java.sql.Timestamp) job.get("augment_crt_end")).toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null;
-
-            //시작이 비어있지 않으면 증강 실행 중
-            if (augment_crt_bgng != null) {
-                log.info("해당 증강 번호 증강 실행 중");
-                continue;
-            }
-            boolean isReady = augment_crt_end == null;
-            if (!isReady) {
-                //주기 종류(H, D, W, M)
-                String cycle_tp = job.get("cycle_tp").toString();
-                long durationSeconds = TimeUtil.getPastDuration(augment_crt_end, null);
-                switch (cycle_tp) {
-                    case "T": {
-                        // 1분 초과로 차이 나는 경우 로직 실행
-                        //if (durationSeconds > 60 * 60) {
-                        if (durationSeconds > 60 * 1) {
-                            isReady = true;
-                        }
-                        break;
+            try {
+                log.info("job -> {}", job);
+                /**
+                 * CYCLE_BGNG_DSGN_YMD (yyyy-MM-dd HH:mm:ss, String)
+                 * CYCLE_END_DSGN_YMD (yyyy-MM-dd HH:mm:ss, String)
+                 * 조건 검사 추가
+                 * 현재 시간이 CYCLE_BGNG_DSGN_YMD <= NOW() <= CYCLE_END_DSGN_YMD 사이에 있는 것들만 진행
+                 * */
+                String cycle_bgng_dsgn_ymd = job.get("cycle_bgng_dsgn_ymd").toString();
+                if (job.get("cycle_end_dsgn_ymd") != null) {
+                    String cycle_end_dsgn_ymd = job.get("cycle_end_dsgn_ymd").toString();
+                    if (!TimeUtil.isCurrentTimeInRange(cycle_bgng_dsgn_ymd, cycle_end_dsgn_ymd)) {
+                        log.info("현재 시간이 증강 주기 설계 시작일과 종료일 사이에 있지 않음. 증강 번호: {}", job.get("augment_seq").toString());
+                        continue;
                     }
-                    case "H": {
-                        // 1시간 초과로 차이 나는 경우 로직 실행
-                        //if (durationSeconds > 60 * 60) {
-                        if (durationSeconds > 60 * 10) {
-                            isReady = true;
-                        }
-                        break;
-                    }
-                    case "D": {
-                        // 하루 초과로 차이 나는 경우 로직 실행
-                        if (durationSeconds > 24 * 60 * 60) {
-                            isReady = true;
-                        }
-                        break;
-                    }
-                    case "W": {
-                        // 일주일 초과로 차이 나는 경우 로직 실행
-                        if (durationSeconds > 7 * 24 * 60 * 60) {
-                            isReady = true;
-                        }
-                        break;
-                    }
-                    case "M": {
-                        // 한달 초과로 차이나는 경우 로직 실행 (30일 기준)
-                        if (durationSeconds > 30 * 24 * 60 * 60) {
-                            isReady = true;
-                        }
-                        break;
-                    }
-                    case "ETC": {
-                        // 시간 타입 * 시간 간격 차이나는 경우 로직 실행 (ETC 전용)
-                        int interval = TimeUnit.getTimeType(job.get("data_crt_intvl_tp").toString());
-                        int time = Integer.parseInt(job.get("data_crt_intvl_value").toString());
-
-                        if (durationSeconds > interval * time) {
-                            isReady = true;
-                        }
-                        break;
-                    }
-                    default:
-                        throw new RuntimeException("Cycle type is mismatched");
+                } else {
+                    // cycle_end_dsgn_ymd가 없는 경우 그냥 로직 진행
                 }
-            }
-            if (!isReady) {
+
+                //증강 시작 시간
+                String augment_crt_bgng = job.get("augment_crt_bgng") != null ? ((java.sql.Timestamp) job.get("augment_crt_bgng")).toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null;
+
+                //증강 종료 시간
+                String augment_crt_end = job.get("augment_crt_end") != null ? ((java.sql.Timestamp) job.get("augment_crt_end")).toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null;
+
+                //시작이 비어있지 않으면 증강 실행 중
+                if (augment_crt_bgng != null) {
+                    log.info("해당 증강 번호 증강 실행 중");
+                    continue;
+                }
+                boolean isReady = augment_crt_end == null;
+                if (!isReady) {
+                    //주기 종류(H, D, W, M)
+                    String cycle_tp = job.get("cycle_tp").toString();
+                    long durationSeconds = TimeUtil.getPastDuration(augment_crt_end, null);
+                    switch (cycle_tp) {
+                        case "T": {
+                            // 1분 초과로 차이 나는 경우 로직 실행
+                            //if (durationSeconds > 60 * 60) {
+                            if (durationSeconds > 60 * 1) {
+                                isReady = true;
+                            }
+                            break;
+                        }
+                        case "H": {
+                            // 1시간 초과로 차이 나는 경우 로직 실행
+                            //if (durationSeconds > 60 * 60) {
+                            if (durationSeconds > 60 * 10) {
+                                isReady = true;
+                            }
+                            break;
+                        }
+                        case "D": {
+                            // 하루 초과로 차이 나는 경우 로직 실행
+                            if (durationSeconds > 24 * 60 * 60) {
+                                isReady = true;
+                            }
+                            break;
+                        }
+                        case "W": {
+                            // 일주일 초과로 차이 나는 경우 로직 실행
+                            if (durationSeconds > 7 * 24 * 60 * 60) {
+                                isReady = true;
+                            }
+                            break;
+                        }
+                        case "M": {
+                            // 한달 초과로 차이나는 경우 로직 실행 (30일 기준)
+                            if (durationSeconds > 30 * 24 * 60 * 60) {
+                                isReady = true;
+                            }
+                            break;
+                        }
+                        case "ETC": {
+                            // 시간 타입 * 시간 간격 차이나는 경우 로직 실행 (ETC 전용)
+                            int interval = TimeUnit.getTimeType(job.get("data_crt_intvl_tp").toString());
+                            int time = Integer.parseInt(job.get("data_crt_intvl_value").toString());
+
+                            if (durationSeconds > interval * time) {
+                                isReady = true;
+                            }
+                            break;
+                        }
+                        default:
+                            throw new RuntimeException("Cycle type is mismatched");
+                    }
+                }
+                if (!isReady) {
+                    continue;
+                }
+
+                log.info("증강 번호 : {}", job.get("augment_seq").toString());
+                log.info("모델 번호 : {}", job.get("model_seq").toString());
+                log.info("증강 제목 : {}", job.get("title").toString());
+                log.info("증강 시작 시간 -> {}, 증강 종료 시간 -> {}", augment_crt_bgng, augment_crt_end);
+
+                int augmentSeq = Integer.parseInt(job.get("augment_seq").toString());
+                makeMetaSimulationSchedulerService.updateAugmentCrtBgng(augmentSeq, TimeUtil.getCurrentDateTime());
+                makeMetaSimulationSchedulerService.updateAugmentCrtEnd(augmentSeq, null);
+
+                // 현재 job의 정보를 final 변수에 복사
+                final Map<String, Object> currentJob = new HashMap<>(job); // job 객체의 복사본 생성
+
+                // 큐에 작업 등록
+                taskManager.submitTask(TaskType.DATA_AUGMENT, () -> {
+                    // 실제 로직 처리
+                    try {
+                        HashMap<String, Object> taskResult = new HashMap<>(); // 작업 결과
+                        log.info("DATA_AUGMENT 작업 실행: {}", taskResult);
+                        log.info("증강 번호 : {}", job.get("augment_seq").toString());
+                        log.info("모델 번호 : {}", job.get("model_seq").toString());
+                        log.info("증강 제목 : {}", job.get("title").toString());
+                        log.info("증강 시작 시간 -> {}, 증강 종료 시간 -> {}", currentJob.get("augment_crt_bgng"), currentJob.get("augment_crt_end"));
+                        metaDTSimulationScheduler.executeTwinSimulate((HashMap<String, Object>) currentJob);
+                        taskResult.put("message", "DATA_AUGMENT 작업 성공 - Job ID: " + currentJob.get("augment_seq") + ", DATA_AUGMENT Name: " + currentJob.get("title")); // 예시: job에서 ID 가져오기
+                        log.info("DATA_AUGMENT 작업 결과: {}", taskResult);
+                        return new ObjectMapper().writeValueAsString(taskResult);
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        log.info("Finally Executed");
+                        makeMetaSimulationSchedulerService.updateAugmentCrtBgng(Integer.parseInt(currentJob.get("augment_seq").toString()), null);
+                        makeMetaSimulationSchedulerService.updateAugmentCrtEnd(Integer.parseInt(currentJob.get("augment_seq").toString()), TimeUtil.getCurrentDateTime());
+                    }
+                });
+            } catch (Exception e) {
+                log.info("증강 작업 중 오류 발생, 증강 번호 : {}, 오류 메시지 : {}", job.get("augment_seq").toString(), e.getMessage());
                 continue;
             }
-
-            log.info("증강 번호 : {}", job.get("augment_seq").toString());
-            log.info("모델 번호 : {}", job.get("model_seq").toString());
-            log.info("증강 제목 : {}", job.get("title").toString());
-            log.info("증강 시작 시간 -> {}, 증강 종료 시간 -> {}", augment_crt_bgng, augment_crt_end);
-
-            int augmentSeq = Integer.parseInt(job.get("augment_seq").toString());
-            makeMetaSimulationSchedulerService.updateAugmentCrtBgng(augmentSeq, TimeUtil.getCurrentDateTime());
-            makeMetaSimulationSchedulerService.updateAugmentCrtEnd(augmentSeq, null);
-
-            // 현재 job의 정보를 final 변수에 복사
-            final Map<String, Object> currentJob = new HashMap<>(job); // job 객체의 복사본 생성
-
-            // 큐에 작업 등록
-            taskManager.submitTask(TaskType.DATA_AUGMENT, () -> {
-                // 실제 로직 처리
-                try {
-                    HashMap<String, Object> taskResult = new HashMap<>(); // 작업 결과
-                    log.info("DATA_AUGMENT 작업 실행: {}", taskResult);
-                    log.info("증강 번호 : {}", job.get("augment_seq").toString());
-                    log.info("모델 번호 : {}", job.get("model_seq").toString());
-                    log.info("증강 제목 : {}", job.get("title").toString());
-                    log.info("증강 시작 시간 -> {}, 증강 종료 시간 -> {}", currentJob.get("augment_crt_bgng"), currentJob.get("augment_crt_end"));
-                    metaDTSimulationScheduler.executeTwinSimulate((HashMap<String, Object>) currentJob);
-                    taskResult.put("message", "DATA_AUGMENT 작업 성공 - Job ID: " + currentJob.get("augment_seq") + ", DATA_AUGMENT Name: " + currentJob.get("title")); // 예시: job에서 ID 가져오기
-                    log.info("DATA_AUGMENT 작업 결과: {}", taskResult);
-                    return new ObjectMapper().writeValueAsString(taskResult);
-                } catch (JsonProcessingException e) {
-                    throw new RuntimeException(e);
-                } finally {
-                    log.info("Finally Executed");
-                    makeMetaSimulationSchedulerService.updateAugmentCrtBgng(Integer.parseInt(currentJob.get("augment_seq").toString()), null);
-                    makeMetaSimulationSchedulerService.updateAugmentCrtEnd(Integer.parseInt(currentJob.get("augment_seq").toString()), TimeUtil.getCurrentDateTime());
-                }
-            });
         }
     }
 

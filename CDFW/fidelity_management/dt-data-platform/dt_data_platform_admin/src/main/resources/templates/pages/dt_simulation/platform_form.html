@@ -130,7 +130,7 @@
                             <div class="col-6">
                                 <div class="row">
                                     <div class="col">
-                                        <input type="text" id="simulation_model_nm" class="form-control sm"
+                                        <input type="text" id="simulation_model_nm" readonly="readonly" class="form-control sm"
                                                placeholder="검색어를 입력하세요">
                                         <input type="hidden" id="set_model_name">
                                     </div>
@@ -353,7 +353,7 @@
                                       style="color: red; font-size: 13px;">데이터 최소 개수가 부족할 시 전처리 프로세스 및 데이터 증강 프로세스를 진행할 수 없습니다.</span>
                                 <span class="d-block" style="color: red; font-size: 13px;"
                                       th:text="'전처리에 필요한 데이터의 최대 개수는 ' + ${limit} + '개입니다.'">전처리에 필요한 데이터의 최대 개수는 10000개입니다.</span>
-                                <span class="d-block" style="color: red; font-size: 13px;">전처리에 필요한 데이터의 최소 개수는 통상 모델의 Window Size의 5배입니다.</span>
+                                <span class="d-block" style="color: red; font-size: 13px;">전처리에 필요한 데이터의 최소 개수는 통상 모델의 Window Size의 5배입니다. (최소 200개 이상)</span>
                                 <span class="d-block" style="color: red; font-size: 13px;">전처리 옵션의 Auto Encoder 모델의 이상치 탐지를 사용시 전처리 개수가 더 필요할 수 있습니다.</span>
                             </div>
                         </div>
@@ -382,7 +382,7 @@
                                      style="padding-top: 0; padding-bottom: 0;">
                                     <div class="col-12 attach-file pt-0">
                                         <input type="file" name="attachFiles" class="file-upload-default"
-                                               id="attach_files" style="display: none;">
+                                               id="attach_files" accept=".csv" style="display: none;">
                                         <div class="input-group">
                                             <input type="text" id="attach_files_input"
                                                    disabled="disabled"
@@ -404,13 +404,13 @@
                                     <li class="form-checkbox">
                                         <input type="radio" name="useYn" id="useN" class="ui-check"
                                                value="N" data-label="미사용" aria-labelledby="useN_label"
-                                               th:checked="*{useYn == 'N'  or useYn == null}">
+                                               th:checked="*{useYn == 'N'}">
                                         <label class="form-label" for="useN" id="useN_label">미사용</label>
                                     </li>
                                     <li class="form-checkbox">
                                         <input type="radio" name="useYn" id="useY" class="ui-check"
                                                value="Y" data-label="사용" aria-labelledby="useY_label"
-                                               th:checked="*{useYn == 'Y'}">
+                                               th:checked="*{useYn == 'Y' or useYn == null}">
                                         <label class="form-label" for="useY" id="useY_label">사용</label>
                                     </li>
                                 </ul>

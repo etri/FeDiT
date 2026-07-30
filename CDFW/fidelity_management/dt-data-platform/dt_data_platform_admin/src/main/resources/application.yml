@@ -29,7 +29,7 @@ server:
       timeout: 120m
       persistent: true
       cookie:
-        name: [ JSESSIONID ]
+        name: [JSESSIONID]
         http-only: true
   tomcat:
     uri-encoding: UTF-8
@@ -39,7 +39,6 @@ server:
     include-stacktrace: on-trace-param
 
 ---
-
 spring:
   profiles: local
   output:
@@ -54,23 +53,22 @@ spring:
   primary:
     datasource:
       driver-class-name: org.mariadb.jdbc.Driver
-      jdbc-url: [ JDBC URL ]
-      username: [ DB USER NAME ]
-      password: [ DB USER PASSWORD ]
+      jdbc-url: [JDBC URL]
+      username: [DB USER NAME]
+      password: [DB USER PASSWORD]
   second:
     datasource:
       driver-class-name: org.mariadb.jdbc.Driver
-      jdbc-url: [ JDBC URL ]
-      username: [ DB USER NAME ]
-      password: [ DB USER PASSWORD ]
-
+      jdbc-url: [JDBC URL]
+      username: [DB USER NAME]
+      password: [DB USER PASSWORD]
 
 server:
-  port: [ PORT ]
+  port: [PORT]
 
 system:
-  username: [ ADMIN ID ]
-  password: [ ADMIN PASSWORD ]
+  username: [ADMIN ID]
+  password: [ADMIN PASSWORD]
   upload-file-path: ~PATH\DT_FILE\files
   upload-file-url: /resource
   limit-csv-row-count: 10000
@@ -78,11 +76,11 @@ system:
   dt-meta-file-path: ~PATH\DT_META_FILE\files\storage
   dt-etc-meta-file-path: ~PATH\DT_ETC_META_FILE\files\storage
   tmp-sample-data: ~PATH\DT_META_FILE\files\201901_201912유동인구.csv
-  dt-api-url: [ DT API URL ]
-  dt-meta-api-url: [ META API URL ]
-  dt-keti-api-url: [ KETI SYNC ENGINE API URL ]
-  dt-api-key: [ DT API KEY ]
-  dt-meta-key: [ META API KEY ]
+  dt-api-url: [DT API URL]
+  dt-meta-api-url: [META API URL]
+  dt-keti-api-url: [KETI SYNC ENGINE API URL]
+  dt-api-key: [DT API KEY]
+  dt-meta-key: [META API KEY]
   limit-make-model-cnt: 4
 
 logging:
@@ -102,7 +100,6 @@ logging:
     log4jdbc.sql: off
 
 ---
-
 spring:
   profiles: virtual
   servlet:
@@ -112,22 +109,22 @@ spring:
   primary:
     datasource:
       driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
-      jdbc-url: [ JDBC URL ]
-      username: [ DB USER NAME ]
-      password: [ DB USER PASSWORD ]
+      jdbc-url: [JDBC URL]
+      username: [DB USER NAME]
+      password: [DB USER PASSWORD]
   second:
     datasource:
       driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
-      jdbc-url: [ JDBC URL ]
-      username: [ DB USER NAME ]
-      password: [ DB USER PASSWORD ]
+      jdbc-url: [JDBC URL]
+      username: [DB USER NAME]
+      password: [DB USER PASSWORD]
 
 server:
-  port: [ PORT ]
+  port: [PORT]
 
 system:
-  username: [ ADMIN ID ]
-  password: [ ADMIN PASSWORD ]
+  username: [ADMIN ID]
+  password: [ADMIN PASSWORD]
   upload-file-path: ~PATH\DT_FILE\files
   upload-file-url: /resource
   limit-csv-row-count: 10000
@@ -135,11 +132,11 @@ system:
   dt-meta-file-path: ~PATH\DT_META_FILE\files\storage
   dt-etc-meta-file-path: ~PATH\DT_ETC_META_FILE\files\storage
   tmp-sample-data: ~PATH\DT_META_FILE\files\201901_201912유동인구.csv
-  dt-api-url: [ DT API URL ]
-  dt-meta-api-url: [ META API URL ]
-  dt-keti-api-url: [ KETI SYNC ENGINE API URL ]
-  dt-api-key: [ DT API KEY ]
-  dt-meta-key: [ META API KEY ]
+  dt-api-url: [DT API URL]
+  dt-meta-api-url: [META API URL]
+  dt-keti-api-url: [KETI SYNC ENGINE API URL]
+  dt-api-key: [DT API KEY]
+  dt-meta-key: [META API KEY]
   limit-make-model-cnt: 4
 
 logging:
@@ -159,7 +156,6 @@ logging:
     log4jdbc.sql: off
 
 ---
-
 spring:
   profiles: dev
   servlet:
@@ -169,22 +165,22 @@ spring:
   primary:
     datasource:
       driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
-      jdbc-url: [ JDBC URL ]
-      username: [ DB USER NAME ]
-      password: [ DB USER PASSWORD ]
+      jdbc-url: [JDBC URL]
+      username: [DB USER NAME]
+      password: [DB USER PASSWORD]
   second:
     datasource:
       driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
-      jdbc-url: [ JDBC URL ]
-      username: [ DB USER NAME ]
-      password: [ DB USER PASSWORD ]
+      jdbc-url: [JDBC URL]
+      username: [DB USER NAME]
+      password: [DB USER PASSWORD]
 
 server:
   port: [PORT]
 
 system:
-  username: [ ADMIN ID ]
-  password: [ ADMIN PASSWORD ]
+  username: [ADMIN ID]
+  password: [ADMIN PASSWORD]
   upload-file-path: ~PATH\DT_FILE\files
   upload-file-url: /resource
   limit-csv-row-count: 10000
@@ -192,11 +188,11 @@ system:
   dt-meta-file-path: ~PATH\DT_META_FILE\files\storage
   dt-etc-meta-file-path: ~PATH\DT_ETC_META_FILE\files\storage
   tmp-sample-data: ~PATH\DT_META_FILE\files\201901_201912유동인구.csv
-  dt-api-url: [ DT API URL ]
-  dt-meta-api-url: [ META API URL ]
-  dt-keti-api-url: [ KETI SYNC ENGINE API URL ]
-  dt-api-key: [ DT API KEY ]
-  dt-meta-key: [ META API KEY ]
+  dt-api-url: [DT API URL]
+  dt-meta-api-url: [META API URL]
+  dt-keti-api-url: [KETI SYNC ENGINE API URL]
+  dt-api-key: [DT API KEY]
+  dt-meta-key: [META API KEY]
   limit-make-model-cnt: 4
 
 logging:
@@ -215,7 +211,6 @@ logging:
     log4jdbc: off
     log4jdbc.sql: off
 ---
-
 spring:
   profiles: prod
   servlet:
@@ -225,22 +220,22 @@ spring:
   primary:
     datasource:
       driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
-      jdbc-url: [ JDBC URL ]
-      username: [ DB USER NAME ]
-      password: [ DB USER PASSWORD ]
+      jdbc-url: [JDBC URL]
+      username: [DB USER NAME]
+      password: [DB USER PASSWORD]
   second:
     datasource:
       driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
-      jdbc-url: [ JDBC URL ]
-      username: [ DB USER NAME ]
-      password: [ DB USER PASSWORD ]
+      jdbc-url: [JDBC URL]
+      username: [DB USER NAME]
+      password: [DB USER PASSWORD]
 
 server:
   port: [PORT]
 
 system:
-  username: [ ADMIN ID ]
-  password: [ ADMIN PASSWORD ]
+  username: [ADMIN ID]
+  password: [ADMIN PASSWORD]
   upload-file-path: ~PATH\DT_FILE\files
   upload-file-url: /resource
   limit-csv-row-count: 10000
@@ -248,11 +243,11 @@ system:
   dt-meta-file-path: ~PATH\DT_META_FILE\files\storage
   dt-etc-meta-file-path: ~PATH\DT_ETC_META_FILE\files\storage
   tmp-sample-data: ~PATH\DT_META_FILE\files\201901_201912유동인구.csv
-  dt-api-url: [ DT API URL ]
-  dt-meta-api-url: [ META API URL ]
-  dt-keti-api-url: [ KETI SYNC ENGINE API URL ]
-  dt-api-key: [ DT API KEY ]
-  dt-meta-key: [ META API KEY ]
+  dt-api-url: [DT API URL]
+  dt-meta-api-url: [META API URL]
+  dt-keti-api-url: [KETI SYNC ENGINE API URL]
+  dt-api-key: [DT API KEY]
+  dt-meta-key: [META API KEY]
   limit-make-model-cnt: 4
 
 logging:
@@ -269,4 +264,4 @@ logging:
     jdbc.resultsettable: off
     jdbc.connection: off
     log4jdbc: off
-    log4jdbc.sql: off    
+    log4jdbc.sql: off

@@ -19,8 +19,8 @@ import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 import com.stoneitgt.dt.data.platform.util.file.FileWriter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.HashedMap;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -40,6 +40,9 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class DTSimulationService extends BaseService {
+
+    // JSON 트리 생성용 — ObjectMapper 는 스레드 세이프하므로 정적 인스턴스를 재사용한다
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Autowired
     private DTSimulationMapper dtSimulationMapper;
@@ -1042,13 +1045,13 @@ public class DTSimulationService extends BaseService {
 
             /*[{file_path=D:/DT_FILE_TMP/DT_META_FILE/files/storage/augment/2026/04/80/80_39_admin_20260428164328_interval_augment.csv}]*/
             log.info("resultDataList -> {}", resultDataList);
-            JSONArray formattedIndividuallyDataArray = JSONParser.formatIndividuallyData(resultDataList);
+            ArrayNode formattedIndividuallyDataArray = JSONParser.formatIndividuallyData(resultDataList);
             /*{"rowtime":"2026-04-08 14:59:00","co":"0.69200957"}*/
             log.info("formattedIndividuallyDataArray -> {}", formattedIndividuallyDataArray.get(0).toString());
             List<Map<String, Object>> csvData = FileReader.getInstance().readCSVToListObjectMap(file_path + File.separator + lastFileName);
             /*{devId=12.0, temp=7.7, o3=0.0, ou=6.0, co2=0.0, winsp=0.3, h2s=0.0, pm10=25.2, voc=0.0, co=0.0, no2=0.0, batt=0.0, hcho=0.1, rowtime=2026-04-07 14:20:00, pm25=15.7, so2=0.0, nh3=0.0, humi=64.4, windir=345.9}*/
             log.info("증강 데이터 원본 csvData -> {}", csvData.get(0).toString());
-            JSONArray recoveredDataFormatArray = JSONParser.recoveredDataFormat(formattedIndividuallyDataArray, csvData);
+            ArrayNode recoveredDataFormatArray = JSONParser.recoveredDataFormat(formattedIndividuallyDataArray, csvData);
             /*{"devId":"12.0","temp":"7.7","o3":"0.0","ou":"6.0","co2":"0.0","winsp":"0.3","h2s":"0.0","pm10":"25.2","voc":"0.0","co":"0.69200957","no2":"0.0","batt":"0.0","hcho":"0.1","rowtime":"2026-04-08 14:59:00","pm25":"15.7","so2":"0.0","nh3":"0.0","humi":"64.4","windir":"345.9"}*/
             log.info("Decision Tree 적용 안된 버전의 recoveredDataFormatArray -> {}", recoveredDataFormatArray.get(0).toString());
             recoveredDataFormatArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, recoveredDataFormatArray);
@@ -1065,7 +1068,7 @@ public class DTSimulationService extends BaseService {
             log.info("증강 결과 데이터의 마지막 시간으로 data_crt_last_hr이 변경되었습니다. -> {}", data_crt_last_hr);
 
             /*Validation 데이터 업로드*/
-            JSONObject validationUploadJson = new JSONObject();
+            ObjectNode validationUploadJson = MAPPER.createObjectNode();
             validationUploadJson.put("status", "success");
             validationUploadJson.put("type", "augment");
             validationUploadJson.put("twin_id", twin_id);
@@ -1074,9 +1077,9 @@ public class DTSimulationService extends BaseService {
             validationUploadJson.put("origin_from", origin_from);
             validationUploadJson.put("origin_to", origin_to);
             validationUploadJson.put("notification_time", notification_time);
-            JSONArray validationDataJsonArray = JSONParser.formatValidationData(validations, new ArrayList<>());
+            ArrayNode validationDataJsonArray = JSONParser.formatValidationData(validations, new ArrayList<>());
             validationDataJsonArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, validationDataJsonArray);
-            validationUploadJson.put("validation", validationDataJsonArray);
+            validationUploadJson.set("validation", validationDataJsonArray);
 
             // 저장할 파일 경로
             String validationFilePath = file_path + File.separator + notification_time.replaceAll("[ :]", "") + "_validation.json";
@@ -1100,19 +1103,19 @@ public class DTSimulationService extends BaseService {
             }
 
             /*Outlier 데이터 업로드*/
-            JSONObject outlierUploadJson = new JSONObject();
+            ObjectNode outlierUploadJson = MAPPER.createObjectNode();
             outlierUploadJson.put("status", "success");
             outlierUploadJson.put("type", "augment");
-            outlierUploadJson.put("error", new ArrayList<>());
+            outlierUploadJson.putArray("error");
             outlierUploadJson.put("twin_id", twin_id);
             outlierUploadJson.put("obj_id", obj_id);
             outlierUploadJson.put("index_col", index_trgt_col);
             outlierUploadJson.put("origin_from", origin_from);
             outlierUploadJson.put("origin_to", origin_to);
             outlierUploadJson.put("notification_time", notification_time);
-            JSONArray outlierDataJsonArray = JSONParser.formatOutlierData(outliers);
+            ArrayNode outlierDataJsonArray = JSONParser.formatOutlierData(outliers);
             outlierDataJsonArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, outlierDataJsonArray);
-            outlierUploadJson.put("outlier", outlierDataJsonArray);
+            outlierUploadJson.set("outlier", outlierDataJsonArray);
 
             // 저장할 파일 경로
             String outlierFilePath = file_path + File.separator + notification_time.replaceAll("[ :]", "") + "_outlier.json";
@@ -1833,13 +1836,13 @@ public class DTSimulationService extends BaseService {
 
             /*[{file_path=D:/DT_FILE_TMP/DT_META_FILE/files/storage/augment/2026/04/80/80_39_admin_20260428164328_interval_augment.csv}]*/
             log.info("resultDataList -> {}", resultDataList);
-            JSONArray formattedIndividuallyDataArray = JSONParser.formatIndividuallyData(resultDataList);
+            ArrayNode formattedIndividuallyDataArray = JSONParser.formatIndividuallyData(resultDataList);
             /*{"rowtime":"2026-04-08 14:59:00","co":"0.69200957"}*/
             log.info("formattedIndividuallyDataArray -> {}", formattedIndividuallyDataArray.get(0).toString());
             List<Map<String, Object>> csvData = FileReader.getInstance().readCSVToListObjectMap(file_path + File.separator + lastFileName);
             /*{devId=12.0, temp=7.7, o3=0.0, ou=6.0, co2=0.0, winsp=0.3, h2s=0.0, pm10=25.2, voc=0.0, co=0.0, no2=0.0, batt=0.0, hcho=0.1, rowtime=2026-04-07 14:20:00, pm25=15.7, so2=0.0, nh3=0.0, humi=64.4, windir=345.9}*/
             log.info("증강 데이터 원본 csvData -> {}", csvData.get(0).toString());
-            JSONArray recoveredDataFormatArray = JSONParser.recoveredDataFormat(formattedIndividuallyDataArray, csvData);
+            ArrayNode recoveredDataFormatArray = JSONParser.recoveredDataFormat(formattedIndividuallyDataArray, csvData);
             /*{"devId":"12.0","temp":"7.7","o3":"0.0","ou":"6.0","co2":"0.0","winsp":"0.3","h2s":"0.0","pm10":"25.2","voc":"0.0","co":"0.69200957","no2":"0.0","batt":"0.0","hcho":"0.1","rowtime":"2026-04-08 14:59:00","pm25":"15.7","so2":"0.0","nh3":"0.0","humi":"64.4","windir":"345.9"}*/
             log.info("Decision Tree 적용 안된 버전의 recoveredDataFormatArray -> {}", recoveredDataFormatArray.get(0).toString());
             recoveredDataFormatArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, recoveredDataFormatArray);
@@ -1859,16 +1862,16 @@ public class DTSimulationService extends BaseService {
             log.info("증강 결과 데이터의 마지막 시간으로 data_crt_last_hr이 변경되었습니다. -> {}", data_crt_last_hr);
 
             /*Validation 데이터 업로드*/
-            JSONObject validationUploadJson = new JSONObject();
+            ObjectNode validationUploadJson = MAPPER.createObjectNode();
             validationUploadJson.put("status", "success");
             validationUploadJson.put("type", "augment");
             validationUploadJson.put("index_col", index_trgt_col);
             validationUploadJson.put("origin_from", origin_from);
             validationUploadJson.put("origin_to", origin_to);
             validationUploadJson.put("notification_time", notification_time);
-            JSONArray validationDataJsonArray = JSONParser.formatValidationData(validations, new ArrayList<>());
+            ArrayNode validationDataJsonArray = JSONParser.formatValidationData(validations, new ArrayList<>());
             validationDataJsonArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, validationDataJsonArray);
-            validationUploadJson.put("validation", validationDataJsonArray);
+            validationUploadJson.set("validation", validationDataJsonArray);
 
             // 저장할 파일 경로
             String validationFilePath = file_path + File.separator + notification_time.replaceAll("[ :]", "") + "_validation.json";
@@ -1892,18 +1895,18 @@ public class DTSimulationService extends BaseService {
             }
 
             /*Outlier 데이터 업로드*/
-            JSONObject outlierUploadJson = new JSONObject();
+            ObjectNode outlierUploadJson = MAPPER.createObjectNode();
             outlierUploadJson.put("status", "success");
             outlierUploadJson.put("type", "augment");
-            outlierUploadJson.put("error", new ArrayList<>());
+            outlierUploadJson.putArray("error");
             outlierUploadJson.put("index_col", index_trgt_col);
             outlierUploadJson.put("origin_from", origin_from);
             outlierUploadJson.put("origin_to", origin_to);
             outlierUploadJson.put("notification_time", notification_time);
             log.info("outliers -> {}", outliers);
-            JSONArray outlierDataJsonArray = JSONParser.formatOutlierData(outliers);
+            ArrayNode outlierDataJsonArray = JSONParser.formatOutlierData(outliers);
             outlierDataJsonArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, outlierDataJsonArray);
-            outlierUploadJson.put("outlier", outlierDataJsonArray);
+            outlierUploadJson.set("outlier", outlierDataJsonArray);
 
             // 저장할 파일 경로
             String outlierFilePath = file_path + File.separator + notification_time.replaceAll("[ :]", "") + "_outlier.json";
@@ -2601,13 +2604,13 @@ public class DTSimulationService extends BaseService {
 
             /*[{file_path=D:/DT_FILE_TMP/DT_META_FILE/files/storage/augment/2026/04/80/80_39_admin_20260428164328_interval_augment.csv}]*/
             log.info("resultDataList -> {}", resultDataList);
-            JSONArray formattedIndividuallyDataArray = JSONParser.formatIndividuallyData(resultDataList);
+            ArrayNode formattedIndividuallyDataArray = JSONParser.formatIndividuallyData(resultDataList);
             /*{"rowtime":"2026-04-08 14:59:00","co":"0.69200957"}*/
             log.info("formattedIndividuallyDataArray -> {}", formattedIndividuallyDataArray.get(0).toString());
             List<Map<String, Object>> csvData = FileReader.getInstance().readCSVToListObjectMap(file_path + File.separator + lastFileName);
             /*{devId=12.0, temp=7.7, o3=0.0, ou=6.0, co2=0.0, winsp=0.3, h2s=0.0, pm10=25.2, voc=0.0, co=0.0, no2=0.0, batt=0.0, hcho=0.1, rowtime=2026-04-07 14:20:00, pm25=15.7, so2=0.0, nh3=0.0, humi=64.4, windir=345.9}*/
             log.info("증강 데이터 원본 csvData -> {}", csvData.get(0).toString());
-            JSONArray recoveredDataFormatArray = JSONParser.recoveredDataFormat(formattedIndividuallyDataArray, csvData);
+            ArrayNode recoveredDataFormatArray = JSONParser.recoveredDataFormat(formattedIndividuallyDataArray, csvData);
             /*{"devId":"12.0","temp":"7.7","o3":"0.0","ou":"6.0","co2":"0.0","winsp":"0.3","h2s":"0.0","pm10":"25.2","voc":"0.0","co":"0.69200957","no2":"0.0","batt":"0.0","hcho":"0.1","rowtime":"2026-04-08 14:59:00","pm25":"15.7","so2":"0.0","nh3":"0.0","humi":"64.4","windir":"345.9"}*/
             log.info("Decision Tree 적용 안된 버전의 recoveredDataFormatArray -> {}", recoveredDataFormatArray.get(0).toString());
             recoveredDataFormatArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, recoveredDataFormatArray);
@@ -2627,16 +2630,16 @@ public class DTSimulationService extends BaseService {
             log.info("증강 결과 데이터의 마지막 시간으로 data_crt_last_hr이 변경되었습니다. -> {}", data_crt_last_hr);
 
             /*Validation 데이터 업로드*/
-            JSONObject validationUploadJson = new JSONObject();
+            ObjectNode validationUploadJson = MAPPER.createObjectNode();
             validationUploadJson.put("status", "success");
             validationUploadJson.put("type", "augment");
             validationUploadJson.put("index_col", index_trgt_col);
             validationUploadJson.put("origin_from", origin_from);
             validationUploadJson.put("origin_to", origin_to);
             validationUploadJson.put("notification_time", notification_time);
-            JSONArray validationDataJsonArray = JSONParser.formatValidationData(validations, new ArrayList<>());
+            ArrayNode validationDataJsonArray = JSONParser.formatValidationData(validations, new ArrayList<>());
             validationDataJsonArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, validationDataJsonArray);
-            validationUploadJson.put("validation", validationDataJsonArray);
+            validationUploadJson.set("validation", validationDataJsonArray);
 
             // 저장할 파일 경로
             String validationFilePath = file_path + File.separator + notification_time.replaceAll("[ :]", "") + "_validation.json";
@@ -2660,18 +2663,18 @@ public class DTSimulationService extends BaseService {
             }
 
             /*Outlier 데이터 업로드*/
-            JSONObject outlierUploadJson = new JSONObject();
+            ObjectNode outlierUploadJson = MAPPER.createObjectNode();
             outlierUploadJson.put("status", "success");
             outlierUploadJson.put("type", "augment");
-            outlierUploadJson.put("error", new ArrayList<>());
+            outlierUploadJson.putArray("error");
             outlierUploadJson.put("index_col", index_trgt_col);
             outlierUploadJson.put("origin_from", origin_from);
             outlierUploadJson.put("origin_to", origin_to);
             outlierUploadJson.put("notification_time", notification_time);
             log.info("outliers -> {}", outliers);
-            JSONArray outlierDataJsonArray = JSONParser.formatOutlierData(outliers);
+            ArrayNode outlierDataJsonArray = JSONParser.formatOutlierData(outliers);
             outlierDataJsonArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, outlierDataJsonArray);
-            outlierUploadJson.put("outlier", outlierDataJsonArray);
+            outlierUploadJson.set("outlier", outlierDataJsonArray);
 
             // 저장할 파일 경로
             String outlierFilePath = file_path + File.separator + notification_time.replaceAll("[ :]", "") + "_outlier.json";
@@ -2747,29 +2750,6 @@ public class DTSimulationService extends BaseService {
             return true;
         }
         return false;
-    }
-
-
-    private boolean dataFinalDateCut(String filePath, String timeIndex, String toDate) throws Exception {
-        List<Map<String, Object>> data = FileReader.getInstance().readCSVToListObjectMap(filePath);
-        Date cutoffDate = ConvertUtil.tryParse(ConvertUtil.DATEFORMATS, toDate);
-        // 데이터를 필터링하여 timeIndex로 지정된 날짜가 toDate 이전인 항목들만 남김
-        List<Map<String, Object>> filteredData = data.stream().filter(row -> {
-            try {
-                String dateString = row.get(timeIndex).toString();
-                Date rowDate = ConvertUtil.tryParse(ConvertUtil.DATEFORMATS, dateString);
-                return rowDate.before(cutoffDate);
-            } catch (Exception e) {
-                log.error("Date parsing error for row: {}", row, e);
-                return false; // 날짜 파싱 오류 시 필터에서 제외
-            }
-        }).collect(Collectors.toList());
-        FileWriter.getInstance().writeCSV(filePath, filteredData);
-        // 필터링된 결과를 저장하거나 처리
-        log.info("Filtered data count: {}", filteredData.size());
-
-        // 예시로, 필터링된 데이터가 있으면 true 반환
-        return !filteredData.isEmpty();
     }
 
     /**
@@ -3346,11 +3326,11 @@ public class DTSimulationService extends BaseService {
              * */
             log.info("file_path + File.separator + lastFileName -> {}", file_path + File.separator + lastFileName);
             log.info("resultDataList -> {}", resultDataList);
-            JSONArray formattedIndividuallyDataArray = JSONParser.formatIndividuallyData(resultDataList);
+            ArrayNode formattedIndividuallyDataArray = JSONParser.formatIndividuallyData(resultDataList);
             log.info("formattedIndividuallyDataArray -> {}", formattedIndividuallyDataArray.get(0).toString());
             List<Map<String, Object>> csvData = FileReader.getInstance().readCSVToListObjectMap(file_path + File.separator + lastFileName);
             log.info("전처리 데이터 원본 csvData -> {}", csvData.get(0).toString());
-            JSONArray recoveredDataFormatArray = JSONParser.recoveredDataFormat(formattedIndividuallyDataArray, csvData);
+            ArrayNode recoveredDataFormatArray = JSONParser.recoveredDataFormat(formattedIndividuallyDataArray, csvData);
             log.info("Decision Tree 적용 안된 버전의 recoveredDataFormatArray -> {}", recoveredDataFormatArray.get(0).toString());
             recoveredDataFormatArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, recoveredDataFormatArray);
             log.info("Decision Tree 적용된 버전의 recoveredDataFormatArray -> {}", recoveredDataFormatArray.get(0).toString());
@@ -3379,7 +3359,7 @@ public class DTSimulationService extends BaseService {
             log.info("전처리 결과 데이터의 마지막 시간으로 data_crt_last_hr이 변경되었습니다. -> {}", data_crt_last_hr);
 
             /*Validation 데이터 업로드*/
-            JSONObject validationUploadJson = new JSONObject();
+            ObjectNode validationUploadJson = MAPPER.createObjectNode();
             validationUploadJson.put("status", "success");
             validationUploadJson.put("type", "preproc");
             validationUploadJson.put("twin_id", twin_id);
@@ -3388,9 +3368,9 @@ public class DTSimulationService extends BaseService {
             validationUploadJson.put("origin_from", origin_from);
             validationUploadJson.put("origin_to", origin_to);
             validationUploadJson.put("notification_time", notification_time);
-            JSONArray validationDataJsonArray = JSONParser.formatValidationData(validations, new ArrayList<>());
+            ArrayNode validationDataJsonArray = JSONParser.formatValidationData(validations, new ArrayList<>());
             validationDataJsonArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, validationDataJsonArray);
-            validationUploadJson.put("validation", validationDataJsonArray);
+            validationUploadJson.set("validation", validationDataJsonArray);
             String validationFilePath = file_path + File.separator + notification_time.replaceAll("[ :]", "") + "_validation.json";
             try (java.io.FileWriter fileWriter = new java.io.FileWriter(validationFilePath)) {
                 fileWriter.write(validationUploadJson.toString());
@@ -3412,7 +3392,7 @@ public class DTSimulationService extends BaseService {
             }
 
             /*Outlier 데이터 업로드*/
-            JSONObject outlierUploadJson = new JSONObject();
+            ObjectNode outlierUploadJson = MAPPER.createObjectNode();
             outlierUploadJson.put("status", "success");
             outlierUploadJson.put("type", "preproc");
             outlierUploadJson.put("twin_id", twin_id);
@@ -3421,9 +3401,9 @@ public class DTSimulationService extends BaseService {
             outlierUploadJson.put("origin_from", origin_from);
             outlierUploadJson.put("origin_to", origin_to);
             outlierUploadJson.put("notification_time", notification_time);
-            JSONArray outlierDataJsonArray = JSONParser.formatOutlierData(outliers);
+            ArrayNode outlierDataJsonArray = JSONParser.formatOutlierData(outliers);
             outlierDataJsonArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, outlierDataJsonArray);
-            outlierUploadJson.put("outlier", outlierDataJsonArray);
+            outlierUploadJson.set("outlier", outlierDataJsonArray);
             String outlierFilePath = file_path + File.separator + notification_time.replaceAll("[ :]", "") + "_outlier.json";
             try (java.io.FileWriter fileWriter = new java.io.FileWriter(outlierFilePath)) {
                 fileWriter.write(outlierUploadJson.toString());
@@ -4034,11 +4014,11 @@ public class DTSimulationService extends BaseService {
              * */
             log.info("file_path + File.separator + lastFileName -> {}", file_path + File.separator + lastFileName);
             log.info("resultDataList -> {}", resultDataList);
-            JSONArray formattedIndividuallyDataArray = JSONParser.formatIndividuallyData(resultDataList);
+            ArrayNode formattedIndividuallyDataArray = JSONParser.formatIndividuallyData(resultDataList);
             log.info("formattedIndividuallyDataArray -> {}", formattedIndividuallyDataArray.get(0).toString());
             List<Map<String, Object>> csvData = FileReader.getInstance().readCSVToListObjectMap(file_path + File.separator + lastFileName);
             log.info("전처리 데이터 원본 csvData -> {}", csvData.get(0).toString());
-            JSONArray recoveredDataFormatArray = JSONParser.recoveredDataFormat(formattedIndividuallyDataArray, csvData);
+            ArrayNode recoveredDataFormatArray = JSONParser.recoveredDataFormat(formattedIndividuallyDataArray, csvData);
             log.info("Decision Tree 적용 안된 버전의 recoveredDataFormatArray -> {}", recoveredDataFormatArray.get(0).toString());
             recoveredDataFormatArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, recoveredDataFormatArray);
             log.info("Decision Tree 적용된 버전의 recoveredDataFormatArray -> {}", recoveredDataFormatArray.get(0).toString());
@@ -4065,16 +4045,16 @@ public class DTSimulationService extends BaseService {
             log.info("전처리 결과 데이터의 마지막 시간으로 data_crt_last_hr이 변경되었습니다. -> {}", data_crt_last_hr);
 
             /*Validation 데이터 업로드*/
-            JSONObject validationUploadJson = new JSONObject();
+            ObjectNode validationUploadJson = MAPPER.createObjectNode();
             validationUploadJson.put("status", "success");
             validationUploadJson.put("type", "preproc");
             validationUploadJson.put("index_col", index_trgt_col);
             validationUploadJson.put("origin_from", origin_from);
             validationUploadJson.put("origin_to", origin_to);
             validationUploadJson.put("notification_time", notification_time);
-            JSONArray validationDataJsonArray = JSONParser.formatValidationData(validations, new ArrayList<>());
+            ArrayNode validationDataJsonArray = JSONParser.formatValidationData(validations, new ArrayList<>());
             validationDataJsonArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, validationDataJsonArray);
-            validationUploadJson.put("validation", validationDataJsonArray);
+            validationUploadJson.set("validation", validationDataJsonArray);
             String validationFilePath = file_path + File.separator + notification_time.replaceAll("[ :]", "") + "_validation.json";
             try (java.io.FileWriter fileWriter = new java.io.FileWriter(validationFilePath)) {
                 fileWriter.write(validationUploadJson.toString());
@@ -4096,16 +4076,16 @@ public class DTSimulationService extends BaseService {
             }
 
             /*Outlier 데이터 업로드*/
-            JSONObject outlierUploadJson = new JSONObject();
+            ObjectNode outlierUploadJson = MAPPER.createObjectNode();
             outlierUploadJson.put("status", "success");
             outlierUploadJson.put("type", "preproc");
             outlierUploadJson.put("index_col", index_trgt_col);
             outlierUploadJson.put("origin_from", origin_from);
             outlierUploadJson.put("origin_to", origin_to);
             outlierUploadJson.put("notification_time", notification_time);
-            JSONArray outlierDataJsonArray = JSONParser.formatOutlierData(outliers);
+            ArrayNode outlierDataJsonArray = JSONParser.formatOutlierData(outliers);
             outlierDataJsonArray = JSONParser.recoveredDecisionTreeLabel(decisionLabels, decisionKey, outlierDataJsonArray);
-            outlierUploadJson.put("outlier", outlierDataJsonArray);
+            outlierUploadJson.set("outlier", outlierDataJsonArray);
             String outlierFilePath = file_path + File.separator + notification_time.replaceAll("[ :]", "") + "_outlier.json";
             try (java.io.FileWriter fileWriter = new java.io.FileWriter(outlierFilePath)) {
                 fileWriter.write(outlierUploadJson.toString());

@@ -43,6 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let listItems = document.querySelectorAll('[data-action-type="delete"]');
     listItems?.forEach(function (item) {
         item.addEventListener('click', function (event) {
+            if (!confirm('해당 시뮬레이션을 삭제하시겠습니까?')) {
+                return false;
+            }
             let augment_seq = this.dataset.number;
             let data = {
                 augment_seq

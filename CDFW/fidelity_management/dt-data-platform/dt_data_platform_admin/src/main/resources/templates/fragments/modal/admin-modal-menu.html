@@ -41,18 +41,18 @@
             <div class="form-control-wrap">
                 <label id="menu_link_label" class="form-label" for="menu_link">경로</label>
                 <input type="text" id="menu_link" class="form-control sm" placeholder="경로를 입력해주세요."
-                       aria-labelledby="menu_link_label" maxlength="50" required="required">
+                       aria-labelledby="menu_link_label" maxlength="50">
             </div>
             <div class="form-control-wrap">
                 <label id="menu_icon_label" class="form-label" for="menu_icon">아이콘</label>
                 <input type="text" id="menu_icon" class="form-control sm" placeholder="아이콘을 입력해주세요."
-                       aria-labelledby="menu_icon_label" maxlength="20" required="required">
+                       aria-labelledby="menu_icon_label" maxlength="20">
             </div>
             <div class="form-control-wrap">
                 <label id="ordby_label" class="form-label" for="ordby">정렬 순서 <span
                         class="badge required">필수</span></label>
-                <input type="number" id="ordby" class="form-control sm" placeholder="정렬 순서를 입력해주세요."
-                       aria-labelledby="ordby_label" maxlength="2">
+                <input type="number" id="ordby" class="form-control sm" placeholder="정렬 순서를 입력해주세요. (0~999)"
+                       aria-labelledby="ordby_label" min="0" max="999" required="required">
             </div>
             <!-- contents end -->
         </div>
@@ -60,7 +60,7 @@
             <button type="button" class="ui-button sm outline-primary btn-cancel btn-popup-close"
                     data-popup-id="modal-menu">취소
             </button>
-            <button type="button" class="ui-button sm primary btn-popup-save btn-popup-close btn-register"
+            <button type="button" class="ui-button sm primary btn-popup-save btn-register"
                     data-popup-id="modal-menu">저장
             </button>
         </div>

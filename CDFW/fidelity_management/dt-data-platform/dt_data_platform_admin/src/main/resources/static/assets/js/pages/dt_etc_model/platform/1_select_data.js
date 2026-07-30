@@ -66,7 +66,12 @@
                 ext = ext.toLowerCase();
                 if (ext !== 'csv') {
                     alert('확장자가 csv인  파일만 첨부가능합니다.');
-                    window.location.reload();
+                    e.target.value = '';
+                    fileLabel.value = '클릭하여 파일을 업로드 해주세요.';
+                } else if (file.size > 20 * 1024 * 1024) {
+                    alert('파일 크기는 20MB 이하만 업로드할 수 있습니다.');
+                    e.target.value = '';
+                    fileLabel.value = '클릭하여 파일을 업로드 해주세요.';
                 } else {
                     uploadFile(function () {
                         $('#tab_getdata_range').hide();
