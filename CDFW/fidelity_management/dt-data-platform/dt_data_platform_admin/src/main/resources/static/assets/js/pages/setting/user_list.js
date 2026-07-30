@@ -25,7 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (filterKeywordAction) {
         filterKeywordAction.addEventListener('click', function (event) {
             let keywordElem = document.querySelector('#filterKeyword');
-            let keyword = keywordElem.value;
+            let keyword = keywordElem.value.trim();
+            keywordElem.value = keyword;
             let hiddenKeyword = document.querySelector('#keyword');
             hiddenKeyword.value = keyword;
 
@@ -41,12 +42,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     commonSearchPaging();
-    $('.btn-delete').on('click', function () {
-        if (confirm('해당 사용자를 삭제하시겠습니까?')) {
-            let userSeq = $(this).data('userSeq');
-            let form = document.forms.deleteForm;
-            form.userSeq.value = userSeq;
-            form.submit();
-        }
-    });
+    // 삭제 기능 미사용: 목록 화면에 deleteForm/삭제버튼이 없어 동작하지 않던 핸들러 제거 (FE 정리)
 });

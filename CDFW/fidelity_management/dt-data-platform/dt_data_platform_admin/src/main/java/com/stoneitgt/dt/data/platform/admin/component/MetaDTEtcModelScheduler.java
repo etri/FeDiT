@@ -14,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
-import org.json.JSONObject;
 import java.io.File;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -124,10 +123,9 @@ public class MetaDTEtcModelScheduler extends BaseController {
                     makeMetaEtcModelSchedulerService.updateLearningBgngDt(checkParams);
                     try {
                         String responseBody = makeMetaEtcModelSchedulerService.createModelGenerater_randomForest(requestBody);
-                        JSONObject result = new JSONObject(responseBody);
+                        JsonNode result = new ObjectMapper().readTree(responseBody);
                         //JSONParser parser = new JSONParser();
-                        //JSONObject result = (JSONObject) parser.parse(responseBody);
-                        if (Integer.parseInt(result.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
+                        if (Integer.parseInt(result.get("code").asText()) == GlobalConstant.API_STATUS.SUCCESS) {
                             log.info("responseBody -> {}", responseBody);
                             log.info("AI 모델 {}번 생성 성공", modelSeq);
                             //모델 상태 완료로 변경
@@ -152,8 +150,8 @@ public class MetaDTEtcModelScheduler extends BaseController {
                         } else {
                             log.info("AI 모델 {}번 생성 실패", modelSeq);
                             ErrorLog.ErrorLogBuilder builder = ErrorLog.builder().modelSeq(modelSeq)
-                                    .augmentSeq(0).errTp("PYTHON").errLct("Make AI Model").errCd(result.get("code").toString())
-                                    .errNm(result.get("message").toString()).errCn(result.get("detail").toString()).loginUserSeq(Integer.parseInt(job.get("reg_user_seq").toString())).status("FAIL");
+                                    .augmentSeq(0).errTp("PYTHON").errLct("Make AI Model").errCd(result.get("code").asText())
+                                    .errNm(result.get("message").asText()).errCn(result.get("detail").asText()).loginUserSeq(Integer.parseInt(job.get("reg_user_seq").toString())).status("FAIL");
                             handleProcessError(builder);
                         }
                     } catch (Exception e) {
@@ -201,9 +199,8 @@ public class MetaDTEtcModelScheduler extends BaseController {
                     try {
                         String responseBody = makeMetaEtcModelSchedulerService.processorCreateAELearningModel(requestBody);
                         //JSONParser parser = new JSONParser();
-                        //JSONObject result = (JSONObject) parser.parse(responseBody);
-                        JSONObject result = new JSONObject(responseBody);
-                        if (Integer.parseInt(result.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
+                        JsonNode result = new ObjectMapper().readTree(responseBody);
+                        if (Integer.parseInt(result.get("code").asText()) == GlobalConstant.API_STATUS.SUCCESS) {
                             log.info("responseBody -> {}", responseBody);
                             log.info("AI 모델 {}번 생성 성공", modelSeq);
                             //모델 상태 완료로 변경
@@ -228,8 +225,8 @@ public class MetaDTEtcModelScheduler extends BaseController {
                         } else {
                             log.info("AI 모델 {}번 생성 실패", modelSeq);
                             ErrorLog.ErrorLogBuilder builder = ErrorLog.builder().modelSeq(modelSeq)
-                                    .augmentSeq(0).errTp("PYTHON").errLct("Make AI Model").errCd(result.get("code").toString())
-                                    .errNm(result.get("message").toString()).errCn(result.get("detail").toString()).loginUserSeq(Integer.parseInt(job.get("reg_user_seq").toString())).status("FAIL");
+                                    .augmentSeq(0).errTp("PYTHON").errLct("Make AI Model").errCd(result.get("code").asText())
+                                    .errNm(result.get("message").asText()).errCn(result.get("detail").asText()).loginUserSeq(Integer.parseInt(job.get("reg_user_seq").toString())).status("FAIL");
                             handleProcessError(builder);
                         }
                     } catch (Exception e) {
@@ -302,9 +299,8 @@ public class MetaDTEtcModelScheduler extends BaseController {
                     try {
                         String responseBody = makeMetaEtcModelSchedulerService.createModelGenerater_brits_ori(requestBody);
                         //JSONParser parser = new JSONParser();
-                        //JSONObject result = (JSONObject) parser.parse(responseBody);
-                        JSONObject result = new JSONObject(responseBody);
-                        if (Integer.parseInt(result.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
+                        JsonNode result = new ObjectMapper().readTree(responseBody);
+                        if (Integer.parseInt(result.get("code").asText()) == GlobalConstant.API_STATUS.SUCCESS) {
                             log.info("responseBody -> {}", responseBody);
                             log.info("AI 모델 {}번 생성 성공", modelSeq);
                             //모델 상태 완료로 변경
@@ -329,8 +325,8 @@ public class MetaDTEtcModelScheduler extends BaseController {
                         } else {
                             log.info("AI 모델 {}번 생성 실패", modelSeq);
                             ErrorLog.ErrorLogBuilder builder = ErrorLog.builder().modelSeq(modelSeq)
-                                    .augmentSeq(0).errTp("PYTHON").errLct("Make AI Model").errCd(result.get("code").toString())
-                                    .errNm(result.get("message").toString()).errCn(result.get("detail").toString()).loginUserSeq(Integer.parseInt(job.get("reg_user_seq").toString())).status("FAIL");
+                                    .augmentSeq(0).errTp("PYTHON").errLct("Make AI Model").errCd(result.get("code").asText())
+                                    .errNm(result.get("message").asText()).errCn(result.get("detail").asText()).loginUserSeq(Integer.parseInt(job.get("reg_user_seq").toString())).status("FAIL");
                             handleProcessError(builder);
                         }
                     } catch (Exception e) {
@@ -413,9 +409,8 @@ public class MetaDTEtcModelScheduler extends BaseController {
                     try {
                         String responseBody = makeMetaEtcModelSchedulerService.createModelGenerater_naomi(requestBody);
                         //JSONParser parser = new JSONParser();
-                        //JSONObject result = (JSONObject) parser.parse(responseBody);
-                        JSONObject result = new JSONObject(responseBody);
-                        if (Integer.parseInt(result.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
+                        JsonNode result = new ObjectMapper().readTree(responseBody);
+                        if (Integer.parseInt(result.get("code").asText()) == GlobalConstant.API_STATUS.SUCCESS) {
                             log.info("responseBody -> {}", responseBody);
                             log.info("AI 모델 {}번 생성 성공", modelSeq);
                             //모델 상태 완료로 변경
@@ -440,8 +435,8 @@ public class MetaDTEtcModelScheduler extends BaseController {
                         } else {
                             log.info("AI 모델 {}번 생성 실패", modelSeq);
                             ErrorLog.ErrorLogBuilder builder = ErrorLog.builder().modelSeq(modelSeq)
-                                    .augmentSeq(0).errTp("PYTHON").errLct("Make AI Model").errCd(result.get("code").toString())
-                                    .errNm(result.get("message").toString()).errCn(result.get("detail").toString()).loginUserSeq(Integer.parseInt(job.get("reg_user_seq").toString())).status("FAIL");
+                                    .augmentSeq(0).errTp("PYTHON").errLct("Make AI Model").errCd(result.get("code").asText())
+                                    .errNm(result.get("message").asText()).errCn(result.get("detail").asText()).loginUserSeq(Integer.parseInt(job.get("reg_user_seq").toString())).status("FAIL");
                             handleProcessError(builder);
                         }
                     } catch (Exception e) {

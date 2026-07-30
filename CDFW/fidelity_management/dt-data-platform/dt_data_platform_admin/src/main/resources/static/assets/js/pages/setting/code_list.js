@@ -22,6 +22,7 @@
             let grp_cd_nm = groupModal.querySelector('#grp_cd_nm');
             grp_cd.value = '';
             grp_cd_nm.value = '';
+            grp_cd.readOnly = false; // 등록: 그룹 코드 입력 가능
             if (!groupModal.classList.contains('is-open')) {
                 groupModal.classList.add('is-open');
             }
@@ -158,6 +159,7 @@
                     let grp_cd_nm = groupModal.querySelector('#grp_cd_nm');
                     grp_cd.value = `${result.data.grp_cd}`;
                     grp_cd_nm.value = `${result.data.grp_cd_nm}`;
+                    grp_cd.readOnly = true; // 수정: 그룹 코드(PK) 변경 불가
                     if (!groupModal.classList.contains('is-open')) {
                         groupModal.classList.add('is-open');
                     }
@@ -169,6 +171,7 @@
                     let targetInput = dropdownBox.querySelector(`ul.option-list li input[value="${result.data.grp_cd}"]`);
                     let targetLabel = dropdownBox.querySelector(`ul.option-list li label[for="${targetInput.id}"]`);
                     targetLabel.click();
+                    grp_cd_dtl.disabled = true; // 수정: 그룹 코드 변경 불가
 
                     let dtl_cd_dtl = detailModal.querySelector('#dtl_cd_dtl');
                     let dtl_cd_nm_dtl = detailModal.querySelector('#dtl_cd_nm_dtl');
@@ -226,12 +229,13 @@
         function saveCodeDetail() {
             let detailModal = document.querySelector('#modal-detail');
             let grp_code = detailModal.querySelector('#grp_cd_dtl').dataset.value;
-            let code = detailModal.querySelector('#dtl_cd_dtl').value;
-            let code_name = detailModal.querySelector('#dtl_cd_nm_dtl').value;
-            let ordby = detailModal.querySelector('#ordby').value;
-            let use_flag = detailModal.querySelector('input[name="whetherToUse"]:checked').id === 'useY' ? 'Y' : 'N';
+            let code = detailModal.querySelector('#dtl_cd_dtl').value.trim();
+            let code_name = detailModal.querySelector('#dtl_cd_nm_dtl').value.trim();
+            let ordby = detailModal.querySelector('#ordby').value.trim();
+            let checkedUse = detailModal.querySelector('input[name="whetherToUse"]:checked');
 
-            if (grp_code === '') {
+            // 그룹 코드(선택 필수) - 미선택/기본값('0') 차단
+            if (!grp_code || grp_code === '0' || grp_code === '선택 없음') {
                 alert('그룹 코드를 선택하세요.');
                 return false;
             }
@@ -246,8 +250,25 @@
                 return false;
             }
 
+            // 정렬 순서(필수) - 0~999 정수
+            if (ordby === '') {
+                alert('정렬 순서를 입력하세요.');
+                return false;
+            }
+            let ordbyNum = Number(ordby);
+            if (!Number.isInteger(ordbyNum) || ordbyNum < 0 || ordbyNum > 999) {
+                alert('정렬 순서는 0~999 사이의 정수로 입력하세요.');
+                return false;
+            }
+
+            if (!checkedUse) {
+                alert('사용 여부를 선택하세요.');
+                return false;
+            }
+            let use_flag = checkedUse.id === 'useY' ? 'Y' : 'N';
+
             let data = {
-                grpCd: grp_code, dtlCd: code, dtlCdNm: code_name, ordby: ordby ? ordby : null, useYn: use_flag
+                grpCd: grp_code, dtlCd: code, dtlCdNm: code_name, ordby: ordbyNum, useYn: use_flag
             };
 
             ajaxPost('/setting/code/register/detail', data, function (result) {

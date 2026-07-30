@@ -1,14 +1,19 @@
 package com.stoneitgt.dt.data.platform.util;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.stoneitgt.dt.data.platform.util.file.FileReader;
 import lombok.extern.slf4j.Slf4j;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.util.*;
 
 @Slf4j
 public class JSONParser {
+
+    // JSON 트리 생성용 — ObjectMapper 는 스레드 세이프하므로 정적 인스턴스를 재사용한다
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     public static boolean isDuplicateDataByKey(List<Map<String, Object>> data, String findKey) throws Exception {
         if (data == null) {
             log.info("isDuplicateDataByKey -> {}", "File not found or empty");
@@ -58,11 +63,11 @@ public class JSONParser {
      * formatIndividuallyData
      *
      * @param resultDataList 전체 데이터
-     * @return null or JSONArray
-     * 단건으로 데이터 업로드 할 수 있도록 파일을 읽어들여 JSONArray로 파싱
+     * @return null or ArrayNode
+     * 단건으로 데이터 업로드 할 수 있도록 파일을 읽어들여 ArrayNode로 파싱
      */
-    public static JSONArray formatIndividuallyData(List<Map<String, Object>> resultDataList) throws Exception {
-        JSONArray dataJsonArray = new JSONArray();
+    public static ArrayNode formatIndividuallyData(List<Map<String, Object>> resultDataList) throws Exception {
+        ArrayNode dataJsonArray = MAPPER.createArrayNode();
         // 결과 리스트가 비어있는지 확인
         if (resultDataList != null && !resultDataList.isEmpty()) {
             // 리스트의 첫 번째 항목 가져오기
@@ -75,16 +80,11 @@ public class JSONParser {
                 String filePath = value;
                 List<Map<String, Object>> datas = FileReader.getInstance().readCSVToListObjectMap(filePath);
                 // 데이터 리스트를 순회하며 각 변수들을 뽑아내기
-                if (dataJsonArray.isEmpty() || dataJsonArray.length() == 0) {
+                if (dataJsonArray.size() == 0) {
                     for (Map<String, Object> data : datas) {
-                        // entrySet을 이용하여 순회
-                        JSONObject jsonObject = new JSONObject();
-                        for (Map.Entry<String, Object> dataEntry : data.entrySet()) {
-                            String dataKey = dataEntry.getKey();
-                            Object dataValue = dataEntry.getValue();
-                            jsonObject.put(dataKey, dataValue);
-                        }
-                        dataJsonArray.put(jsonObject);
+                        // CSV 한 행(Map)을 그대로 JSON 객체로 변환
+                        JsonNode jsonObject = MAPPER.valueToTree(data);
+                        dataJsonArray.add(jsonObject);
                     }
                 } else {
                     break;
@@ -94,35 +94,30 @@ public class JSONParser {
         } else {
             log.warn("resultDataList is either null or empty");
         }
-        return dataJsonArray.isEmpty() || dataJsonArray.length() == 0 ? null : dataJsonArray;
+        return dataJsonArray.size() == 0 ? null : dataJsonArray;
     }
 
-    public static JSONArray formatValidationData(List<Map<String, Object>> validationList, List<String> originTimeData) {
+    public static ArrayNode formatValidationData(List<Map<String, Object>> validationList, List<String> originTimeData) {
         //Validation 업로드 기본 정보
-        JSONArray validationDataJsonArray = new JSONArray();
+        ArrayNode validationDataJsonArray = MAPPER.createArrayNode();
         for (Map<String, Object> map : validationList) {
-            JSONObject jsonObject = new JSONObject();
+            ObjectNode jsonObject = MAPPER.createObjectNode();
             jsonObject.put("col", map.get("col").toString().replaceAll("\"", ""));
             jsonObject.put("valid_tp1", map.get("valid_tp1").toString().replaceAll("\"", ""));
             jsonObject.put("valid_tp2", map.get("valid_tp2").toString().replaceAll("\"", ""));
             try {
                 List<Map<String, Object>> csvData = FileReader.getInstance().readCSVToListObjectMap(map.get("file_path").toString());
-                JSONArray dataJsonArray = new JSONArray();
+                ArrayNode dataJsonArray = MAPPER.createArrayNode();
                 if (csvData != null) { //Validation을 했지만 그대로 인것도 있음 그 부분은 건너 뛰기
                     //데이터 넣는 부분
                     for (Map<String, Object> data : csvData) {
-                        // entrySet을 이용하여 순회
-                        JSONObject dataJsonObject = new JSONObject();
-                        for (Map.Entry<String, Object> dataEntry : data.entrySet()) {
-                            String dataKey = dataEntry.getKey();
-                            Object dataValue = dataEntry.getValue();
-                            dataJsonObject.put(dataKey, dataValue);
-                        }
-                        dataJsonArray.put(dataJsonObject);
+                        // CSV 한 행(Map)을 그대로 JSON 객체로 변환
+                        JsonNode dataJsonObject = MAPPER.valueToTree(data);
+                        dataJsonArray.add(dataJsonObject);
                     }
                 }
-                jsonObject.put("data", dataJsonArray);
-                validationDataJsonArray.put(jsonObject);
+                jsonObject.set("data", dataJsonArray);
+                validationDataJsonArray.add(jsonObject);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -130,31 +125,26 @@ public class JSONParser {
         return validationDataJsonArray;
     }
 
-    public static JSONArray formatOutlierData(List<Map<String, Object>> outlierList) {
+    public static ArrayNode formatOutlierData(List<Map<String, Object>> outlierList) {
         //Validation 업로드 기본 정보
-        JSONArray outlierDataJsonArray = new JSONArray();
+        ArrayNode outlierDataJsonArray = MAPPER.createArrayNode();
         for (Map<String, Object> map : outlierList) {
-            JSONObject jsonObject = new JSONObject();
+            ObjectNode jsonObject = MAPPER.createObjectNode();
             jsonObject.put("col", map.get("col").toString().replaceAll("\"", ""));
             jsonObject.put("outlier_tp", map.get("outlier_tp").toString().replaceAll("\"", ""));
             try {
                 List<Map<String, Object>> csvData = FileReader.getInstance().readCSVToListObjectMap(map.get("file_path").toString());
-                JSONArray dataJsonArray = new JSONArray();
+                ArrayNode dataJsonArray = MAPPER.createArrayNode();
                 if (csvData != null) { //Outlier를 했지만 그대로 인것도 있음 그 부분은 건너 뛰기
                     //데이터 넣는 부분
                     for (Map<String, Object> data : csvData) {
-                        // entrySet을 이용하여 순회
-                        JSONObject dataJsonObject = new JSONObject();
-                        for (Map.Entry<String, Object> dataEntry : data.entrySet()) {
-                            String dataKey = dataEntry.getKey();
-                            Object dataValue = dataEntry.getValue();
-                            dataJsonObject.put(dataKey, dataValue);
-                        }
-                        dataJsonArray.put(dataJsonObject);
+                        // CSV 한 행(Map)을 그대로 JSON 객체로 변환
+                        JsonNode dataJsonObject = MAPPER.valueToTree(data);
+                        dataJsonArray.add(dataJsonObject);
                     }
                 }
-                jsonObject.put("data", dataJsonArray);
-                outlierDataJsonArray.put(jsonObject);
+                jsonObject.set("data", dataJsonArray);
+                outlierDataJsonArray.add(jsonObject);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -163,109 +153,110 @@ public class JSONParser {
     }
 
     // 값을 대체하는 재귀적 메서드입니다.
-    public static JSONObject replaceValuesByKey(JSONObject jsonObject, Map<String, String> keyReplacementMap) {
-        JSONObject result = new JSONObject();
+    public static ObjectNode replaceValuesByKey(ObjectNode jsonObject, Map<String, String> keyReplacementMap) {
+        ObjectNode result = MAPPER.createObjectNode();
 
-        Iterator<String> keys = jsonObject.keys();
+        Iterator<String> keys = jsonObject.fieldNames();
         while (keys.hasNext()) {
             String key = keys.next();
-            Object value = jsonObject.get(key);
+            JsonNode value = jsonObject.get(key);
 
-            if (value instanceof JSONObject) {
-                // 중첩된 JSONObject를 재귀적으로 처리합니다.
-                value = replaceValuesByKey((JSONObject) value, keyReplacementMap);
-            } else if (value instanceof JSONArray) {
-                // JSONArray의 각 요소를 재귀적으로 처리합니다.
-                value = replaceValuesByKey((JSONArray) value, keyReplacementMap);
-            } else {
+            if (value instanceof ObjectNode) {
+                // 중첩된 객체를 재귀적으로 처리합니다.
+                result.set(key, replaceValuesByKey((ObjectNode) value, keyReplacementMap));
+            } else if (value instanceof ArrayNode) {
+                // 배열의 각 요소를 재귀적으로 처리합니다.
+                result.set(key, replaceValuesByKey((ArrayNode) value, keyReplacementMap));
+            } else if (keyReplacementMap.containsKey(key)) {
                 // 현재 키가 keyReplacementMap에 있으면 값을 대체합니다.
-                if (keyReplacementMap.containsKey(key)) {
-                    value = keyReplacementMap.get(key);
-                }
+                result.put(key, keyReplacementMap.get(key));
+            } else {
+                result.set(key, value);
             }
-
-            result.put(key, value);
         }
         return result;
     }
 
-    // JSONArray의 요소를 재귀적으로 처리하는 메서드입니다.
-    public static JSONArray replaceValuesByKey(JSONArray jsonArray, Map<String, String> keyReplacementMap) {
-        JSONArray resultArray = new JSONArray();
+    // 배열의 요소를 재귀적으로 처리하는 메서드입니다.
+    public static ArrayNode replaceValuesByKey(ArrayNode jsonArray, Map<String, String> keyReplacementMap) {
+        ArrayNode resultArray = MAPPER.createArrayNode();
 
-        for (int i = 0; i < jsonArray.length(); i++) {
-            Object element = jsonArray.get(i);
-            if (element instanceof JSONObject) {
-                resultArray.put(replaceValuesByKey((JSONObject) element, keyReplacementMap));
-            } else if (element instanceof JSONArray) {
-                resultArray.put(replaceValuesByKey((JSONArray) element, keyReplacementMap));
+        for (int i = 0; i < jsonArray.size(); i++) {
+            JsonNode element = jsonArray.get(i);
+            if (element instanceof ObjectNode) {
+                resultArray.add(replaceValuesByKey((ObjectNode) element, keyReplacementMap));
+            } else if (element instanceof ArrayNode) {
+                resultArray.add(replaceValuesByKey((ArrayNode) element, keyReplacementMap));
             } else {
-                resultArray.put(element);
+                resultArray.add(element);
             }
         }
         return resultArray;
     }
 
-    public static JSONArray recoveredDataFormat(JSONArray formattedIndividuallyDataArray, List<Map<String, Object>> csvData) {
-        JSONArray jsonArray = new JSONArray();
+    public static ArrayNode recoveredDataFormat(ArrayNode formattedIndividuallyDataArray, List<Map<String, Object>> csvData) {
+        ArrayNode jsonArray = MAPPER.createArrayNode();
         // 모든 데이터를 순회하며 jsonObject를 생성하고 jsonArray에 추가
-        if (formattedIndividuallyDataArray.length() > csvData.size()) {
-            for (int i = 0; i < formattedIndividuallyDataArray.length(); i++) {
+        if (formattedIndividuallyDataArray.size() > csvData.size()) {
+            for (int i = 0; i < formattedIndividuallyDataArray.size(); i++) {
                 final int index = i;
-                JSONObject jsonObject = new JSONObject();
+                ObjectNode jsonObject = MAPPER.createObjectNode();
+                ObjectNode formatted = (ObjectNode) formattedIndividuallyDataArray.get(index);
                 if ((csvData.size() - 1) < i) {
                     // csvData에서 값을 가져와 jsonObject에 추가
                     csvData.get((csvData.size() - 1)).keySet().forEach(key -> {
-                        jsonObject.put(key, csvData.get((csvData.size() - 1)).get(key));
+                        jsonObject.set(key, MAPPER.valueToTree(csvData.get((csvData.size() - 1)).get(key)));
                     });
                     // 전처리된 데이터가 있는 경우 값을 추가
-                    formattedIndividuallyDataArray.getJSONObject(i).keySet().forEach(key -> {
-                        jsonObject.put(key, formattedIndividuallyDataArray.getJSONObject(index).get(key));
+                    formatted.fieldNames().forEachRemaining(key -> {
+                        jsonObject.set(key, formatted.get(key));
                     });
                 } else {
                     // csvData에서 값을 가져와 jsonObject에 추가
                     csvData.get(i).keySet().forEach(key -> {
-                        jsonObject.put(key, csvData.get(index).get(key));
+                        jsonObject.set(key, MAPPER.valueToTree(csvData.get(index).get(key)));
                     });
                     // 전처리된 데이터가 있는 경우 값을 추가
-                    formattedIndividuallyDataArray.getJSONObject(i).keySet().forEach(key -> {
-                        jsonObject.put(key, formattedIndividuallyDataArray.getJSONObject(index).get(key));
+                    formatted.fieldNames().forEachRemaining(key -> {
+                        jsonObject.set(key, formatted.get(key));
                     });
                 }
 
                 // jsonArray에 jsonObject 추가
-                jsonArray.put(jsonObject);
+                jsonArray.add(jsonObject);
             }
         } else {
-            for (int i = 0; i < formattedIndividuallyDataArray.length(); i++) {
+            for (int i = 0; i < formattedIndividuallyDataArray.size(); i++) {
                 final int index = i;
-                JSONObject jsonObject = new JSONObject();
+                ObjectNode jsonObject = MAPPER.createObjectNode();
+                ObjectNode formatted = (ObjectNode) formattedIndividuallyDataArray.get(index);
 
                 // csvData에서 값을 가져와 jsonObject에 추가
                 csvData.get(i).keySet().forEach(key -> {
-                    jsonObject.put(key, csvData.get(index).get(key));
+                    jsonObject.set(key, MAPPER.valueToTree(csvData.get(index).get(key)));
                 });
 
                 // 전처리된 데이터가 있는 경우 값을 추가
-                formattedIndividuallyDataArray.getJSONObject(i).keySet().forEach(key -> {
-                    jsonObject.put(key, formattedIndividuallyDataArray.getJSONObject(index).get(key));
+                formatted.fieldNames().forEachRemaining(key -> {
+                    jsonObject.set(key, formatted.get(key));
                 });
 
                 // jsonArray에 jsonObject 추가
-                jsonArray.put(jsonObject);
+                jsonArray.add(jsonObject);
             }
         }
         return jsonArray;
     }
 
-    public static JSONArray recoveredDecisionTreeLabel(ArrayList<String> labels, String decisionKey, JSONArray jsonArray) {
+    public static ArrayNode recoveredDecisionTreeLabel(ArrayList<String> labels, String decisionKey, ArrayNode jsonArray) {
         log.info("decisionKey -> {}, labels -> {}", decisionKey, labels);
 
         if (decisionKey != null && !labels.isEmpty()) {
-            for (int i = 0; i < jsonArray.length(); i++) {
-                JSONObject jsonObject = jsonArray.getJSONObject(i);
+            for (int i = 0; i < jsonArray.size(); i++) {
+                ObjectNode jsonObject = (ObjectNode) jsonArray.get(i);
                 if (jsonObject.has(decisionKey)) {
-                    String value = jsonObject.get(decisionKey).toString();
+                    // asText() 사용 필수 — JsonNode.toString() 은 문자열 값에 따옴표를 포함해 parseDouble 이 실패한다
+                    String value = jsonObject.get(decisionKey).asText();
                     int labelIndex = (int) Double.parseDouble(value);
                     jsonObject.put(decisionKey, labels.get(labelIndex));
                 }
@@ -274,15 +265,17 @@ public class JSONParser {
         return jsonArray;
     }
 
-    public static List<Map<String, Object>> convertJsonArrayToListOfMaps(JSONArray jsonArray) {
+    public static List<Map<String, Object>> convertJsonArrayToListOfMaps(ArrayNode jsonArray) {
         List<Map<String, Object>> listOfMaps = new ArrayList<>();
 
-        for (int i = 0; i < jsonArray.length(); i++) {
-            JSONObject jsonObject = jsonArray.getJSONObject(i);
+        for (int i = 0; i < jsonArray.size(); i++) {
+            ObjectNode jsonObject = (ObjectNode) jsonArray.get(i);
             Map<String, Object> map = new HashMap<>();
 
-            for (String key : jsonObject.keySet()) {
-                map.put(key, jsonObject.getString(key));
+            Iterator<String> keys = jsonObject.fieldNames();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                map.put(key, jsonObject.get(key).asText());
             }
 
             listOfMaps.add(map);
@@ -291,20 +284,20 @@ public class JSONParser {
         return listOfMaps;
     }
 
-    public static JSONObject convertMapToJson(Map<String, Object> map) {
-        JSONObject json = new JSONObject();
+    public static ObjectNode convertMapToJson(Map<String, Object> map) {
+        ObjectNode json = MAPPER.createObjectNode();
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             String key = entry.getKey().replace("\"", "");
-            Object value = entry.getValue().toString().replace("\"", "");
+            String value = entry.getValue().toString().replace("\"", "");
             json.put(key, value);
         }
         return json;
     }
 
-    public static JSONArray convertListMapToJson(List<Map<String, Object>> listMap) {
-        JSONArray jsonArray = new JSONArray();
+    public static ArrayNode convertListMapToJson(List<Map<String, Object>> listMap) {
+        ArrayNode jsonArray = MAPPER.createArrayNode();
         for (Map<String, Object> map : listMap) {
-            jsonArray.put(convertMapToJson(map));
+            jsonArray.add(convertMapToJson(map));
         }
         return jsonArray;
     }
@@ -499,33 +492,33 @@ public class JSONParser {
         return current;
     }
 
-    public static List<JSONObject> splitValidationData(JSONObject jsonObject, int chunkSize) {
-        List<JSONObject> chunkedList = new ArrayList<>();
+    public static List<ObjectNode> splitValidationData(ObjectNode jsonObject, int chunkSize) {
+        List<ObjectNode> chunkedList = new ArrayList<>();
 
-        JSONArray validationArray = jsonObject.getJSONArray("validation");
-        if (validationArray.isEmpty()) {
+        ArrayNode validationArray = (ArrayNode) jsonObject.get("validation");
+        if (validationArray.size() == 0) {
             return chunkedList;
         }
-        JSONObject validationObj = validationArray.getJSONObject(0);
-        JSONArray dataArray = validationObj.getJSONArray("data");
+        ObjectNode validationObj = (ObjectNode) validationArray.get(0);
+        ArrayNode dataArray = (ArrayNode) validationObj.get("data");
 
-        for (int i = 0; i < dataArray.length(); i += chunkSize) {
-            int end = Math.min(i + chunkSize, dataArray.length());
-            JSONArray chunkData = new JSONArray();
+        for (int i = 0; i < dataArray.size(); i += chunkSize) {
+            int end = Math.min(i + chunkSize, dataArray.size());
+            ArrayNode chunkData = MAPPER.createArrayNode();
 
             for (int j = i; j < end; j++) {
-                chunkData.put(dataArray.getJSONObject(j));
+                chunkData.add(dataArray.get(j));
             }
 
             // 전체 원본 JSON 깊은 복사
-            JSONObject newJson = new JSONObject(jsonObject.toString());
+            ObjectNode newJson = jsonObject.deepCopy();
 
             // validation[0].data만 바꾸기
-            newJson.getJSONArray("validation").getJSONObject(0).put("data", chunkData);
+            ((ObjectNode) ((ArrayNode) newJson.get("validation")).get(0)).set("data", chunkData);
 
             // optional: 전송 chunk 정보 삽입
             newJson.put("chunk_index", (i / chunkSize) + 1);
-            newJson.put("chunk_total", (int) Math.ceil(dataArray.length() / (double) chunkSize));
+            newJson.put("chunk_total", (int) Math.ceil(dataArray.size() / (double) chunkSize));
 
             chunkedList.add(newJson);
         }
@@ -533,34 +526,34 @@ public class JSONParser {
         return chunkedList;
     }
 
-    // data 배열을 쪼개서 여러 JSONObject로 분할
-    public static List<JSONObject> splitOutlierData(JSONObject jsonObject, int chunkSize) {
-        List<JSONObject> chunkedList = new ArrayList<>();
+    // data 배열을 쪼개서 여러 JSON 객체로 분할
+    public static List<ObjectNode> splitOutlierData(ObjectNode jsonObject, int chunkSize) {
+        List<ObjectNode> chunkedList = new ArrayList<>();
 
-        JSONArray outlierArray = jsonObject.getJSONArray("outlier");
-        if (outlierArray.isEmpty()) {
+        ArrayNode outlierArray = (ArrayNode) jsonObject.get("outlier");
+        if (outlierArray.size() == 0) {
             return chunkedList;
         }
-        JSONObject outlierObj = outlierArray.getJSONObject(0);
-        JSONArray dataArray = outlierObj.getJSONArray("data");
+        ObjectNode outlierObj = (ObjectNode) outlierArray.get(0);
+        ArrayNode dataArray = (ArrayNode) outlierObj.get("data");
 
-        for (int i = 0; i < dataArray.length(); i += chunkSize) {
-            int end = Math.min(i + chunkSize, dataArray.length());
-            JSONArray chunkData = new JSONArray();
+        for (int i = 0; i < dataArray.size(); i += chunkSize) {
+            int end = Math.min(i + chunkSize, dataArray.size());
+            ArrayNode chunkData = MAPPER.createArrayNode();
 
             for (int j = i; j < end; j++) {
-                chunkData.put(dataArray.getJSONObject(j));
+                chunkData.add(dataArray.get(j));
             }
 
             // 전체 원본 JSON 복사
-            JSONObject newJson = new JSONObject(jsonObject.toString());
+            ObjectNode newJson = jsonObject.deepCopy();
 
             // outlier[0].data 만 교체
-            newJson.getJSONArray("outlier").getJSONObject(0).put("data", chunkData);
+            ((ObjectNode) ((ArrayNode) newJson.get("outlier")).get(0)).set("data", chunkData);
 
             // 필요시 추가 정보 넣기 (선택 사항)
             newJson.put("chunk_index", (i / chunkSize) + 1);
-            newJson.put("chunk_total", (int) Math.ceil(dataArray.length() / (double) chunkSize));
+            newJson.put("chunk_total", (int) Math.ceil(dataArray.size() / (double) chunkSize));
             chunkedList.add(newJson);
         }
         return chunkedList;

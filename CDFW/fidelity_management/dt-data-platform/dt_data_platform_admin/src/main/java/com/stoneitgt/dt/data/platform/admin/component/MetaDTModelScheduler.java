@@ -12,7 +12,6 @@ import com.stoneitgt.dt.data.platform.util.StringUtil;
 import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.HashedMap;
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -152,7 +151,7 @@ public class MetaDTModelScheduler extends BaseController {
              * A1 LSTM, A2 GRU는 현재 로직
              * A3 로직은 그래도지만 URL 바뀜
              * */
-            JSONObject result = null;
+            JsonNode result = null;
             switch (modelAlgrm) {
                 case "LSTM":
                 case "GRU": {
@@ -220,7 +219,7 @@ public class MetaDTModelScheduler extends BaseController {
             }
             try {
                 log.info("result -> {}", result);
-                if (Integer.parseInt(result.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
+                if (Integer.parseInt(result.get("code").asText()) == GlobalConstant.API_STATUS.SUCCESS) {
                     //모델 상태 완료로 변경
                     makeMetaModelSchedulerService.finishMakeModel(modelSeq, "DONE");
 
@@ -260,9 +259,15 @@ public class MetaDTModelScheduler extends BaseController {
                      * SEG_RNN Algorithm Added
                      * */
                     if (Objects.equals(modelAlgrm, "LSTM") || Objects.equals(modelAlgrm, "GRU") || Objects.equals(modelAlgrm, "SEG_RNN")) {
-                        String plot_file_name = (String) new org.json.JSONObject(result.get("data").toString()).getJSONArray("shap_plot").get(0);
-                        String waterfall_file_name = (String) new org.json.JSONObject(result.get("data").toString()).getJSONArray("shap_plot").get(2);
-                        String plot_bar_file_name = (String) new org.json.JSONObject(result.get("data").toString()).getJSONArray("shap_plot").get(1);
+                        // data 가 중첩 객체가 아니라 JSON 문자열로 오는 경우도 있어 한 번 더 파싱해 준다
+                        JsonNode dataNode = result.get("data");
+                        if (dataNode.isTextual()) {
+                            dataNode = new ObjectMapper().readTree(dataNode.asText());
+                        }
+                        JsonNode shapPlot = dataNode.get("shap_plot");
+                        String plot_file_name = shapPlot.get(0).asText();
+                        String waterfall_file_name = shapPlot.get(2).asText();
+                        String plot_bar_file_name = shapPlot.get(1).asText();
 
                         // 파일 이름만 추출
                         Path path = Paths.get(plot_file_name);
@@ -375,8 +380,8 @@ public class MetaDTModelScheduler extends BaseController {
                     }
                 } else {
                     ErrorLog.ErrorLogBuilder builder = ErrorLog.builder().modelSeq(modelSeq)
-                            .augmentSeq(0).errTp("PYTHON").errLct("Make Data Twin Model").errCd(result.get("code").toString())
-                            .errNm(result.get("message").toString()).errCn(result.get("detail").toString()).loginUserSeq(Integer.parseInt(job.get("reg_user_seq").toString())).status("FAIL");
+                            .augmentSeq(0).errTp("PYTHON").errLct("Make Data Twin Model").errCd(result.get("code").asText())
+                            .errNm(result.get("message").asText()).errCn(result.get("detail").asText()).loginUserSeq(Integer.parseInt(job.get("reg_user_seq").toString())).status("FAIL");
                     handleProcessError(builder);
                 }
             } catch (Exception e) {

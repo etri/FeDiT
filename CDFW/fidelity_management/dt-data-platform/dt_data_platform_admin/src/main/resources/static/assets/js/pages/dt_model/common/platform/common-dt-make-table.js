@@ -2,7 +2,7 @@
 
 $(document).ready(function () {
     $(document).on('change', '#chkAllCol', function () {
-        $('input[name="dataSetColumnArr"]').attr('checked', $(this).is(':checked'));
+        $('input[name="dataSetColumnArr"]').prop('checked', $(this).is(':checked'));
     });
 });
 
@@ -1153,7 +1153,7 @@ function getPreprocessTargetDataSetInfoAfterLogic(result, proc_type, option) {
                                 alert('클러스터 수에 숫자값을 입력해주세요.');
                                 return false;
                             }
-                            if (n_count && n_count.length === '') {
+                            if(!n_count || n_count.length===0 || n_count==='') {
                                 alert('클러스터의 제한되는 데이터 개수를 입력해주세요.');
                                 return;
                             }
@@ -1649,8 +1649,9 @@ function getCsvIndexColumnTerm(dataString, index_col) {
         resultTimeTerm = Math.floor(deltaValue / 2592000);
         $('#defaultResmplIntvlTp').val('M');
         $('#defaultResmplIntvlValue').val(resultTimeTerm);
-    } else if (deltaValue >= 31536000 && deltaValue < 31536000) {
+    } else if (deltaValue >= 31536000) {
         //console.log('-------31536000-------')
+        resultTimeTerm = Math.floor(deltaValue / 31536000);
         $('#defaultResmplIntvlTp').val('Y');
         $('#defaultResmplIntvlValue').val(resultTimeTerm);
     } else {
@@ -1681,7 +1682,7 @@ function getCsvIndexColumnTerm(dataString, index_col) {
         } else if (deltaList[1] >= 2505600 && deltaList[1] < 31536000) {
             resultTimeTerm = Math.floor(deltaList[1] / 2592000);
             resultType = resultTimeTerm + '개월 단위';
-        } else if (deltaList[1] >= 31536000 && deltaList[1] < 31536000) {
+        } else if (deltaList[1] >= 31536000) {
             //console.log('-------31536000-------')
             resultTimeTerm = Math.floor(deltaList[1] / 31536000);
             resultType = resultTimeTerm + '년 단위';

@@ -26,6 +26,7 @@
                             <label id="title_label" class="form-label" for="title">제목 <span
                                     class="badge required">필수</span></label>
                             <input type="text" id="title" class="form-control sm" placeholder="제목을 입력해주세요"
+                                   maxlength="200"
                                    aria-labelledby="title_label">
                         </div>
                         <div class="form-control-wrap">
@@ -39,6 +40,7 @@
                             <div class="form-group attach-file-group" style="padding-top: 0; padding-bottom: 0;">
                                 <div class="attach-file pt-0" style="display: flex;">
                                     <input type="file" name="attach_files" class="file-upload-default" id="attach_files"
+                                           accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.hwp,.txt,.csv,.zip"
                                            style="display: none;">
                                     <div class="input-group">
                                         <input type="text" id="attach_files_input" disabled="disabled"
@@ -53,7 +55,7 @@
                             </div>
                         </div>
                         <div class="form-control-wrap">
-                            <span class="form-label">사용 여부 <span class="badge required">필수</span></span>
+                            <span class="form-label">공개 여부 <span class="badge required">필수</span></span>
                             <ul class="form-checkbox-list">
                                 <li class="form-checkbox">
                                     <input type="radio" name="rlsYn" id="useY" class="ui-check"

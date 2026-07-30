@@ -254,6 +254,7 @@
   background-color: var(--frame-bg, #0F1B2A);
 }
 .sub-header .breadcrumb {
+  margin-bottom: 0;
   --icon-size: 12px;
   position: relative;
   display: flex;

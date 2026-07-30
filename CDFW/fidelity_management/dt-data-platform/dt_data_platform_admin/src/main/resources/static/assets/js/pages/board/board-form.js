@@ -1,3 +1,28 @@
+// 게시판 첨부파일 검증 기준 (서버 multipart 한도 20MB와 일치)
+const BOARD_FILE_MAX_SIZE = 20 * 1024 * 1024;
+const BOARD_FILE_ALLOWED_EXT = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'hwp', 'txt', 'csv', 'zip'];
+
+/**
+ * 첨부파일 확장자/크기 검증. 파일 미선택 시 통과(선택 항목).
+ * @returns {boolean} 유효하면 true, 아니면 alert 후 false
+ */
+function validateBoardFile(fileInput) {
+    if (!fileInput || fileInput.files.length === 0) {
+        return true;
+    }
+    const file = fileInput.files[0];
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (BOARD_FILE_ALLOWED_EXT.indexOf(ext) === -1) {
+        alert('허용되지 않는 파일 형식입니다.\n허용 형식: ' + BOARD_FILE_ALLOWED_EXT.join(', '));
+        return false;
+    }
+    if (file.size > BOARD_FILE_MAX_SIZE) {
+        alert('파일 크기는 20MB 이하만 업로드할 수 있습니다.');
+        return false;
+    }
+    return true;
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     let registerContainer = document.querySelector('[data-action-container="register"]');
     if (registerContainer) {
@@ -18,11 +43,14 @@ document.addEventListener('DOMContentLoaded', function () {
         const registerButton = registerContainer.querySelector('button[data-action="register"]');
         registerButton?.addEventListener('click', function (event) {
             let _this = this;
-            _this.disabled = true;
             let container = document.querySelector('[data-action-container="register"]');
             let titleInput = container.querySelector('#title');
             if (titleInput.value.trim().length === 0) {
                 alert('제목을 입력해주세요.');
+                return;
+            }
+            if (titleInput.value.trim().length > 200) {
+                alert('제목은 200자 이내로 입력해주세요.');
                 return;
             }
             let descriptionTextarea = container.querySelector('#description');
@@ -31,6 +59,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             let fileInput = container.querySelector('#attach_files');
+            if (!validateBoardFile(fileInput)) {
+                return;
+            }
             const radioInputs = container.querySelectorAll('input[name="rlsYn"]');
             let isRlsYn = '';
 
@@ -59,6 +90,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 url = '/dt/board/community/register';
             }
 
+            _this.disabled = true;
             showProgressBar({element: null, process_id: 'process-51'});
 
             $.ajax({
@@ -80,11 +112,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     } else {
                         closeProgressBar({element: null, process_id: 'process-51'});
                         _this.disabled = false;
+                        alert('게시글 등록에 실패하였습니다. 다시 시도해주세요.');
                         console.error('Error:', 'result.code is not success');
                     }
                 }, error: function (xhr, status, error) {
                     closeProgressBar({element: null, process_id: 'process-51'});
                     _this.disabled = false;
+                    alert('게시글 등록 중 오류가 발생하였습니다. 다시 시도해주세요.');
                     console.error('Error:', error);  // Handle errors
                 }
             });
@@ -115,11 +149,14 @@ document.addEventListener('DOMContentLoaded', function () {
         updateButton?.addEventListener('click', function (event) {
             let _this = this;
             let board_no = _this.dataset.boardNo;
-            _this.disabled = true;
             let container = document.querySelector('[data-action-container="update"]');
             let titleInput = container.querySelector('#title');
             if (titleInput.value.trim().length === 0) {
                 alert('제목을 입력해주세요.');
+                return;
+            }
+            if (titleInput.value.trim().length > 200) {
+                alert('제목은 200자 이내로 입력해주세요.');
                 return;
             }
             let descriptionTextarea = container.querySelector('#description');
@@ -128,6 +165,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             let fileInput = container.querySelector('#attach_files');
+            if (!validateBoardFile(fileInput)) {
+                return;
+            }
             const radioInputs = container.querySelectorAll('input[name="rlsYn"]');
             let isRlsYn = '';
 
@@ -163,6 +203,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 url = `/dt/board/community/${board_no}/update`;
             }
 
+            _this.disabled = true;
             showProgressBar({element: null, process_id: 'process-52'});
 
             $.ajax({
@@ -180,11 +221,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     } else {
                         closeProgressBar({element: null, process_id: 'process-52'});
                         _this.disabled = false;
+                        alert('게시글 수정에 실패하였습니다. 다시 시도해주세요.');
                         console.error('Error:', 'result.code is not success');
                     }
                 }, error: function (xhr, status, error) {
                     closeProgressBar({element: null, process_id: 'process-52'});
-                    this.disabled = false;
+                    _this.disabled = false;
+                    alert('게시글 수정 중 오류가 발생하였습니다. 다시 시도해주세요.');
                     console.error('Error:', error);  // Handle errors
                 }
             });

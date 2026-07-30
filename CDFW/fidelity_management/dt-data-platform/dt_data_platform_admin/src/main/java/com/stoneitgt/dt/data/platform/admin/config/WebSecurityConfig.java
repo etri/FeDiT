@@ -65,7 +65,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.cors().and().csrf().ignoringAntMatchers("/api/session/extention", "/login", "/api/test/**");
+        http.cors().and().csrf().ignoringAntMatchers("/api/session/extention", "/login");
 
         http.headers().frameOptions().disable();
         http.headers().httpStrictTransportSecurity().disable();
@@ -87,7 +87,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .and()
                 .logout()
                 .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-                .deleteCookies("DT_DATA_TWIN_JSESSIONID")
+                .deleteCookies("[JSESSIONID]")
                 .clearAuthentication(true)
                 .invalidateHttpSession(true)
                 .logoutSuccessUrl("/login");

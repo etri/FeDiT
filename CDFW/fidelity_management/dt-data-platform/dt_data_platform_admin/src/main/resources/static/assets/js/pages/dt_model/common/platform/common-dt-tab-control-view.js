@@ -583,7 +583,13 @@ function makePropertyView(preprocCurrent, set_order) {
                                                         검증 컬럼 : ${set.trgt_col} |
                                                         검증 타입 : ${set.vrfc_tp_nm} |
                                                         검증 형태 : ${set.vrfc_sub_tp_nm} |
-                                                        지정 형태 : ${set.vrfc_clear_tp_nm}
+                                                        지정 형태 : ${set.vrfc_clear_tp_nm}${['rule1', 'rule2', 'rule3', 'rule4'].map(function (ruleKey) {
+                                                            // 키 존재 + 값이 null/"null"/"None"이 아닐 때만 표시
+                                                            if (!Object.prototype.hasOwnProperty.call(set, ruleKey)) return '';
+                                                            let ruleVal = set[ruleKey];
+                                                            if (ruleVal === null || ruleVal === undefined || ruleVal === 'null' || ruleVal === 'None') return '';
+                                                            return ` | ${ruleKey} : ${ruleVal}`;
+                                                        }).join('')}
                                                     </a>`;
                     return sectionWrapper;
                 }

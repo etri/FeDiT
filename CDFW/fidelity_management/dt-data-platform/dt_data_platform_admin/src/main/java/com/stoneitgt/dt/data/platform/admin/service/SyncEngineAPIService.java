@@ -9,7 +9,7 @@ import com.stoneitgt.dt.data.platform.util.JSONParser;
 import com.stoneitgt.dt.data.platform.util.TimeUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.json.JSONObject;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -101,7 +101,7 @@ public class SyncEngineAPIService extends APIService {
                     .digital_object_data_access_type(metaCreatedDigitalTwinObject.getDigitalTwinObjectData().getDataAccessURL() != null && metaCreatedDigitalTwinObject.getDigitalTwinObjectData().getDataAccessURL().startsWith("https") ? "HTTPS" : "HTTP").digital_object_data_access_url(metaCreatedDigitalTwinObject.getDigitalTwinObjectData().getDataAccessURL())
 
                     // [Required - Control]
-                    .digital_object_control_url("https://dtag.fedit.or.kr/dt/history/dashboard?menuCd=M0501")
+                    .digital_object_control_url("https://[HOST]/dt/history/dashboard?menuCd=M0501")
 
                     // [Required - Objects]
                     .digital_object_data_model(metaCreatedDigitalTwinObject.getDigitalTwinObjectData().getSchemaInformation() != null ?
@@ -271,16 +271,16 @@ public class SyncEngineAPIService extends APIService {
         }
     }
 
-    public boolean sendValidationData(JSONObject jsonObject) {
+    public boolean sendValidationData(ObjectNode jsonObject) {
         String endpoint = "/fedit/v1/validations";
         log.info("endpoint -> {}", endpoint);
 
         try {
             ObjectMapper objectMapper = new ObjectMapper();
-            List<JSONObject> chunkedJsons = JSONParser.splitValidationData(jsonObject, 20);
+            List<ObjectNode> chunkedJsons = JSONParser.splitValidationData(jsonObject, 20);
 
             for (int i = 0; i < chunkedJsons.size(); i++) {
-                JSONObject chunkJson = chunkedJsons.get(i);
+                ObjectNode chunkJson = chunkedJsons.get(i);
                 log.info("sendValidationData -> {}", chunkJson.toString());
                 Map<String, Object> requestMap = objectMapper.readValue(String.valueOf(chunkJson), new TypeReference<Map<String, Object>>() {
                 });
@@ -294,16 +294,16 @@ public class SyncEngineAPIService extends APIService {
         }
     }
 
-    public boolean sendOutlierData(JSONObject jsonObject) {
+    public boolean sendOutlierData(ObjectNode jsonObject) {
         String endpoint = "/fedit/v1/outliers";
         log.info("endpoint -> {}", endpoint);
 
         try {
             ObjectMapper objectMapper = new ObjectMapper();
-            List<JSONObject> chunkedJsons = JSONParser.splitOutlierData(jsonObject, 20);
+            List<ObjectNode> chunkedJsons = JSONParser.splitOutlierData(jsonObject, 20);
 
             for (int i = 0; i < chunkedJsons.size(); i++) {
-                JSONObject chunkJson = chunkedJsons.get(i);
+                ObjectNode chunkJson = chunkedJsons.get(i);
                 log.info("sendOutlierData -> {}", chunkJson.toString());
                 Map<String, Object> requestMap = objectMapper.readValue(String.valueOf(chunkJson), new TypeReference<Map<String, Object>>() {
                 });

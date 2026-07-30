@@ -1,6 +1,9 @@
 package com.stoneitgt.dt.data.platform.admin.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.stoneitgt.dt.data.platform.enums.ModelType;
 import com.stoneitgt.dt.data.platform.enums.TimeUnit;
 import com.stoneitgt.dt.data.platform.util.ConvertUtil;
@@ -8,8 +11,6 @@ import com.stoneitgt.dt.data.platform.util.MetaRelateUtil;
 import com.stoneitgt.dt.data.platform.util.StringUtil;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -257,32 +258,31 @@ public class DTModelApiService extends APIService {
             headers.add(fieldName);
         }
 
-        JSONObject jsonObject = new JSONObject();
+        ObjectNode jsonObject = new ObjectMapper().createObjectNode();
         for (int i = 0; i < headers.size(); i++) {
             JsonNode jsonNode = infoNode.get(headers.get(i));
-            ArrayList<String> data = new ArrayList<>();
+            ArrayNode data = jsonObject.putArray(headers.get(i));
             for (JsonNode value : jsonNode) {
                 data.add(value.asText());
             }
-            jsonObject.put(headers.get(i), data);
         }
 
         // 데이터를 키에 매칭되는 순서대로 쌍으로 묶기
         List<List<String>> datasList = new ArrayList<>(); // 데이터를 담을 리스트
-        int dataSize = jsonObject.getJSONArray(headers.get(0)).length();
+        int dataSize = jsonObject.get(headers.get(0)).size();
         for (int i = 0; i < dataSize; i++) {
             ArrayList<String> data = new ArrayList<>();
             for (int j = 0; j < headers.size(); j++) {
                 if (j == 0) {
-                    // 시간 형태 포맷팅
-                    String dateString = jsonObject.getJSONArray(headers.get(j)).get(i).toString();
+                    // 시간 형태 포맷팅 — asText() 필수(toString() 은 따옴표가 포함되어 날짜 파싱이 실패한다)
+                    String dateString = jsonObject.get(headers.get(j)).get(i).asText();
                     String detectedFormat = ConvertUtil.tryParseFindFormat(ConvertUtil.DATEFORMATS, dateString);
                     SimpleDateFormat inputFormat = new SimpleDateFormat(detectedFormat);
                     SimpleDateFormat outputFormat = new SimpleDateFormat(dateFormat); // 원하는 출력 형식
                     Date parsedDate = inputFormat.parse(dateString);
                     data.add(outputFormat.format(parsedDate));
                 } else {
-                    data.add(jsonObject.getJSONArray(headers.get(j)).get(i).toString());
+                    data.add(jsonObject.get(headers.get(j)).get(i).asText());
                 }
             }
             datasList.add(data);
@@ -497,71 +497,4 @@ public class DTModelApiService extends APIService {
         return ResponseEntity.ok(requestPythonApi("/dt/newpreproc/processorDatasetCorrelationOption/", params));
     }
 
-    // data 배열을 쪼개서 여러 JSONObject로 분할
-    private List<JSONObject> splitValidationData(JSONObject jsonObject, int chunkSize) {
-        List<JSONObject> chunkedList = new ArrayList<>();
-
-        JSONArray validationArray = jsonObject.getJSONArray("validation");
-        if (validationArray.isEmpty()) {
-            return chunkedList;
-        }
-        JSONObject validationObj = validationArray.getJSONObject(0);
-        JSONArray dataArray = validationObj.getJSONArray("data");
-
-        for (int i = 0; i < dataArray.length(); i += chunkSize) {
-            int end = Math.min(i + chunkSize, dataArray.length());
-            JSONArray chunkData = new JSONArray();
-
-            for (int j = i; j < end; j++) {
-                chunkData.put(dataArray.getJSONObject(j));
-            }
-
-            // 전체 원본 JSON 깊은 복사
-            JSONObject newJson = new JSONObject(jsonObject.toString());
-
-            // validation[0].data만 바꾸기
-            newJson.getJSONArray("validation").getJSONObject(0).put("data", chunkData);
-
-            // optional: 전송 chunk 정보 삽입
-            newJson.put("chunk_index", (i / chunkSize) + 1);
-            newJson.put("chunk_total", (int) Math.ceil(dataArray.length() / (double) chunkSize));
-
-            chunkedList.add(newJson);
-        }
-
-        return chunkedList;
-    }
-
-    // data 배열을 쪼개서 여러 JSONObject로 분할
-    private List<JSONObject> splitOutlierData(JSONObject jsonObject, int chunkSize) {
-        List<JSONObject> chunkedList = new ArrayList<>();
-
-        JSONArray outlierArray = jsonObject.getJSONArray("outlier");
-        if (outlierArray.isEmpty()) {
-            return chunkedList;
-        }
-        JSONObject outlierObj = outlierArray.getJSONObject(0);
-        JSONArray dataArray = outlierObj.getJSONArray("data");
-
-        for (int i = 0; i < dataArray.length(); i += chunkSize) {
-            int end = Math.min(i + chunkSize, dataArray.length());
-            JSONArray chunkData = new JSONArray();
-
-            for (int j = i; j < end; j++) {
-                chunkData.put(dataArray.getJSONObject(j));
-            }
-
-            // 전체 원본 JSON 복사
-            JSONObject newJson = new JSONObject(jsonObject.toString());
-
-            // outlier[0].data 만 교체
-            newJson.getJSONArray("outlier").getJSONObject(0).put("data", chunkData);
-
-            // 필요시 추가 정보 넣기 (선택 사항)
-            newJson.put("chunk_index", (i / chunkSize) + 1);
-            newJson.put("chunk_total", (int) Math.ceil(dataArray.length() / (double) chunkSize));
-            chunkedList.add(newJson);
-        }
-        return chunkedList;
-    }
 }

@@ -13,11 +13,6 @@
             openUnitDetailModal();
         });
 
-        // 그룹 코드 조회
-        $('.btn-modify-master').on('click', function () {
-            getUnitInfo('M', $(this).data('group-unit'));
-        });
-
         // 상세 코드 조회
         $('.btn-modify-detail').on('click', function () {
             var unit_seq = $(this).data('unit-seq');
@@ -36,7 +31,7 @@
                 } else {
                     // 등록
                     let detailModal = document.querySelector('#modal-detail');
-                    let unit_tp = $('.unit-master').find('.table-info').data('group-unit');
+                    let unit_tp = $('.table-info[data-group-unit]').data('group-unit');
                     if (unit_tp) {
                         let modal_unit_tp = detailModal.querySelector('#unit_tp');
                         modal_unit_tp.value = unit_tp;
@@ -88,55 +83,44 @@
             };
 
             ajaxPost('/setting/unit/load', data, function (result) {
-                if (type === 'M') {
-                    let groupModal = document.querySelector('#modal-group');
-                    let grp_cd = groupModal.querySelector('#grp_cd');
-                    let grp_cd_nm = groupModal.querySelector('#grp_cd_nm');
-                    grp_cd.value = `${result.data.grp_cd}`;
-                    grp_cd_nm.value = `${result.data.grp_cd_nm}`;
-                    if (!groupModal.classList.contains('is-open')) {
-                        groupModal.classList.add('is-open');
-                    }
+                let detailModal = document.querySelector('#modal-detail');
+                let unit_seq = detailModal.querySelector('#unit_seq');
+                let unit_tp = detailModal.querySelector('#unit_tp');
+
+                let unit_nm_1 = detailModal.querySelector('#unit_nm_1');
+                let dropdownBox = unit_nm_1.closest('.dropdown-box');
+                let targetInput = dropdownBox.querySelector(`ul.option-list li input[value="${result.data.unit_cd_1}"]`);
+                let targetLabel = dropdownBox.querySelector(`ul.option-list li label[for="${targetInput.id}"]`);
+                targetLabel.click();
+
+                let unit_nm_2 = detailModal.querySelector('#unit_nm_2');
+                dropdownBox = unit_nm_2.closest('.dropdown-box');
+                targetInput = dropdownBox.querySelector(`ul.option-list li input[value="${result.data.unit_cd_2}"]`);
+                targetLabel = dropdownBox.querySelector(`ul.option-list li label[for="${targetInput.id}"]`);
+                targetLabel.click();
+
+                let unit_formula = detailModal.querySelector('#unit_formula');
+                let formula_derpn = detailModal.querySelector('#formula_derpn');
+                let ordby = detailModal.querySelector('#ordby');
+                unit_seq.value = `${result.data.unit_seq}`;
+                unit_tp.value = `${result.data.unit_tp}`;
+                unit_formula.value = `${result.data.unit_formula}`;
+                formula_derpn.value = `${(result.data.formula_derpn && result.data.formula_derpn !== null && result.data.formula_derpn !== 'null') ? result.data.formula_derpn : ''}`;
+                ordby.value = `${result.data.ordby}`;
+
+                if (result.data.use_yn === 'Y') {
+                    // '사용' 라디오 버튼 선택
+                    const useY = document.querySelector('#useY');
+                    useY.checked = true;
+                    useY.dispatchEvent(new Event('change')); // change 이벤트 트리거
                 } else {
-                    let detailModal = document.querySelector('#modal-detail');
-                    let unit_seq = detailModal.querySelector('#unit_seq');
-                    let unit_tp = detailModal.querySelector('#unit_tp');
-
-                    let unit_nm_1 = detailModal.querySelector('#unit_nm_1');
-                    let dropdownBox = unit_nm_1.closest('.dropdown-box');
-                    let targetInput = dropdownBox.querySelector(`ul.option-list li input[value="${result.data.unit_cd_1}"]`);
-                    let targetLabel = dropdownBox.querySelector(`ul.option-list li label[for="${targetInput.id}"]`);
-                    targetLabel.click();
-
-                    let unit_nm_2 = detailModal.querySelector('#unit_nm_2');
-                    dropdownBox = unit_nm_2.closest('.dropdown-box');
-                    targetInput = dropdownBox.querySelector(`ul.option-list li input[value="${result.data.unit_cd_2}"]`);
-                    targetLabel = dropdownBox.querySelector(`ul.option-list li label[for="${targetInput.id}"]`);
-                    targetLabel.click();
-
-                    let unit_formula = detailModal.querySelector('#unit_formula');
-                    let formula_derpn = detailModal.querySelector('#formula_derpn');
-                    let ordby = detailModal.querySelector('#ordby');
-                    unit_seq.value = `${result.data.unit_seq}`;
-                    unit_tp.value = `${result.data.unit_tp}`;
-                    unit_formula.value = `${result.data.unit_formula}`;
-                    formula_derpn.value = `${(result.data.formula_derpn && result.data.formula_derpn !== null && result.data.formula_derpn !== 'null') ? result.data.formula_derpn : ''}`;
-                    ordby.value = `${result.data.ordby}`;
-
-                    if (result.data.use_yn === 'Y') {
-                        // '사용' 라디오 버튼 선택
-                        const useY = document.querySelector('#useY');
-                        useY.checked = true;
-                        useY.dispatchEvent(new Event('change')); // change 이벤트 트리거
-                    } else {
-                        // '미사용' 라디오 버튼 선택
-                        const useN = document.querySelector('#useN');
-                        useN.checked = true;
-                        useN.dispatchEvent(new Event('change')); // change 이벤트 트리거
-                    }
-                    if (!detailModal.classList.contains('is-open')) {
-                        detailModal.classList.add('is-open');
-                    }
+                    // '미사용' 라디오 버튼 선택
+                    const useN = document.querySelector('#useN');
+                    useN.checked = true;
+                    useN.dispatchEvent(new Event('change')); // change 이벤트 트리거
+                }
+                if (!detailModal.classList.contains('is-open')) {
+                    detailModal.classList.add('is-open');
                 }
             });
         }
@@ -145,6 +129,10 @@
             let detailModal = document.querySelector('#modal-detail');
             var unit_seq = $('#unit_seq').val();
             var unit_tp = $('#unit_tp').val();
+            if (!unit_tp) {
+                alert('단위 유형을 먼저 선택하세요.');
+                return false;
+            }
             let unit_cd_1 = document.querySelector('#unit_nm_1');
             let unit_cd_1_value = unit_cd_1.dataset.value;
             let dropdownBox = unit_cd_1.closest('.dropdown-box');
@@ -159,10 +147,10 @@
             targetLabel = dropdownBox.querySelector(`ul.option-list li label[for="${targetInput.id}"]`);
             let unit_nm_2 = targetLabel.textContent;
 
-            var unit_formula = $('#unit_formula').val();
-            var formula_derpn = $('#formula_derpn').val();
-            var ordby = $('#ordby').val();
-            let use_flag = detailModal.querySelector('input[name="whetherToUse"]:checked').id === 'useY' ? 'Y' : 'N';
+            var unit_formula = $('#unit_formula').val().trim();
+            var formula_derpn = $('#formula_derpn').val().trim(); // 비고: 선택 항목
+            var ordby = $('#ordby').val().trim();
+            let checkedUse = detailModal.querySelector('input[name="whetherToUse"]:checked');
 
             if (unit_nm_1 === '' || unit_cd_1_value === '0') {
                 alert('변경전 단위를 선택하세요.');
@@ -179,6 +167,23 @@
                 return false;
             }
 
+            // 정렬 순서(필수) - 0~999 정수
+            if (ordby === '') {
+                alert('정렬 순서를 입력하세요.');
+                return false;
+            }
+            let ordbyNum = Number(ordby);
+            if (!Number.isInteger(ordbyNum) || ordbyNum < 0 || ordbyNum > 999) {
+                alert('정렬 순서는 0~999 사이의 정수로 입력하세요.');
+                return false;
+            }
+
+            if (!checkedUse) {
+                alert('사용 여부를 선택하세요.');
+                return false;
+            }
+            let use_flag = checkedUse.id === 'useY' ? 'Y' : 'N';
+
             var data = {
                 unitSeq: unit_seq,
                 unitTp: unit_tp,
@@ -188,7 +193,7 @@
                 unitCd2: unit_cd_2_value,
                 unitFormula: unit_formula,
                 formulaDerpn: formula_derpn,
-                ordby: ordby ? ordby : null,
+                ordby: ordbyNum,
                 useYn: use_flag
             };
 
