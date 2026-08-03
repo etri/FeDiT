@@ -31,6 +31,11 @@
                 return false;
             }
 
+            if (model_nm.length > 200) {
+                alert('모델명은 200자 이내로 입력하세요.');
+                return false;
+            }
+
             if (input_info_check === 'N') {
                 alert('조회 후  다른 이벤트가 발생 했거나 조회 버튼을 클릭하지 않았습니다.');
                 return false;
@@ -51,7 +56,9 @@
             let base_file_path = preProcData.preproc_property_info[0].base_dir;
             let base_file_nm = preProcData.preproc_property_info[0].base_file_nm_set_range_row;
 
+            //데이터현황 탭 진입: 이전 버튼은 노출하되, "다음" 버튼은 컬럼 선택 후 확인(미리보기) 시에만 노출
             $('#next_button_column_info_range').show();
+            $('.next-model-step').hide();
 
             //정보입력탭 안보이게
             //데이터현황 보이게 안보이게
@@ -98,7 +105,7 @@
 
             $('#tab_validate_range').hide();
             $('#next_button_column_info_range').show();
-            $('#column_info_next').show();
+            $('.next-model-step').show();
 
             makePropertyListHtml();
             $('html, body').animate({scrollTop: $(document).height()}, 'slow');
@@ -161,7 +168,7 @@
                                     alert('선택하신 컬럼은 시계열이 아닙니다.');
                                     return false;
                                 }
-                                if ((data.target_row_count === 0) && (data.target_start_date.length === 0 || data.target_end_date.length === 0)) {
+                                if (((parseInt(data.target_row_count) || 0) === 0) && (data.target_start_date.length === 0 || data.target_end_date.length === 0)) {
                                     alert('시작일과 종료일 둘다 입력 해야합니다.');
                                     return false;
                                 }
@@ -172,7 +179,7 @@
                                         return false;
                                     }
                                 } else {
-                                    if (data.target_row_count.length === 0) {
+                                    if ((parseInt(data.target_row_count) || 0) === 0) {
                                         alert('날짜를 지정하거나 불러올 데이터 갯수를 지정해야합니다.');
                                         return false;
                                     }

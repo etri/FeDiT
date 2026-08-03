@@ -1,5 +1,6 @@
 package com.stoneitgt.dt.data.platform.admin.controller;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stoneitgt.common.GlobalConstant;
@@ -14,8 +15,6 @@ import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 import com.stoneitgt.dt.data.platform.util.file.FileWriter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.HashedMap;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -709,7 +708,7 @@ public class DTModelController extends BaseController {
 
     @PostMapping("/get/outlier_info")
     @ResponseBody
-    public Map<String, Object> getOutlierInfo(@RequestBody Map<String, Object> params) throws IOException, JSONException {
+    public Map<String, Object> getOutlierInfo(@RequestBody Map<String, Object> params) throws IOException {
         Map<String, Object> result = new HashMap<String, Object>();
 
         Map<String, Object> outlierParameters = new HashMap<String, Object>();
@@ -799,7 +798,7 @@ public class DTModelController extends BaseController {
                 return null;
         }
 
-        JSONObject outlierJSONObject = new JSONObject(outlierSet.getBody().toString());
+        JsonNode outlierJSONObject = new ObjectMapper().readTree(outlierSet.getBody().toString());
         try {
             JsonNode jsonNode = new ObjectMapper().readTree(outlierSet.getBody().toString());
             JsonNode histNode = jsonNode.path("data").path("hist");
@@ -811,7 +810,7 @@ public class DTModelController extends BaseController {
                 case "AUTOENCODER":
                 case "autoencoder": {
                     HashMap<String, Object> normalizeParams = dtModelApiService.makeDataNormalize(infoNode, dateFormat);
-                    if (Integer.parseInt(outlierJSONObject.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
+                    if (Integer.parseInt(outlierJSONObject.get("code").asText()) == GlobalConstant.API_STATUS.SUCCESS) {
                         result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
                         result.put("hist", histNode.toString());
                         result.put("info", infoNode);
@@ -823,7 +822,7 @@ public class DTModelController extends BaseController {
                 }
                 case "kmean": {
                     HashMap<String, Object> makeDataNormalizeKMean = dtModelApiService.makeDataNormalizeKMean(infoNode, "max", dateFormat);
-                    if (Integer.parseInt(outlierJSONObject.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
+                    if (Integer.parseInt(outlierJSONObject.get("code").asText()) == GlobalConstant.API_STATUS.SUCCESS) {
                         result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
                         result.put("info", infoNode);
                         List<String> headers = (List<String>) makeDataNormalizeKMean.get("headers");
@@ -842,7 +841,7 @@ public class DTModelController extends BaseController {
                 }
                 case "dbscan": {
                     HashMap<String, Object> makeDataNormalizeDBSCAN = dtModelApiService.makeDataNormalizeDBSCAN(infoNode, dateFormat);
-                    if (Integer.parseInt(outlierJSONObject.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
+                    if (Integer.parseInt(outlierJSONObject.get("code").asText()) == GlobalConstant.API_STATUS.SUCCESS) {
                         result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
                         result.put("info", infoNode);
                         List<String> headers = (List<String>) makeDataNormalizeDBSCAN.get("headers");
@@ -867,7 +866,7 @@ public class DTModelController extends BaseController {
         } catch (Exception e) {
             e.printStackTrace();
             log.info("getOutlierInfo 실패 -> {}", outlierJSONObject);
-            errorService.saveErrorLog(ErrorLog.builder().modelSeq(0).augmentSeq(0).errTp("PYTHON").errLct("processorOutlier" + outlier_type).errCd(outlierJSONObject.get("code").toString()).errNm(outlierJSONObject.get("message").toString()).errCn(outlierJSONObject.get("detail").toString()).loginUserSeq(authenticationFacade.getLoginUserSeq()).loginUserIp(authenticationFacade.getLoginUserIp()).status("FAIL").build());
+            errorService.saveErrorLog(ErrorLog.builder().modelSeq(0).augmentSeq(0).errTp("PYTHON").errLct("processorOutlier" + outlier_type).errCd(outlierJSONObject.get("code").asText()).errNm(outlierJSONObject.get("message").asText()).errCn(outlierJSONObject.get("detail").asText()).loginUserSeq(authenticationFacade.getLoginUserSeq()).loginUserIp(authenticationFacade.getLoginUserIp()).status("FAIL").build());
 
             /**
              * 에러 타입 errTp
@@ -1688,7 +1687,7 @@ public class DTModelController extends BaseController {
 
     @PostMapping("/make/algorithm_set")
     @ResponseBody
-    public Map<String, Object> makeAlgorithmSet(@RequestBody Map<String, Object> params) throws JSONException {
+    public Map<String, Object> makeAlgorithmSet(@RequestBody Map<String, Object> params) {
         Map<String, Object> result = new HashMap<String, Object>();
         int modelSeq = Integer.parseInt(params.get("model_seq").toString());
         DTModel dtModel = new DTModel();
@@ -1847,7 +1846,9 @@ public class DTModelController extends BaseController {
                 }
             }
         }
-        param.put("user_pprcs_full_stng_value", new org.json.JSONObject(sss).toString());
+        // 기존 빈(bean) 직렬화는 값이 null 인 필드를 생략했으므로, 저장 문자열을 동일하게 유지하기 위해 NON_NULL 로 직렬화한다
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        param.put("user_pprcs_full_stng_value", objectMapper.writeValueAsString(sss));
         dtModelService.updateMetaUerItemFulltext(param);
         result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
         result.put("item_list", item_list);
@@ -1948,7 +1949,9 @@ public class DTModelController extends BaseController {
                 }
             }
         }
-        param.put("user_pprcs_full_stng_value", new org.json.JSONObject(sss).toString());
+        // 기존 빈(bean) 직렬화는 값이 null 인 필드를 생략했으므로, 저장 문자열을 동일하게 유지하기 위해 NON_NULL 로 직렬화한다
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        param.put("user_pprcs_full_stng_value", objectMapper.writeValueAsString(sss));
         dtModelService.updateMetaUerItemFulltext(param);
         result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
         result.put("item_list", item_list);

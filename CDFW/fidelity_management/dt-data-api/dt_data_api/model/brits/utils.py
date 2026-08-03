@@ -1,3 +1,14 @@
+# ---------------------------------------------------------------------------
+# 원 저작물: brits-tensorflow
+#   https://github.com/flaviagiammarino/brits-tensorflow
+#
+# MIT License
+# Copyright (c) 2022 Flavia Giammarino
+#
+# 본 파일은 위 저작물에서 가져왔습니다. 라이선스 원문은 같은 디렉터리의
+# LICENSE 파일을, 원본 대비 변경 사항은 git 이력을 참조하세요.
+# ---------------------------------------------------------------------------
+
 import numpy as np
 import tensorflow as tf
 

@@ -1,3 +1,12 @@
+/*!
+ * 번들 파일 — 아래 오픈소스가 함께 포함되어 있습니다.
+ * 각 라이선스 전문은 배포 루트의 THIRD_PARTY_NOTICES.txt 를 참조하십시오.
+ *
+ *   jQuery v3.4.1            | (c) JS Foundation and other contributors        | MIT
+ *   Bootstrap v4.3.1         | Copyright 2011-2019 The Bootstrap Authors       | MIT
+ *   Popper.js v 1.15.0       | Copyright (C) Federico Zivolo 2019             | MIT
+ *   perfect-scrollbar v1.4.0 | Copyright (c) Hyunje Jun, MDBootstrap and Contributors | MIT
+ */
 /*! jQuery v3.4.1 | (c) JS Foundation and other contributors | jquery.org/license */
 !function (e, t) {
     "use strict";

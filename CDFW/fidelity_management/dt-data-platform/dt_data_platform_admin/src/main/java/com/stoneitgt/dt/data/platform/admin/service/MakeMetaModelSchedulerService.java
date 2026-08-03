@@ -1,9 +1,9 @@
 package com.stoneitgt.dt.data.platform.admin.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stoneitgt.dt.data.platform.admin.mapper.MakeMetaModelSchedulerMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +73,7 @@ public class MakeMetaModelSchedulerService extends BaseService {
         return makeMetaModelSchedulerMapper.updateLearningDndDt(checkParams);
     }
 
-    public JSONObject createMetaBasicModel(Map<String, Object> requestBody) throws JSONException {
+    public JsonNode createMetaBasicModel(Map<String, Object> requestBody) throws IOException {
         RestTemplate restTemplate = new RestTemplate();
 
         String url = systemProperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater/";
@@ -89,12 +90,11 @@ public class MakeMetaModelSchedulerService extends BaseService {
         String responseBody = response.getBody();
 
         //JSONParser parser = new JSONParser();
-        //JSONObject result = (JSONObject) parser.parse(responseBody);
-        JSONObject result = new JSONObject(responseBody);
+        JsonNode result = new ObjectMapper().readTree(responseBody);
         return result;
     }
 
-    public JSONObject createMetaDeepARModel(Map<String, Object> requestBody) throws JSONException {
+    public JsonNode createMetaDeepARModel(Map<String, Object> requestBody) throws IOException {
         RestTemplate restTemplate = new RestTemplate();
 
         String url = systemProperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater_deepAR/";
@@ -111,12 +111,11 @@ public class MakeMetaModelSchedulerService extends BaseService {
         String responseBody = response.getBody();
 
         //JSONParser parser = new JSONParser();
-        //JSONObject result = (JSONObject) parser.parse(responseBody);
-        JSONObject result = new JSONObject(responseBody);
+        JsonNode result = new ObjectMapper().readTree(responseBody);
         return result;
     }
 
-    public JSONObject createMetaNBeatsModel(Map<String, Object> requestBody) throws JSONException {
+    public JsonNode createMetaNBeatsModel(Map<String, Object> requestBody) throws IOException {
         RestTemplate restTemplate = new RestTemplate();
 
         String url = systemProperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater_nbeats/";
@@ -133,15 +132,14 @@ public class MakeMetaModelSchedulerService extends BaseService {
         String responseBody = response.getBody();
 
         //JSONParser parser = new JSONParser();
-        //JSONObject result = (JSONObject) parser.parse(responseBody);
-        JSONObject result = new JSONObject(responseBody);
+        JsonNode result = new ObjectMapper().readTree(responseBody);
         return result;
     }
 
     /**
      * SEG RNN
      * */
-    public JSONObject createMetaSEG_RNNModel(Map<String, Object> requestBody) throws JSONException {
+    public JsonNode createMetaSEG_RNNModel(Map<String, Object> requestBody) throws IOException {
         RestTemplate restTemplate = new RestTemplate();
 
         String url = systemProperties.getDtApiUrl() + "/dt/metalearning/createModelGenerater_SEG_RNN/";
@@ -158,8 +156,7 @@ public class MakeMetaModelSchedulerService extends BaseService {
         String responseBody = response.getBody();
 
         //JSONParser parser = new JSONParser();
-        //JSONObject result = (JSONObject) parser.parse(responseBody);
-        JSONObject result = new JSONObject(responseBody);
+        JsonNode result = new ObjectMapper().readTree(responseBody);
         return result;
     }
 

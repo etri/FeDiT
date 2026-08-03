@@ -62,11 +62,13 @@ $(document).ready(function () {
                                         '#EC64A4', '#76D9DD', '#40A245', '#FA6758', '#7F60B2', '#D77BE8'
                                     ];
                                     let datas = result.data[histogram_key][key]
-                                    dates = Object.keys(datas)
+                                    // 날짜 오름차순 정렬(YYYY-MM-DD HH:mm:ss 문자열 정렬 = 시간순)
+                                    dates = Object.keys(datas).sort()
                                     let series = {
                                         name: `${key}`,
                                         type: 'scatter',
-                                        data: dates.map((date) => [date, datas[date]]),
+                                        // X축은 Index(i), 실제 날짜는 data.date에 보관(툴팁용)
+                                        data: dates.map((date, i) => ({ value: [i, datas[date]], date: date })),
                                         symbolSize: 10,
                                         itemStyle: {
                                             color: `${colors[keyIndex]}`
@@ -86,18 +88,17 @@ $(document).ready(function () {
                                     tooltip: {
                                         trigger: 'item',
                                         formatter: function (params) {
-                                            return `${params.seriesName}<br>Date: ${params.name}<br>Value: ${params.value[1]}`;
+                                            let d = (params.data && params.data.date) ? params.data.date : params.name;
+                                            return `${params.seriesName}<br>Date: ${d}<br>Value: ${params.value[1]}`;
                                         }
                                     },
                                     legend: {
                                         data: keys
                                     },
                                     xAxis: {
-                                        type: 'category',
-                                        data: dates,
-                                        axisLabel: {
-                                            rotate: 45
-                                        }
+                                        type: 'value',
+                                        name: 'Index',
+                                        minInterval: 1
                                     },
                                     yAxis: {
                                         type: 'value',
@@ -141,12 +142,14 @@ $(document).ready(function () {
                                     '#EC64A4', '#76D9DD', '#40A245', '#FA6758', '#7F60B2', '#D77BE8'
                                 ];
                                 let datas = result.data[key]
-                                dates = Object.keys(datas)
+                                // 날짜 오름차순 정렬(YYYY-MM-DD HH:mm:ss 문자열 정렬 = 시간순)
+                                dates = Object.keys(datas).sort()
                                 console.log('dates', dates);
                                 let series = {
                                     name: `${key}`,
                                     type: 'scatter',
-                                    data: dates.map((date) => [date, datas[date]]),
+                                    // X축은 Index(i), 실제 날짜는 data.date에 보관(툴팁용)
+                                    data: dates.map((date, i) => ({ value: [i, datas[date]], date: date })),
                                     symbolSize: 10,
                                     itemStyle: {
                                         color: `${colors[keyIndex]}`
@@ -167,18 +170,17 @@ $(document).ready(function () {
                                 tooltip: {
                                     trigger: 'item',
                                     formatter: function (params) {
-                                        return `${params.seriesName}<br>Date: ${params.name}<br>Value: ${params.value[1]}`;
+                                        let d = (params.data && params.data.date) ? params.data.date : params.name;
+                                        return `${params.seriesName}<br>Date: ${d}<br>Value: ${params.value[1]}`;
                                     }
                                 },
                                 legend: {
                                     data: keys
                                 },
                                 xAxis: {
-                                    type: 'category',
-                                    data: dates,
-                                    axisLabel: {
-                                        rotate: 45
-                                    }
+                                    type: 'value',
+                                    name: 'Index',
+                                    minInterval: 1
                                 },
                                 yAxis: {
                                     type: 'value',
@@ -202,6 +204,11 @@ $(document).ready(function () {
                         }
                     }
                     resizeDataVisualChart();
+                    /**
+                     * 2026-06-29 필터링된 데이터 하단 통계 수치 렌더링
+                     * (요청 data: preprocess/column 정보로 표시 방식 결정)
+                     * */
+                    renderFilteredStatistics(result.data, data);
                 });
             }
         }
@@ -360,7 +367,7 @@ function deletePreprocFiles(filesToRemove, file_path) {
         contentType: "application/json; charset=utf-8;",
         dataType: "json",
         success: function (result) {
-            if (result.result_code === 200) {
+            if (result.result_code === 200 || result.code === 200) {
                 closeProgressBar({element: null, process_id: 'process-40'});
                 console.log('Files deleted successfully:');
             } else {
@@ -488,7 +495,13 @@ function makePropertyListHtml() {
                                                         검증 컬럼 : ${set.trgt_col} |
                                                         검증 타입 : ${set.vrfc_tp_nm} |
                                                         검증 형태 : ${set.vrfc_sub_tp_nm} |
-                                                        지정 형태 : ${set.vrfc_clear_tp_nm}
+                                                        지정 형태 : ${set.vrfc_clear_tp_nm}${['rule1', 'rule2', 'rule3', 'rule4'].map(function (ruleKey) {
+                                                            // 키 존재 + 값이 null/"null"/"None"이 아닐 때만 표시
+                                                            if (!Object.prototype.hasOwnProperty.call(set, ruleKey)) return '';
+                                                            let ruleVal = set[ruleKey];
+                                                            if (ruleVal === null || ruleVal === undefined || ruleVal === 'null' || ruleVal === 'None') return '';
+                                                            return ` | ${ruleKey} : ${ruleVal}`;
+                                                        }).join('')}
                                                     </a>`;
                     if (form_type === 'I') {
                         sectionWrapper.appendChild(createDeleteButton(set, preprocOrder))
@@ -948,6 +961,236 @@ function clearDataVisualChart() {
     });
     dataVisualCharts = [];
     dataVisualChartOptions = [];
+    clearFilteredStatistics();
+}
+
+/**
+ * 2026-06-29 필터링된 데이터 통계 컨테이너 초기화
+ * */
+function clearFilteredStatistics() {
+    let statsContainer = document.querySelector('#data-visual-statistics-container');
+    if (statsContainer) {
+        statsContainer.innerHTML = '';
+    }
+}
+
+/**
+ * 2026-06-29 단일 컬럼의 {날짜: 값} 맵으로부터 기본 통계 계산
+ * - count       : 필터링된 총 건수(빈 값 포함)
+ * - emptyCount  : 빈 값('') 건수
+ * - min/max/mean: 숫자로 변환 가능한 값만 집계 (빈 값/비숫자 제외)
+ * @param {object} dataMap - { 날짜: 값(문자열) }
+ */
+function computeFilteredColumnStats(dataMap) {
+    let values = Object.values(dataMap || {});
+    let count = values.length;
+    let emptyCount = 0;
+    let numericValues = [];
+
+    values.forEach(function (raw) {
+        let str = (raw === null || raw === undefined) ? '' : String(raw).trim();
+        if (str === '') {
+            emptyCount++;
+            return;
+        }
+        let num = Number(str);
+        if (!isNaN(num) && isFinite(num)) {
+            numericValues.push(num);
+        }
+    });
+
+    let stats = {
+        count: count,
+        emptyCount: emptyCount,
+        numericCount: numericValues.length,
+        min: null,
+        max: null,
+        mean: null
+    };
+
+    if (numericValues.length > 0) {
+        let sum = 0;
+        let min = numericValues[0];
+        let max = numericValues[0];
+        numericValues.forEach(function (n) {
+            sum += n;
+            if (n < min) min = n;
+            if (n > max) max = n;
+        });
+        stats.min = min;
+        stats.max = max;
+        stats.mean = sum / numericValues.length;
+    }
+
+    return stats;
+}
+
+/**
+ * 2026-06-29 통계 수치 표기용 숫자 포맷터 (불필요한 소수점 정리)
+ * @param {number|null} value
+ */
+function formatStatNumber(value) {
+    if (value === null || value === undefined || isNaN(value)) {
+        return '-';
+    }
+    // 정수면 그대로, 소수면 최대 2자리까지 표기
+    if (Number.isInteger(value)) {
+        return value.toString();
+    }
+    return Number(value.toFixed(2)).toString();
+}
+
+/**
+ * 2026-06-29 필터링된 데이터 차트 하단에 컬럼별 통계 렌더링
+ * resultData 구조:
+ *  - 일반: { 컬럼: { 날짜: 값 } }
+ *  - 중첩: { ADDED_DATA: { 컬럼: { 날짜: 값 } }, REMOVED_DATA: {...} }
+ * @param {object} resultData - getPreprocessFilteredVisualData 응답의 data
+ * @param {object} [requestData] - 요청 데이터(preprocess/column). 표시 방식 결정에 사용
+ */
+function renderFilteredStatistics(resultData, requestData) {
+    let statsContainer = document.querySelector('#data-visual-statistics-container');
+    if (!statsContainer) {
+        return;
+    }
+    statsContainer.innerHTML = '';
+
+    if (!resultData || Object.keys(resultData).length === 0) {
+        return;
+    }
+
+    let keys = Object.keys(resultData);
+    let isNested = keys.includes('ADDED_DATA') && keys.includes('REMOVED_DATA');
+
+    /**
+     * 2026-06-29 Missing Value(3) / Interval Conversion(4)에서 column='all'로 요청한 경우:
+     * 응답이 전체 컬럼으로 오므로 컬럼별 통계는 생략하고 "필터링 행 N건" 요약만 표시한다.
+     */
+    let reqPreprocess = requestData ? Number(requestData.preprocess) : null;
+    let reqColumn = requestData ? requestData.column : null;
+    let summaryOnly = (reqPreprocess === 3 || reqPreprocess === 4) && reqColumn === 'all';
+
+    if (summaryOnly) {
+        let titleLabel = document.createElement('label');
+        titleLabel.classList.add('col-form-label', 'pt-3', 'pb-2');
+        titleLabel.innerHTML = '필터링 통계';
+        statsContainer.appendChild(titleLabel);
+
+        let makeSummary = function (text) {
+            let summary = document.createElement('div');
+            summary.classList.add('data-visual-statistics-summary');
+            summary.style.padding = '8px 12px';
+            summary.style.marginBottom = '6px';
+            summary.style.fontSize = '13px';
+            summary.style.fontWeight = '600';
+            summary.innerHTML = text;
+            statsContainer.appendChild(summary);
+        };
+
+        // 그룹 내 행 수 = 컬럼들 중 최대 날짜(행) 개수
+        let rowCountOf = function (colMap) {
+            let cols = Object.keys(colMap || {});
+            let max = 0;
+            cols.forEach(function (c) {
+                let n = Object.keys(colMap[c] || {}).length;
+                if (n > max) max = n;
+            });
+            return { rowCount: max, colCount: cols.length };
+        };
+
+        if (isNested) {
+            // ADDED_DATA / REMOVED_DATA 각 그룹 요약
+            keys.forEach(function (groupKey) {
+                let info = rowCountOf(resultData[groupKey]);
+                makeSummary(`${groupKey}: 필터링 행 <strong>${info.rowCount}</strong>건 (컬럼 ${info.colCount}개)`);
+            });
+        } else {
+            let info = rowCountOf(resultData);
+            makeSummary(`필터링 행 <strong>${info.rowCount}</strong>건 (컬럼 ${info.colCount}개)`);
+        }
+        return;
+    }
+
+    // [그룹명|null, 컬럼명, dataMap] 형태로 평탄화
+    let entries = [];
+    if (isNested) {
+        keys.forEach(function (groupKey) {
+            let group = resultData[groupKey] || {};
+            Object.keys(group).forEach(function (column) {
+                entries.push({ group: groupKey, column: column, dataMap: group[column] });
+            });
+        });
+    } else {
+        keys.forEach(function (column) {
+            entries.push({ group: null, column: column, dataMap: resultData[column] });
+        });
+    }
+
+    if (entries.length === 0) {
+        return;
+    }
+
+    // 각 엔트리 통계 미리 계산
+    let statsList = entries.map(function (entry) {
+        return {
+            label: entry.group ? `${entry.group} / ${entry.column}` : entry.column,
+            stats: computeFilteredColumnStats(entry.dataMap)
+        };
+    });
+
+    let titleLabel = document.createElement('label');
+    titleLabel.classList.add('col-form-label', 'pt-3', 'pb-2');
+    titleLabel.innerHTML = '필터링 통계';
+    statsContainer.appendChild(titleLabel);
+
+    /**
+     * 2026-06-29 전체 컬럼이 동일한 건수로 오는 경우(예: Missing Value - column='all'):
+     * 응답이 {모든컬럼: {결측행날짜: 원본값}} 구조라 컬럼별 개수가 모두 같으므로
+     * "필터링 행 N건"을 1줄로 요약하고, 컬럼별 행에서는 개수를 생략한 채
+     * 빈 값/최소/최대/평균만 표기한다. (ADDED/REMOVED 중첩 구조는 제외)
+     */
+    let counts = statsList.map(function (s) { return s.stats.count; });
+    let allCountsEqual = counts.every(function (c) { return c === counts[0]; });
+    let useSummaryCount = !isNested && statsList.length > 1 && allCountsEqual;
+
+    if (useSummaryCount) {
+        let summary = document.createElement('div');
+        summary.classList.add('data-visual-statistics-summary');
+        summary.style.padding = '8px 12px';
+        summary.style.marginBottom = '8px';
+        summary.style.fontSize = '13px';
+        summary.style.fontWeight = '600';
+        summary.innerHTML = `필터링 행 <strong>${counts[0]}</strong>건 (컬럼 ${statsList.length}개)`;
+        statsContainer.appendChild(summary);
+    }
+
+    statsList.forEach(function (item) {
+        let stats = item.stats;
+
+        let row = document.createElement('div');
+        row.classList.add('data-visual-statistics-row');
+        row.style.display = 'flex';
+        row.style.flexWrap = 'wrap';
+        row.style.alignItems = 'center';
+        row.style.gap = '6px 16px';
+        row.style.padding = '8px 12px';
+        row.style.marginBottom = '6px';
+        row.style.border = '1px solid #e3e6ef';
+        row.style.borderRadius = '4px';
+        row.style.fontSize = '13px';
+
+        let items = [`<span style="font-weight:600;">컬럼: ${item.label}</span>`];
+        // 요약 1줄로 건수를 표기한 경우 컬럼별 개수는 생략(중복 제거)
+        if (!useSummaryCount) {
+            items.push(`<span>필터링 <strong>${stats.count}</strong>개</span>`);
+        }
+        items.push(`<span>빈 값 <strong>${stats.emptyCount}</strong>개</span>`);
+        items.push(`<span>최소 <strong>${formatStatNumber(stats.min)}</strong></span>`);
+        items.push(`<span>최대 <strong>${formatStatNumber(stats.max)}</strong></span>`);
+        items.push(`<span>평균 <strong>${formatStatNumber(stats.mean)}</strong></span>`);
+        row.innerHTML = items.join('');
+        statsContainer.appendChild(row);
+    });
 }
 
 function resizeDataVisualChart() {

@@ -1,5 +1,7 @@
 package com.stoneitgt.dt.data.platform.admin.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stoneitgt.common.GlobalConstant;
 import com.stoneitgt.dt.data.platform.admin.config.WebConfig;
@@ -11,7 +13,6 @@ import com.stoneitgt.dt.data.platform.util.file.FileReader;
 import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.json.JSONObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -463,7 +464,7 @@ public class DataSetController extends BaseController {
         correlationParameters.put("type", corType);
 
         ResponseEntity<?> correlationSet = null;
-        JSONObject correlationObj = null;
+        JsonNode correlationObj = null;
 
         switch (corType) {
             case "pandas": {
@@ -492,20 +493,24 @@ public class DataSetController extends BaseController {
                 return result;
         }
 
+        ObjectMapper correlationMapper = new ObjectMapper();
         if (correlationSet != null && correlationSet.getBody() != null) {
-            correlationObj = new JSONObject(Objects.requireNonNull(correlationSet.getBody()).toString());
+            correlationObj = correlationMapper.readTree(Objects.requireNonNull(correlationSet.getBody()).toString());
         }
 
-        if (Integer.parseInt(correlationObj.get("code").toString()) == GlobalConstant.API_STATUS.SUCCESS) {
+        if (Integer.parseInt(correlationObj.get("code").asText()) == GlobalConstant.API_STATUS.SUCCESS) {
             result.put("result_code", GlobalConstant.API_STATUS.SUCCESS);
-            JSONObject dataObj = correlationObj.getJSONObject("data");
+            JsonNode dataObj = correlationObj.get("data");
 
-            // JSONArray → Java List로 변환
-            List<Object> dataArr = dataObj.getJSONArray("data").toList();
-            List<Object> xdataArr = dataObj.getJSONArray("xdata").toList();
-            List<Object> ydataArr = dataObj.getJSONArray("ydata").toList();
+            // JSON 배열 → Java List로 변환 (중첩 구조까지 재귀 변환)
+            List<Object> dataArr = correlationMapper.convertValue(dataObj.get("data"), new TypeReference<List<Object>>() {
+            });
+            List<Object> xdataArr = correlationMapper.convertValue(dataObj.get("xdata"), new TypeReference<List<Object>>() {
+            });
+            List<Object> ydataArr = correlationMapper.convertValue(dataObj.get("ydata"), new TypeReference<List<Object>>() {
+            });
 
-            // JSONObject 대신 Map 사용
+            // Map 사용
             Map<String, Object> payload = new HashMap<>();
             payload.put("data", dataArr);
             payload.put("xdata", xdataArr);

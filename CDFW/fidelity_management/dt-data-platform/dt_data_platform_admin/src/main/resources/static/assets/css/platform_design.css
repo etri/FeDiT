@@ -825,3 +825,37 @@ a:hover {
     width: 1%;
     margin-bottom: 0;
 }
+
+#wrapper {
+    min-height: calc(100vh - 33px);
+}
+
+/* Range 색상 */
+input[type="range"].custom-range-obj {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: #DDDDDD; /* 전체 바 색상 */
+    border-radius: 0;
+    outline: none;
+    margin-bottom: 5px;
+}
+
+/* 썸(thumb) 색상 */
+input[type="range"].custom-range-obj::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 16px;
+    width: 16px;
+    border-radius: 0;
+    background: #749BCE; /* 썸 색상 */
+    cursor: pointer;
+    border: none;
+    margin-top: -5px; /* 트랙 가운데 정렬 */
+}
+
+/* 채워진 왼쪽 영역 색상 (WebKit only) */
+input[type="range"].custom-range-obj::-webkit-slider-runnable-track {
+    background: none;
+    height: 6px;
+    border-radius: 0;
+}

@@ -1,12 +1,14 @@
 package com.stoneitgt.dt.data.platform.util.file;
 
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.opencsv.CSVReader;
 import com.stoneitgt.dt.data.platform.util.ConvertUtil;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
@@ -782,12 +784,13 @@ public class FileReader {
         return originList.stream().map(row -> originHeaderList.stream().map(header -> row.get(headerIndexMap.getOrDefault(header, -1))).collect(Collectors.toList())).collect(Collectors.toList());
     }
 
-    public JSONObject readJSON(String filePath) {
-        JSONObject jsonObject = new JSONObject();
+    public ObjectNode readJSON(String filePath) {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode jsonObject = mapper.createObjectNode();
         java.io.File file = new java.io.File(filePath);
         log.info("file -> {}", file);
         if (!file.exists()) {
-            return jsonObject; // 파일이 존재하지 않을 경우 빈 JSONObject 반환
+            return jsonObject; // 파일이 존재하지 않을 경우 빈 객체 반환
         }
 
         try (BufferedReader br = new BufferedReader(new java.io.FileReader(filePath))) {
@@ -796,7 +799,13 @@ public class FileReader {
             while ((line = br.readLine()) != null) {
                 sb.append(line);
             }
-            jsonObject = new JSONObject(sb.toString());
+            // 파싱 실패(JsonProcessingException)는 IOException 하위이므로 아래 catch 에서 함께 처리된다 → 빈 객체 반환
+            JsonNode parsed = mapper.readTree(sb.toString());
+            if (parsed != null && parsed.isObject()) {
+                jsonObject = (ObjectNode) parsed;
+            } else {
+                log.warn("readJSON -> JSON 객체 형식이 아님: {}", filePath);
+            }
         } catch (IOException e) {
             log.error("Error reading JSON file: " + filePath, e);
         }
@@ -804,13 +813,14 @@ public class FileReader {
         return jsonObject;
     }
 
-    public JSONArray readJSONArray(String filePath) {
-        JSONArray jsonArray = new JSONArray();
+    public ArrayNode readJSONArray(String filePath) {
+        ObjectMapper mapper = new ObjectMapper();
+        ArrayNode jsonArray = mapper.createArrayNode();
         java.io.File file = new java.io.File(filePath);
         log.info("file -> {}", file);
 
         if (!file.exists()) {
-            return jsonArray; // 파일이 존재하지 않을 경우 빈 JSONArray 반환
+            return jsonArray; // 파일이 존재하지 않을 경우 빈 배열 반환
         }
 
         try (BufferedReader br = new BufferedReader(new java.io.FileReader(filePath))) {
@@ -819,7 +829,13 @@ public class FileReader {
             while ((line = br.readLine()) != null) {
                 sb.append(line);
             }
-            jsonArray = new JSONArray(sb.toString());
+            // 파싱 실패(JsonProcessingException)는 IOException 하위이므로 아래 catch 에서 함께 처리된다 → 빈 배열 반환
+            JsonNode parsed = mapper.readTree(sb.toString());
+            if (parsed != null && parsed.isArray()) {
+                jsonArray = (ArrayNode) parsed;
+            } else {
+                log.warn("readJSONArray -> JSON 배열 형식이 아님: {}", filePath);
+            }
         } catch (IOException e) {
             log.error("Error reading JSON file: " + filePath, e);
         }

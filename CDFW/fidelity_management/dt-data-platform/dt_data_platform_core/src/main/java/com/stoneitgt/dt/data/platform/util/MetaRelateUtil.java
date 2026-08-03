@@ -1,22 +1,12 @@
 package com.stoneitgt.dt.data.platform.util;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stoneitgt.common.GlobalConstant;
-import com.stoneitgt.dt.data.platform.properties.BaseSystemProperties;
 
-import kong.unirest.Unirest;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -43,13 +33,17 @@ public class MetaRelateUtil {
 
     public static String[] parseJSONStringToArray(String jsonString) {
         try {
-            JSONArray jsonArray = new JSONArray(jsonString);
-            String[] array = new String[jsonArray.length()];
-            for (int i = 0; i < jsonArray.length(); i++) {
-                array[i] = jsonArray.getString(i);
+            JsonNode jsonArray = new ObjectMapper().readTree(jsonString);
+            if (jsonArray == null || !jsonArray.isArray()) {
+                return new String[0]; // 배열 형식이 아니면 빈 배열 반환
+            }
+            String[] array = new String[jsonArray.size()];
+            for (int i = 0; i < jsonArray.size(); i++) {
+                array[i] = jsonArray.get(i).asText();
             }
             return array;
-        } catch (JSONException e) {
+        } catch (Exception e) {
+            // 파싱 실패(JsonProcessingException)는 checked 예외이므로 Exception 으로 받는다
             e.printStackTrace();
             return new String[0]; // 예외 발생 시 빈 배열 반환
         }

@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (filterKeywordAction) {
         filterKeywordAction.addEventListener('click', function (event) {
             let keywordElem = document.querySelector('#filterKeyword');
-            let keyword = keywordElem.value;
+            let keyword = keywordElem.value.trim();
             let hiddenKeyword = document.querySelector('#keyword');
             hiddenKeyword.value = keyword;
 
@@ -43,6 +43,9 @@ document.addEventListener('DOMContentLoaded', function () {
     let listItems = document.querySelectorAll('[data-action-type="delete"]');
     listItems?.forEach(function (item) {
         item.addEventListener('click', function (event) {
+            if (!confirm('해당 모델을 삭제하시겠습니까?')) {
+                return false;
+            }
             let model_seq = this.dataset.number;
             let data = {
                 model_seq
@@ -60,10 +63,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         switch (result.type) {
                             case 'success':
                                 alert('삭제가 완료되었습니다.');
-                                const url = new URL(window.location.href);
-                                const urlParams = url.searchParams;
-                                let menu_cd = urlParams.get('menuCd');
-                                console.log('contextPath', contextPath);
                                 location.href = window.location.href;
                                 break;
                             case 'restrict':

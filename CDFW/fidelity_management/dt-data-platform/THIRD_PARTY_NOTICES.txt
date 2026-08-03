@@ -1,0 +1,793 @@
+==========================================================================
+ 제3자 오픈소스 고지 (THIRD PARTY NOTICES)
+==========================================================================
+
+  프로젝트      : DT Data Platform (dt-data-platform)
+  구성 요소     : FDTFW / FeDiT — CDFW / fidelity_management
+  상위 프로젝트 : etri/FeDiT
+  배포 라이선스 : GNU Lesser General Public License v2.1 (LGPL-2.1)
+  라이선스 파일 : COPYING.LGPLv2.1 (배포 루트)
+  최종 갱신     : 2026-07-30
+
+--------------------------------------------------------------------------
+
+ 본 문서는 이 배포물에 포함된 제3자 오픈소스 구성요소와 각 구성요소의
+ 라이선스를 고지합니다. 본 저작물 자체는 위에 기재된 LGPL-2.1 로 배포되며,
+ 아래 [A] 에 열거된 구성요소는 각자의 라이선스 조건에 따라 배포됩니다.
+
+ ■ 배포물의 범위
+
+   본 배포물은 소스 코드와 빌드 설정 파일로만 구성됩니다. 다음은 포함되지
+   않습니다.
+
+     - 빌드 산출물 : .war / .jar / .class, build/, bin/ 디렉터리
+     - 라이브러리 바이너리 : 빌드 시 원격 저장소(Maven Central)에서 취득
+     - 빌드 캐시 : .gradle/ 디렉터리
+
+   build.gradle 이 선언하는 Java 라이브러리는 빌드 시점에 원격 저장소에서
+   취득되며 본 배포물에 포함되지 않습니다. 고지 의무는 재배포에 발생하므로
+   해당 라이브러리는 본 문서의 고지 대상이 아니며, 아래 [A] 는 실제로
+   배포되는 구성요소만을 열거합니다.
+
+ ■ 목차
+
+   [A] 배포물에 포함된 제3자 구성요소 ......................... 23 건
+   [B] 라이선스 전문
+   [C] 고지 사항
+
+ ■ 경로 표기
+
+   <STATIC>  = dt_data_platform_admin/src/main/resources/static
+   <VENDORS> = <STATIC>/assets/vendors
+
+
+==========================================================================
+ [A] 배포물에 포함된 제3자 구성요소
+==========================================================================
+
+ 아래 구성요소는 소스 형태로 본 배포물에 포함되어 재배포됩니다. 각 파일
+ 선두에는 해당 저작권·라이선스 고지가 유지되어 있으며, 라이선스 전문은 [B]
+ 에 수록합니다.
+
+--------------------------------------------------------------------------
+ 1. jQuery
+--------------------------------------------------------------------------
+  오픈소스명    : jQuery
+  버전          : 3.4.1
+  라이선스      : MIT License (SPDX: MIT)
+  저작권        : Copyright JS Foundation and other contributors
+  홈페이지      : https://jquery.com/
+  라이선스 URL  : https://github.com/jquery/jquery/blob/3.4.1/LICENSE.txt
+  라이선스 전문 : 본 문서 [B-1]
+  배포 경로     :
+      <VENDORS>/core/core.js (번들 포함)
+  비고          : core.js 는 4개 오픈소스를 합친 번들 파일이며 파일 선두에
+                  구성 목록이 명시되어 있다.
+
+--------------------------------------------------------------------------
+ 2. Bootstrap
+--------------------------------------------------------------------------
+  오픈소스명    : Bootstrap
+  버전          : 4.3.1
+  라이선스      : MIT License (SPDX: MIT)
+  저작권        : Copyright 2011-2019 The Bootstrap Authors
+  홈페이지      : https://getbootstrap.com/
+  라이선스 URL  : https://github.com/twbs/bootstrap/blob/v4.3.1/LICENSE
+  라이선스 전문 : 본 문서 [B-1]
+  배포 경로     :
+      <VENDORS>/core/core.js (번들 포함)
+  비고          : -
+
+--------------------------------------------------------------------------
+ 3. Popper.js
+--------------------------------------------------------------------------
+  오픈소스명    : Popper.js
+  버전          : 1.15.0
+  라이선스      : MIT License (SPDX: MIT)
+  저작권        : Copyright (C) Federico Zivolo 2019
+  홈페이지      : https://popper.js.org/
+  라이선스 URL  : https://github.com/floating-ui/floating-ui/blob/v1.15.0/LICENSE.md
+  라이선스 전문 : 본 문서 [B-1]
+  배포 경로     :
+      <VENDORS>/core/core.js (번들 포함)
+  비고          : Bootstrap 4.3.1 의 드롭다운·툴팁 의존 모듈.
+
+--------------------------------------------------------------------------
+ 4. perfect-scrollbar
+--------------------------------------------------------------------------
+  오픈소스명    : perfect-scrollbar
+  버전          : 1.4.0
+  라이선스      : MIT License (SPDX: MIT)
+  저작권        : Copyright (c) 2018 Hyunje Jun, MDBootstrap and
+                  Contributors
+  홈페이지      : https://github.com/mdbootstrap/perfect-scrollbar
+  라이선스 URL  : https://github.com/mdbootstrap/perfect-scrollbar/blob/master/LICENSE
+  라이선스 전문 : 본 문서 [B-1]
+  배포 경로     :
+      <VENDORS>/core/core.js (번들 포함)
+      <VENDORS>/core/core.css
+  비고          : -
+
+--------------------------------------------------------------------------
+ 5. Apache ECharts
+--------------------------------------------------------------------------
+  오픈소스명    : Apache ECharts
+  버전          : 5.3.2
+  라이선스      : Apache License 2.0 (SPDX: Apache-2.0)
+  저작권        : Copyright 2017-2022 The Apache Software Foundation
+  홈페이지      : https://echarts.apache.org/
+  라이선스 URL  : https://www.apache.org/licenses/LICENSE-2.0
+  라이선스 전문 : 본 문서 [B-2]
+  배포 경로     :
+      <STATIC>/echarts532/dist/echarts.min.js
+  비고          : 상위 NOTICE 내용을 [A-부기] 항에 재현함(Apache-2.0 제4조
+                  (d)). 하위 구성요소로 ZRender·tslib 를 포함한다.
+
+--------------------------------------------------------------------------
+ 6. ZRender
+--------------------------------------------------------------------------
+  오픈소스명    : ZRender
+  버전          : 5.3.1
+  라이선스      : BSD 3-Clause "New" or "Revised" License (SPDX:
+                  BSD-3-Clause)
+  저작권        : Copyright (c) 2013, Baidu Inc. All rights reserved.
+  홈페이지      : https://github.com/ecomfe/zrender
+  라이선스 URL  : https://github.com/ecomfe/zrender/blob/master/LICENSE.txt
+  라이선스 전문 : 본 문서 [B-3]
+  배포 경로     :
+      <STATIC>/echarts532/dist/echarts.min.js (ECharts 번들에 포함)
+  비고          : ECharts 5.3.2 가 선언한 의존 버전이다.
+
+--------------------------------------------------------------------------
+ 7. tslib
+--------------------------------------------------------------------------
+  오픈소스명    : tslib
+  버전          : 미확인 (번들 파일에 버전 문자열 없음)
+  라이선스      : BSD Zero Clause License (SPDX: 0BSD)
+  저작권        : Copyright (c) Microsoft Corporation.
+  홈페이지      : https://github.com/microsoft/tslib
+  라이선스 URL  : https://github.com/microsoft/tslib/blob/main/LICENSE.txt
+  라이선스 전문 : 본 문서 [B-4]
+  배포 경로     :
+      <STATIC>/echarts532/dist/echarts.min.js (ECharts 번들에 포함)
+  비고          : TypeScript 컴파일 헬퍼. ECharts 번들 선두에 라이선스
+                  문구가 인라인되어 있다.
+
+--------------------------------------------------------------------------
+ 8. Chart.js
+--------------------------------------------------------------------------
+  오픈소스명    : Chart.js
+  버전          : 2.8.0
+  라이선스      : MIT License (SPDX: MIT)
+  저작권        : Copyright (c) 2019 Chart.js Contributors
+  홈페이지      : https://www.chartjs.org/
+  라이선스 URL  : https://github.com/chartjs/Chart.js/blob/v2.8.0/LICENSE.md
+  라이선스 전문 : 본 문서 [B-1]
+  배포 경로     :
+      <VENDORS>/chartjs/Chart.min.js
+  비고          : -
+
+--------------------------------------------------------------------------
+ 9. DataTables
+--------------------------------------------------------------------------
+  오픈소스명    : DataTables
+  버전          : 1.10.20
+  라이선스      : MIT License (SPDX: MIT)
+  저작권        : Copyright 2008-2019 SpryMedia Ltd.
+  홈페이지      : https://datatables.net/
+  라이선스 URL  : https://datatables.net/license/mit
+  라이선스 전문 : 본 문서 [B-1]
+  배포 경로     :
+      <VENDORS>/datatables.net/jquery.dataTables.js
+  비고          : -
+
+--------------------------------------------------------------------------
+ 10. DataTables Bootstrap 4 integration
+--------------------------------------------------------------------------
+  오픈소스명    : DataTables Bootstrap 4 integration
+  버전          : 미표기 (저작권 표기 2011-2017)
+  라이선스      : MIT License (SPDX: MIT)
+  저작권        : Copyright 2011-2017 SpryMedia Ltd.
+  홈페이지      : https://datatables.net/
+  라이선스 URL  : https://datatables.net/license/mit
+  라이선스 전문 : 본 문서 [B-1]
+  배포 경로     :
+      <VENDORS>/datatables.net-bs4/dataTables.bootstrap4.js
+      <VENDORS>/datatables.net-bs4/dataTables.bootstrap4.css
+  비고          : DataTables 본체와 별도 배포되는 스타일 연동 모듈. 배포
+                  파일에 자체 버전 표기가 없다.
+
+--------------------------------------------------------------------------
+ 11. Flot
+--------------------------------------------------------------------------
+  오픈소스명    : Flot
+  버전          : 0.8.3
+  라이선스      : MIT License (SPDX: MIT)
+  저작권        : Copyright (c) 2007-2014 IOLA and Ole Laursen
+  홈페이지      : https://www.flotcharts.org/
+  라이선스 URL  : https://github.com/flot/flot/blob/v0.8.3/LICENSE.txt
+  라이선스 전문 : 본 문서 [B-1]
+  배포 경로     :
+      <VENDORS>/jquery.flot/jquery.flot.js
+      <VENDORS>/jquery.flot/jquery.flot.resize.js
+  비고          : jquery.flot.js 에 jquery.colorhelpers v1.1 (MIT,
+                  Copyright (c) 2010 Ole Laursen) 이 인라인 포함되어 있다.
+
+--------------------------------------------------------------------------
+ 12. jQuery resize event
+--------------------------------------------------------------------------
+  오픈소스명    : jQuery resize event
+  버전          : 1.1
+  라이선스      : MIT License (MIT/GPL 이중 라이선스 중 MIT 선택) (SPDX:
+                  MIT)
+  저작권        : Copyright (c) 2010 "Cowboy" Ben Alman
+  홈페이지      : http://benalman.com/projects/jquery-resize-plugin/
+  라이선스 URL  : http://benalman.com/about/license/
+  라이선스 전문 : 본 문서 [B-1]
+  배포 경로     :
+      <VENDORS>/jquery.flot/jquery.flot.resize.js (인라인 포함)
+  비고          : MIT/GPL 이중 라이선스로 배포되며, 본 배포물에서는 MIT 를
+                  선택한다.
+
+--------------------------------------------------------------------------
+ 13. Moment.js
+--------------------------------------------------------------------------
+  오픈소스명    : Moment.js
+  버전          : 2.24.0
+  라이선스      : MIT License (SPDX: MIT)
+  저작권        : Copyright JS Foundation and other contributors
+  홈페이지      : https://momentjs.com/
+  라이선스 URL  : https://github.com/moment/moment/blob/2.24.0/LICENSE
+  라이선스 전문 : 본 문서 [B-1]
+  배포 경로     :
+      <VENDORS>/moment/moment.min.js
+  비고          : -
+
+--------------------------------------------------------------------------
+ 14. CodeMirror
+--------------------------------------------------------------------------
+  오픈소스명    : CodeMirror
+  버전          : 5.56.0
+  라이선스      : MIT License (SPDX: MIT)
+  저작권        : Copyright (c) by Marijn Haverbeke and others
+  홈페이지      : https://codemirror.net/5/
+  라이선스 URL  : https://github.com/codemirror/codemirror5/blob/5.56.0/LICENSE
+  라이선스 전문 : 본 문서 [B-1]
+  배포 경로     :
+      <STATIC>/assets/js/libs/codemirror.js
+      <STATIC>/assets/css/codemirror.css
+  비고          : -
+
+--------------------------------------------------------------------------
+ 15. SweetAlert2
+--------------------------------------------------------------------------
+  오픈소스명    : SweetAlert2
+  버전          : 8.18.3
+  라이선스      : MIT License (SPDX: MIT)
+  저작권        : Copyright (c) 2014-2019 Limon Monte
+  홈페이지      : https://sweetalert2.github.io/
+  라이선스 URL  : https://github.com/sweetalert2/sweetalert2/blob/v8.18.3/LICENSE
+  라이선스 전문 : 본 문서 [B-1]
+  배포 경로     :
+      <VENDORS>/sweetalert2/sweetalert2.min.js
+  비고          : -
+
+--------------------------------------------------------------------------
+ 16. Bootstrap Toggle
+--------------------------------------------------------------------------
+  오픈소스명    : Bootstrap Toggle
+  버전          : 2.2.0
+  라이선스      : MIT License (SPDX: MIT)
+  저작권        : Copyright 2014 Min Hur, The New York Times Company
+  홈페이지      : http://www.bootstraptoggle.com/
+  라이선스 URL  : https://github.com/minhur/bootstrap-toggle/blob/master/LICENSE
+  라이선스 전문 : 본 문서 [B-1]
+  배포 경로     :
+      <STATIC>/assets/js/libs/bootstrap-toggle.min.js
+  비고          : -
+
+--------------------------------------------------------------------------
+ 17. Bootstrap Colorpicker
+--------------------------------------------------------------------------
+  오픈소스명    : Bootstrap Colorpicker
+  버전          : 3.1.2
+  라이선스      : MIT License (SPDX: MIT)
+  저작권        : Copyright (c) Javi Aguilar and Bootstrap Colorpicker
+                  contributors
+  홈페이지      : https://farbelous.github.io/bootstrap-colorpicker/
+  라이선스 URL  : https://github.com/farbelous/bootstrap-colorpicker/blob/master/LICENSE
+  라이선스 전문 : 본 문서 [B-1]
+  배포 경로     :
+      <VENDORS>/bootstrap-colorpicker/bootstrap-colorpicker.min.js
+  비고          : -
+
+--------------------------------------------------------------------------
+ 18. bootstrap-datepicker
+--------------------------------------------------------------------------
+  오픈소스명    : bootstrap-datepicker
+  버전          : 1.9.0
+  라이선스      : Apache License 2.0 (SPDX: Apache-2.0)
+  저작권        : Copyright uxsolutions and bootstrap-datepicker
+                  contributors
+  홈페이지      : https://github.com/uxsolutions/bootstrap-datepicker
+  라이선스 URL  : https://www.apache.org/licenses/LICENSE-2.0
+  라이선스 전문 : 본 문서 [B-2]
+  배포 경로     :
+      <VENDORS>/bootstrap-datepicker/bootstrap-datepicker.min.js
+      <VENDORS>/bootstrap-datepicker/bootstrap-datepicker.min.css
+      <STATIC>/assets/js/libs/bootstrap-datepicker.kr.js
+  비고          : bootstrap-datepicker.kr.js 는 동일 프로젝트의 한국어
+                  로케일 파일이다.
+
+--------------------------------------------------------------------------
+ 19. Tempus Dominus Bootstrap 4
+--------------------------------------------------------------------------
+  오픈소스명    : Tempus Dominus Bootstrap 4
+  버전          : 5.1.2
+  라이선스      : MIT License (SPDX: MIT)
+  저작권        : Copyright 2016-2018 Jonathan Peterson
+  홈페이지      : https://tempusdominus.github.io/bootstrap-4/
+  라이선스 URL  : https://github.com/tempusdominus/bootstrap-4/blob/master/LICENSE
+  라이선스 전문 : 본 문서 [B-1]
+  배포 경로     :
+      <VENDORS>/tempusdominus-bootstrap-4/tempusdominus-bootstrap-4.js
+  비고          : -
+
+--------------------------------------------------------------------------
+ 20. ProgressBar.js
+--------------------------------------------------------------------------
+  오픈소스명    : ProgressBar.js
+  버전          : 1.0.1
+  라이선스      : MIT License (SPDX: MIT)
+  저작권        : Copyright (c) 2015 Kimmo Brunfeldt
+  홈페이지      : https://kimmobrunfeldt.github.io/progressbar.js/
+  라이선스 URL  : https://github.com/kimmobrunfeldt/progressbar.js/blob/master/LICENSE
+  라이선스 전문 : 본 문서 [B-1]
+  배포 경로     :
+      <VENDORS>/progressbar.js/progressbar.min.js
+  비고          : -
+
+--------------------------------------------------------------------------
+ 21. promise-polyfill
+--------------------------------------------------------------------------
+  오픈소스명    : promise-polyfill
+  버전          : 8.1.3
+  라이선스      : MIT License (SPDX: MIT)
+  저작권        : Copyright (c) 2014 Taylor Hakes
+  홈페이지      : https://github.com/taylorhakes/promise-polyfill
+  라이선스 URL  : https://github.com/taylorhakes/promise-polyfill/blob/master/LICENSE
+  라이선스 전문 : 본 문서 [B-1]
+  배포 경로     :
+      <VENDORS>/promise-polyfill/polyfill.min.js
+  비고          : -
+
+--------------------------------------------------------------------------
+ 22. treejs
+--------------------------------------------------------------------------
+  오픈소스명    : treejs
+  버전          : 1.8.0
+  라이선스      : MIT License (SPDX: MIT)
+  저작권        : Copyright (c) 2018 daweilv
+  홈페이지      : https://github.com/daweilv/treejs
+  라이선스 URL  : https://github.com/daweilv/treejs/blob/master/LICENSE
+  라이선스 전문 : 본 문서 [B-1]
+  배포 경로     :
+      <STATIC>/assets/js/libs/tree.min.js
+  비고          : -
+
+--------------------------------------------------------------------------
+ 23. Pretendard
+--------------------------------------------------------------------------
+  오픈소스명    : Pretendard
+  버전          : 1.201
+  라이선스      : SIL Open Font License 1.1 (SPDX: OFL-1.1)
+  저작권        : Copyright (c) 2021 Kil Hyung-jin, with Reserved Font
+                  Name Pretendard.
+  홈페이지      : https://github.com/orioncactus/pretendard
+  라이선스 URL  : https://github.com/orioncactus/pretendard/blob/main/LICENSE
+  라이선스 전문 : 본 문서 [B-5]
+  배포 경로     :
+      <STATIC>/assets/css/platform/Pretendard.css
+      <STATIC>/assets/fonts/platform/pretendard/*.woff2 (7개)
+  비고          : 웹 서브셋(woff2) 형태로 포함. 예약 폰트명(Reserved Font
+                  Name) 조건에 따라 수정본에는 'Pretendard' 명칭을 사용할
+                  수 없다.
+
+--------------------------------------------------------------------------
+ [A-부기] Apache ECharts NOTICE 재현 (Apache-2.0 제4조 (d))
+--------------------------------------------------------------------------
+
+ Apache-2.0 제4조 (d) 는 상위 저작물에 NOTICE 파일이 포함된 경우 그 내용을
+ 재배포물에 재현할 것을 요구합니다. Apache ECharts 5.3.2 의 NOTICE 내용은
+ 다음과 같습니다.
+
+   Apache ECharts
+   Copyright 2017-2022 The Apache Software Foundation
+
+   This product includes software developed at
+   The Apache Software Foundation (https://www.apache.org/).
+
+
+==========================================================================
+ [B] 라이선스 전문
+==========================================================================
+
+ [A] 구성요소에 적용되는 라이선스 전문을 수록합니다. 각 구성요소의 저작권
+ 표시는 [A] 의 해당 항목 및 배포 파일 선두의 고지에 기재되어 있습니다.
+
+ 본 배포물이 인터넷 접근이 제한된 환경에 배포될 수 있으므로, URL 참조가
+ 아닌 전문을 직접 수록합니다. 아래 전문은 원문 그대로이며 줄바꿈을
+ 재정리하지 않았습니다.
+
+--------------------------------------------------------------------------
+ [B-1] MIT License
+--------------------------------------------------------------------------
+ 적용 대상: [A] 1, 2, 3, 4, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20,
+ 21, 22
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+
+--------------------------------------------------------------------------
+ [B-2] Apache License, Version 2.0
+--------------------------------------------------------------------------
+ 적용 대상: [A] 5 (Apache ECharts), 18 (bootstrap-datepicker)
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+
+--------------------------------------------------------------------------
+ [B-3] BSD 3-Clause "New" or "Revised" License
+--------------------------------------------------------------------------
+ 적용 대상: [A] 6 (ZRender)
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+ * Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+ * Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+ * Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+
+--------------------------------------------------------------------------
+ [B-4] BSD Zero Clause License (0BSD)
+--------------------------------------------------------------------------
+ 적용 대상: [A] 7 (tslib)
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+
+
+--------------------------------------------------------------------------
+ [B-5] SIL Open Font License, Version 1.1
+--------------------------------------------------------------------------
+ 적용 대상: [A] 23 (Pretendard)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+https://openfontlicense.org
+
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded,
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+"Font Software" refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+"Reserved Font Name" refers to any names specified as such after the
+copyright statement(s).
+
+"Original Version" refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+"Modified Version" refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+"Author" refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION & CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise the
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE.
+
+
+==========================================================================
+ [C] 고지 사항
+==========================================================================
+
+ 1. 본 배포물에 포함된 제3자 파일의 선두 저작권·라이선스 고지는 상위
+    배포본의 원문 그대로 유지되어 있습니다. 파일의 기능적 내용은 수정하지
+    않았습니다. (Apache-2.0 제4조 (b)(c) / MIT 고지 유지 조건 이행)
+
+ 2. [B] 의 라이선스 전문은 원문 그대로 재현한 것이며, 번역·요약·줄바꿈
+    재정리를 하지 않았습니다. 각 라이선스의 해석은 원문을 따릅니다.
+
+ 3. 본 문서에 열거된 각 구성요소의 저작권은 해당 저작권자에게 있습니다.
+    오류나 누락을 발견하신 경우 상위 프로젝트(etri/FeDiT)를 통해 알려
+    주시기 바랍니다.
+
+==========================================================================
+ 문서 끝 (END OF THIRD PARTY NOTICES)
+==========================================================================

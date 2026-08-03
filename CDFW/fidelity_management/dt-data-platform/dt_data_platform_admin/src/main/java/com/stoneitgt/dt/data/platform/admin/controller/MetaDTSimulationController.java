@@ -14,7 +14,7 @@ import com.stoneitgt.dt.data.platform.util.file.FileReader;
 import com.stoneitgt.dt.data.platform.util.file.FileUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.HashedMap;
-import org.json.JSONArray;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -310,7 +310,7 @@ public class MetaDTSimulationController extends BaseController {
             String notification_time = now.format(formatter);
             List<Map<String, Object>> originCsvData = FileReader.getInstance().readCSVToListObjectMap(file_path + File.separator + file_name);
             String jsonFileName = notification_time.replaceAll("[ :]", "") + "_origin.json";
-            JSONArray originJsonArray = JSONParser.convertListMapToJson(originCsvData);
+            ArrayNode originJsonArray = JSONParser.convertListMapToJson(originCsvData);
             String originFilePath = file_path + File.separator + jsonFileName;
 
             try (java.io.FileWriter fileWriter = new java.io.FileWriter(originFilePath)) {
@@ -451,7 +451,7 @@ public class MetaDTSimulationController extends BaseController {
             String notification_time = now.format(formatter);
             List<Map<String, Object>> originCsvData = FileReader.getInstance().readCSVToListObjectMap(file_path + File.separator + file_name);
             String jsonFileName = notification_time.replaceAll("[ :]", "") + "_origin.json";
-            JSONArray originJsonArray = JSONParser.convertListMapToJson(originCsvData);
+            ArrayNode originJsonArray = JSONParser.convertListMapToJson(originCsvData);
             String originFilePath = file_path + File.separator + jsonFileName;
 
             try (java.io.FileWriter fileWriter = new java.io.FileWriter(originFilePath)) {
@@ -633,7 +633,7 @@ public class MetaDTSimulationController extends BaseController {
             String notification_time = now.format(formatter);
             List<Map<String, Object>> originCsvData = FileReader.getInstance().readCSVToListObjectMap(file_path + File.separator + file_name);
             String jsonFileName = notification_time.replaceAll("[ :]", "") + "_origin.json";
-            JSONArray originJsonArray = JSONParser.convertListMapToJson(originCsvData);
+            ArrayNode originJsonArray = JSONParser.convertListMapToJson(originCsvData);
             String originFilePath = file_path + File.separator + jsonFileName;
 
             try (java.io.FileWriter fileWriter = new java.io.FileWriter(originFilePath)) {
@@ -695,7 +695,7 @@ public class MetaDTSimulationController extends BaseController {
             String notification_time = now.format(formatter);
             List<Map<String, Object>> originCsvData = FileReader.getInstance().readCSVToListObjectMap(file_path + File.separator + file_name);
             String jsonFileName = notification_time.replaceAll("[ :]", "") + "_origin.json";
-            JSONArray originJsonArray = JSONParser.convertListMapToJson(originCsvData);
+            ArrayNode originJsonArray = JSONParser.convertListMapToJson(originCsvData);
             String originFilePath = file_path + File.separator + jsonFileName;
 
             try (java.io.FileWriter fileWriter = new java.io.FileWriter(originFilePath)) {
@@ -1115,7 +1115,7 @@ public class MetaDTSimulationController extends BaseController {
         String notification_time = now.format(formatter);
         List<Map<String, Object>> originCsvData = FileReader.getInstance().readCSVToListObjectMap(file_path + File.separator + file_name);
         String jsonFileName = notification_time.replaceAll("[ :]", "") + "_origin.json";
-        JSONArray originJsonArray = JSONParser.convertListMapToJson(originCsvData);
+        ArrayNode originJsonArray = JSONParser.convertListMapToJson(originCsvData);
         String originFilePath = file_path + File.separator + jsonFileName;
 
         try (java.io.FileWriter fileWriter = new java.io.FileWriter(originFilePath)) {
