@@ -94,9 +94,9 @@ class augmentViewSet(viewsets.ViewSet):
             '''
             #사용자, 입력:전체, 실시간:X
             paramData = {
-                "model_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "model_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "model_file_name": "origin_sample_7d_w12.h5",
-                "test_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "test_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "test_file_name": "origin_sample_3d.csv",
                 "outputs": ["ondo","m10","m60","m30","w30","w20"],
                 "features": [],
@@ -109,13 +109,13 @@ class augmentViewSet(viewsets.ViewSet):
 
             #모델, 입력:기간지정, 실시간:X
             paramData = {
-                "model_file_path": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
+                "model_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
                 "model_file_name": "1_sample_2020a_2022a_w8.h5",
-                "model_use_file_path": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
+                "model_use_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
                 "model_use_file_name": "1_sample_2020a_2022a_not_all.csv",
-                "test_file_path": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
+                "test_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
                 "test_file_name": "1_sample_2020a_2022a_test.csv",
-                "output_file": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test\\1_sample_2020a_2022a_test_augment.csv",
+                "output_file": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test\\1_sample_2020a_2022a_test_augment.csv",
                 "outputs": ["w00","w10","w20","w30","w40","w50","w60"],
                 "features": [],
                 "window_size": 24,
@@ -174,9 +174,9 @@ class augmentViewSet(viewsets.ViewSet):
             '''
             #사용자, 입력:전체, 실시간:X
             paramData = {
-                "model_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "model_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "model_file_name": "origin_sample_7d_w12.h5",
-                "test_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "test_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "test_file_name": "origin_sample_3d.csv",
                 "outputs": ["ondo","m10","m60","m30","w30","w20"],
                 "features": [],
@@ -189,13 +189,13 @@ class augmentViewSet(viewsets.ViewSet):
 
             #모델, 입력:기간지정, 실시간:X
             paramData = {
-                "model_file_path": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
+                "model_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
                 "model_file_name": "1_sample_2020a_2022a_w8.h5",
-                "model_use_file_path": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
+                "model_use_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
                 "model_use_file_name": "1_sample_2020a_2022a_not_all.csv",
-                "test_file_path": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
+                "test_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
                 "test_file_name": "1_sample_2020a_2022a_test.csv",
-                "output_file": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test\\1_sample_2020a_2022a_test_augment.csv",
+                "output_file": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test\\1_sample_2020a_2022a_test_augment.csv",
                 "outputs": ["w00","w10","w20","w30","w40","w50","w60"],
                 "features": [],
                 "window_size": 24,
@@ -256,9 +256,9 @@ class augmentViewSet(viewsets.ViewSet):
             '''
             #사용자, 입력:전체, 실시간:X
             paramData = {
-                "model_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "model_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "model_file_name": "origin_sample_7d_w12.h5",
-                "test_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "test_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "test_file_name": "origin_sample_3d.csv",
                 "outputs": ["ondo","m10","m60","m30","w30","w20"],
                 "features": [],
@@ -271,15 +271,15 @@ class augmentViewSet(viewsets.ViewSet):
 
             #모델, 입력:기간지정, 실시간:X
             paramData = {
-                "model_use_file_path" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\",
+                "model_use_file_path" : "~PATH\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\",
                 "model_use_file_name" : "200_153_admin_20240827125704_interval.csv",
-                "test_file_path" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\",
+                "test_file_path" : "~PATH\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\",
                 "test_file_name" : "200_153_admin_20240827125704_interval_simulation_target.csv",
-                "model_file_path" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\model\\2024\\08\\153\\",
+                "model_file_path" : "~PATH\\DT_META_FILE\\files\\storage\\model\\2024\\08\\153\\",
                 "model_file_name" : "MODEL_153_20240827123022999.h5",
                 "output_file_name" : "200_153_admin_20240827125704_interval_augment.csv",
-                "output_file" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\200_153_admin_20240827125704_interval_augment.csv",
-                "original_file" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\200_153_admin_20240827125704_interval_ori.csv",
+                "output_file" : "~PATH\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\200_153_admin_20240827125704_interval_augment.csv",
+                "original_file" : "~PATH\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\200_153_admin_20240827125704_interval_ori.csv",
                 "features" : ["RAIN5", "RAIN6", "RAIN7", "LEVEL32"],
                 "outputs" : ["ALERT"],
                 "use_model_yn" : "Y",
@@ -331,9 +331,9 @@ class augmentViewSet(viewsets.ViewSet):
             '''
             #사용자, 입력:전체, 실시간:X
             paramData = {
-                "model_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "model_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "model_file_name": "origin_sample_7d_w12.h5",
-                "test_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "test_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "test_file_name": "origin_sample_3d.csv",
                 "outputs": ["ondo","m10","m60","m30","w30","w20"],
                 "features": [],
@@ -346,13 +346,13 @@ class augmentViewSet(viewsets.ViewSet):
 
             #모델, 입력:기간지정, 실시간:X
             paramData = {
-                "model_file_path": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
+                "model_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
                 "model_file_name": "1_sample_2020a_2022a_w8.h5",
-                "model_use_file_path": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
+                "model_use_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
                 "model_use_file_name": "1_sample_2020a_2022a_not_all.csv",
-                "test_file_path": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
+                "test_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
                 "test_file_name": "1_sample_2020a_2022a_test.csv",
-                "output_file": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test\\1_sample_2020a_2022a_test_augment.csv",
+                "output_file": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test\\1_sample_2020a_2022a_test_augment.csv",
                 "outputs": ["w00","w10","w20","w30","w40","w50","w60"],
                 "features": [],
                 "window_size": 24,
@@ -411,9 +411,9 @@ class augmentViewSet(viewsets.ViewSet):
             '''
             #사용자, 입력:전체, 실시간:X
             paramData = {
-                "model_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "model_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "model_file_name": "origin_sample_7d_w12.h5",
-                "test_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "test_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "test_file_name": "origin_sample_3d.csv",
                 "outputs": ["ondo","m10","m60","m30","w30","w20"],
                 "features": [],
@@ -426,15 +426,15 @@ class augmentViewSet(viewsets.ViewSet):
 
             #모델, 입력:기간지정, 실시간:X
             paramData = {
-                "model_use_file_path" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\",
+                "model_use_file_path" : "~PATH\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\",
                 "model_use_file_name" : "200_153_admin_20240827125704_interval.csv",
-                "test_file_path" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\",
+                "test_file_path" : "~PATH\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\",
                 "test_file_name" : "200_153_admin_20240827125704_interval_simulation_target.csv",
-                "model_file_path" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\model\\2024\\08\\153\\",
+                "model_file_path" : "~PATH\\DT_META_FILE\\files\\storage\\model\\2024\\08\\153\\",
                 "model_file_name" : "MODEL_153_20240827123022999.h5",
                 "output_file_name" : "200_153_admin_20240827125704_interval_augment.csv",
-                "output_file" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\200_153_admin_20240827125704_interval_augment.csv",
-                "original_file" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\200_153_admin_20240827125704_interval_ori.csv",
+                "output_file" : "~PATH\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\200_153_admin_20240827125704_interval_augment.csv",
+                "original_file" : "~PATH\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\200_153_admin_20240827125704_interval_ori.csv",
                 "features" : ["RAIN5", "RAIN6", "RAIN7", "LEVEL32"],
                 "outputs" : ["ALERT"],
                 "use_model_yn" : "Y",
@@ -486,9 +486,9 @@ class augmentViewSet(viewsets.ViewSet):
             '''
             #사용자, 입력:전체, 실시간:X
             paramData = {
-                "model_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "model_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "model_file_name": "origin_sample_7d_w12.h5",
-                "test_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "test_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "test_file_name": "origin_sample_3d.csv",
                 "outputs": ["ondo","m10","m60","m30","w30","w20"],
                 "features": [],
@@ -501,11 +501,11 @@ class augmentViewSet(viewsets.ViewSet):
 
             #모델, 입력:기간지정, 실시간:X
             paramData = {
-                "model_file_path" : "D:\\PythonProject\\dt-data-api\\dt_data_api\\data\\",
+                "model_file_path" : "~PATH\\dt_data_api\\data\\",
                 "model_file_name" : "MODEL_RF_20240904154156966.plk",        
-                "model_use_file_path" : "D:\\PythonProject\\dt-data-api\\dt_data_api\\data\\",
+                "model_use_file_path" : "~PATH\\dt_data_api\\data\\",
                 "model_use_file_name" : "24_2차입식_데이터합본_수정_0612_4.csv",    
-                "output_file" : "D:\\PythonProject\\dt-data-api\\dt_data_api\\data\\24_2차입식_데이터합본_수정_0612_4_interval_augment.csv",
+                "output_file" : "~PATH\\dt_data_api\\data\\24_2차입식_데이터합본_수정_0612_4_interval_augment.csv",
                 "output_file_name" : "24_2차입식_데이터합본_수정_0612_4_augment.csv",
                 "outputs" : ["MET"],
                 "features" : ["temp","RH","CO2","AMM","Temp_Out","RH_Out","Solar"],
@@ -676,9 +676,9 @@ class augmentViewSet(viewsets.ViewSet):
             '''
             #사용자, 입력:전체, 실시간:X
             paramData = {
-                "model_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "model_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "model_file_name": "origin_sample_7d_w12.h5",
-                "test_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "test_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "test_file_name": "origin_sample_3d.csv",
                 "outputs": ["ondo","m10","m60","m30","w30","w20"],
                 "features": [],
@@ -691,15 +691,15 @@ class augmentViewSet(viewsets.ViewSet):
 
             #모델, 입력:기간지정, 실시간:X
             paramData = {
-                "model_use_file_path" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\",
+                "model_use_file_path" : "~PATH\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\",
                 "model_use_file_name" : "200_153_admin_20240827125704_interval.csv",
-                "test_file_path" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\",
+                "test_file_path" : "~PATH\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\",
                 "test_file_name" : "200_153_admin_20240827125704_interval_simulation_target.csv",
-                "model_file_path" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\model\\2024\\08\\153\\",
+                "model_file_path" : "~PATH\\DT_META_FILE\\files\\storage\\model\\2024\\08\\153\\",
                 "model_file_name" : "MODEL_153_20240827123022999.h5",
                 "output_file_name" : "200_153_admin_20240827125704_interval_augment.csv",
-                "output_file" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\200_153_admin_20240827125704_interval_augment.csv",
-                "original_file" : "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\200_153_admin_20240827125704_interval_ori.csv",
+                "output_file" : "~PATH\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\200_153_admin_20240827125704_interval_augment.csv",
+                "original_file" : "~PATH\\DT_META_FILE\\files\\storage\\augment\\2024\\08\\200\\200_153_admin_20240827125704_interval_ori.csv",
                 "features" : ["RAIN5", "RAIN6", "RAIN7", "LEVEL32"],
                 "outputs" : ["ALERT"],
                 "use_model_yn" : "Y",
