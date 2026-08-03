@@ -658,10 +658,10 @@ class preProcessQuery():
 
         if filePath==None:
             today = date.today()
-            directory =  os.path.join('Z:\\DT\\storage\\preprocess', str(today.year), f'{today.month:02d}', str(pprcsSeq))
+            directory =  os.path.join('~PATH\\DT\\storage\\preprocess', str(today.year), f'{today.month:02d}', str(pprcsSeq))
             os.makedirs(directory, exist_ok=True)
 
-            makeFile = os.path.join('Z:\\DT\\storage\\preprocess', f'{today.year}', f'{today.month:02d}', str(pprcsSeq), targetFileName)
+            makeFile = os.path.join('~PATH\\DT\\storage\\preprocess', f'{today.year}', f'{today.month:02d}', str(pprcsSeq), targetFileName)
                      
         try:
             df = pd.DataFrame(data)
@@ -692,10 +692,10 @@ class preProcessQuery():
 
         if filePath==None:
             today = date.today()
-            directory =  os.path.join('Z:\\DT\\storage\\preprocess', str(today.year), f'{today.month:02d}', str(pprcsSeq))
+            directory =  os.path.join('~PATH\\DT\\storage\\preprocess', str(today.year), f'{today.month:02d}', str(pprcsSeq))
             os.makedirs(directory, exist_ok=True)
 
-            makeFile = os.path.join('Z:\\DT\\storage\\preprocess', f'{today.year}', f'{today.month:02d}', str(pprcsSeq), targetFileName)
+            makeFile = os.path.join('~PATH\\DT\\storage\\preprocess', f'{today.year}', f'{today.month:02d}', str(pprcsSeq), targetFileName)
                      
         try:
             merged_df = pd.DataFrame()

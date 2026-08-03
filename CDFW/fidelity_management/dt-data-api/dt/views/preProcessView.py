@@ -292,7 +292,7 @@ class preProcessViewSet(viewsets.ViewSet):
         #테스트용
         if not paramData:
             paramData = {
-                "file_path": "Z:\\DT\\storage\\data\\2023\\06\\9999",
+                "file_path": "~PATH\\DT\\storage\\data\\2023\\06\\9999",
                 "file_name": "test_data_201901_201902_1.csv",
                 "index_trgt_col": 0,
                 "column": "w60"
@@ -315,7 +315,7 @@ class preProcessViewSet(viewsets.ViewSet):
         #테스트용
         if not paramData:
             paramData = {
-                "file_path": 'Z:\\DT\\storage\\data\\2023\\06\\9999',
+                "file_path": '~PATH\\DT\\storage\\data\\2023\\06\\9999',
                 "file_name": 'test_data_201901_201902_1.csv',
                 "target_file_name": 'test_data_201901_201902_imputer.csv',
                 "index_trgt_col": 'date',
@@ -340,7 +340,7 @@ class preProcessViewSet(viewsets.ViewSet):
         #테스트용
         if not paramData:
             paramData = {
-                "file_path": 'Z:\\DT\\storage\\data\\2023\\06\\9999',
+                "file_path": '~PATH\\DT\\storage\\data\\2023\\06\\9999',
                 "file_name": 'test_data_201901_201902_1.csv',
                 "target_file_name": 'test_data_201901_201902_imputer.csv',
                 "index_trgt_col": 'date',
@@ -366,7 +366,7 @@ class preProcessViewSet(viewsets.ViewSet):
         #테스트용
         if not paramData:
             paramData = {
-                "file_path": 'Z:\\DT\\storage\\preprocess\\2023\\06\\9999',
+                "file_path": '~PATH\\DT\\storage\\preprocess\\2023\\06\\9999',
                 "file_name": 'test.csv',
                 "target_file_name": 'test_resample.csv',
                 "index_trgt_col": 'date',
@@ -392,7 +392,7 @@ class preProcessViewSet(viewsets.ViewSet):
         #테스트용
         if not paramData:
             paramData = {
-                "file_path": 'Z:\\DT\\storage\\data\\2023\\06\\9999',
+                "file_path": '~PATH\\DT\\storage\\data\\2023\\06\\9999',
                 "file_name": 'test_data_201901_201902_resample.csv',
                 "target_file_name": 'test_data_201901_201902_unit.csv',
                 "index_trgt_col": 'date',
@@ -417,7 +417,7 @@ class preProcessViewSet(viewsets.ViewSet):
         #테스트용
         if not paramData:
             paramData =  {
-                "file_path": 'Z:\\DT\\storage\\data\\2023\\06\\9999',
+                "file_path": '~PATH\\DT\\storage\\data\\2023\\06\\9999',
                 "file_name": 'test_data_201901_201902_1.csv',
                 "target_file_name": 'test_data_201901_201902_verify.csv',
                 "index_trgt_col": 'date',
@@ -513,7 +513,7 @@ class preProcessViewSet(viewsets.ViewSet):
         #테스트용
         if not paramData:
             paramData = {
-                "file_path": 'Z:\\DT\\storage\\data\\2023\\06\\9999',
+                "file_path": '~PATH\\DT\\storage\\data\\2023\\06\\9999',
                 "file_name": '기상청_신사동_2021_2.csv',
                 "index_trgt_col": 0,
                 "columns": ['ondo','gangsulyang','gangsutype','punghyang','pungsok','sbdo']
@@ -536,7 +536,7 @@ class preProcessViewSet(viewsets.ViewSet):
         #테스트용
         if not paramData:
             paramData = {
-                "file_path": "Z:\\DT\\storage\\data\\2023\\06\\9999",
+                "file_path": "~PATH\\DT\\storage\\data\\2023\\06\\9999",
                 "file_name": "test_data_201901_201902_1.csv",
                 "index_column": 0,
                 "column": "w60"
@@ -607,7 +607,7 @@ class preProcessViewSet(viewsets.ViewSet):
         #테스트용
         if not paramData:
             paramData = {
-                "file_path": 'Z:\\DT\\storage\\preprocess\\2023\\06\\9999',
+                "file_path": '~PATH\\DT\\storage\\preprocess\\2023\\06\\9999',
                 "file_name": 'test_data_201901_201902_resample.csv',
                 "target_file_name": 'test_data_201901_201902_augment.csv',
                 "index_column": 'date',
@@ -631,7 +631,7 @@ class preProcessViewSet(viewsets.ViewSet):
         #테스트용
         if not paramData:
             paramData = {
-                "file_path": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999",
+                "file_path": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999",
                 "file_name": "9999_origin_sample.csv",
                 "index_column": "date"
             }
@@ -653,7 +653,7 @@ class preProcessViewSet(viewsets.ViewSet):
         #테스트용
         if not paramData:
             paramData = {
-                "file": 'Z:\\DT\\storage\\data\\2023\\07\\9999\\기상청_신사동_2018.csv',
+                "file": '~PATH\\DT\\storage\\data\\2023\\07\\9999\\기상청_신사동_2018.csv',
                 "index_trgt_col": "date",
                 "feature": 'ondo',
                 "freq": 50,
@@ -678,7 +678,7 @@ class preProcessViewSet(viewsets.ViewSet):
         #테스트용
         if not paramData:
             paramData = {
-                "file": 'Z:\\DT\\storage\\data\\2023\\07\\9999\\기상청_신사동_2018.csv',
+                "file": '~PATH\\DT\\storage\\data\\2023\\07\\9999\\기상청_신사동_2018.csv',
                 "index_trgt_col": "date",
                 "feature": 'ondo',
                 "freq": 50,
@@ -703,7 +703,7 @@ class preProcessViewSet(viewsets.ViewSet):
         #테스트용
         if not paramData:
             paramData = {
-                "file": 'Z:\\DT\\storage\\data\\2023\\07\\9999\\기상청_신사동_2018.csv',
+                "file": '~PATH\\DT\\storage\\data\\2023\\07\\9999\\기상청_신사동_2018.csv',
                 "index_trgt_col": "date",
                 "feature": 'ondo',
                 "freq": 50,

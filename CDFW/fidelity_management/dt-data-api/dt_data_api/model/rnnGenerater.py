@@ -1160,12 +1160,12 @@ class Manager:
 
         # 기존 df, new_df 행 병합, 참고: 열병합 pd.concat([df, new_df], axis=1)
         '''
-        output_file = 'Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test\\output_augment_result_merge.csv'
+        output_file = '~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test\\output_augment_result_merge.csv'
         result_df = pd.concat([df, new_df], ignore_index=True)
         result_df.to_csv(output_file, index=False)
         '''
 
-        output_file2 = 'Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test\\output_augment_result.csv'
+        output_file2 = '~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test\\output_augment_result.csv'
         result_df2 = new_df
         result_df2.to_csv(output_file2, index=False)
         

@@ -585,10 +585,10 @@ class exampleViewSet(viewsets.ViewSet):
         #테스트용
         if not paramData:
             paramData = {
-                "file_path": 'D:\\PythonProject\\dt-data-api\\dt_data_api\\data\\',
+                "file_path": '~PATH\\dt_data_api\\data\\',
                 "file_name": 'ae_train_test.csv',
                 "target_file_name": 'ae_train_test_target.csv',
-                "model_path": "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\tmp\\model\\admin1723536407958.pkl",
+                "model_path": "~PATH\\DT_META_FILE\\files\\storage\\tmp\\model\\admin1723536407958.pkl",
                 "index_column": "DATE",
                 "outputs":['RAIN5', 'RAIN6', 'RAIN7'],
                 "feature": 'LEVEL32',
@@ -615,10 +615,10 @@ class exampleViewSet(viewsets.ViewSet):
         #테스트용
         if not paramData:
             paramData = {
-                "file_path": 'D:\\PythonProject\\dt-data-api\\dt_data_api\\data\\',
+                "file_path": '~PATH\\dt_data_api\\data\\',
                 "file_name": 'ae_train_test.csv',
                 "target_file_name": 'ae_train_test_target.csv',
-                "model_path": "D:\\DT_FILE_TMP\\DT_META_FILE\\files\\storage\\tmp\\model\\admin1723536407958.pkl",
+                "model_path": "~PATH\\DT_META_FILE\\files\\storage\\tmp\\model\\admin1723536407958.pkl",
                 "index_column": "DATE",
                 "outputs":['RAIN5', 'RAIN6', 'RAIN7'],
                 "feature": 'LEVEL32',
@@ -758,9 +758,9 @@ class exampleViewSet(viewsets.ViewSet):
             '''
             #사용자, 입력:전체, 실시간:X
             paramData = {
-                "model_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "model_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "model_file_name": "origin_sample_7d_w12.h5",
-                "test_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "test_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "test_file_name": "origin_sample_3d.csv",
                 "outputs": ["ondo","m10","m60","m30","w30","w20"],
                 "features": [],
@@ -773,11 +773,11 @@ class exampleViewSet(viewsets.ViewSet):
 
             #모델, 입력:기간지정, 실시간:X
             paramData = {
-                "model_file_path" : "D:\\PythonProject\\dt-data-api\\dt_data_api\\data\\",
+                "model_file_path" : "~PATH\\dt_data_api\\data\\",
                 "model_file_name" : "MODEL_RF_20240904154156966.plk",        
-                "model_use_file_path" : "D:\\PythonProject\\dt-data-api\\dt_data_api\\data\\",
+                "model_use_file_path" : "~PATH\\dt_data_api\\data\\",
                 "model_use_file_name" : "24_2차입식_데이터합본_수정_0612_4.csv",    
-                "output_file" : "D:\\PythonProject\\dt-data-api\\dt_data_api\\data\\24_2차입식_데이터합본_수정_0612_4_interval_augment.csv",
+                "output_file" : "~PATH\\dt_data_api\\data\\24_2차입식_데이터합본_수정_0612_4_interval_augment.csv",
                 "output_file_name" : "24_2차입식_데이터합본_수정_0612_4_augment.csv",
                 "outputs" : ["MET"],
                 "features" : ["temp","RH","CO2","AMM","Temp_Out","RH_Out","Solar"],
