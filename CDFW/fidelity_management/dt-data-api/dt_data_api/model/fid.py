@@ -194,6 +194,7 @@ class Manager:
             plt.close()
             plt.clf()
         except Exception as e:
+            print("Error in createRecurrence: ", e)
             raise e
         return result
 

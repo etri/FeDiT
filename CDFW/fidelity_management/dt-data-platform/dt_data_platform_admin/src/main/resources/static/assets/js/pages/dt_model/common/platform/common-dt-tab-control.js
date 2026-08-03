@@ -121,6 +121,9 @@ $(document).ready(function () {
             //버튼
             $('#next_button_info_range').hide();
             $('#next_button_column_info_range').show();
+            $('#column_info_prev').show();
+            //전처리에서 데이터현황으로 복귀 시 컬럼 선택·미리보기 표가 유지되므로 "다음"도 노출(곧바로 진행 가능)
+            $('#column_info_next').show();
             $('#next_button_valiate_range').hide();
 
             /**

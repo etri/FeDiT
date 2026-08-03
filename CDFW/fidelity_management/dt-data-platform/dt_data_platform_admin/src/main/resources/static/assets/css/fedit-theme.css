@@ -301,3 +301,6 @@ table.data-table tbody tr.active td {
 #tab_savemodel_range .xai_description .xai_description_li {
     color: #FF7043 !important;
 }
+.sub-header .breadcrumb {
+  margin-bottom: 1rem;
+}

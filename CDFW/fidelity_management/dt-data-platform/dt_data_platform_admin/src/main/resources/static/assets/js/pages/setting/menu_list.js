@@ -133,10 +133,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 getMenu(menuCode);
             } else {
                 let menuModal = document.querySelector('#modal-menu');
+                let menu_code = menuModal.querySelector('#menu_code');
                 let menu_name = menuModal.querySelector('#menu_name');
                 let menu_link = menuModal.querySelector('#menu_link');
                 let menu_icon = menuModal.querySelector('#menu_icon');
                 let ordby = menuModal.querySelector('#ordby');
+                menu_code.value = ''; // 등록 진입 시 메뉴 코드 초기화
                 menu_name.value = '';
                 menu_link.value = '';
                 menu_icon.value = '';
@@ -185,10 +187,17 @@ document.addEventListener('DOMContentLoaded', () => {
         let menuModal = document.querySelector('#modal-menu');
         let menu_code = menuModal.querySelector('#menu_code').value.trim();
         let menu_name = menuModal.querySelector('#menu_name').value.trim();
-        let parent_menu_code = menuModal.querySelector('#parent_menu_code').dataset.value.trim();
+        let parentEl = menuModal.querySelector('#parent_menu_code');
+        let parent_menu_code = (parentEl && parentEl.dataset.value ? parentEl.dataset.value : '').trim();
         let menu_link = menuModal.querySelector('#menu_link').value.trim();
         let menu_icon = menuModal.querySelector('#menu_icon').value.trim();
         let ordby = menuModal.querySelector('#ordby').value.trim();
+
+        // 상위 메뉴(필수)
+        if (parent_menu_code === '') {
+            alert('상위 메뉴를 선택하세요.');
+            return false;
+        }
 
         if (menu_code === '') {
             alert('메뉴코드를 입력하세요.');
@@ -200,13 +209,24 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
 
+        // 정렬 순서(필수) - 0~999 정수
+        if (ordby === '') {
+            alert('정렬 순서를 입력하세요.');
+            return false;
+        }
+        let ordbyNum = Number(ordby);
+        if (!Number.isInteger(ordbyNum) || ordbyNum < 0 || ordbyNum > 999) {
+            alert('정렬 순서는 0~999 사이의 정수로 입력하세요.');
+            return false;
+        }
+
         let data = {
             menuCd: menu_code,
             menuNm: menu_name,
             upMenuCd: parent_menu_code,
             menuUrl: menu_link,
             menuIcon: menu_icon,
-            ordby: ordby ? ordby : null
+            ordby: ordbyNum
         };
 
         ajaxPost('/setting/menu/register', data, function (result) {

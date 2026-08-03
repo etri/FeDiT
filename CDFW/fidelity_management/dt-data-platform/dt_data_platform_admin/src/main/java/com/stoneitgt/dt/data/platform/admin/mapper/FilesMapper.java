@@ -12,7 +12,7 @@ import java.util.Map;
 @Mapper
 public interface FilesMapper {
 
-    List<Map<String, Object>> getDtMetaFileList(String refType, int refSrno);
+    List<Map<String, Object>> getDtMetaFileList(@Param("refType") String refType, @Param("refSrno") int refSrno);
 
     Files getDtFile(int fileSeq);
 

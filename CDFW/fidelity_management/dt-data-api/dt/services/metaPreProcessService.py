@@ -160,6 +160,10 @@ class metaPreProcessService(object):
             # 1. 날짜 컬럼 자동 탐색 (index_trgt_col이 없을 때)
             for col in df.columns:
                 if df[col].dtype == "object":
+                    # 숫자형(문자열) 컬럼은 날짜 후보에서 제외 - "2259.9" 같은 값이 날짜로 오인되는 것 방지
+                    if not pd.to_numeric(df[col], errors="coerce").isna().all():
+                        continue
+
                     # 시간대 변환 없이(utc=False) 문자열 그대로 날짜 객체로 변환
                     temp_dt = pd.to_datetime(df[col], errors="coerce")
 

@@ -1,4 +1,9 @@
-﻿! function(a) {
+﻿/*!
+ * Korean translation for bootstrap-datepicker v1.9.0
+ * Part of bootstrap-datepicker (https://github.com/uxsolutions/bootstrap-datepicker)
+ * Licensed under the Apache License v2.0 (http://www.apache.org/licenses/LICENSE-2.0)
+ */
+! function(a) {
     a.fn.datepicker.dates.kr = {
         days: ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"],
         daysShort: ["일", "월", "화", "수", "목", "금", "토"],
