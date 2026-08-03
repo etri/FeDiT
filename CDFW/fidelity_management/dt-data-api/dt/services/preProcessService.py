@@ -1034,7 +1034,7 @@ class preProcessService(object):
                 dataFile = os.path.join(paramData['file_path'], paramData['file_name'])
             
             #input_file = df
-            #output_file = 'Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\output.csv'
+            #output_file = '~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\output.csv'
             output_file = paramData['file_path'] + '\\' + paramData['target_file_name']
             n = paramData['output_size']
 
