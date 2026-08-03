@@ -217,6 +217,11 @@ class Manager:
             features_df = df_x[self.feature_cols]
             outputs_df = df_y[self.output_cols]
             '''
+            # 2026-07-07
+            # 정규화 전 결측 및 무한값 처리
+            sub = self.data[scale_cols].replace([np.inf, -np.inf], np.nan)
+            if sub.isna().any().any():
+                self.data[scale_cols] = sub.interpolate().bfill().ffill()  # 시계열 보간
             scaler = MinMaxScaler()
             scaled = scaler.fit_transform(self.data[scale_cols])
             df = pd.DataFrame(scaled, columns=scale_cols)

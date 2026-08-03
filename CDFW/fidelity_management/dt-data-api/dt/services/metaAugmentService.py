@@ -36,7 +36,6 @@ from dt_data_api.common.lib import (
     arimaGenerater,
     imputerBritsGenerater,
     nbeatsGenerater,
-    imputerNaomiGenerater,
     infoMessage,
     debugMessage,
     errorMessage,
@@ -2359,110 +2358,6 @@ class augmentService(object):
 
         return result
 
-    def augmentCreate_naomi(self, paramData=None):
-        """
-        naomi 학습모델에서 데이터 생성
-        Args:
-            paramData(any): 데이터증강 파라메터
-        Returns: 결과여부, 데이터 값
-            {'result': False, 'resultMessage':None}
-        """
-        result = {"result": False, "resultMessage": None}
-        errorMsg = ""
-
-        today = date.today()
-        if paramData["model_file_path"] == None:
-            modelFile = os.path.join(
-                MODEL_PATH_META,
-                f"{today.year}",
-                f"{today.month:02d}",
-                "9999",
-                paramData["model_file_name"],
-            )
-            modelPath = os.path.join(
-                MODEL_PATH_META, f"{today.year}", f"{today.month:02d}", "9999"
-            )
-        else:
-            modelPath = paramData["model_file_path"]
-            modelFile = os.path.join(
-                paramData["model_file_path"], paramData["model_file_name"]
-            )
-
-        if paramData["model_use_file_path"] == None:
-            dataFile = os.path.join(
-                DATA_PATH_META,
-                f"{today.year}",
-                f"{today.month:02d}",
-                "9999",
-                paramData["model_use_file_name"],
-            )
-            dataPath = os.path.join(
-                DATA_PATH_META, f"{today.year}", f"{today.month:02d}", "9999"
-            )
-        else:
-            dataPath = paramData["model_use_file_path"]
-            dataFile = os.path.join(
-                paramData["model_use_file_path"], paramData["model_use_file_name"]
-            )
-
-        # 운영시 주석
-        # dataPath = 'dt_data_api\\storage\\data\\2023\\04\\0000\\'
-        # dataFile = 'dt_data_api\\storage\\data\\2023\\04\\0000\\' + filename
-        # modelFilepath = 'dt_data_api\\storage\\model\\2023\\04\\0000\\'
-
-        modelArgs = ModelParameters(window_size=paramData["windowSize"])
-        inputArgs = InputParameters(
-            filepath=modelPath,
-            filename=modelFile,
-            output_cols=paramData["outputs"],
-            index_column=paramData["index_column"],
-            trgt_col_list=paramData["trgt_col_list"],
-        )
-
-        try:
-            # df=pd.read_csv(dataFile, header=0, index_col=paramData['index_column'], parse_dates=True)
-            print(dataFile)
-            df_ori = pd.read_csv(dataFile, header=0, parse_dates=True)
-            # df_ori.set_index(paramData['index_column'], inplace=True)
-            output_cols = paramData["outputs"]
-            # feature_cols = paramData['features']
-            index_column = paramData["index_column"]
-            df = df_ori[output_cols]
-
-            m = imputerNaomiGenerater.Manager(
-                data=df, modelArgs=modelArgs, inputArgs=inputArgs
-            )
-            dt = m.dataGenerater()
-
-            print("결과", df_ori, dt)
-
-            # 빈 데이터 값만 예측 보정된 값으로 대체
-            for col in output_cols:
-                valid_idx = df_ori[col].isnull() | (
-                    df_ori[col] == ""
-                )  # 원본에 컬럼의 값이 비어있는 인덱스 가져옴
-                print("valid_idx", valid_idx)
-                df_ori.loc[valid_idx, col] = dt.loc[valid_idx, col]
-
-            # df_ori[output_cols] = dt[output_cols]
-            print("합침", df_ori)
-            df_ori.to_csv(paramData["output_file"], index=False)
-            result["result"] = True
-            result["resultMessage"] = paramData["output_file"]
-        except Exception as e:
-            # for m in e.args:
-            #     errorMsg += str(m) + '-'
-            # errorMsg = errorMsg[:-1]
-            # logging.error(errorMsg)
-
-            errorMsg = exceptionMessage(
-                e, ERROR_CODE.AUGMENT.value, "augmentCreate naomi"
-            )
-            result["result"] = False
-            result["resultMessage"] = errorMsg
-
-        return result
-
     def calcModelTestDataTargetDate_dataFrame(self, df_source, paramData=None, index=0):
         result = {"result": False, "resultMessage": None}
         # current_year = str(datetime.now().year)
@@ -2747,7 +2642,7 @@ class augmentService(object):
             df_cut[index_col] = df_cut[index_col].apply(
                 lambda x: x.replace(year=new_year).strftime("%Y-%m-%d %H:%M:%S")
             )
-
+            
             df_cut.to_csv(test_file_path, index=False)
         else:
             data_frame.to_csv(test_file_path, index=False)

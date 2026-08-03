@@ -25,7 +25,7 @@ SECRET_KEY = "[SECRET_KEY]"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -37,10 +37,9 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
-    'rest_framework',
-    'rest_framework.authtoken',
-    'dt.apps.DtConfig'
+    "rest_framework",
+    "rest_framework.authtoken",
+    "dt.apps.DtConfig",
 ]
 
 MIDDLEWARE = [
@@ -77,31 +76,29 @@ WSGI_APPLICATION = "dt_data_api.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
-DATABASE_ROUTERS = ['dt_data_api.config.platform_router.PlatformRouter']
+DATABASE_ROUTERS = ["dt_data_api.config.platform_router.PlatformRouter"]
 
 DATABASES = {
-    #"default": {
+    # "default": {
     #    "ENGINE": "django.db.backends.sqlite3",
     #    "NAME": BASE_DIR / "db.sqlite3",
-    #},
-
+    # },
     "default": {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': '',
-        'USER': '',
-        'PASSWORD': '',
-        'HOST': '',
-        'PORT': '',
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "",
+        "USER": "",
+        "PASSWORD": "",
+        "HOST": "",
+        "PORT": "",
     },
-
-    'dt_data_platform': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': '',
-        'USER': '',
-        'PASSWORD': '',
-        'HOST': '',
-        'PORT': '',
-    }
+    "dt_data_platform": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "",
+        "USER": "",
+        "PASSWORD": "",
+        "HOST": "",
+        "PORT": "",
+    },
 }
 
 
@@ -112,9 +109,15 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
 ]
 
 
@@ -141,62 +144,58 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
-#    'DEFAULT_RENDERER_CLASSES': [
-#        'dt_data_api.config.renderers.ResponseRenderer',
-#    ]
-
-    #예외처리
-    'EXCEPTION_HANDLER' : 'dt_data_api.config.exception_handler.custom_exception_handler',
-
-    #권한설정
-    'DEFAULT_PERMISSION_CLASSES' : [
-        'rest_framework.permissions.IsAuthenticated',        
-    ]
+    #    'DEFAULT_RENDERER_CLASSES': [
+    #        'dt_data_api.config.renderers.ResponseRenderer',
+    #    ]
+    # 예외처리
+    "EXCEPTION_HANDLER": "dt_data_api.config.exception_handler.custom_exception_handler",
+    # 권한설정
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
 }
 
 # 로그 설정
-LOG_FILE = 'logs/dt.log'
+LOG_FILE = "logs/dt.log"
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'dt': {
-            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "dt": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"},
+    },
+    "handlers": {
+        "console": {
+            "level": "DEBUG",
+            "class": "logging.StreamHandler",
+        },
+        "file": {
+            "level": "DEBUG",
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": LOG_FILE,
+            "when": "midnight",
+            "formatter": "dt",
+            "backupCount": 5,
         },
     },
-    'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
+    "loggers": {
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": "DEBUG",
         },
-        'file': { 
-            'level': 'DEBUG', 
-            'class': 'logging.handlers.TimedRotatingFileHandler', 
-            'filename': LOG_FILE,
-            'when': "midnight",
-            'formatter': 'dt', 
-            'backupCount': 5, 
-        }, 
-    },
-    'loggers': {
-        'django.db.backends': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
+        "dt": {
+            "handlers": ["console", "file"],
+            "level": "DEBUG",
         },
-        'dt': { 
-            'handlers': ['console', 'file'], 
-            'level': 'DEBUG', 
-        }, 
     },
 }
 
 # 환경변수
-MAIN_PATH = '~PATH\\DT_FILE\\files\\storage'
-MODEL_PATH = '~PATH\\DT_FILE\\files\\storage\\model\\'
-DATA_PATH = '~PATH\\DT_FILE\\files\\storage\\data\\'
-UPLOAD_PATH = '~PATH\\DT_FILE\\files\\storage\\upload\\'
+MAIN_PATH = "~PATH\\DT_FILE\\files\\storage"
+MODEL_PATH = "~PATH\\DT_FILE\\files\\storage\\model\\"
+DATA_PATH = "~PATH\\DT_FILE\\files\\storage\\data\\"
+UPLOAD_PATH = "~PATH\\DT_FILE\\files\\storage\\upload\\"
 
-MAIN_PATH_META = '~PATH\\DT_META_FILE\\files\\storage'
-MODEL_PATH_META = '~PATH\\DT_META_FILE\\files\\storage\\model\\'
-DATA_PATH_META = '~PATH\\DT_META_FILE\\files\\storage\\data\\'
-UPLOAD_PATH_META = '~PATH\\DT_META_FILE\\files\\storage\\upload\\'
+MAIN_PATH_META = "~PATH\\DT_META_FILE\\files\\storage"
+MODEL_PATH_META = "~PATH\\DT_META_FILE\\files\\storage\\model\\"
+DATA_PATH_META = "~PATH\\DT_META_FILE\\files\\storage\\data\\"
+UPLOAD_PATH_META = "~PATH\\DT_META_FILE\\files\\storage\\upload\\"

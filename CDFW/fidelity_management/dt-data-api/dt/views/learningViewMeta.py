@@ -897,124 +897,6 @@ class learningViewSetMeta(viewsets.ViewSet):
         return Response(rd.getJson())
 
     @action(detail=False, methods=["POST", "GET"])
-    def createModelGenerater_naomi(self, request):
-        """
-        naomi 학습모델 생성
-        """
-        req_filePath = request.data.get("filePath")
-        req_fileName = request.data.get("fileName")
-        req_targetFileName = request.data.get("targetFileName")
-        req_modelFilePath = request.data.get("modelFilePath")
-        req_modelFileName = request.data.get("modelFileName")
-        req_outputs = request.data.get("outputs")
-        # req_features = request.data.get('features')
-        req_modelType = request.data.get("modelType")
-        req_windowSize = request.data.get("windowSize")
-
-        req_batchSize = request.data.get("batchSize")
-        req_testSize = request.data.get("testSize")
-        req_epochs = request.data.get("epochs")
-        req_optimizerLr = request.data.get("optimizerLr")
-        req_modelID = request.data.get("modelID")
-        req_indexColumn = request.data.get("indexColumn")
-        req_gradientClipping = request.data.get("gradientClipping")
-        req_missingGroup = request.data.get("missingGroup")
-        req_missingRange = request.data.get("missingRange")
-        req_testSizePerDataLength = request.data.get("testSizePerDataLength")
-
-        req_targetColList = request.data.get("trgt_col_list")
-        """
-        print(req_filePath)
-        print(req_fileName)
-        print(req_modelFilePath)
-        print(req_modelFileName)
-        print(req_outputs)
-        print(req_features)
-        print(req_modelType)
-        print(req_windowSize)
-        print(req_batchSize)
-        print(req_testSize)
-        print(req_epochs)
-        print(req_loss)
-        print(req_meterics)
-        print(req_optimizer)
-        print(req_modelID)
-        print(req_indexColumn)
-        """
-
-        filePath = req_filePath
-        # filename = ('201901_201912유동인구.csv' if req_filename==None else req_filename)
-        fileName = (
-            "test_data_201901_201902_imputer.csv"
-            if req_fileName == None
-            else req_fileName
-        )
-        targetFileName = (
-            "test_data_201901_201902.csv"
-            if req_targetFileName == None
-            else req_targetFileName
-        )
-        modelFilePath = req_modelFilePath
-        modelFileName = "ID_2023.h5" if req_modelFileName == None else req_modelFileName
-        outputs = ["w60"] if req_outputs == None else req_outputs
-        # outputs = (['LRAIN'] if req_outputs==None else req_outputs)
-        # features = (['w20'] if req_features==None else req_features)
-        # features = ([] if req_features==None else req_features)
-        modelType = "lstm" if req_modelType == None else req_modelType
-        windowSize = 8 if req_windowSize == None else req_windowSize
-
-        batchSize = 16 if req_batchSize == None else req_batchSize
-        testSize = 0.2 if req_testSize == None else req_testSize
-        epochs = 50 if req_epochs == None else req_epochs
-        # loss = ('mse' if req_loss==None else req_loss)
-        # meterics = ('mse' if req_meterics==None else req_meterics)
-
-        # optimizer = ('sgd' if req_optimizer==None else req_optimizer)
-        optimizerLr = 0.005 if req_optimizerLr == None else req_optimizerLr
-        modelID = 9999 if req_modelID == None else req_modelID
-        indexColumn = 0 if req_indexColumn == None else req_indexColumn
-        gradientClipping = 10 if req_gradientClipping == None else req_gradientClipping
-        missingGroup = 4 if req_missingGroup == None else req_missingGroup
-        missingRange = [10, 30] if req_missingRange == None else req_missingRange
-        testSizePerDataLength = (
-            100 if req_testSizePerDataLength == None else req_testSizePerDataLength
-        )
-        targetColList = [] if req_targetColList == None else req_targetColList
-
-        data = self.service.createImputationNaomi(
-            filePath=filePath,
-            fileName=fileName,
-            targetFileName=targetFileName,
-            modelFilePath=modelFilePath,
-            modelFileName=modelFileName,
-            outputs=outputs,
-            modelType=modelType,
-            windowSize=windowSize,
-            batchSize=batchSize,
-            testSize=testSize,
-            epochs=epochs,
-            optimizerLr=optimizerLr,
-            gradientClipping=gradientClipping,
-            missingGroup=missingGroup,
-            missingRange=missingRange,
-            testSizePerDataLength=testSizePerDataLength,
-            modelID=modelID,
-            indexColumn=indexColumn,
-            targetColList=targetColList,
-        )
-        if data["result"]:
-            rd = responseData(
-                code=status.HTTP_200_OK, message="OK", data=data
-            )  # ['resultMessage'])
-        else:
-            rd = responseData(
-                code=status.HTTP_400_BAD_REQUEST,
-                message="BAD_REQUEST",
-                detail=data["resultMessage"],
-            )
-        return Response(rd.getJson())
-
-    @action(detail=False, methods=["POST", "GET"])
     def createModelGenerater_nbeats(self, request):
         """
         nbeats 학습모델 생성
@@ -1225,7 +1107,7 @@ class learningViewSetMeta(viewsets.ViewSet):
             num_segments=num_segments,
             segment_len=segment_len,
         )
-
+    
         if data["result"]:
             rd = responseData(
                 code=status.HTTP_200_OK, message="OK", data=data["resultMessage"]
