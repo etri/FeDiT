@@ -651,22 +651,6 @@ class augmentViewSet(viewsets.ViewSet):
     
         
     @action(detail=False, methods=['POST', 'GET'])
-    def augmentCreate_naomi(self, request):
-        '''
-        naomi 학습모델 활용 데이터 추론 생성
-        '''
-        paramData = request.data        
-            
-        data = self.service.augmentCreate_naomi(paramData=paramData)
-
-        if data['result']:
-            rd = responseData(code=status.HTTP_200_OK, message='OK', data=data['resultMessage'])            
-        else:
-            rd = responseData(code=status.HTTP_400_BAD_REQUEST, message='BAD_REQUEST', detail=data['resultMessage'])
-        return Response(rd.getJson())    
-    
-      
-    @action(detail=False, methods=['POST', 'GET'])
     def augmentCreate_seg_rnn_interpolation(self, request):
         '''
         학습모델 활용 데이터 추론 생성(입력 데이터 추론 보간 기능 추가)

@@ -2181,9 +2181,17 @@ class Manager:
 
         try:
             print("------------------A")
-            # 정규화(0~1변환)
+            # 2026-07-07
+            # 정규화 전 결측 및 무한값 처리
+            sub = self.data[self.output_cols].replace([np.inf, -np.inf], np.nan)
+            if sub.isna().any().any():
+                self.data[self.output_cols] = sub.interpolate().bfill().ffill()  # 시계열 보간
             scaler = StandardScaler()
             scaler = scaler.fit(self.data.loc[:train_size, self.output_cols])
+
+            # 정규화(0~1변환)
+            # scaler = StandardScaler()
+            # scaler = scaler.fit(self.data.loc[:train_size, self.output_cols])
             scaled = scaler.transform(self.data[self.output_cols])
             print(scaled)
 
