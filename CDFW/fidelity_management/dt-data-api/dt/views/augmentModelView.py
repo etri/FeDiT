@@ -284,10 +284,10 @@ class augmentModelViewSet(viewsets.ViewSet):
 
             '''
             paramData = {
-                "file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "file_name": "origin_sample_7d.csv",
                 "target_file_name": "test_data_201901_201902.csv",
-                "model_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "model_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "model_file_name": "origin_sample_7d_w8.h5",
                 "outputs": ["ondo","m10","m60","m30","w30","w20"],
                 "features": [],
@@ -307,10 +307,10 @@ class augmentModelViewSet(viewsets.ViewSet):
             '''
 
             paramData = {
-                "file_path": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
+                "file_path": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
                 "file_name": "1_sample_2020a_2022h.csv",
                 "target_file_name": "1_sample_2020a_2022h_test.csv",
-                "model_file_path": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
+                "model_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
                 "model_file_name": "1_sample_2020a_2022h_w12.h5",
                 "outputs": ["w00","w10","w20","w30","w40","w50","w60"],
                 "features": [],

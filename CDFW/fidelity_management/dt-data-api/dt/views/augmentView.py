@@ -233,9 +233,9 @@ class augmentViewSet(viewsets.ViewSet):
             '''
             #사용자, 입력:전체, 실시간:X
             paramData = {
-                "model_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "model_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "model_file_name": "origin_sample_7d_w12.h5",
-                "test_file_path": "Z:\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
+                "test_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\06\\9999\\augment_sample_test",
                 "test_file_name": "origin_sample_3d.csv",
                 "outputs": ["ondo","m10","m60","m30","w30","w20"],
                 "features": [],
@@ -248,13 +248,13 @@ class augmentViewSet(viewsets.ViewSet):
 
             #모델, 입력:기간지정, 실시간:X
             paramData = {
-                "model_file_path": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
+                "model_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
                 "model_file_name": "1_sample_2020a_2022a_w8.h5",
-                "model_use_file_path": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
+                "model_use_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
                 "model_use_file_name": "1_sample_2020a_2022a_not_all.csv",
-                "test_file_path": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
+                "test_file_path": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test",
                 "test_file_name": "1_sample_2020a_2022a_test.csv",
-                "output_file": "Z:\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test\\1_sample_2020a_2022a_test_augment.csv",
+                "output_file": "~PATH\\DT\\storage\\preprocess\\2023\\07\\9999\\augment_sample_test\\1_sample_2020a_2022a_test_augment.csv",
                 "outputs": ["w00","w10","w20","w30","w40","w50","w60"],
                 "features": [],
                 "window_size": 24,

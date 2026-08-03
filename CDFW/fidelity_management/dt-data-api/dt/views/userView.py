@@ -108,11 +108,11 @@ class userViewSet(viewsets.ViewSet):
         if not paramData:
             paramData = {
                 "user_id": 'admin1',
-                "user_pw": '$2a$10$kFifQKKHY11QRmchTN4XNu7oXtcB3hfJhs/wMCYLRHtia0rM6yBKm',
+                "user_pw": '[PASSWORD_HASH]',
                 "user_nm": '관리자1',
                 "user_auth_cd": 'AU00',
                 "uniq_idn_key": None,
-                "user_eml": 'admin@stoneitgt.com',
+                "user_eml": 'admin@example.com',
                 "user_birth_ymd": '19900302',
                 "user_cont_1": '010',
                 "user_cont_2": '1111',
@@ -150,11 +150,11 @@ class userViewSet(viewsets.ViewSet):
             paramData = {
                 "user_seq": 15,
                 "user_id": 'admin1',
-                "user_pw": '$2a$10$kFifQKKHY11QRmchTN4XNu7oXtcB3hfJhs/wMCYLRHtia0rM6yBKm',
+                "user_pw": '[PASSWORD_HASH]',
                 "user_nm": '관리자1',
                 "user_auth_cd": 'AU00',
                 "uniq_idn_key": None,
-                "user_eml": 'admin@stoneitgt.com',
+                "user_eml": 'admin@example.com',
                 "user_birth_ymd": '19900302',
                 "user_cont_1": '010',
                 "user_cont_2": '1111',

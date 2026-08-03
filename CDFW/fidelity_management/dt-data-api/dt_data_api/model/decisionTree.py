@@ -37,7 +37,7 @@ class Manager:
         '''
         결정트리 보간(처리후 모델 저장)
         Args:
-            model_path:저장할 모델 경로및 파일 이름 ex) 'D:\\model_directory\\model_name.pkl'
+            model_path:저장할 모델 경로및 파일 이름 ex) '<경로>\\model_directory\\model_name.pkl'
             columns:입력값으로 사용할 컬럼 리스트 ex) ['column1', 'column2', 'column3']
             column(str): 타겟컬럼
             isIndex(bool): index 컬럼 지정 여부
@@ -140,7 +140,7 @@ class Manager:
         '''
         결정트리 보간(저장된 모델을 로드해서 처리)
         Args:
-            model_path:불러올 모델 경로및 파일 이름 ex) 'D:\\model_directory\\model_name.pkl'
+            model_path:불러올 모델 경로및 파일 이름 ex) '<경로>\\model_directory\\model_name.pkl'
             columns:입력값으로 사용할 컬럼 리스트 ex) ['column1', 'column2', 'column3']
             column(str): 타겟컬럼
             isIndex(bool): index 컬럼 지정 여부
