@@ -1,0 +1,21 @@
+# 이 파일은 kubectl apply 대상이 아니라 strategic merge patch 파일이다.
+# 적용 예:
+# kubectl patch deployment prediction-manager -n kubeflow --type strategic --patch-file prediction-manager/k8s/optional/docker-socket-patch.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prediction-manager
+  namespace: kubeflow
+spec:
+  template:
+    spec:
+      containers:
+        - name: prediction-manager
+          volumeMounts:
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+      volumes:
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket

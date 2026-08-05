@@ -1,0 +1,38 @@
+.DS_Store
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Runtime / local config
+.env
+.env.*
+!.env.example
+*.log
+logs/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Local data / temporary outputs
+tmp/
+*.sqlite
+*.db
+
+# Rendered Kubernetes manifests
+k8s/deployment.yaml
