@@ -4,7 +4,11 @@
 
 -- Dumped from database version 12.13 (Ubuntu 12.13-1.pgdg18.04+1)
 -- Dumped by pg_dump version 15.2
--- removed CREATE DATABASE / \connect for docker init import
+CREATE DATABASE federated_digital_twin;
+
+\connect federated_digital_twin
+
+
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
