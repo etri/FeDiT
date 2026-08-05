@@ -1,0 +1,211 @@
+components:
+  comp-train-until-threshold:
+    executorLabel: exec-train-until-threshold
+    inputDefinitions:
+      parameters:
+        dataset_url:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        max_attempts:
+          defaultValue: 10.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        mlflow_uri:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        namespace:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        registered_name:
+          defaultValue: weekly-auto-demo
+          isOptional: true
+          parameterType: STRING
+        target_column:
+          defaultValue: target
+          isOptional: true
+          parameterType: STRING
+        threshold:
+          defaultValue: 0.9
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRUCT
+deploymentSpec:
+  executors:
+    exec-train-until-threshold:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - train_until_threshold
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install\
+          \ python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'mlflow>=3.0'\
+          \ 'requests' 'pyarrow>=15.0'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1' '--no-deps'\
+          \ 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "import kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef train_until_threshold(\n  \
+          \  dataset_url: str = \"\",\n    target_column: str = \"target\",\n    threshold: float = 0.90,\n    max_attempts:\
+          \ int = 10,\n    registered_name: str = \"weekly-auto-demo\",\n    namespace: str = \"\",\n    mlflow_uri: str =\
+          \ \"\",\n) -> dict:\n    \"\"\"임계값 달성까지 반복 학습하고, 성공 시 namespace 전용 MLflow Registry 에 등록.\"\"\"\n    import csv\n\
+          \    import io\n    import os\n    import random\n    import urllib.request\n\n    import mlflow\n    import mlflow.pyfunc\n\
+          \    import requests\n\n    def current_namespace() -> str:\n        if namespace:\n            return namespace\n\
+          \        for key in (\"POD_NAMESPACE\", \"NAMESPACE\", \"KFP_NAMESPACE\"):\n            value = os.environ.get(key)\n\
+          \            if value:\n                return value\n        try:\n            with open(\"/var/run/secrets/kubernetes.io/serviceaccount/namespace\"\
+          ) as f:\n                return f.read().strip()\n        except OSError:\n            return \"kubeflow-admin\"\
+          \n\n    run_namespace = current_namespace()\n    tracking_uri = mlflow_uri or f\"http://pm-mlflow.{run_namespace}.svc.cluster.local:5000\"\
+          \n    experiment_name = f\"pipeline-{run_namespace}-{registered_name}\"\n\n    class ThresholdClassifier(mlflow.pyfunc.PythonModel):\n\
+          \        def __init__(self, feature_names, weights, bias, positive_label, negative_label):\n            self.feature_names\
+          \ = feature_names\n            self.weights = weights\n            self.bias = bias\n            self.positive_label\
+          \ = positive_label\n            self.negative_label = negative_label\n\n        def _records(self, model_input):\n\
+          \            if hasattr(model_input, \"to_dict\"):\n                return model_input.to_dict(orient=\"records\"\
+          )\n            if isinstance(model_input, list):\n                if not model_input:\n                    return\
+          \ []\n                if isinstance(model_input[0], dict):\n                    return model_input\n           \
+          \     return [\n                    {name: value for name, value in zip(self.feature_names, row)}\n            \
+          \        for row in model_input\n                ]\n            return []\n\n        def predict(self, context,\
+          \ model_input):\n            preds = []\n            for row in self._records(model_input):\n                score\
+          \ = self.bias\n                for name, weight in zip(self.feature_names, self.weights):\n                    try:\n\
+          \                        score += float(row.get(name, 0) or 0) * weight\n                    except Exception:\n\
+          \                        pass\n                preds.append(self.positive_label if score >= 0 else self.negative_label)\n\
+          \            return preds\n\n    def synthetic_rows():\n        rows = []\n        rng = random.Random(42)\n   \
+          \     for _ in range(240):\n            x1 = rng.uniform(-3, 3)\n            x2 = rng.uniform(-3, 3)\n         \
+          \   x3 = rng.uniform(-3, 3)\n            signal = 0.7 * x1 + 0.35 * x2 - 0.55 * x3 + rng.uniform(-0.25, 0.25)\n\
+          \            rows.append({\"x1\": x1, \"x2\": x2, \"x3\": x3, target_column: \"ok\" if signal >= 0 else \"ng\"})\n\
+          \        return rows\n\n    def _looks_like_parquet(content: bytes, headers) -> bool:\n        content_type = str(headers.get(\"\
+          Content-Type\", \"\")).lower()\n        disposition = str(headers.get(\"Content-Disposition\", \"\")).lower()\n\
+          \        url_path = dataset_url.split(\"?\", 1)[0].lower()\n        return (\n            content.startswith(b\"\
+          PAR1\")\n            or content.endswith(b\"PAR1\")\n            or url_path.endswith(\".parquet\")\n          \
+          \  or \"parquet\" in content_type\n            or \".parquet\" in disposition\n        )\n\n    def load_rows():\n\
+          \        if not dataset_url:\n            return synthetic_rows()\n        with urllib.request.urlopen(dataset_url,\
+          \ timeout=20) as resp:\n            content = resp.read()\n            headers = resp.headers\n        if _looks_like_parquet(content,\
+          \ headers):\n            import pyarrow.parquet as pq\n\n            table = pq.read_table(io.BytesIO(content))\n\
+          \            return [dict(row) for row in table.to_pylist()]\n        text = content.decode(\"utf-8-sig\")\n   \
+          \     return list(csv.DictReader(io.StringIO(text)))\n\n    def to_float(value):\n        try:\n            if value\
+          \ is None or value == \"\":\n                return 0.0\n            return float(value)\n        except Exception:\n\
+          \            return None\n\n    raw_rows = load_rows()\n    if not raw_rows:\n        raise ValueError(\"dataset\
+          \ is empty\")\n    if target_column not in raw_rows[0]:\n        raise ValueError(f\"target column not found: {target_column}\"\
+          )\n\n    feature_names = [\n        key for key in raw_rows[0].keys()\n        if key != target_column and to_float(raw_rows[0].get(key))\
+          \ is not None\n    ]\n    if not feature_names:\n        raise ValueError(\"no numeric feature columns found\")\n\
+          \n    rows = []\n    for row in raw_rows:\n        label = str(row.get(target_column, \"\"))\n        features =\
+          \ {name: to_float(row.get(name)) or 0.0 for name in feature_names}\n        rows.append((features, label))\n\n \
+          \   labels = sorted({label for _, label in rows})\n    if len(labels) != 2:\n        raise ValueError(\"this example\
+          \ supports binary classification only\")\n    negative_label, positive_label = labels[0], labels[1]\n\n    rng =\
+          \ random.Random(20260511)\n    rng.shuffle(rows)\n    split = max(1, int(len(rows) * 0.8))\n    train_rows = rows[:split]\n\
+          \    test_rows = rows[split:] or rows[:]\n\n    def train_candidate(attempt):\n        grouped = {positive_label:\
+          \ [], negative_label: []}\n        for features, label in train_rows:\n            grouped[label].append(features)\n\
+          \n        weights = []\n        for name in feature_names:\n            pos_mean = sum(r[name] for r in grouped[positive_label])\
+          \ / max(1, len(grouped[positive_label]))\n            neg_mean = sum(r[name] for r in grouped[negative_label]) /\
+          \ max(1, len(grouped[negative_label]))\n            noise = random.Random(attempt * 1009 + len(name)).uniform(-0.05,\
+          \ 0.05)\n            weights.append(pos_mean - neg_mean + noise)\n\n        midpoint = []\n        for name in feature_names:\n\
+          \            pos_mean = sum(r[name] for r in grouped[positive_label]) / max(1, len(grouped[positive_label]))\n \
+          \           neg_mean = sum(r[name] for r in grouped[negative_label]) / max(1, len(grouped[negative_label]))\n  \
+          \          midpoint.append((pos_mean + neg_mean) / 2.0)\n        bias = -sum(w * m for w, m in zip(weights, midpoint))\n\
+          \        bias += random.Random(attempt * 917).uniform(-0.02, 0.02)\n        return weights, bias\n\n    def evaluate(weights,\
+          \ bias):\n        ok = 0\n        for features, label in test_rows:\n            score = bias + sum((features[name]\
+          \ * weight) for name, weight in zip(feature_names, weights))\n            pred = positive_label if score >= 0 else\
+          \ negative_label\n            ok += int(pred == label)\n        return ok / max(1, len(test_rows))\n\n    mlflow.set_tracking_uri(tracking_uri)\n\
+          \    mlflow.set_experiment(experiment_name)\n\n    best_score = -1.0\n    best_run_id = \"\"\n    attempts_used\
+          \ = 0\n\n    for attempt in range(max_attempts):\n        attempts_used = attempt + 1\n        weights, bias = train_candidate(attempt)\n\
+          \        score = evaluate(weights, bias)\n\n        with mlflow.start_run(run_name=f\"attempt-{attempts_used}\"\
+          ) as run:\n            mlflow.set_tag(\"pm.source\", \"pipeline\")\n            mlflow.set_tag(\"pm.namespace\"\
+          , run_namespace)\n            mlflow.set_tag(\"pipeline.registered_name\", registered_name)\n            mlflow.log_param(\"\
+          features\", \",\".join(feature_names))\n            mlflow.log_param(\"attempt\", attempts_used)\n            mlflow.log_metric(\"\
+          score\", score)\n            mlflow.log_metric(\"threshold\", threshold)\n\n            if score > best_score:\n\
+          \                best_score = score\n                best_run_id = run.info.run_id\n                model = ThresholdClassifier(\n\
+          \                    feature_names=feature_names,\n                    weights=weights,\n                    bias=bias,\n\
+          \                    positive_label=positive_label,\n                    negative_label=negative_label,\n      \
+          \          )\n                mlflow.pyfunc.log_model(\n                    name=\"model\",\n                  \
+          \  python_model=model,\n                )\n\n        print(f\"[attempt {attempts_used}] score={score:.4f} threshold={threshold}\"\
+          )\n        if score >= threshold:\n            print(\"threshold reached; stop retraining\")\n            break\n\
+          \n    status = \"ok\" if best_score >= threshold else \"below_threshold\"\n    version = \"\"\n    if status ==\
+          \ \"ok\" and best_run_id:\n        requests.post(\n            f\"{tracking_uri}/api/2.0/mlflow/registered-models/create\"\
+          ,\n            json={\"name\": registered_name},\n            timeout=10,\n        )\n        created = requests.post(\n\
+          \            f\"{tracking_uri}/api/2.0/mlflow/model-versions/create\",\n            json={\n                \"name\"\
+          : registered_name,\n                \"source\": f\"runs:/{best_run_id}/model\",\n                \"run_id\": best_run_id,\n\
+          \            },\n            timeout=10,\n        )\n        created.raise_for_status()\n        version = created.json().get(\"\
+          model_version\", {}).get(\"version\", \"\")\n        if version:\n            requests.post(\n                f\"\
+          {tracking_uri}/api/2.0/mlflow/model-versions/transition-stage\",\n                json={\n                    \"\
+          name\": registered_name,\n                    \"version\": version,\n                    \"stage\": \"Production\"\
+          ,\n                    \"archive_existing_versions\": True,\n                },\n                timeout=10,\n \
+          \           )\n        print(f\"registry updated: {registered_name} v{version}\")\n\n    return {\n        \"status\"\
+          : status,\n        \"namespace\": run_namespace,\n        \"mlflow_uri\": tracking_uri,\n        \"experiment_name\"\
+          : experiment_name,\n        \"best_score\": float(best_score),\n        \"attempts_used\": attempts_used,\n    \
+          \    \"best_run_id\": best_run_id,\n        \"registered_version\": version,\n    }\n"
+        image: python:3.10-slim
+pipelineInfo:
+  description: 사용자 namespace 전용 MLflow 에 기록하는 주간 재학습 예제.
+  name: weekly-retrain
+root:
+  dag:
+    tasks:
+      train-until-threshold:
+        cachingOptions: {}
+        componentRef:
+          name: comp-train-until-threshold
+        inputs:
+          parameters:
+            dataset_url:
+              componentInputParameter: dataset_url
+            max_attempts:
+              componentInputParameter: max_attempts
+            mlflow_uri:
+              componentInputParameter: mlflow_uri
+            namespace:
+              componentInputParameter: namespace
+            registered_name:
+              componentInputParameter: registered_name
+            target_column:
+              componentInputParameter: target_column
+            threshold:
+              componentInputParameter: threshold
+        taskInfo:
+          name: train-until-threshold
+  inputDefinitions:
+    parameters:
+      dataset_url:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      max_attempts:
+        defaultValue: 10.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      mlflow_uri:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      namespace:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      registered_name:
+        defaultValue: weekly-auto-demo
+        isOptional: true
+        parameterType: STRING
+      target_column:
+        defaultValue: target
+        isOptional: true
+        parameterType: STRING
+      threshold:
+        defaultValue: 0.9
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.16.1
