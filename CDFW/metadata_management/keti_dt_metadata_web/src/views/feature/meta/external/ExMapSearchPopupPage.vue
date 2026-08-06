@@ -192,7 +192,7 @@ const mapInfo = () => {
 
       // 클릭한 위치의 좌표값 push
       var latlng = mouseEvent.latLng;
-      state.latlngs.push(new kakao.maps.LatLng(latlng.Ma, latlng.La));
+      state.latlngs.push(new kakao.maps.LatLng(latlng.getLat(), latlng.getLng()));
       var polygonPath = state.latlngs;
       
       // 기존에 그려진 도형 지우기
@@ -464,16 +464,20 @@ const circleToWKT = (center, radius, numPoints = 64) => {
   let points = [];
   const earthRadius = 6371000; // 지구의 반경 (미터 단위)
 
+  // LatLng 의 내부 필드(.Ma/.La)는 카카오 SDK 배포마다 이름이 바뀌어 NaN 이 된다. 정식 API 로 꺼낸다.
+  const centerLat = center.getLat();
+  const centerLng = center.getLng();
+
   for (let i = 0; i <= numPoints; i++) {
     let angle = (i / numPoints) * 2 * Math.PI;
     let dx = radius * Math.cos(angle);
     let dy = radius * Math.sin(angle);
 
-    let deltaLng = (dx / earthRadius) * (180 / Math.PI) / Math.cos(center.Ma * Math.PI / 180);
+    let deltaLng = (dx / earthRadius) * (180 / Math.PI) / Math.cos(centerLat * Math.PI / 180);
     let deltaLat = (dy / earthRadius) * (180 / Math.PI);
 
-    let pointLat = center.Ma + deltaLat;
-    let pointLng = center.La + deltaLng;
+    let pointLat = centerLat + deltaLat;
+    let pointLng = centerLng + deltaLng;
 
     points.push(`${pointLng} ${pointLat}`);
   }
@@ -490,13 +494,13 @@ const polygonToWKT = (latlngs) => {
 
   // 좌표 배열을 순회하면서 WKT 형식의 문자열로 변환
   latlngs.forEach(latlng => {
-    let lat = latlng.Ma;
-    let lng = latlng.La;
+    let lat = latlng.getLat();
+    let lng = latlng.getLng();
     points.push(`${lng} ${lat}`);
   });
 
   // 폴리곤은 닫혀야 하므로 첫 번째 좌표를 마지막에 다시 추가
-  let firstPoint = `${latlngs[0].La} ${latlngs[0].Ma}`;
+  let firstPoint = `${latlngs[0].getLng()} ${latlngs[0].getLat()}`;
   points.push(firstPoint);
 
   wktPolygon += points.join(", ");
