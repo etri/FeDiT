@@ -100,6 +100,10 @@ elastic:
   # 벡터 저장 및 검색 (별도 Python 서버 API)
   vector-url: http://${SERVER_HOST:localhost}:5000/vectors
 
+vector:
+  # 벡터 서버 사용 여부. false 면 벡터 서버를 호출하지 않는다.
+  enabled: ${VECTOR_ENABLED:false}
+
 # InfluxDB
 influx:
   authentication:
@@ -234,6 +238,10 @@ elastic:
   # 벡터 저장 및 검색 (별도 Python 서버 API)
   vector-url: http://keti-dt-metadata-vector:5000/vectors
 
+vector:
+  # 벡터 서버 사용 여부. false 면 벡터 서버를 호출하지 않는다.
+  enabled: ${VECTOR_ENABLED:false}
+
 # InfluxDB
 influx:
   authentication:
@@ -348,6 +356,10 @@ elastic:
   kibana-url: http://${SERVER_HOST:localhost}:5601
   # 벡터 저장 및 검색 (별도 Python 서버 API)
   vector-url: http://keti-dt-metadata-vector:5000/vectors
+
+vector:
+  # 벡터 서버 사용 여부. false 면 벡터 서버를 호출하지 않는다.
+  enabled: ${VECTOR_ENABLED:false}
 
 # InfluxDB
 influx:
