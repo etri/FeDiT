@@ -8,6 +8,7 @@ import javax.annotation.PostConstruct;
 
 import org.apache.commons.collections4.map.ListOrderedMap;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -67,7 +68,11 @@ public class VectorSearchService {
 	
 	@Autowired
 	private ModelService modelService;
-	
+
+	/** 벡터 서버 사용 여부. false 면 벡터 서버를 호출하지 않는다. */
+	@Value("${vector.enabled:false}")
+	private boolean vectorEnabled;
+
 	/**
 	 * 셋 ID 로 ElasticSearch에 메타데이터 벡터 정보 등록/수정
 	 * TODO 임시적
@@ -76,6 +81,10 @@ public class VectorSearchService {
 	@SuppressWarnings("unchecked")
 	public void saveVentorDataBySetId(String medataSetId) {
 		log.debug("[셋 ID 로 ElasticSearch에 메타데이터 벡터 정보 등록/수정] 서비스 시작 - {}", medataSetId);
+		if (!vectorEnabled) {
+			log.debug("[셋 ID 로 ElasticSearch에 메타데이터 벡터 정보 등록/수정] 벡터 서버 미사용 - {}", medataSetId);
+			return;
+		}
 		try {
 			MetadataSetDto setDto = metadataSetService.getMetadataSet(medataSetId);
 			if (setDto == null) throw new ResNotFoundException("메타데이터 셋 데이터가 존재하지 않습니다.");
@@ -111,6 +120,10 @@ public class VectorSearchService {
 	 */
 	public void deleteVectorDataBySetId(String medataSetId) {
 		log.debug("[셋 ID 로 ElasticSearch에 메타데이터 벡터 정보 삭제] 서비스 시작 - {}", medataSetId);
+		if (!vectorEnabled) {
+			log.debug("[셋 ID 로 ElasticSearch에 메타데이터 벡터 정보 삭제] 벡터 서버 미사용 - {}", medataSetId);
+			return;
+		}
 		try {
 			String jwtToken = AuthUtil.getCurrentJwtToken();
 			
@@ -135,6 +148,10 @@ public class VectorSearchService {
 	 */
 	public void saveVentorData(String medataSetId, ListOrderedMap<String, Object> medataSetMap, ModelInfoDto modelInfoDto, List<CamelCaseMap> upSetList, String jwtToken) {
         log.debug("[메타데이터 셋별 벡터 데이터 저장] 서비스 시작 - {}", medataSetId);
+        if (!vectorEnabled) {
+            log.debug("[메타데이터 셋별 벡터 데이터 저장] 벡터 서버 미사용 - {}", medataSetId);
+            return;
+        }
         try {
 	    	// 하위 데이터 목록.
 	    	MetadataSearchVo paramVo = new MetadataSearchVo();
@@ -207,6 +224,10 @@ public class VectorSearchService {
      */
     public void deleteVectorData(String medataSetId, String jwtToken) {
         log.debug("[벡터 삭제] 서비스 시작: {}", medataSetId);
+        if (!vectorEnabled) {
+            log.debug("[벡터 삭제] 벡터 서버 미사용 - {}", medataSetId);
+            return;
+        }
 
         try {
 	        if (medataSetId == null || medataSetId.isBlank()) {
@@ -254,7 +275,11 @@ public class VectorSearchService {
      */
     public String askToVector(String question, String jwtToken) {
         log.debug("[벡터 검색] 서비스 시작: {}", question);
-        
+        if (!vectorEnabled) {
+            log.debug("[벡터 검색] 벡터 서버 미사용");
+            throw new ResBizInfoException("벡터 검색을 사용할 수 없습니다.");
+        }
+
         try {
 	        HttpHeaders headers = new HttpHeaders();
 	        headers.setContentType(MediaType.APPLICATION_JSON);
