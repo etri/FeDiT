@@ -82,6 +82,7 @@ fi
 : "${KUBEFLOW_NODE_PORT:=30080}"
 : "${KEYCLOAK_NODE_PORT:=30081}"
 : "${REGISTRY_PORT:=5000}"
+: "${OPEN_HOST_FIREWALL_PORTS:=true}"
 : "${KUBERNETES_VERSION:=1.30.14}"
 : "${CALICO_VERSION:=v3.30.2}"
 : "${LOCAL_PATH_PROVISIONER_VERSION:=v0.0.31}"
@@ -129,6 +130,7 @@ fi
 : "${CONTAINER_MODE:=auto}"
 : "${PORTABLE_NETWORK_CONFIG:=true}"
 : "${CONTAINER_DNS_SERVERS:=auto}"
+: "${NEXT_START_SCRIPT:=02-start-prediction-manager.sh}"
 
 if [[ "$CONTAINER_MODE" == "auto" ]]; then
   if [[ -f /.dockerenv ]] && [[ "$(ps -p 1 -o comm= 2>/dev/null || true)" != "systemd" ]]; then
@@ -174,6 +176,10 @@ bool_true() {
     1|true|yes|on) return 0 ;;
     *) return 1 ;;
   esac
+}
+
+gpu_stack_enabled() {
+  bool_true "$REQUIRE_NVIDIA_GPU" || bool_true "$INSTALL_NVIDIA_TOOLKIT"
 }
 
 detect_gpu_hardware() {
@@ -457,6 +463,7 @@ required_installer_files=(
   scripts/bootstrap-verification.sh
   scripts/prepare-install-config.sh
   scripts/diagnose-install-entry.sh
+  scripts/show-access-urls.sh
   k8s/deployment.yaml.template
   k8s/verification/kubeflow-kustomization.yaml
   k8s/verification/postgres-keycloak.yaml.template
@@ -551,9 +558,18 @@ dry_run() {
   CURRENT_STAGE="dry-run"
   validate_source
   validate_ports
-  if nvidia-smi >/dev/null 2>&1; then
-    detect_gpu_hardware
-    record PASS "GPU 자동 설정" "${GPU_PHYSICAL_COUNT}x ${GPU_MODEL}, 최소 VRAM ${GPU_VRAM_GIB} GiB, GPU당 슬롯 ${GPU_TIME_SLICES}, Ray GPU worker max ${PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS}"
+  if gpu_stack_enabled; then
+    if nvidia-smi >/dev/null 2>&1; then
+      detect_gpu_hardware
+      record PASS "GPU 자동 설정" "${GPU_PHYSICAL_COUNT}x ${GPU_MODEL}, 최소 VRAM ${GPU_VRAM_GIB} GiB, GPU당 슬롯 ${GPU_TIME_SLICES}, Ray GPU worker max ${PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS}"
+    elif bool_true "$REQUIRE_NVIDIA_GPU"; then
+      echo "NVIDIA GPU가 필수이지만 nvidia-smi가 동작하지 않습니다." >&2
+      return 1
+    else
+      record WARN "GPU 자동 설정" "GPU가 없어 생략"
+    fi
+  else
+    record SKIP "GPU 자동 설정" "CPU 전용 모드"
   fi
   bash -n "${PROJECT_ROOT}/install-verification.sh" "${PROJECT_ROOT}/scripts/bootstrap-verification.sh"
   record PASS "Shell 구문" "entrypoint와 전체 설치기"
@@ -567,16 +583,22 @@ dry_run() {
       KEYCLOAK_NODE_PORT=30081 envsubst \
       < "${PROJECT_ROOT}/k8s/verification/postgres-keycloak.yaml.template" \
       > "${temp_dir}/platform.yaml"
-    GPU_TIME_SLICES=4 envsubst \
-      < "${PROJECT_ROOT}/k8s/verification/nvidia-time-slicing.yaml" \
-      > "${temp_dir}/time-slicing.yaml"
+    if bool_true "$INSTALL_NVIDIA_TOOLKIT"; then
+      GPU_TIME_SLICES=4 envsubst \
+        < "${PROJECT_ROOT}/k8s/verification/nvidia-time-slicing.yaml" \
+        > "${temp_dir}/time-slicing.yaml"
+    fi
     # shellcheck disable=SC2016
     local unresolved_marker='${'
     grep -qF "$unresolved_marker" "${temp_dir}/platform.yaml" && {
       echo "렌더링되지 않은 변수가 있습니다." >&2
       return 1
     }
-    record PASS "검수 Manifest 렌더링" "PostgreSQL/Keycloak/GPU"
+    if bool_true "$INSTALL_NVIDIA_TOOLKIT"; then
+      record PASS "검수 Manifest 렌더링" "PostgreSQL/Keycloak/GPU"
+    else
+      record PASS "검수 Manifest 렌더링" "PostgreSQL/Keycloak (CPU 모드)"
+    fi
   else
     record WARN "검수 Manifest 렌더링" "envsubst 미설치로 생략; 실제 실행에서 설치됨"
   fi
@@ -592,7 +614,7 @@ dry_run() {
 7. PostgreSQL, Keycloak/OIDC, Prometheus 구성
 8. Prediction Manager/프런트엔드/MLflow/Ray/NiFi/Label Studio 이미지 빌드·Push
 9. Prediction Manager와 필수 연동 서비스 배포
-10. 기본 tenant MLflow/Ray/NiFi 생성 및 HTTP/DB/GPU 최종 검증
+10. 기본 tenant MLflow/Ray/NiFi 생성 및 HTTP/DB/하드웨어 최종 검증
 EOF
   record PASS "전체 설치 계획" "10개 단계"
   finish_report
@@ -643,7 +665,7 @@ fi
 export NODE_IP REGISTRY_HOST REGISTRY_URL REGISTRY_POD_URL KUBEFLOW_URL KEYCLOAK_PUBLIC_URL
 export CONTAINER_DNS_SERVERS
 export KUBECONFIG=/etc/kubernetes/admin.conf
-if nvidia-smi >/dev/null 2>&1; then
+if gpu_stack_enabled && nvidia-smi >/dev/null 2>&1; then
   detect_gpu_hardware
 fi
 
@@ -758,7 +780,7 @@ host_dependencies() {
     apt-transport-https ca-certificates chrony conntrack curl docker.io containerd \
     docker-buildx ebtables ethtool gettext-base git gnupg gpg iproute2 iptables \
     jq kmod lsb-release openssl pciutils python3 python3-yaml socat \
-    software-properties-common unzip xz-utils
+    software-properties-common unzip util-linux xz-utils
   if systemd_available; then
     systemctl enable --now chrony containerd docker
   else
@@ -790,14 +812,18 @@ host_dependencies() {
   install_kustomize
   install_helm
 
-  if nvidia-smi >/dev/null 2>&1; then
-    detect_gpu_hardware
-    record PASS "GPU 자동 탐지" "${GPU_PHYSICAL_COUNT}x ${GPU_MODEL}, 최소 VRAM ${GPU_VRAM_GIB} GiB, driver ${GPU_DRIVER_VERSION}, GPU당 슬롯 ${GPU_TIME_SLICES}"
-  elif bool_true "$REQUIRE_NVIDIA_GPU"; then
-    echo "NVIDIA GPU가 필수이지만 nvidia-smi가 동작하지 않습니다. driver는 설치 전에 별도로 준비하세요." >&2
-    return 1
+  if gpu_stack_enabled; then
+    if nvidia-smi >/dev/null 2>&1; then
+      detect_gpu_hardware
+      record PASS "GPU 자동 탐지" "${GPU_PHYSICAL_COUNT}x ${GPU_MODEL}, 최소 VRAM ${GPU_VRAM_GIB} GiB, driver ${GPU_DRIVER_VERSION}, GPU당 슬롯 ${GPU_TIME_SLICES}"
+    elif bool_true "$REQUIRE_NVIDIA_GPU"; then
+      echo "NVIDIA GPU가 필수이지만 nvidia-smi가 동작하지 않습니다. driver는 설치 전에 별도로 준비하세요." >&2
+      return 1
+    else
+      record WARN "NVIDIA GPU" "GPU가 없어 생략"
+    fi
   else
-    record SKIP "NVIDIA driver" "CPU 전용 구성"
+    record SKIP "NVIDIA GPU/driver" "CPU 전용 구성; 탐지나 변경하지 않음"
   fi
 }
 
@@ -1634,9 +1660,59 @@ provision_tenant_resources() {
     -o json | jq -e 'any(.items[]?; any(.status.conditions[]?; .type == "Ready" and .status == "True"))' >/dev/null
 }
 
-configure_container_access() {
-  bool_true "$CONTAINER_MODE" || return 0
-  local service_dir runner pid_file old_pid frontend_image
+wait_for_access_port() {
+  local port="$1" name="$2" attempt localhost_ready node_ready
+  for attempt in $(seq 1 60); do
+    localhost_ready=false
+    node_ready=false
+    (exec 9<>"/dev/tcp/127.0.0.1/${port}") 2>/dev/null && localhost_ready=true
+    (exec 9<>"/dev/tcp/${NODE_IP}/${port}") 2>/dev/null && node_ready=true
+    if [[ "$localhost_ready" == true && "$node_ready" == true ]]; then
+      record PASS "${name} 포트" "127.0.0.1/${NODE_IP}:${port} listening"
+      return 0
+    fi
+    sleep 2
+  done
+  echo "${name} 포트가 120초 안에 열리지 않았습니다: ${port}" >&2
+  return 1
+}
+
+configure_host_firewall_ports() {
+  bool_true "$CONTAINER_MODE" && {
+    record SKIP "호스트 방화벽" "컨테이너 외부 Docker 호스트에서 관리"
+    return 0
+  }
+  bool_true "$OPEN_HOST_FIREWALL_PORTS" || {
+    record SKIP "호스트 방화벽" "OPEN_HOST_FIREWALL_PORTS=false"
+    return 0
+  }
+
+  local port
+  local -a ports=(15000 15001 15002 15003 18000 18080 19090 30080 30081)
+  if command -v ufw >/dev/null 2>&1 \
+      && LC_ALL=C ufw status 2>/dev/null | grep -q '^Status: active'; then
+    for port in "${ports[@]}"; do
+      ufw allow "${port}/tcp" comment 'Prediction Manager verification' >/dev/null
+    done
+    record PASS "호스트 UFW 포트" "${ports[*]}"
+    return 0
+  fi
+
+  if command -v firewall-cmd >/dev/null 2>&1 \
+      && systemctl is-active --quiet firewalld; then
+    for port in "${ports[@]}"; do
+      firewall-cmd --permanent --add-port="${port}/tcp" >/dev/null
+    done
+    firewall-cmd --reload >/dev/null
+    record PASS "호스트 firewalld 포트" "${ports[*]}"
+    return 0
+  fi
+
+  record PASS "호스트 방화벽" "활성 UFW/firewalld 없음; 서비스 리스닝 사용"
+}
+
+configure_service_access() {
+  local service_dir runner pid_file old_pid frontend_image access_unit
   service_dir="$(service_state_dir)"
   runner="${service_dir}/port-forwards.sh"
   pid_file="${service_dir}/port-forwards.pid"
@@ -1645,13 +1721,14 @@ configure_container_access() {
   if bool_true "$BUILD_FRONTEND_IMAGE"; then
     frontend_image="${REGISTRY_HOST}/${FRONTEND_IMAGE_TAG}"
     docker rm -f fedit-fe >/dev/null 2>&1 || true
-    docker run -d --restart=unless-stopped --name fedit-fe -p 18080:80 \
+    docker run -d --restart=unless-stopped --name fedit-fe -p 0.0.0.0:18080:80 \
       --add-host=host.docker.internal:host-gateway \
       -e NDXPRO_ENV_PREDICTION_MANAGER_URL=/prediction-manager/ \
       -e NDXPRO_ENV_KUBEFLOW_URL=http://__BROWSER_HOST__:30080 \
       -e NDXPRO_ENV_MLFLOW_URL=http://__BROWSER_HOST__:15000 \
       -e NDXPRO_ENV_RAY_URL=http://__BROWSER_HOST__:15002 \
       -e NDXPRO_ENV_NIFI_URL=http://__BROWSER_HOST__:15001/nifi/ \
+      -v "${PREDICTION_MANAGER_FRONTEND_ROOT}/nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
       "$frontend_image" >/dev/null
     record PASS "FeDiT 프런트엔드 실행" "http://${NODE_IP}:18080"
   fi
@@ -1665,6 +1742,8 @@ umask 022
 export KUBECONFIG=/etc/kubernetes/admin.conf
 state_dir=/opt/prediction-manager-verification/services/port-forward-pids
 mkdir -p "$state_dir"
+exec 8>/opt/prediction-manager-verification/services/port-forwards.lock
+flock -n 8 || exit 0
 specs=(
   'kubeflow|prediction-manager|18000:80|pm'
   'monitoring|kube-prometheus-stack-prometheus|19090:9090|prometheus'
@@ -1681,8 +1760,14 @@ cleanup_children() {
     [[ -n "$pid" ]] && kill "$pid" 2>/dev/null || true
   done
 }
-trap cleanup_children EXIT INT TERM
-while sleep 3; do
+shutdown_runner() {
+  trap - EXIT INT TERM
+  cleanup_children
+  exit 0
+}
+trap cleanup_children EXIT
+trap shutdown_runner INT TERM
+while true; do
   for spec in "${specs[@]}"; do
     IFS='|' read -r namespace service mapping name <<<"$spec"
     pid_file="${state_dir}/${name}.pid"
@@ -1693,19 +1778,87 @@ while sleep 3; do
     kubectl -n "$namespace" get "service/$service" >/dev/null 2>&1 || continue
     kubectl -n "$namespace" port-forward --address=0.0.0.0 \
       "service/$service" "$mapping" \
-      >>"/opt/prediction-manager-verification/services/${name}-forward.log" 2>&1 &
+      >>"/opt/prediction-manager-verification/services/${name}-forward.log" 2>&1 8>&- &
     printf '%s\n' "$!" >"$pid_file"
   done
+  sleep 3
 done
 EOF_PORT_FORWARD_RUNNER
+  # The runner template stays literal so its runtime variables are not
+  # expanded while generating it. Replace only the state directory with this
+  # installation profile's configured location.
+  sed -i "s#/opt/prediction-manager-verification/services#${service_dir}#g" "$runner"
   chmod 755 "$runner"
+
+  # Stop every runner left by an older install or container restart. Relying
+  # on one pid file allows duplicate runners to race and briefly close ports.
+  if systemd_available && systemctl list-unit-files prediction-manager-access.service \
+      >/dev/null 2>&1; then
+    systemctl stop prediction-manager-access.service >/dev/null 2>&1 || true
+  fi
+  while read -r old_pid; do
+    [[ -n "$old_pid" ]] && kill "$old_pid" 2>/dev/null || true
+  done < <(pgrep -f "^(/bin/)?bash ${runner}$" 2>/dev/null || true)
   if [[ -s "$pid_file" ]]; then
     old_pid="$(cat "$pid_file")"
     kill "$old_pid" 2>/dev/null || true
   fi
-  nohup "$runner" >>"${service_dir}/port-forwards.log" 2>&1 &
-  printf '%s\n' "$!" > "$pid_file"
-  record PASS "검증 포트포워딩" "15000-15003, 18000, 19090"
+  sleep 1
+  # Legacy runners handled TERM without exiting. Force-stop only survivors;
+  # this occurs before the replacement runner is started.
+  while read -r old_pid; do
+    [[ -n "$old_pid" ]] && kill -KILL "$old_pid" 2>/dev/null || true
+  done < <(pgrep -f "^(/bin/)?bash ${runner}$" 2>/dev/null || true)
+  # Also remove orphaned kubectl port-forwards whose parent runner was killed.
+  # They otherwise keep both the TCP ports and an inherited lock descriptor.
+  while read -r old_pid; do
+    [[ -n "$old_pid" ]] && kill "$old_pid" 2>/dev/null || true
+  done < <(pgrep -f '^kubectl -n .+ port-forward( --address=0\.0\.0\.0)? service/(prediction-manager|kube-prometheus-stack-prometheus|pm-mlflow|nifi|pm-ray-head-svc|label-studio) ' 2>/dev/null || true)
+  sleep 1
+  while read -r old_pid; do
+    [[ -n "$old_pid" ]] && kill -KILL "$old_pid" 2>/dev/null || true
+  done < <(pgrep -f '^kubectl -n .+ port-forward( --address=0\.0\.0\.0)? service/(prediction-manager|kube-prometheus-stack-prometheus|pm-mlflow|nifi|pm-ray-head-svc|label-studio) ' 2>/dev/null || true)
+
+  if systemd_available; then
+    access_unit=/etc/systemd/system/prediction-manager-access.service
+    cat > "$access_unit" <<EOF_ACCESS_UNIT
+[Unit]
+Description=Prediction Manager host access port forwards
+After=network-online.target docker.service containerd.service kubelet.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=${runner}
+Restart=always
+RestartSec=5
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target
+EOF_ACCESS_UNIT
+    chmod 0644 "$access_unit"
+    systemctl daemon-reload
+    systemctl enable prediction-manager-access.service >/dev/null
+    systemctl restart prediction-manager-access.service
+    record PASS "호스트 포트포워딩 서비스" "systemd 자동 시작"
+  else
+    nohup setsid "$runner" </dev/null >>"${service_dir}/port-forwards.log" 2>&1 &
+    printf '%s\n' "$!" > "$pid_file"
+    record PASS "컨테이너 포트포워딩 프로세스" "entrypoint 재시작 연동"
+  fi
+
+  configure_host_firewall_ports
+  wait_for_access_port 18000 "Prediction Manager"
+  if bool_true "$PROVISION_DEFAULT_TENANT"; then
+    wait_for_access_port 15000 "MLflow"
+    wait_for_access_port 15001 "NiFi"
+    wait_for_access_port 15002 "Ray Dashboard"
+  fi
+  bool_true "$INSTALL_LABEL_STUDIO" && wait_for_access_port 15003 "Label Studio"
+  bool_true "$INSTALL_MONITORING" && wait_for_access_port 19090 "Prometheus"
+  bool_true "$BUILD_FRONTEND_IMAGE" && wait_for_access_port 18080 "FeDiT"
+  record PASS "서비스 접근 포트" "15000-15003, 18000, 18080, 19090"
 }
 
 final_validation() {
@@ -1812,40 +1965,63 @@ EOF
 
 if bool_true "$VALIDATE_ONLY"; then
   run_always "최종 기능 검증" final_validation
-  run_always "컨테이너 접근 서비스 구성" configure_container_access
+  run_always "서비스 접근 포트 구성" configure_service_access
   finish_report
   exit 0
 fi
 
 run_stage 00-preflight "사전 점검" preflight
-run_stage 10-host-dependencies "호스트 의존성 및 기존 NVIDIA driver 확인" host_dependencies
+if gpu_stack_enabled; then
+  host_dependency_label="호스트 의존성 및 기존 NVIDIA driver 확인"
+else
+  host_dependency_label="호스트 의존성 (CPU 전용)"
+fi
+run_stage 10-host-dependencies "$host_dependency_label" host_dependencies
 
 if bool_true "$DEPENDENCIES_ONLY"; then
-  record PASS "필수 모듈 일괄 설치" "서비스 실행 전 준비 완료; NVIDIA driver는 변경하지 않음"
+  if gpu_stack_enabled; then
+    dependency_mode_summary="NVIDIA driver는 변경하지 않음"
+  else
+    dependency_mode_summary="CPU 전용; NVIDIA 패키지를 설치하지 않음"
+  fi
+  record PASS "필수 모듈 일괄 설치" "서비스 실행 전 준비 완료; ${dependency_mode_summary}"
   finish_report
-  cat <<EOF
-
-서비스 실행 전 필수 모듈 설치가 완료되었습니다.
-- NVIDIA driver: 기존 driver 확인만 수행(설치/업데이트 없음)
-- GPU 자동 탐지: ${GPU_PHYSICAL_COUNT:-0}개, ${GPU_MODEL:-미탐지}
-- 다음 단계: ./02-start-prediction-manager.sh
-- 설치 보고서: ${REPORT_FILE}
-EOF
+  echo
+  echo "서비스 실행 전 필수 모듈 설치가 완료되었습니다."
+  if gpu_stack_enabled; then
+    echo "- NVIDIA driver: 기존 driver 확인만 수행(설치/업데이트 없음)"
+    echo "- GPU 자동 탐지: ${GPU_PHYSICAL_COUNT:-0}개, ${GPU_MODEL:-미탐지}"
+  else
+    echo "- 실행 모드: CPU 전용"
+    echo "- NVIDIA driver/toolkit/device plugin/DCGM: 설치 및 검사 생략"
+  fi
+  echo "- 다음 단계: ./${NEXT_START_SCRIPT}"
+  echo "- 설치 보고서: ${REPORT_FILE}"
   exit 0
 fi
 
 run_stage 20-runtime "Docker/containerd/Registry 구성" configure_runtime
 run_stage 30-kubernetes "Kubernetes 단일 노드 구성" install_kubernetes
 run_stage 40-addons "Calico/StorageClass/Metrics Server" install_cluster_addons
-run_stage 50-gpu "GPU Device Plugin과 Time-Slicing" install_gpu_plugin
+if bool_true "$INSTALL_NVIDIA_TOOLKIT"; then
+  gpu_stage_label="GPU Device Plugin과 Time-Slicing"
+else
+  gpu_stage_label="GPU 구성 생략 (CPU 전용)"
+fi
+run_stage 50-gpu "$gpu_stage_label" install_gpu_plugin
 run_stage 60-kubeflow "Kubeflow/KFP/KServe/KubeRay" install_kubeflow
 run_stage 70-data-services "PostgreSQL/Keycloak/OIDC" install_data_services
-run_stage 80-monitoring "Prometheus/DCGM 모니터링" install_monitoring_stack
+if bool_true "$INSTALL_NVIDIA_TOOLKIT"; then
+  monitoring_stage_label="Prometheus/DCGM 모니터링"
+else
+  monitoring_stage_label="Prometheus 모니터링 (CPU 전용)"
+fi
+run_stage 80-monitoring "$monitoring_stage_label" install_monitoring_stack
 run_always "프로젝트 이미지 빌드 및 Push" build_and_push_images
 run_always "Prediction Manager/Label Studio 배포" deploy_prediction_manager
 run_always "기본 tenant MLflow/Ray/NiFi 구성" provision_tenant_resources
 run_always "최종 기능 검증" final_validation
-run_always "컨테이너 접근 서비스 구성" configure_container_access
+run_always "서비스 접근 포트 구성" configure_service_access
 
 systemctl disable prediction-manager-verification-resume.service >/dev/null 2>&1 || true
 record PASS "자동 재개 서비스" "설치 완료 후 비활성화"

@@ -15,6 +15,13 @@ set -a
 source "$CONFIG_FILE"
 set +a
 
+bool_true() {
+  case "${1,,}" in
+    1|true|yes|on) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 backend_root="${PREDICTION_MANAGER_ROOT:-auto}"
 frontend_root="${PREDICTION_MANAGER_FRONTEND_ROOT:-auto}"
 [[ "$backend_root" == auto ]] && backend_root="${PROJECT_ROOT}/.."
@@ -56,13 +63,18 @@ else
   done
 fi
 
-if command -v nvidia-smi >/dev/null 2>&1 \
+if ! bool_true "${REQUIRE_NVIDIA_GPU:-true}" \
+    && ! bool_true "${INSTALL_NVIDIA_TOOLKIT:-true}"; then
+  echo "[PASS] CPU 전용 모드: NVIDIA GPU/driver/toolkit 진입 검사 생략"
+elif command -v nvidia-smi >/dev/null 2>&1 \
     && gpu_lines="$(nvidia-smi --query-gpu=index --format=csv,noheader 2>/dev/null)"; then
   gpu_count="$(wc -l <<<"$gpu_lines" | tr -d ' ')"
   echo "[DIAG] NVIDIA GPU: ${gpu_count}개 감지"
-else
+elif bool_true "${REQUIRE_NVIDIA_GPU:-true}"; then
   echo "[FAIL] nvidia-smi를 실행할 수 없습니다. 드라이버는 이 설치기가 설치하지 않습니다." >&2
   exit 1
+else
+  echo "[DIAG] NVIDIA GPU: 선택 사항이며 감지되지 않아 생략"
 fi
 
 echo "[PASS] 01 설치 진입 진단 완료"
