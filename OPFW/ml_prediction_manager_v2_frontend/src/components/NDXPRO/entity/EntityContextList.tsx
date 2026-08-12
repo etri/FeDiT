@@ -10,13 +10,17 @@ function EntityContextList() {
 
   useEffect(() => {
     getContextData().then((res: string[]) => {
-      const filteredContextList = res.filter((el) => !el.includes('ngsi-ld'));
+      const contexts = Array.isArray(res) ? res : [];
+      const filteredContextList = contexts.filter(
+        (el) => !el.includes('ngsi-ld'),
+      );
       setContextList(filteredContextList);
     });
   }, []);
 
   return (
     <ul className="entity-context-list">
+      {contextList.length === 0 && <li className="no-data">No Data</li>}
       {contextList.map((contextData, idx) => {
         return (
           <ContextListItem

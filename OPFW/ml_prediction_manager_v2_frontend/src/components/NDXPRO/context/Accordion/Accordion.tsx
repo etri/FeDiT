@@ -15,12 +15,17 @@ function Accordion({ pagePath }: IProps) {
 
   useEffect(() => {
     getContextData().then((res: string[]) => {
-      const findStr = res.filter((el) => el.includes('ngsi-ld'));
-      const idx = res.indexOf(findStr[0]);
-      const temp = res[idx];
-      res.splice(idx, 1);
-      res.unshift(temp);
-      setContexts(res);
+      const contexts = Array.isArray(res) ? res : [];
+      const findStr = contexts.filter((el) => el.includes('ngsi-ld'));
+      if (findStr.length === 0) {
+        setContexts(contexts);
+        return;
+      }
+      const idx = contexts.indexOf(findStr[0]);
+      const reordered = [...contexts];
+      const temp = reordered.splice(idx, 1)[0];
+      reordered.unshift(temp);
+      setContexts(reordered);
     });
   }, []);
 

@@ -17,6 +17,9 @@ _ANONYMOUS_SENTINEL = "__anonymous__@__unauthenticated__"
 
 _ALLOW_UNAUTH = _os.environ.get("ALLOW_UNAUTHENTICATED", "").lower() in ("1", "true", "yes")
 _DEV_USER_EMAIL = _os.environ.get("DEV_USER_EMAIL", "")
+_DEFAULT_NAMESPACE = _os.environ.get(
+    "DEFAULT_NAMESPACE", "kubeflow-user-example-com"
+).strip() or "kubeflow-user-example-com"
 
 
 def get_user_email(request: Request) -> str:
@@ -49,6 +52,8 @@ def require_authenticated(request: Request) -> str:
 def _get_owner_namespace(request: Request) -> str:
     """이메일로 Profile owner 검색해서 기본 네임스페이스 반환"""
     email = get_user_email(request)
+    if not kubernetes_client.KUBERNETES_AVAILABLE:
+        return _DEFAULT_NAMESPACE
     try:
         resp = custom_api.list_cluster_custom_object(
             "kubeflow.org", "v1", "profiles"
@@ -107,6 +112,13 @@ def get_user_accessible_namespaces(request: Request) -> list[dict]:
     KFAM API의 RoleBinding을 검색
     """
     email = get_user_email(request)
+    if not kubernetes_client.KUBERNETES_AVAILABLE:
+        return [
+            {
+                "namespace": _get_owner_namespace(request),
+                "role": "admin" if is_admin(request) else "owner",
+            }
+        ]
     if is_admin(request):
         # 관리자는 모든 네임스페이스
         return [

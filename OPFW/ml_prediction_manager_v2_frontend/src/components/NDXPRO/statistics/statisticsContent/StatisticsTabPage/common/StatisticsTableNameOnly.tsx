@@ -6,7 +6,8 @@ import StatisticsTableItem from './StatisticsTableItem';
 
 export const NameList = (data: any, type: string) => {
   const setTableList = (data: any) => {
-    return data.dataModel.map((task: any) => (
+    const dataModels = Array.isArray(data?.dataModel) ? data.dataModel : [];
+    return dataModels.map((task: any) => (
       <StatisticsTableItem key={task} name={task} task={null} type={type} />
     ));
   };
@@ -33,6 +34,8 @@ function StatisticsTableNameOnly({ type }: { type: string }) {
     );
   }
 
+  const dataModels = Array.isArray(data?.dataModel) ? data.dataModel : [];
+
   return (
     <ul className="statistics-table name-only">
       <li className="summary thead">
@@ -40,7 +43,10 @@ function StatisticsTableNameOnly({ type }: { type: string }) {
           <p>{returnStatesByType(type)?.title}</p>
         </button>
       </li>
-      {!loading && !error && data && NameList(data, type)}
+      {!loading && !error && dataModels.length > 0 && NameList(data, type)}
+      {!loading && !error && dataModels.length === 0 && (
+        <li className="statistics-no-data-row">No Data</li>
+      )}
     </ul>
   );
 }

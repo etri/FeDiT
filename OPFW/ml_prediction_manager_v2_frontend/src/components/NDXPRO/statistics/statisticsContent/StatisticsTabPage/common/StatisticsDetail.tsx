@@ -8,6 +8,7 @@ import { useRecoilState, useRecoilValue } from 'recoil';
 import lang from '../../../lang.json';
 import BarChart from '../../chart/BarChart';
 import DountChart from '../../chart/DonutChart';
+import NoData from '../../NoData';
 import StatisticsError from '../../statisticsError';
 import StatisticsLoading from '../../statisticsLoading';
 import StatisticsText from '../../Text';
@@ -38,7 +39,7 @@ function StatisticsDetail() {
     TextItem: StatisticsTextItem,
   });
 
-  if (loading || !data) {
+  if (loading) {
     return (
       <div className="statistics-detail">
         <StatisticsLoading />
@@ -54,8 +55,19 @@ function StatisticsDetail() {
     );
   }
 
-  const currentWeekStatistics = data?.statistics;
-  const currentDateStatistics = data?.statistics[data.statistics.length - 1];
+  const currentWeekStatistics = Array.isArray(data?.statistics)
+    ? data.statistics
+    : [];
+  const currentDateStatistics =
+    currentWeekStatistics[currentWeekStatistics.length - 1];
+
+  if (!currentDateStatistics) {
+    return (
+      <div className="statistics-detail">
+        <NoData />
+      </div>
+    );
+  }
 
   const [success, fail, total, failProbablity, successProbablity] =
     useEntityData(currentDateStatistics);

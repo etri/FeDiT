@@ -69,12 +69,13 @@ function EntityList({
       const data = isDynamic
         ? await getIotEntities(config)
         : await getEntities(config);
+      const entityList = Array.isArray(data?.entities) ? data.entities : [];
 
       setEntitiesData((prev) => {
-        return isInit ? data.entities : [...prev, ...data.entities];
+        return isInit ? entityList : [...prev, ...entityList];
       });
 
-      if (data.entities.length === 0 || pageLimit > data.entities.length) {
+      if (entityList.length === 0 || pageLimit > entityList.length) {
         setIsEnableScroll(false);
         observerController.stopObserver();
       }

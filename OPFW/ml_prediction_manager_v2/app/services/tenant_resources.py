@@ -25,6 +25,7 @@ custom_api = kubernetes_client.custom_objects()
 TENANT_RESOURCES_ENABLED = os.environ.get(
     "PM_TENANT_RESOURCES_ENABLED", "true"
 ).lower() in ("1", "true", "yes")
+STANDALONE_MODE = not kubernetes_client.KUBERNETES_AVAILABLE or not TENANT_RESOURCES_ENABLED
 
 MLFLOW_SERVICE_NAME = os.environ.get("PM_MLFLOW_SERVICE_NAME", "pm-mlflow")
 MLFLOW_POD_SELECTOR = os.environ.get("PM_MLFLOW_POD_SELECTOR", "app=pm-mlflow")
@@ -38,6 +39,18 @@ LEGACY_RAY_DASHBOARD_URL = os.environ.get(
     "RAY_DASHBOARD_URL",
     "http://ray-optuna-mlflow-cluster-head-svc.ray-system:8265",
 )
+LEGACY_NIFI_API_URL = os.environ.get(
+    "NIFI_API_BASE_URL", "http://fedit-nifi:8080/nifi-api"
+).rstrip("/")
+STANDALONE_MLFLOW_PUBLIC_URL = os.environ.get(
+    "PM_STANDALONE_MLFLOW_PUBLIC_URL", ""
+).strip()
+STANDALONE_RAY_PUBLIC_URL = os.environ.get(
+    "PM_STANDALONE_RAY_PUBLIC_URL", ""
+).strip()
+STANDALONE_NIFI_PUBLIC_URL = os.environ.get(
+    "PM_STANDALONE_NIFI_PUBLIC_URL", ""
+).strip()
 
 _NS_RE = re.compile(r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?$")
 
@@ -60,6 +73,8 @@ def validate_namespace(namespace: str) -> str:
 
 def namespace_owner(namespace: str) -> str | None:
     validate_namespace(namespace)
+    if STANDALONE_MODE:
+        return os.environ.get("DEV_USER_EMAIL", "user@example.com")
     try:
         profile = custom_api.get_cluster_custom_object(
             "kubeflow.org", "v1", "profiles", namespace
@@ -92,6 +107,8 @@ def resolve_private_namespace(request: Request, namespace: str | None = None) ->
         or request.query_params.get("namespace")
         or get_user_namespace(request)
     )
+    if STANDALONE_MODE:
+        return ns
     owner = namespace_owner(ns)
     if not owner:
         raise HTTPException(status_code=404, detail=f"Profile namespace 없음: {ns}")
@@ -124,14 +141,20 @@ def ray_dashboard_url(namespace: str | None = None) -> str:
 
 
 def mlflow_public_path(namespace: str) -> str:
+    if STANDALONE_MLFLOW_PUBLIC_URL:
+        return STANDALONE_MLFLOW_PUBLIC_URL
     return f"/mlflow/{validate_namespace(namespace)}/"
 
 
 def ray_public_path(namespace: str) -> str:
+    if STANDALONE_RAY_PUBLIC_URL:
+        return STANDALONE_RAY_PUBLIC_URL
     return f"/ray/{validate_namespace(namespace)}/"
 
 
 def nifi_public_path(namespace: str) -> str:
+    if STANDALONE_NIFI_PUBLIC_URL:
+        return STANDALONE_NIFI_PUBLIC_URL
     return f"/nifi/{validate_namespace(namespace)}/"
 
 
@@ -160,7 +183,7 @@ def find_mlflow_pod(core_api: client.CoreV1Api, namespace: str | None = None) ->
 def _service_ready(namespace: str, service_name: str, port_name: str | None = None) -> bool:
     try:
         svc = core_v1.read_namespaced_service(service_name, namespace)
-    except ApiException:
+    except Exception:
         return False
     if port_name:
         names = {p.name for p in (svc.spec.ports or [])}
@@ -182,7 +205,11 @@ def _http_ready(url: str, path: str = '/', expected: tuple[int, ...] = (200, 302
 def mlflow_status(namespace: str) -> TenantDashboard:
     namespace = validate_namespace(namespace)
     internal_url = mlflow_tracking_uri(namespace)
-    ready = _service_ready(namespace, MLFLOW_SERVICE_NAME) and _http_ready(internal_url)
+    ready = (
+        _http_ready(internal_url)
+        if STANDALONE_MODE
+        else _service_ready(namespace, MLFLOW_SERVICE_NAME) and _http_ready(internal_url)
+    )
     return TenantDashboard(
         namespace=namespace,
         owner_email=namespace_owner(namespace),
@@ -196,7 +223,11 @@ def mlflow_status(namespace: str) -> TenantDashboard:
 def ray_status(namespace: str) -> TenantDashboard:
     namespace = validate_namespace(namespace)
     internal_url = ray_dashboard_url(namespace)
-    ready = _service_ready(namespace, f"{RAY_CLUSTER_NAME}-head-svc", "dashboard") and _http_ready(internal_url)
+    ready = (
+        _http_ready(internal_url)
+        if STANDALONE_MODE
+        else _service_ready(namespace, f"{RAY_CLUSTER_NAME}-head-svc", "dashboard") and _http_ready(internal_url)
+    )
     return TenantDashboard(
         namespace=namespace,
         owner_email=namespace_owner(namespace),
@@ -209,10 +240,14 @@ def ray_status(namespace: str) -> TenantDashboard:
 
 def nifi_status(namespace: str) -> TenantDashboard:
     namespace = validate_namespace(namespace)
-    internal_url = f"http://{NIFI_SERVICE_NAME}.{namespace}.svc.cluster.local:8080"
-    ready = _service_ready(namespace, NIFI_SERVICE_NAME, "http") and _http_ready(
-        internal_url, "/nifi-api/access/config", (200,)
-    )
+    if STANDALONE_MODE:
+        internal_url = LEGACY_NIFI_API_URL.rsplit("/nifi-api", 1)[0]
+        ready = _http_ready(LEGACY_NIFI_API_URL, "/access/config", (200,))
+    else:
+        internal_url = f"http://{NIFI_SERVICE_NAME}.{namespace}.svc.cluster.local:8080"
+        ready = _service_ready(namespace, NIFI_SERVICE_NAME, "http") and _http_ready(
+            internal_url, "/nifi-api/access/config", (200,)
+        )
     return TenantDashboard(
         namespace=namespace,
         owner_email=namespace_owner(namespace),

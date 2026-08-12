@@ -1,13 +1,30 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from kubernetes import client, config
 
+KUBERNETES_AVAILABLE = True
+
 try:
     config.load_incluster_config()
 except config.ConfigException:
-    config.load_kube_config()
+    try:
+        config.load_kube_config()
+    except config.ConfigException:
+        # The UI and read-only health endpoints should still be able to start
+        # when this image is run without a Kubernetes cluster. Kubernetes
+        # backed operations will fail at their own request boundary instead of
+        # preventing the FastAPI process from importing.
+        KUBERNETES_AVAILABLE = False
+        fallback = client.Configuration()
+        fallback.host = os.getenv(
+            'KUBERNETES_API_URL',
+            'http://127.0.0.1:65535',
+        )
+        fallback.verify_ssl = False
+        client.Configuration.set_default(fallback)
 
 _BASE_CONFIG = client.Configuration.get_default_copy()
 

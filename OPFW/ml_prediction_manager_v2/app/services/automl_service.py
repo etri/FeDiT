@@ -1533,7 +1533,8 @@ async def stream_logs(job_id: str):
                         continue
                     plain_lines.append(line)
                 if plain_lines:
-                    yield f"data: {json.dumps({'log': '\\n'.join(plain_lines)})}\n\n"
+                    plain_log = "\n".join(plain_lines)
+                    yield f"data: {json.dumps({'log': plain_log})}\n\n"
 
             if str(info.get("status") or "").upper() == "DELETED":
                 yield f"data: {json.dumps({'status': 'DELETED', 'message': info.get('message'), 'best': info.get('best_run')})}\n\n"

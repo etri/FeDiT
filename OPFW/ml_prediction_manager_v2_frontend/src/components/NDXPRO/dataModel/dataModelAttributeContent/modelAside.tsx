@@ -43,6 +43,9 @@ function ModelAside() {
     return <StatisticsError />;
   }
 
+  const modelPage =
+    data && Array.isArray(data.data) ? data : { data: [], totalPage: 0 };
+
   const searchSelect = (
     <>
       <InputContainer
@@ -94,8 +97,8 @@ function ModelAside() {
           {searchSelect}
         </AsideSearch>
         <AsideList isFetching={isFetching}>
-          {data.data.length === 0 && <div>No Data</div>}
-          {data.data.map((e: IDataModelListItem) => (
+          {modelPage.data.length === 0 && <div>No Data</div>}
+          {modelPage.data.map((e: IDataModelListItem) => (
             <AsideListItem
               key={e.dataModelId}
               link={e.type}
@@ -106,7 +109,7 @@ function ModelAside() {
           ))}
         </AsideList>
         <AsidePagination
-          totalPage={data.totalPage}
+          totalPage={modelPage.totalPage}
           searchOption={searchOption}
           setSearchOption={setSearchOptionHandle}
         />

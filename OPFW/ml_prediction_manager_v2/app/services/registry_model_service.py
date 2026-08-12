@@ -1,6 +1,7 @@
 """MLflow Model Registry wrapper for 상태 태깅 / 롤백 UI."""
 import os
 import re
+import threading
 from datetime import datetime, timezone
 from typing import Any
 
@@ -332,7 +333,30 @@ def _input_schema_from_source(source: str | None, namespace: str | None = None) 
         import yaml as _yaml
 
         _mlflow.set_tracking_uri(_mlflow_uri(namespace))
-        local = _mlflow.artifacts.download_artifacts(artifact_uri=source)
+        # A registry entry may exist before its artifact is uploaded. Keep that
+        # state visible in the model UI instead of blocking on artifact retries.
+        result: list[str | None] = [None]
+        failure: list[Exception] = []
+
+        def _download() -> None:
+            try:
+                result[0] = _mlflow.artifacts.download_artifacts(artifact_uri=source)
+            except Exception as exc:  # nosec - schema is optional metadata
+                failure.append(exc)
+
+        worker = threading.Thread(target=_download, daemon=True)
+        worker.start()
+        worker.join(timeout=5)
+        if worker.is_alive():
+            print(f"[registry] input schema download timed out for {source}", flush=True)
+            _MODEL_SCHEMA_CACHE[cache_key] = None
+            return None
+        if failure:
+            raise failure[0]
+        local = result[0]
+        if not local:
+            _MODEL_SCHEMA_CACHE[cache_key] = None
+            return None
         mlmodel_path = _os.path.join(local, "MLmodel")
         if not _os.path.isfile(mlmodel_path):
             _MODEL_SCHEMA_CACHE[cache_key] = None
@@ -739,14 +763,20 @@ def get_model_detail(name: str, namespace: str | None = None) -> dict:
     """모델의 모든 버전 + run 메트릭 포함."""
     if tenant_resources.TENANT_RESOURCES_ENABLED and namespace is None:
         namespace = get_model_owner_namespace(name)
-    versions_resp = _get(
-        "/api/2.0/mlflow/model-versions/search",
-        {
-            "filter": f"name='{name}'",
-            "max_results": 1000,
-        },
-        namespace=namespace,
-    )
+    # MLflow can transiently time out while a registered model has no versions
+    # (for example immediately after model metadata creation). Treat that as
+    # an empty version list so the model page can still render and be deleted.
+    try:
+        versions_resp = _get(
+            "/api/2.0/mlflow/model-versions/search",
+            {
+                "filter": f"name='{name}'",
+                "max_results": 1000,
+            },
+            namespace=namespace,
+        )
+    except Exception:  # nosec - an empty registry must not block the UI
+        versions_resp = {"model_versions": []}
     versions = versions_resp.get("model_versions", [])
     result_versions = []
     for v in versions:
@@ -1246,11 +1276,11 @@ def get_model_owner_namespace(name: str, namespace: str | None = None) -> str | 
     if namespace:
         try:
             resp = _get(
-                "/api/2.0/mlflow/model-versions/search",
+                "/api/2.0/mlflow/registered-models/search",
                 {"filter": f"name='{name}'", "max_results": 1},
                 namespace=namespace,
             )
-            if resp.get("model_versions"):
+            if resp.get("registered_models"):
                 return namespace
         except Exception:
             return None

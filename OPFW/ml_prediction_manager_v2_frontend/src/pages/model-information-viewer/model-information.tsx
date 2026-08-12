@@ -93,7 +93,6 @@ function ModelInformation({ is3DModelLoaded, tourId }: any) {
             ?.parkingMeasurement ?? {},
       });
     }
-    console.log('fdtTour', fdtTour);
   }, [fdtTour]);
 
   const { weatherData, airQualityData, trafficData, parkingData } = modelData;

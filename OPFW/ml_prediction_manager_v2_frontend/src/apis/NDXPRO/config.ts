@@ -2,36 +2,56 @@ import axios from 'axios';
 
 const { hostname } = window.location;
 
-const isLocalURL = hostname === 'localhost' || hostname === '172.16.28.222';
-const SAMPLE_TOKEN = process.env.REACT_APP_TOKEN;
+type RuntimeConfig = Record<string, string | undefined>;
+
+const runtimeConfig =
+  (window as Window & { __NDXPRO_CONFIG__?: RuntimeConfig })
+    .__NDXPRO_CONFIG__ ?? {};
+const buildConfig = process.env as Record<string, string | undefined>;
+
+const readEnv = (name: string) => {
+  const value = runtimeConfig[name] ?? buildConfig[name] ?? '';
+  return value === name ? '' : value;
+};
+
+const isLocalURL =
+  hostname === 'localhost' ||
+  hostname === '127.0.0.1' ||
+  hostname === '172.16.28.222';
+const SAMPLE_TOKEN = readEnv('REACT_APP_TOKEN');
 
 const BASE_URL = isLocalURL
-  ? process.env.REACT_APP_API_URL
-  : process.env.REACT_APP_API_OUTSIDE_URL;
+  ? readEnv('REACT_APP_API_URL')
+  : readEnv('REACT_APP_API_OUTSIDE_URL');
 
-export const VIEWER_URL = process.env.REACT_APP_VIEWER_URL;
-export const PREDICTORTOOL_URL = process.env.REACT_APP_PREDICTOR_TOOL_URL;
-export const DISCRETESIMULATORTOOL_URL =
-  process.env.REACT_APP_DISCRETE_SIMULATOR_URL;
-export const SERVICELOGICTOOL_URL =
-  process.env.REACT_APP_SERVICE_LOGIC_TOOL_URL;
-export const DIGITALSEARCH_URL = process.env.REACT_APP_DIGITAL_TWIN_SEARCH_URL;
-export const DIGITALTWINMETADATAREGISTRATION_URL =
-  process.env.REACT_APP_DIGITAL_TWIN_METADATA_REGISTRATION;
-export const METADATA_VISUALIZATION_GRAPH =
-  process.env.REACT_APP_METADATA_VISUALIZATION_GRAPH;
-export const UNION_OBJECT_SYNC_ENGINE_MANAGEMENT =
-  process.env.REACT_APP_UNION_OBJECT_SYNC_ENGINE_MANAGEMENT;
-export const VERIFICATION_DATA_ADDITION_MANAGEMENT =
-  process.env.REACT_APP_VERIFICATION_DATA_ADDITION_MANAGEMENT;
+export const VIEWER_URL = readEnv('REACT_APP_VIEWER_URL');
+export const PREDICTORTOOL_URL = readEnv('REACT_APP_PREDICTOR_TOOL_URL');
+export const DISCRETESIMULATORTOOL_URL = readEnv(
+  'REACT_APP_DISCRETE_SIMULATOR_URL',
+);
+export const SERVICELOGICTOOL_URL = readEnv('REACT_APP_SERVICE_LOGIC_TOOL_URL');
+export const DIGITALSEARCH_URL = readEnv('REACT_APP_DIGITAL_TWIN_SEARCH_URL');
+export const DIGITALTWINMETADATAREGISTRATION_URL = readEnv(
+  'REACT_APP_DIGITAL_TWIN_METADATA_REGISTRATION',
+);
+export const METADATA_VISUALIZATION_GRAPH = readEnv(
+  'REACT_APP_METADATA_VISUALIZATION_GRAPH',
+);
+export const UNION_OBJECT_SYNC_ENGINE_MANAGEMENT = readEnv(
+  'REACT_APP_UNION_OBJECT_SYNC_ENGINE_MANAGEMENT',
+);
+export const VERIFICATION_DATA_ADDITION_MANAGEMENT = readEnv(
+  'REACT_APP_VERIFICATION_DATA_ADDITION_MANAGEMENT',
+);
 
-export const PREDICTION_MANAGER_URL =
-  process.env.REACT_APP_PREDICTION_MANAGER_URL;
-export const KUBEFLOW_URL = process.env.REACT_APP_KUBEFLOW_URL;
-export const MLFLOW_URL = process.env.REACT_APP_MLFLOW_URL;
-export const RAY_URL = process.env.REACT_APP_RAY_URL;
-export const GRAFANA_URL = process.env.REACT_APP_GRAFANA_URL;
-export const NIFI_URL = process.env.REACT_APP_NIFI_URL;
+export const PREDICTION_MANAGER_URL = readEnv(
+  'REACT_APP_PREDICTION_MANAGER_URL',
+);
+export const KUBEFLOW_URL = readEnv('REACT_APP_KUBEFLOW_URL');
+export const MLFLOW_URL = readEnv('REACT_APP_MLFLOW_URL');
+export const RAY_URL = readEnv('REACT_APP_RAY_URL');
+export const GRAFANA_URL = readEnv('REACT_APP_GRAFANA_URL');
+export const NIFI_URL = readEnv('REACT_APP_NIFI_URL');
 
 export const API = {
   MANAGER: `${BASE_URL}/ndxpro/v1/manager`,

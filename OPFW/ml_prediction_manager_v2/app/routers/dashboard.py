@@ -72,6 +72,33 @@ def _count_by(items: list[dict], key: str) -> dict:
 async def get_summary(request: Request):
     admin = is_admin(request)
     my_ns = get_user_namespace(request)
+
+    # The verification image intentionally runs without a Kubernetes cluster.
+    # Keep the dashboard usable in that mode instead of making the first page
+    # load fan out to unavailable Kubernetes APIs and returning HTTP 500.
+    if not kubernetes_client.KUBERNETES_AVAILABLE:
+        return {
+            "is_admin": admin,
+            "image_count": 0,
+            "notebook_count": 0,
+            "gpu_total": 0,
+            "gpu_used": 0,
+            "gpu_available": 0,
+            "gpu_hardware": {"available": False, "reason": "Kubernetes is not connected"},
+            "notebook_status_counts": {},
+            "recent_images": [],
+            "recent_notebooks": [],
+            "user_resources": [],
+            "my_resource": {
+                "namespace": my_ns,
+                "email": "",
+                "quota": {"cpu": "0", "memory": "0", "gpu": "0", "pvc": "0", "storage": "0"},
+                "used": {"cpu": "0", "memory": "0", "gpu": "0", "pvc": "0", "storage": "0"},
+                "notebook_count": 0,
+            },
+            "automl_status_counts": {},
+            "automl_jobs": [],
+        }
     if admin:
         images = await registry_service.list_all_repositories()
         all_notebooks = []

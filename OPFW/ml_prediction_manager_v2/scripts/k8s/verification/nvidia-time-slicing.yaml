@@ -1,0 +1,16 @@
+version: v1
+flags:
+  migStrategy: none
+  failOnInitError: true
+  plugin:
+    passDeviceSpecs: false
+    deviceListStrategy:
+      - envvar
+    deviceIDStrategy: uuid
+sharing:
+  timeSlicing:
+    renameByDefault: false
+    failRequestsGreaterThanOne: false
+    resources:
+      - name: nvidia.com/gpu
+        replicas: ${GPU_TIME_SLICES}

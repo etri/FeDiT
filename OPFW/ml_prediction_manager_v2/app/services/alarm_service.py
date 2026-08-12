@@ -86,6 +86,16 @@ def _msg_fingerprint(msg: str) -> str:
     return re.sub(r"\s*\([\d.,]+[^)]*\)", "", msg).strip()
 
 
+def _number(value, default=0.0):
+    """Prometheus no-data values must not crash alarm evaluation."""
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
 # 차트 배경 구역 + 알람 임계값의 단일 소스
 ZONES = {
     "chart-gpu-util": {"warn": 70, "danger": 85},
@@ -117,31 +127,31 @@ def eval_alarms(data: dict) -> list[dict]:
 
     gpu = data.get("gpu", {})
     if gpu.get("status") == "ok":
-        util = gpu.get("util_pct", 0)
+        util = _number(gpu.get("util_pct"))
         if util > ZONES["chart-gpu-util"]["danger"]:
             _add("gpu", "critical", f"GPU 사용률이 너무 높습니다 ({util}%)")
         elif util > ZONES["chart-gpu-util"]["warn"]:
             _add("gpu", "warning", f"GPU 사용률이 높습니다 ({util}%)")
 
-        mem = gpu.get("mem_pct", 0)
+        mem = _number(gpu.get("mem_pct"))
         if mem > ZONES["chart-gpu-mem"]["danger"]:
             _add("gpu", "critical", f"GPU 메모리가 부족합니다 ({mem}%)")
         elif mem > ZONES["chart-gpu-mem"]["warn"]:
             _add("gpu", "warning", f"GPU 메모리 사용량이 높습니다 ({mem}%)")
 
-        temp = gpu.get("temp_c", 0)
+        temp = _number(gpu.get("temp_c"))
         if temp > 85:
             _add("gpu-temp", "critical", f"GPU 온도 과열 ({temp}°C)")
 
     system = data.get("system", {})
     if system.get("status") == "ok":
-        cpu = system.get("cpu_pct", 0)
+        cpu = _number(system.get("cpu_pct"))
         if cpu > ZONES["chart-cpu"]["danger"]:
             _add("system", "critical", f"CPU 사용률이 너무 높습니다 ({cpu}%)")
         elif cpu > ZONES["chart-cpu"]["warn"]:
             _add("system", "warning", f"CPU 사용률이 높습니다 ({cpu}%)")
 
-        mem = system.get("mem_pct", 0)
+        mem = _number(system.get("mem_pct"))
         if mem > ZONES["chart-mem"]["danger"]:
             _add("system", "critical", f"시스템 메모리가 부족합니다 ({mem}%)")
         elif mem > ZONES["chart-mem"]["warn"]:
@@ -156,7 +166,7 @@ def eval_alarms(data: dict) -> list[dict]:
     kserve_err = data.get("kserve_error_rate", {})
     if kserve_err.get("status") == "ok":
         for m in kserve_err.get("models", []):
-            if m.get("error_rate", 0) > 5:
+            if _number(m.get("error_rate")) > 5:
                 _add(
                     "kserve-error",
                     "critical",
@@ -167,7 +177,7 @@ def eval_alarms(data: dict) -> list[dict]:
     kserve_lat = data.get("kserve_top5_latency", {})
     if kserve_lat.get("status") == "ok":
         for m in kserve_lat.get("models", []):
-            if m.get("latency_ms", 0) > 1000:
+            if _number(m.get("latency_ms")) > 1000:
                 _add(
                     "kserve-latency",
                     "warning",
@@ -185,21 +195,22 @@ def eval_alarms(data: dict) -> list[dict]:
     if pvc.get("status") == "ok":
         for g in pvc.get("groups", []):
             ns = g.get("ns")
-            if g.get("phase_counts", {}).get("Lost", 0) > 0:
+            if _number(g.get("phase_counts", {}).get("Lost")) > 0:
                 _add("pvc", "critical", f"PVC 볼륨 손상 감지: {ns}", namespace=ns)
 
             quota = g.get("quota") or {}
-            pvc_used, pvc_limit = quota.get("pvc_used"), quota.get("pvc_limit")
+            pvc_used, pvc_limit = _number(quota.get("pvc_used")), _number(quota.get("pvc_limit"))
             if pvc_limit and pvc_used >= pvc_limit:
                 _add("pvc", "warning", f"PVC 개수 할당량 도달: {ns} ({pvc_used}/{pvc_limit}개)", namespace=ns)
 
-            st_used, st_limit = quota.get("storage_used_gb"), quota.get("storage_limit_gb")
+            st_used, st_limit = _number(quota.get("storage_used_gb")), _number(quota.get("storage_limit_gb"))
             if st_limit and st_used / st_limit >= 0.9:
                 _add("pvc", "warning", f"PVC 용량 할당량 임박: {ns} ({st_used:.1f}/{st_limit:.0f}GB)", namespace=ns)
 
             pct = g.get("quota_pct")
             if pct is None:
                 continue
+            pct = _number(pct)
             if pct >= ZONES["pvc-quota"]["danger"]:
                 _add("pvc", "critical", f"PVC quota 초과 위험: {ns} ({pct}%)", namespace=ns)
             elif pct >= ZONES["pvc-quota"]["warn"]:
