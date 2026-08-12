@@ -1,0 +1,2096 @@
+Ubuntu 22.04 클린 설치 PC - FeDiT 예측매니저 설치 명령어 순서
+================================================================
+
+작성 기준
+- Ubuntu 22.04 LTS x86_64 단일 서버
+- FeDiT 저장소: https://github.com/etri/FeDiT.git
+- 브랜치: OPFW_development_ETRI_pman
+- 검증 기준 커밋: 2085a2c31d080d53127b40345359c18281852f0b
+- Kubernetes 1.30.14, Kubeflow 1.9.1, KServe, KubeRay 필수 설치
+- NVIDIA 드라이버, NVIDIA Container Toolkit, NVIDIA Device Plugin, DCGM Exporter 설치 제외
+
+사용 방법
+1. 이 파일은 Ubuntu 터미널에서 위에서 아래 순서로 사용한다.
+2. 명령 블록을 단계별로 복사하여 실행한다. 파일 전체를 한 번에 붙여넣지 않는다.
+3. 0절의 INSTALL_PROFILE과 파일 경로를 먼저 확인한다.
+4. FULL은 CPU 4코어, 메모리 32GiB, 디스크 여유 200GiB 이상에서 사용한다.
+5. LOW_RESOURCE는 CPU 4코어, 메모리 8GiB, 8GiB swap, 디스크 여유 80GiB 이상에서 사용한다.
+6. 예측매니저_설치_스크립트_클린설치_보완본.zip은 사전에 Ubuntu PC의 Downloads 디렉터리에 복사한다.
+7. 저장소가 비공개이면 GitHub 접근 권한과 HTTPS 토큰 또는 SSH 키를 먼저 준비한다.
+8. 같은 터미널에서 계속 진행한다. 새 터미널을 열었으면 0절의 export 명령을 다시 실행한다.
+
+
+0. 사용자 설정
+-------------
+
+# FULL 또는 LOW_RESOURCE 중 하나를 지정한다.
+export INSTALL_PROFILE="FULL"
+
+# GIT 또는 ZIP 중 하나를 지정한다.
+export SOURCE_METHOD="GIT"
+
+export ADMIN_EMAIL="user@example.com"
+export WORK_ROOT="$HOME/prediction-manager-work"
+export FEDIT_ROOT="$WORK_ROOT/FeDiT"
+export PM_ROOT="$FEDIT_ROOT/OPFW/ml_prediction_manager_v2"
+export PM_FRONT_ROOT="$FEDIT_ROOT/OPFW/ml_prediction_manager_v2_frontend"
+export INSTALLER_ROOT="$WORK_ROOT/verification-installer"
+export INSTALLER_ZIP="$HOME/Downloads/예측매니저_설치_스크립트_클린설치_보완본.zip"
+
+# SOURCE_METHOD=ZIP일 때 실제 ZIP 파일 경로로 바꾼다.
+export FEDIT_ZIP="$HOME/Downloads/FeDiT.zip"
+
+export FEDIT_REPO_URL="https://github.com/etri/FeDiT.git"
+export FEDIT_BRANCH="OPFW_development_ETRI_pman"
+export REFERENCE_COMMIT="2085a2c31d080d53127b40345359c18281852f0b"
+
+printf 'PROFILE=%s\nSOURCE_METHOD=%s\nWORK_ROOT=%s\n' \
+  "$INSTALL_PROFILE" "$SOURCE_METHOD" "$WORK_ROOT"
+
+
+1. 운영체제, 자원과 네트워크 확인
+---------------------------------
+
+set -Eeuo pipefail
+
+source /etc/os-release
+printf 'OS=%s %s\nARCH=%s\n' "$ID" "$VERSION_ID" "$(uname -m)"
+test "$ID" = "ubuntu"
+test "$VERSION_ID" = "22.04"
+test "$(uname -m)" = "x86_64"
+
+printf 'CPU cores: '; nproc
+free -h
+df -h /
+ip -4 route
+
+sudo ss -lntp | grep -E ':(5000|15000|15001|15002|15003|18000|18080|19090|30080|30081)\b' || true
+
+
+2. 소스 취득에 필요한 기본 도구 설치
+------------------------------------
+
+sudo apt-get update
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+  ca-certificates curl gettext-base git jq patch python3 unzip
+
+curl -fsSI --max-time 15 https://github.com/ >/dev/null
+curl -fsSI --max-time 15 https://registry.k8s.io/v2/ >/dev/null
+curl -sSI --max-time 15 https://registry-1.docker.io/v2/ | grep -E '^HTTP/.* (200|401)' >/dev/null
+echo "기본 네트워크 확인 완료"
+
+mkdir -p "$WORK_ROOT"
+cd "$WORK_ROOT"
+test ! -e "$FEDIT_ROOT"
+
+
+3-A. Git으로 지정 브랜치와 검증 커밋 받기
+-----------------------------------------
+
+# SOURCE_METHOD=GIT일 때만 실행한다.
+if [ "$SOURCE_METHOD" = "GIT" ]; then
+  git ls-remote --heads "$FEDIT_REPO_URL" "$FEDIT_BRANCH"
+  git clone --branch "$FEDIT_BRANCH" --single-branch --depth 1 \
+    "$FEDIT_REPO_URL" "$FEDIT_ROOT"
+
+  if ! git -C "$FEDIT_ROOT" cat-file -e "${REFERENCE_COMMIT}^{commit}" 2>/dev/null; then
+    git -C "$FEDIT_ROOT" fetch --depth 1 origin "$REFERENCE_COMMIT" || \
+      git -C "$FEDIT_ROOT" fetch --unshallow origin
+  fi
+
+  git -C "$FEDIT_ROOT" checkout --detach "$REFERENCE_COMMIT"
+  test "$(git -C "$FEDIT_ROOT" rev-parse HEAD)" = "$REFERENCE_COMMIT"
+  git -C "$FEDIT_ROOT" branch --contains "$REFERENCE_COMMIT" || true
+fi
+
+
+3-B. 브라우저에서 받은 FeDiT.zip 압축 풀기
+-------------------------------------------
+
+# SOURCE_METHOD=ZIP일 때만 실행한다.
+# GitHub에서 Code -> Download ZIP으로 받은 파일을 FEDIT_ZIP 경로에 둔다.
+if [ "$SOURCE_METHOD" = "ZIP" ]; then
+  test -f "$FEDIT_ZIP"
+  export FEDIT_UNPACK_ROOT="$WORK_ROOT/fedit-zip-unpack"
+  test ! -e "$FEDIT_UNPACK_ROOT"
+  mkdir -p "$FEDIT_UNPACK_ROOT"
+  unzip -q "$FEDIT_ZIP" -d "$FEDIT_UNPACK_ROOT"
+
+  export FEDIT_EXTRACTED_DIR
+  FEDIT_EXTRACTED_DIR="$(find "$FEDIT_UNPACK_ROOT" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+  test -n "$FEDIT_EXTRACTED_DIR"
+  mv "$FEDIT_EXTRACTED_DIR" "$FEDIT_ROOT"
+fi
+
+test -d "$FEDIT_ROOT"
+test -f "$PM_ROOT/Dockerfile"
+test -f "$PM_ROOT/requirements.txt"
+test -f "$PM_FRONT_ROOT/package.json"
+test -f "$PM_FRONT_ROOT/nginx.conf"
+
+# Dockerfile은 설치 스크립트 압축이 아니라 외부에서 받은 FeDiT 소스에 있다.
+# 외부 ZIP 또는 git clone 사용은 정상이며, 설치 설정에서 아래 두 경로를 넘긴다.
+printf 'Prediction Manager Dockerfile=%s\nFrontend root=%s\n' \
+  "$PM_ROOT/Dockerfile" "$PM_FRONT_ROOT"
+
+printf '%s\n' \
+  "repository=$FEDIT_REPO_URL" \
+  "branch=$FEDIT_BRANCH" \
+  "reference_commit=$REFERENCE_COMMIT" \
+  "source_method=$SOURCE_METHOD" \
+  > "$WORK_ROOT/fedit-source-info.txt"
+
+if [ -d "$FEDIT_ROOT/.git" ]; then
+  test "$(git -C "$FEDIT_ROOT" rev-parse HEAD)" = "$REFERENCE_COMMIT"
+  git -C "$FEDIT_ROOT" rev-parse HEAD | tee "$WORK_ROOT/fedit-source-commit.txt"
+else
+  printf '%s\n' "$REFERENCE_COMMIT" | tee "$WORK_ROOT/fedit-source-commit.txt"
+fi
+
+
+4. 설치 스크립트 압축 풀기
+--------------------------
+
+test -f "$INSTALLER_ZIP"
+test ! -e "$INSTALLER_ROOT"
+mkdir -p "$INSTALLER_ROOT"
+unzip -q "$INSTALLER_ZIP" -d "$INSTALLER_ROOT"
+
+chmod +x \
+  "$INSTALLER_ROOT/install-verification.sh" \
+  "$INSTALLER_ROOT/scripts/bootstrap-verification.sh" \
+  "$INSTALLER_ROOT/scripts/render-manifests.sh"
+
+bash -n \
+  "$INSTALLER_ROOT/install-verification.sh" \
+  "$INSTALLER_ROOT/scripts/bootstrap-verification.sh" \
+  "$INSTALLER_ROOT/scripts/render-manifests.sh"
+
+# 보완본 설치 스크립트인지 확인한다. 하나라도 실패하면 이전 ZIP을 사용한 것이다.
+grep -q 'docker-buildx' "$INSTALLER_ROOT/scripts/bootstrap-verification.sh"
+grep -q 'PREDICTION_MANAGER_ROOT' "$INSTALLER_ROOT/scripts/bootstrap-verification.sh"
+grep -q 'PREDICTION_MANAGER_FRONTEND_ROOT' "$INSTALLER_ROOT/scripts/bootstrap-verification.sh"
+grep -q 'RELEASE.2023-03-20T20-16-18Z' "$INSTALLER_ROOT/scripts/bootstrap-verification.sh"
+grep -q '저자원 Kubeflow 기본 상태' "$INSTALLER_ROOT/scripts/bootstrap-verification.sh"
+grep -q 'rayproject/ray:2.54.1-py312' "$INSTALLER_ROOT/verification-install.env.example"
+! grep -q 'ubuntu-drivers install' "$INSTALLER_ROOT/scripts/bootstrap-verification.sh"
+! grep -q 'apt-get install -y nvidia-container-toolkit' "$INSTALLER_ROOT/scripts/bootstrap-verification.sh"
+! grep -q 'helm upgrade --install nvidia-device-plugin' "$INSTALLER_ROOT/scripts/bootstrap-verification.sh"
+
+find "$INSTALLER_ROOT" -maxdepth 3 -type f | sort
+
+
+5. 검증 과정에서 확인된 FeDiT 소스 보완 적용
+--------------------------------------------
+
+# 아래 patch는 검증 기준 커밋에 맞춰져 있다.
+# 다른 커밋을 사용하면 patch --dry-run에서 중단될 수 있다.
+export SOURCE_PATCH="$WORK_ROOT/fedit-prediction-manager-verification.patch"
+
+cat > "$SOURCE_PATCH" <<'FEDIT_PREDICTOR_PATCH'
+diff --git a/OPFW/ml_prediction_manager_v2_frontend/Dockerfile b/OPFW/ml_prediction_manager_v2_frontend/Dockerfile
+index 93b5842..36b246e 100644
+--- a/OPFW/ml_prediction_manager_v2_frontend/Dockerfile
++++ b/OPFW/ml_prediction_manager_v2_frontend/Dockerfile
+@@ -1,4 +1,6 @@
+ FROM nginx:alpine
+ COPY nginx.conf /etc/nginx/conf.d/default.conf
+ COPY build/ /usr/share/nginx/html/
++COPY env.sh /docker-entrypoint.d/40-runtime-env.sh
++RUN chmod 755 /docker-entrypoint.d/40-runtime-env.sh
+ EXPOSE 80
+diff --git a/OPFW/ml_prediction_manager_v2_frontend/env.sh b/OPFW/ml_prediction_manager_v2_frontend/env.sh
+index 4034c16..519c833 100644
+--- a/OPFW/ml_prediction_manager_v2_frontend/env.sh
++++ b/OPFW/ml_prediction_manager_v2_frontend/env.sh
+@@ -1,9 +1,18 @@
+-for i in $(env | grep NDXPRO_ENV_)
+-do
+-  key=$(echo $i | cut -d '=' -f 1)
+-  value=$(echo $i | cut -d '=' -f 2-)
+-  echo $key=$value
++#!/bin/sh
++set -eu
+ 
+-  # sed JS and CSS only
+-  find /usr/share/nginx/html -type f \( -name '*.js' -o -name '*.css' \) -exec sed -i "s|${key}|${value}|g" '{}' +
++# The container receives runtime values with the NDXPRO_ENV_* prefix. Write
++# a small config script consumed before the CRA bundle so the same image can
++# be used in different environments without rebuilding it.
++runtime_file=/usr/share/nginx/html/runtime-config.js
++printf '%s\n' 'window.__NDXPRO_CONFIG__ = {' > "$runtime_file"
++
++for key in $(env | awk -F= '/^NDXPRO_ENV_/ { print $1 }'); do
++  value=$(printenv "$key" || true)
++  suffix=$(printf '%s' "$key" | sed 's/^NDXPRO_ENV_//')
++  target="REACT_APP_"$suffix
++  escaped_value=$(printf '%s' "$value" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\r//g')
++  printf '  "%s": "%s",\n' "$target" "$escaped_value" >> "$runtime_file"
+ done
++
++printf '%s\n' '};' >> "$runtime_file"
+diff --git a/OPFW/ml_prediction_manager_v2_frontend/nginx.conf b/OPFW/ml_prediction_manager_v2_frontend/nginx.conf
+index 8aaf5be..f0186ab 100644
+--- a/OPFW/ml_prediction_manager_v2_frontend/nginx.conf
++++ b/OPFW/ml_prediction_manager_v2_frontend/nginx.conf
+@@ -11,4 +11,126 @@ server {
+     location /fedit {
+         return 301 /fedit/;
+     }
++
++    # Keep the embedded Prediction Manager and standalone Kubeflow-style
++    # pages on the same origin as the predictor tool.
++    location /prediction-manager/ {
++        proxy_pass http://SERVER_IP:18000/;
++        proxy_http_version 1.1;
++        proxy_set_header Host $host;
++        proxy_set_header X-Real-IP $remote_addr;
++        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
++        proxy_set_header X-Forwarded-Proto $scheme;
++        proxy_set_header X-Forwarded-Prefix /prediction-manager;
++        # Verification-only local proxy identity; production ingress should
++        # provide these headers from the authenticated Kubeflow session.
++        proxy_set_header kubeflow-userid user@example.com;
++        proxy_set_header X-Auth-Request-Email user@example.com;
++        proxy_set_header X-Auth-Request-User user@example.com;
++        proxy_read_timeout 300s;
++    }
++
++    location /volumes/ {
++        proxy_pass http://SERVER_IP:18000;
++        proxy_http_version 1.1;
++        proxy_set_header Host $host;
++        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
++        proxy_read_timeout 300s;
++    }
++
++    location /tensorboards/ {
++        proxy_pass http://SERVER_IP:18000;
++        proxy_http_version 1.1;
++        proxy_set_header Host $host;
++        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
++        proxy_read_timeout 300s;
++    }
++
++    location /kserve-endpoints/ {
++        proxy_pass http://SERVER_IP:18000;
++        proxy_http_version 1.1;
++        proxy_set_header Host $host;
++        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
++        proxy_read_timeout 300s;
++    }
++
++    location /pipeline/ {
++        proxy_pass http://SERVER_IP:18000;
++        proxy_http_version 1.1;
++        proxy_set_header Host $host;
++        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
++        proxy_read_timeout 300s;
++    }
++
++    location = /pipeline {
++        proxy_pass http://SERVER_IP:18000/pipeline/;
++        proxy_http_version 1.1;
++        proxy_set_header Host $host;
++        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
++        proxy_read_timeout 300s;
++    }
++
++    location /label-studio/ {
++        proxy_pass http://SERVER_IP:15003/;
++        proxy_http_version 1.1;
++        proxy_set_header Host $host;
++        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
++        proxy_set_header X-Forwarded-Proto $scheme;
++        proxy_set_header kubeflow-userid user@example.com;
++        proxy_set_header X-Auth-Request-Email user@example.com;
++        proxy_set_header X-Auth-Request-User user@example.com;
++        proxy_redirect http://SERVER_IP:30080/label-studio/ /label-studio/;
++        proxy_redirect http://SERVER_IP:15003/label-studio/ /label-studio/;
++        proxy_read_timeout 300s;
++    }
++
++    # Label Studio emits absolute /user, /static, /api and /data URLs after
++    # login. Route those browser requests back to the same container.
++    location /user/ {
++        proxy_pass http://SERVER_IP:15003;
++        proxy_http_version 1.1;
++        proxy_set_header Host $host;
++        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
++        proxy_set_header X-Forwarded-Proto $scheme;
++        proxy_set_header kubeflow-userid user@example.com;
++        proxy_set_header X-Auth-Request-Email user@example.com;
++        proxy_set_header X-Auth-Request-User user@example.com;
++        proxy_read_timeout 300s;
++    }
++
++    location /static/ {
++        proxy_pass http://SERVER_IP:15003;
++        proxy_http_version 1.1;
++        proxy_set_header Host $host;
++        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
++        proxy_set_header X-Forwarded-Proto $scheme;
++        proxy_set_header kubeflow-userid user@example.com;
++        proxy_set_header X-Auth-Request-Email user@example.com;
++        proxy_set_header X-Auth-Request-User user@example.com;
++        proxy_read_timeout 300s;
++    }
++
++    location /api/ {
++        proxy_pass http://SERVER_IP:15003;
++        proxy_http_version 1.1;
++        proxy_set_header Host $host;
++        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
++        proxy_set_header X-Forwarded-Proto $scheme;
++        proxy_set_header kubeflow-userid user@example.com;
++        proxy_set_header X-Auth-Request-Email user@example.com;
++        proxy_set_header X-Auth-Request-User user@example.com;
++        proxy_read_timeout 300s;
++    }
++
++    location /data/ {
++        proxy_pass http://SERVER_IP:15003;
++        proxy_http_version 1.1;
++        proxy_set_header Host $host;
++        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
++        proxy_set_header X-Forwarded-Proto $scheme;
++        proxy_set_header kubeflow-userid user@example.com;
++        proxy_set_header X-Auth-Request-Email user@example.com;
++        proxy_set_header X-Auth-Request-User user@example.com;
++        proxy_read_timeout 300s;
++    }
+ }
+diff --git a/OPFW/ml_prediction_manager_v2_frontend/public/index.html b/OPFW/ml_prediction_manager_v2_frontend/public/index.html
+index 6656439..e5d2128 100644
+--- a/OPFW/ml_prediction_manager_v2_frontend/public/index.html
++++ b/OPFW/ml_prediction_manager_v2_frontend/public/index.html
+@@ -11,6 +11,7 @@
+     />
+   </head>
+   <body>
++    <script src="%PUBLIC_URL%/runtime-config.js"></script>
+     <div id="root"></div>
+   </body>
+ </html>
+diff --git a/OPFW/ml_prediction_manager_v2_frontend/src/apis/NDXPRO/config.ts b/OPFW/ml_prediction_manager_v2_frontend/src/apis/NDXPRO/config.ts
+index 3cb3736..86e2c93 100644
+--- a/OPFW/ml_prediction_manager_v2_frontend/src/apis/NDXPRO/config.ts
++++ b/OPFW/ml_prediction_manager_v2_frontend/src/apis/NDXPRO/config.ts
+@@ -2,36 +2,56 @@ import axios from 'axios';
+ 
+ const { hostname } = window.location;
+ 
+-const isLocalURL = hostname === 'localhost' || hostname === '172.16.28.222';
+-const SAMPLE_TOKEN = process.env.REACT_APP_TOKEN;
++type RuntimeConfig = Record<string, string | undefined>;
++
++const runtimeConfig =
++  (window as Window & { __NDXPRO_CONFIG__?: RuntimeConfig })
++    .__NDXPRO_CONFIG__ ?? {};
++const buildConfig = process.env as Record<string, string | undefined>;
++
++const readEnv = (name: string) => {
++  const value = runtimeConfig[name] ?? buildConfig[name] ?? '';
++  return value === name ? '' : value;
++};
++
++const isLocalURL =
++  hostname === 'localhost' ||
++  hostname === '127.0.0.1' ||
++  hostname === '172.16.28.222';
++const SAMPLE_TOKEN = readEnv('REACT_APP_TOKEN');
+ 
+ const BASE_URL = isLocalURL
+-  ? process.env.REACT_APP_API_URL
+-  : process.env.REACT_APP_API_OUTSIDE_URL;
+-
+-export const VIEWER_URL = process.env.REACT_APP_VIEWER_URL;
+-export const PREDICTORTOOL_URL = process.env.REACT_APP_PREDICTOR_TOOL_URL;
+-export const DISCRETESIMULATORTOOL_URL =
+-  process.env.REACT_APP_DISCRETE_SIMULATOR_URL;
+-export const SERVICELOGICTOOL_URL =
+-  process.env.REACT_APP_SERVICE_LOGIC_TOOL_URL;
+-export const DIGITALSEARCH_URL = process.env.REACT_APP_DIGITAL_TWIN_SEARCH_URL;
+-export const DIGITALTWINMETADATAREGISTRATION_URL =
+-  process.env.REACT_APP_DIGITAL_TWIN_METADATA_REGISTRATION;
+-export const METADATA_VISUALIZATION_GRAPH =
+-  process.env.REACT_APP_METADATA_VISUALIZATION_GRAPH;
+-export const UNION_OBJECT_SYNC_ENGINE_MANAGEMENT =
+-  process.env.REACT_APP_UNION_OBJECT_SYNC_ENGINE_MANAGEMENT;
+-export const VERIFICATION_DATA_ADDITION_MANAGEMENT =
+-  process.env.REACT_APP_VERIFICATION_DATA_ADDITION_MANAGEMENT;
+-
+-export const PREDICTION_MANAGER_URL =
+-  process.env.REACT_APP_PREDICTION_MANAGER_URL;
+-export const KUBEFLOW_URL = process.env.REACT_APP_KUBEFLOW_URL;
+-export const MLFLOW_URL = process.env.REACT_APP_MLFLOW_URL;
+-export const RAY_URL = process.env.REACT_APP_RAY_URL;
+-export const GRAFANA_URL = process.env.REACT_APP_GRAFANA_URL;
+-export const NIFI_URL = process.env.REACT_APP_NIFI_URL;
++  ? readEnv('REACT_APP_API_URL')
++  : readEnv('REACT_APP_API_OUTSIDE_URL');
++
++export const VIEWER_URL = readEnv('REACT_APP_VIEWER_URL');
++export const PREDICTORTOOL_URL = readEnv('REACT_APP_PREDICTOR_TOOL_URL');
++export const DISCRETESIMULATORTOOL_URL = readEnv(
++  'REACT_APP_DISCRETE_SIMULATOR_URL',
++);
++export const SERVICELOGICTOOL_URL = readEnv('REACT_APP_SERVICE_LOGIC_TOOL_URL');
++export const DIGITALSEARCH_URL = readEnv('REACT_APP_DIGITAL_TWIN_SEARCH_URL');
++export const DIGITALTWINMETADATAREGISTRATION_URL = readEnv(
++  'REACT_APP_DIGITAL_TWIN_METADATA_REGISTRATION',
++);
++export const METADATA_VISUALIZATION_GRAPH = readEnv(
++  'REACT_APP_METADATA_VISUALIZATION_GRAPH',
++);
++export const UNION_OBJECT_SYNC_ENGINE_MANAGEMENT = readEnv(
++  'REACT_APP_UNION_OBJECT_SYNC_ENGINE_MANAGEMENT',
++);
++export const VERIFICATION_DATA_ADDITION_MANAGEMENT = readEnv(
++  'REACT_APP_VERIFICATION_DATA_ADDITION_MANAGEMENT',
++);
++
++export const PREDICTION_MANAGER_URL = readEnv(
++  'REACT_APP_PREDICTION_MANAGER_URL',
++);
++export const KUBEFLOW_URL = readEnv('REACT_APP_KUBEFLOW_URL');
++export const MLFLOW_URL = readEnv('REACT_APP_MLFLOW_URL');
++export const RAY_URL = readEnv('REACT_APP_RAY_URL');
++export const GRAFANA_URL = readEnv('REACT_APP_GRAFANA_URL');
++export const NIFI_URL = readEnv('REACT_APP_NIFI_URL');
+ 
+ export const API = {
+   MANAGER: `${BASE_URL}/ndxpro/v1/manager`,
+diff --git a/OPFW/ml_prediction_manager_v2_frontend/src/apis/NDXPRO/contextApi.ts b/OPFW/ml_prediction_manager_v2_frontend/src/apis/NDXPRO/contextApi.ts
+index a5adb18..9065484 100644
+--- a/OPFW/ml_prediction_manager_v2_frontend/src/apis/NDXPRO/contextApi.ts
++++ b/OPFW/ml_prediction_manager_v2_frontend/src/apis/NDXPRO/contextApi.ts
+@@ -13,9 +13,9 @@ export const getContextData = async () => {
+   try {
+     const response = await API.get(`/contexts`);
+     const { data } = response;
+-    return data;
++    return Array.isArray(data) ? data : [];
+   } catch (err) {
+-    return err;
++    return [];
+   }
+ };
+ 
+diff --git a/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/context/Accordion/Accordion.tsx b/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/context/Accordion/Accordion.tsx
+index 9171beb..3623d64 100644
+--- a/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/context/Accordion/Accordion.tsx
++++ b/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/context/Accordion/Accordion.tsx
+@@ -15,12 +15,17 @@ function Accordion({ pagePath }: IProps) {
+ 
+   useEffect(() => {
+     getContextData().then((res: string[]) => {
+-      const findStr = res.filter((el) => el.includes('ngsi-ld'));
+-      const idx = res.indexOf(findStr[0]);
+-      const temp = res[idx];
+-      res.splice(idx, 1);
+-      res.unshift(temp);
+-      setContexts(res);
++      const contexts = Array.isArray(res) ? res : [];
++      const findStr = contexts.filter((el) => el.includes('ngsi-ld'));
++      if (findStr.length === 0) {
++        setContexts(contexts);
++        return;
++      }
++      const idx = contexts.indexOf(findStr[0]);
++      const reordered = [...contexts];
++      const temp = reordered.splice(idx, 1)[0];
++      reordered.unshift(temp);
++      setContexts(reordered);
+     });
+   }, []);
+ 
+diff --git a/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/dataModel/dataModelAttributeContent/modelAside.tsx b/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/dataModel/dataModelAttributeContent/modelAside.tsx
+index 4336e76..d57eb8d 100644
+--- a/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/dataModel/dataModelAttributeContent/modelAside.tsx
++++ b/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/dataModel/dataModelAttributeContent/modelAside.tsx
+@@ -43,6 +43,9 @@ function ModelAside() {
+     return <StatisticsError />;
+   }
+ 
++  const modelPage =
++    data && Array.isArray(data.data) ? data : { data: [], totalPage: 0 };
++
+   const searchSelect = (
+     <>
+       <InputContainer
+@@ -94,8 +97,8 @@ function ModelAside() {
+           {searchSelect}
+         </AsideSearch>
+         <AsideList isFetching={isFetching}>
+-          {data.data.length === 0 && <div>No Data</div>}
+-          {data.data.map((e: IDataModelListItem) => (
++          {modelPage.data.length === 0 && <div>No Data</div>}
++          {modelPage.data.map((e: IDataModelListItem) => (
+             <AsideListItem
+               key={e.dataModelId}
+               link={e.type}
+@@ -106,7 +109,7 @@ function ModelAside() {
+           ))}
+         </AsideList>
+         <AsidePagination
+-          totalPage={data.totalPage}
++          totalPage={modelPage.totalPage}
+           searchOption={searchOption}
+           setSearchOption={setSearchOptionHandle}
+         />
+diff --git a/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/entity/EntityContextList.tsx b/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/entity/EntityContextList.tsx
+index 13a2dda..4fb9f7a 100644
+--- a/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/entity/EntityContextList.tsx
++++ b/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/entity/EntityContextList.tsx
+@@ -10,13 +10,17 @@ function EntityContextList() {
+ 
+   useEffect(() => {
+     getContextData().then((res: string[]) => {
+-      const filteredContextList = res.filter((el) => !el.includes('ngsi-ld'));
++      const contexts = Array.isArray(res) ? res : [];
++      const filteredContextList = contexts.filter(
++        (el) => !el.includes('ngsi-ld'),
++      );
+       setContextList(filteredContextList);
+     });
+   }, []);
+ 
+   return (
+     <ul className="entity-context-list">
++      {contextList.length === 0 && <li className="no-data">No Data</li>}
+       {contextList.map((contextData, idx) => {
+         return (
+           <ContextListItem
+diff --git a/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/entity/EntityList.tsx b/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/entity/EntityList.tsx
+index 58bbe1c..85d75e6 100644
+--- a/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/entity/EntityList.tsx
++++ b/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/entity/EntityList.tsx
+@@ -69,12 +69,13 @@ function EntityList({
+       const data = isDynamic
+         ? await getIotEntities(config)
+         : await getEntities(config);
++      const entityList = Array.isArray(data?.entities) ? data.entities : [];
+ 
+       setEntitiesData((prev) => {
+-        return isInit ? data.entities : [...prev, ...data.entities];
++        return isInit ? entityList : [...prev, ...entityList];
+       });
+ 
+-      if (data.entities.length === 0 || pageLimit > data.entities.length) {
++      if (entityList.length === 0 || pageLimit > entityList.length) {
+         setIsEnableScroll(false);
+         observerController.stopObserver();
+       }
+diff --git a/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/statistics/statisticsContent/statisticsFixedTop/index.tsx b/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/statistics/statisticsContent/statisticsFixedTop/index.tsx
+index a29c978..2bae906 100644
+--- a/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/statistics/statisticsContent/statisticsFixedTop/index.tsx
++++ b/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/statistics/statisticsContent/statisticsFixedTop/index.tsx
+@@ -9,6 +9,8 @@ import StatisticsHeader from '../../header';
+ import lang from '../../lang.json';
+ import BarChart from '../chart/BarChart';
+ import DountChart from '../chart/DonutChart';
++import NoData from '../NoData';
++import StatisticsError from '../statisticsError';
+ import StatisticsText from '../Text';
+ import StatisticsTextItem from '../TextItem';
+ import StatisticsFixedTopContent from './Content';
+@@ -33,10 +35,13 @@ function StatisticsFixedTop() {
+     currentWeek,
+   );
+ 
+-  const currentWeekStatistics = data?.statistics;
+-  const currentDateStatistics = data?.statistics[data.statistics.length - 1];
++  const currentWeekStatistics = Array.isArray(data?.statistics)
++    ? data.statistics
++    : [];
++  const currentDateStatistics =
++    currentWeekStatistics[currentWeekStatistics.length - 1];
+ 
+-  if (loading || !data || error) {
++  if (loading) {
+     return (
+       <div className="statistics-fixed-top">
+         <StatisticsLoading />
+@@ -44,6 +49,22 @@ function StatisticsFixedTop() {
+     );
+   }
+ 
++  if (error) {
++    return (
++      <div className="statistics-fixed-top">
++        <StatisticsError err={error} />
++      </div>
++    );
++  }
++
++  if (!currentDateStatistics) {
++    return (
++      <div className="statistics-fixed-top">
++        <NoData />
++      </div>
++    );
++  }
++
+   return (
+     <div className="statistics-fixed-top">
+       <StatisticsHeader title={`${date} ${lang.en.allEntityStatistics}`} />
+diff --git a/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/statistics/statisticsContent/StatisticsTabPage/common/StatisticsDetail.tsx b/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/statistics/statisticsContent/StatisticsTabPage/common/StatisticsDetail.tsx
+index 198f213..552b073 100644
+--- a/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/statistics/statisticsContent/StatisticsTabPage/common/StatisticsDetail.tsx
++++ b/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/statistics/statisticsContent/StatisticsTabPage/common/StatisticsDetail.tsx
+@@ -8,6 +8,7 @@ import { useRecoilState, useRecoilValue } from 'recoil';
+ import lang from '../../../lang.json';
+ import BarChart from '../../chart/BarChart';
+ import DountChart from '../../chart/DonutChart';
++import NoData from '../../NoData';
+ import StatisticsError from '../../statisticsError';
+ import StatisticsLoading from '../../statisticsLoading';
+ import StatisticsText from '../../Text';
+@@ -38,7 +39,7 @@ function StatisticsDetail() {
+     TextItem: StatisticsTextItem,
+   });
+ 
+-  if (loading || !data) {
++  if (loading) {
+     return (
+       <div className="statistics-detail">
+         <StatisticsLoading />
+@@ -54,8 +55,19 @@ function StatisticsDetail() {
+     );
+   }
+ 
+-  const currentWeekStatistics = data?.statistics;
+-  const currentDateStatistics = data?.statistics[data.statistics.length - 1];
++  const currentWeekStatistics = Array.isArray(data?.statistics)
++    ? data.statistics
++    : [];
++  const currentDateStatistics =
++    currentWeekStatistics[currentWeekStatistics.length - 1];
++
++  if (!currentDateStatistics) {
++    return (
++      <div className="statistics-detail">
++        <NoData />
++      </div>
++    );
++  }
+ 
+   const [success, fail, total, failProbablity, successProbablity] =
+     useEntityData(currentDateStatistics);
+diff --git a/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/statistics/statisticsContent/StatisticsTabPage/common/StatisticsTable.tsx b/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/statistics/statisticsContent/StatisticsTabPage/common/StatisticsTable.tsx
+index 1a82674..b12b3bf 100644
+--- a/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/statistics/statisticsContent/StatisticsTabPage/common/StatisticsTable.tsx
++++ b/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/statistics/statisticsContent/StatisticsTabPage/common/StatisticsTable.tsx
+@@ -9,7 +9,8 @@ import StatisticsTableItem from './StatisticsTableItem';
+ 
+ export const tableList = (data: any, type: string) => {
+   const setTableList = (data: any) => {
+-    return data.statistics.map((task: ISummary) => {
++    const statistics = Array.isArray(data?.statistics) ? data.statistics : [];
++    return statistics.map((task: ISummary) => {
+       const firstChild: string = Object.keys(task)[0];
+       const nameKey = firstChild as keyof typeof task;
+       const nameValue = task[nameKey];
+@@ -56,6 +57,8 @@ function StatisticsTable({ type }: { type: string }) {
+     );
+   }
+ 
++  const statistics = Array.isArray(data?.statistics) ? data.statistics : [];
++
+   return (
+     <ul className="statistics-table">
+       <li className="summary thead">
+@@ -66,7 +69,10 @@ function StatisticsTable({ type }: { type: string }) {
+           <StatisticsLabel type="total" text={lang.en.total} />
+         </button>
+       </li>
+-      {!loading && !error && data && tableList(data, type)}
++      {!loading && !error && statistics.length > 0 && tableList(data, type)}
++      {!loading && !error && statistics.length === 0 && (
++        <li className="statistics-no-data-row">No Data</li>
++      )}
+     </ul>
+   );
+ }
+diff --git a/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/statistics/statisticsContent/StatisticsTabPage/common/StatisticsTableNameOnly.tsx b/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/statistics/statisticsContent/StatisticsTabPage/common/StatisticsTableNameOnly.tsx
+index 8af85da..2c2745a 100644
+--- a/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/statistics/statisticsContent/StatisticsTabPage/common/StatisticsTableNameOnly.tsx
++++ b/OPFW/ml_prediction_manager_v2_frontend/src/components/NDXPRO/statistics/statisticsContent/StatisticsTabPage/common/StatisticsTableNameOnly.tsx
+@@ -6,7 +6,8 @@ import StatisticsTableItem from './StatisticsTableItem';
+ 
+ export const NameList = (data: any, type: string) => {
+   const setTableList = (data: any) => {
+-    return data.dataModel.map((task: any) => (
++    const dataModels = Array.isArray(data?.dataModel) ? data.dataModel : [];
++    return dataModels.map((task: any) => (
+       <StatisticsTableItem key={task} name={task} task={null} type={type} />
+     ));
+   };
+@@ -33,6 +34,8 @@ function StatisticsTableNameOnly({ type }: { type: string }) {
+     );
+   }
+ 
++  const dataModels = Array.isArray(data?.dataModel) ? data.dataModel : [];
++
+   return (
+     <ul className="statistics-table name-only">
+       <li className="summary thead">
+@@ -40,7 +43,10 @@ function StatisticsTableNameOnly({ type }: { type: string }) {
+           <p>{returnStatesByType(type)?.title}</p>
+         </button>
+       </li>
+-      {!loading && !error && data && NameList(data, type)}
++      {!loading && !error && dataModels.length > 0 && NameList(data, type)}
++      {!loading && !error && dataModels.length === 0 && (
++        <li className="statistics-no-data-row">No Data</li>
++      )}
+     </ul>
+   );
+ }
+diff --git a/OPFW/ml_prediction_manager_v2_frontend/src/pages/model-information-viewer/model-information.tsx b/OPFW/ml_prediction_manager_v2_frontend/src/pages/model-information-viewer/model-information.tsx
+index 2c2a269..1b712f1 100644
+--- a/OPFW/ml_prediction_manager_v2_frontend/src/pages/model-information-viewer/model-information.tsx
++++ b/OPFW/ml_prediction_manager_v2_frontend/src/pages/model-information-viewer/model-information.tsx
+@@ -93,7 +93,6 @@ function ModelInformation({ is3DModelLoaded, tourId }: any) {
+             ?.parkingMeasurement ?? {},
+       });
+     }
+-    console.log('fdtTour', fdtTour);
+   }, [fdtTour]);
+ 
+   const { weatherData, airQualityData, trafficData, parkingData } = modelData;
+diff --git a/OPFW/ml_prediction_manager_v2_frontend/src/pages/model-information-viewer/model-information-viewer.tsx b/OPFW/ml_prediction_manager_v2_frontend/src/pages/model-information-viewer/model-information-viewer.tsx
+index ad79cc6..76e102d 100644
+--- a/OPFW/ml_prediction_manager_v2_frontend/src/pages/model-information-viewer/model-information-viewer.tsx
++++ b/OPFW/ml_prediction_manager_v2_frontend/src/pages/model-information-viewer/model-information-viewer.tsx
+@@ -1,3 +1,4 @@
++import { VIEWER_URL } from 'apis/NDXPRO/config';
+ import Skeleton from 'components/skeleton/skeleton';
+ import { useEffect, useState } from 'react';
+ import { useLocation } from 'react-router-dom';
+@@ -18,6 +19,7 @@ function ModelInformationViewer({ reload }: ModelInformationViewerProps) {
+     null,
+   );
+   const [shouldLoadIframe, setShouldLoadIframe] = useState(false);
++  const [viewerUnavailable, setViewerUnavailable] = useState(false);
+ 
+   const location = useLocation();
+   const params = new URLSearchParams(location.search);
+@@ -28,11 +30,28 @@ function ModelInformationViewer({ reload }: ModelInformationViewerProps) {
+     const initialStartTime = new Date();
+     setStartTime(initialStartTime);
+ 
+-    const timeoutId = setTimeout(() => {
+-      setShouldLoadIframe(true);
+-    }, 3500); // Add a delay before displaying the iframe
++    if (!VIEWER_URL) {
++      setViewerUnavailable(true);
++      setIs3DModelLoadingComplete(true);
++    }
+ 
+-    return () => clearTimeout(timeoutId);
++    const iframeDelayId = VIEWER_URL
++      ? setTimeout(() => {
++          setShouldLoadIframe(true);
++        }, 3500)
++      : undefined;
++
++    const fallbackId = VIEWER_URL
++      ? setTimeout(() => {
++          setViewerUnavailable(true);
++          setIs3DModelLoadingComplete(true);
++        }, 15000)
++      : undefined;
++
++    return () => {
++      if (iframeDelayId !== undefined) clearTimeout(iframeDelayId);
++      if (fallbackId !== undefined) clearTimeout(fallbackId);
++    };
+   }, []);
+ 
+   useEffect(() => {
+@@ -70,6 +89,10 @@ function ModelInformationViewer({ reload }: ModelInformationViewerProps) {
+   const endDateTime = modelLoadingTime
+     ? formatDateParts(modelLoadingTime)
+     : null;
++  const viewerBaseUrl = VIEWER_URL.replace(/\/$/, '');
++  const viewerSrc = viewerBaseUrl
++    ? `${viewerBaseUrl}/VIZWide3D/?tour_id=${tourId || '03'}`
++    : '';
+ 
+   return (
+     <div className="flex h-full w-full flex-col bg-[#dddfe2]">
+@@ -81,14 +104,16 @@ function ModelInformationViewer({ reload }: ModelInformationViewerProps) {
+ 
+       <div className="flex h-full w-full flex-col gap-4 p-4 lg:flex-row">
+         <div className="flex flex-grow justify-center">
+-          {shouldLoadIframe && (
++          {viewerUnavailable && (
++            <div className="flex h-full w-full items-center justify-center rounded-lg bg-white p-8 text-center shadow-card">
++              3D viewer is unavailable. Configure REACT_APP_VIEWER_URL to
++              connect the viewer service.
++            </div>
++          )}
++          {!viewerUnavailable && shouldLoadIframe && viewerSrc && (
+             <iframe
+               title="iframe testing"
+-              src={
+-                tourId
+-                  ? `http://220.124.222.87/VIZWide3D/?tour_id=${tourId}`
+-                  : 'http://220.124.222.87/VIZWide3D/?tour_id=03'
+-              }
++              src={viewerSrc}
+               className="h-[calc(100vh-24px)] w-full rounded-lg shadow-card lg:h-full"
+               onLoad={() => {
+                 setIsIframeLoading(false);
+diff --git a/OPFW/ml_prediction_manager_v2_frontend/src/pages/predictor-creator-tool/predictor-creator-tool.tsx b/OPFW/ml_prediction_manager_v2_frontend/src/pages/predictor-creator-tool/predictor-creator-tool.tsx
+index d9e3f67..a10a4ea 100644
+--- a/OPFW/ml_prediction_manager_v2_frontend/src/pages/predictor-creator-tool/predictor-creator-tool.tsx
++++ b/OPFW/ml_prediction_manager_v2_frontend/src/pages/predictor-creator-tool/predictor-creator-tool.tsx
+@@ -104,6 +104,9 @@ const services: Service[] = [
+     description: '학습 데이터 라벨링, 주석 프로젝트, 데이터셋 검수',
+     icon: HomeLabelingIcon,
+     path: '/label-studio',
++    // Route through the verification Nginx proxy so the Kubeflow SSO header
++    // is injected and Label Studio's absolute /user and /static paths remain
++    // on the same origin.
+     url: '/label-studio/',
+   },
+   {
+diff --git a/OPFW/ml_prediction_manager_v2/app/auth.py b/OPFW/ml_prediction_manager_v2/app/auth.py
+index 0bef111..c5944d2 100644
+--- a/OPFW/ml_prediction_manager_v2/app/auth.py
++++ b/OPFW/ml_prediction_manager_v2/app/auth.py
+@@ -17,6 +17,9 @@ _ANONYMOUS_SENTINEL = "__anonymous__@__unauthenticated__"
+ 
+ _ALLOW_UNAUTH = _os.environ.get("ALLOW_UNAUTHENTICATED", "").lower() in ("1", "true", "yes")
+ _DEV_USER_EMAIL = _os.environ.get("DEV_USER_EMAIL", "")
++_DEFAULT_NAMESPACE = _os.environ.get(
++    "DEFAULT_NAMESPACE", "kubeflow-user-example-com"
++).strip() or "kubeflow-user-example-com"
+ 
+ 
+ def get_user_email(request: Request) -> str:
+@@ -49,6 +52,8 @@ def require_authenticated(request: Request) -> str:
+ def _get_owner_namespace(request: Request) -> str:
+     """이메일로 Profile owner 검색해서 기본 네임스페이스 반환"""
+     email = get_user_email(request)
++    if not kubernetes_client.KUBERNETES_AVAILABLE:
++        return _DEFAULT_NAMESPACE
+     try:
+         resp = custom_api.list_cluster_custom_object(
+             "kubeflow.org", "v1", "profiles"
+@@ -107,6 +112,13 @@ def get_user_accessible_namespaces(request: Request) -> list[dict]:
+     KFAM API의 RoleBinding을 검색
+     """
+     email = get_user_email(request)
++    if not kubernetes_client.KUBERNETES_AVAILABLE:
++        return [
++            {
++                "namespace": _get_owner_namespace(request),
++                "role": "admin" if is_admin(request) else "owner",
++            }
++        ]
+     if is_admin(request):
+         # 관리자는 모든 네임스페이스
+         return [
+diff --git a/OPFW/ml_prediction_manager_v2/app/main.py b/OPFW/ml_prediction_manager_v2/app/main.py
+index bc33511..d4a3bf7 100644
+--- a/OPFW/ml_prediction_manager_v2/app/main.py
++++ b/OPFW/ml_prediction_manager_v2/app/main.py
+@@ -1,4 +1,5 @@
+ from contextlib import asynccontextmanager
++from html import escape as _escape
+ import logging
+ from pathlib import Path
+ import re as _re
+@@ -29,6 +30,7 @@ from app.routers import (
+     monitoring,
+     data_collection,
+ )
++from app.services import kubernetes_client
+ 
+ logging.basicConfig(level=logging.INFO)
+ logger = logging.getLogger("prediction-manager")
+@@ -49,7 +51,10 @@ async def lifespan(app: FastAPI):
+     except Exception as e:
+         logger.exception(f"[lifespan] data collection resume failed: {e}")
+     yield
+-    data_collection_service.shutdown_realtime_collections()
++    try:
++        data_collection_service.shutdown_realtime_collections()
++    except Exception as e:
++        logger.exception(f"[lifespan] data collection shutdown failed: {e}")
+ 
+ 
+ app = FastAPI(
+@@ -59,6 +64,114 @@ app = FastAPI(
+ )
+ 
+ 
++def _standalone_platform_page(title: str, subtitle: str, tabs: list[str], empty_text: str) -> _HTMLResponse:
++    tab_markup = "".join(
++        f'<button class="tab" type="button" onclick="selectTab(this)">{_escape(tab)}</button>'
++        for tab in tabs
++    )
++    html = f"""<!doctype html>
++<html lang="ko">
++<head>
++  <meta charset="utf-8">
++  <meta name="viewport" content="width=device-width,initial-scale=1">
++  <title>{_escape(title)}</title>
++  <style>
++    :root {{ color-scheme: light; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }}
++    body {{ margin: 0; background: #f4f7fb; color: #172033; }}
++    .shell {{ max-width: 1180px; margin: 0 auto; padding: 34px; }}
++    .head {{ display:flex; justify-content:space-between; gap:24px; align-items:flex-start; }}
++    h1 {{ margin:0 0 8px; font-size:28px; }}
++    .subtitle {{ margin:0; color:#60708a; }}
++    .status {{ border:1px solid #b9e6cf; background:#ecfbf3; color:#18794e; border-radius:999px; padding:8px 14px; font-size:13px; white-space:nowrap; }}
++    .tabs {{ display:flex; gap:8px; margin:28px 0 16px; border-bottom:1px solid #dbe3ef; }}
++    .tab {{ border:0; background:transparent; padding:12px 16px; color:#64748b; cursor:pointer; font-weight:600; }}
++    .tab.active {{ color:#2563eb; border-bottom:2px solid #2563eb; }}
++    .card {{ background:#fff; border:1px solid #dbe3ef; border-radius:12px; padding:24px; box-shadow:0 8px 24px rgba(30,64,175,.06); }}
++    .empty {{ color:#64748b; padding:34px 12px; text-align:center; border:1px dashed #cbd5e1; border-radius:10px; }}
++    .grid {{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-bottom:24px; }}
++    .metric {{ background:#f8fafc; border-radius:10px; padding:16px; }}
++    .metric b {{ display:block; font-size:22px; margin-top:7px; }}
++    @media(max-width:720px) {{ .shell {{ padding:18px; }} .head {{ display:block; }} .status {{ display:inline-block; margin-top:16px; }} .grid {{ grid-template-columns:1fr; }} }}
++  </style>
++</head>
++<body>
++  <main class="shell">
++    <div class="head"><div><h1>{_escape(title)}</h1><p class="subtitle">{_escape(subtitle)}</p></div><div class="status">Service connected · standalone mode</div></div>
++    <nav class="tabs" aria-label="{_escape(title)} sections">{tab_markup}</nav>
++    <section class="card">
++      <div class="grid"><div class="metric">Service<b>Available</b></div><div class="metric">Active resources<b>0</b></div><div class="metric">Last update<b>Ready</b></div></div>
++      <div class="empty" role="status">{_escape(empty_text)}</div>
++    </section>
++  </main>
++  <script>function selectTab(button){{document.querySelectorAll('.tab').forEach(function(item){{item.classList.remove('active')}});button.classList.add('active')}}document.querySelector('.tab')?.classList.add('active');</script>
++</body>
++</html>"""
++    return _HTMLResponse(html)
++
++
++@app.get("/volumes/", include_in_schema=False)
++async def standalone_volumes():
++    return _standalone_platform_page(
++        "Volumes",
++        "Prediction Manager persistent storage and dataset volumes",
++        ["Overview", "Storage", "Access"],
++        "No persistent volumes are currently registered. The page is ready for a Kubernetes-backed volume provider.",
++    )
++
++
++@app.get("/tensorboards/", include_in_schema=False)
++async def standalone_tensorboards():
++    return _standalone_platform_page(
++        "TensorBoard",
++        "Training metrics and experiment visualization",
++        ["Scalars", "Graphs", "Media"],
++        "No active TensorBoard run is available. Training runs will appear here when a run is started.",
++    )
++
++
++@app.get("/kserve-endpoints/", include_in_schema=False)
++async def standalone_kserve_endpoints():
++    return _standalone_platform_page(
++        "KServe Endpoints",
++        "Model serving endpoint status and inference operations",
++        ["Endpoints", "Revisions", "Inference"],
++        "No serving endpoint is deployed yet. The endpoint management screen is available and ready for a KServe cluster.",
++    )
++
++
++@app.get("/pipeline/", include_in_schema=False)
++@app.get("/pipeline", include_in_schema=False)
++async def standalone_pipeline():
++    return _standalone_platform_page(
++        "Kubeflow Pipelines",
++        "Pipeline definitions, experiments, runs, schedules, artifacts and executions",
++        ["Pipelines", "Experiments", "Runs", "Recurring Runs", "Artifacts", "Executions"],
++        "No pipeline run is currently registered. The full pipeline menu is available and ready for a Kubeflow Pipelines provider.",
++    )
++
++
++@app.api_route("/pipeline/{subpath:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"], include_in_schema=False)
++async def standalone_pipeline_api(subpath: str):
++    return JSONResponse(
++        {
++            "items": [],
++            "pipelines": [],
++            "runs": [],
++            "experiments": [],
++            "message": "Kubeflow Pipelines is not connected in standalone mode.",
++            "path": subpath,
++        }
++    )
++
++
++@app.get('/healthz', include_in_schema=False)
++async def healthz():
++    return {
++        'status': 'ok',
++        'kubernetes_available': kubernetes_client.KUBERNETES_AVAILABLE,
++    }
++
++
+ _VALIDATION_FIELD_LABELS = {
+     "name": "이름",
+     "task": "학습 유형",
+diff --git a/OPFW/ml_prediction_manager_v2/app/routers/dashboard.py b/OPFW/ml_prediction_manager_v2/app/routers/dashboard.py
+index 503c29c..ea30584 100644
+--- a/OPFW/ml_prediction_manager_v2/app/routers/dashboard.py
++++ b/OPFW/ml_prediction_manager_v2/app/routers/dashboard.py
+@@ -72,6 +72,33 @@ def _count_by(items: list[dict], key: str) -> dict:
+ async def get_summary(request: Request):
+     admin = is_admin(request)
+     my_ns = get_user_namespace(request)
++
++    # The verification image intentionally runs without a Kubernetes cluster.
++    # Keep the dashboard usable in that mode instead of making the first page
++    # load fan out to unavailable Kubernetes APIs and returning HTTP 500.
++    if not kubernetes_client.KUBERNETES_AVAILABLE:
++        return {
++            "is_admin": admin,
++            "image_count": 0,
++            "notebook_count": 0,
++            "gpu_total": 0,
++            "gpu_used": 0,
++            "gpu_available": 0,
++            "gpu_hardware": {"available": False, "reason": "Kubernetes is not connected"},
++            "notebook_status_counts": {},
++            "recent_images": [],
++            "recent_notebooks": [],
++            "user_resources": [],
++            "my_resource": {
++                "namespace": my_ns,
++                "email": "",
++                "quota": {"cpu": "0", "memory": "0", "gpu": "0", "pvc": "0", "storage": "0"},
++                "used": {"cpu": "0", "memory": "0", "gpu": "0", "pvc": "0", "storage": "0"},
++                "notebook_count": 0,
++            },
++            "automl_status_counts": {},
++            "automl_jobs": [],
++        }
+     if admin:
+         images = await registry_service.list_all_repositories()
+         all_notebooks = []
+diff --git a/OPFW/ml_prediction_manager_v2/app/routers/data_collection.py b/OPFW/ml_prediction_manager_v2/app/routers/data_collection.py
+index 5849ad9..044faac 100644
+--- a/OPFW/ml_prediction_manager_v2/app/routers/data_collection.py
++++ b/OPFW/ml_prediction_manager_v2/app/routers/data_collection.py
+@@ -175,7 +175,14 @@ async def preview_connector_data(connector_id: str, request: Request):
+     require_authenticated(request)
+     namespace = get_user_namespace(request)
+     try:
+-        return data_collection_service.preview_connector_data(namespace, connector_id)
++        # The connector implementation is synchronous and may call an HTTP
++        # endpoint.  Run it off the event loop so a connector targeting this
++        # API does not deadlock while the preview request is being served.
++        return await asyncio.to_thread(
++            data_collection_service.preview_connector_data,
++            namespace,
++            connector_id,
++        )
+     except ValueError as e:
+         raise _not_found_or_bad_request(e)
+ 
+@@ -185,7 +192,8 @@ async def collect_connector_now(connector_id: str, request: Request, req: Connec
+     email = require_authenticated(request)
+     namespace = get_user_namespace(request)
+     try:
+-        return data_collection_service.collect_connector_now(
++        return await asyncio.to_thread(
++            data_collection_service.collect_connector_now,
+             namespace,
+             connector_id,
+             email,
+diff --git a/OPFW/ml_prediction_manager_v2/app/services/alarm_service.py b/OPFW/ml_prediction_manager_v2/app/services/alarm_service.py
+index bac6da2..e9de5f3 100644
+--- a/OPFW/ml_prediction_manager_v2/app/services/alarm_service.py
++++ b/OPFW/ml_prediction_manager_v2/app/services/alarm_service.py
+@@ -86,6 +86,16 @@ def _msg_fingerprint(msg: str) -> str:
+     return re.sub(r"\s*\([\d.,]+[^)]*\)", "", msg).strip()
+ 
+ 
++def _number(value, default=0.0):
++    """Prometheus no-data values must not crash alarm evaluation."""
++    if value is None:
++        return default
++    try:
++        return float(value)
++    except (TypeError, ValueError):
++        return default
++
++
+ # 차트 배경 구역 + 알람 임계값의 단일 소스
+ ZONES = {
+     "chart-gpu-util": {"warn": 70, "danger": 85},
+@@ -117,31 +127,31 @@ def eval_alarms(data: dict) -> list[dict]:
+ 
+     gpu = data.get("gpu", {})
+     if gpu.get("status") == "ok":
+-        util = gpu.get("util_pct", 0)
++        util = _number(gpu.get("util_pct"))
+         if util > ZONES["chart-gpu-util"]["danger"]:
+             _add("gpu", "critical", f"GPU 사용률이 너무 높습니다 ({util}%)")
+         elif util > ZONES["chart-gpu-util"]["warn"]:
+             _add("gpu", "warning", f"GPU 사용률이 높습니다 ({util}%)")
+ 
+-        mem = gpu.get("mem_pct", 0)
++        mem = _number(gpu.get("mem_pct"))
+         if mem > ZONES["chart-gpu-mem"]["danger"]:
+             _add("gpu", "critical", f"GPU 메모리가 부족합니다 ({mem}%)")
+         elif mem > ZONES["chart-gpu-mem"]["warn"]:
+             _add("gpu", "warning", f"GPU 메모리 사용량이 높습니다 ({mem}%)")
+ 
+-        temp = gpu.get("temp_c", 0)
++        temp = _number(gpu.get("temp_c"))
+         if temp > 85:
+             _add("gpu-temp", "critical", f"GPU 온도 과열 ({temp}°C)")
+ 
+     system = data.get("system", {})
+     if system.get("status") == "ok":
+-        cpu = system.get("cpu_pct", 0)
++        cpu = _number(system.get("cpu_pct"))
+         if cpu > ZONES["chart-cpu"]["danger"]:
+             _add("system", "critical", f"CPU 사용률이 너무 높습니다 ({cpu}%)")
+         elif cpu > ZONES["chart-cpu"]["warn"]:
+             _add("system", "warning", f"CPU 사용률이 높습니다 ({cpu}%)")
+ 
+-        mem = system.get("mem_pct", 0)
++        mem = _number(system.get("mem_pct"))
+         if mem > ZONES["chart-mem"]["danger"]:
+             _add("system", "critical", f"시스템 메모리가 부족합니다 ({mem}%)")
+         elif mem > ZONES["chart-mem"]["warn"]:
+@@ -156,7 +166,7 @@ def eval_alarms(data: dict) -> list[dict]:
+     kserve_err = data.get("kserve_error_rate", {})
+     if kserve_err.get("status") == "ok":
+         for m in kserve_err.get("models", []):
+-            if m.get("error_rate", 0) > 5:
++            if _number(m.get("error_rate")) > 5:
+                 _add(
+                     "kserve-error",
+                     "critical",
+@@ -167,7 +177,7 @@ def eval_alarms(data: dict) -> list[dict]:
+     kserve_lat = data.get("kserve_top5_latency", {})
+     if kserve_lat.get("status") == "ok":
+         for m in kserve_lat.get("models", []):
+-            if m.get("latency_ms", 0) > 1000:
++            if _number(m.get("latency_ms")) > 1000:
+                 _add(
+                     "kserve-latency",
+                     "warning",
+@@ -185,21 +195,22 @@ def eval_alarms(data: dict) -> list[dict]:
+     if pvc.get("status") == "ok":
+         for g in pvc.get("groups", []):
+             ns = g.get("ns")
+-            if g.get("phase_counts", {}).get("Lost", 0) > 0:
++            if _number(g.get("phase_counts", {}).get("Lost")) > 0:
+                 _add("pvc", "critical", f"PVC 볼륨 손상 감지: {ns}", namespace=ns)
+ 
+             quota = g.get("quota") or {}
+-            pvc_used, pvc_limit = quota.get("pvc_used"), quota.get("pvc_limit")
++            pvc_used, pvc_limit = _number(quota.get("pvc_used")), _number(quota.get("pvc_limit"))
+             if pvc_limit and pvc_used >= pvc_limit:
+                 _add("pvc", "warning", f"PVC 개수 할당량 도달: {ns} ({pvc_used}/{pvc_limit}개)", namespace=ns)
+ 
+-            st_used, st_limit = quota.get("storage_used_gb"), quota.get("storage_limit_gb")
++            st_used, st_limit = _number(quota.get("storage_used_gb")), _number(quota.get("storage_limit_gb"))
+             if st_limit and st_used / st_limit >= 0.9:
+                 _add("pvc", "warning", f"PVC 용량 할당량 임박: {ns} ({st_used:.1f}/{st_limit:.0f}GB)", namespace=ns)
+ 
+             pct = g.get("quota_pct")
+             if pct is None:
+                 continue
++            pct = _number(pct)
+             if pct >= ZONES["pvc-quota"]["danger"]:
+                 _add("pvc", "critical", f"PVC quota 초과 위험: {ns} ({pct}%)", namespace=ns)
+             elif pct >= ZONES["pvc-quota"]["warn"]:
+diff --git a/OPFW/ml_prediction_manager_v2/app/services/automl_service.py b/OPFW/ml_prediction_manager_v2/app/services/automl_service.py
+index 0ac1d09..51a280f 100644
+--- a/OPFW/ml_prediction_manager_v2/app/services/automl_service.py
++++ b/OPFW/ml_prediction_manager_v2/app/services/automl_service.py
+@@ -1533,7 +1533,8 @@ async def stream_logs(job_id: str):
+                         continue
+                     plain_lines.append(line)
+                 if plain_lines:
+-                    yield f"data: {json.dumps({'log': '\\n'.join(plain_lines)})}\n\n"
++                    plain_log = "\n".join(plain_lines)
++                    yield f"data: {json.dumps({'log': plain_log})}\n\n"
+ 
+             if str(info.get("status") or "").upper() == "DELETED":
+                 yield f"data: {json.dumps({'status': 'DELETED', 'message': info.get('message'), 'best': info.get('best_run')})}\n\n"
+diff --git a/OPFW/ml_prediction_manager_v2/app/services/kubernetes_client.py b/OPFW/ml_prediction_manager_v2/app/services/kubernetes_client.py
+index 4725689..5152ce9 100644
+--- a/OPFW/ml_prediction_manager_v2/app/services/kubernetes_client.py
++++ b/OPFW/ml_prediction_manager_v2/app/services/kubernetes_client.py
+@@ -1,13 +1,30 @@
+ from __future__ import annotations
+ 
++import os
+ from pathlib import Path
+ 
+ from kubernetes import client, config
+ 
++KUBERNETES_AVAILABLE = True
++
+ try:
+     config.load_incluster_config()
+ except config.ConfigException:
+-    config.load_kube_config()
++    try:
++        config.load_kube_config()
++    except config.ConfigException:
++        # The UI and read-only health endpoints should still be able to start
++        # when this image is run without a Kubernetes cluster. Kubernetes
++        # backed operations will fail at their own request boundary instead of
++        # preventing the FastAPI process from importing.
++        KUBERNETES_AVAILABLE = False
++        fallback = client.Configuration()
++        fallback.host = os.getenv(
++            'KUBERNETES_API_URL',
++            'http://127.0.0.1:65535',
++        )
++        fallback.verify_ssl = False
++        client.Configuration.set_default(fallback)
+ 
+ _BASE_CONFIG = client.Configuration.get_default_copy()
+ 
+diff --git a/OPFW/ml_prediction_manager_v2/app/services/nifi_service.py b/OPFW/ml_prediction_manager_v2/app/services/nifi_service.py
+index 321d687..006a569 100644
+--- a/OPFW/ml_prediction_manager_v2/app/services/nifi_service.py
++++ b/OPFW/ml_prediction_manager_v2/app/services/nifi_service.py
+@@ -143,6 +143,7 @@ sed -i 's|^nifi.cluster.protocol.is.secure=.*|nifi.cluster.protocol.is.secure=fa
+                             ],
+                             env=[
+                                 client.V1EnvVar(name="NIFI_WEB_HTTP_PORT", value="8080"),
++                                client.V1EnvVar(name="NIFI_WEB_HTTP_HOST", value="0.0.0.0"),
+                                 client.V1EnvVar(name="NIFI_WEB_PROXY_HOST", value=host),
+                                 client.V1EnvVar(
+                                     name="NIFI_WEB_PROXY_CONTEXT_PATH", value=path
+diff --git a/OPFW/ml_prediction_manager_v2/app/services/registry_model_service.py b/OPFW/ml_prediction_manager_v2/app/services/registry_model_service.py
+index e8a1a9c..d603323 100644
+--- a/OPFW/ml_prediction_manager_v2/app/services/registry_model_service.py
++++ b/OPFW/ml_prediction_manager_v2/app/services/registry_model_service.py
+@@ -1,6 +1,7 @@
+ """MLflow Model Registry wrapper for 상태 태깅 / 롤백 UI."""
+ import os
+ import re
++import threading
+ from datetime import datetime, timezone
+ from typing import Any
+ 
+@@ -332,7 +333,30 @@ def _input_schema_from_source(source: str | None, namespace: str | None = None)
+         import yaml as _yaml
+ 
+         _mlflow.set_tracking_uri(_mlflow_uri(namespace))
+-        local = _mlflow.artifacts.download_artifacts(artifact_uri=source)
++        # A registry entry may exist before its artifact is uploaded. Keep that
++        # state visible in the model UI instead of blocking on artifact retries.
++        result: list[str | None] = [None]
++        failure: list[Exception] = []
++
++        def _download() -> None:
++            try:
++                result[0] = _mlflow.artifacts.download_artifacts(artifact_uri=source)
++            except Exception as exc:  # nosec - schema is optional metadata
++                failure.append(exc)
++
++        worker = threading.Thread(target=_download, daemon=True)
++        worker.start()
++        worker.join(timeout=5)
++        if worker.is_alive():
++            print(f"[registry] input schema download timed out for {source}", flush=True)
++            _MODEL_SCHEMA_CACHE[cache_key] = None
++            return None
++        if failure:
++            raise failure[0]
++        local = result[0]
++        if not local:
++            _MODEL_SCHEMA_CACHE[cache_key] = None
++            return None
+         mlmodel_path = _os.path.join(local, "MLmodel")
+         if not _os.path.isfile(mlmodel_path):
+             _MODEL_SCHEMA_CACHE[cache_key] = None
+@@ -739,14 +763,20 @@ def get_model_detail(name: str, namespace: str | None = None) -> dict:
+     """모델의 모든 버전 + run 메트릭 포함."""
+     if tenant_resources.TENANT_RESOURCES_ENABLED and namespace is None:
+         namespace = get_model_owner_namespace(name)
+-    versions_resp = _get(
+-        "/api/2.0/mlflow/model-versions/search",
+-        {
+-            "filter": f"name='{name}'",
+-            "max_results": 1000,
+-        },
+-        namespace=namespace,
+-    )
++    # MLflow can transiently time out while a registered model has no versions
++    # (for example immediately after model metadata creation). Treat that as
++    # an empty version list so the model page can still render and be deleted.
++    try:
++        versions_resp = _get(
++            "/api/2.0/mlflow/model-versions/search",
++            {
++                "filter": f"name='{name}'",
++                "max_results": 1000,
++            },
++            namespace=namespace,
++        )
++    except Exception:  # nosec - an empty registry must not block the UI
++        versions_resp = {"model_versions": []}
+     versions = versions_resp.get("model_versions", [])
+     result_versions = []
+     for v in versions:
+@@ -1246,11 +1276,11 @@ def get_model_owner_namespace(name: str, namespace: str | None = None) -> str |
+     if namespace:
+         try:
+             resp = _get(
+-                "/api/2.0/mlflow/model-versions/search",
++                "/api/2.0/mlflow/registered-models/search",
+                 {"filter": f"name='{name}'", "max_results": 1},
+                 namespace=namespace,
+             )
+-            if resp.get("model_versions"):
++            if resp.get("registered_models"):
+                 return namespace
+         except Exception:
+             return None
+diff --git a/OPFW/ml_prediction_manager_v2/app/services/tenant_dashboard_service.py b/OPFW/ml_prediction_manager_v2/app/services/tenant_dashboard_service.py
+index 589fe38..a77540a 100644
+--- a/OPFW/ml_prediction_manager_v2/app/services/tenant_dashboard_service.py
++++ b/OPFW/ml_prediction_manager_v2/app/services/tenant_dashboard_service.py
+@@ -574,8 +574,10 @@ def _ray_cluster(namespace: str, owner_email: str) -> dict:
+                                 {"name": "NVIDIA_VISIBLE_DEVICES", "value": ""},
+                             ],
+                             "resources": {
+-                                "requests": {"cpu": "250m", "memory": "1Gi"},
+-                                "limits": {"cpu": "1", "memory": "2Gi"},
++                                # The dashboard and job supervisor together need more than 2 GiB
++                                # on the verification host; a 2 GiB cgroup kills even trivial jobs.
++                                "requests": {"cpu": "250m", "memory": "2Gi"},
++                                "limits": {"cpu": "1", "memory": "3Gi"},
+                             },
+                         }
+                     ]
+@@ -785,6 +787,7 @@ fi
+                             ports=[client.V1ContainerPort(container_port=8080, name="http")],
+                             env=[
+                                 client.V1EnvVar(name="NIFI_WEB_HTTP_PORT", value="8080"),
++                                client.V1EnvVar(name="NIFI_WEB_HTTP_HOST", value="0.0.0.0"),
+                                 client.V1EnvVar(name="NIFI_WEB_PROXY_HOST", value=host),
+                                 client.V1EnvVar(name="NIFI_WEB_PROXY_CONTEXT_PATH", value=path),
+                             ],
+diff --git a/OPFW/ml_prediction_manager_v2/app/services/tenant_resources.py b/OPFW/ml_prediction_manager_v2/app/services/tenant_resources.py
+index c9892b9..31e3d65 100644
+--- a/OPFW/ml_prediction_manager_v2/app/services/tenant_resources.py
++++ b/OPFW/ml_prediction_manager_v2/app/services/tenant_resources.py
+@@ -25,6 +25,7 @@ custom_api = kubernetes_client.custom_objects()
+ TENANT_RESOURCES_ENABLED = os.environ.get(
+     "PM_TENANT_RESOURCES_ENABLED", "true"
+ ).lower() in ("1", "true", "yes")
++STANDALONE_MODE = not kubernetes_client.KUBERNETES_AVAILABLE or not TENANT_RESOURCES_ENABLED
+ 
+ MLFLOW_SERVICE_NAME = os.environ.get("PM_MLFLOW_SERVICE_NAME", "pm-mlflow")
+ MLFLOW_POD_SELECTOR = os.environ.get("PM_MLFLOW_POD_SELECTOR", "app=pm-mlflow")
+@@ -38,6 +39,18 @@ LEGACY_RAY_DASHBOARD_URL = os.environ.get(
+     "RAY_DASHBOARD_URL",
+     "http://ray-optuna-mlflow-cluster-head-svc.ray-system:8265",
+ )
++LEGACY_NIFI_API_URL = os.environ.get(
++    "NIFI_API_BASE_URL", "http://fedit-nifi:8080/nifi-api"
++).rstrip("/")
++STANDALONE_MLFLOW_PUBLIC_URL = os.environ.get(
++    "PM_STANDALONE_MLFLOW_PUBLIC_URL", ""
++).strip()
++STANDALONE_RAY_PUBLIC_URL = os.environ.get(
++    "PM_STANDALONE_RAY_PUBLIC_URL", ""
++).strip()
++STANDALONE_NIFI_PUBLIC_URL = os.environ.get(
++    "PM_STANDALONE_NIFI_PUBLIC_URL", ""
++).strip()
+ 
+ _NS_RE = re.compile(r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?$")
+ 
+@@ -60,6 +73,8 @@ def validate_namespace(namespace: str) -> str:
+ 
+ def namespace_owner(namespace: str) -> str | None:
+     validate_namespace(namespace)
++    if STANDALONE_MODE:
++        return os.environ.get("DEV_USER_EMAIL", "user@example.com")
+     try:
+         profile = custom_api.get_cluster_custom_object(
+             "kubeflow.org", "v1", "profiles", namespace
+@@ -92,6 +107,8 @@ def resolve_private_namespace(request: Request, namespace: str | None = None) ->
+         or request.query_params.get("namespace")
+         or get_user_namespace(request)
+     )
++    if STANDALONE_MODE:
++        return ns
+     owner = namespace_owner(ns)
+     if not owner:
+         raise HTTPException(status_code=404, detail=f"Profile namespace 없음: {ns}")
+@@ -124,14 +141,20 @@ def ray_dashboard_url(namespace: str | None = None) -> str:
+ 
+ 
+ def mlflow_public_path(namespace: str) -> str:
++    if STANDALONE_MLFLOW_PUBLIC_URL:
++        return STANDALONE_MLFLOW_PUBLIC_URL
+     return f"/mlflow/{validate_namespace(namespace)}/"
+ 
+ 
+ def ray_public_path(namespace: str) -> str:
++    if STANDALONE_RAY_PUBLIC_URL:
++        return STANDALONE_RAY_PUBLIC_URL
+     return f"/ray/{validate_namespace(namespace)}/"
+ 
+ 
+ def nifi_public_path(namespace: str) -> str:
++    if STANDALONE_NIFI_PUBLIC_URL:
++        return STANDALONE_NIFI_PUBLIC_URL
+     return f"/nifi/{validate_namespace(namespace)}/"
+ 
+ 
+@@ -160,7 +183,7 @@ def find_mlflow_pod(core_api: client.CoreV1Api, namespace: str | None = None) ->
+ def _service_ready(namespace: str, service_name: str, port_name: str | None = None) -> bool:
+     try:
+         svc = core_v1.read_namespaced_service(service_name, namespace)
+-    except ApiException:
++    except Exception:
+         return False
+     if port_name:
+         names = {p.name for p in (svc.spec.ports or [])}
+@@ -182,7 +205,11 @@ def _http_ready(url: str, path: str = '/', expected: tuple[int, ...] = (200, 302
+ def mlflow_status(namespace: str) -> TenantDashboard:
+     namespace = validate_namespace(namespace)
+     internal_url = mlflow_tracking_uri(namespace)
+-    ready = _service_ready(namespace, MLFLOW_SERVICE_NAME) and _http_ready(internal_url)
++    ready = (
++        _http_ready(internal_url)
++        if STANDALONE_MODE
++        else _service_ready(namespace, MLFLOW_SERVICE_NAME) and _http_ready(internal_url)
++    )
+     return TenantDashboard(
+         namespace=namespace,
+         owner_email=namespace_owner(namespace),
+@@ -196,7 +223,11 @@ def mlflow_status(namespace: str) -> TenantDashboard:
+ def ray_status(namespace: str) -> TenantDashboard:
+     namespace = validate_namespace(namespace)
+     internal_url = ray_dashboard_url(namespace)
+-    ready = _service_ready(namespace, f"{RAY_CLUSTER_NAME}-head-svc", "dashboard") and _http_ready(internal_url)
++    ready = (
++        _http_ready(internal_url)
++        if STANDALONE_MODE
++        else _service_ready(namespace, f"{RAY_CLUSTER_NAME}-head-svc", "dashboard") and _http_ready(internal_url)
++    )
+     return TenantDashboard(
+         namespace=namespace,
+         owner_email=namespace_owner(namespace),
+@@ -209,10 +240,14 @@ def ray_status(namespace: str) -> TenantDashboard:
+ 
+ def nifi_status(namespace: str) -> TenantDashboard:
+     namespace = validate_namespace(namespace)
+-    internal_url = f"http://{NIFI_SERVICE_NAME}.{namespace}.svc.cluster.local:8080"
+-    ready = _service_ready(namespace, NIFI_SERVICE_NAME, "http") and _http_ready(
+-        internal_url, "/nifi-api/access/config", (200,)
+-    )
++    if STANDALONE_MODE:
++        internal_url = LEGACY_NIFI_API_URL.rsplit("/nifi-api", 1)[0]
++        ready = _http_ready(LEGACY_NIFI_API_URL, "/access/config", (200,))
++    else:
++        internal_url = f"http://{NIFI_SERVICE_NAME}.{namespace}.svc.cluster.local:8080"
++        ready = _service_ready(namespace, NIFI_SERVICE_NAME, "http") and _http_ready(
++            internal_url, "/nifi-api/access/config", (200,)
++        )
+     return TenantDashboard(
+         namespace=namespace,
+         owner_email=namespace_owner(namespace),
+diff --git a/OPFW/ml_prediction_manager_v2/k8s/optional/label-studio.yaml b/OPFW/ml_prediction_manager_v2/k8s/optional/label-studio.yaml
+index a8079e9..9fbb505 100644
+--- a/OPFW/ml_prediction_manager_v2/k8s/optional/label-studio.yaml
++++ b/OPFW/ml_prediction_manager_v2/k8s/optional/label-studio.yaml
+@@ -390,6 +390,10 @@ spec:
+           env:
+             - name: LABEL_STUDIO_HOST
+               value: "https://kubeflow.example.local/label-studio"
++            # Label Studio uses HOST (not LABEL_STUDIO_HOST) when generating
++            # Django URL and asset prefixes.
++            - name: HOST
++              value: "https://kubeflow.example.local/label-studio"
+             - name: LABEL_STUDIO_PORT
+               value: "8080"
+             - name: PYTHONPATH
+FEDIT_PREDICTOR_PATCH
+
+# GitHub ZIP과 기존 FeDiT.zip의 CRLF를 먼저 LF로 정리해야 patch의 문맥이 일치한다.
+find "$PM_ROOT" -type f \
+  \( -name '*.py' -o -name '*.yaml' -o -name '*.yml' -o -name '*.sh' \
+     -o -name '*.conf' -o -name 'Dockerfile' \) \
+  -print0 | xargs -0 -r sed -i 's/\r$//'
+
+find "$PM_FRONT_ROOT" -type f \
+  \( -name '*.js' -o -name '*.jsx' -o -name '*.ts' -o -name '*.tsx' \
+     -o -name '*.css' -o -name '*.scss' -o -name '*.json' -o -name '*.md' \
+     -o -name '*.html' -o -name '*.conf' -o -name '*.sh' -o -name 'Dockerfile' \) \
+  -print0 | xargs -0 -r sed -i 's/\r$//'
+
+# 원본 env.sh에는 마지막 줄바꿈이 없으므로 patch 적용 전에 한 번 보완한다.
+[ -z "$(tail -c 1 "$PM_FRONT_ROOT/env.sh")" ] || printf '\n' >> "$PM_FRONT_ROOT/env.sh"
+
+cd "$FEDIT_ROOT"
+patch --dry-run -p1 < "$SOURCE_PATCH"
+patch -p1 < "$SOURCE_PATCH"
+
+export NODE_IP
+NODE_IP="$(ip -4 route get 1.1.1.1 | awk '{for (i=1;i<=NF;i++) if ($i=="src") {print $(i+1); exit}}')"
+test -n "$NODE_IP"
+sed -i "s/SERVER_IP/${NODE_IP}/g" "$PM_FRONT_ROOT/nginx.conf"
+sed -i "s/user@example.com/${ADMIN_EMAIL}/g" "$PM_FRONT_ROOT/nginx.conf"
+
+grep -q 'KUBERNETES_AVAILABLE' "$PM_ROOT/app/services/kubernetes_client.py"
+grep -q 'NIFI_WEB_HTTP_HOST' "$PM_ROOT/app/services/nifi_service.py"
+grep -q 'worker.join(timeout=5)' "$PM_ROOT/app/services/registry_model_service.py"
+grep -q 'runtime-config.js' "$PM_FRONT_ROOT/env.sh"
+grep -q '/label-studio/' "$PM_FRONT_ROOT/src/pages/predictor-creator-tool/predictor-creator-tool.tsx"
+grep -q "$NODE_IP" "$PM_FRONT_ROOT/nginx.conf"
+
+python3 -m compileall -q "$PM_ROOT/app"
+echo "FeDiT 소스 보완 및 Python 문법 확인 완료"
+
+
+6. FULL 또는 저자원 설치 설정 파일 만들기
+-----------------------------------------
+
+case "$INSTALL_PROFILE" in
+  FULL)
+    export MIN_CPU_CORES=4
+    # 물리 메모리 32GiB 장비에서 커널 예약분을 고려한 설치기 판정값이다.
+    export MIN_MEMORY_GIB=28
+    export MIN_DISK_GIB=200
+    export WAIT_ALL_KUBEFLOW_WORKLOADS=true
+    ;;
+  LOW_RESOURCE)
+    export MIN_CPU_CORES=4
+    # 실사용 하한은 8GiB/80GiB이며, 아래 값은 설치 진행을 허용하는 판정값이다.
+    export MIN_MEMORY_GIB=4
+    export MIN_DISK_GIB=40
+    export WAIT_ALL_KUBEFLOW_WORKLOADS=false
+    ;;
+  *)
+    echo "INSTALL_PROFILE은 FULL 또는 LOW_RESOURCE여야 합니다." >&2
+    exit 1
+    ;;
+esac
+
+# LOW_RESOURCE는 설치 중 Kubeflow 이미지 압축 해제와 Pod 재기동에 사용할
+# 8GiB swap 파일을 준비한다. 설치기는 kubeadm 실행 때만 swap을 잠시 끄고
+# control-plane 생성 직후 /etc/fstab의 swap을 다시 켠다.
+if [ "$INSTALL_PROFILE" = "LOW_RESOURCE" ]; then
+  if ! sudo test -f /swapfile-prediction-manager; then
+    sudo fallocate -l 8G /swapfile-prediction-manager
+    sudo chmod 600 /swapfile-prediction-manager
+    sudo mkswap /swapfile-prediction-manager
+  fi
+  grep -q '^/swapfile-prediction-manager ' /etc/fstab || \
+    echo '/swapfile-prediction-manager none swap sw 0 0' | sudo tee -a /etc/fstab
+  sudo swapon /swapfile-prediction-manager 2>/dev/null || true
+  swapon --show
+  free -h
+fi
+
+export VERIFY_CONFIG="$INSTALLER_ROOT/.verification-install.env"
+
+cat > "$VERIFY_CONFIG" <<EOF
+PREDICTION_MANAGER_ROOT=${PM_ROOT}
+PREDICTION_MANAGER_FRONTEND_ROOT=${PM_FRONT_ROOT}
+INSTALL_FRONTEND=true
+BUILD_FRONTEND_IMAGE=true
+FRONTEND_IMAGE_TAG=union-twin-fe:verification
+NODE_MAJOR_VERSION=18
+PROJECTS_ONLY=false
+BUILD_AUXILIARY_IMAGES=true
+
+ALLOW_EXISTING_CLUSTER=false
+ALLOW_UNSUPPORTED_HOST=false
+FORCE_REINSTALL=false
+MIN_CPU_CORES=${MIN_CPU_CORES}
+MIN_MEMORY_GIB=${MIN_MEMORY_GIB}
+MIN_DISK_GIB=${MIN_DISK_GIB}
+
+REQUIRE_NVIDIA_GPU=false
+INSTALL_NVIDIA_TOOLKIT=false
+VERIFY_DOCKER_GPU=false
+AUTO_REBOOT_AFTER_DRIVER=false
+
+NODE_IP=${NODE_IP}
+POD_NETWORK_CIDR=10.244.0.0/16
+SERVICE_CIDR=10.96.0.0/12
+KUBEFLOW_NODE_PORT=30080
+KEYCLOAK_NODE_PORT=30081
+REGISTRY_PORT=5000
+
+KUBERNETES_VERSION=1.30.14
+CALICO_VERSION=v3.30.2
+LOCAL_PATH_PROVISIONER_VERSION=v0.0.31
+METRICS_SERVER_VERSION=v0.7.2
+KUSTOMIZE_VERSION=v5.2.1
+HELM_VERSION=v3.15.4
+KUBEFLOW_VERSION=v1.9.1
+KUBE_PROMETHEUS_STACK_VERSION=61.7.1
+
+VERIFICATION_ADMIN_EMAIL=${ADMIN_EMAIL}
+VERIFICATION_ADMIN_PASSWORD=auto
+KEYCLOAK_ADMIN_USER=admin
+KEYCLOAK_ADMIN_PASSWORD=auto
+POSTGRES_USER=pm_admin
+POSTGRES_PASSWORD=auto
+KEYCLOAK_DEX_CLIENT_SECRET=auto
+PM_NIFI_INGEST_SECRET=auto
+
+STORAGE_CLASS=local-path
+REGISTRY_CONTAINER_NAME=pm-verification-registry
+REGISTRY_DATA_DIR=/opt/prediction-manager-verification/registry
+
+PM_IMAGE_TAG=prediction-manager-app:verification
+MLFLOW_IMAGE_TAG=mlflow-postgres:v3.11.1-pg
+RAY_IMAGE_TAG=ray-mlflow:2.54.1
+NIFI_IMAGE_TAG=prediction-manager-nifi-python:1.28.1-pm2
+LABEL_STUDIO_IMAGE_TAG=label-studio:1.18.0
+RAY_BASE_IMAGE=rayproject/ray:2.54.1-py312
+
+INSTALL_MONITORING=true
+INSTALL_LABEL_STUDIO=true
+PROVISION_DEFAULT_TENANT=true
+ENABLE_DOCKER_SOCKET=true
+WAIT_ALL_KUBEFLOW_WORKLOADS=${WAIT_ALL_KUBEFLOW_WORKLOADS}
+LABEL_STUDIO_PUBLIC_URL=http://${NODE_IP}:18080/label-studio
+
+PM_HEALTHCHECK_PORT=18000
+PROMETHEUS_HEALTHCHECK_PORT=19090
+INSTALL_STATE_ROOT=/opt/prediction-manager-verification
+KUBEFLOW_MANIFESTS_DIR=/opt/prediction-manager-verification/kubeflow-manifests
+EOF
+
+chmod 600 "$VERIFY_CONFIG"
+grep -E '^(PREDICTION_MANAGER|MIN_|REQUIRE_NVIDIA|INSTALL_NVIDIA|VERIFY_DOCKER_GPU|WAIT_ALL|RAY_BASE_IMAGE)' "$VERIFY_CONFIG"
+
+
+7. 변경 없는 사전 검증
+----------------------
+
+cd "$INSTALLER_ROOT"
+./install-verification.sh --config "$VERIFY_CONFIG" --dry-run
+
+# PASS/FAIL 항목을 확인한다.
+find "$INSTALLER_ROOT/verification-install-results" -maxdepth 3 -type f | sort
+
+
+8. 실제 설치
+------------
+
+# 이 명령이 Docker, containerd, Kubernetes, Kubeflow, KServe, KubeRay,
+# PostgreSQL, Keycloak, Prometheus와 예측기 이미지를 순서대로 설치한다.
+# NVIDIA 관련 구성은 6단계 설정에 의해 모두 건너뛴다.
+
+cd "$INSTALLER_ROOT"
+sudo -v
+./install-verification.sh --config "$VERIFY_CONFIG"
+
+# 네트워크 또는 전원 문제로 중단된 경우에만 같은 명령을 다시 실행한다.
+# 정상 완료했다면 아래 재개 명령은 실행하지 않는다.
+# ./install-verification.sh --config "$VERIFY_CONFIG"
+
+
+9. kubectl 설정과 설치 상태 확인
+-------------------------------
+
+mkdir -p "$HOME/.kube"
+sudo install -m 0600 /etc/kubernetes/admin.conf "$HOME/.kube/config"
+sudo chown "$USER":"$(id -gn)" "$HOME/.kube/config"
+export KUBECONFIG="$HOME/.kube/config"
+
+kubectl get nodes -o wide
+kubectl get pods -A
+kubectl get pvc -A
+kubectl get storageclass
+kubectl get crd \
+  profiles.kubeflow.org \
+  notebooks.kubeflow.org \
+  inferenceservices.serving.kserve.io \
+  rayclusters.ray.io
+
+kubectl -n kubeflow get service ml-pipeline prediction-manager label-studio
+kubectl -n kubeflow get deployment prediction-manager label-studio
+kubectl -n monitoring get pods
+
+# Prediction Manager Pod가 Ready가 된 직후에는 DB 스키마 생성이 몇 초 더
+# 걸릴 수 있으므로 최대 10분 동안 테이블 수를 확인한다.
+TABLE_COUNT=0
+for attempt in $(seq 1 120); do
+  TABLE_COUNT=$(kubectl -n kubeflow exec statefulset/pm-postgresql -- \
+    psql -U pm_admin -d prediction_manager -tAc \
+    "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';" \
+    | tr -dc '0-9')
+  test "${TABLE_COUNT:-0}" -gt 0 && break
+  sleep 5
+done
+test "${TABLE_COUNT:-0}" -gt 0
+printf 'Prediction Manager DB tables=%s\n' "$TABLE_COUNT"
+
+export REGISTRY_HOST="${NODE_IP}:5000"
+export REGISTRY_URL="http://${REGISTRY_HOST}"
+curl -fsS "$REGISTRY_URL/v2/_catalog" | jq .
+
+
+10. FULL 서비스 시작 또는 저자원 기본 상태 적용
+-----------------------------------------------
+
+if [ "$INSTALL_PROFILE" = "FULL" ]; then
+  kubectl -n kubeflow scale deployment/prediction-manager --replicas=1
+  kubectl -n kubeflow scale deployment/label-studio --replicas=1
+  kubectl -n monitoring scale deployment/kube-prometheus-stack-operator --replicas=1
+  kubectl -n kubeflow-user-example-com scale deployment/pm-mlflow --replicas=1
+  kubectl -n kubeflow-user-example-com scale statefulset/nifi --replicas=1
+  kubectl -n knative-serving scale deployment \
+    activator autoscaler controller net-istio-controller net-istio-webhook webhook \
+    --replicas=1
+else
+  kubectl -n kubeflow scale deployment/prediction-manager --replicas=1
+  for resource in $(kubectl -n kubeflow get deployment -o name); do
+    case "$resource" in
+      deployment.apps/minio|deployment.apps/kuberay-operator|deployment.apps/prediction-manager) continue ;;
+    esac
+    kubectl -n kubeflow scale "$resource" --replicas=0
+  done
+  kubectl -n kubeflow get statefulset -o name | \
+    grep -Ev '^statefulset.apps/(pm-postgresql)$' | \
+    xargs -r kubectl -n kubeflow scale --replicas=0
+  kubectl -n istio-system patch hpa cluster-local-gateway --type merge \
+    -p '{"spec":{"minReplicas":1,"maxReplicas":1}}'
+  kubectl -n istio-system patch hpa istio-ingressgateway --type merge \
+    -p '{"spec":{"minReplicas":1,"maxReplicas":1}}'
+  kubectl -n istio-system scale deployment \
+    cluster-local-gateway istio-ingressgateway istiod --replicas=1
+  kubectl -n oauth2-proxy scale deployment/oauth2-proxy --replicas=1
+  kubectl -n kubeflow-user-example-com scale deployment/pm-mlflow --replicas=0
+  kubectl -n kubeflow-user-example-com scale statefulset/nifi --replicas=0
+  kubectl -n kubeflow-user-example-com delete raycluster pm-ray --ignore-not-found --wait=false
+  kubectl -n kubeflow scale deployment/label-studio --replicas=0
+  kubectl -n knative-serving delete hpa activator webhook --ignore-not-found
+  kubectl -n knative-serving scale deployment \
+    activator autoscaler controller net-istio-controller net-istio-webhook webhook \
+    --replicas=0
+
+  # Prometheus는 설치 상태만 유지한다. 8GiB급 PC에서는 Label Studio와
+  # 동시에 실행하면 메모리가 부족할 수 있으므로 모든 monitoring workload를 0으로 내린다.
+  kubectl -n monitoring get deployment -o name | \
+    xargs -r kubectl -n monitoring scale --replicas=0
+  kubectl -n monitoring get statefulset -o name | \
+    xargs -r kubectl -n monitoring scale --replicas=0
+fi
+
+kubectl -n kubeflow rollout status deployment/prediction-manager --timeout=1200s
+if [ "$INSTALL_PROFILE" = "FULL" ]; then
+  kubectl -n monitoring rollout status deployment/kube-prometheus-stack-operator --timeout=900s
+else
+  kubectl -n monitoring get service/kube-prometheus-stack-prometheus
+  kubectl -n monitoring get statefulset/prometheus-kube-prometheus-stack-prometheus
+fi
+
+
+11. 필요한 포트포워딩을 systemd 서비스로 시작
+---------------------------------------------
+
+# 기존에 같은 이름의 포트포워딩이 있으면 먼저 정리한다.
+for unit in pm-forward prometheus-forward mlflow-forward nifi-forward ray-forward label-studio-forward; do
+  sudo systemctl stop "${unit}.service" >/dev/null 2>&1 || true
+  sudo systemctl reset-failed "${unit}.service" >/dev/null 2>&1 || true
+done
+
+sudo systemd-run --collect --unit=pm-forward \
+  --property=Restart=always --property=RestartSec=2 \
+  --setenv=KUBECONFIG=/etc/kubernetes/admin.conf \
+  /usr/bin/kubectl -n kubeflow port-forward --address=0.0.0.0 \
+  service/prediction-manager 18000:80
+
+if [ "$INSTALL_PROFILE" = "FULL" ]; then
+  sudo systemd-run --collect --unit=prometheus-forward \
+    --property=Restart=always --property=RestartSec=2 \
+    --setenv=KUBECONFIG=/etc/kubernetes/admin.conf \
+    /usr/bin/kubectl -n monitoring port-forward --address=0.0.0.0 \
+    service/kube-prometheus-stack-prometheus 19090:9090
+
+  sudo systemd-run --collect --unit=mlflow-forward \
+    --property=Restart=always --property=RestartSec=2 \
+    --setenv=KUBECONFIG=/etc/kubernetes/admin.conf \
+    /usr/bin/kubectl -n kubeflow-user-example-com port-forward --address=0.0.0.0 \
+    service/pm-mlflow 15000:5000
+
+  sudo systemd-run --collect --unit=nifi-forward \
+    --property=Restart=always --property=RestartSec=2 \
+    --setenv=KUBECONFIG=/etc/kubernetes/admin.conf \
+    /usr/bin/kubectl -n kubeflow-user-example-com port-forward --address=0.0.0.0 \
+    service/nifi 15001:8080
+
+  sudo systemd-run --collect --unit=ray-forward \
+    --property=Restart=always --property=RestartSec=2 \
+    --setenv=KUBECONFIG=/etc/kubernetes/admin.conf \
+    /usr/bin/kubectl -n kubeflow-user-example-com port-forward --address=0.0.0.0 \
+    service/pm-ray-head-svc 15002:8265
+
+  sudo systemd-run --collect --unit=label-studio-forward \
+    --property=Restart=always --property=RestartSec=2 \
+    --setenv=KUBECONFIG=/etc/kubernetes/admin.conf \
+    /usr/bin/kubectl -n kubeflow port-forward --address=0.0.0.0 \
+    service/label-studio 15003:80
+fi
+
+sudo systemctl --no-pager --full status pm-forward.service || true
+if [ "$INSTALL_PROFILE" = "FULL" ]; then
+  sudo systemctl --no-pager --full status prometheus-forward.service || true
+fi
+
+
+12. FeDiT 프런트엔드 실행
+------------------------
+
+sudo docker rm -f fedit-fe >/dev/null 2>&1 || true
+sudo docker run -d --restart=unless-stopped --name fedit-fe -p 18080:80 \
+  -e NDXPRO_ENV_PREDICTION_MANAGER_URL=/prediction-manager/ \
+  -e NDXPRO_ENV_KUBEFLOW_URL="http://${NODE_IP}:30080" \
+  -e NDXPRO_ENV_MLFLOW_URL="http://${NODE_IP}:15000" \
+  -e NDXPRO_ENV_RAY_URL="http://${NODE_IP}:15002" \
+  -e NDXPRO_ENV_NIFI_URL="http://${NODE_IP}:15001/nifi/" \
+  -v "$PM_FRONT_ROOT/nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
+  "$REGISTRY_HOST/union-twin-fe:verification"
+
+sudo docker ps --filter name=fedit-fe
+sudo docker logs --tail 100 fedit-fe
+
+
+13. 방화벽이 활성화된 경우 검증용 포트 열기
+-----------------------------------------
+
+if command -v ufw >/dev/null 2>&1 && sudo ufw status | grep -q '^Status: active'; then
+  sudo ufw allow 5000/tcp
+  sudo ufw allow 15000:15003/tcp
+  sudo ufw allow 18000/tcp
+  sudo ufw allow 18080/tcp
+  sudo ufw allow 19090/tcp
+  sudo ufw allow 30080/tcp
+  sudo ufw allow 30081/tcp
+  sudo ufw status
+fi
+
+# 검증용 포트는 외부 인터넷에 직접 공개하지 않는다.
+
+
+14. 최종 상태와 URL 확인
+-----------------------
+
+curl -fsS "http://127.0.0.1:18000/healthz" | jq .
+if [ "$INSTALL_PROFILE" = "FULL" ]; then
+  curl -fsS "http://127.0.0.1:19090/-/ready"
+  curl -fsSG "http://127.0.0.1:19090/api/v1/query" \
+    --data-urlencode 'query=up' | jq -e '.status == "success"'
+else
+  # 저자원 기본 상태에서는 Prometheus가 중지되어 있으므로 설치 객체를 확인한다.
+  kubectl -n monitoring get service/kube-prometheus-stack-prometheus
+  kubectl -n monitoring get statefulset/prometheus-kube-prometheus-stack-prometheus
+fi
+curl -sS -o /dev/null -w 'Frontend HTTP %{http_code}\n' \
+  "http://127.0.0.1:18080/fedit/predictor-creator-tool"
+curl -sS -o /dev/null -w 'Kubeflow HTTP %{http_code}\n' \
+  "http://${NODE_IP}:30080/"
+# FULL은 200/302/303을 확인한다. LOW_RESOURCE 기본 상태는 dashboard가
+# 중지되어 있고 인증 계층만 열려 있으므로 401/403도 정상이다.
+curl -fsS "$REGISTRY_URL/v2/_catalog" | jq .
+
+kubectl get pods -A
+kubectl get events -A --sort-by=.lastTimestamp | tail -n 100
+
+printf '\n브라우저 접속 주소\n'
+printf '예측기 생성/연동 도구: http://%s:18080/fedit/predictor-creator-tool\n' "$NODE_IP"
+printf 'Prediction Manager:    http://%s:18000/\n' "$NODE_IP"
+printf 'Kubeflow:              http://%s:30080/\n' "$NODE_IP"
+printf 'Keycloak:              http://%s:30081/auth/\n' "$NODE_IP"
+printf 'Label Studio:          http://%s:18080/label-studio/\n' "$NODE_IP"
+printf 'MLflow:                http://%s:15000/\n' "$NODE_IP"
+printf 'NiFi:                  http://%s:15001/nifi/\n' "$NODE_IP"
+printf 'Ray Dashboard:         http://%s:15002/\n' "$NODE_IP"
+
+
+15. 저자원 PC에서 서비스 하나씩 점검할 때 사용하는 명령
+------------------------------------------------------
+
+# 이 절은 한 번에 전부 실행하지 않는다.
+# 필요한 서비스의 시작 -> 포트포워딩 -> UI 점검 -> 종료 순서로 한 블록씩 사용한다.
+# 설치 직후 한 번만 tenant 리소스 객체를 만든 뒤 모두 중지한다.
+curl -fsS -X POST \
+  -H "kubeflow-userid: ${ADMIN_EMAIL}" \
+  "http://127.0.0.1:18000/api/admin/users/kubeflow-user-example-com/tenant-resources/reconcile" \
+  | jq -e '.status == "reconciled"'
+kubectl -n kubeflow-user-example-com scale deployment/pm-mlflow --replicas=0
+kubectl -n kubeflow-user-example-com scale statefulset/nifi --replicas=0
+kubectl -n kubeflow-user-example-com delete raycluster pm-ray \
+  --ignore-not-found --wait=false
+kubectl -n kubeflow-user-example-com get deployment/pm-mlflow statefulset/nifi
+
+# 15-A. NiFi 시작
+kubectl -n kubeflow-user-example-com scale statefulset/nifi --replicas=1
+kubectl -n kubeflow-user-example-com wait --for=condition=ready \
+  pod -l app=nifi --timeout=300s
+sudo systemctl stop nifi-forward.service 'nifi-forward-*.service' >/dev/null 2>&1 || true
+sudo systemd-run --collect --unit="nifi-forward-$(date +%s)" \
+  --property=Restart=always --property=RestartSec=2 \
+  --setenv=KUBECONFIG=/etc/kubernetes/admin.conf \
+  /usr/bin/kubectl -n kubeflow-user-example-com port-forward --address=0.0.0.0 \
+  service/nifi 15001:8080
+
+# NiFi 종료
+sudo systemctl stop nifi-forward.service 'nifi-forward-*.service' >/dev/null 2>&1 || true
+kubectl -n kubeflow-user-example-com scale statefulset/nifi --replicas=0
+
+
+# 15-B. Label Studio 시작
+kubectl -n kubeflow scale deployment/label-studio --replicas=1
+kubectl -n kubeflow rollout status deployment/label-studio --timeout=600s
+sudo systemctl stop label-studio-forward.service 'label-studio-forward-*.service' >/dev/null 2>&1 || true
+sudo systemd-run --collect --unit="label-studio-forward-$(date +%s)" \
+  --property=Restart=always --property=RestartSec=2 \
+  --setenv=KUBECONFIG=/etc/kubernetes/admin.conf \
+  /usr/bin/kubectl -n kubeflow port-forward --address=0.0.0.0 \
+  service/label-studio 15003:80
+
+# Label Studio 종료
+sudo systemctl stop label-studio-forward.service 'label-studio-forward-*.service' >/dev/null 2>&1 || true
+kubectl -n kubeflow scale deployment/label-studio --replicas=0
+
+
+# 15-C. MLflow 시작
+kubectl -n kubeflow-user-example-com scale deployment/pm-mlflow --replicas=1
+kubectl -n kubeflow-user-example-com rollout status deployment/pm-mlflow --timeout=600s
+sudo systemctl stop mlflow-forward.service 'mlflow-forward-*.service' >/dev/null 2>&1 || true
+sudo systemd-run --collect --unit="mlflow-forward-$(date +%s)" \
+  --property=Restart=always --property=RestartSec=2 \
+  --setenv=KUBECONFIG=/etc/kubernetes/admin.conf \
+  /usr/bin/kubectl -n kubeflow-user-example-com port-forward --address=0.0.0.0 \
+  service/pm-mlflow 15000:5000
+
+# MLflow 종료
+sudo systemctl stop mlflow-forward.service 'mlflow-forward-*.service' >/dev/null 2>&1 || true
+kubectl -n kubeflow-user-example-com scale deployment/pm-mlflow --replicas=0
+
+
+# 15-D. Ray 생성과 시작
+curl -fsS -X POST \
+  -H "kubeflow-userid: ${ADMIN_EMAIL}" \
+  "http://127.0.0.1:18000/api/admin/users/kubeflow-user-example-com/tenant-resources/reconcile" \
+  | jq .
+kubectl -n kubeflow-user-example-com wait --for=condition=ready \
+  pod -l ray.io/node-type=head --timeout=600s
+sudo systemctl stop ray-forward.service 'ray-forward-*.service' >/dev/null 2>&1 || true
+sudo systemd-run --collect --unit="ray-forward-$(date +%s)" \
+  --property=Restart=always --property=RestartSec=2 \
+  --setenv=KUBECONFIG=/etc/kubernetes/admin.conf \
+  /usr/bin/kubectl -n kubeflow-user-example-com port-forward --address=0.0.0.0 \
+  service/pm-ray-head-svc 15002:8265
+
+# Ray 종료
+sudo systemctl stop ray-forward.service 'ray-forward-*.service' >/dev/null 2>&1 || true
+kubectl -n kubeflow-user-example-com delete raycluster pm-ray \
+  --ignore-not-found --wait=true
+
+
+# 15-E. Prometheus 시작
+kubectl -n monitoring scale deployment/kube-prometheus-stack-operator --replicas=1
+kubectl -n monitoring scale statefulset/prometheus-kube-prometheus-stack-prometheus --replicas=1
+kubectl -n monitoring rollout status deployment/kube-prometheus-stack-operator --timeout=900s
+kubectl -n monitoring rollout status statefulset/prometheus-kube-prometheus-stack-prometheus --timeout=900s
+sudo systemctl stop prometheus-forward.service 'prometheus-forward-*.service' >/dev/null 2>&1 || true
+sudo systemd-run --collect --unit="prometheus-forward-$(date +%s)" \
+  --property=Restart=always --property=RestartSec=2 \
+  --setenv=KUBECONFIG=/etc/kubernetes/admin.conf \
+  /usr/bin/kubectl -n monitoring port-forward --address=0.0.0.0 \
+  service/kube-prometheus-stack-prometheus 19090:9090
+curl -fsS "http://127.0.0.1:19090/-/ready"
+curl -fsSG "http://127.0.0.1:19090/api/v1/query" \
+  --data-urlencode 'query=up' | jq -e '.status == "success"'
+
+# Prometheus 종료
+sudo systemctl stop prometheus-forward.service 'prometheus-forward-*.service' >/dev/null 2>&1 || true
+kubectl -n monitoring get deployment -o name | \
+  xargs -r kubectl -n monitoring scale --replicas=0
+kubectl -n monitoring get statefulset -o name | \
+  xargs -r kubectl -n monitoring scale --replicas=0
+
+
+# 15-F. Knative/KServe 시작
+kubectl -n kubeflow scale deployment/kserve-controller-manager --replicas=1
+kubectl -n kubeflow rollout status deployment/kserve-controller-manager --timeout=600s
+kubectl -n knative-serving scale deployment \
+  activator autoscaler controller net-istio-controller net-istio-webhook webhook \
+  --replicas=1
+kubectl -n knative-serving get pods
+
+# Knative/KServe 종료
+kubectl -n knative-serving scale deployment \
+  activator autoscaler controller net-istio-controller net-istio-webhook webhook \
+  --replicas=0
+kubectl -n kubeflow scale deployment/kserve-controller-manager --replicas=0
+
+
+16. 장애 확인과 설치 재개
+------------------------
+
+kubectl get nodes -o wide
+kubectl get pods -A
+kubectl get events -A --sort-by=.lastTimestamp | tail -n 100
+
+# NAMESPACE와 POD_NAME을 실제 값으로 바꾼다.
+kubectl describe pod -n NAMESPACE POD_NAME
+kubectl logs -n NAMESPACE POD_NAME --all-containers --tail=200
+
+kubectl top nodes
+kubectl top pods -A --sort-by=memory | sed -n '1,30p'
+free -h
+df -h /
+
+journalctl -u kubelet -n 100 --no-pager
+journalctl -u containerd -n 100 --no-pager
+journalctl -u docker -n 100 --no-pager
+
+# 설치가 중단된 경우 같은 명령으로 재개한다.
+cd "$INSTALLER_ROOT"
+./install-verification.sh --config "$VERIFY_CONFIG"
+
+
+17. 설치 결과와 비밀번호 확인
+-----------------------------
+
+sudo find /opt/prediction-manager-verification/results \
+  -maxdepth 2 -type f | sort
+
+sudo cat /opt/prediction-manager-verification/secrets.env
+
+export LATEST_RESULT
+LATEST_RESULT="$(sudo find /opt/prediction-manager-verification/results \
+  -mindepth 1 -maxdepth 1 -type d | sort | tail -n 1)"
+sudo cat "$LATEST_RESULT/verification-report.md"
+sudo cat "$LATEST_RESULT/pods-final.txt"
+sudo cat "$LATEST_RESULT/verification-credentials.txt"
+
+
+18. 설치 완료 기준
+------------------
+
+- kubectl get nodes에서 단일 노드가 Ready이다.
+- Kubeflow, KServe와 KubeRay CRD가 조회된다.
+- Prediction Manager의 /healthz가 HTTP 200을 반환한다.
+- 예측기 생성/연동 도구가 18080 포트에서 열린다.
+- FULL 환경에서는 NiFi, Ray, MLflow와 Label Studio가 동시에 열린다.
+- LOW_RESOURCE 환경에서는 필요한 서비스만 15절 명령으로 시작하고 점검 후 종료한다.
+- NVIDIA 관련 패키지와 드라이버는 설치하지 않는다.
