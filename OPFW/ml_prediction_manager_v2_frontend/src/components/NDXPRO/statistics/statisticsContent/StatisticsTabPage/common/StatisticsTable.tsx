@@ -9,7 +9,8 @@ import StatisticsTableItem from './StatisticsTableItem';
 
 export const tableList = (data: any, type: string) => {
   const setTableList = (data: any) => {
-    return data.statistics.map((task: ISummary) => {
+    const statistics = Array.isArray(data?.statistics) ? data.statistics : [];
+    return statistics.map((task: ISummary) => {
       const firstChild: string = Object.keys(task)[0];
       const nameKey = firstChild as keyof typeof task;
       const nameValue = task[nameKey];
@@ -56,6 +57,8 @@ function StatisticsTable({ type }: { type: string }) {
     );
   }
 
+  const statistics = Array.isArray(data?.statistics) ? data.statistics : [];
+
   return (
     <ul className="statistics-table">
       <li className="summary thead">
@@ -66,7 +69,10 @@ function StatisticsTable({ type }: { type: string }) {
           <StatisticsLabel type="total" text={lang.en.total} />
         </button>
       </li>
-      {!loading && !error && data && tableList(data, type)}
+      {!loading && !error && statistics.length > 0 && tableList(data, type)}
+      {!loading && !error && statistics.length === 0 && (
+        <li className="statistics-no-data-row">No Data</li>
+      )}
     </ul>
   );
 }

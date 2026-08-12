@@ -9,6 +9,8 @@ import StatisticsHeader from '../../header';
 import lang from '../../lang.json';
 import BarChart from '../chart/BarChart';
 import DountChart from '../chart/DonutChart';
+import NoData from '../NoData';
+import StatisticsError from '../statisticsError';
 import StatisticsText from '../Text';
 import StatisticsTextItem from '../TextItem';
 import StatisticsFixedTopContent from './Content';
@@ -33,13 +35,32 @@ function StatisticsFixedTop() {
     currentWeek,
   );
 
-  const currentWeekStatistics = data?.statistics;
-  const currentDateStatistics = data?.statistics[data.statistics.length - 1];
+  const currentWeekStatistics = Array.isArray(data?.statistics)
+    ? data.statistics
+    : [];
+  const currentDateStatistics =
+    currentWeekStatistics[currentWeekStatistics.length - 1];
 
-  if (loading || !data || error) {
+  if (loading) {
     return (
       <div className="statistics-fixed-top">
         <StatisticsLoading />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="statistics-fixed-top">
+        <StatisticsError err={error} />
+      </div>
+    );
+  }
+
+  if (!currentDateStatistics) {
+    return (
+      <div className="statistics-fixed-top">
+        <NoData />
       </div>
     );
   }

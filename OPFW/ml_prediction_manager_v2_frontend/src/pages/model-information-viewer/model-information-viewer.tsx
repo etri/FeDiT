@@ -1,3 +1,4 @@
+import { VIEWER_URL } from 'apis/NDXPRO/config';
 import Skeleton from 'components/skeleton/skeleton';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -18,6 +19,7 @@ function ModelInformationViewer({ reload }: ModelInformationViewerProps) {
     null,
   );
   const [shouldLoadIframe, setShouldLoadIframe] = useState(false);
+  const [viewerUnavailable, setViewerUnavailable] = useState(false);
 
   const location = useLocation();
   const params = new URLSearchParams(location.search);
@@ -28,11 +30,28 @@ function ModelInformationViewer({ reload }: ModelInformationViewerProps) {
     const initialStartTime = new Date();
     setStartTime(initialStartTime);
 
-    const timeoutId = setTimeout(() => {
-      setShouldLoadIframe(true);
-    }, 3500); // Add a delay before displaying the iframe
+    if (!VIEWER_URL) {
+      setViewerUnavailable(true);
+      setIs3DModelLoadingComplete(true);
+    }
 
-    return () => clearTimeout(timeoutId);
+    const iframeDelayId = VIEWER_URL
+      ? setTimeout(() => {
+          setShouldLoadIframe(true);
+        }, 3500)
+      : undefined;
+
+    const fallbackId = VIEWER_URL
+      ? setTimeout(() => {
+          setViewerUnavailable(true);
+          setIs3DModelLoadingComplete(true);
+        }, 15000)
+      : undefined;
+
+    return () => {
+      if (iframeDelayId !== undefined) clearTimeout(iframeDelayId);
+      if (fallbackId !== undefined) clearTimeout(fallbackId);
+    };
   }, []);
 
   useEffect(() => {
@@ -70,6 +89,10 @@ function ModelInformationViewer({ reload }: ModelInformationViewerProps) {
   const endDateTime = modelLoadingTime
     ? formatDateParts(modelLoadingTime)
     : null;
+  const viewerBaseUrl = VIEWER_URL.replace(/\/$/, '');
+  const viewerSrc = viewerBaseUrl
+    ? `${viewerBaseUrl}/VIZWide3D/?tour_id=${tourId || '03'}`
+    : '';
 
   return (
     <div className="flex h-full w-full flex-col bg-[#dddfe2]">
@@ -81,14 +104,16 @@ function ModelInformationViewer({ reload }: ModelInformationViewerProps) {
 
       <div className="flex h-full w-full flex-col gap-4 p-4 lg:flex-row">
         <div className="flex flex-grow justify-center">
-          {shouldLoadIframe && (
+          {viewerUnavailable && (
+            <div className="flex h-full w-full items-center justify-center rounded-lg bg-white p-8 text-center shadow-card">
+              3D viewer is unavailable. Configure REACT_APP_VIEWER_URL to
+              connect the viewer service.
+            </div>
+          )}
+          {!viewerUnavailable && shouldLoadIframe && viewerSrc && (
             <iframe
               title="iframe testing"
-              src={
-                tourId
-                  ? `http://220.124.222.87/VIZWide3D/?tour_id=${tourId}`
-                  : 'http://220.124.222.87/VIZWide3D/?tour_id=03'
-              }
+              src={viewerSrc}
               className="h-[calc(100vh-24px)] w-full rounded-lg shadow-card lg:h-full"
               onLoad={() => {
                 setIsIframeLoading(false);

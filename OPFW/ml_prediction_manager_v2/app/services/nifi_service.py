@@ -143,6 +143,7 @@ sed -i 's|^nifi.cluster.protocol.is.secure=.*|nifi.cluster.protocol.is.secure=fa
                             ],
                             env=[
                                 client.V1EnvVar(name="NIFI_WEB_HTTP_PORT", value="8080"),
+                                client.V1EnvVar(name="NIFI_WEB_HTTP_HOST", value="0.0.0.0"),
                                 client.V1EnvVar(name="NIFI_WEB_PROXY_HOST", value=host),
                                 client.V1EnvVar(
                                     name="NIFI_WEB_PROXY_CONTEXT_PATH", value=path

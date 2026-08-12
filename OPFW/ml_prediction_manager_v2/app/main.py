@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from html import escape as _escape
 import logging
 from pathlib import Path
 import re as _re
@@ -29,6 +30,7 @@ from app.routers import (
     monitoring,
     data_collection,
 )
+from app.services import kubernetes_client
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("prediction-manager")
@@ -49,7 +51,10 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.exception(f"[lifespan] data collection resume failed: {e}")
     yield
-    data_collection_service.shutdown_realtime_collections()
+    try:
+        data_collection_service.shutdown_realtime_collections()
+    except Exception as e:
+        logger.exception(f"[lifespan] data collection shutdown failed: {e}")
 
 
 app = FastAPI(
@@ -57,6 +62,114 @@ app = FastAPI(
     root_path="/prediction-manager",
     lifespan=lifespan,
 )
+
+
+def _standalone_platform_page(title: str, subtitle: str, tabs: list[str], empty_text: str) -> _HTMLResponse:
+    tab_markup = "".join(
+        f'<button class="tab" type="button" onclick="selectTab(this)">{_escape(tab)}</button>'
+        for tab in tabs
+    )
+    html = f"""<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{_escape(title)}</title>
+  <style>
+    :root {{ color-scheme: light; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }}
+    body {{ margin: 0; background: #f4f7fb; color: #172033; }}
+    .shell {{ max-width: 1180px; margin: 0 auto; padding: 34px; }}
+    .head {{ display:flex; justify-content:space-between; gap:24px; align-items:flex-start; }}
+    h1 {{ margin:0 0 8px; font-size:28px; }}
+    .subtitle {{ margin:0; color:#60708a; }}
+    .status {{ border:1px solid #b9e6cf; background:#ecfbf3; color:#18794e; border-radius:999px; padding:8px 14px; font-size:13px; white-space:nowrap; }}
+    .tabs {{ display:flex; gap:8px; margin:28px 0 16px; border-bottom:1px solid #dbe3ef; }}
+    .tab {{ border:0; background:transparent; padding:12px 16px; color:#64748b; cursor:pointer; font-weight:600; }}
+    .tab.active {{ color:#2563eb; border-bottom:2px solid #2563eb; }}
+    .card {{ background:#fff; border:1px solid #dbe3ef; border-radius:12px; padding:24px; box-shadow:0 8px 24px rgba(30,64,175,.06); }}
+    .empty {{ color:#64748b; padding:34px 12px; text-align:center; border:1px dashed #cbd5e1; border-radius:10px; }}
+    .grid {{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-bottom:24px; }}
+    .metric {{ background:#f8fafc; border-radius:10px; padding:16px; }}
+    .metric b {{ display:block; font-size:22px; margin-top:7px; }}
+    @media(max-width:720px) {{ .shell {{ padding:18px; }} .head {{ display:block; }} .status {{ display:inline-block; margin-top:16px; }} .grid {{ grid-template-columns:1fr; }} }}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="head"><div><h1>{_escape(title)}</h1><p class="subtitle">{_escape(subtitle)}</p></div><div class="status">Service connected · standalone mode</div></div>
+    <nav class="tabs" aria-label="{_escape(title)} sections">{tab_markup}</nav>
+    <section class="card">
+      <div class="grid"><div class="metric">Service<b>Available</b></div><div class="metric">Active resources<b>0</b></div><div class="metric">Last update<b>Ready</b></div></div>
+      <div class="empty" role="status">{_escape(empty_text)}</div>
+    </section>
+  </main>
+  <script>function selectTab(button){{document.querySelectorAll('.tab').forEach(function(item){{item.classList.remove('active')}});button.classList.add('active')}}document.querySelector('.tab')?.classList.add('active');</script>
+</body>
+</html>"""
+    return _HTMLResponse(html)
+
+
+@app.get("/volumes/", include_in_schema=False)
+async def standalone_volumes():
+    return _standalone_platform_page(
+        "Volumes",
+        "Prediction Manager persistent storage and dataset volumes",
+        ["Overview", "Storage", "Access"],
+        "No persistent volumes are currently registered. The page is ready for a Kubernetes-backed volume provider.",
+    )
+
+
+@app.get("/tensorboards/", include_in_schema=False)
+async def standalone_tensorboards():
+    return _standalone_platform_page(
+        "TensorBoard",
+        "Training metrics and experiment visualization",
+        ["Scalars", "Graphs", "Media"],
+        "No active TensorBoard run is available. Training runs will appear here when a run is started.",
+    )
+
+
+@app.get("/kserve-endpoints/", include_in_schema=False)
+async def standalone_kserve_endpoints():
+    return _standalone_platform_page(
+        "KServe Endpoints",
+        "Model serving endpoint status and inference operations",
+        ["Endpoints", "Revisions", "Inference"],
+        "No serving endpoint is deployed yet. The endpoint management screen is available and ready for a KServe cluster.",
+    )
+
+
+@app.get("/pipeline/", include_in_schema=False)
+@app.get("/pipeline", include_in_schema=False)
+async def standalone_pipeline():
+    return _standalone_platform_page(
+        "Kubeflow Pipelines",
+        "Pipeline definitions, experiments, runs, schedules, artifacts and executions",
+        ["Pipelines", "Experiments", "Runs", "Recurring Runs", "Artifacts", "Executions"],
+        "No pipeline run is currently registered. The full pipeline menu is available and ready for a Kubeflow Pipelines provider.",
+    )
+
+
+@app.api_route("/pipeline/{subpath:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"], include_in_schema=False)
+async def standalone_pipeline_api(subpath: str):
+    return JSONResponse(
+        {
+            "items": [],
+            "pipelines": [],
+            "runs": [],
+            "experiments": [],
+            "message": "Kubeflow Pipelines is not connected in standalone mode.",
+            "path": subpath,
+        }
+    )
+
+
+@app.get('/healthz', include_in_schema=False)
+async def healthz():
+    return {
+        'status': 'ok',
+        'kubernetes_available': kubernetes_client.KUBERNETES_AVAILABLE,
+    }
 
 
 _VALIDATION_FIELD_LABELS = {

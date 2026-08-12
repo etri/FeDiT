@@ -104,6 +104,9 @@ const services: Service[] = [
     description: '학습 데이터 라벨링, 주석 프로젝트, 데이터셋 검수',
     icon: HomeLabelingIcon,
     path: '/label-studio',
+    // Route through the verification Nginx proxy so the Kubeflow SSO header
+    // is injected and Label Studio's absolute /user and /static paths remain
+    // on the same origin.
     url: '/label-studio/',
   },
   {

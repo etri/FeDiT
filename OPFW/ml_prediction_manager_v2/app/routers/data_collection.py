@@ -175,7 +175,14 @@ async def preview_connector_data(connector_id: str, request: Request):
     require_authenticated(request)
     namespace = get_user_namespace(request)
     try:
-        return data_collection_service.preview_connector_data(namespace, connector_id)
+        # The connector implementation is synchronous and may call an HTTP
+        # endpoint.  Run it off the event loop so a connector targeting this
+        # API does not deadlock while the preview request is being served.
+        return await asyncio.to_thread(
+            data_collection_service.preview_connector_data,
+            namespace,
+            connector_id,
+        )
     except ValueError as e:
         raise _not_found_or_bad_request(e)
 
@@ -185,7 +192,8 @@ async def collect_connector_now(connector_id: str, request: Request, req: Connec
     email = require_authenticated(request)
     namespace = get_user_namespace(request)
     try:
-        return data_collection_service.collect_connector_now(
+        return await asyncio.to_thread(
+            data_collection_service.collect_connector_now,
             namespace,
             connector_id,
             email,

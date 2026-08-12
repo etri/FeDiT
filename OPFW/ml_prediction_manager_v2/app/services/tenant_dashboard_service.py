@@ -574,8 +574,10 @@ def _ray_cluster(namespace: str, owner_email: str) -> dict:
                                 {"name": "NVIDIA_VISIBLE_DEVICES", "value": ""},
                             ],
                             "resources": {
-                                "requests": {"cpu": "250m", "memory": "1Gi"},
-                                "limits": {"cpu": "1", "memory": "2Gi"},
+                                # The dashboard and job supervisor together need more than 2 GiB
+                                # on the verification host; a 2 GiB cgroup kills even trivial jobs.
+                                "requests": {"cpu": "250m", "memory": "2Gi"},
+                                "limits": {"cpu": "1", "memory": "3Gi"},
                             },
                         }
                     ]
@@ -785,6 +787,7 @@ fi
                             ports=[client.V1ContainerPort(container_port=8080, name="http")],
                             env=[
                                 client.V1EnvVar(name="NIFI_WEB_HTTP_PORT", value="8080"),
+                                client.V1EnvVar(name="NIFI_WEB_HTTP_HOST", value="0.0.0.0"),
                                 client.V1EnvVar(name="NIFI_WEB_PROXY_HOST", value=host),
                                 client.V1EnvVar(name="NIFI_WEB_PROXY_CONTEXT_PATH", value=path),
                             ],

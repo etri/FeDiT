@@ -13,9 +13,9 @@ export const getContextData = async () => {
   try {
     const response = await API.get(`/contexts`);
     const { data } = response;
-    return data;
+    return Array.isArray(data) ? data : [];
   } catch (err) {
-    return err;
+    return [];
   }
 };
 
