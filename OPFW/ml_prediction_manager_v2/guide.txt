@@ -13,92 +13,31 @@ FeDiT 예측매니저 간소화 설치 가이드
 1. 고정 작업 위치
 -----------------
 
-codex-ubuntu의 Docker 호스트:
-  /home/ubuntu/prediction-manager-work
+호스트:
+  /home/$USER/prediction-manager-work
 
 FeDiT 저장소:
-  /home/ubuntu/prediction-manager-work/FeDiT
-
-보완 이미지 소스:
-  /home/ubuntu/prediction-manager-work/fedit_clean_ubuntu22_v8
+  /home/$USER/prediction-manager-work/FeDiT
 
 설치 스크립트:
-  /home/ubuntu/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
-
-실행 컨테이너:
-  fedit-clean-ubuntu22
-
-외부 접속 IP:
-  10.254.85.120
+  /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
 
 
-2. 제공 파일을 codex-ubuntu에 저장
+2. git clone
 -----------------------------------
 
-다음 세 파일을 아래 위치에 저장한다.
-
-  /home/ubuntu/prediction-manager-work/fedit-repository-replacement-files.gpu.zip
-  /home/ubuntu/prediction-manager-work/script.corrected.gpu.zip
-  /home/ubuntu/prediction-manager-work/fedit_clean_ubuntu22_v8.corrected.gpu.zip
-
-`fedit-repository-replacement-files.gpu.zip`에는 수정된 FeDiT 파일의 완성본과
-설치 스크립트 전체가 상대 경로 그대로 들어 있다. patch를 적용하지 않고
-동일 경로에 덮어쓴다.
+git clone -b OPFW_development_ETRI_pman --single-branch https://github.com/etri/FeDiT.git 
 
 
-3. 보완 이미지 빌드 및 실행
-----------------------------
 
-codex-ubuntu Docker 호스트에서 실행한다.
-
-  mkdir -p /home/ubuntu/prediction-manager-work
-  unzip -oq /home/ubuntu/prediction-manager-work/fedit_clean_ubuntu22_v8.corrected.gpu.zip \
-    -d /home/ubuntu/prediction-manager-work
-  cd /home/ubuntu/prediction-manager-work/fedit_clean_ubuntu22_v8
-  cp -n .env.example .env
-  docker compose build --no-cache
-  docker compose up -d
-  docker compose ps
-  ./verify.sh
-
-이 Compose 구성은 `gpus: all`로 기존 호스트 드라이버를 전달한다. 이미지
-내부에 NVIDIA 드라이버를 설치하지 않는다.
-
-
-4. FeDiT 완성 파일 덮어쓰기
-----------------------------
-
-FeDiT 저장소가 다음 위치에 이미 있어야 한다.
-
-  /home/ubuntu/prediction-manager-work/FeDiT
-
-Docker 호스트에서 실행한다.
-
-  unzip -oq \
-    /home/ubuntu/prediction-manager-work/fedit-repository-replacement-files.gpu.zip \
-    -d /home/ubuntu/prediction-manager-work/FeDiT
-
-저장소를 실행 컨테이너에 복사한다.
-
-  docker exec fedit-clean-ubuntu22 mkdir -p /home/ubuntu/prediction-manager-work
-  docker cp /home/ubuntu/prediction-manager-work/FeDiT \
-    fedit-clean-ubuntu22:/home/ubuntu/prediction-manager-work/FeDiT
-  docker exec -u root fedit-clean-ubuntu22 chown -R ubuntu:ubuntu \
-    /home/ubuntu/prediction-manager-work/FeDiT
-
-모든 파일의 개별 목적지는 함께 제공하는 FILE_PLACEMENT.tsv에 기록되어 있다.
-
-
-5. 설치 설정 생성
+3. 설치 설정 생성
 -----------------
 
-컨테이너에 SSH로 접속한다.
-
-  ssh ubuntu@10.254.85.120 -p 2222
+호스트에 SSH로 접속한다.
 
 접속 후 다음 명령을 실행한다.
 
-  cd /home/ubuntu/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
+  cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
   cp -n verification-install.env.example .verification-install.env
 
 기본 설정은 다음을 자동으로 수행한다.
@@ -113,12 +52,12 @@ Docker 호스트에서 실행한다.
 resource로 계산된다. 다른 GPU에서는 실제 개수와 최소 VRAM에 맞춰 달라진다.
 
 
-6. 필수 모듈 한 번에 설치
+4. 필수 모듈 한 번에 설치
 --------------------------
 
 컨테이너 SSH 터미널에서 다음 한 줄만 실행한다.
 
-  cd /home/ubuntu/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts && ./01-install-required-modules.sh
+  cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts && ./01-install-required-modules.sh
 
 이 스크립트가 설치하는 범위:
 - Ubuntu 필수 패키지
@@ -130,12 +69,12 @@ resource로 계산된다. 다른 GPU에서는 실제 개수와 최소 VRAM에 �
 기존 NVIDIA 드라이버는 정상 작동 여부만 확인하며 변경하지 않는다.
 
 
-7. 서비스 설치 및 실행
+5. 서비스 설치 및 실행
 ----------------------
 
 컨테이너 SSH 터미널에서 다음 한 줄만 실행한다.
 
-  cd /home/ubuntu/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts && ./02-start-prediction-manager.sh
+  cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts && ./02-start-prediction-manager.sh
 
 중단 후 재실행할 때도 같은 명령을 사용한다. 완료 단계는
 `/opt/prediction-manager-verification/state`에 기록되어 건너뛴다.
@@ -148,12 +87,12 @@ resource로 계산된다. 다른 GPU에서는 실제 개수와 최소 VRAM에 �
 - nvidia-smi GPU/드라이버 진입
 
 
-8. 웹 첫 화면 확인
+6. 웹 첫 화면 확인
 ------------------
 
 브라우저에서 다음 주소를 연다.
 
-  http://10.254.85.120:18080/fedit/predictor-creator-tool
+  http://localhost:18080/fedit/predictor-creator-tool
 
 서비스 선택 화면에서 다음 항목이 표시되면 진입 점검 완료이다.
 - 학습 데이터셋 준비
@@ -168,63 +107,32 @@ resource로 계산된다. 다른 GPU에서는 실제 개수와 최소 VRAM에 �
 이번 단계에서는 각 서비스의 전체 기능시험을 수행하지 않는다.
 
 
-9. 기본 접속 주소
+7. 기본 접속 주소
 -----------------
 
 FeDiT:
-  http://10.254.85.120:18080/fedit/predictor-creator-tool
+  http://localhost:18080/fedit/predictor-creator-tool
 
 Prediction Manager:
-  http://10.254.85.120:18000/docs
+  http://localhost:18000/docs
 
 Kubeflow:
-  http://10.254.85.120:30080
+  http://localhost:30080
 
 Keycloak:
-  http://10.254.85.120:30081/auth
+  http://localhost:30081/auth
 
 MLflow:
-  http://10.254.85.120:15000
+  http://localhost:15000
 
 NiFi:
-  http://10.254.85.120:15001/nifi/
+  http://localhost:15001/nifi/
 
 Ray Dashboard:
-  http://10.254.85.120:15002
+  http://localhost:15002
 
 Prometheus:
-  http://10.254.85.120:19090
+  http://localhost:19090
 
 
-10. 나중에 수행할 2.2.9 전체 기능시험
----------------------------------------
-
-다음 요청에서 아래 스크립트를 실행해 설치·기능을 검증한다.
-
-  /home/ubuntu/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts/scripts/verify-2.2.9-gpu.sh
-
-검증 범위:
-- Dataset 업로드·목록·삭제와 REST 수집
-- NiFi, Label Studio
-- Kubeflow Pipeline
-- AutoML GPU trial
-- Ray job
-- MLflow, TensorBoard, Model Registry
-- KServe inference
-- Prometheus/DCGM MLOps 모니터링
-
-
-11. 결과와 캡처 위치
----------------------
-
-설치 로그와 결과:
-  /opt/prediction-manager-verification/results
-
-제공 캡처 이미지:
-  screenshots/01-code-copy-command.png
-  screenshots/02-module-install-command.png
-  screenshots/03-service-start-command.png
-  screenshots/04-service-selection-entry.png
-  screenshots/05-mlops-monitoring-entry.png
-  screenshots/06-dataset-entry.png
 
