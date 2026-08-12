@@ -8,6 +8,8 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 CONFIG_FILE="${VERIFY_INSTALL_CONFIG:-${PROJECT_ROOT}/.verification-install.env}"
 DRY_RUN=false
 RESUME=false
+VALIDATE_ONLY=false
+DEPENDENCIES_ONLY=false
 CURRENT_STAGE="initialization"
 FORWARD_PIDS=()
 REPORT_FINISHED=false
@@ -20,7 +22,9 @@ usage() {
 옵션:
   --config FILE  기본 .verification-install.env 대신 지정 파일 사용
   --dry-run      호스트를 변경하지 않고 소스와 설치 계획만 검증
-  --resume       NVIDIA driver 설치 후 systemd 자동 재개용
+  --resume       중단된 설치를 완료된 단계 이후부터 재개
+  --validate-only 이미 설치된 환경의 최종 상태만 다시 검증
+  --dependencies-only 서비스 실행 전 필수 모듈만 설치하고 종료
   -h, --help     도움말
 
 기본 실행은 Ubuntu 22.04 단일 서버에 Kubernetes, Kubeflow 및 Prediction
@@ -79,7 +83,11 @@ fi
 : "${NVIDIA_DEVICE_PLUGIN_VERSION:=0.16.2}"
 : "${KUBE_PROMETHEUS_STACK_VERSION:=61.7.1}"
 : "${DCGM_EXPORTER_VERSION:=3.3.1}"
-: "${GPU_TIME_SLICES:=4}"
+: "${GPU_TIME_SLICES:=auto}"
+: "${GPU_TIME_SLICE_TARGET_VRAM_GIB:=12}"
+: "${GPU_TIME_SLICES_MIN:=1}"
+: "${GPU_TIME_SLICES_MAX:=8}"
+: "${PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS:=auto}"
 : "${AUTO_REBOOT_AFTER_DRIVER:=true}"
 : "${VERIFY_DOCKER_GPU:=true}"
 : "${VERIFICATION_ADMIN_EMAIL:=user@example.com}"
@@ -131,6 +139,8 @@ for ((i = 0; i < ${#args[@]}; i++)); do
     --config) i=$((i + 1)) ;;
     --dry-run) DRY_RUN=true ;;
     --resume) RESUME=true ;;
+    --validate-only) VALIDATE_ONLY=true ;;
+    --dependencies-only) DEPENDENCIES_ONLY=true ;;
     -h|--help) usage; exit 0 ;;
     *) echo "알 수 없는 옵션: ${args[$i]}" >&2; usage >&2; exit 2 ;;
   esac
@@ -141,6 +151,74 @@ bool_true() {
     1|true|yes|on) return 0 ;;
     *) return 1 ;;
   esac
+}
+
+detect_gpu_hardware() {
+  GPU_PHYSICAL_COUNT=0
+  GPU_MODEL=""
+  GPU_DRIVER_VERSION=""
+  GPU_VRAM_GIB=0
+  GPU_EXPECTED_RESOURCES=0
+
+  command -v nvidia-smi >/dev/null 2>&1 || return 1
+  local line index model driver memory_mib
+  local min_memory_mib=0
+  local -a models=()
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    IFS=',' read -r index model driver memory_mib <<<"$line"
+    index="$(xargs <<<"$index")"
+    model="$(xargs <<<"$model")"
+    driver="$(xargs <<<"$driver")"
+    memory_mib="$(xargs <<<"$memory_mib")"
+    [[ "$index" =~ ^[0-9]+$ && "$memory_mib" =~ ^[0-9]+$ ]] || continue
+    GPU_PHYSICAL_COUNT=$((GPU_PHYSICAL_COUNT + 1))
+    models+=("$model")
+    GPU_DRIVER_VERSION="${GPU_DRIVER_VERSION:-$driver}"
+    if ((min_memory_mib == 0 || memory_mib < min_memory_mib)); then
+      min_memory_mib="$memory_mib"
+    fi
+  done < <(nvidia-smi --query-gpu=index,name,driver_version,memory.total --format=csv,noheader,nounits)
+  ((GPU_PHYSICAL_COUNT > 0)) || return 1
+
+  GPU_MODEL="$(printf '%s\n' "${models[@]}" | sort -u \
+    | awk 'BEGIN {first=1} {if (!first) printf " / "; printf "%s", $0; first=0} END {print ""}')"
+  GPU_VRAM_GIB=$(((min_memory_mib + 512) / 1024))
+
+  [[ "$GPU_TIME_SLICES_MIN" =~ ^[0-9]+$ && "$GPU_TIME_SLICES_MAX" =~ ^[0-9]+$ ]] \
+    && ((GPU_TIME_SLICES_MIN >= 1 && GPU_TIME_SLICES_MAX >= GPU_TIME_SLICES_MIN)) || {
+      echo "GPU_TIME_SLICES_MIN/MAX 범위가 올바르지 않습니다." >&2
+      return 1
+    }
+
+  if [[ "$GPU_TIME_SLICES" == "auto" ]]; then
+    [[ "$GPU_TIME_SLICE_TARGET_VRAM_GIB" =~ ^[0-9]+$ ]] && ((GPU_TIME_SLICE_TARGET_VRAM_GIB > 0)) || {
+      echo "GPU_TIME_SLICE_TARGET_VRAM_GIB는 1 이상의 정수여야 합니다." >&2
+      return 1
+    }
+    # Use rounded GiB so a marketed 48 GiB device that reports slightly below
+    # 49152 MiB does not unexpectedly fall from four slots to three.
+    GPU_TIME_SLICES=$((GPU_VRAM_GIB / GPU_TIME_SLICE_TARGET_VRAM_GIB))
+    ((GPU_TIME_SLICES < GPU_TIME_SLICES_MIN)) && GPU_TIME_SLICES="$GPU_TIME_SLICES_MIN"
+    ((GPU_TIME_SLICES > GPU_TIME_SLICES_MAX)) && GPU_TIME_SLICES="$GPU_TIME_SLICES_MAX"
+  fi
+  [[ "$GPU_TIME_SLICES" =~ ^[0-9]+$ ]] && ((GPU_TIME_SLICES >= 1)) || {
+    echo "GPU_TIME_SLICES는 auto 또는 1 이상의 정수여야 합니다." >&2
+    return 1
+  }
+  GPU_EXPECTED_RESOURCES=$((GPU_PHYSICAL_COUNT * GPU_TIME_SLICES))
+
+  if [[ "$PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS" == "auto" ]]; then
+    # One concurrent GPU worker per physical device is the safe default. Users
+    # can explicitly raise this to consume additional time-sliced slots.
+    PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS="$GPU_PHYSICAL_COUNT"
+  fi
+  [[ "$PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS" =~ ^[0-9]+$ ]] || {
+    echo "PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS는 auto 또는 0 이상의 정수여야 합니다." >&2
+    return 1
+  }
+  export GPU_PHYSICAL_COUNT GPU_MODEL GPU_DRIVER_VERSION GPU_VRAM_GIB
+  export GPU_TIME_SLICES GPU_EXPECTED_RESOURCES PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS
 }
 
 systemd_available() {
@@ -425,6 +503,10 @@ dry_run() {
   CURRENT_STAGE="dry-run"
   validate_source
   validate_ports
+  if nvidia-smi >/dev/null 2>&1; then
+    detect_gpu_hardware
+    record PASS "GPU 자동 설정" "${GPU_PHYSICAL_COUNT}x ${GPU_MODEL}, 최소 VRAM ${GPU_VRAM_GIB} GiB, GPU당 슬롯 ${GPU_TIME_SLICES}, Ray GPU worker max ${PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS}"
+  fi
   bash -n "${PROJECT_ROOT}/install-verification.sh" "${PROJECT_ROOT}/scripts/bootstrap-verification.sh"
   record PASS "Shell 구문" "entrypoint와 전체 설치기"
   if command -v envsubst >/dev/null 2>&1; then
@@ -496,13 +578,24 @@ else
   REGISTRY_HOST="${NODE_IP}:${REGISTRY_PORT}"
 fi
 REGISTRY_URL="http://${REGISTRY_HOST}"
+if bool_true "$CONTAINER_MODE"; then
+  # Image pulls are resolved by the node's containerd, where loopback is
+  # correct. Application pods have their own network namespace and must use
+  # the outer container's node IP to reach the same published Registry port.
+  REGISTRY_POD_URL="http://${NODE_IP}:${REGISTRY_PORT}"
+else
+  REGISTRY_POD_URL="$REGISTRY_URL"
+fi
 KUBEFLOW_URL="http://${NODE_IP}:${KUBEFLOW_NODE_PORT}"
 KEYCLOAK_PUBLIC_URL="http://${NODE_IP}:${KEYCLOAK_NODE_PORT}/auth"
 if [[ "$LABEL_STUDIO_PUBLIC_URL" == "auto" ]]; then
   LABEL_STUDIO_PUBLIC_URL="http://${NODE_IP}:18080/label-studio"
 fi
-export NODE_IP REGISTRY_HOST REGISTRY_URL KUBEFLOW_URL KEYCLOAK_PUBLIC_URL
+export NODE_IP REGISTRY_HOST REGISTRY_URL REGISTRY_POD_URL KUBEFLOW_URL KEYCLOAK_PUBLIC_URL
 export KUBECONFIG=/etc/kubernetes/admin.conf
+if nvidia-smi >/dev/null 2>&1; then
+  detect_gpu_hardware
+fi
 
 stage_done() {
   [[ -f "${STATE_DIR}/$1.done" ]] && ! bool_true "$FORCE_REINSTALL"
@@ -648,13 +741,33 @@ host_dependencies() {
   install_helm
 
   if nvidia-smi >/dev/null 2>&1; then
-    nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader
+    detect_gpu_hardware
+    record PASS "GPU 자동 탐지" "${GPU_PHYSICAL_COUNT}x ${GPU_MODEL}, 최소 VRAM ${GPU_VRAM_GIB} GiB, driver ${GPU_DRIVER_VERSION}, GPU당 슬롯 ${GPU_TIME_SLICES}"
   elif bool_true "$REQUIRE_NVIDIA_GPU"; then
     echo "NVIDIA GPU가 필수이지만 nvidia-smi가 동작하지 않습니다. driver는 설치 전에 별도로 준비하세요." >&2
     return 1
   else
     record SKIP "NVIDIA driver" "CPU 전용 구성"
   fi
+}
+
+ensure_local_registry() {
+  if docker inspect "$REGISTRY_CONTAINER_NAME" >/dev/null 2>&1; then
+    if ! docker start "$REGISTRY_CONTAINER_NAME" >/dev/null 2>&1; then
+      record WARN "로컬 Registry" "이전 비정상 종료 컨테이너를 재생성"
+      docker rm -f "$REGISTRY_CONTAINER_NAME" >/dev/null 2>&1 || true
+    fi
+  fi
+  if ! docker inspect "$REGISTRY_CONTAINER_NAME" >/dev/null 2>&1; then
+    docker run -d --restart=always --name "$REGISTRY_CONTAINER_NAME" \
+      -p "${REGISTRY_PORT}:5000" -v "${REGISTRY_DATA_DIR}:/var/lib/registry" \
+      registry:2.8.3 >/dev/null
+  fi
+  for _ in $(seq 1 30); do
+    curl -fsS "${REGISTRY_URL}/v2/" >/dev/null 2>&1 && return 0
+    sleep 2
+  done
+  curl -fsS "${REGISTRY_URL}/v2/" >/dev/null
 }
 
 configure_runtime() {
@@ -778,18 +891,7 @@ EOF
     record PASS "컨테이너 서비스" "containerd와 kubelet 호환 supervisor 시작"
   fi
 
-  if docker inspect "$REGISTRY_CONTAINER_NAME" >/dev/null 2>&1; then
-    docker start "$REGISTRY_CONTAINER_NAME" >/dev/null 2>&1 || true
-  else
-    docker run -d --restart=always --name "$REGISTRY_CONTAINER_NAME" \
-      -p "${REGISTRY_PORT}:5000" -v "${REGISTRY_DATA_DIR}:/var/lib/registry" \
-      registry:2.8.3 >/dev/null
-  fi
-  for _ in $(seq 1 30); do
-    curl -fsS "${REGISTRY_URL}/v2/" >/dev/null 2>&1 && break
-    sleep 2
-  done
-  curl -fsS "${REGISTRY_URL}/v2/" >/dev/null
+  ensure_local_registry
 
   if bool_true "$VERIFY_DOCKER_GPU"; then
     docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi >/dev/null
@@ -808,18 +910,7 @@ install_kubernetes() {
       sleep 1
     done
     ctr --address /run/containerd/containerd.sock version >/dev/null
-    if docker inspect "$REGISTRY_CONTAINER_NAME" >/dev/null 2>&1; then
-      docker start "$REGISTRY_CONTAINER_NAME" >/dev/null 2>&1 || true
-    else
-      docker run -d --restart=always --name "$REGISTRY_CONTAINER_NAME" \
-        -p "${REGISTRY_PORT}:5000" -v "${REGISTRY_DATA_DIR}:/var/lib/registry" \
-        registry:2.8.3 >/dev/null
-    fi
-    for _ in $(seq 1 30); do
-      curl -fsS "${REGISTRY_URL}/v2/" >/dev/null 2>&1 && break
-      sleep 2
-    done
-    curl -fsS "${REGISTRY_URL}/v2/" >/dev/null
+    ensure_local_registry
   fi
   if [[ -f /etc/kubernetes/admin.conf ]]; then
     if [[ ! -f "${STATE_DIR}/cluster-owned" ]] && ! bool_true "$ALLOW_EXISTING_CLUSTER"; then
@@ -938,6 +1029,7 @@ install_gpu_plugin() {
     record WARN "GPU Device Plugin" "GPU가 없어 생략"
     return
   fi
+  detect_gpu_hardware
   export GPU_TIME_SLICES
   envsubst < "${PROJECT_ROOT}/k8s/verification/nvidia-time-slicing.yaml" \
     > "${GENERATED_DIR}/nvidia-time-slicing.yaml"
@@ -954,11 +1046,11 @@ install_gpu_plugin() {
   local advertised=0
   for _ in $(seq 1 60); do
     advertised="$(kubectl get nodes -o json | jq -r '[.items[].status.allocatable["nvidia.com/gpu"] // "0" | tonumber] | add')"
-    ((advertised >= GPU_TIME_SLICES)) && break
+    ((advertised >= GPU_EXPECTED_RESOURCES)) && break
     sleep 5
   done
-  ((advertised >= GPU_TIME_SLICES)) || { echo "Time-Slicing GPU ${GPU_TIME_SLICES}개가 노출되지 않았습니다: ${advertised}" >&2; return 1; }
-  record PASS "GPU Time-Slicing" "nvidia.com/gpu=${advertised}; 메모리 격리 없음"
+  ((advertised >= GPU_EXPECTED_RESOURCES)) || { echo "Time-Slicing GPU ${GPU_EXPECTED_RESOURCES}개가 노출되지 않았습니다: ${advertised}" >&2; return 1; }
+  record PASS "GPU Time-Slicing" "물리 ${GPU_PHYSICAL_COUNT}개 x 슬롯 ${GPU_TIME_SLICES} = nvidia.com/gpu ${advertised}; 메모리 격리 없음"
 }
 
 apply_with_retry() {
@@ -1307,6 +1399,7 @@ install_node_runtime() {
 
 build_and_push_images() {
   export DOCKER_BUILDKIT=1
+  ensure_local_registry
   local pm_image="${REGISTRY_HOST}/${PM_IMAGE_TAG}"
   local mlflow_image="${REGISTRY_HOST}/${MLFLOW_IMAGE_TAG}"
   local ray_image="${REGISTRY_HOST}/${RAY_IMAGE_TAG}"
@@ -1353,10 +1446,11 @@ write_prediction_manager_env() {
   local ray_gpu_worker_enabled=false
   if bool_true "$INSTALL_NVIDIA_TOOLKIT" && nvidia-smi >/dev/null 2>&1; then
     ray_gpu_worker_enabled=true
+    detect_gpu_hardware
   fi
   cat > "${GENERATED_DIR}/prediction-manager.env" <<EOF
 REGISTRY_HOST=${REGISTRY_HOST}
-REGISTRY_URL=${REGISTRY_URL}
+REGISTRY_URL=${REGISTRY_POD_URL}
 PM_IMAGE_TAG=${PM_IMAGE_TAG}
 MLFLOW_IMAGE_TAG=${MLFLOW_IMAGE_TAG}
 DEFAULT_NAMESPACE=kubeflow-user-example-com
@@ -1379,7 +1473,7 @@ PM_TENANT_RAY_CPU_WORKER_REQUEST_MEMORY=1Gi
 PM_TENANT_RAY_CPU_WORKER_LIMIT_CPU=1
 PM_TENANT_RAY_CPU_WORKER_LIMIT_MEMORY=2Gi
 PM_TENANT_RAY_GPU_WORKER_ENABLED=${ray_gpu_worker_enabled}
-PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS=1
+PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS=${PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS}
 PM_TENANT_RAY_GPU_WORKER_REQUEST_CPU=250m
 PM_TENANT_RAY_GPU_WORKER_REQUEST_MEMORY=1Gi
 PM_TENANT_RAY_GPU_WORKER_REQUEST_GPU=1
@@ -1401,6 +1495,10 @@ MODEL_STORE_ROOT=/models
 MODEL_STORE_BACKEND=pvc
 DATASET_STORE_ROOT=/datasets
 DOCKER_SOCKET=unix:///var/run/docker.sock
+GPU_MODEL=${GPU_MODEL:-Unknown GPU}
+GPU_VRAM_GB=${GPU_VRAM_GIB:-0}
+GPU_PHYSICAL_COUNT=${GPU_PHYSICAL_COUNT:-0}
+GPU_DRIVER_VERSION=${GPU_DRIVER_VERSION:-}
 EOF
   chmod 600 "${GENERATED_DIR}/prediction-manager.env"
 }
@@ -1609,9 +1707,20 @@ final_validation() {
     record PASS "FeDiT 프런트엔드 이미지" "$FRONTEND_IMAGE_TAG"
   fi
 
-  local gateway_status
-  gateway_status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "${KUBEFLOW_URL}/")"
-  [[ "$gateway_status" =~ ^(200|302|303)$ ]] || { echo "Kubeflow gateway HTTP ${gateway_status}" >&2; return 1; }
+  local gateway_status gateway_body="${RESULT_DIR}/kubeflow-gateway.html"
+  gateway_status="$(curl -sS -o "$gateway_body" -w '%{http_code}' --max-time 10 "${KUBEFLOW_URL}/")"
+  if [[ "$gateway_status" == "403" ]]; then
+    # Kubeflow oauth2-proxy can return its Sign In page with HTTP 403 before a
+    # session exists. Treat only that identifiable authentication response as
+    # healthy; an arbitrary 403 from Istio must still fail verification.
+    grep -Eqi '<title>[[:space:]]*Sign In[[:space:]]*</title>|/oauth2/(start|sign_in)' "$gateway_body" || {
+      echo "Kubeflow gateway HTTP 403 without the expected Sign In page" >&2
+      return 1
+    }
+  elif [[ ! "$gateway_status" =~ ^(200|302|303)$ ]]; then
+    echo "Kubeflow gateway HTTP ${gateway_status}" >&2
+    return 1
+  fi
   record PASS "Kubeflow Gateway" "${KUBEFLOW_URL} HTTP ${gateway_status}"
 
   if bool_true "$PROVISION_DEFAULT_TENANT"; then
@@ -1651,8 +1760,30 @@ EOF
     | grep -F "$REGISTRY_HOST" > "${RESULT_DIR}/images.txt" || true
 }
 
+if bool_true "$VALIDATE_ONLY"; then
+  run_always "최종 기능 검증" final_validation
+  run_always "컨테이너 접근 서비스 구성" configure_container_access
+  finish_report
+  exit 0
+fi
+
 run_stage 00-preflight "사전 점검" preflight
 run_stage 10-host-dependencies "호스트 의존성 및 기존 NVIDIA driver 확인" host_dependencies
+
+if bool_true "$DEPENDENCIES_ONLY"; then
+  record PASS "필수 모듈 일괄 설치" "서비스 실행 전 준비 완료; NVIDIA driver는 변경하지 않음"
+  finish_report
+  cat <<EOF
+
+서비스 실행 전 필수 모듈 설치가 완료되었습니다.
+- NVIDIA driver: 기존 driver 확인만 수행(설치/업데이트 없음)
+- GPU 자동 탐지: ${GPU_PHYSICAL_COUNT:-0}개, ${GPU_MODEL:-미탐지}
+- 다음 단계: ./02-start-prediction-manager.sh
+- 설치 보고서: ${REPORT_FILE}
+EOF
+  exit 0
+fi
+
 run_stage 20-runtime "Docker/containerd/Registry 구성" configure_runtime
 run_stage 30-kubernetes "Kubernetes 단일 노드 구성" install_kubernetes
 run_stage 40-addons "Calico/StorageClass/Metrics Server" install_cluster_addons
