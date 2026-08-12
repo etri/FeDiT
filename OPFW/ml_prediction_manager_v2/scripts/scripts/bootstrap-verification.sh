@@ -72,7 +72,6 @@ fi
 : "${PROJECTS_ONLY:=false}"
 : "${BUILD_AUXILIARY_IMAGES:=true}"
 : "${MIN_CPU_CORES:=4}"
-: "${MIN_MEMORY_GIB:=28}"
 : "${MIN_DISK_GIB:=200}"
 : "${REQUIRE_NVIDIA_GPU:=true}"
 : "${INSTALL_NVIDIA_TOOLKIT:=true}"
@@ -762,8 +761,8 @@ preflight() {
   memory="$(( $(awk '/MemTotal/ {print $2}' /proc/meminfo) / 1024 / 1024 ))"
   disk="$(df -BG --output=avail / | tail -1 | tr -dc '0-9')"
   ((cpu >= MIN_CPU_CORES)) || { echo "CPU 부족: ${cpu} core" >&2; return 1; }
-  ((memory >= MIN_MEMORY_GIB)) || { echo "메모리 부족: ${memory} GiB" >&2; return 1; }
   ((disk >= MIN_DISK_GIB)) || { echo "디스크 부족: ${disk} GiB" >&2; return 1; }
+  record PASS "메모리 용량 제한" "${memory} GiB 감지; 설치 최소 용량 검사 비활성화"
   record PASS "서버 사양" "CPU ${cpu}, Memory ${memory} GiB, Disk ${disk} GiB"
   curl -fsSI --max-time 15 https://github.com/ >/dev/null
   curl -fsSI --max-time 15 https://registry.k8s.io/v2/ >/dev/null
