@@ -11,13 +11,28 @@ const buildConfig = process.env as Record<string, string | undefined>;
 
 const readEnv = (name: string) => {
   const value = runtimeConfig[name] ?? buildConfig[name] ?? '';
-  return value === name ? '' : value;
+  if (value === name) return '';
+  // Service ports are published by the Docker host. Resolve its address in
+  // the user's browser so the same image works with any host IP or DNS name.
+  return value.split('__BROWSER_HOST__').join(hostname);
+};
+
+const isPrivateIPv4 = (value: string) => {
+  const octets = value.split('.').map(Number);
+  if (octets.length !== 4 || octets.some(Number.isNaN)) return false;
+  return (
+    octets[0] === 10 ||
+    (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+    (octets[0] === 192 && octets[1] === 168)
+  );
 };
 
 const isLocalURL =
   hostname === 'localhost' ||
   hostname === '127.0.0.1' ||
-  hostname === '172.16.28.222';
+  hostname === '::1' ||
+  hostname.endsWith('.local') ||
+  isPrivateIPv4(hostname);
 const SAMPLE_TOKEN = readEnv('REACT_APP_TOKEN');
 
 const BASE_URL = isLocalURL

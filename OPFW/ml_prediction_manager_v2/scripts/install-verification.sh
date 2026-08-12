@@ -18,10 +18,12 @@ done
 
 if ((EUID == 0)); then
   export PM_INSTALL_ORIGINAL_USER="${PM_INSTALL_ORIGINAL_USER:-${SUDO_USER:-root}}"
+  echo "사용할 설치 설정: ${VERIFY_INSTALL_CONFIG:-${PROJECT_ROOT}/.verification-install.env}"
   exec "$INSTALLER" "$@"
 fi
 
 echo "Ubuntu 시스템 패키지와 Kubernetes를 설치하기 위해 sudo 권한을 사용합니다."
+echo "사용할 설치 설정: ${VERIFY_INSTALL_CONFIG:-${PROJECT_ROOT}/.verification-install.env}"
 CALLING_USER="${USER:-$(id -un)}"
 exec sudo env \
   PM_INSTALL_ORIGINAL_USER="${CALLING_USER}" \
