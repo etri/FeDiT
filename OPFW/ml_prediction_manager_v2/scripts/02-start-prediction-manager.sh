@@ -16,4 +16,5 @@ else
   "${SCRIPT_ROOT}/install-verification.sh" --config "$CONFIG_FILE" "$@"
 fi
 
-exec "${SCRIPT_ROOT}/scripts/check-service-entry.sh"
+"${SCRIPT_ROOT}/scripts/check-service-entry.sh" "$CONFIG_FILE"
+exec "${SCRIPT_ROOT}/scripts/show-access-urls.sh"
