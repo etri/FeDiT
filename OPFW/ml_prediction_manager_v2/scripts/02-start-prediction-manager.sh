@@ -12,6 +12,7 @@ done
 if [[ "$has_config" == true ]]; then
   "${SCRIPT_ROOT}/install-verification.sh" "$@"
 else
+  "${SCRIPT_ROOT}/scripts/prepare-install-config.sh" "$CONFIG_FILE"
   "${SCRIPT_ROOT}/install-verification.sh" --config "$CONFIG_FILE" "$@"
 fi
 

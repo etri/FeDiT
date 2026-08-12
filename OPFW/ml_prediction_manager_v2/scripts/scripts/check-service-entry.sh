@@ -21,10 +21,17 @@ kubectl get nodes >/dev/null 2>&1 \
   && pass "Kubernetes API 진입" \
   || fail "Kubernetes API 진입 실패"
 
-kubectl -n prediction-manager rollout status deployment/prediction-manager \
-  --timeout=120s >/dev/null 2>&1 \
-  && pass "Prediction Manager deployment Ready" \
-  || fail "Prediction Manager deployment Ready 확인 실패"
+PM_NAMESPACE="${PM_NAMESPACE:-$(
+  kubectl get deployment -A --no-headers 2>/dev/null \
+    | awk '$2 == "prediction-manager" {print $1; exit}'
+)}"
+
+if [[ -n "$PM_NAMESPACE" ]] && kubectl -n "$PM_NAMESPACE" rollout status \
+  deployment/prediction-manager --timeout=120s >/dev/null 2>&1; then
+  pass "Prediction Manager deployment Ready (${PM_NAMESPACE})"
+else
+  fail "Prediction Manager deployment Ready 확인 실패"
+fi
 
 check_http "Prediction Manager" "http://${NODE_IP}:18000/docs"
 check_http "Kubeflow" "http://${NODE_IP}:30080/"

@@ -11,6 +11,23 @@
   check.
 - `scripts/verify-2.2.9-gpu.sh` is kept for the deferred full functional test.
 
+## Portable installation correction
+
+- `01-install-required-modules.sh` creates and normalizes the default
+  `.verification-install.env` before installation.
+- `NODE_IP`, container DNS, Label Studio public URL, backend source path, and
+  frontend source path default to `auto`; values copied from another machine
+  are removed in portable mode.
+- `scripts/diagnose-install-entry.sh` prints the resolved configuration,
+  source paths, current state-file decisions, and GPU detection before `sudo`.
+- Initialization errors now include their line and exit code. A missing source
+  path can no longer terminate silently in an early `readlink -f` call.
+- A previous completed dependency stage is explicitly reported as `SKIP`,
+  followed by the success report and log paths.
+- The frontend Nginx upstream uses `host.docker.internal`, and browser-facing
+  service URLs use the browser's current hostname rather than an installed
+  machine's address.
+
 This archive was corrected against `guide.txt` before installation.
 
 - Accepts external Prediction Manager backend and frontend source roots.

@@ -3,6 +3,14 @@ set -Eeuo pipefail
 
 umask 077
 
+on_initialization_error() {
+  local rc=$? line="${BASH_LINENO[0]:-unknown}"
+  echo "[FAIL] 설치기 초기화 실패 (line ${line}, exit ${rc})" >&2
+  echo "설정 파일과 FeDiT 소스 위치를 확인하세요." >&2
+  exit "$rc"
+}
+trap on_initialization_error ERR
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 CONFIG_FILE="${VERIFY_INSTALL_CONFIG:-${PROJECT_ROOT}/.verification-install.env}"
@@ -54,8 +62,9 @@ fi
 : "${ALLOW_EXISTING_CLUSTER:=false}"
 : "${ALLOW_UNSUPPORTED_HOST:=false}"
 : "${FORCE_REINSTALL:=false}"
-: "${PREDICTION_MANAGER_ROOT:=${PROJECT_ROOT}}"
-: "${PREDICTION_MANAGER_FRONTEND_ROOT:=}"
+: "${AUTO_DETECT_SOURCE_PATHS:=true}"
+: "${PREDICTION_MANAGER_ROOT:=auto}"
+: "${PREDICTION_MANAGER_FRONTEND_ROOT:=auto}"
 : "${INSTALL_FRONTEND:=false}"
 : "${BUILD_FRONTEND_IMAGE:=false}"
 : "${FRONTEND_IMAGE_TAG:=union-twin-fe:verification}"
@@ -118,7 +127,8 @@ fi
 : "${PM_HEALTHCHECK_PORT:=18000}"
 : "${PROMETHEUS_HEALTHCHECK_PORT:=19090}"
 : "${CONTAINER_MODE:=auto}"
-: "${CONTAINER_DNS_SERVERS:=1.1.1.1 8.8.8.8}"
+: "${PORTABLE_NETWORK_CONFIG:=true}"
+: "${CONTAINER_DNS_SERVERS:=auto}"
 
 if [[ "$CONTAINER_MODE" == "auto" ]]; then
   if [[ -f /.dockerenv ]] && [[ "$(ps -p 1 -o comm= 2>/dev/null || true)" != "systemd" ]]; then
@@ -128,9 +138,22 @@ if [[ "$CONTAINER_MODE" == "auto" ]]; then
   fi
 fi
 
-PREDICTION_MANAGER_ROOT="$(readlink -f "$PREDICTION_MANAGER_ROOT")"
+canonicalize_path() {
+  # GNU readlink -m also returns a useful absolute path when the target does
+  # not exist, so validation can print the missing file instead of exiting
+  # silently during initialization.
+  readlink -m -- "$1"
+}
+
+if [[ "$PREDICTION_MANAGER_ROOT" == "auto" ]]; then
+  PREDICTION_MANAGER_ROOT="${PROJECT_ROOT}/.."
+fi
+if [[ "$PREDICTION_MANAGER_FRONTEND_ROOT" == "auto" ]]; then
+  PREDICTION_MANAGER_FRONTEND_ROOT="${PROJECT_ROOT}/../../ml_prediction_manager_v2_frontend"
+fi
+PREDICTION_MANAGER_ROOT="$(canonicalize_path "$PREDICTION_MANAGER_ROOT")"
 if [[ -n "$PREDICTION_MANAGER_FRONTEND_ROOT" ]]; then
-  PREDICTION_MANAGER_FRONTEND_ROOT="$(readlink -f "$PREDICTION_MANAGER_FRONTEND_ROOT")"
+  PREDICTION_MANAGER_FRONTEND_ROOT="$(canonicalize_path "$PREDICTION_MANAGER_FRONTEND_ROOT")"
 fi
 export CONTAINER_MODE
 
@@ -305,6 +328,29 @@ resolve_node_ip() {
   printf '%s\n' "$detected"
 }
 
+resolve_container_dns_servers() {
+  if [[ "$CONTAINER_DNS_SERVERS" != "auto" ]]; then
+    printf '%s\n' "$CONTAINER_DNS_SERVERS"
+    return
+  fi
+
+  local resolv_file resolver detected=""
+  for resolv_file in /etc/resolv.conf /run/systemd/resolve/resolv.conf; do
+    [[ -r "$resolv_file" ]] || continue
+    while read -r resolver; do
+      case "$resolver" in
+        ""|127.*|0.0.0.0|::1) continue ;;
+      esac
+      detected+="${detected:+ }${resolver}"
+    done < <(awk '$1 == "nameserver" {print $2}' "$resolv_file")
+  done
+
+  # Docker commonly publishes only 127.0.0.11 inside a container. That
+  # loopback address cannot be used from Kubernetes Pod namespaces.
+  [[ -n "$detected" ]] || detected="1.1.1.1 8.8.8.8"
+  printf '%s\n' "$detected"
+}
+
 if [[ "$DRY_RUN" == true ]]; then
   RESULT_ROOT="${PROJECT_ROOT}/verification-install-results"
 else
@@ -409,6 +455,8 @@ required_installer_files=(
   verification-install.env.example
   scripts/render-manifests.sh
   scripts/bootstrap-verification.sh
+  scripts/prepare-install-config.sh
+  scripts/diagnose-install-entry.sh
   k8s/deployment.yaml.template
   k8s/verification/kubeflow-kustomization.yaml
   k8s/verification/postgres-keycloak.yaml.template
@@ -569,6 +617,7 @@ ORIGINAL_HOME="$(getent passwd "$ORIGINAL_USER" | cut -d: -f6)"
 [[ -n "$ORIGINAL_HOME" ]] || ORIGINAL_HOME="/root"
 
 NODE_IP="$(resolve_node_ip)"
+CONTAINER_DNS_SERVERS="$(resolve_container_dns_servers)"
 if bool_true "$CONTAINER_MODE"; then
   # Docker-in-Docker의 기존 daemon은 시작 후 daemon.json을 안전하게 다시
   # 읽을 수 없다. loopback Registry는 Docker가 기본적으로 HTTP를 허용하며,
@@ -592,6 +641,7 @@ if [[ "$LABEL_STUDIO_PUBLIC_URL" == "auto" ]]; then
   LABEL_STUDIO_PUBLIC_URL="http://${NODE_IP}:18080/label-studio"
 fi
 export NODE_IP REGISTRY_HOST REGISTRY_URL REGISTRY_POD_URL KUBEFLOW_URL KEYCLOAK_PUBLIC_URL
+export CONTAINER_DNS_SERVERS
 export KUBECONFIG=/etc/kubernetes/admin.conf
 if nvidia-smi >/dev/null 2>&1; then
   detect_gpu_hardware
@@ -1596,12 +1646,12 @@ configure_container_access() {
     frontend_image="${REGISTRY_HOST}/${FRONTEND_IMAGE_TAG}"
     docker rm -f fedit-fe >/dev/null 2>&1 || true
     docker run -d --restart=unless-stopped --name fedit-fe -p 18080:80 \
+      --add-host=host.docker.internal:host-gateway \
       -e NDXPRO_ENV_PREDICTION_MANAGER_URL=/prediction-manager/ \
-      -e "NDXPRO_ENV_KUBEFLOW_URL=http://${NODE_IP}:30080" \
-      -e "NDXPRO_ENV_MLFLOW_URL=http://${NODE_IP}:15000" \
-      -e "NDXPRO_ENV_RAY_URL=http://${NODE_IP}:15002" \
-      -e "NDXPRO_ENV_NIFI_URL=http://${NODE_IP}:15001/nifi/" \
-      -v "${PREDICTION_MANAGER_FRONTEND_ROOT}/nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
+      -e NDXPRO_ENV_KUBEFLOW_URL=http://__BROWSER_HOST__:30080 \
+      -e NDXPRO_ENV_MLFLOW_URL=http://__BROWSER_HOST__:15000 \
+      -e NDXPRO_ENV_RAY_URL=http://__BROWSER_HOST__:15002 \
+      -e NDXPRO_ENV_NIFI_URL=http://__BROWSER_HOST__:15001/nifi/ \
       "$frontend_image" >/dev/null
     record PASS "FeDiT 프런트엔드 실행" "http://${NODE_IP}:18080"
   fi
