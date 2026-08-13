@@ -13,6 +13,21 @@
 
 ## Portable installation correction
 
+- Fixed the real-host `01` failure with exit 141: the Kubernetes package
+  version lookup now consumes the complete `apt-cache madison` stream and no
+  longer trips strict `pipefail` through SIGPIPE.
+- Added the CPU `LOW_MEMORY_PROFILE=auto` path. Below 16 GiB it installs the
+  entry-validation core without rejecting the host for its memory size, and
+  defers monitoring, Label Studio, default-tenant services, and auxiliary
+  image builds.
+- Fixed shell-safe serialization of a CPU host's `Unknown GPU` model value.
+- Fixed containerd 1.x/2.x registry host configuration so Kubernetes pulls
+  project images from the local HTTP Registry instead of attempting HTTPS.
+- Changed generated project/Kubeflow image policies to reuse successful image
+  downloads and added bounded retries for Registry pulls, builds, and pushes.
+- The post-install entry checker now selects `/etc/kubernetes/admin.conf`
+  explicitly when the entry script is run with `sudo`.
+
 - `01-install-required-modules.sh` creates and normalizes the default
   `.verification-install.env` before installation.
 - `NODE_IP`, container DNS, Label Studio public URL, backend source path, and
@@ -27,6 +42,16 @@
 - The frontend Nginx upstream uses `host.docker.internal`, and browser-facing
   service URLs use the browser's current hostname rather than an installed
   machine's address.
+- Bare-metal Ubuntu no longer skips access setup: port forwards for Prediction
+  Manager, MLflow, NiFi, Ray, Label Studio, and Prometheus bind on all host
+  interfaces, while the FeDiT frontend publishes port 18080.
+- Bare-metal port forwards run as the enabled
+  `prediction-manager-access.service` systemd unit and survive reboots.
+- Active UFW or firewalld installations receive the documented verification
+  TCP ports automatically; container mode leaves the outer host firewall to
+  the Docker host administrator.
+- The installer waits for every enabled access port before it reports success,
+  and `02-start-prediction-manager.sh` prints localhost and detected-host URLs.
 
 This archive was corrected against `guide.txt` before installation.
 

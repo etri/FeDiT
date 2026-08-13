@@ -21,7 +21,7 @@ spec:
       containers:
         - name: prediction-manager
           image: ${REGISTRY_HOST}/${PM_IMAGE_TAG}
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 8000

@@ -59,7 +59,8 @@ set_setting GPU_TIME_SLICES 1
 set_setting PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS 0
 set_setting RAY_BASE_IMAGE rayproject/ray:2.54.1-py312
 set_setting NEXT_START_SCRIPT 02-start-prediction-manager-cpu.sh
+set_setting LOW_MEMORY_PROFILE auto
+set_setting LOW_MEMORY_THRESHOLD_GIB 16
 
 chmod 0600 "$CONFIG_FILE"
-echo "CPU 전용 설정 준비 완료: NVIDIA 설치/검사 생략, Ray CPU 이미지 사용"
-
+echo "CPU 전용 설정 준비 완료: NVIDIA 설치/검사 생략, Ray CPU 이미지, 16 GiB 미만 저메모리 자동 조정"

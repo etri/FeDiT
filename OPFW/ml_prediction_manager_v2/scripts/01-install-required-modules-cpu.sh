@@ -27,6 +27,5 @@ echo "[INFO] CPU 전용 설치 설정을 준비합니다."
 "${SCRIPT_ROOT}/scripts/prepare-install-config-cpu.sh" "$CONFIG_FILE"
 "${SCRIPT_ROOT}/scripts/diagnose-install-entry.sh" "$CONFIG_FILE"
 echo "[INFO] CPU 전용 필수 모듈 설치를 시작합니다."
-exec "${SCRIPT_ROOT}/install-verification.sh" \
+VERIFY_INSTALL_CONFIG="$CONFIG_FILE" exec "${SCRIPT_ROOT}/install-verification.sh" \
   --config "$CONFIG_FILE" --dependencies-only "${args[@]}"
-
