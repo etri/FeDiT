@@ -35,6 +35,10 @@ const LIGHT_MODE_DASHBOARD_STORAGE: Record<string, Record<string, string>> = {
   },
 };
 
+function hostServiceUrl(port: number, path = '/') {
+  return `${window.location.protocol}//${window.location.hostname}:${port}${path}`;
+}
+
 function applyLightModeDashboardDefaults(servicePath: string) {
   const storage = LIGHT_MODE_DASHBOARD_STORAGE[servicePath];
   if (!storage) return;
@@ -59,7 +63,7 @@ interface Service {
   url?: string; // ex: '/prediction-manager/'
   needsNamespace?: boolean;
   adminOnly?: boolean;
-  externalUrl?: string; // 새 탭으로 열 외부 URL
+  externalUrl?: () => string; // 호스트 포트에서 직접 여는 서비스 URL
 }
 
 const services: Service[] = [
@@ -97,7 +101,10 @@ const services: Service[] = [
     description: '데이터 수집/전처리 파이프라인',
     icon: HomeNifiIcon,
     path: '/nifi',
-    url: '/prediction-manager/api/nifi/launch',
+    // NiFi는 namespace 경로로 리다이렉트되지만 프런트엔드에 해당 프록시
+    // 경로가 없으면 iframe에서 404가 된다. 설치 스크립트가 공개한 호스트
+    // 주소로 직접 이동한다. NiFi는 다른 origin의 iframe 삽입을 차단한다.
+    externalUrl: () => hostServiceUrl(15001, '/nifi/'),
   },
   {
     name: 'Label Studio',
@@ -128,14 +135,14 @@ const services: Service[] = [
     description: '분산 컴퓨팅 클러스터, HPO 작업 관리',
     icon: HomeRayIcon,
     path: '/ray',
-    url: '/prediction-manager/api/dashboards/ray/launch',
+    externalUrl: () => hostServiceUrl(15002),
   },
   {
     name: 'MLflow',
     description: '실험 추적, 모델 레지스트리, 모델 서빙',
     icon: HomeMlflowIcon,
     path: '/mlflow',
-    url: '/prediction-manager/api/dashboards/mlflow/launch',
+    externalUrl: () => hostServiceUrl(15000),
   },
   {
     name: '텐서보드',
@@ -216,8 +223,8 @@ async function fetchUserInfo(): Promise<UserInfo> {
   }
 }
 
-const LOGOUT_URL =
-  '/oauth2/sign_out?rd=https%3A%2F%2F121.183.206.41%3A30443%2Fauth%2Frealms%2Fkubeflow%2Fprotocol%2Fopenid-connect%2Flogout%3Fpost_logout_redirect_uri%3Dhttps%253A%252F%252F121.183.206.41%253A30443%252F%26client_id%3Dkubeflow-client';
+// Keep logout on the current host so the package is portable across PCs.
+const LOGOUT_URL = '/oauth2/sign_out?rd=/fedit/';
 
 function UserMenu({ userInfo }: { userInfo: UserInfo | null }) {
   const [open, setOpen] = useState(false);
@@ -513,7 +520,7 @@ function IframePage({ service }: { service: Service }) {
               }`}
               onClick={() => {
                 if (svc.externalUrl) {
-                  window.open(svc.externalUrl, '_blank', 'noopener,noreferrer');
+                  window.location.assign(svc.externalUrl());
                 } else {
                   navigate(`/predictor-creator-tool${svc.path}`);
                 }
@@ -587,7 +594,7 @@ function ToolHome() {
             tabIndex={0}
             onClick={() => {
               if (svc.externalUrl) {
-                window.open(svc.externalUrl, '_blank', 'noopener,noreferrer');
+                window.location.assign(svc.externalUrl());
               } else {
                 navigate(`/predictor-creator-tool${svc.path}`);
               }
@@ -595,7 +602,7 @@ function ToolHome() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 if (svc.externalUrl) {
-                  window.open(svc.externalUrl, '_blank', 'noopener,noreferrer');
+                  window.location.assign(svc.externalUrl());
                 } else {
                   navigate(`/predictor-creator-tool${svc.path}`);
                 }

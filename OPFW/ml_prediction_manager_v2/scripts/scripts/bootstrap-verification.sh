@@ -81,6 +81,7 @@ fi
 : "${KUBEFLOW_NODE_PORT:=30080}"
 : "${KEYCLOAK_NODE_PORT:=30081}"
 : "${REGISTRY_PORT:=5000}"
+: "${REGISTRY_DELETE_ENABLED:=true}"
 : "${OPEN_HOST_FIREWALL_PORTS:=true}"
 : "${KUBERNETES_VERSION:=1.30.14}"
 : "${CALICO_VERSION:=v3.30.2}"
@@ -118,6 +119,7 @@ fi
 : "${NIFI_IMAGE_TAG:=prediction-manager-nifi-python:1.28.1-pm2}"
 : "${LABEL_STUDIO_IMAGE_TAG:=label-studio:1.18.0}"
 : "${RAY_BASE_IMAGE:=rayproject/ray:2.54.1-py312-gpu}"
+: "${RAY_XGBOOST_PACKAGE:=xgboost}"
 : "${INSTALL_MONITORING:=true}"
 : "${INSTALL_LABEL_STUDIO:=true}"
 : "${PROVISION_DEFAULT_TENANT:=true}"
@@ -907,6 +909,7 @@ ensure_local_registry() {
     retry_command 5 10 "registry:2.8.3 image pull" docker pull registry:2.8.3
     docker run -d --restart=always --name "$REGISTRY_CONTAINER_NAME" \
       -p "${REGISTRY_PORT}:5000" -v "${REGISTRY_DATA_DIR}:/var/lib/registry" \
+      -e "REGISTRY_STORAGE_DELETE_ENABLED=${REGISTRY_DELETE_ENABLED}" \
       registry:2.8.3 >/dev/null
   fi
   for _ in $(seq 1 30); do
@@ -1144,8 +1147,22 @@ EOF
 
 wait_rollout_if_exists() {
   local namespace="$1" kind="$2" name="$3" timeout="${4:-1200s}"
+  local remaining_seconds slice_seconds
   if kubectl -n "$namespace" get "$kind/$name" >/dev/null 2>&1; then
-    kubectl -n "$namespace" rollout status "$kind/$name" --timeout="$timeout"
+    remaining_seconds="${timeout%s}"
+    [[ "$remaining_seconds" =~ ^[0-9]+$ ]] || remaining_seconds=1200
+    while ((remaining_seconds > 0)); do
+      slice_seconds=$((remaining_seconds > 60 ? 60 : remaining_seconds))
+      if kubectl -n "$namespace" rollout status "$kind/$name" --timeout="${slice_seconds}s"; then
+        return 0
+      fi
+      if recover_image_pull_failures "$namespace"; then
+        echo "[INFO] ${namespace}/${kind}/${name}: image pull 실패 Pod 재시도 후 rollout 재확인"
+      fi
+      remaining_seconds=$((remaining_seconds - slice_seconds))
+    done
+    echo "${namespace}/${kind}/${name} rollout이 ${timeout} 안에 완료되지 않았습니다." >&2
+    return 1
   fi
 }
 
@@ -1223,6 +1240,103 @@ apply_with_retry() {
     sleep "$delay"
   done
   return 1
+}
+
+retry_kubernetes_image_pull() {
+  local image="$1"
+  retry_command 5 12 "Kubernetes image pull: ${image}" crictl pull "$image"
+}
+
+recover_image_pull_failures() {
+  local namespace="$1" pod image recovered=false
+  local -a failed_pods=() images=()
+  mapfile -t failed_pods < <(
+    kubectl -n "$namespace" get pods -o json 2>/dev/null \
+      | jq -r '
+          .items[]
+          | select(
+              [(.status.initContainerStatuses[]?, .status.containerStatuses[]?)]
+              | any(.state.waiting.reason? == "ImagePullBackOff" or .state.waiting.reason? == "ErrImagePull")
+            )
+          | .metadata.name
+        '
+  )
+  for pod in "${failed_pods[@]:-}"; do
+    [[ -n "$pod" ]] || continue
+    mapfile -t images < <(
+      kubectl -n "$namespace" get pod "$pod" -o json 2>/dev/null \
+        | jq -r '[.spec.initContainers[]?, .spec.containers[]?] | .[].image'
+    )
+    for image in "${images[@]:-}"; do
+      [[ -n "$image" ]] || continue
+      retry_kubernetes_image_pull "$image"
+    done
+    kubectl -n "$namespace" delete pod "$pod" --wait=false >/dev/null
+    recovered=true
+  done
+  "$recovered"
+}
+
+prepare_kubeflow_bootstrap_manifest() {
+  local source_manifest="$1" bootstrap_manifest="$2"
+  python3 - "$source_manifest" "$bootstrap_manifest" <<'PY'
+import sys
+from pathlib import Path
+
+import yaml
+
+source = Path(sys.argv[1])
+output = Path(sys.argv[2])
+documents = list(yaml.safe_load_all(source.read_text(encoding="utf-8")))
+bootstrap = []
+for document in documents:
+    if not isinstance(document, dict):
+        bootstrap.append(document)
+        continue
+    api_version = str(document.get("apiVersion", ""))
+    kind = document.get("kind", "")
+    # KServe custom resources are validated by the controller's admission
+    # webhook. Apply the controller deployment first, wait for it, then apply
+    # these resources in the complete manifest.
+    if kind != "CustomResourceDefinition" and api_version.startswith("serving.kserve.io/"):
+        continue
+    bootstrap.append(document)
+output.write_text(
+    yaml.safe_dump_all(bootstrap, sort_keys=False, explicit_start=True),
+    encoding="utf-8",
+)
+PY
+}
+
+prime_kserve_controller_images() {
+  local manifest="$1" image
+  local -a images=()
+  mapfile -t images < <(
+    python3 - "$manifest" <<'PY'
+import sys
+from pathlib import Path
+
+import yaml
+
+for document in yaml.safe_load_all(Path(sys.argv[1]).read_text(encoding="utf-8")):
+    if not isinstance(document, dict) or document.get("kind") != "Deployment":
+        continue
+    metadata = document.get("metadata") or {}
+    if metadata.get("name") != "kserve-controller-manager":
+        continue
+    spec = document.get("spec") or {}
+    template = spec.get("template") or {}
+    pod_spec = template.get("spec") or {}
+    for container in list(pod_spec.get("initContainers") or []) + list(pod_spec.get("containers") or []):
+        image = container.get("image")
+        if image:
+            print(image)
+PY
+  )
+  for image in "${images[@]:-}"; do
+    [[ -n "$image" ]] || continue
+    retry_kubernetes_image_pull "$image"
+  done
 }
 
 wait_namespace_workloads() {
@@ -1357,6 +1471,12 @@ PY
   if ! bool_true "$WAIT_ALL_KUBEFLOW_WORKLOADS"; then
     prepare_low_resource_kubeflow_manifest "${GENERATED_DIR}/kubeflow.yaml"
   fi
+  local kubeflow_bootstrap_manifest="${GENERATED_DIR}/kubeflow-bootstrap.yaml"
+  prepare_kubeflow_bootstrap_manifest \
+    "${GENERATED_DIR}/kubeflow.yaml" "$kubeflow_bootstrap_manifest"
+  prime_kserve_controller_images "$kubeflow_bootstrap_manifest"
+  apply_with_retry "$kubeflow_bootstrap_manifest"
+  wait_rollout_if_exists kubeflow deployment kserve-controller-manager 900s
   apply_with_retry "${GENERATED_DIR}/kubeflow.yaml"
 
   kubectl -n kubeflow set env deployment/kubeflow-pipelines-profile-controller \
@@ -1631,6 +1751,7 @@ build_and_push_images() {
       -t "$mlflow_image" "$PREDICTION_MANAGER_ROOT"
     retry_command 3 15 "Ray image build" docker buildx build --load --pull \
       --build-arg "RAY_BASE_IMAGE=${RAY_BASE_IMAGE}" \
+      --build-arg "XGBOOST_PACKAGE=${RAY_XGBOOST_PACKAGE}" \
       -t "$ray_image" "${PROJECT_ROOT}/docker/ray-mlflow"
     retry_command 3 15 "NiFi image build" docker buildx build --load --pull -t "$nifi_image" \
       "${PREDICTION_MANAGER_ROOT}/docker/nifi-python"
@@ -1855,13 +1976,27 @@ configure_host_firewall_ports() {
 }
 
 configure_service_access() {
-  local service_dir runner pid_file old_pid frontend_image access_unit
+  local service_dir runner pid_file old_pid frontend_image frontend_nginx_conf access_unit
   service_dir="$(service_state_dir)"
   runner="${service_dir}/port-forwards.sh"
   pid_file="${service_dir}/port-forwards.pid"
+  frontend_nginx_conf="${GENERATED_DIR}/frontend-nginx.conf"
   mkdir -p "$service_dir"
 
   if bool_true "$BUILD_FRONTEND_IMAGE"; then
+    python3 - "${PREDICTION_MANAGER_FRONTEND_ROOT}/nginx.conf" "$frontend_nginx_conf" "$LABEL_STUDIO_PUBLIC_URL" <<'PY'
+import sys
+from pathlib import Path
+
+source, output, label_studio_public_url = sys.argv[1:]
+text = Path(source).read_text(encoding="utf-8")
+if "__LABEL_STUDIO_PUBLIC_URL__" not in text:
+    raise SystemExit("프런트엔드 Nginx 설정에 Label Studio URL 치환 위치가 없습니다.")
+Path(output).write_text(
+    text.replace("__LABEL_STUDIO_PUBLIC_URL__", label_studio_public_url),
+    encoding="utf-8",
+)
+PY
     frontend_image="${REGISTRY_HOST}/${FRONTEND_IMAGE_TAG}"
     docker rm -f fedit-fe >/dev/null 2>&1 || true
     docker run -d --restart=unless-stopped --name fedit-fe -p 0.0.0.0:18080:80 \
@@ -1871,7 +2006,7 @@ configure_service_access() {
       -e NDXPRO_ENV_MLFLOW_URL=http://__BROWSER_HOST__:15000 \
       -e NDXPRO_ENV_RAY_URL=http://__BROWSER_HOST__:15002 \
       -e NDXPRO_ENV_NIFI_URL=http://__BROWSER_HOST__:15001/nifi/ \
-      -v "${PREDICTION_MANAGER_FRONTEND_ROOT}/nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
+      -v "${frontend_nginx_conf}:/etc/nginx/conf.d/default.conf:ro" \
       "$frontend_image" >/dev/null
     record PASS "FeDiT 프런트엔드 실행" "http://${NODE_IP}:18080"
   fi
