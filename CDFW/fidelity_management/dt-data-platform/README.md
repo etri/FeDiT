@@ -341,7 +341,7 @@ kill -15 <PID>
 | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 스케줄러  | 증강 도구 학습 · 검증 도구 학습 · 증강 데이터 생성 3종을 각각 30초 주기(`fixedDelay`)로 폴링                                                                                                                           |
 | 작업 처리 | 스케줄러가 대기 작업을 `TaskManager` 큐에 투입하고, 작업 유형(`MODEL` / `ETC_MODEL` / `DATA_AUGMENT`) 별 고정 스레드풀(크기 `system.limit-make-model-cnt`)이 처리. 스케줄러 자체는 3 스레드 풀(`twin-task-pool-`) 사용 |
-| 세션      | 타임아웃 120분, 쿠키 `DT_DATA_TWIN_JSESSIONID`, 연장 API `POST /session/extention`                                                                                                                                     |
+| 세션      | 타임아웃 120분, 쿠키 `BASE_JSESSION_ID`, 연장 API `POST /session/extention`                                                                                                                                     |
 | 권한      | `/`, `/login`, `/error/**` 는 공개, 그 외는 `ADMIN` 또는 `USER` 권한 필요, `/actuator/**` 는 `ADMIN` 전용                                                                                                              |
 | SQL 로깅  | log4jdbc 사용. `logging.level.jdbc.sqlonly` 등으로 조정 (`log4jdbc.log4j2.properties`)                                                                                                                                 |
 | 오류 이력 | 스케줄러 · API 연동 실패는 `tb_error_log` 에 적재                                                                                                                                                                      |
@@ -370,5 +370,5 @@ kill -15 <PID>
 - 내부 서버 토폴로지 55건 (미사용 파일) sample.js (테스트용, 영구 제거)
 - 사설/운영 서버 IP 하드코딩 test.html:24-30 (테스트용 영구 제거)
 - /api/test/\*\* CSRF 예외 유지 WebSecurityConfig.java:68 (테스트용 영구 제거)
-- application.yml에서 [JSESSIONID] 부분 수정 (WebSecurityConfig.java:90과 동일하게 구성)
+- application.yml에서 server.servlet.session.cookie.name 이름 부분 수정 (WebSecurityConfig.java:90과 동일하게 구성)
 - TestController 영구 제거

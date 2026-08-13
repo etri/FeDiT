@@ -60,7 +60,13 @@ public class JSONPropertyService {
             JsonNode firstElement = preprocPropertyInfo.get(0); // Assuming only one element in preproc_property_info
             // optString(key, null) 과 동일하게 키가 없거나 null 이면 null 을 반환한다
             JsonNode value = firstElement.get(key);
-            return (value == null || value.isNull()) ? null : value.asText();
+            if (value == null || value.isNull()) {
+                return null;
+            }
+            // org.json optString 은 배열·객체를 JSON 원문 문자열로 반환했다.
+            // Jackson asText() 는 비(非)스칼라 노드에 "" 를 주므로 toString() 으로 분기한다.
+            // (preproc_trgt_col 이 배열이라 이 분기가 없으면 선택 컬럼이 빈 배열로 유실된다)
+            return value.isValueNode() ? value.asText() : value.toString();
         } catch (IOException e) {
             log.error("getFirstNodeProcInfo 파싱 실패 -> key: {}", key, e);
             return null;
