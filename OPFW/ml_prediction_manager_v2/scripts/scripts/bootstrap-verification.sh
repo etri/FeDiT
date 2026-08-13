@@ -130,6 +130,8 @@ fi
 : "${PORTABLE_NETWORK_CONFIG:=true}"
 : "${CONTAINER_DNS_SERVERS:=auto}"
 : "${NEXT_START_SCRIPT:=02-start-prediction-manager.sh}"
+: "${LOW_MEMORY_PROFILE:=false}"
+: "${LOW_MEMORY_THRESHOLD_GIB:=16}"
 
 if [[ "$CONTAINER_MODE" == "auto" ]]; then
   if [[ -f /.dockerenv ]] && [[ "$(ps -p 1 -o comm= 2>/dev/null || true)" != "systemd" ]]; then
@@ -176,6 +178,54 @@ bool_true() {
     *) return 1 ;;
   esac
 }
+
+effective_memory_bytes() {
+  local host_bytes cgroup_bytes=""
+  host_bytes="$(awk '/MemTotal:/ {printf "%.0f\n", $2 * 1024; exit}' /proc/meminfo)"
+  if [[ -r /sys/fs/cgroup/memory.max ]]; then
+    cgroup_bytes="$(< /sys/fs/cgroup/memory.max)"
+  elif [[ -r /sys/fs/cgroup/memory/memory.limit_in_bytes ]]; then
+    cgroup_bytes="$(< /sys/fs/cgroup/memory/memory.limit_in_bytes)"
+  fi
+  if [[ "$cgroup_bytes" =~ ^[0-9]+$ ]] && ((cgroup_bytes > 0 && cgroup_bytes < host_bytes)); then
+    printf '%s\n' "$cgroup_bytes"
+  else
+    printf '%s\n' "$host_bytes"
+  fi
+}
+
+apply_memory_profile() {
+  local enabled="$LOW_MEMORY_PROFILE" memory_bytes threshold_bytes memory_gib
+  memory_bytes="$(effective_memory_bytes)"
+  threshold_bytes=$((LOW_MEMORY_THRESHOLD_GIB * 1024 * 1024 * 1024))
+  memory_gib=$((memory_bytes / 1024 / 1024 / 1024))
+
+  if [[ "${enabled,,}" == "auto" ]]; then
+    if ((memory_bytes < threshold_bytes)); then
+      enabled=true
+    else
+      enabled=false
+    fi
+  fi
+
+  if bool_true "$enabled"; then
+    # Entry-validation profile for small hosts. Kubernetes/Kubeflow objects,
+    # ingress/auth, PostgreSQL, Keycloak, Prediction Manager, and the FeDiT
+    # frontend remain installed. Heavy optional workloads can be enabled later.
+    BUILD_AUXILIARY_IMAGES=false
+    INSTALL_MONITORING=false
+    INSTALL_LABEL_STUDIO=false
+    PROVISION_DEFAULT_TENANT=false
+    WAIT_ALL_KUBEFLOW_WORKLOADS=false
+    LOW_MEMORY_PROFILE_ACTIVE=true
+    echo "[INFO] Low-memory auto profile: ${memory_gib} GiB available; heavy optional workloads disabled"
+  else
+    LOW_MEMORY_PROFILE_ACTIVE=false
+  fi
+  export LOW_MEMORY_PROFILE_ACTIVE
+}
+
+apply_memory_profile
 
 gpu_stack_enabled() {
   bool_true "$REQUIRE_NVIDIA_GPU" || bool_true "$INSTALL_NVIDIA_TOOLKIT"
@@ -799,7 +849,11 @@ host_dependencies() {
     > /etc/apt/sources.list.d/kubernetes.list
   apt-get update
   local package_version
-  package_version="$(apt-cache madison kubeadm | awk -v v="${KUBERNETES_VERSION}-" '$3 ~ ("^" v) {print $3; exit}')"
+  # Consume the complete apt-cache output. Exiting awk after the first match
+  # closes the pipe early and makes apt-cache exit with SIGPIPE (141), which
+  # aborts this strict pipefail installer on hosts that list several versions.
+  package_version="$(apt-cache madison kubeadm \
+    | awk -v v="${KUBERNETES_VERSION}-" '$3 ~ ("^" v) && found == "" {found=$3} END {print found}')"
   [[ -n "$package_version" ]] || { echo "Kubernetes ${KUBERNETES_VERSION} 패키지를 찾을 수 없습니다." >&2; return 1; }
   apt-get install -y \
     "kubelet=${package_version}" "kubeadm=${package_version}" "kubectl=${package_version}"
@@ -826,6 +880,22 @@ host_dependencies() {
   fi
 }
 
+retry_command() {
+  local attempts="$1" delay="$2" description="$3" try
+  shift 3
+  for try in $(seq 1 "$attempts"); do
+    if "$@"; then
+      return 0
+    fi
+    if ((try < attempts)); then
+      echo "[WARN] ${description} failed (${try}/${attempts}); retrying in ${delay}s" >&2
+      sleep "$delay"
+    fi
+  done
+  echo "[FAIL] ${description} failed after ${attempts} attempts" >&2
+  return 1
+}
+
 ensure_local_registry() {
   if docker inspect "$REGISTRY_CONTAINER_NAME" >/dev/null 2>&1; then
     if ! docker start "$REGISTRY_CONTAINER_NAME" >/dev/null 2>&1; then
@@ -834,6 +904,7 @@ ensure_local_registry() {
     fi
   fi
   if ! docker inspect "$REGISTRY_CONTAINER_NAME" >/dev/null 2>&1; then
+    retry_command 5 10 "registry:2.8.3 image pull" docker pull registry:2.8.3
     docker run -d --restart=always --name "$REGISTRY_CONTAINER_NAME" \
       -p "${REGISTRY_PORT}:5000" -v "${REGISTRY_DATA_DIR}:/var/lib/registry" \
       registry:2.8.3 >/dev/null
@@ -846,6 +917,7 @@ ensure_local_registry() {
 }
 
 configure_runtime() {
+  local bridge_netfilter_available=true
   validate_network_cidrs
   if bool_true "$CONTAINER_MODE"; then
     # privileged container가 보는 swap은 Docker host의 swap일 수 있으므로
@@ -864,21 +936,25 @@ EOF
       echo "Docker host 커널에 overlayfs가 활성화되어 있지 않습니다." >&2
       return 1
     }
-    [[ -e /proc/sys/net/bridge/bridge-nf-call-iptables ]] || {
-      echo "Docker host에서 br_netfilter를 먼저 로드해야 합니다: sudo modprobe br_netfilter" >&2
-      return 1
-    }
+    if [[ ! -e /proc/sys/net/bridge/bridge-nf-call-iptables ]]; then
+      bridge_netfilter_available=false
+      record WARN "br_netfilter" "바깥 Docker host에서 미로드; 중첩 검수는 계속하고 CNI 동작을 후속 검증함"
+    fi
   else
     modprobe overlay
     modprobe br_netfilter
   fi
   cat > /etc/sysctl.d/99-prediction-manager-verification.conf <<'EOF'
-net.bridge.bridge-nf-call-iptables = 1
-net.bridge.bridge-nf-call-ip6tables = 1
 net.ipv4.ip_forward = 1
 fs.inotify.max_user_instances = 8192
 fs.inotify.max_user_watches = 2097152
 EOF
+  if [[ "$bridge_netfilter_available" == true ]]; then
+    cat >> /etc/sysctl.d/99-prediction-manager-verification.conf <<'EOF'
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+EOF
+  fi
   sysctl --system >/dev/null
 
   install -d -m 0755 /etc/docker
@@ -911,8 +987,9 @@ PY
   if [[ ! -s /etc/containerd/config.toml ]]; then
     containerd config default > /etc/containerd/config.toml
   fi
-  python3 - <<'PY'
+python3 - <<'PY'
 import os
+import re
 from pathlib import Path
 
 path = Path("/etc/containerd/config.toml")
@@ -922,10 +999,18 @@ if container_mode:
     text = text.replace("SystemdCgroup = true", "SystemdCgroup = false")
 else:
     text = text.replace("SystemdCgroup = false", "SystemdCgroup = true")
-text = text.replace('config_path = ""', 'config_path = "/etc/containerd/certs.d"')
-registry_header = '[plugins."io.containerd.grpc.v1.cri".registry]'
-if 'config_path = "/etc/containerd/certs.d"' not in text and registry_header in text:
-    text = text.replace(registry_header, registry_header + '\n      config_path = "/etc/containerd/certs.d"', 1)
+text = re.sub(
+    r'(?m)^(\s*config_path\s*=\s*)[\'\"][^\'\"]*[\'\"]',
+    r'\1"/etc/containerd/certs.d"',
+    text,
+)
+old_registry_header = '[plugins."io.containerd.grpc.v1.cri".registry]'
+if 'config_path = "/etc/containerd/certs.d"' not in text and old_registry_header in text:
+    text = text.replace(
+        old_registry_header,
+        old_registry_header + '\n      config_path = "/etc/containerd/certs.d"',
+        1,
+    )
 path.write_text(text, encoding="utf-8")
 PY
   install -d -m 0755 "/etc/containerd/certs.d/${REGISTRY_HOST}"
@@ -1174,7 +1259,7 @@ apply_low_resource_default_state() {
   local resource
   for resource in $(kubectl -n kubeflow get deployment -o name 2>/dev/null || true); do
     case "$resource" in
-      deployment.apps/minio|deployment.apps/kuberay-operator|deployment.apps/prediction-manager) continue ;;
+      deployment.apps/prediction-manager) continue ;;
     esac
     kubectl -n kubeflow scale "$resource" --replicas=0
   done
@@ -1187,6 +1272,51 @@ apply_low_resource_default_state() {
   kubectl -n knative-serving get deployment -o name 2>/dev/null \
     | xargs -r kubectl -n knative-serving scale --replicas=0
   record PASS "저자원 Kubeflow 기본 상태" "필수 ingress/auth와 설치 객체 유지"
+}
+
+prepare_low_resource_kubeflow_manifest() {
+  local manifest="$1"
+  python3 - "$manifest" <<'PY'
+import sys
+from pathlib import Path
+
+import yaml
+
+path = Path(sys.argv[1])
+documents = list(yaml.safe_load_all(path.read_text(encoding="utf-8")))
+required_deployments = {
+    ("auth", "dex"),
+    ("cert-manager", "cert-manager"),
+    ("cert-manager", "cert-manager-cainjector"),
+    ("cert-manager", "cert-manager-webhook"),
+    ("istio-system", "cluster-local-gateway"),
+    ("istio-system", "istio-ingressgateway"),
+    ("istio-system", "istiod"),
+    ("oauth2-proxy", "oauth2-proxy"),
+    # These admission controllers must exist while their CRs are first applied.
+    ("kubeflow", "admission-webhook-deployment"),
+    ("kubeflow", "kserve-controller-manager"),
+    ("knative-serving", "net-istio-webhook"),
+    ("knative-serving", "webhook"),
+}
+
+for document in documents:
+    if not isinstance(document, dict):
+        continue
+    kind = document.get("kind")
+    metadata = document.get("metadata") or {}
+    namespace = metadata.get("namespace", "default")
+    name = metadata.get("name", "")
+    if kind == "Deployment" and (namespace, name) not in required_deployments:
+        document.setdefault("spec", {})["replicas"] = 0
+    elif kind == "StatefulSet":
+        document.setdefault("spec", {})["replicas"] = 0
+
+path.write_text(
+    yaml.safe_dump_all(documents, sort_keys=False, explicit_start=True),
+    encoding="utf-8",
+)
+PY
 }
 
 install_kubeflow() {
@@ -1219,8 +1349,14 @@ text = text.replace(
     "gcr.io/ml-pipeline/frontend:2.3.0",
     "ghcr.io/kubeflow/kfp-frontend:2.4.1",
 )
+# Kubeflow contains a few Always policies. Reusing a successfully cached image
+# makes resume reliable when Docker Hub/CDN briefly resets a large download.
+text = text.replace("imagePullPolicy: Always", "imagePullPolicy: IfNotPresent")
 path.write_text(text, encoding="utf-8")
 PY
+  if ! bool_true "$WAIT_ALL_KUBEFLOW_WORKLOADS"; then
+    prepare_low_resource_kubeflow_manifest "${GENERATED_DIR}/kubeflow.yaml"
+  fi
   apply_with_retry "${GENERATED_DIR}/kubeflow.yaml"
 
   kubectl -n kubeflow set env deployment/kubeflow-pipelines-profile-controller \
@@ -1241,6 +1377,11 @@ PY
     virtualservices.networking.istio.io authorizationpolicies.security.istio.io; do
     kubectl wait --for=condition=Established "crd/${crd}" --timeout=600s
   done
+  if ! bool_true "$WAIT_ALL_KUBEFLOW_WORKLOADS"; then
+    kubectl create namespace kubeflow-user-example-com --dry-run=client -o yaml \
+      | kubectl apply -f -
+    kubectl label namespace kubeflow-user-example-com istio-injection=enabled --overwrite
+  fi
   for _ in $(seq 1 120); do
     kubectl get namespace kubeflow-user-example-com >/dev/null 2>&1 && break
     sleep 5
@@ -1440,7 +1581,8 @@ install_monitoring_stack() {
   else
     record SKIP "DCGM Exporter" "CPU 전용 구성"
   fi
-  if kubectl -n monitoring get deployment -l app.kubernetes.io/name=grafana -o name | grep -q .; then
+  if [[ -n "$(kubectl -n monitoring get deployment \
+      -l app.kubernetes.io/name=grafana -o name 2>/dev/null)" ]]; then
     echo "검수 프로파일에는 Grafana가 생성되면 안 됩니다." >&2
     return 1
   fi
@@ -1456,7 +1598,7 @@ install_node_runtime() {
   base_url="https://nodejs.org/dist/latest-v${NODE_MAJOR_VERSION}.x"
   asset="$(curl -fsSL "${base_url}/" \
     | grep -oE "node-v${NODE_MAJOR_VERSION}[^\"]+-linux-x64.tar.xz" \
-    | head -n 1)"
+    | sed -n '1p')"
   [[ -n "$asset" ]] || { echo "Node.js ${NODE_MAJOR_VERSION} linux-x64 asset을 찾지 못했습니다." >&2; return 1; }
   curl -fsSLo "${temp_dir}/${asset}" "${base_url}/${asset}"
   curl -fsSLo "${temp_dir}/SHASUMS256.txt" "${base_url}/SHASUMS256.txt"
@@ -1481,36 +1623,38 @@ build_and_push_images() {
   local nifi_image="${REGISTRY_HOST}/${NIFI_IMAGE_TAG}"
   local label_image="${REGISTRY_HOST}/${LABEL_STUDIO_IMAGE_TAG}"
   docker buildx version
-  docker buildx build --load --pull -t "$pm_image" "$PREDICTION_MANAGER_ROOT"
+  retry_command 3 15 "Prediction Manager image build" \
+    docker buildx build --load --pull -t "$pm_image" "$PREDICTION_MANAGER_ROOT"
   if bool_true "$BUILD_AUXILIARY_IMAGES"; then
-    docker buildx build --load --pull \
+    retry_command 3 15 "MLflow image build" docker buildx build --load --pull \
       -f "${PREDICTION_MANAGER_ROOT}/docker/mlflow-postgres.Dockerfile" \
       -t "$mlflow_image" "$PREDICTION_MANAGER_ROOT"
-    docker buildx build --load --pull --build-arg "RAY_BASE_IMAGE=${RAY_BASE_IMAGE}" \
+    retry_command 3 15 "Ray image build" docker buildx build --load --pull \
+      --build-arg "RAY_BASE_IMAGE=${RAY_BASE_IMAGE}" \
       -t "$ray_image" "${PROJECT_ROOT}/docker/ray-mlflow"
-    docker buildx build --load --pull -t "$nifi_image" \
+    retry_command 3 15 "NiFi image build" docker buildx build --load --pull -t "$nifi_image" \
       "${PREDICTION_MANAGER_ROOT}/docker/nifi-python"
-    docker pull heartexlabs/label-studio:1.18.0
+    retry_command 5 10 "Label Studio image pull" docker pull heartexlabs/label-studio:1.18.0
     docker tag heartexlabs/label-studio:1.18.0 "$label_image"
   fi
   if bool_true "$BUILD_FRONTEND_IMAGE"; then
     install_node_runtime
     (
       cd "$PREDICTION_MANAGER_FRONTEND_ROOT"
-      HUSKY=0 npm ci
+      retry_command 3 15 "frontend npm dependency install" env HUSKY=0 npm ci
       CI=false npm run build
     )
     local frontend_image="${REGISTRY_HOST}/${FRONTEND_IMAGE_TAG}"
-    docker buildx build --load --pull -t "$frontend_image" \
+    retry_command 3 15 "FeDiT frontend image build" docker buildx build --load --pull -t "$frontend_image" \
       "$PREDICTION_MANAGER_FRONTEND_ROOT"
-    docker push "$frontend_image"
+    retry_command 5 10 "FeDiT frontend image push" docker push "$frontend_image"
   fi
-  docker push "$pm_image"
+  retry_command 5 10 "Prediction Manager image push" docker push "$pm_image"
   if bool_true "$BUILD_AUXILIARY_IMAGES"; then
-    docker push "$mlflow_image"
-    docker push "$ray_image"
-    docker push "$nifi_image"
-    docker push "$label_image"
+    retry_command 5 10 "MLflow image push" docker push "$mlflow_image"
+    retry_command 5 10 "Ray image push" docker push "$ray_image"
+    retry_command 5 10 "NiFi image push" docker push "$nifi_image"
+    retry_command 5 10 "Label Studio image push" docker push "$label_image"
   fi
   docker run --rm --entrypoint python "$pm_image" -m compileall -q /app/app
   docker run --rm --entrypoint python "$pm_image" -c \
@@ -1570,7 +1714,7 @@ MODEL_STORE_ROOT=/models
 MODEL_STORE_BACKEND=pvc
 DATASET_STORE_ROOT=/datasets
 DOCKER_SOCKET=unix:///var/run/docker.sock
-GPU_MODEL=${GPU_MODEL:-Unknown GPU}
+GPU_MODEL=$(printf '%q' "${GPU_MODEL:-Unknown GPU}")
 GPU_VRAM_GB=${GPU_VRAM_GIB:-0}
 GPU_PHYSICAL_COUNT=${GPU_PHYSICAL_COUNT:-0}
 GPU_DRIVER_VERSION=${GPU_DRIVER_VERSION:-}
@@ -1901,8 +2045,14 @@ final_validation() {
   fi
 
   curl -fsS "${REGISTRY_URL}/v2/_catalog" > "${RESULT_DIR}/registry-catalog.json"
-  jq -e '.repositories | length >= 5' "${RESULT_DIR}/registry-catalog.json" >/dev/null
-  record PASS "로컬 Registry" "프로젝트 이미지 5종 이상"
+  local required_image_count=1
+  bool_true "$BUILD_AUXILIARY_IMAGES" && required_image_count=5
+  bool_true "$BUILD_FRONTEND_IMAGE" && required_image_count=$((required_image_count + 1))
+  jq -e --argjson count "$required_image_count" \
+    '.repositories | length >= $count' "${RESULT_DIR}/registry-catalog.json" >/dev/null
+  jq -e --arg image "${PM_IMAGE_TAG%:*}" \
+    '.repositories | index($image) != null' "${RESULT_DIR}/registry-catalog.json" >/dev/null
+  record PASS "로컬 Registry" "필수 이미지 ${required_image_count}종 이상"
   if bool_true "$BUILD_FRONTEND_IMAGE"; then
     jq -e --arg image "${FRONTEND_IMAGE_TAG%:*}" \
       '.repositories | index($image) != null' "${RESULT_DIR}/registry-catalog.json" >/dev/null

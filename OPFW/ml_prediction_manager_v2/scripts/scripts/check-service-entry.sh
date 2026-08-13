@@ -11,6 +11,13 @@ if [[ -f "$CONFIG_FILE" ]]; then
   set +a
 fi
 
+# The installer exports this in its own process, but the post-install checker
+# is a separate process. Root does not automatically inherit the user's
+# ~/.kube/config when the entry script is launched with sudo.
+if [[ -r /etc/kubernetes/admin.conf ]]; then
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+fi
+
 bool_true() {
   case "${1,,}" in
     1|true|yes|on) return 0 ;;
@@ -47,7 +54,7 @@ kubectl get nodes >/dev/null 2>&1 \
 
 PM_NAMESPACE="${PM_NAMESPACE:-$(
   kubectl get deployment -A --no-headers 2>/dev/null \
-    | awk '$2 == "prediction-manager" {print $1; exit}'
+    | awk '$2 == "prediction-manager" && namespace == "" {namespace=$1} END {print namespace}'
 )}"
 
 if [[ -n "$PM_NAMESPACE" ]] && kubectl -n "$PM_NAMESPACE" rollout status \

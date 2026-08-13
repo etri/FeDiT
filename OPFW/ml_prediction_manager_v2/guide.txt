@@ -38,6 +38,9 @@ CPU 모드:
 - NVIDIA GPU와 `nvidia-smi`가 필요하지 않다.
 - NVIDIA 드라이버, Container Toolkit, Device Plugin, DCGM Exporter를 설치하지 않는다.
 - Ray는 CPU 이미지를 사용하며 Ray GPU worker는 비활성화한다.
+- 사용 가능 메모리가 16 GiB 미만이면 저메모리 진입 점검 프로필을 자동 선택한다.
+- 저메모리 프로필은 설치를 중단하지 않고 Prediction Manager, FeDiT,
+  PostgreSQL, Keycloak, Kubeflow ingress/auth 진입에 필요한 구성을 우선한다.
 
 
 2. 호스트 상태 확인
@@ -197,6 +200,13 @@ NVIDIA 드라이버는 정상 동작 여부만 확인하고 변경하지 않는�
 
 CPU 모드의 Ray는 `rayproject/ray:2.54.1-py312` 이미지를 기반으로 구성되며
 CPU worker만 사용한다.
+
+16 GiB 미만 호스트에서는 `.verification-install-cpu.env`의
+`LOW_MEMORY_PROFILE=auto`가 저메모리 프로필을 선택한다. 이 프로필에서는
+첫 화면 진입에 필요하지 않은 Prometheus, Label Studio, 기본 tenant의
+MLflow/Ray/NiFi 워크로드와 부가 이미지 빌드를 기본 생략한다. 따라서
+11 GiB 급 호스트에서는 첫 화면 진입까지를 우선 검증하고, 2.2.9 전체
+기능시험은 추가 메모리를 확보한 호스트에서 수행한다.
 
 
 7. 재실행과 중단 복구

@@ -17,7 +17,7 @@ for ((i = 0; i < ${#args[@]}; i++)); do
 done
 
 "${SCRIPT_ROOT}/scripts/prepare-install-config-cpu.sh" "$CONFIG_FILE"
-"${SCRIPT_ROOT}/install-verification.sh" --config "$CONFIG_FILE" "${args[@]}"
+VERIFY_INSTALL_CONFIG="$CONFIG_FILE" \
+  "${SCRIPT_ROOT}/install-verification.sh" --config "$CONFIG_FILE" "${args[@]}"
 "${SCRIPT_ROOT}/scripts/check-service-entry.sh" "$CONFIG_FILE"
 exec "${SCRIPT_ROOT}/scripts/show-access-urls.sh"
-
