@@ -29,7 +29,7 @@ server:
       timeout: 120m
       persistent: true
       cookie:
-        name: [JSESSIONID]
+        name: BASE_JSESSION_ID
         http-only: true
   tomcat:
     uri-encoding: UTF-8
@@ -48,37 +48,37 @@ spring:
     log-request-details: true
   servlet:
     multipart:
-      location: ~PATH\DT_FILE\temp
+      location: /home/ubuntu/dt-platform/temp
 
   primary:
     datasource:
       driver-class-name: org.mariadb.jdbc.Driver
-      jdbc-url: [JDBC URL]
-      username: [DB USER NAME]
-      password: [DB USER PASSWORD]
+      jdbc-url: jdbc:mariadb://localhost:3306/dt_data_platform?useUnicode=yes&characterEncoding=UTF-8
+      username: dtplatform
+      password: "#fedit123$"
   second:
     datasource:
       driver-class-name: org.mariadb.jdbc.Driver
-      jdbc-url: [JDBC URL]
-      username: [DB USER NAME]
-      password: [DB USER PASSWORD]
+      jdbc-url: jdbc:mariadb://localhost:3306/dt_data_platform?useUnicode=yes&characterEncoding=UTF-8
+      username: dtplatform
+      password: "#fedit123$"
 
 server:
-  port: [PORT]
+  port: 9102
 
 system:
-  username: [ADMIN ID]
-  password: [ADMIN PASSWORD]
-  upload-file-path: ~PATH\DT_FILE\files
+  username: admin
+  password: "#fedit123$"
+  upload-file-path: /home/ubuntu/dt-platform/DT_FILE/files
   upload-file-url: /resource
   limit-csv-row-count: 10000
-  dt-file-path: ~PATH\DT_FILE\files\storage
-  dt-meta-file-path: ~PATH\DT_META_FILE\files\storage
-  dt-etc-meta-file-path: ~PATH\DT_ETC_META_FILE\files\storage
-  tmp-sample-data: ~PATH\DT_META_FILE\files\201901_201912유동인구.csv
-  dt-api-url: [DT API URL]
-  dt-meta-api-url: [META API URL]
-  dt-keti-api-url: [KETI SYNC ENGINE API URL]
+  dt-file-path: /home/ubuntu/dt-platform/DT_FILE/files/storage
+  dt-meta-file-path: /home/ubuntu/dt-platform/DT_META_FILE/files/storage
+  dt-etc-meta-file-path: /home/ubuntu/dt-platform/DT_ETC_META_FILE/files/storage
+  tmp-sample-data: /home/ubuntu/dt-platform/files/201901_201912유동인구.csv
+  dt-api-url: http://localhost:9103
+  dt-meta-api-url: http://localhost:9999
+  dt-keti-api-url: http://localhost:9999
   dt-api-key: [DT API KEY]
   dt-meta-key: [META API KEY]
   limit-make-model-cnt: 4
