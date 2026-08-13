@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "[SECRET_KEY]"
+SECRET_KEY = "django-insecure-#4-jzkw4t*pfgb_&e38oo7"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -79,25 +79,21 @@ WSGI_APPLICATION = "dt_data_api.wsgi.application"
 DATABASE_ROUTERS = ["dt_data_api.config.platform_router.PlatformRouter"]
 
 DATABASES = {
-    # "default": {
-    #    "ENGINE": "django.db.backends.sqlite3",
-    #    "NAME": BASE_DIR / "db.sqlite3",
-    # },
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "",
-        "USER": "",
-        "PASSWORD": "",
-        "HOST": "",
-        "PORT": "",
+        "NAME": "dt_data_api",
+        "USER": "dtplatform",
+        "PASSWORD": "#fedit123$",
+        "HOST": "localhost",
+        "PORT": "3306",
     },
     "dt_data_platform": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "",
-        "USER": "",
-        "PASSWORD": "",
-        "HOST": "",
-        "PORT": "",
+        "NAME": "dt_data_platform",
+        "USER": "dtplatform",
+        "PASSWORD": "#fedit123$",
+        "HOST": "localhost",
+        "PORT": "3306",
     },
 }
 
@@ -190,12 +186,12 @@ LOGGING = {
 }
 
 # 환경변수
-MAIN_PATH = "~PATH\\DT_FILE\\files\\storage"
-MODEL_PATH = "~PATH\\DT_FILE\\files\\storage\\model\\"
-DATA_PATH = "~PATH\\DT_FILE\\files\\storage\\data\\"
-UPLOAD_PATH = "~PATH\\DT_FILE\\files\\storage\\upload\\"
+MAIN_PATH = "/home/ubuntu/dt-platform/DT_FILE/files/storage"
+MODEL_PATH = "/home/ubuntu/dt-platform/DT_FILE/files/storage/model/"
+DATA_PATH = "/home/ubuntu/dt-platform/DT_FILE/files/storage/data/"
+UPLOAD_PATH = "/home/ubuntu/dt-platform/DT_FILE/files/storage/upload/"
 
-MAIN_PATH_META = "~PATH\\DT_META_FILE\\files\\storage"
-MODEL_PATH_META = "~PATH\\DT_META_FILE\\files\\storage\\model\\"
-DATA_PATH_META = "~PATH\\DT_META_FILE\\files\\storage\\data\\"
-UPLOAD_PATH_META = "~PATH\\DT_META_FILE\\files\\storage\\upload\\"
+MAIN_PATH_META = "/home/ubuntu/dt-platform/DT_META_FILE/files/storage"
+MODEL_PATH_META = "/home/ubuntu/dt-platform/DT_META_FILE/files/storage/model/"
+DATA_PATH_META = "/home/ubuntu/dt-platform/DT_META_FILE/files/storage/data/"
+UPLOAD_PATH_META = "/home/ubuntu/dt-platform/DT_META_FILE/files/storage/upload/"
