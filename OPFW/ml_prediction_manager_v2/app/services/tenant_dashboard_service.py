@@ -82,6 +82,14 @@ NIFI_FS_GROUP = int(os.environ.get("PM_TENANT_NIFI_FS_GROUP", "1000"))
 TENANT_STORAGE_CLASS = os.environ.get("PM_TENANT_STORAGE_CLASS", "").strip() or None
 MLFLOW_STORAGE_CLASS = os.environ.get("PM_TENANT_MLFLOW_STORAGE_CLASS", "").strip() or TENANT_STORAGE_CLASS
 NIFI_STORAGE_CLASS = os.environ.get("PM_TENANT_NIFI_STORAGE_CLASS", "").strip() or TENANT_STORAGE_CLASS
+MLFLOW_REQUEST_CPU = os.environ.get("PM_TENANT_MLFLOW_REQUEST_CPU", "500m")
+MLFLOW_REQUEST_MEMORY = os.environ.get("PM_TENANT_MLFLOW_REQUEST_MEMORY", "1Gi")
+MLFLOW_LIMIT_CPU = os.environ.get("PM_TENANT_MLFLOW_LIMIT_CPU", "2")
+MLFLOW_LIMIT_MEMORY = os.environ.get("PM_TENANT_MLFLOW_LIMIT_MEMORY", "4Gi")
+NIFI_REQUEST_CPU = os.environ.get("PM_TENANT_NIFI_REQUEST_CPU", "250m")
+NIFI_REQUEST_MEMORY = os.environ.get("PM_TENANT_NIFI_REQUEST_MEMORY", "1Gi")
+NIFI_LIMIT_CPU = os.environ.get("PM_TENANT_NIFI_LIMIT_CPU", "1")
+NIFI_LIMIT_MEMORY = os.environ.get("PM_TENANT_NIFI_LIMIT_MEMORY", "2Gi")
 TENANT_PROVISION_TIMEOUT = int(os.environ.get("PM_TENANT_PROVISION_TIMEOUT", "180"))
 RAY_CPU_WORKER_ENABLED = os.environ.get("PM_TENANT_RAY_CPU_WORKER_ENABLED", "true").lower() in (
     "1",
@@ -94,6 +102,16 @@ RAY_CPU_WORKER_REQUEST_CPU = os.environ.get("PM_TENANT_RAY_CPU_WORKER_REQUEST_CP
 RAY_CPU_WORKER_REQUEST_MEMORY = os.environ.get("PM_TENANT_RAY_CPU_WORKER_REQUEST_MEMORY", "1Gi")
 RAY_CPU_WORKER_LIMIT_CPU = os.environ.get("PM_TENANT_RAY_CPU_WORKER_LIMIT_CPU", "2")
 RAY_CPU_WORKER_LIMIT_MEMORY = os.environ.get("PM_TENANT_RAY_CPU_WORKER_LIMIT_MEMORY", "3Gi")
+RAY_HEAD_REQUEST_CPU = os.environ.get("PM_TENANT_RAY_HEAD_REQUEST_CPU", "250m")
+RAY_HEAD_REQUEST_MEMORY = os.environ.get("PM_TENANT_RAY_HEAD_REQUEST_MEMORY", "2Gi")
+RAY_HEAD_LIMIT_CPU = os.environ.get("PM_TENANT_RAY_HEAD_LIMIT_CPU", "1")
+RAY_HEAD_LIMIT_MEMORY = os.environ.get("PM_TENANT_RAY_HEAD_LIMIT_MEMORY", "3Gi")
+RAY_AUTOSCALER_REQUEST_CPU = os.environ.get("PM_TENANT_RAY_AUTOSCALER_REQUEST_CPU", "500m")
+RAY_AUTOSCALER_REQUEST_MEMORY = os.environ.get("PM_TENANT_RAY_AUTOSCALER_REQUEST_MEMORY", "512Mi")
+RAY_AUTOSCALER_LIMIT_CPU = os.environ.get("PM_TENANT_RAY_AUTOSCALER_LIMIT_CPU", "500m")
+RAY_AUTOSCALER_LIMIT_MEMORY = os.environ.get("PM_TENANT_RAY_AUTOSCALER_LIMIT_MEMORY", "512Mi")
+NIFI_JVM_HEAP_INIT = os.environ.get("PM_TENANT_NIFI_JVM_HEAP_INIT", "512m")
+NIFI_JVM_HEAP_MAX = os.environ.get("PM_TENANT_NIFI_JVM_HEAP_MAX", "1g")
 RAY_GPU_WORKER_ENABLED = os.environ.get("PM_TENANT_RAY_GPU_WORKER_ENABLED", "true").lower() in (
     "1",
     "true",
@@ -478,8 +496,8 @@ def _mlflow_deployment(namespace: str, owner_email: str) -> client.V1Deployment:
                             ],
                             ports=[client.V1ContainerPort(container_port=5000, name="http")],
                             resources=client.V1ResourceRequirements(
-                                requests={"cpu": "500m", "memory": "1Gi"},
-                                limits={"cpu": "2", "memory": "4Gi"},
+                                requests={"cpu": MLFLOW_REQUEST_CPU, "memory": MLFLOW_REQUEST_MEMORY},
+                                limits={"cpu": MLFLOW_LIMIT_CPU, "memory": MLFLOW_LIMIT_MEMORY},
                             ),
                             volume_mounts=[
                                 client.V1VolumeMount(name="data", mount_path="/mlflow")
@@ -549,9 +567,26 @@ def _ray_cluster(namespace: str, owner_email: str) -> dict:
     spec = {
         "rayVersion": "2.54.1",
         "enableInTreeAutoscaling": True,
-        "autoscalerOptions": {"upscalingMode": "Default", "idleTimeoutSeconds": 60},
+        "autoscalerOptions": {
+            "upscalingMode": "Default",
+            "idleTimeoutSeconds": 60,
+            "resources": {
+                "requests": {
+                    "cpu": RAY_AUTOSCALER_REQUEST_CPU,
+                    "memory": RAY_AUTOSCALER_REQUEST_MEMORY,
+                },
+                "limits": {
+                    "cpu": RAY_AUTOSCALER_LIMIT_CPU,
+                    "memory": RAY_AUTOSCALER_LIMIT_MEMORY,
+                },
+            },
+        },
         "headGroupSpec": {
-            "rayStartParams": {"dashboard-host": "0.0.0.0", "num-cpus": "0"},  # nosec
+            # A Ray Job driver does not consume a worker CPU, so reserve one
+            # logical CPU on the head as a guaranteed fallback.  The previous
+            # fixed value of 0 made every CPU trial infeasible on a compact
+            # single-node installation when a worker pod was still pending.
+            "rayStartParams": {"dashboard-host": "0.0.0.0", "num-cpus": "1"},  # nosec
             "template": {
                 "metadata": {"annotations": {"sidecar.istio.io/inject": "false"}},
                 "spec": {
@@ -574,10 +609,17 @@ def _ray_cluster(namespace: str, owner_email: str) -> dict:
                                 {"name": "NVIDIA_VISIBLE_DEVICES", "value": ""},
                             ],
                             "resources": {
-                                # The dashboard and job supervisor together need more than 2 GiB
-                                # on the verification host; a 2 GiB cgroup kills even trivial jobs.
-                                "requests": {"cpu": "250m", "memory": "2Gi"},
-                                "limits": {"cpu": "1", "memory": "3Gi"},
+                                # The request is separately configurable from the limit so a
+                                # complete single-node CPU stack can be scheduled on a small host
+                                # without constraining the Ray process on a larger host.
+                                "requests": {
+                                    "cpu": RAY_HEAD_REQUEST_CPU,
+                                    "memory": RAY_HEAD_REQUEST_MEMORY,
+                                },
+                                "limits": {
+                                    "cpu": RAY_HEAD_LIMIT_CPU,
+                                    "memory": RAY_HEAD_LIMIT_MEMORY,
+                                },
                             },
                         }
                     ]
@@ -790,10 +832,12 @@ fi
                                 client.V1EnvVar(name="NIFI_WEB_HTTP_HOST", value="0.0.0.0"),
                                 client.V1EnvVar(name="NIFI_WEB_PROXY_HOST", value=host),
                                 client.V1EnvVar(name="NIFI_WEB_PROXY_CONTEXT_PATH", value=path),
+                                client.V1EnvVar(name="NIFI_JVM_HEAP_INIT", value=NIFI_JVM_HEAP_INIT),
+                                client.V1EnvVar(name="NIFI_JVM_HEAP_MAX", value=NIFI_JVM_HEAP_MAX),
                             ],
                             resources=client.V1ResourceRequirements(
-                                requests={"cpu": "250m", "memory": "1Gi"},
-                                limits={"cpu": "1", "memory": "2Gi"},
+                                requests={"cpu": NIFI_REQUEST_CPU, "memory": NIFI_REQUEST_MEMORY},
+                                limits={"cpu": NIFI_LIMIT_CPU, "memory": NIFI_LIMIT_MEMORY},
                             ),
                             startup_probe=client.V1Probe(
                                 http_get=client.V1HTTPGetAction(path="/nifi/", port=8080),

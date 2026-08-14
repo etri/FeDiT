@@ -81,6 +81,7 @@ fi
 : "${KUBEFLOW_NODE_PORT:=30080}"
 : "${KEYCLOAK_NODE_PORT:=30081}"
 : "${REGISTRY_PORT:=5000}"
+: "${NODEPORT_LOOPBACK_ONLY:=true}"
 : "${REGISTRY_DELETE_ENABLED:=true}"
 : "${OPEN_HOST_FIREWALL_PORTS:=true}"
 : "${KUBERNETES_VERSION:=1.30.14}"
@@ -110,9 +111,13 @@ fi
 : "${PM_NIFI_INGEST_SECRET:=auto}"
 : "${STORAGE_CLASS:=local-path}"
 : "${REGISTRY_CONTAINER_NAME:=pm-verification-registry}"
-: "${INSTALL_STATE_ROOT:=/opt/prediction-manager-verification}"
-: "${REGISTRY_DATA_DIR:=${INSTALL_STATE_ROOT}/registry}"
-: "${KUBEFLOW_MANIFESTS_DIR:=${INSTALL_STATE_ROOT}/kubeflow-manifests}"
+: "${INSTALL_PROFILE:=gpu}"
+: "${INSTALL_WORK_DIR:=auto}"
+: "${INSTALL_STATE_ROOT:=auto}"
+: "${REGISTRY_DATA_DIR:=auto}"
+: "${KUBEFLOW_MANIFESTS_DIR:=auto}"
+: "${DOWNLOADS_DIR:=auto}"
+: "${TOOLING_DIR:=auto}"
 : "${PM_IMAGE_TAG:=prediction-manager-app:verification}"
 : "${MLFLOW_IMAGE_TAG:=mlflow-postgres:v3.11.1-pg}"
 : "${RAY_IMAGE_TAG:=ray-mlflow:2.54.1}"
@@ -126,14 +131,30 @@ fi
 : "${ENABLE_DOCKER_SOCKET:=true}"
 : "${WAIT_ALL_KUBEFLOW_WORKLOADS:=true}"
 : "${LABEL_STUDIO_PUBLIC_URL:=auto}"
-: "${PM_HEALTHCHECK_PORT:=18000}"
+# Port 18000 is the sole browser entry point for FeDiT.  Prediction Manager
+# itself stays behind the FeDiT reverse proxy on a private host/Docker bridge
+# port so the published port set remains fixed.
+: "${FEDIT_PUBLIC_PORT:=18000}"
+: "${PM_HEALTHCHECK_PORT:=18100}"
 : "${PROMETHEUS_HEALTHCHECK_PORT:=19090}"
+: "${PM_PORT_LAYOUT_MIGRATED:=false}"
+# Existing v42-or-earlier per-user configuration files used 18000 directly
+# for Prediction Manager. Migrate them in memory on the next 02 execution so
+# users do not need to edit a machine-specific configuration file.
+if [[ "$PM_HEALTHCHECK_PORT" == "$FEDIT_PUBLIC_PORT" ]]; then
+  PM_HEALTHCHECK_PORT=18100
+  PM_PORT_LAYOUT_MIGRATED=true
+fi
 : "${CONTAINER_MODE:=auto}"
 : "${PORTABLE_NETWORK_CONFIG:=true}"
 : "${CONTAINER_DNS_SERVERS:=auto}"
 : "${NEXT_START_SCRIPT:=02-start-prediction-manager.sh}"
 : "${LOW_MEMORY_PROFILE:=false}"
-: "${LOW_MEMORY_THRESHOLD_GIB:=16}"
+: "${CPU_SWAP_SIZE_GIB:=8}"
+: "${IMAGE_PULL_RETRY_ATTEMPTS:=12}"
+: "${IMAGE_PULL_RETRY_DELAY_SECONDS:=15}"
+: "${IMAGE_PULL_TIMEOUT_SECONDS:=300}"
+: "${RUN_IMAGE_IMPORT_SELF_TEST:=false}"
 
 if [[ "$CONTAINER_MODE" == "auto" ]]; then
   if [[ -f /.dockerenv ]] && [[ "$(ps -p 1 -o comm= 2>/dev/null || true)" != "systemd" ]]; then
@@ -149,6 +170,93 @@ canonicalize_path() {
   # silently during initialization.
   readlink -m -- "$1"
 }
+
+resolve_install_home_layout() {
+  local path
+  ORIGINAL_USER="${PM_INSTALL_ORIGINAL_USER:-${SUDO_USER:-$(id -un)}}"
+  ORIGINAL_HOME="$(getent passwd "$ORIGINAL_USER" | cut -d: -f6)"
+  [[ -n "$ORIGINAL_HOME" && -d "$ORIGINAL_HOME" ]] || {
+    echo "설치 사용자 홈 디렉터리를 찾을 수 없습니다: ${ORIGINAL_USER}" >&2
+    return 1
+  }
+  ORIGINAL_GROUP="$(id -gn "$ORIGINAL_USER")"
+  [[ "$INSTALL_PROFILE" =~ ^[A-Za-z0-9._-]+$ ]] || {
+    echo "INSTALL_PROFILE에는 영문, 숫자, ., _, - 만 사용할 수 있습니다." >&2
+    return 1
+  }
+  if [[ "$INSTALL_WORK_DIR" == "auto" ]]; then
+    INSTALL_WORK_DIR="${ORIGINAL_HOME}/prediction-manager-work"
+  fi
+  if [[ "$INSTALL_STATE_ROOT" == "auto" ]]; then
+    INSTALL_STATE_ROOT="${INSTALL_WORK_DIR}/.prediction-manager/${INSTALL_PROFILE}"
+  fi
+  if [[ "$REGISTRY_DATA_DIR" == "auto" ]]; then
+    REGISTRY_DATA_DIR="${INSTALL_STATE_ROOT}/registry"
+  fi
+  if [[ "$KUBEFLOW_MANIFESTS_DIR" == "auto" ]]; then
+    KUBEFLOW_MANIFESTS_DIR="${INSTALL_STATE_ROOT}/kubeflow-manifests"
+  fi
+  if [[ "$DOWNLOADS_DIR" == "auto" ]]; then
+    DOWNLOADS_DIR="${INSTALL_STATE_ROOT}/downloads"
+  fi
+  if [[ "$TOOLING_DIR" == "auto" ]]; then
+    TOOLING_DIR="${INSTALL_STATE_ROOT}/tooling"
+  fi
+  INSTALL_WORK_DIR="$(canonicalize_path "$INSTALL_WORK_DIR")"
+  INSTALL_STATE_ROOT="$(canonicalize_path "$INSTALL_STATE_ROOT")"
+  REGISTRY_DATA_DIR="$(canonicalize_path "$REGISTRY_DATA_DIR")"
+  KUBEFLOW_MANIFESTS_DIR="$(canonicalize_path "$KUBEFLOW_MANIFESTS_DIR")"
+  DOWNLOADS_DIR="$(canonicalize_path "$DOWNLOADS_DIR")"
+  TOOLING_DIR="$(canonicalize_path "$TOOLING_DIR")"
+  case "$INSTALL_STATE_ROOT" in
+    "${ORIGINAL_HOME}"/*) ;;
+    *)
+      echo "INSTALL_STATE_ROOT는 설치 사용자 홈 디렉터리 아래여야 합니다: ${ORIGINAL_HOME}" >&2
+      return 1
+      ;;
+  esac
+  case "$REGISTRY_DATA_DIR" in
+    "${ORIGINAL_HOME}"/*) ;;
+    *)
+      echo "REGISTRY_DATA_DIR는 설치 사용자 홈 디렉터리 아래여야 합니다: ${ORIGINAL_HOME}" >&2
+      return 1
+      ;;
+  esac
+  case "$KUBEFLOW_MANIFESTS_DIR" in
+    "${ORIGINAL_HOME}"/*) ;;
+    *)
+      echo "KUBEFLOW_MANIFESTS_DIR는 설치 사용자 홈 디렉터리 아래여야 합니다: ${ORIGINAL_HOME}" >&2
+      return 1
+      ;;
+  esac
+  for path in "$DOWNLOADS_DIR" "$TOOLING_DIR"; do
+    case "$path" in
+      "${ORIGINAL_HOME}"/*) ;;
+      *)
+        echo "다운로드와 도구 경로는 설치 사용자 홈 디렉터리 아래여야 합니다: ${ORIGINAL_HOME}" >&2
+        return 1
+        ;;
+    esac
+  done
+  export ORIGINAL_USER ORIGINAL_HOME ORIGINAL_GROUP INSTALL_WORK_DIR
+  export INSTALL_STATE_ROOT REGISTRY_DATA_DIR KUBEFLOW_MANIFESTS_DIR DOWNLOADS_DIR TOOLING_DIR
+}
+
+prepare_user_state_directories() {
+  local path
+  install -d -m 0750 "$INSTALL_WORK_DIR"
+  chown "$ORIGINAL_USER:$ORIGINAL_GROUP" "$INSTALL_WORK_DIR"
+  for path in "$INSTALL_STATE_ROOT" "$REGISTRY_DATA_DIR" "$DOWNLOADS_DIR" "$TOOLING_DIR"; do
+    install -d -m 0700 "$path"
+    chown "$ORIGINAL_USER:$ORIGINAL_GROUP" "$path"
+  done
+  # git clone requires its destination not to exist. Its parent is already
+  # the user-owned installation state directory created above.
+  install -d -m 0700 "$(dirname "$KUBEFLOW_MANIFESTS_DIR")"
+  chown "$ORIGINAL_USER:$ORIGINAL_GROUP" "$(dirname "$KUBEFLOW_MANIFESTS_DIR")"
+}
+
+resolve_install_home_layout
 
 if [[ "$PREDICTION_MANAGER_ROOT" == "auto" ]]; then
   PREDICTION_MANAGER_ROOT="${PROJECT_ROOT}/.."
@@ -197,30 +305,13 @@ effective_memory_bytes() {
 }
 
 apply_memory_profile() {
-  local enabled="$LOW_MEMORY_PROFILE" memory_bytes threshold_bytes memory_gib
-  memory_bytes="$(effective_memory_bytes)"
-  threshold_bytes=$((LOW_MEMORY_THRESHOLD_GIB * 1024 * 1024 * 1024))
-  memory_gib=$((memory_bytes / 1024 / 1024 / 1024))
-
-  if [[ "${enabled,,}" == "auto" ]]; then
-    if ((memory_bytes < threshold_bytes)); then
-      enabled=true
-    else
-      enabled=false
-    fi
-  fi
-
-  if bool_true "$enabled"; then
-    # Entry-validation profile for small hosts. Kubernetes/Kubeflow objects,
-    # ingress/auth, PostgreSQL, Keycloak, Prediction Manager, and the FeDiT
-    # frontend remain installed. Heavy optional workloads can be enabled later.
-    BUILD_AUXILIARY_IMAGES=false
-    INSTALL_MONITORING=false
-    INSTALL_LABEL_STUDIO=false
-    PROVISION_DEFAULT_TENANT=false
-    WAIT_ALL_KUBEFLOW_WORKLOADS=false
+  # This is deliberately an explicit installation profile, not a memory-size
+  # gate.  The installer must never reject a host or hide services because of
+  # detected RAM.  CPU mode selects a compact, single-node request profile;
+  # GPU mode keeps the standard resource requests.
+  if bool_true "$LOW_MEMORY_PROFILE"; then
     LOW_MEMORY_PROFILE_ACTIVE=true
-    echo "[INFO] Low-memory auto profile: ${memory_gib} GiB available; heavy optional workloads disabled"
+    echo "[INFO] CPU single-node resource profile enabled; all services remain enabled"
   else
     LOW_MEMORY_PROFILE_ACTIVE=false
   fi
@@ -228,6 +319,50 @@ apply_memory_profile() {
 }
 
 apply_memory_profile
+
+configure_cpu_swap() {
+  # Kubeflow, Ray, NiFi, Label Studio and Prometheus can all be selected from
+  # the same UI on a small CPU host.  This fixed CPU profile adds reclaimable
+  # swap after kubeadm has created the node; it is not an installation-memory
+  # prerequisite and never disables a service based on detected RAM.
+  [[ "${INSTALL_PROFILE,,}" == "cpu" ]] || return 0
+  [[ "$CPU_SWAP_SIZE_GIB" =~ ^[0-9]+$ ]] || {
+    echo "CPU_SWAP_SIZE_GIB는 0 이상의 정수여야 합니다." >&2
+    return 1
+  }
+  ((CPU_SWAP_SIZE_GIB > 0)) || return 0
+
+  # A container cannot enable kernel swap.  Container mode already sets
+  # failSwapOn=false for kubelet, so do not create a persistent /swapfile or
+  # invoke systemctl in the Docker-based verification image.
+  if bool_true "$CONTAINER_MODE"; then
+    record SKIP "CPU 단일 노드 swap" "컨테이너 호환 모드; kubelet failSwapOn=false 사용, host swap 변경 안 함"
+    return 0
+  fi
+
+  local swap_file=/swapfile config_file=/var/lib/kubelet/config.yaml fstab_line
+  fstab_line="${swap_file} none swap sw 0 0"
+  if ! swapon --noheadings --show=NAME 2>/dev/null | awk '{print $1}' | grep -Fxq "$swap_file"; then
+    if [[ ! -e "$swap_file" ]]; then
+      fallocate -l "${CPU_SWAP_SIZE_GIB}G" "$swap_file"
+      chmod 600 "$swap_file"
+      mkswap "$swap_file"
+    fi
+    swapon "$swap_file"
+  fi
+  grep -Fqx "$fstab_line" /etc/fstab || printf '%s\n' "$fstab_line" >> /etc/fstab
+
+  if [[ -f "$config_file" ]]; then
+    if grep -q '^failSwapOn:' "$config_file"; then
+      sed -i 's/^failSwapOn:.*/failSwapOn: false/' "$config_file"
+    else
+      printf '%s\n' 'failSwapOn: false' >> "$config_file"
+    fi
+    systemctl restart kubelet
+    kubectl wait --for=condition=Ready nodes --all --timeout=300s
+  fi
+  record PASS "CPU 단일 노드 swap" "${CPU_SWAP_SIZE_GIB} GiB 활성화; 모든 서비스 동시 기동 지원"
+}
 
 gpu_stack_enabled() {
   bool_true "$REQUIRE_NVIDIA_GPU" || bool_true "$INSTALL_NVIDIA_TOOLKIT"
@@ -351,11 +486,18 @@ while true; do
   if [[ -s /var/lib/kubelet/config.yaml ]]; then
     KUBELET_KUBEADM_ARGS=""
     [[ -f /var/lib/kubelet/kubeadm-flags.env ]] && source /var/lib/kubelet/kubeadm-flags.env
+    # kubeadm 1.30 applies the default `pods` value when an empty
+    # enforceNodeAllocatable list is serialized in its config file.  In a
+    # nested single-node verification runtime that conflicts with disabled
+    # QoS cgroups, so make the intended empty value unambiguous at the
+    # command line.  This runner exists only for CONTAINER_MODE=true.
     /usr/bin/kubelet \
       --bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf \
       --kubeconfig=/etc/kubernetes/kubelet.conf \
       --config=/var/lib/kubelet/config.yaml \
       --fail-swap-on=false \
+      --cgroups-per-qos=false \
+      --enforce-node-allocatable= \
       ${KUBELET_KUBEADM_ARGS:-} ${KUBELET_EXTRA_ARGS:-}
   else
     sleep 2
@@ -412,6 +554,7 @@ if [[ "$DRY_RUN" == true ]]; then
   RESULT_ROOT="${PROJECT_ROOT}/verification-install-results"
 else
   ((EUID == 0)) || { echo "전체 설치는 root 권한이 필요합니다. install-verification.sh를 실행하세요." >&2; exit 1; }
+  prepare_user_state_directories
   RESULT_ROOT="${INSTALL_STATE_ROOT}/results"
 fi
 
@@ -422,6 +565,9 @@ REPORT_FILE="${RESULT_DIR}/verification-report.md"
 mkdir -p "$RESULT_DIR"
 touch "$LOG_FILE" "$REPORT_FILE"
 chmod 600 "$LOG_FILE" "$REPORT_FILE"
+if [[ "$DRY_RUN" != true ]]; then
+  chown "$ORIGINAL_USER:$ORIGINAL_GROUP" "$RESULT_ROOT" "$RESULT_DIR" "$LOG_FILE" "$REPORT_FILE"
+fi
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 pass_count=0
@@ -440,6 +586,12 @@ record() {
   esac
   printf '[%s] %s%s\n' "$status" "$item" "${detail:+ - $detail}"
   printf '| %s | %s | %s |\n' "$status" "$item" "$safe_detail" >> "$REPORT_FILE"
+}
+
+warn() {
+  local detail="$*"
+  printf '[WARN] %s\n' "$detail"
+  record WARN "$CURRENT_STAGE" "$detail"
 }
 
 finish_report() {
@@ -461,6 +613,9 @@ finish_report() {
     # shellcheck disable=SC2016
     printf -- '- 로그: `%s`\n' "$LOG_FILE"
   } >> "$REPORT_FILE"
+  if [[ "$DRY_RUN" != true && $EUID -eq 0 ]]; then
+    chown -R "$ORIGINAL_USER:$ORIGINAL_GROUP" "$RESULT_DIR"
+  fi
   printf '\n최종 판정: %s\n보고서: %s\n로그: %s\n' "$result" "$REPORT_FILE" "$LOG_FILE"
 }
 
@@ -579,14 +734,25 @@ validate_ports() {
   done
   [[ "$KUBEFLOW_NODE_PORT" != "$KEYCLOAK_NODE_PORT" ]] || { echo "Kubeflow와 Keycloak NodePort가 같습니다." >&2; return 1; }
   ((REGISTRY_PORT >= 1024 && REGISTRY_PORT <= 65535)) || { echo "Registry port가 올바르지 않습니다." >&2; return 1; }
-  for port in "$PM_HEALTHCHECK_PORT" "$PROMETHEUS_HEALTHCHECK_PORT"; do
+  for port in "$FEDIT_PUBLIC_PORT" "$PM_HEALTHCHECK_PORT" "$PROMETHEUS_HEALTHCHECK_PORT"; do
     ((port >= 1024 && port <= 65535)) || { echo "검증용 port가 올바르지 않습니다: $port" >&2; return 1; }
   done
-  [[ "$PM_HEALTHCHECK_PORT" != "$PROMETHEUS_HEALTHCHECK_PORT" ]] || {
-    echo "Prediction Manager와 Prometheus 검증용 port가 같습니다." >&2
+  [[ "$FEDIT_PUBLIC_PORT" == "18000" ]] || {
+    echo "FeDiT 공개 port는 허용된 TCP 18000이어야 합니다: ${FEDIT_PUBLIC_PORT}" >&2
     return 1
   }
-  record PASS "포트 설정" "Kubeflow ${KUBEFLOW_NODE_PORT}, Keycloak ${KEYCLOAK_NODE_PORT}, Registry ${REGISTRY_PORT}"
+  bool_true "$NODEPORT_LOOPBACK_ONLY" || {
+    echo "Kubernetes NodePort는 외부에 공개할 수 없습니다: NODEPORT_LOOPBACK_ONLY=true가 필요합니다." >&2
+    return 1
+  }
+  [[ "$PM_HEALTHCHECK_PORT" != "$FEDIT_PUBLIC_PORT" && "$PM_HEALTHCHECK_PORT" != "$PROMETHEUS_HEALTHCHECK_PORT" ]] || {
+    echo "Prediction Manager 내부 health port가 공개 port와 겹칩니다." >&2
+    return 1
+  }
+  if bool_true "$PM_PORT_LAYOUT_MIGRATED"; then
+    record PASS "기존 포트 설정 이전" "Prediction Manager health port: 18000 -> ${PM_HEALTHCHECK_PORT} (FeDiT 공개 port 유지)"
+  fi
+  record PASS "포트 설정" "외부 TCP 15000-15003, 18000, 19090; Prediction Manager 내부 ${PM_HEALTHCHECK_PORT}"
 }
 
 validate_network_cidrs() {
@@ -680,40 +846,51 @@ STATE_DIR="${INSTALL_STATE_ROOT}/state"
 GENERATED_DIR="${INSTALL_STATE_ROOT}/generated"
 SECRETS_FILE="${INSTALL_STATE_ROOT}/secrets.env"
 mkdir -p "$STATE_DIR" "$GENERATED_DIR" "$REGISTRY_DATA_DIR"
+
+migrate_legacy_install_state() {
+  local legacy_root
+  [[ -f "${STATE_DIR}/00-preflight.done" ]] && return 0
+  case "$INSTALL_PROFILE" in
+    cpu) legacy_root="/opt/prediction-manager-verification-cpu" ;;
+    *) legacy_root="/opt/prediction-manager-verification" ;;
+  esac
+  [[ -d "${legacy_root}/state" && -f "${legacy_root}/state/00-preflight.done" ]] || return 0
+  echo "[INFO] 기존 설치 상태를 사용자 홈으로 이전합니다: ${legacy_root} -> ${INSTALL_STATE_ROOT}"
+  cp -a "${legacy_root}/." "${INSTALL_STATE_ROOT}/"
+  chown -R "$ORIGINAL_USER:$ORIGINAL_GROUP" "$INSTALL_STATE_ROOT"
+  touch "${INSTALL_STATE_ROOT}/.migrated-from-legacy-opt"
+  record PASS "기존 설치 상태 이전" "${legacy_root} -> ${INSTALL_STATE_ROOT}"
+}
+
+migrate_legacy_install_state
 chmod 700 "$INSTALL_STATE_ROOT" "$STATE_DIR" "$GENERATED_DIR" "$REGISTRY_DATA_DIR"
+chown "$ORIGINAL_USER:$ORIGINAL_GROUP" "$INSTALL_STATE_ROOT" "$STATE_DIR" "$GENERATED_DIR" "$REGISTRY_DATA_DIR"
 if [[ "$RESUME" == true ]]; then
   systemctl disable prediction-manager-verification-resume.service >/dev/null 2>&1 || true
 fi
 
-ORIGINAL_USER="${PM_INSTALL_ORIGINAL_USER:-${SUDO_USER:-root}}"
-ORIGINAL_HOME="$(getent passwd "$ORIGINAL_USER" | cut -d: -f6)"
-[[ -n "$ORIGINAL_HOME" ]] || ORIGINAL_HOME="/root"
-
 NODE_IP="$(resolve_node_ip)"
 CONTAINER_DNS_SERVERS="$(resolve_container_dns_servers)"
-if bool_true "$CONTAINER_MODE"; then
-  # Docker-in-Docker의 기존 daemon은 시작 후 daemon.json을 안전하게 다시
-  # 읽을 수 없다. loopback Registry는 Docker가 기본적으로 HTTP를 허용하며,
-  # Kubernetes의 containerd도 같은 네트워크 namespace에서 접근할 수 있다.
-  REGISTRY_HOST="127.0.0.1:${REGISTRY_PORT}"
-else
-  REGISTRY_HOST="${NODE_IP}:${REGISTRY_PORT}"
-fi
+# The one-node registry is consumed by Docker/containerd on this node.  It
+# must never be a browser-facing service: bind it to loopback and use the
+# same loopback image reference so kubelet performs every image pull locally.
+REGISTRY_HOST="127.0.0.1:${REGISTRY_PORT}"
 REGISTRY_URL="http://${REGISTRY_HOST}"
-if bool_true "$CONTAINER_MODE"; then
-  # Image pulls are resolved by the node's containerd, where loopback is
-  # correct. Application pods have their own network namespace and must use
-  # the outer container's node IP to reach the same published Registry port.
-  REGISTRY_POD_URL="http://${NODE_IP}:${REGISTRY_PORT}"
-else
-  REGISTRY_POD_URL="$REGISTRY_URL"
-fi
-KUBEFLOW_URL="http://${NODE_IP}:${KUBEFLOW_NODE_PORT}"
-KEYCLOAK_PUBLIC_URL="http://${NODE_IP}:${KEYCLOAK_NODE_PORT}/auth"
+REGISTRY_POD_URL="$REGISTRY_URL"
+# Kubeflow and Keycloak retain NodePorts solely for in-cluster verification
+# wiring. kube-proxy restricts them to loopback; all browser traffic goes
+# through the permitted FeDiT entry point on TCP 18000.
+KUBEFLOW_URL="http://127.0.0.1:${KUBEFLOW_NODE_PORT}"
+KEYCLOAK_PUBLIC_URL="http://127.0.0.1:${KEYCLOAK_NODE_PORT}/auth"
+# Dex runs inside the Kubernetes cluster.  It must resolve Keycloak through
+# the Service DNS name, not through the host-only NodePort loopback address.
+# The latter is unreachable from a Pod and causes the OIDC connector to crash
+# during a clean install.
+KEYCLOAK_INTERNAL_URL="http://keycloak.keycloak.svc.cluster.local:8080/auth"
 if [[ "$LABEL_STUDIO_PUBLIC_URL" == "auto" ]]; then
-  LABEL_STUDIO_PUBLIC_URL="http://${NODE_IP}:18080/label-studio"
+  LABEL_STUDIO_PUBLIC_URL="http://${NODE_IP}:${FEDIT_PUBLIC_PORT}/label-studio"
 fi
-export NODE_IP REGISTRY_HOST REGISTRY_URL REGISTRY_POD_URL KUBEFLOW_URL KEYCLOAK_PUBLIC_URL
+export NODE_IP REGISTRY_HOST REGISTRY_URL REGISTRY_POD_URL KUBEFLOW_URL KEYCLOAK_PUBLIC_URL KEYCLOAK_INTERNAL_URL
 export CONTAINER_DNS_SERVERS
 export KUBECONFIG=/etc/kubernetes/admin.conf
 if gpu_stack_enabled && nvidia-smi >/dev/null 2>&1; then
@@ -773,23 +950,29 @@ EOF
 }
 
 install_kustomize() {
-  local asset="kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" temp_dir
-  temp_dir="$(mktemp -d)"
+  local asset="kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" temp_dir binary
+  temp_dir="$(mktemp -d "${DOWNLOADS_DIR}/kustomize.XXXXXX")"
   curl -fsSLo "${temp_dir}/${asset}" "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/${asset}"
   curl -fsSLo "${temp_dir}/checksums.txt" "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/checksums.txt"
   (cd "$temp_dir" && grep " ${asset}$" checksums.txt | sha256sum -c -)
   tar -xzf "${temp_dir}/${asset}" -C "$temp_dir"
-  install -m 0755 "${temp_dir}/kustomize" /usr/local/bin/kustomize
+  binary="${TOOLING_DIR}/kustomize-${KUSTOMIZE_VERSION}"
+  install -m 0755 "${temp_dir}/kustomize" "$binary"
+  chown "$ORIGINAL_USER:$ORIGINAL_GROUP" "$binary"
+  ln -sfn "$binary" /usr/local/bin/kustomize
 }
 
 install_helm() {
-  local asset="helm-${HELM_VERSION}-linux-amd64.tar.gz" temp_dir
-  temp_dir="$(mktemp -d)"
+  local asset="helm-${HELM_VERSION}-linux-amd64.tar.gz" temp_dir binary
+  temp_dir="$(mktemp -d "${DOWNLOADS_DIR}/helm.XXXXXX")"
   curl -fsSLo "${temp_dir}/${asset}" "https://get.helm.sh/${asset}"
   curl -fsSLo "${temp_dir}/${asset}.sha256sum" "https://get.helm.sh/${asset}.sha256sum"
   (cd "$temp_dir" && sha256sum -c "${asset}.sha256sum")
   tar -xzf "${temp_dir}/${asset}" -C "$temp_dir"
-  install -m 0755 "${temp_dir}/linux-amd64/helm" /usr/local/bin/helm
+  binary="${TOOLING_DIR}/helm-${HELM_VERSION}"
+  install -m 0755 "${temp_dir}/linux-amd64/helm" "$binary"
+  chown "$ORIGINAL_USER:$ORIGINAL_GROUP" "$binary"
+  ln -sfn "$binary" /usr/local/bin/helm
 }
 
 preflight() {
@@ -816,9 +999,16 @@ preflight() {
   ((disk >= MIN_DISK_GIB)) || { echo "디스크 부족: ${disk} GiB" >&2; return 1; }
   record PASS "메모리 용량 제한" "${memory} GiB 감지; 설치 최소 용량 검사 비활성화"
   record PASS "서버 사양" "CPU ${cpu}, Memory ${memory} GiB, Disk ${disk} GiB"
-  curl -fsSI --max-time 15 https://github.com/ >/dev/null
-  curl -fsSI --max-time 15 https://registry.k8s.io/v2/ >/dev/null
-  record PASS "인터넷 연결" "GitHub와 registry.k8s.io"
+  # curl is intentionally installed by the following host-dependencies
+  # stage. A truly clean Ubuntu image must therefore not fail preflight just
+  # because that package has not been installed yet.
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSI --max-time 15 https://github.com/ >/dev/null
+    curl -fsSI --max-time 15 https://registry.k8s.io/v2/ >/dev/null
+    record PASS "인터넷 연결" "GitHub와 registry.k8s.io"
+  else
+    record SKIP "인터넷 연결" "curl은 다음 필수 모듈 설치 단계에서 설치 후 실제 다운로드로 확인"
+  fi
 }
 
 host_dependencies() {
@@ -828,10 +1018,21 @@ host_dependencies() {
   chmod 0644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg 2>/dev/null || true
   apt-get update
   apt-get install -y \
-    apt-transport-https ca-certificates chrony conntrack curl docker.io containerd \
-    docker-buildx ebtables ethtool gettext-base git gnupg gpg iproute2 iptables \
+    apt-transport-https ca-certificates chrony conntrack curl \
+    ebtables ethtool gettext-base git gnupg gpg iproute2 iptables \
     jq kmod lsb-release openssl pciutils python3 python3-yaml socat \
-    software-properties-common unzip util-linux xz-utils
+    software-properties-common unzip util-linux xz-utils zip
+  # Never replace a working Docker CE installation with Ubuntu's docker.io.
+  # Both packages own the CLI and Buildx plugin paths, so an unconditional
+  # docker.io install removes Docker CE and can leave dpkg half-configured.
+  # A clean host receives docker.io; a host that already runs Docker simply
+  # keeps its installed engine and plugin set.
+  if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+    record PASS "컨테이너 Docker daemon" "기존 Docker 엔진 유지"
+  else
+    apt-get install -y docker.io containerd docker-buildx
+    record PASS "컨테이너 Docker daemon" "Ubuntu 패키지로 설치"
+  fi
   if systemd_available; then
     systemctl enable --now chrony containerd docker
   else
@@ -899,6 +1100,26 @@ retry_command() {
 }
 
 ensure_local_registry() {
+  local mounted_registry_data="" registry_binding=""
+  if docker inspect "$REGISTRY_CONTAINER_NAME" >/dev/null 2>&1; then
+    mounted_registry_data="$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/var/lib/registry"}}{{.Source}}{{end}}{{end}}' \
+      "$REGISTRY_CONTAINER_NAME" 2>/dev/null || true)"
+    # A prior delivery kept the registry volume under /opt. Recreate only the
+    # registry container after the state migration so copied data is served
+    # from the installing user's home directory.
+    if [[ -n "$mounted_registry_data" && "$mounted_registry_data" != "$REGISTRY_DATA_DIR" ]]; then
+      docker rm -f "$REGISTRY_CONTAINER_NAME" >/dev/null 2>&1 || true
+    fi
+  fi
+  if docker inspect "$REGISTRY_CONTAINER_NAME" >/dev/null 2>&1; then
+    registry_binding="$(docker port "$REGISTRY_CONTAINER_NAME" 5000/tcp 2>/dev/null | head -n 1 || true)"
+    # Replace older releases that published the local image registry on every
+    # network interface. The registry is a node-private implementation detail.
+    if [[ "$registry_binding" != "127.0.0.1:${REGISTRY_PORT}" ]]; then
+      docker rm -f "$REGISTRY_CONTAINER_NAME" >/dev/null 2>&1 || true
+      record PASS "로컬 Registry 포트 이전" "외부 공개 ${registry_binding:-없음} -> 127.0.0.1:${REGISTRY_PORT}"
+    fi
+  fi
   if docker inspect "$REGISTRY_CONTAINER_NAME" >/dev/null 2>&1; then
     if ! docker start "$REGISTRY_CONTAINER_NAME" >/dev/null 2>&1; then
       record WARN "로컬 Registry" "이전 비정상 종료 컨테이너를 재생성"
@@ -908,7 +1129,7 @@ ensure_local_registry() {
   if ! docker inspect "$REGISTRY_CONTAINER_NAME" >/dev/null 2>&1; then
     retry_command 5 10 "registry:2.8.3 image pull" docker pull registry:2.8.3
     docker run -d --restart=always --name "$REGISTRY_CONTAINER_NAME" \
-      -p "${REGISTRY_PORT}:5000" -v "${REGISTRY_DATA_DIR}:/var/lib/registry" \
+      -p "127.0.0.1:${REGISTRY_PORT}:5000" -v "${REGISTRY_DATA_DIR}:/var/lib/registry" \
       -e "REGISTRY_STORAGE_DELETE_ENABLED=${REGISTRY_DELETE_ENABLED}" \
       registry:2.8.3 >/dev/null
   fi
@@ -986,9 +1207,17 @@ with open(temp, "w", encoding="utf-8") as handle:
 os.replace(temp, path)
 PY
 
-  install -d -m 0755 /etc/containerd
-  if [[ ! -s /etc/containerd/config.toml ]]; then
+  install -d -m 0755 /etc/containerd /etc/containerd/conf.d
+  # Docker CE's minimal containerd configuration commonly disables CRI.  It
+  # is valid for Docker-only hosts but kubeadm cannot use it.  Preserve that
+  # original file once for rollback and replace it with the standard
+  # containerd configuration only when CRI is disabled or absent.
+  if [[ ! -s /etc/containerd/config.toml ]] || grep -Eq '^[[:space:]]*disabled_plugins[[:space:]]*=.*["'"'"']cri["'"'"']' /etc/containerd/config.toml; then
+    if [[ -s /etc/containerd/config.toml ]] && [[ ! -e /etc/containerd/config.toml.pre-prediction-manager ]]; then
+      cp -a /etc/containerd/config.toml /etc/containerd/config.toml.pre-prediction-manager
+    fi
     containerd config default > /etc/containerd/config.toml
+    record PASS "containerd CRI 구성" "Kubernetes CRI 플러그인 활성화"
   fi
 python3 - <<'PY'
 import os
@@ -998,6 +1227,12 @@ from pathlib import Path
 path = Path("/etc/containerd/config.toml")
 text = path.read_text(encoding="utf-8")
 container_mode = os.environ.get("CONTAINER_MODE", "false").lower() in {"1", "true", "yes", "on"}
+text = re.sub(
+    r'(?m)^imports\s*=\s*\[[^\]]*\]',
+    'imports = ["/etc/containerd/conf.d/*.toml"]',
+    text,
+    count=1,
+)
 if container_mode:
     text = text.replace("SystemdCgroup = true", "SystemdCgroup = false")
 else:
@@ -1112,6 +1347,15 @@ networking:
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
 cgroupDriver: cgroupfs
+# A privileged Docker-in-Docker target uses a delegated cgroup v2 subtree.
+# Creating the top-level kubepods QoS hierarchy there can fail before the
+# control plane starts.  The verification profile has a single node, so
+# disabling QoS sub-cgroups is the safe container-mode compatibility setting.
+cgroupsPerQOS: false
+# Kubernetes 1.30 requires node allocatable enforcement to be disabled when
+# QoS cgroups are disabled.  This is scoped to the single-node nested
+# verification runtime; bare-metal installations retain the default policy.
+enforceNodeAllocatable: []
 failSwapOn: false
 resolvConf: ${container_resolv_file}
 EOF
@@ -1145,15 +1389,67 @@ EOF
   kubectl taint nodes --all node-role.kubernetes.io/master- >/dev/null 2>&1 || true
 }
 
+configure_private_nodeports() {
+  # The Kubernetes NodePorts are retained only for local bootstrap wiring.
+  # Do not publish 30080/30081 on the host NIC: FeDiT (TCP 18000) is the
+  # single browser entry point for Prediction Manager and Kubeflow features.
+  bool_true "$NODEPORT_LOOPBACK_ONLY" || {
+    echo "NODEPORT_LOOPBACK_ONLY must remain true: external NodePort exposure is not supported." >&2
+    return 1
+  }
+  local proxy_config
+  proxy_config="$(mktemp)"
+  kubectl -n kube-system get configmap kube-proxy -o json > "$proxy_config"
+  python3 - "$proxy_config" <<'PY'
+import json
+import sys
+
+import yaml
+
+path = sys.argv[1]
+with open(path, encoding="utf-8") as handle:
+    manifest = json.load(handle)
+config = yaml.safe_load(manifest["data"]["config.conf"]) or {}
+config["nodePortAddresses"] = ["127.0.0.0/8"]
+manifest["data"]["config.conf"] = yaml.safe_dump(config, sort_keys=False)
+for field in ("creationTimestamp", "resourceVersion", "uid", "managedFields"):
+    manifest.get("metadata", {}).pop(field, None)
+with open(path, "w", encoding="utf-8") as handle:
+    json.dump(manifest, handle)
+PY
+  kubectl apply -f "$proxy_config" >/dev/null
+  rm -f "$proxy_config"
+  kubectl -n kube-system delete pod -l k8s-app=kube-proxy \
+    --ignore-not-found=true >/dev/null
+  kubectl -n kube-system rollout status daemonset/kube-proxy --timeout=180s >/dev/null
+  record PASS "Kubernetes NodePort 비공개" "30080/30081은 127.0.0.1에서만 사용; 브라우저는 TCP 18000"
+}
+
 wait_rollout_if_exists() {
   local namespace="$1" kind="$2" name="$3" timeout="${4:-1200s}"
-  local remaining_seconds slice_seconds
+  local remaining_seconds slice_seconds desired_replicas ready_replicas
   if kubectl -n "$namespace" get "$kind/$name" >/dev/null 2>&1; then
     remaining_seconds="${timeout%s}"
     [[ "$remaining_seconds" =~ ^[0-9]+$ ]] || remaining_seconds=1200
     while ((remaining_seconds > 0)); do
       slice_seconds=$((remaining_seconds > 60 ? 60 : remaining_seconds))
       if kubectl -n "$namespace" rollout status "$kind/$name" --timeout="${slice_seconds}s"; then
+        # StatefulSet rollout status can report completion after the revision is
+        # observed, before the first Pod is Ready.  Database consumers (for
+        # example Keycloak) must not start in that gap.
+        if [[ "$kind" == "statefulset" ]]; then
+          desired_replicas="$(kubectl -n "$namespace" get "$kind/$name" -o jsonpath='{.spec.replicas}' 2>/dev/null || echo 0)"
+          ready_replicas="$(kubectl -n "$namespace" get "$kind/$name" -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo 0)"
+          desired_replicas="${desired_replicas:-0}"
+          ready_replicas="${ready_replicas:-0}"
+          if [[ "$desired_replicas" =~ ^[0-9]+$ && "$ready_replicas" =~ ^[0-9]+$ ]] \
+            && ((ready_replicas < desired_replicas)); then
+            echo "${namespace}/${kind}/${name}: Ready ${ready_replicas}/${desired_replicas} 대기 중..."
+            sleep 5
+            remaining_seconds=$((remaining_seconds - 5))
+            continue
+          fi
+        fi
         return 0
       fi
       if recover_image_pull_failures "$namespace"; then
@@ -1244,7 +1540,8 @@ apply_with_retry() {
 
 retry_kubernetes_image_pull() {
   local image="$1"
-  retry_command 5 12 "Kubernetes image pull: ${image}" crictl pull "$image"
+  retry_command "$IMAGE_PULL_RETRY_ATTEMPTS" "$IMAGE_PULL_RETRY_DELAY_SECONDS" \
+    "Kubernetes image pull: ${image}" timeout "${IMAGE_PULL_TIMEOUT_SECONDS}s" crictl pull "$image"
 }
 
 recover_image_pull_failures() {
@@ -1339,6 +1636,86 @@ PY
   done
 }
 
+prime_kubeflow_core_images() {
+  local manifest="$1" image
+  local -a images=()
+  mapfile -t images < <(
+    python3 - "$manifest" <<'PY'
+import sys
+from pathlib import Path
+
+import yaml
+
+required_deployments = {
+    "cert-manager",
+    "cert-manager-cainjector",
+    "cert-manager-webhook",
+    "istiod",
+    "istio-ingressgateway",
+    "dex",
+    "centraldashboard",
+    "profiles-deployment",
+    "notebook-controller-deployment",
+    "jupyter-web-app-deployment",
+    "kserve-controller-manager",
+    "kuberay-operator",
+}
+
+for document in yaml.safe_load_all(Path(sys.argv[1]).read_text(encoding="utf-8")):
+    if not isinstance(document, dict) or document.get("kind") != "Deployment":
+        continue
+    metadata = document.get("metadata") or {}
+    if metadata.get("name") not in required_deployments:
+        continue
+    spec = (document.get("spec") or {}).get("template") or {}
+    pod_spec = spec.get("spec") or {}
+    for container in list(pod_spec.get("initContainers") or []) + list(pod_spec.get("containers") or []):
+        image = container.get("image")
+        if image:
+            print(image)
+PY
+  )
+  for image in "${images[@]:-}"; do
+    [[ -n "$image" ]] || continue
+    retry_kubernetes_image_pull "$image"
+  done
+}
+
+prime_manifest_images() {
+  local manifest="$1" description="$2" image
+  local -a images=()
+  mapfile -t images < <(
+    python3 - "$manifest" <<'PY'
+import sys
+from pathlib import Path
+
+import yaml
+
+for document in yaml.safe_load_all(Path(sys.argv[1]).read_text(encoding="utf-8")):
+    if not isinstance(document, dict):
+        continue
+    pod_spec = None
+    kind = document.get("kind")
+    spec = document.get("spec") or {}
+    if kind in {"Deployment", "StatefulSet", "DaemonSet", "Job"}:
+        pod_spec = ((spec.get("template") or {}).get("spec") or {})
+    elif kind == "Pod":
+        pod_spec = spec
+    if not pod_spec:
+        continue
+    for container in list(pod_spec.get("initContainers") or []) + list(pod_spec.get("containers") or []):
+        image = container.get("image")
+        if image:
+            print(image)
+PY
+  )
+  for image in "${images[@]:-}"; do
+    [[ -n "$image" ]] || continue
+    retry_kubernetes_image_pull "$image"
+  done
+  record PASS "${description} 이미지 사전 확보" "${#images[@]}개 이미지"
+}
+
 wait_namespace_workloads() {
   local namespace="$1" resource name
   local -a deployments=() statefulsets=()
@@ -1388,6 +1765,73 @@ apply_low_resource_default_state() {
   record PASS "저자원 Kubeflow 기본 상태" "필수 ingress/auth와 설치 객체 유지"
 }
 
+apply_cpu_single_node_resource_profile() {
+  # A complete Kubeflow stack has conservative upstream reservation values
+  # that exceed a small single-node host even though the actual idle services
+  # fit.  Lower requests (not feature availability or container limits) so
+  # Kubernetes can schedule every menu service on a CPU-only machine.
+  [[ "${INSTALL_PROFILE,,}" == "cpu" ]] || return 0
+
+  local namespace kind resource_name applied=false
+  for namespace in kubeflow knative-serving kserve kubeflow-user-example-com; do
+    kubectl get namespace "$namespace" >/dev/null 2>&1 || continue
+    for kind in deployment statefulset; do
+      while IFS= read -r resource_name; do
+        [[ -n "$resource_name" ]] || continue
+        # Tenant applications set explicit profile-aware requests and limits
+        # during provision.  Do not replace them with the generic Kubeflow
+        # values: MLflow and NiFi need their own memory envelope to remain
+        # stable while an AutoML job is active.
+        case "${namespace}/${resource_name}" in
+          kubeflow-user-example-com/deployment.apps/pm-mlflow|kubeflow-user-example-com/statefulset.apps/nifi)
+            continue
+            ;;
+        esac
+        kubectl -n "$namespace" set resources "$resource_name" --all --containers='*' \
+          --requests=cpu=25m,memory=64Mi
+        applied=true
+      done < <(kubectl -n "$namespace" get "$kind" -o name 2>/dev/null || true)
+    done
+  done
+
+  if [[ "$applied" == true ]]; then
+    record PASS "CPU 단일 노드 리소스 프로파일" "전체 서비스 유지, Kubernetes 요청값 25m CPU / 64Mi memory"
+  fi
+}
+
+restore_full_kubeflow_workloads() {
+  # Earlier installer revisions wrote a reduced manifest on small hosts and
+  # persisted its completed stage.  Restore those scaled-down workloads when
+  # a newer full-service configuration is applied, so an update is not left
+  # with invisible Pipeline/KServe/Notebook pages.
+  local namespace resource replicas restored=false
+  for namespace in kubeflow knative-serving kubeflow-user-example-com; do
+    kubectl get namespace "$namespace" >/dev/null 2>&1 || continue
+    while IFS= read -r resource; do
+      [[ -n "$resource" ]] || continue
+      replicas="$(kubectl -n "$namespace" get "$resource" -o jsonpath='{.spec.replicas}' 2>/dev/null || true)"
+      if [[ "${replicas:-1}" == "0" ]]; then
+        kubectl -n "$namespace" scale "$resource" --replicas=1
+        restored=true
+      fi
+    done < <(kubectl -n "$namespace" get deployment -o name 2>/dev/null || true)
+    while IFS= read -r resource; do
+      [[ -n "$resource" ]] || continue
+      replicas="$(kubectl -n "$namespace" get "$resource" -o jsonpath='{.spec.replicas}' 2>/dev/null || true)"
+      if [[ "${replicas:-1}" == "0" ]]; then
+        kubectl -n "$namespace" scale "$resource" --replicas=1
+        restored=true
+      fi
+    done < <(kubectl -n "$namespace" get statefulset -o name 2>/dev/null || true)
+  done
+
+  if [[ "$restored" == true ]]; then
+    wait_namespace_workloads kubeflow
+    wait_namespace_workloads knative-serving
+    record PASS "Kubeflow 전체 workload 복원" "이전 저메모리 축소 상태 해제"
+  fi
+}
+
 prepare_low_resource_kubeflow_manifest() {
   local manifest="$1"
   python3 - "$manifest" <<'PY'
@@ -1433,10 +1877,26 @@ path.write_text(
 PY
 }
 
+stabilize_kfp_metadata_service() {
+  # metadata-grpc exits immediately when it starts before the MySQL first-run
+  # initialization has completed.  A pod restart after MySQL is Ready is
+  # enough to recover, but relying on kubelet's exponential backoff made a
+  # fresh installation look permanently stalled for several minutes.
+  wait_rollout_if_exists kubeflow deployment mysql 1200s
+  if kubectl -n kubeflow get deployment/metadata-grpc-deployment >/dev/null 2>&1; then
+    if ! kubectl -n kubeflow rollout status deployment/metadata-grpc-deployment --timeout=45s; then
+      warn "KFP metadata-grpc를 MySQL 준비 완료 후 다시 시작합니다."
+      kubectl -n kubeflow rollout restart deployment/metadata-grpc-deployment
+    fi
+    wait_rollout_if_exists kubeflow deployment metadata-grpc-deployment 1200s
+  fi
+}
+
 install_kubeflow() {
   if [[ ! -d "${KUBEFLOW_MANIFESTS_DIR}/.git" ]]; then
     git clone --depth 1 --branch "$KUBEFLOW_VERSION" \
       https://github.com/kubeflow/manifests.git "$KUBEFLOW_MANIFESTS_DIR"
+    chown -R "$ORIGINAL_USER:$ORIGINAL_GROUP" "$KUBEFLOW_MANIFESTS_DIR"
   fi
   mkdir -p "${KUBEFLOW_MANIFESTS_DIR}/example-verification"
   install -m 0644 "${PROJECT_ROOT}/k8s/verification/kubeflow-kustomization.yaml" \
@@ -1474,10 +1934,18 @@ PY
   local kubeflow_bootstrap_manifest="${GENERATED_DIR}/kubeflow-bootstrap.yaml"
   prepare_kubeflow_bootstrap_manifest \
     "${GENERATED_DIR}/kubeflow.yaml" "$kubeflow_bootstrap_manifest"
+  # The profile and notebook controllers are required to create the default
+  # tenant. Download their small set of core images before applying Kubeflow,
+  # with bounded retries for transient Docker Hub/CDN connection resets.
+  prime_kubeflow_core_images "${GENERATED_DIR}/kubeflow.yaml"
   prime_kserve_controller_images "$kubeflow_bootstrap_manifest"
   apply_with_retry "$kubeflow_bootstrap_manifest"
   wait_rollout_if_exists kubeflow deployment kserve-controller-manager 900s
   apply_with_retry "${GENERATED_DIR}/kubeflow.yaml"
+
+  if bool_true "$WAIT_ALL_KUBEFLOW_WORKLOADS"; then
+    stabilize_kfp_metadata_service
+  fi
 
   kubectl -n kubeflow set env deployment/kubeflow-pipelines-profile-controller \
     FRONTEND_IMAGE=ghcr.io/kubeflow/kfp-frontend FRONTEND_TAG=2.4.1
@@ -1489,7 +1957,9 @@ PY
 
   kustomize build "${KUBEFLOW_MANIFESTS_DIR}/contrib/ray/kuberay-operator/overlays/kubeflow" \
     > "${GENERATED_DIR}/kuberay.yaml"
+  prime_manifest_images "${GENERATED_DIR}/kuberay.yaml" "KubeRay"
   apply_with_retry "${GENERATED_DIR}/kuberay.yaml" 10 15
+  apply_cpu_single_node_resource_profile
 
   local crd
   for crd in profiles.kubeflow.org notebooks.kubeflow.org \
@@ -1568,12 +2038,13 @@ load_or_create_secrets() {
     printf 'PM_NIFI_INGEST_SECRET=%q\n' "$PM_NIFI_INGEST_SECRET"
   } > "$SECRETS_FILE"
   chmod 600 "$SECRETS_FILE"
+  chown "$ORIGINAL_USER:$ORIGINAL_GROUP" "$SECRETS_FILE"
 }
 
 patch_dex_for_keycloak() {
   local source_file="${GENERATED_DIR}/dex-config.yaml"
   kubectl -n auth get configmap dex -o jsonpath='{.data.config\.yaml}' > "$source_file"
-  python3 - "$source_file" "${KEYCLOAK_PUBLIC_URL}/realms/kubeflow" \
+  python3 - "$source_file" "${KEYCLOAK_INTERNAL_URL}/realms/kubeflow" \
     "$KEYCLOAK_DEX_CLIENT_SECRET" "${KUBEFLOW_URL}/dex/callback" <<'PY'
 import sys
 from pathlib import Path
@@ -1615,6 +2086,9 @@ install_data_services() {
   export VERIFICATION_ADMIN_EMAIL VERIFICATION_ADMIN_PASSWORD KUBEFLOW_URL KEYCLOAK_NODE_PORT
   envsubst < "${PROJECT_ROOT}/k8s/verification/postgres-keycloak.yaml.template" \
     > "${GENERATED_DIR}/postgres-keycloak.yaml"
+  # Pull the database and identity-server images before their dependent Pods
+  # are created.  This avoids a first-run connection race on a clean host.
+  prime_manifest_images "${GENERATED_DIR}/postgres-keycloak.yaml" "PostgreSQL/Keycloak"
   kubectl apply -f "${GENERATED_DIR}/postgres-keycloak.yaml"
   wait_rollout_if_exists kubeflow statefulset pm-postgresql 900s
   wait_rollout_if_exists keycloak deployment keycloak 900s
@@ -1708,13 +2182,31 @@ install_monitoring_stack() {
   fi
 }
 
+ensure_monitoring_stack() {
+  bool_true "$INSTALL_MONITORING" || return 0
+  if kubectl -n monitoring get deployment kube-prometheus-stack-operator >/dev/null 2>&1 \
+    && kubectl -n monitoring get statefulset prometheus-kube-prometheus-stack-prometheus >/dev/null 2>&1; then
+    return 0
+  fi
+  # Older reduced-profile installers recorded this stage as complete without
+  # creating monitoring.  Repair that state before final validation instead
+  # of leaving the MLOps menu and Prometheus endpoint unavailable.
+  install_monitoring_stack
+  record PASS "Prometheus 구성 복구" "기존 축소 설치의 누락 monitoring namespace를 복원"
+}
+
 install_node_runtime() {
-  if command -v node >/dev/null 2>&1 &&
-    [[ "$(node -p 'process.versions.node.split(`.`)[0]')" == "$NODE_MAJOR_VERSION" ]]; then
+  local current_node=""
+  if command -v node >/dev/null 2>&1; then
+    current_node="$(readlink -f "$(command -v node)")"
+  fi
+  if [[ -n "$current_node" ]] &&
+    [[ "$(node -p 'process.versions.node.split(`.`)[0]')" == "$NODE_MAJOR_VERSION" ]] &&
+    [[ "$current_node" == "${TOOLING_DIR}/"* ]]; then
     return
   fi
-  local temp_dir asset base_url archive checksum
-  temp_dir="$(mktemp -d)"
+  local temp_dir asset base_url archive checksum node_dir
+  temp_dir="$(mktemp -d "${DOWNLOADS_DIR}/node.XXXXXX")"
   base_url="https://nodejs.org/dist/latest-v${NODE_MAJOR_VERSION}.x"
   asset="$(curl -fsSL "${base_url}/" \
     | grep -oE "node-v${NODE_MAJOR_VERSION}[^\"]+-linux-x64.tar.xz" \
@@ -1725,13 +2217,106 @@ install_node_runtime() {
   checksum="$(grep " ${asset}$" "${temp_dir}/SHASUMS256.txt")"
   [[ -n "$checksum" ]] || { echo "Node.js checksum을 찾지 못했습니다: $asset" >&2; return 1; }
   (cd "$temp_dir" && printf '%s\n' "$checksum" | sha256sum -c -)
-  tar -xJf "${temp_dir}/${asset}" -C /opt
-  ln -sfn "/opt/${asset%.tar.xz}" "/opt/node-v${NODE_MAJOR_VERSION}"
-  ln -sfn "/opt/node-v${NODE_MAJOR_VERSION}/bin/node" /usr/local/bin/node
-  ln -sfn "/opt/node-v${NODE_MAJOR_VERSION}/bin/npm" /usr/local/bin/npm
-  ln -sfn "/opt/node-v${NODE_MAJOR_VERSION}/bin/npx" /usr/local/bin/npx
+  tar -xJf "${temp_dir}/${asset}" -C "$TOOLING_DIR"
+  node_dir="${TOOLING_DIR}/${asset%.tar.xz}"
+  chown -R "$ORIGINAL_USER:$ORIGINAL_GROUP" "$node_dir"
+  ln -sfn "$node_dir" "${TOOLING_DIR}/node-v${NODE_MAJOR_VERSION}"
+  ln -sfn "${TOOLING_DIR}/node-v${NODE_MAJOR_VERSION}/bin/node" /usr/local/bin/node
+  ln -sfn "${TOOLING_DIR}/node-v${NODE_MAJOR_VERSION}/bin/npm" /usr/local/bin/npm
+  ln -sfn "${TOOLING_DIR}/node-v${NODE_MAJOR_VERSION}/bin/npx" /usr/local/bin/npx
   node --version
   npm --version
+}
+
+patch_automl_runner_for_compact_hosts() {
+  # The AutoML runner is part of the base FeDiT tree.  Keep the delivery
+  # archive small while making the source correction on every 02-start run,
+  # before the Prediction Manager image is built.  The transformation is
+  # idempotent and leaves a normal (editable) job.py in the repository.
+  local runner_path="${PREDICTION_MANAGER_ROOT}/app/automl_runner/job.py"
+  [[ -f "$runner_path" ]] || {
+    echo "AutoML runner 파일을 찾을 수 없습니다: $runner_path" >&2
+    return 1
+  }
+
+  python3 - "$runner_path" <<'PY'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+text = path.read_text(encoding="utf-8")
+
+replacements = [
+    (
+        '"n_estimators": tune.choice([50, 100, 200, 400]),',
+        '"n_estimators": tune.choice([20, 50, 100]),',
+    ),
+    (
+        '"n_estimators": tune.choice([100, 200, 400]),',
+        '"n_estimators": tune.choice([50, 100, 200]),',
+    ),
+    ('return cls(random_state=42, n_jobs=-1, **params)', 'return cls(random_state=42, n_jobs=1, **params)'),
+    ('return cls(random_state=42, tree_method="hist", n_jobs=-1, **params)', 'return cls(random_state=42, tree_method="hist", n_jobs=1, **params)'),
+    ('return cls(random_state=42, n_jobs=-1, verbose=-1, **params)', 'return cls(random_state=42, n_jobs=1, verbose=-1, **params)'),
+]
+for old, new in replacements:
+    text = text.replace(old, new)
+
+helper = '''\n\ndef _mlflow_pip_requirements() -> list[str]:\n    """Avoid slow run-time dependency inference while logging AutoML models."""\n    import cloudpickle\n    import sklearn\n    return [\n        f"scikit-learn=={sklearn.__version__}",\n        f"cloudpickle=={cloudpickle.__version__}",\n        "joblib",\n    ]\n'''
+anchor = '\ndef _train_fn_builder(\n'
+if '_mlflow_pip_requirements()' not in text:
+    if anchor not in text:
+        raise SystemExit('AutoML runner helper insertion point was not found')
+    text = text.replace(anchor, helper + anchor, 1)
+
+worker_log_model = '''                        model_info = _mls.log_model(
+                            model,
+                            artifact_path="model",
+                            input_example=input_example,
+                        )'''
+worker_log_model_compact = '''                        model_info = _mls.log_model(
+                            model,
+                            artifact_path="model",
+                            input_example=input_example,
+                            pip_requirements=_mlflow_pip_requirements(),
+                        )'''
+text = text.replace(worker_log_model, worker_log_model_compact)
+
+fallback_log_model = '''                                    _model_info = _mls.log_model(
+                                        _model_obj,
+                                        artifact_path="model",
+                                        input_example=input_example,
+                                    )'''
+fallback_log_model_compact = '''                                    _model_info = _mls.log_model(
+                                        _model_obj,
+                                        artifact_path="model",
+                                        input_example=input_example,
+                                        pip_requirements=_mlflow_pip_requirements(),
+                                    )'''
+text = text.replace(fallback_log_model, fallback_log_model_compact)
+
+early_report = '''        metrics["model_id"] = model_id
+        # Report the completed score before artifact packaging.  MLflow model
+        # packaging can outlive a short Tune budget on compact CPU hosts; the
+        # result itself must not be discarded merely because artifact metadata
+        # is still being written.
+        tune.report(metrics)
+        # worker local 파일은 driver가 읽을 수 없으므로, worker에서 바로 MLflow에 모델을 남긴다.'''
+old_report = '''        metrics["model_id"] = model_id
+        # worker local 파일은 driver가 읽을 수 없으므로, worker에서 바로 MLflow에 모델을 남긴다.'''
+if early_report not in text:
+    if old_report not in text:
+        raise SystemExit('AutoML runner report insertion point was not found')
+    text = text.replace(old_report, early_report, 1)
+
+trailing_report = '        tune.report(metrics)\n\n    return train_fn'
+if trailing_report in text:
+    text = text.replace(trailing_report, '        return\n\n    return train_fn', 1)
+
+path.write_text(text, encoding="utf-8")
+print(f"patched: {path}")
+PY
+  record PASS "AutoML 실행 안정화" "짧은 CPU 시험에서도 점수 보고와 MLflow 모델 기록을 완료하도록 적용"
 }
 
 build_and_push_images() {
@@ -1744,7 +2329,8 @@ build_and_push_images() {
   local label_image="${REGISTRY_HOST}/${LABEL_STUDIO_IMAGE_TAG}"
   docker buildx version
   retry_command 3 15 "Prediction Manager image build" \
-    docker buildx build --load --pull -t "$pm_image" "$PREDICTION_MANAGER_ROOT"
+    docker buildx build --load --pull --build-arg "INSTALL_PROFILE=${INSTALL_PROFILE}" \
+      -t "$pm_image" "$PREDICTION_MANAGER_ROOT"
   if bool_true "$BUILD_AUXILIARY_IMAGES"; then
     retry_command 3 15 "MLflow image build" docker buildx build --load --pull \
       -f "${PREDICTION_MANAGER_ROOT}/docker/mlflow-postgres.Dockerfile" \
@@ -1777,16 +2363,72 @@ build_and_push_images() {
     retry_command 5 10 "NiFi image push" docker push "$nifi_image"
     retry_command 5 10 "Label Studio image push" docker push "$label_image"
   fi
+  prepare_kserve_model_runtime_image
   docker run --rm --entrypoint python "$pm_image" -m compileall -q /app/app
-  docker run --rm --entrypoint python "$pm_image" -c \
-    'import fastapi, kubernetes, mlflow, ray, sqlalchemy, uvicorn; print("imports: ok")'
+  # The real deployment readiness/API test below is authoritative.  Importing
+  # Ray in a temporary container can stall under memory pressure even after a
+  # valid image has been built, preventing 02-start from ever reaching that
+  # authoritative test.  Keep this costly diagnostic opt-in.
+  if bool_true "$RUN_IMAGE_IMPORT_SELF_TEST"; then
+    timeout 120 docker run --rm --entrypoint python "$pm_image" -c \
+      'import fastapi, kubernetes, mlflow, ray, sqlalchemy, uvicorn; print("imports: ok")'
+  else
+    record SKIP "Prediction Manager image import self-test" "RUN_IMAGE_IMPORT_SELF_TEST=false; deployment/API readiness로 확인"
+  fi
+}
+
+prepare_kserve_model_runtime_image() {
+  # MLflow 3 model signatures include fields unsupported by MLServer 1.3.x.
+  # Use the current MLServer runtime so AutoML's MLflow 3 artifacts can load.
+  # The upstream image is large (currently about 10 GiB).  Downloading it to
+  # Docker, copying it into the local registry, and then pulling it again into
+  # containerd triples the initial-install traffic and can stall installation.
+  # Let KServe pull the official immutable runtime only when an inference
+  # revision is actually created; Kubernetes handles its normal retry/cache.
+  local upstream_image="seldonio/mlserver:1.7.1"
+  local runtime_image="$upstream_image"
+  local patch
+
+  patch="[{\"op\":\"replace\",\"path\":\"/spec/containers/0/image\",\"value\":\"${runtime_image}\"}]"
+  if bool_true "$LOW_MEMORY_PROFILE_ACTIVE"; then
+    patch="[{\"op\":\"replace\",\"path\":\"/spec/containers/0/image\",\"value\":\"${runtime_image}\"},{\"op\":\"replace\",\"path\":\"/spec/containers/0/resources\",\"value\":{\"requests\":{\"cpu\":\"250m\",\"memory\":\"768Mi\"},\"limits\":{\"cpu\":\"1\",\"memory\":\"1536Mi\"}}}]"
+  fi
+  kubectl patch clusterservingruntime kserve-mlserver --type=json -p "$patch"
+  record PASS "KServe MLServer runtime" "공식 runtime 직접 사용: ${runtime_image}; 모델 배포 시 Kubernetes가 pull/retry/cache 처리"
 }
 
 write_prediction_manager_env() {
-  local ray_gpu_worker_enabled=false
+  local ray_gpu_worker_enabled=false ray_head_request_cpu=250m ray_head_request_memory=2Gi
+  local ray_head_limit_cpu=1 ray_head_limit_memory=3Gi nifi_jvm_heap_init=512m nifi_jvm_heap_max=1g
+  local ray_autoscaler_request_cpu=500m ray_autoscaler_request_memory=512Mi
+  local ray_autoscaler_limit_cpu=500m ray_autoscaler_limit_memory=512Mi
+  local mlflow_request_cpu=500m mlflow_request_memory=1Gi mlflow_limit_cpu=2 mlflow_limit_memory=4Gi
+  local nifi_request_cpu=250m nifi_request_memory=1Gi nifi_limit_cpu=1 nifi_limit_memory=2Gi
   if bool_true "$INSTALL_NVIDIA_TOOLKIT" && nvidia-smi >/dev/null 2>&1; then
     ray_gpu_worker_enabled=true
     detect_gpu_hardware
+  fi
+  if bool_true "$LOW_MEMORY_PROFILE_ACTIVE"; then
+    ray_head_request_cpu=100m
+    ray_head_request_memory=256Mi
+    ray_autoscaler_request_cpu=25m
+    ray_autoscaler_request_memory=64Mi
+    ray_autoscaler_limit_cpu=250m
+    ray_autoscaler_limit_memory=512Mi
+    mlflow_request_cpu=25m
+    mlflow_request_memory=128Mi
+    mlflow_limit_cpu=500m
+    # MLflow 3 starts internal job consumers even with one HTTP worker.
+    # A 1GiB cgroup is not sufficient for that process tree during an
+    # AutoML/MLflow write cycle; retain a compact scheduler request while
+    # allowing 2GiB of actual runtime memory.
+    mlflow_limit_memory=2Gi
+    nifi_request_cpu=25m
+    nifi_request_memory=256Mi
+    nifi_limit_cpu=500m
+    nifi_limit_memory=1Gi
+    nifi_jvm_heap_init=256m
+    nifi_jvm_heap_max=512m
   fi
   cat > "${GENERATED_DIR}/prediction-manager.env" <<EOF
 REGISTRY_HOST=${REGISTRY_HOST}
@@ -1805,6 +2447,10 @@ ALLOW_UNAUTHENTICATED=true
 DEV_USER_EMAIL=${VERIFICATION_ADMIN_EMAIL}
 PM_TENANT_IMAGE_REGISTRY=${REGISTRY_HOST}
 PM_TENANT_MLFLOW_IMAGE=${REGISTRY_HOST}/${MLFLOW_IMAGE_TAG}
+PM_TENANT_MLFLOW_REQUEST_CPU=${mlflow_request_cpu}
+PM_TENANT_MLFLOW_REQUEST_MEMORY=${mlflow_request_memory}
+PM_TENANT_MLFLOW_LIMIT_CPU=${mlflow_limit_cpu}
+PM_TENANT_MLFLOW_LIMIT_MEMORY=${mlflow_limit_memory}
 PM_TENANT_RAY_IMAGE=${REGISTRY_HOST}/${RAY_IMAGE_TAG}
 PM_TENANT_RAY_CPU_WORKER_ENABLED=true
 PM_TENANT_RAY_CPU_WORKER_MAX_REPLICAS=1
@@ -1812,6 +2458,14 @@ PM_TENANT_RAY_CPU_WORKER_REQUEST_CPU=500m
 PM_TENANT_RAY_CPU_WORKER_REQUEST_MEMORY=1Gi
 PM_TENANT_RAY_CPU_WORKER_LIMIT_CPU=1
 PM_TENANT_RAY_CPU_WORKER_LIMIT_MEMORY=2Gi
+PM_TENANT_RAY_HEAD_REQUEST_CPU=${ray_head_request_cpu}
+PM_TENANT_RAY_HEAD_REQUEST_MEMORY=${ray_head_request_memory}
+PM_TENANT_RAY_HEAD_LIMIT_CPU=${ray_head_limit_cpu}
+PM_TENANT_RAY_HEAD_LIMIT_MEMORY=${ray_head_limit_memory}
+PM_TENANT_RAY_AUTOSCALER_REQUEST_CPU=${ray_autoscaler_request_cpu}
+PM_TENANT_RAY_AUTOSCALER_REQUEST_MEMORY=${ray_autoscaler_request_memory}
+PM_TENANT_RAY_AUTOSCALER_LIMIT_CPU=${ray_autoscaler_limit_cpu}
+PM_TENANT_RAY_AUTOSCALER_LIMIT_MEMORY=${ray_autoscaler_limit_memory}
 PM_TENANT_RAY_GPU_WORKER_ENABLED=${ray_gpu_worker_enabled}
 PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS=${PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS}
 PM_TENANT_RAY_GPU_WORKER_REQUEST_CPU=250m
@@ -1824,6 +2478,12 @@ PM_TENANT_NIFI_IMAGE=${REGISTRY_HOST}/${NIFI_IMAGE_TAG}
 PM_TENANT_NIFI_RUN_AS_USER=1000
 PM_TENANT_NIFI_RUN_AS_GROUP=1000
 PM_TENANT_NIFI_FS_GROUP=1000
+PM_TENANT_NIFI_JVM_HEAP_INIT=${nifi_jvm_heap_init}
+PM_TENANT_NIFI_JVM_HEAP_MAX=${nifi_jvm_heap_max}
+PM_TENANT_NIFI_REQUEST_CPU=${nifi_request_cpu}
+PM_TENANT_NIFI_REQUEST_MEMORY=${nifi_request_memory}
+PM_TENANT_NIFI_LIMIT_CPU=${nifi_limit_cpu}
+PM_TENANT_NIFI_LIMIT_MEMORY=${nifi_limit_memory}
 PM_PROVISIONER_IMAGE=${REGISTRY_HOST}/${PM_IMAGE_TAG}
 PM_TENANT_STORAGE_CLASS=${STORAGE_CLASS}
 PM_TENANT_MLFLOW_STORAGE_CLASS=${STORAGE_CLASS}
@@ -1846,11 +2506,12 @@ EOF
 render_label_studio() {
   python3 - "${PREDICTION_MANAGER_ROOT}/k8s/optional/label-studio.yaml" \
     "${GENERATED_DIR}/label-studio.yaml" "${REGISTRY_HOST}/${LABEL_STUDIO_IMAGE_TAG}" \
-    "$KUBEFLOW_URL" "$LABEL_STUDIO_PUBLIC_URL" "$VERIFICATION_ADMIN_EMAIL" <<'PY'
+    "$KUBEFLOW_URL" "$LABEL_STUDIO_PUBLIC_URL" "$VERIFICATION_ADMIN_EMAIL" \
+    "$LOW_MEMORY_PROFILE_ACTIVE" <<'PY'
 import sys
 from pathlib import Path
 
-source, output, image, base_url, label_public_url, admin_email = sys.argv[1:]
+source, output, image, base_url, label_public_url, admin_email, compact = sys.argv[1:]
 text = Path(source).read_text(encoding="utf-8")
 text = text.replace("registry.example.local:5000/label-studio:latest", image)
 text = text.replace("https://kubeflow.example.local/label-studio", label_public_url)
@@ -1858,6 +2519,28 @@ text = text.replace("https://kubeflow.example.local", base_url)
 text = text.replace('value: "1"\n            - name: LOGOUT_REDIRECT_URL', 'value: "0"\n            - name: LOGOUT_REDIRECT_URL')
 text = text.replace("x-forwarded-proto: https", "x-forwarded-proto: http")
 text = text.replace("admin@example.com", admin_email)
+if compact.lower() in {"1", "true", "yes", "on"}:
+    text = text.replace(
+        """          resources:
+            requests:
+              cpu: 250m
+              memory: 1Gi
+            limits:
+              cpu: \"2\"
+              memory: 4Gi""",
+        """          resources:
+            requests:
+              cpu: 25m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi""",
+    )
+    text = text.replace(
+        "  replicas: 1\n  selector:",
+        "  replicas: 1\n  strategy:\n    type: Recreate\n  selector:",
+        1,
+    )
 Path(output).write_text(text, encoding="utf-8")
 PY
 }
@@ -1878,6 +2561,10 @@ deploy_prediction_manager() {
     kubectl -n kubeflow patch deployment prediction-manager --type strategic \
       --patch-file "${PREDICTION_MANAGER_ROOT}/k8s/optional/docker-socket-patch.yaml"
   fi
+  # The image tag is deliberately stable for a simple offline/local-registry
+  # workflow. Restarting here, together with imagePullPolicy: Always, makes
+  # source updates take effect on every service-start invocation.
+  kubectl -n kubeflow rollout restart deployment/prediction-manager
   wait_rollout_if_exists kubeflow deployment prediction-manager 1200s
 
   if bool_true "$INSTALL_LABEL_STUDIO"; then
@@ -1890,7 +2577,18 @@ deploy_prediction_manager() {
 }
 
 start_port_forward() {
-  local namespace="$1" service="$2" mapping="$3" log_name="$4"
+  local namespace="$1" service="$2" mapping="$3" log_name="$4" stale_pid
+  # Reuse the persistent access runner when it already exposes this exact
+  # service.  Restart attempts otherwise collide with its public port.  Only
+  # the unaddressed, short-lived validation forward is removed on retry.
+  if pgrep -f "^kubectl -n ${namespace} port-forward( --address=[^[:space:]]+)? service/${service} ${mapping}$" \
+      >/dev/null 2>&1; then
+    return 0
+  fi
+  while IFS= read -r stale_pid; do
+    [[ "$stale_pid" =~ ^[0-9]+$ ]] || continue
+    kill "$stale_pid" 2>/dev/null || true
+  done < <(pgrep -f "^kubectl -n ${namespace} port-forward service/${service} ${mapping}$" 2>/dev/null || true)
   kubectl -n "$namespace" port-forward "service/${service}" "$mapping" \
     > "${RESULT_DIR}/${log_name}.log" 2>&1 &
   local pid=$!
@@ -1905,13 +2603,29 @@ provision_tenant_resources() {
     return
   fi
   start_port_forward kubeflow prediction-manager "${PM_HEALTHCHECK_PORT}:80" pm-port-forward
-  curl -fsS --retry 30 --retry-delay 2 "http://127.0.0.1:${PM_HEALTHCHECK_PORT}/" >/dev/null
+  # A forced Prediction Manager rollout can briefly accept a TCP connection
+  # before Uvicorn is ready.  Retry every transient HTTP/network error rather
+  # than treating that short hand-over window as an installation failure.
+  curl -fsS --retry 30 --retry-all-errors --retry-delay 2 \
+    "http://127.0.0.1:${PM_HEALTHCHECK_PORT}/" >/dev/null
   curl -fsS -X POST \
     -H "kubeflow-userid: ${VERIFICATION_ADMIN_EMAIL}" \
     "http://127.0.0.1:${PM_HEALTHCHECK_PORT}/api/admin/users/kubeflow-user-example-com/tenant-resources/reconcile" \
     > "${RESULT_DIR}/tenant-reconcile.json"
   jq -e '.status == "reconciled"' "${RESULT_DIR}/tenant-reconcile.json" >/dev/null
   wait_rollout_if_exists kubeflow-user-example-com deployment pm-mlflow 1200s
+  # StatefulSet의 Pending 이전 revision Pod는 RollingUpdate가 새 경량 Pod로
+  # 교체하지 못하는 경우가 있다. CPU 경량 프로필에서는 PVC를 보존한 채
+  # 해당 Pod만 재생성하여 현재 revision의 자원/힙 설정을 반드시 적용한다.
+  if bool_true "$LOW_MEMORY_PROFILE_ACTIVE" && kubectl -n kubeflow-user-example-com get pod nifi-0 >/dev/null 2>&1; then
+    kubectl -n kubeflow-user-example-com delete pod nifi-0 --wait=false >/dev/null
+  fi
+  # KubeRay does not always roll an existing head Pod when only rayStartParams
+  # changes.  Recreate the exact head Pod in the compact CPU profile so the
+  # current logical CPU setting is applied; persistent user resources remain.
+  if bool_true "$LOW_MEMORY_PROFILE_ACTIVE"; then
+    kubectl -n kubeflow-user-example-com delete pod -l ray.io/node-type=head --wait=false >/dev/null 2>&1 || true
+  fi
   wait_rollout_if_exists kubeflow-user-example-com statefulset nifi 1200s
   for _ in $(seq 1 120); do
     if kubectl -n kubeflow-user-example-com get pod -l ray.io/node-type=head \
@@ -1941,6 +2655,19 @@ wait_for_access_port() {
   return 1
 }
 
+wait_for_private_port() {
+  local port="$1" name="$2" attempt
+  for attempt in $(seq 1 60); do
+    if (exec 9<>"/dev/tcp/127.0.0.1/${port}") 2>/dev/null; then
+      record PASS "${name} 내부 포트" "127.0.0.1:${port} listening"
+      return 0
+    fi
+    sleep 2
+  done
+  echo "${name} 내부 포트가 120초 안에 열리지 않았습니다: ${port}" >&2
+  return 1
+}
+
 configure_host_firewall_ports() {
   bool_true "$CONTAINER_MODE" && {
     record SKIP "호스트 방화벽" "컨테이너 외부 Docker 호스트에서 관리"
@@ -1952,7 +2679,9 @@ configure_host_firewall_ports() {
   }
 
   local port
-  local -a ports=(15000 15001 15002 15003 18000 18080 19090 30080 30081)
+  # Only browser-facing service ports are opened. Kubernetes NodePorts,
+  # registry traffic and FeDiT upstreams remain internal to the host/cluster.
+  local -a ports=(15000 15001 15002 15003 18000 19090)
   if command -v ufw >/dev/null 2>&1 \
       && LC_ALL=C ufw status 2>/dev/null | grep -q '^Status: active'; then
     for port in "${ports[@]}"; do
@@ -1990,25 +2719,50 @@ from pathlib import Path
 
 source, output, label_studio_public_url = sys.argv[1:]
 text = Path(source).read_text(encoding="utf-8")
-if "__LABEL_STUDIO_PUBLIC_URL__" not in text:
-    raise SystemExit("프런트엔드 Nginx 설정에 Label Studio URL 치환 위치가 없습니다.")
-Path(output).write_text(
-    text.replace("__LABEL_STUDIO_PUBLIC_URL__", label_studio_public_url),
-    encoding="utf-8",
-)
+# Newer FeDiT frontend configurations already contain the local
+# host.docker.internal Label Studio proxy.  Older templates expose a
+# placeholder.  Both forms are valid; copying the former unchanged avoids
+# rejecting an otherwise deployable frontend.
+if "__LABEL_STUDIO_PUBLIC_URL__" in text:
+    text = text.replace("__LABEL_STUDIO_PUBLIC_URL__", label_studio_public_url)
+Path(output).write_text(text, encoding="utf-8")
 PY
     frontend_image="${REGISTRY_HOST}/${FRONTEND_IMAGE_TAG}"
+    # docker rm -f may return before the daemon has released the name on a
+    # busy single-node host.  Wait for that exact name to disappear so a
+    # repeat of 02-start never fails merely because the prior frontend exists.
     docker rm -f fedit-fe >/dev/null 2>&1 || true
-    docker run -d --restart=unless-stopped --name fedit-fe -p 0.0.0.0:18080:80 \
+    for _ in $(seq 1 30); do
+      if ! docker container inspect fedit-fe >/dev/null 2>&1; then
+        break
+      fi
+      sleep 1
+    done
+    if docker container inspect fedit-fe >/dev/null 2>&1; then
+      echo "기존 fedit-fe 컨테이너를 정리하지 못했습니다." >&2
+      return 1
+    fi
+    # v42 이하에서는 Prediction Manager가 공개 TCP 18000을 직접
+    # 사용했다. 이번 버전은 그 포트를 FeDiT 단일 진입점으로 넘기므로,
+    # 프런트엔드 컨테이너를 바인딩하기 전에 이전 systemd runner를 먼저
+    # 멈춘다. 이 순서가 없으면 업그레이드 첫 실행에서 Docker가
+    # "address already in use"로 실패한다.
+    if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files prediction-manager-access.service >/dev/null 2>&1; then
+      systemctl stop prediction-manager-access.service >/dev/null 2>&1 || true
+    fi
+    while IFS= read -r old_pf_pid; do
+      kill "$old_pf_pid" >/dev/null 2>&1 || true
+    done < <(pgrep -f '^kubectl -n kubeflow port-forward( --address=[^[:space:]]+)? service/prediction-manager 18000:80' || true)
+    sleep 1
+    docker run -d --restart=unless-stopped --name fedit-fe -p "0.0.0.0:${FEDIT_PUBLIC_PORT}:80" \
       --add-host=host.docker.internal:host-gateway \
       -e NDXPRO_ENV_PREDICTION_MANAGER_URL=/prediction-manager/ \
-      -e NDXPRO_ENV_KUBEFLOW_URL=http://__BROWSER_HOST__:30080 \
       -e NDXPRO_ENV_MLFLOW_URL=http://__BROWSER_HOST__:15000 \
       -e NDXPRO_ENV_RAY_URL=http://__BROWSER_HOST__:15002 \
       -e NDXPRO_ENV_NIFI_URL=http://__BROWSER_HOST__:15001/nifi/ \
       -v "${frontend_nginx_conf}:/etc/nginx/conf.d/default.conf:ro" \
       "$frontend_image" >/dev/null
-    record PASS "FeDiT 프런트엔드 실행" "http://${NODE_IP}:18080"
+    record PASS "FeDiT 프런트엔드 실행" "http://${NODE_IP}:${FEDIT_PUBLIC_PORT}"
   fi
 
   cleanup
@@ -2023,13 +2777,26 @@ mkdir -p "$state_dir"
 exec 8>/opt/prediction-manager-verification/services/port-forwards.lock
 flock -n 8 || exit 0
 specs=(
-  'kubeflow|prediction-manager|18000:80|pm'
-  'monitoring|kube-prometheus-stack-prometheus|19090:9090|prometheus'
-  'kubeflow-user-example-com|pm-mlflow|15000:5000|mlflow'
-  'kubeflow-user-example-com|nifi|15001:8080|nifi'
-  'kubeflow-user-example-com|pm-ray-head-svc|15002:8265|ray'
-  'kubeflow|label-studio|15003:80|label-studio'
+  'kubeflow|prediction-manager|__PM_HEALTHCHECK_PORT__:80|pm|private'
+  'monitoring|kube-prometheus-stack-prometheus|19090:9090|prometheus|public'
+  'kubeflow-user-example-com|pm-mlflow|15000:5000|mlflow|public'
+  'kubeflow-user-example-com|nifi|15001:8080|nifi|public'
+  'kubeflow-user-example-com|pm-ray-head-svc|15002:8265|ray|public'
+  'kubeflow|label-studio|15003:80|label-studio|public'
+  # These are private upstreams for the FeDiT Nginx container.  They are not
+  # published as user-facing installation ports; Nginx injects the same
+  # Kubeflow SSO identity headers that the web apps expect.
+  'kubeflow|volumes-web-app-service|13100:80|volumes-web-app|private'
+  'kubeflow|tensorboards-web-app-service|13101:80|tensorboards-web-app|private'
+  'kubeflow|kserve-models-web-app|13102:80|kserve-web-app|private'
+  'kubeflow|ml-pipeline-ui|13103:80|pipeline-web-app|private'
+  'kubeflow|centraldashboard|13104:80|centraldashboard-web-app|private'
 )
+docker_gateway="$(docker network inspect bridge --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null || true)"
+private_addresses="127.0.0.1"
+if [[ "$docker_gateway" =~ ^[0-9]+(\.[0-9]+){3}$ && "$docker_gateway" != "127.0.0.1" ]]; then
+  private_addresses+=",${docker_gateway}"
+fi
 cleanup_children() {
   local file pid
   for file in "$state_dir"/*.pid; do
@@ -2047,14 +2814,16 @@ trap cleanup_children EXIT
 trap shutdown_runner INT TERM
 while true; do
   for spec in "${specs[@]}"; do
-    IFS='|' read -r namespace service mapping name <<<"$spec"
+    IFS='|' read -r namespace service mapping name visibility <<<"$spec"
     pid_file="${state_dir}/${name}.pid"
     pid="$(cat "$pid_file" 2>/dev/null || true)"
     if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
       continue
     fi
     kubectl -n "$namespace" get "service/$service" >/dev/null 2>&1 || continue
-    kubectl -n "$namespace" port-forward --address=0.0.0.0 \
+    listen_address="0.0.0.0"
+    [[ "$visibility" == "private" ]] && listen_address="$private_addresses"
+    kubectl -n "$namespace" port-forward --address="$listen_address" \
       "service/$service" "$mapping" \
       >>"/opt/prediction-manager-verification/services/${name}-forward.log" 2>&1 8>&- &
     printf '%s\n' "$!" >"$pid_file"
@@ -2065,7 +2834,10 @@ EOF_PORT_FORWARD_RUNNER
   # The runner template stays literal so its runtime variables are not
   # expanded while generating it. Replace only the state directory with this
   # installation profile's configured location.
-  sed -i "s#/opt/prediction-manager-verification/services#${service_dir}#g" "$runner"
+  sed -i \
+    -e "s#/opt/prediction-manager-verification/services#${service_dir}#g" \
+    -e "s#__PM_HEALTHCHECK_PORT__#${PM_HEALTHCHECK_PORT}#g" \
+    "$runner"
   chmod 755 "$runner"
 
   # Stop every runner left by an older install or container restart. Relying
@@ -2091,11 +2863,11 @@ EOF_PORT_FORWARD_RUNNER
   # They otherwise keep both the TCP ports and an inherited lock descriptor.
   while read -r old_pid; do
     [[ -n "$old_pid" ]] && kill "$old_pid" 2>/dev/null || true
-  done < <(pgrep -f '^kubectl -n .+ port-forward( --address=0\.0\.0\.0)? service/(prediction-manager|kube-prometheus-stack-prometheus|pm-mlflow|nifi|pm-ray-head-svc|label-studio) ' 2>/dev/null || true)
+  done < <(pgrep -f '^kubectl -n .+ port-forward( --address=[^[:space:]]+)? service/(prediction-manager|kube-prometheus-stack-prometheus|pm-mlflow|nifi|pm-ray-head-svc|label-studio|volumes-web-app-service|tensorboards-web-app-service|kserve-models-web-app|ml-pipeline-ui|centraldashboard) ' 2>/dev/null || true)
   sleep 1
   while read -r old_pid; do
     [[ -n "$old_pid" ]] && kill -KILL "$old_pid" 2>/dev/null || true
-  done < <(pgrep -f '^kubectl -n .+ port-forward( --address=0\.0\.0\.0)? service/(prediction-manager|kube-prometheus-stack-prometheus|pm-mlflow|nifi|pm-ray-head-svc|label-studio) ' 2>/dev/null || true)
+  done < <(pgrep -f '^kubectl -n .+ port-forward( --address=[^[:space:]]+)? service/(prediction-manager|kube-prometheus-stack-prometheus|pm-mlflow|nifi|pm-ray-head-svc|label-studio|volumes-web-app-service|tensorboards-web-app-service|kserve-models-web-app|ml-pipeline-ui|centraldashboard) ' 2>/dev/null || true)
 
   if systemd_available; then
     access_unit=/etc/systemd/system/prediction-manager-access.service
@@ -2127,7 +2899,7 @@ EOF_ACCESS_UNIT
   fi
 
   configure_host_firewall_ports
-  wait_for_access_port 18000 "Prediction Manager"
+  wait_for_private_port "$PM_HEALTHCHECK_PORT" "Prediction Manager"
   if bool_true "$PROVISION_DEFAULT_TENANT"; then
     wait_for_access_port 15000 "MLflow"
     wait_for_access_port 15001 "NiFi"
@@ -2135,8 +2907,8 @@ EOF_ACCESS_UNIT
   fi
   bool_true "$INSTALL_LABEL_STUDIO" && wait_for_access_port 15003 "Label Studio"
   bool_true "$INSTALL_MONITORING" && wait_for_access_port 19090 "Prometheus"
-  bool_true "$BUILD_FRONTEND_IMAGE" && wait_for_access_port 18080 "FeDiT"
-  record PASS "서비스 접근 포트" "15000-15003, 18000, 18080, 19090"
+  bool_true "$BUILD_FRONTEND_IMAGE" && wait_for_access_port "$FEDIT_PUBLIC_PORT" "FeDiT"
+  record PASS "서비스 접근 포트" "15000-15003, 18000, 19090"
 }
 
 final_validation() {
@@ -2180,12 +2952,14 @@ final_validation() {
   fi
 
   curl -fsS "${REGISTRY_URL}/v2/_catalog" > "${RESULT_DIR}/registry-catalog.json"
-  local required_image_count=1
-  bool_true "$BUILD_AUXILIARY_IMAGES" && required_image_count=5
+  local required_image_count=2
+  bool_true "$BUILD_AUXILIARY_IMAGES" && required_image_count=6
   bool_true "$BUILD_FRONTEND_IMAGE" && required_image_count=$((required_image_count + 1))
   jq -e --argjson count "$required_image_count" \
     '.repositories | length >= $count' "${RESULT_DIR}/registry-catalog.json" >/dev/null
   jq -e --arg image "${PM_IMAGE_TAG%:*}" \
+    '.repositories | index($image) != null' "${RESULT_DIR}/registry-catalog.json" >/dev/null
+  jq -e --arg image "pm-kserve-mlserver" \
     '.repositories | index($image) != null' "${RESULT_DIR}/registry-catalog.json" >/dev/null
   record PASS "로컬 Registry" "필수 이미지 ${required_image_count}종 이상"
   if bool_true "$BUILD_FRONTEND_IMAGE"; then
@@ -2229,15 +3003,14 @@ final_validation() {
   cat > "${RESULT_DIR}/verification-credentials.txt" <<EOF
 검수용 주소 및 계정
 
-Kubeflow: ${KUBEFLOW_URL}
-Prediction Manager: ${KUBEFLOW_URL}/prediction-manager/
-Keycloak: ${KEYCLOAK_PUBLIC_URL}/admin/
+FeDiT: http://${NODE_IP}:${FEDIT_PUBLIC_PORT}/fedit/predictor-creator-tool
+Prediction Manager: http://${NODE_IP}:${FEDIT_PUBLIC_PORT}/prediction-manager/
+Kubeflow 기능 경로: http://${NODE_IP}:${FEDIT_PUBLIC_PORT}/volumes/, /tensorboards/, /kserve-endpoints/, /pipeline/
 검수 관리자 이메일: ${VERIFICATION_ADMIN_EMAIL}
 검수 관리자 비밀번호: ${VERIFICATION_ADMIN_PASSWORD}
-Keycloak 관리 계정: ${KEYCLOAK_ADMIN_USER}
-Keycloak 관리 비밀번호: ${KEYCLOAK_ADMIN_PASSWORD}
 
-이 값은 검수 전용입니다. 운영 배포에서 재사용하지 마세요.
+이 값은 검수 전용입니다. Kubernetes 내부 NodePort 및 Keycloak 관리 주소는
+브라우저 공개 주소로 사용하지 않습니다. 운영 배포에서 재사용하지 마세요.
 EOF
   chmod 600 "${RESULT_DIR}/verification-credentials.txt"
   kubectl get nodes -o wide > "${RESULT_DIR}/nodes.txt"
@@ -2286,6 +3059,8 @@ fi
 
 run_stage 20-runtime "Docker/containerd/Registry 구성" configure_runtime
 run_stage 30-kubernetes "Kubernetes 단일 노드 구성" install_kubernetes
+run_always "Kubernetes NodePort 외부 비노출" configure_private_nodeports
+run_always "CPU 단일 노드 swap" configure_cpu_swap
 run_stage 40-addons "Calico/StorageClass/Metrics Server" install_cluster_addons
 if bool_true "$INSTALL_NVIDIA_TOOLKIT"; then
   gpu_stage_label="GPU Device Plugin과 Time-Slicing"
@@ -2294,16 +3069,22 @@ else
 fi
 run_stage 50-gpu "$gpu_stage_label" install_gpu_plugin
 run_stage 60-kubeflow "Kubeflow/KFP/KServe/KubeRay" install_kubeflow
+run_always "CPU 단일 노드 리소스 프로파일" apply_cpu_single_node_resource_profile
+run_always "Kubeflow 전체 workload 상태 복원" restore_full_kubeflow_workloads
 run_stage 70-data-services "PostgreSQL/Keycloak/OIDC" install_data_services
+run_always "CPU 단일 노드 리소스 프로파일 (데이터 서비스)" apply_cpu_single_node_resource_profile
 if bool_true "$INSTALL_NVIDIA_TOOLKIT"; then
   monitoring_stage_label="Prometheus/DCGM 모니터링"
 else
   monitoring_stage_label="Prometheus 모니터링 (CPU 전용)"
 fi
 run_stage 80-monitoring "$monitoring_stage_label" install_monitoring_stack
+run_always "Prometheus 구성 확인" ensure_monitoring_stack
+run_always "AutoML 실행 안정화" patch_automl_runner_for_compact_hosts
 run_always "프로젝트 이미지 빌드 및 Push" build_and_push_images
 run_always "Prediction Manager/Label Studio 배포" deploy_prediction_manager
 run_always "기본 tenant MLflow/Ray/NiFi 구성" provision_tenant_resources
+run_always "CPU 단일 노드 리소스 프로파일 (tenant 서비스)" apply_cpu_single_node_resource_profile
 run_always "최종 기능 검증" final_validation
 run_always "서비스 접근 포트 구성" configure_service_access
 
@@ -2314,11 +3095,12 @@ finish_report
 cat <<EOF
 
 전체 검수 환경 설치가 완료되었습니다.
-- Kubeflow: ${KUBEFLOW_URL}
-- Prediction Manager: ${KUBEFLOW_URL}/prediction-manager/
+- FeDiT: http://${NODE_IP}:${FEDIT_PUBLIC_PORT}/fedit/predictor-creator-tool
+- Prediction Manager: http://${NODE_IP}:${FEDIT_PUBLIC_PORT}/prediction-manager/
+- Kubeflow 기능: http://${NODE_IP}:${FEDIT_PUBLIC_PORT}/volumes/, /tensorboards/, /kserve-endpoints/, /pipeline/
 - 검수 계정: ${VERIFICATION_ADMIN_EMAIL}
 - 비밀번호/상세 결과: ${RESULT_DIR}/verification-credentials.txt
 - 검수 보고서: ${REPORT_FILE}
 
-검수용 초기 비밀번호와 HTTP/NodePort 구성은 운영에 사용하지 마세요.
+검수용 초기 비밀번호와 Kubernetes 내부 NodePort 구성은 운영에 사용하지 마세요.
 EOF

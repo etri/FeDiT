@@ -1289,14 +1289,16 @@ async function loadModelDetail(name) {
             const version = sel.dataset.version;
             const nextStatus = sel.value;
             const currentStatus = sel.dataset.current || 'none';
-            if (nextStatus === currentStatus) return;
+            // A registry entry can be Production while its KServe resource was
+            // removed or failed.  In that case the primary action is a repair
+            // deployment, not a no-op status change.
+            const repairDeployment = nextStatus === 'production'
+                && currentStatus === 'production'
+                && !isSelectedServed;
+            if (nextStatus === currentStatus && !repairDeployment) return;
 
             let payload = { status: nextStatus };
             if (nextStatus === 'production') {
-                if (!confirm(`v${version}을(를) 운영 상태로 변경하고 KServe에 배포하시겠습니까?\n기존 운영 버전은 자동으로 보관 처리됩니다.`)) {
-                    await loadModelDetail(name);
-                    return;
-                }
                 const ns = nsGuess || prompt('배포할 namespace를 입력하세요 (예: kubeflow-user-example-com):');
                 if (!ns) {
                     await loadModelDetail(name);

@@ -21,7 +21,10 @@ spec:
       containers:
         - name: prediction-manager
           image: ${REGISTRY_HOST}/${PM_IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
+          # The installer rebuilds this tag when sources are updated.  Always
+          # pull from the local registry so a resumed install cannot run an
+          # older cached Prediction Manager image under the same tag.
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8000
@@ -101,6 +104,14 @@ spec:
               value: "${PM_TENANT_IMAGE_REGISTRY}"
             - name: PM_TENANT_MLFLOW_IMAGE
               value: "${PM_TENANT_MLFLOW_IMAGE}"
+            - name: PM_TENANT_MLFLOW_REQUEST_CPU
+              value: "${PM_TENANT_MLFLOW_REQUEST_CPU}"
+            - name: PM_TENANT_MLFLOW_REQUEST_MEMORY
+              value: "${PM_TENANT_MLFLOW_REQUEST_MEMORY}"
+            - name: PM_TENANT_MLFLOW_LIMIT_CPU
+              value: "${PM_TENANT_MLFLOW_LIMIT_CPU}"
+            - name: PM_TENANT_MLFLOW_LIMIT_MEMORY
+              value: "${PM_TENANT_MLFLOW_LIMIT_MEMORY}"
             - name: PM_TENANT_RAY_IMAGE
               value: "${PM_TENANT_RAY_IMAGE}"
             - name: PM_TENANT_RAY_CPU_WORKER_ENABLED
@@ -115,6 +126,22 @@ spec:
               value: "${PM_TENANT_RAY_CPU_WORKER_LIMIT_CPU}"
             - name: PM_TENANT_RAY_CPU_WORKER_LIMIT_MEMORY
               value: "${PM_TENANT_RAY_CPU_WORKER_LIMIT_MEMORY}"
+            - name: PM_TENANT_RAY_HEAD_REQUEST_CPU
+              value: "${PM_TENANT_RAY_HEAD_REQUEST_CPU}"
+            - name: PM_TENANT_RAY_HEAD_REQUEST_MEMORY
+              value: "${PM_TENANT_RAY_HEAD_REQUEST_MEMORY}"
+            - name: PM_TENANT_RAY_HEAD_LIMIT_CPU
+              value: "${PM_TENANT_RAY_HEAD_LIMIT_CPU}"
+            - name: PM_TENANT_RAY_HEAD_LIMIT_MEMORY
+              value: "${PM_TENANT_RAY_HEAD_LIMIT_MEMORY}"
+            - name: PM_TENANT_RAY_AUTOSCALER_REQUEST_CPU
+              value: "${PM_TENANT_RAY_AUTOSCALER_REQUEST_CPU}"
+            - name: PM_TENANT_RAY_AUTOSCALER_REQUEST_MEMORY
+              value: "${PM_TENANT_RAY_AUTOSCALER_REQUEST_MEMORY}"
+            - name: PM_TENANT_RAY_AUTOSCALER_LIMIT_CPU
+              value: "${PM_TENANT_RAY_AUTOSCALER_LIMIT_CPU}"
+            - name: PM_TENANT_RAY_AUTOSCALER_LIMIT_MEMORY
+              value: "${PM_TENANT_RAY_AUTOSCALER_LIMIT_MEMORY}"
             - name: PM_TENANT_RAY_GPU_WORKER_ENABLED
               value: "${PM_TENANT_RAY_GPU_WORKER_ENABLED}"
             - name: PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS
@@ -139,6 +166,18 @@ spec:
               value: "${PM_TENANT_NIFI_RUN_AS_GROUP}"
             - name: PM_TENANT_NIFI_FS_GROUP
               value: "${PM_TENANT_NIFI_FS_GROUP}"
+            - name: PM_TENANT_NIFI_REQUEST_CPU
+              value: "${PM_TENANT_NIFI_REQUEST_CPU}"
+            - name: PM_TENANT_NIFI_REQUEST_MEMORY
+              value: "${PM_TENANT_NIFI_REQUEST_MEMORY}"
+            - name: PM_TENANT_NIFI_LIMIT_CPU
+              value: "${PM_TENANT_NIFI_LIMIT_CPU}"
+            - name: PM_TENANT_NIFI_LIMIT_MEMORY
+              value: "${PM_TENANT_NIFI_LIMIT_MEMORY}"
+            - name: PM_TENANT_NIFI_JVM_HEAP_INIT
+              value: "${PM_TENANT_NIFI_JVM_HEAP_INIT}"
+            - name: PM_TENANT_NIFI_JVM_HEAP_MAX
+              value: "${PM_TENANT_NIFI_JVM_HEAP_MAX}"
             - name: PM_PROVISIONER_IMAGE
               value: "${PM_PROVISIONER_IMAGE}"
             - name: DOCKER_SOCKET

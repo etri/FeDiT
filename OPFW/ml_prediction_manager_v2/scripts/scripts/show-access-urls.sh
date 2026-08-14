@@ -16,10 +16,8 @@ detect_host_ip() {
 print_urls() {
   local host="$1" label="$2"
   printf '\n%s\n' "$label"
-  printf 'FeDiT:              http://%s:18080/fedit/predictor-creator-tool\n' "$host"
-  printf 'Prediction Manager: http://%s:18000/docs\n' "$host"
-  printf 'Kubeflow:           http://%s:30080\n' "$host"
-  printf 'Keycloak:           http://%s:30081/auth\n' "$host"
+  printf 'FeDiT:              http://%s:18000/fedit/predictor-creator-tool\n' "$host"
+  printf 'Prediction Manager: http://%s:18000/prediction-manager/docs\n' "$host"
   printf 'MLflow:             http://%s:15000\n' "$host"
   printf 'NiFi:               http://%s:15001/nifi/\n' "$host"
   printf 'Ray Dashboard:      http://%s:15002\n' "$host"

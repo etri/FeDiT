@@ -34,18 +34,18 @@ from sklearn.model_selection import train_test_split
 
 SEARCH_SPACE = {
     "rf": lambda task: {
-        "n_estimators": tune.choice([50, 100, 200, 400]),
+        "n_estimators": tune.choice([20, 50, 100]),
         "max_depth": tune.choice([None, 5, 10, 20, 40]),
         "min_samples_split": tune.choice([2, 5, 10]),
     },
     "xgb": lambda task: {
-        "n_estimators": tune.choice([100, 200, 400]),
+        "n_estimators": tune.choice([50, 100, 200]),
         "max_depth": tune.choice([3, 6, 10]),
         "learning_rate": tune.loguniform(1e-3, 3e-1),
         "subsample": tune.uniform(0.6, 1.0),
     },
     "lgbm": lambda task: {
-        "n_estimators": tune.choice([100, 200, 400]),
+        "n_estimators": tune.choice([50, 100, 200]),
         "num_leaves": tune.choice([15, 31, 63, 127]),
         "learning_rate": tune.loguniform(1e-3, 3e-1),
         "min_child_samples": tune.choice([5, 10, 20]),
@@ -209,15 +209,15 @@ def _build_model(model_id: str, task: str, params: dict):
             RandomForestRegressor,
         )
         cls = RandomForestClassifier if task == "classification" else RandomForestRegressor
-        return cls(random_state=42, n_jobs=-1, **params)
+        return cls(random_state=42, n_jobs=1, **params)
     if model_id == "xgb":
         from xgboost import XGBClassifier, XGBRegressor
         cls = XGBClassifier if task == "classification" else XGBRegressor
-        return cls(random_state=42, tree_method="hist", n_jobs=-1, **params)
+        return cls(random_state=42, tree_method="hist", n_jobs=1, **params)
     if model_id == "lgbm":
         from lightgbm import LGBMClassifier, LGBMRegressor
         cls = LGBMClassifier if task == "classification" else LGBMRegressor
-        return cls(random_state=42, n_jobs=-1, verbose=-1, **params)
+        return cls(random_state=42, n_jobs=1, verbose=-1, **params)
     if model_id == "mlp":
         from sklearn.neural_network import MLPClassifier, MLPRegressor
         cls = MLPClassifier if task == "classification" else MLPRegressor
@@ -285,6 +285,17 @@ def _resolve_metric(task: str, requested: str) -> tuple[str, str]:
     return ("mse", "min") if task == "regression" else ("accuracy", "max")
 
 
+
+def _mlflow_pip_requirements() -> list[str]:
+    """Avoid slow run-time dependency inference while logging AutoML models."""
+    import cloudpickle
+    import sklearn
+    return [
+        f"scikit-learn=={sklearn.__version__}",
+        f"cloudpickle=={cloudpickle.__version__}",
+        "joblib",
+    ]
+
 def _train_fn_builder(
     model_id: str,
     task: str,
@@ -306,6 +317,11 @@ def _train_fn_builder(
         preds, proba = _fit_predict(model_id, model, X_train, y_train, X_test, task)
         metrics = _score_all(y_test, preds, task, proba=proba)
         metrics["model_id"] = model_id
+        # Report the completed score before artifact packaging.  MLflow model
+        # packaging can outlive a short Tune budget on compact CPU hosts; the
+        # result itself must not be discarded merely because artifact metadata
+        # is still being written.
+        tune.report(metrics)
         # worker local 파일은 driver가 읽을 수 없으므로, worker에서 바로 MLflow에 모델을 남긴다.
         try:
             tmp_dir = tempfile.mkdtemp(prefix=f"automl_{model_id}_")
@@ -345,6 +361,7 @@ def _train_fn_builder(
                             model,
                             artifact_path="model",
                             input_example=input_example,
+                            pip_requirements=_mlflow_pip_requirements(),
                         )
                         _mlflow.log_artifact(model_file, artifact_path="model")
                         _mlflow.log_artifact(features_file, artifact_path="model")
@@ -362,7 +379,7 @@ def _train_fn_builder(
                     print(f"[AutoML] worker log_model warning: {e}", flush=True)
         except Exception as e:
             print(f"[AutoML] model save warning: {e}", flush=True)
-        tune.report(metrics)
+        return
 
     return train_fn
 
@@ -673,6 +690,7 @@ def run(cfg: dict) -> dict:
                                         _model_obj,
                                         artifact_path="model",
                                         input_example=input_example,
+                                        pip_requirements=_mlflow_pip_requirements(),
                                     )
                                     model_artifact_uri = getattr(_model_info, "model_uri", None)
                                     logged_mlflow_model = True

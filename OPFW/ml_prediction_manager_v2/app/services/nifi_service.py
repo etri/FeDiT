@@ -19,6 +19,8 @@ custom_api = kubernetes_client.custom_objects()
 NIFI_IMAGE = os.environ.get("PM_TENANT_NIFI_IMAGE", "").strip() or (
     f"{settings.registry_host.rstrip('/')}/prediction-manager-nifi-python:1.28.1-pm2"
 )
+NIFI_JVM_HEAP_INIT = os.environ.get("PM_TENANT_NIFI_JVM_HEAP_INIT", "512m")
+NIFI_JVM_HEAP_MAX = os.environ.get("PM_TENANT_NIFI_JVM_HEAP_MAX", "1g")
 NIFI_APP_LABEL = "pm-user-nifi"
 NIFI_STORAGE_SIZE = "5Gi"
 
@@ -148,6 +150,8 @@ sed -i 's|^nifi.cluster.protocol.is.secure=.*|nifi.cluster.protocol.is.secure=fa
                                 client.V1EnvVar(
                                     name="NIFI_WEB_PROXY_CONTEXT_PATH", value=path
                                 ),
+                                client.V1EnvVar(name="NIFI_JVM_HEAP_INIT", value=NIFI_JVM_HEAP_INIT),
+                                client.V1EnvVar(name="NIFI_JVM_HEAP_MAX", value=NIFI_JVM_HEAP_MAX),
                             ],
                             resources=client.V1ResourceRequirements(
                                 requests={"cpu": "250m", "memory": "1Gi"},

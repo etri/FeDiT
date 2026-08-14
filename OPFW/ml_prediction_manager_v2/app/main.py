@@ -8,6 +8,7 @@ import time as _time
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse as _HTMLResponse, JSONResponse
+from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
@@ -60,8 +61,33 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.app_title,
     root_path="/prediction-manager",
+    # The application is used through both the Kubeflow gateway
+    # (/prediction-manager/docs) and a direct Kubernetes port-forward
+    # (/docs).  FastAPI's stock Swagger endpoint always prepends root_path,
+    # which makes the direct endpoint request a nonexistent
+    # /prediction-manager/openapi.json.  The route below derives the prefix
+    # from the browser URL instead.
+    docs_url=None,
     lifespan=lifespan,
 )
+
+
+@app.get("/docs", include_in_schema=False)
+async def standalone_api_docs() -> _HTMLResponse:
+    """Serve Swagger UI with an OpenAPI URL valid for gateway and port-forward use."""
+    page = get_swagger_ui_html(
+        openapi_url="./openapi.json",
+        title=f"{settings.app_title} - API documentation",
+    )
+    page_html = page.body.decode("utf-8")
+    return _HTMLResponse(
+        _re.sub(
+            r"url:\\s*['\"]\\./openapi\\.json['\"],",
+            'url: new URL("./openapi.json", window.location.href).href,',
+            page_html,
+            count=1,
+        )
+    )
 
 
 def _standalone_platform_page(title: str, subtitle: str, tabs: list[str], empty_text: str) -> _HTMLResponse:

@@ -338,6 +338,79 @@ def _apply_isvc(
     )
 
 
+async def _wait_for_inference_service_ready(
+    core_v1: Any,
+    custom: Any,
+    name: str,
+    namespace: str,
+    timeout_seconds: int = 420,
+) -> dict[str, Any]:
+    """Wait for KServe readiness before changing the model lifecycle stage.
+
+    Creating an InferenceService only means that KServe accepted its manifest.
+    The serving revision can still fail later because of image pulls, a bad
+    artifact, or an unschedulable workload.  Returning success before Ready
+    made the UI label a non-working model as Production.
+    """
+    deadline = time.monotonic() + timeout_seconds
+    last_state = "KServe InferenceService 생성 대기"
+    ready_since: float | None = None
+
+    while time.monotonic() < deadline:
+        obj = custom.get_namespaced_custom_object(
+            "serving.kserve.io", "v1beta1", namespace, "inferenceservices", name
+        )
+        status = obj.get("status") or {}
+        conditions = {item.get("type"): item for item in (status.get("conditions") or [])}
+        ready_condition = conditions.get("Ready") or {}
+        ready = ready_condition.get("status") == "True"
+
+        reason = ready_condition.get("reason") or "Ready 대기"
+        message = ready_condition.get("message") or ""
+        last_state = f"{reason}: {message}".strip(": ")
+
+        try:
+            pods = core_v1.list_namespaced_pod(
+                namespace,
+                label_selector=f"serving.kserve.io/inferenceservice={name}",
+            ).items
+            pod_ready = bool(pods)
+            for pod in pods:
+                phase = pod.status.phase or "Unknown"
+                waiting = []
+                for container_status in (pod.status.container_statuses or []):
+                    if not container_status.ready or container_status.restart_count:
+                        pod_ready = False
+                    state = container_status.state.waiting
+                    if state:
+                        waiting.append(
+                            f"{container_status.name}={state.reason or 'Waiting'}"
+                        )
+                detail = ", ".join(waiting) if waiting else phase
+                last_state = f"pod {pod.metadata.name}: {detail}"
+            if ready and pod_ready:
+                if ready_since is None:
+                    ready_since = time.monotonic()
+                elif time.monotonic() - ready_since >= 15:
+                    return status
+            else:
+                ready_since = None
+        except Exception:
+            # A transient API read failure should not hide a deployment that
+            # may become ready on the next poll.
+            pass
+
+        if not ready:
+            ready_since = None
+
+        await asyncio.sleep(3)
+
+    raise RuntimeError(
+        f"KServe InferenceService가 {timeout_seconds}초 안에 Ready가 되지 않았습니다. "
+        f"현재 상태: {last_state}"
+    )
+
+
 async def deploy_production(
     model_name: str,
     version: str,
@@ -407,6 +480,11 @@ async def deploy_production(
         except client.ApiException:
             pass
         raise
+
+    # A model becomes Production only when its actual KServe serving revision
+    # is Ready.  This keeps a failed image pull or startup error visible to
+    # the user instead of recording a false successful deployment.
+    await _wait_for_inference_service_ready(core_v1, custom, isvc_name, target_namespace)
 
     registry.set_stage(
         model_name, version, "Production", archive_existing=True, namespace=mlflow_namespace
