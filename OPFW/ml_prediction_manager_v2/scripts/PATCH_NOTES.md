@@ -42,9 +42,16 @@
 - The frontend Nginx upstream uses `host.docker.internal`, and browser-facing
   service URLs use the browser's current hostname rather than an installed
   machine's address.
-- Bare-metal Ubuntu no longer skips access setup: port forwards for Prediction
-  Manager, MLflow, NiFi, Ray, Label Studio, and Prometheus bind on all host
-  interfaces, while the FeDiT frontend publishes port 18080.
+- Bare-metal Ubuntu no longer skips access setup: MLflow, NiFi, Ray, Label
+  Studio, Prometheus and FeDiT use only TCP 15000-15003, 18000 and 19090.
+  Prediction Manager and Kubeflow web-app upstreams bind only to loopback and
+  the Docker bridge behind the FeDiT reverse proxy.
+- FeDiT is the sole public entry on TCP 18000. Prediction Manager is available
+  at `/prediction-manager/`; Kubeflow feature pages are reverse-proxied below
+  the same origin. The former public TCP 18080 entry is not used.
+- The local image Registry is bound to `127.0.0.1:5000`, and kube-proxy limits
+  bootstrap-only NodePorts 30080/30081 to `127.0.0.0/8`. Neither is exposed
+  through the host network interface.
 - Bare-metal port forwards run as the enabled
   `prediction-manager-access.service` systemd unit and survive reboots.
 - Active UFW or firewalld installations receive the documented verification
@@ -77,9 +84,9 @@ This archive was corrected against `guide.txt` before installation.
 - Normalizes FeDiT frontend build artifact permissions in its Docker image so
   the non-root Nginx worker can read files even when the installer uses umask
   `077` for generated credentials and reports.
-- Keeps loopback Registry image references for node-level containerd pulls but
-  gives Prediction Manager pods the reachable outer-container node address for
-  Registry catalog and dashboard API calls.
+- Keeps loopback Registry image references for node-level containerd pulls;
+  all dynamic workload image pulls are performed by that same single-node
+  kubelet and therefore require no external Registry port.
 - Replaces the dashboard's RTX 3090 fallback with live DCGM/Prometheus facts,
   reporting the installed RTX A6000 model, driver, VRAM and physical count
   without installing NVIDIA utilities or a driver in the target image.

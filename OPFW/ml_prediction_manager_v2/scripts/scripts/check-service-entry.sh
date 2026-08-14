@@ -64,8 +64,8 @@ else
   fail "Prediction Manager deployment Ready 확인 실패"
 fi
 
-check_http "Prediction Manager" "http://${NODE_IP}:18000/docs"
-check_http "Kubeflow" "http://${NODE_IP}:30080/"
+check_http "FeDiT" "http://${NODE_IP}:18000/fedit/predictor-creator-tool"
+check_http "Prediction Manager" "http://${NODE_IP}:18000/prediction-manager/docs"
 
 if ! bool_true "${REQUIRE_NVIDIA_GPU:-true}" \
     && ! bool_true "${INSTALL_NVIDIA_TOOLKIT:-true}"; then

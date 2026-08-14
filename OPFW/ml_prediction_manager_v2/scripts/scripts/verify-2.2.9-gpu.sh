@@ -7,8 +7,8 @@ set -uo pipefail
 # are removed before the script exits.
 
 export KUBECONFIG="${KUBECONFIG:-/etc/kubernetes/admin.conf}"
-PM_URL="${PM_URL:-http://127.0.0.1:18000}"
-FRONTEND_URL="${FRONTEND_URL:-http://127.0.0.1:18080}"
+PM_URL="${PM_URL:-http://127.0.0.1:18000/prediction-manager}"
+FRONTEND_URL="${FRONTEND_URL:-http://127.0.0.1:18000}"
 MLFLOW_URL="${MLFLOW_URL:-http://127.0.0.1:15000}"
 NIFI_URL="${NIFI_URL:-http://127.0.0.1:15001}"
 RAY_URL="${RAY_URL:-http://127.0.0.1:15002}"
@@ -19,10 +19,16 @@ TEST_USER="${TEST_USER:-user@example.com}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 PREFIX="codex-229-${STAMP,,}"
 K8S_PREFIX="c229-$(date +%H%M%S)"
-RESULT_ROOT="${RESULT_ROOT:-/opt/prediction-manager-verification/functional-2.2.9/${STAMP}}"
+INSTALL_USER="${PM_INSTALL_ORIGINAL_USER:-${SUDO_USER:-$(id -un)}}"
+INSTALL_HOME="$(getent passwd "$INSTALL_USER" | cut -d: -f6)"
+[[ -n "$INSTALL_HOME" ]] || INSTALL_HOME="$HOME"
+RESULT_ROOT="${RESULT_ROOT:-${INSTALL_HOME}/prediction-manager-work/.prediction-manager/gpu/functional-2.2.9/${STAMP}}"
 REPORT="${RESULT_ROOT}/verification-report-2.2.9-gpu.md"
 LOG_DIR="${RESULT_ROOT}/logs"
 mkdir -p "$LOG_DIR"
+if ((EUID == 0)); then
+  chown -R "$INSTALL_USER:$(id -gn "$INSTALL_USER")" "$RESULT_ROOT"
+fi
 
 PASS_COUNT=0
 FAIL_COUNT=0

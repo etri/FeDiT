@@ -36,6 +36,29 @@ if [[ -z "$detected_ip" ]]; then
 fi
 
 echo "[DIAG] 설정 파일: $CONFIG_FILE"
+install_user="${PM_INSTALL_ORIGINAL_USER:-${SUDO_USER:-$(id -un)}}"
+install_home="$(getent passwd "$install_user" | cut -d: -f6)"
+[[ -n "$install_home" ]] || install_home="$HOME"
+install_profile="${INSTALL_PROFILE:-gpu}"
+install_work_dir="${INSTALL_WORK_DIR:-auto}"
+[[ "$install_work_dir" == auto ]] && install_work_dir="${install_home}/prediction-manager-work"
+install_state_root="${INSTALL_STATE_ROOT:-auto}"
+[[ "$install_state_root" == auto ]] && install_state_root="${install_work_dir}/.prediction-manager/${install_profile}"
+registry_data_dir="${REGISTRY_DATA_DIR:-auto}"
+[[ "$registry_data_dir" == auto ]] && registry_data_dir="${install_state_root}/registry"
+kubeflow_manifests_dir="${KUBEFLOW_MANIFESTS_DIR:-auto}"
+[[ "$kubeflow_manifests_dir" == auto ]] && kubeflow_manifests_dir="${install_state_root}/kubeflow-manifests"
+downloads_dir="${DOWNLOADS_DIR:-auto}"
+[[ "$downloads_dir" == auto ]] && downloads_dir="${install_state_root}/downloads"
+tooling_dir="${TOOLING_DIR:-auto}"
+[[ "$tooling_dir" == auto ]] && tooling_dir="${install_state_root}/tooling"
+echo "[DIAG] 설치 사용자: ${install_user} (${install_home})"
+echo "[DIAG] 사용자 작업 경로: ${install_work_dir}"
+echo "[DIAG] 설치 상태/결과: ${install_state_root}"
+echo "[DIAG] Kubeflow 다운로드: ${kubeflow_manifests_dir}"
+echo "[DIAG] 로컬 Registry 데이터: ${registry_data_dir}"
+echo "[DIAG] 설치 다운로드: ${downloads_dir}"
+echo "[DIAG] 설치 도구 파일: ${tooling_dir}"
 echo "[DIAG] NODE_IP 설정: ${NODE_IP:-auto}"
 echo "[DIAG] 현재 PC 감지 IP: ${detected_ip:-감지 실패}"
 echo "[DIAG] 백엔드 소스: $backend_root"
@@ -50,7 +73,7 @@ echo "[DIAG] 프런트엔드 소스: $frontend_root"
   exit 1
 }
 
-state_root="${INSTALL_STATE_ROOT:-/opt/prediction-manager-verification}/state"
+state_root="${install_state_root}/state"
 if [[ -e "${state_root%/state}" && ! -r "${state_root%/state}" ]]; then
   echo "[DIAG] 단계 상태: root 전용 디렉터리 — sudo 전환 후 SKIP/실행 여부 표시"
 else
