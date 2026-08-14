@@ -1,185 +1,193 @@
+"""Local image catalogue used by the Prediction Manager image UI.
+
+The installation keeps the Docker Registry on loopback so TCP 5000 is never
+published outside the host.  Kubernetes Pods consequently cannot call the
+Registry HTTP endpoint directly.  Docker's Unix socket is already mounted for
+the image build workflow; this module uses it as a read-only catalogue fallback
+when the Registry endpoint is deliberately private.
+"""
+
+from __future__ import annotations
+
+from collections import defaultdict
+
+import docker
 import httpx
+
 from app.config import settings
 
 
-# ============================================================
-# 시스템 이미지 카탈로그 — 삭제 보호 대상 + UI 설명
-# ============================================================
 SYSTEM_IMAGES = {
     "prediction-manager-app": {
         "category": "예측매니저",
-        "description": "예측매니저 백엔드 (FastAPI). 이 이미지 삭제 시 웹 UI 자체가 동작 불가.",
+        "description": "예측매니저 백엔드 (FastAPI).",
+        "protected": True,
+    },
+    "union-twin-fe": {
+        "category": "FeDiT",
+        "description": "FeDiT 메인 화면 React 앱.",
         "protected": True,
     },
     "fedit-frontend": {
-        "category": "FeDIT",
-        "description": "FeDIT 메인 화면 React 앱. /fedit/ 경로에서 제공.",
+        "category": "FeDiT",
+        "description": "FeDiT 메인 화면 React 앱.",
         "protected": True,
     },
     "ray-mlflow": {
         "category": "Ray · MLflow",
-        "description": "Ray Tune + MLflow 통합 이미지. AutoML 학습 실행 기반.",
-        "protected": True,
-    },
-    "mlserver-onnx": {
-        "category": "KServe",
-        "description": "ONNX artifact 서빙용 MLServer. KServe ClusterServingRuntime `kserve-mlserver-onnx` 에서 참조.",
+        "description": "Ray Tune + MLflow 통합 이미지.",
         "protected": True,
     },
     "label-studio": {
         "category": "Label Studio",
-        "description": "Label Studio 라벨링 도구. /label-studio/ 경로와 Kubeflow SSO 연동에서 사용.",
+        "description": "학습 데이터 라벨링 도구 이미지.",
+        "protected": True,
+    },
+    "mlflow-postgres": {
+        "category": "MLflow",
+        "description": "MLflow 실험 이력 저장소 PostgreSQL 이미지.",
+        "protected": True,
+    },
+    "prediction-manager-nifi-python": {
+        "category": "Apache NiFi",
+        "description": "NiFi Python 확장 실행 이미지.",
         "protected": True,
     },
 }
 
 
 def _classify(repo_name: str) -> dict:
-    """이미지 분류: system | user | orphan"""
-    # 시스템 이미지
     if repo_name in SYSTEM_IMAGES:
-        return {
-            "type": "system",
-            **SYSTEM_IMAGES[repo_name],
-        }
-    # 사용자 이미지 (namespace prefix 규칙)
+        return {"type": "system", **SYSTEM_IMAGES[repo_name]}
     if "/" in repo_name:
-        ns = repo_name.split("/", 1)[0]
-        if ns.startswith("kubeflow-"):
+        namespace = repo_name.split("/", 1)[0]
+        if namespace.startswith("kubeflow-"):
             return {
                 "type": "user",
                 "category": "사용자",
-                "description": f"{ns} 사용자가 빌드한 이미지",
+                "description": f"{namespace} 사용자가 빌드한 이미지",
                 "protected": False,
             }
-    # 그 외 = 고아 (prefix 없고 시스템 목록에도 없음)
     return {
         "type": "orphan",
         "category": "미분류",
-        "description": "소유자·용도 불명. 어떤 Pod/ISVC도 참조하지 않는 것으로 추정. 삭제 전 `kubectl get pods -A | grep` 로 확인 권장.",
+        "description": "소유자·용도를 자동 식별하지 못한 이미지입니다.",
         "protected": False,
     }
 
 
 def owner_namespace(repo_name: str) -> str | None:
-    """사용자 이미지 repo prefix 에서 소유 namespace를 추출."""
     if "/" not in repo_name:
         return None
-    ns = repo_name.split("/", 1)[0]
-    return ns if ns.startswith("kubeflow-") else None
+    namespace = repo_name.split("/", 1)[0]
+    return namespace if namespace.startswith("kubeflow-") else None
 
 
 def _repository_info(repo: str, tags: list[str]) -> dict:
-    cls = _classify(repo)
-    compatible_types: list[str] = []
-    if cls.get("type") == "user":
-        # 현재 Prediction Manager 이미지 빌더는 JupyterLab 실행 엔트리포인트를 넣는다.
-        # VSCode/RStudio는 별도 런타임 서버가 필요한 이미지라 자동 호환으로 보지 않는다.
-        compatible_types = ["jupyter"]
+    classification = _classify(repo)
+    compatible_types = ["jupyter"] if classification["type"] == "user" else []
     return {
         "name": repo,
-        "tags": tags,
+        "tags": sorted(tags),
         "registry_host": settings.registry_host,
         "owner_namespace": owner_namespace(repo),
         "compatible_types": compatible_types,
-        **cls,
+        **classification,
     }
 
 
-async def list_repositories(namespace: str = None, include_system: bool = False) -> list[dict]:
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(f"{settings.registry_url}/v2/_catalog")
-        repos = resp.json().get("repositories", [])
-        result = []
-        for repo in repos:
-            cls = _classify(repo)
-            # namespace prefix 필터링: "kubeflow-researcher1/my-image"
-            if namespace:
-                if include_system and cls.get("type") == "system":
-                    pass
-                elif "/" in repo:
-                    repo_ns = repo.split("/")[0]
-                    if repo_ns != namespace:
-                        continue
-                else:
-                    # prefix 없는 기존 이미지는 관리자 전체 보기에서만 볼 수 있음.
-                    # 단, include_system=True이면 위에서 시스템 이미지만 허용.
+def _local_docker_catalogue() -> dict[str, list[str]]:
+    """Return the local Docker tags that use the configured Registry prefix."""
+    prefix = f"{settings.registry_host.rstrip('/')}/"
+    catalogue: dict[str, set[str]] = defaultdict(set)
+    try:
+        client = docker.DockerClient(base_url=settings.docker_socket)
+        for image in client.images.list():
+            for reference in image.tags:
+                if not reference.startswith(prefix):
                     continue
-            tags_resp = await client.get(
-                f"{settings.registry_url}/v2/{repo}/tags/list"
-            )
-            tags = tags_resp.json().get("tags", []) or []
-            result.append(_repository_info(repo, tags))
-        return result
+                name_tag = reference[len(prefix):]
+                name, separator, tag = name_tag.rpartition(":")
+                if separator and name and tag:
+                    catalogue[name].add(tag)
+    except docker.errors.DockerException:
+        return {}
+    return {name: sorted(tags) for name, tags in catalogue.items()}
+
+
+async def _catalogue() -> dict[str, list[str]]:
+    """Get Registry metadata, falling back to Docker when it is loopback-only."""
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f"{settings.registry_url}/v2/_catalog")
+            response.raise_for_status()
+            catalogue: dict[str, list[str]] = {}
+            for repository in response.json().get("repositories", []):
+                tags_response = await client.get(
+                    f"{settings.registry_url}/v2/{repository}/tags/list"
+                )
+                tags_response.raise_for_status()
+                catalogue[repository] = tags_response.json().get("tags", []) or []
+            return catalogue
+    except (httpx.HTTPError, ValueError):
+        return _local_docker_catalogue()
+
+
+async def list_repositories(namespace: str | None = None, include_system: bool = False) -> list[dict]:
+    result = []
+    for repository, tags in (await _catalogue()).items():
+        classification = _classify(repository)
+        if namespace:
+            if include_system and classification["type"] == "system":
+                pass
+            elif owner_namespace(repository) != namespace:
+                continue
+        if tags:
+            result.append(_repository_info(repository, tags))
+    return sorted(result, key=lambda item: item["name"])
 
 
 async def list_all_repositories() -> list[dict]:
-    """관리자용: 모든 이미지 + 분류(system / user / orphan)"""
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(f"{settings.registry_url}/v2/_catalog")
-        repos = resp.json().get("repositories", [])
-        result = []
-        for repo in repos:
-            tags_resp = await client.get(
-                f"{settings.registry_url}/v2/{repo}/tags/list"
-            )
-            tags = tags_resp.json().get("tags", []) or []
-            if not tags:
-                continue
-            result.append(_repository_info(repo, tags))
-        return result
+    return [
+        _repository_info(repository, tags)
+        for repository, tags in sorted((await _catalogue()).items())
+        if tags
+    ]
 
 
 async def list_shared_repositories() -> list[dict]:
-    """일반 사용자용: 시스템 이미지 + 모든 사용자 이미지.
-
-    사용자 이미지는 컨테이너 생성에서 공유 사용 가능하지만, 삭제 권한은
-    라우터에서 owner namespace 기준으로 별도 계산한다. 미분류 orphan 이미지는
-    일반 사용자에게 노출하지 않는다.
-    """
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(f"{settings.registry_url}/v2/_catalog")
-        repos = resp.json().get("repositories", [])
-        result = []
-        for repo in repos:
-            cls = _classify(repo)
-            if cls.get("type") not in ("system", "user"):
-                continue
-            tags_resp = await client.get(
-                f"{settings.registry_url}/v2/{repo}/tags/list"
-            )
-            tags = tags_resp.json().get("tags", []) or []
-            if not tags:
-                continue
-            result.append(_repository_info(repo, tags))
-        return result
+    return [
+        _repository_info(repository, tags)
+        for repository, tags in sorted((await _catalogue()).items())
+        if tags and _classify(repository)["type"] in {"system", "user"}
+    ]
 
 
 async def get_tags(name: str) -> list[str]:
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(f"{settings.registry_url}/v2/{name}/tags/list")
-        return resp.json().get("tags", []) or []
+    return (await _catalogue()).get(name, [])
 
 
 async def delete_image(name: str, tag: str) -> bool:
-    async with httpx.AsyncClient() as client:
-        manifest_resp = await client.get(
-            f"{settings.registry_url}/v2/{name}/manifests/{tag}",
-            headers={
-                "Accept": ", ".join([
-                    "application/vnd.docker.distribution.manifest.v2+json",
-                    "application/vnd.oci.image.manifest.v1+json",
-                    "application/vnd.docker.distribution.manifest.list.v2+json",
-                    "application/vnd.oci.image.index.v1+json",
-                ])
-            },
-        )
-        if manifest_resp.status_code != 200:
+    """Delete user images; use Docker only when the private Registry is unreachable."""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            manifest = await client.get(
+                f"{settings.registry_url}/v2/{name}/manifests/{tag}",
+                headers={"Accept": "application/vnd.docker.distribution.manifest.v2+json"},
+            )
+            manifest.raise_for_status()
+            digest = manifest.headers.get("Docker-Content-Digest")
+            if not digest:
+                return False
+            deleted = await client.delete(
+                f"{settings.registry_url}/v2/{name}/manifests/{digest}"
+            )
+            return deleted.status_code == 202
+    except httpx.HTTPError:
+        try:
+            docker.DockerClient(base_url=settings.docker_socket).images.remove(
+                f"{settings.registry_host}/{name}:{tag}", force=False, noprune=False
+            )
+            return True
+        except docker.errors.DockerException:
             return False
-        digest = manifest_resp.headers.get("Docker-Content-Digest")
-        if not digest:
-            return False
-        del_resp = await client.delete(
-            f"{settings.registry_url}/v2/{name}/manifests/{digest}"
-        )
-        return del_resp.status_code == 202

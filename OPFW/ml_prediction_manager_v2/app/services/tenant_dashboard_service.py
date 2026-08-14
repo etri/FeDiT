@@ -709,8 +709,11 @@ def _ray_cluster(namespace: str, owner_email: str) -> dict:
                 },
             }
         )
-    if worker_group_specs:
-        spec["workerGroupSpecs"] = worker_group_specs
+    # Ray 2.54's KubeRay autoscaler reads this field unconditionally.  Keep
+    # the field present even in compact CPU mode, where an empty list avoids
+    # scheduling an additional worker while retaining a healthy Ray head and
+    # dashboard for small hosts.
+    spec["workerGroupSpecs"] = worker_group_specs
     return {
         "apiVersion": "ray.io/v1",
         "kind": "RayCluster",

@@ -16,6 +16,10 @@ RUN if [ "$INSTALL_PROFILE" = "cpu" ]; then \
 COPY app/ app/
 COPY static/ static/
 COPY examples/ examples/
+# A previous cached COPY layer can still contain macOS AppleDouble sidecars
+# from an earlier overlay copy.  Remove them inside the image as a second
+# line of defence; `.dockerignore` prevents newly supplied sidecars as well.
+RUN find app static examples -type f -name '._*' -delete
 
 EXPOSE 8000
 

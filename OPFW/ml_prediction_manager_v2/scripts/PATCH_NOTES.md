@@ -16,10 +16,10 @@
 - Fixed the real-host `01` failure with exit 141: the Kubernetes package
   version lookup now consumes the complete `apt-cache madison` stream and no
   longer trips strict `pipefail` through SIGPIPE.
-- Added the CPU `LOW_MEMORY_PROFILE=auto` path. Below 16 GiB it installs the
-  entry-validation core without rejecting the host for its memory size, and
-  defers monitoring, Label Studio, default-tenant services, and auxiliary
-  image builds.
+- Added the CPU single-node resource profile. It never rejects a host because
+  of detected memory and keeps monitoring, Label Studio, default-tenant
+  services, and the feature menus enabled with compact requests and
+  profile-specific limits.
 - Fixed shell-safe serialization of a CPU host's `Unknown GPU` model value.
 - Fixed containerd 1.x/2.x registry host configuration so Kubernetes pulls
   project images from the local HTTP Registry instead of attempting HTTPS.

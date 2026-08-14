@@ -13,5 +13,7 @@ CPU 실행본은 `nvidia-smi`를 요구하지 않고 NVIDIA driver, Container
 Toolkit, Device Plugin, DCGM Exporter를 설치하지 않는다. Ray는
 `rayproject/ray:2.54.1-py312` CPU 이미지를 사용하고 GPU worker를 생성하지
 않는다. IP, DNS, 백엔드·프런트엔드 경로는 실행 PC에서 다시 감지한다.
-사용 가능 메모리가 16 GiB 미만이면 서비스 진입 검증용 저메모리 프로필을
-자동 사용하며, 메모리 용량 때문에 설치를 중단하지는 않는다.
+CPU 전용 설치기는 단일 노드 리소스 프로필을 적용한다. 메모리 용량 때문에
+설치를 중단하거나 메뉴를 숨기지 않으며, Prediction Manager, Dataset, AutoML,
+Ray, MLflow, TensorBoard, KServe, NiFi, Label Studio 및 모니터링 서비스를
+동일한 CPU 설치에서 사용할 수 있다.
