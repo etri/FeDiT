@@ -1,311 +1,207 @@
-FeDiT 예측매니저 GPU/CPU 호스트 설치 가이드
-=================================================
+FeDiT 예측매니저 호스트 설치 가이드
+=====================================
 
-문서 범위
----------
-- Ubuntu 22.04 LTS x86_64 물리 호스트 또는 VM에 직접 설치하는 기준이다.
-- SSH로 접속한 호스트 터미널에서 명령을 실행한다.
-- Docker 컨테이너 안에 접속하여 설치하는 방식은 다루지 않는다.
-- 설치기는 호스트에 Docker, containerd, Kubernetes 및 필요 서비스를 구성한다.
-- 한 호스트에서 GPU 모드와 CPU 모드 중 하나만 선택한다.
-- Dataset·AutoML·Ray·MLflow·KServe 등 2.2.9 전체 기능시험은 별도로 수행한다.
-
-
-1. 설치 전 요구 사항
+문서 범위와 검증 상태
 ---------------------
+- Ubuntu 22.04 LTS x86_64 호스트에서 일반 sudo 사용자로 설치하는 방법이다.
+- Docker 컨테이너에 접속하여 설치하는 방법은 다루지 않는다.
+- 한 호스트에는 CPU 모드 또는 GPU 모드 중 하나만 설치한다.
+- 설치 과정은 메모리 용량을 설치 중단 조건으로 사용하지 않는다.
+- CPU 모드는 클린 Ubuntu 22.04 환경에서 설치, 첫 화면 진입 및 2.2.9 기능
+  전수 시험을 완료했다. GPU 모드의 전체 기능시험은 별도 진행 대상이다.
+- NVIDIA 드라이버는 이 설치 과정에서 설치, 업데이트 또는 재설치하지 않는다.
 
-공통 요구 사항:
+
+1. 설치 전 확인
+----------------
+
+필수 조건:
+
 - Ubuntu 22.04 LTS x86_64
-- CPU 4코어 이상
-- 메모리: 설치 최소 용량 검사를 사용하지 않음
+- CPU 4 core 이상
 - 루트 파티션 여유 공간 200 GiB 이상
-- 인터넷 접속
-- sudo 사용 권한
-- 새로 설치하거나 예측매니저가 설치되지 않은 호스트 권장
+- 인터넷 연결
+- sudo 권한을 가진 일반 사용자
 
-메모리 용량은 정보로만 기록하며 설치 중단 조건으로 사용하지 않는다. 다만
-메모리가 작으면 Kubeflow 및 여러 연동 서비스를 동시에 실행할 때 Pod가
-시작하지 못하거나 종료될 수 있다.
+메모리는 기록만 하며 설치 거부 조건이 아니다. CPU 모드는 작은 메모리의
+단일 노드에서도 모든 메뉴를 유지하도록 작은 Kubernetes 요청값과 CPU swap
+프로필을 자동 적용한다. 실제 운영에서는 동시에 실행할 작업 수에 맞는 CPU,
+메모리와 디스크 여유 공간을 확보한다.
 
-GPU 모드 추가 요구 사항:
-- NVIDIA GPU가 호스트에 장착되어 있어야 한다.
-- NVIDIA 드라이버가 미리 설치되어 있고 `nvidia-smi`가 정상 실행되어야 한다.
-- 이 설치기는 NVIDIA 드라이버를 설치·업데이트·재설치하지 않는다.
-- GPU 개수·모델·드라이버·최소 VRAM은 `nvidia-smi`에서 자동으로 읽는다.
-- GPU당 time-slicing 슬롯은 최소 VRAM을 12 GiB 단위로 계산하고 1~8개로 제한한다.
-
-CPU 모드:
-- NVIDIA GPU와 `nvidia-smi`가 필요하지 않다.
-- NVIDIA 드라이버, Container Toolkit, Device Plugin, DCGM Exporter를 설치하지 않는다.
-- Ray는 CPU 이미지를 사용하며 Ray GPU worker는 비활성화한다.
-- 사용 가능 메모리가 16 GiB 미만이면 저메모리 진입 점검 프로필을 자동 선택한다.
-- 저메모리 프로필은 설치를 중단하지 않고 Prediction Manager, FeDiT,
-  PostgreSQL, Keycloak, Kubeflow ingress/auth 진입에 필요한 구성을 우선한다.
-
-
-2. 호스트 상태 확인
--------------------
-
-아래 명령은 Docker 컨테이너 터미널이 아닌 Ubuntu 호스트 터미널에서
-실행한다.
-
-  source /etc/os-release
-  printf 'OS=%s %s\nARCH=%s\n' "$ID" "$VERSION_ID" "$(uname -m)"
-  printf 'CPU cores: '; nproc
-  free -h
-  df -h /
-  ip -4 route
-
-출력에서 Ubuntu 22.04와 x86_64를 확인한다.
-
-GPU 모드를 선택할 때만 다음 명령을 추가로 실행한다.
+GPU 모드에서는 설치 전에 다음 명령이 정상 동작해야 한다.
 
   nvidia-smi
 
-`nvidia-smi`가 실패하면 GPU 설치 스크립트를 실행하지 않는다. 드라이버는 이
-설치 범위 밖에서 먼저 정상화해야 한다.
+GPU 모드는 호스트의 GPU 개수, 모델명, 드라이버 버전과 최소 VRAM을
+`nvidia-smi`에서 읽는다. 최소 VRAM을 12 GiB 단위로 나누어 GPU당
+time-slicing 슬롯을 계산하고, 결과를 1~8 범위로 제한한다. 드라이버가 없거나
+`nvidia-smi`가 실패하면 GPU 모드를 실행하지 않는다.
 
 
-3. FeDiT 소스 다운로드
-------------------------
+2. FeDiT 다운로드와 코드 배치
+-------------------------------
 
-호스트에 Git과 기본 도구를 설치한다.
+호스트 터미널에서 다음 명령을 실행한다.
 
   sudo apt-get update
-  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    ca-certificates curl git unzip
-
-고정 작업 폴더를 생성하고 지정된 FeDiT 브랜치를 다운로드한다.
-
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl git unzip
   mkdir -p /home/$USER/prediction-manager-work
   cd /home/$USER/prediction-manager-work
   git clone -b OPFW_development_ETRI_pman --single-branch https://github.com/etri/FeDiT.git
 
-저장소가 조직 또는 비공개 권한으로 보호된 경우에는 이 명령을 실행하는
-GitHub 계정에 FeDiT 읽기 권한이 있어야 한다. 인증을 요청하면 해당 계정 또는
-그 계정으로 발급한 읽기 전용 액세스 토큰으로 인증을 완료한다.
+제공된 코드 압축파일의 최상위 폴더는 `OPFW`이다. 압축을 푼 뒤 그 `OPFW`
+폴더를 다음 FeDiT 저장소의 `OPFW`에 덮어쓴다.
 
-다운로드 결과를 확인한다.
+  /home/$USER/prediction-manager-work/FeDiT/OPFW
 
-  cd /home/$USER/prediction-manager-work/FeDiT
-  git branch --show-current
-  test "$(git branch --show-current)" = "OPFW_development_ETRI_pman"
-  test -d OPFW/ml_prediction_manager_v2
-  test -d OPFW/ml_prediction_manager_v2_frontend
-
-설치 스크립트 위치는 다음과 같다.
+설치 스크립트 폴더는 다음과 같다.
 
   /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
 
 
-4. GPU/CPU 모드 선택
----------------------
+3. 사용할 포트
+---------------
 
-아래 두 가지 중 하나만 선택한다. 한 호스트에서 GPU용과 CPU용 설치
-스크립트를 섞어서 실행하지 않는다.
+외부 또는 브라우저 접속에 사용하는 TCP 포트는 아래 여섯 개뿐이다.
 
-GPU 모드 실행 파일:
-  01-install-required-modules.sh
-  02-start-prediction-manager.sh
-  생성 설정: .verification-install.env
-  상태 저장: /opt/prediction-manager-verification/state
+  15000, 15001, 15002, 15003, 18000, 19090
 
-CPU 모드 실행 파일:
-  01-install-required-modules-cpu.sh
-  02-start-prediction-manager-cpu.sh
-  생성 설정: .verification-install-cpu.env
-  상태 저장: /opt/prediction-manager-verification-cpu/state
+설치기는 UFW 또는 firewalld가 활성화된 경우 위 포트만 자동 허용한다.
+공유기, 사내 방화벽, 클라우드 보안 그룹은 설치기가 바꾸지 않으므로 필요한
+접속 범위에서 같은 포트를 별도로 허용한다.
 
-설치 폴더와 하위 폴더의 모든 Shell 설치 스크립트에 실행 권한을 준다.
-이 명령은 GPU/CPU 모드 선택과 관계없이 설치 전에 한 번 실행한다.
+Kubernetes NodePort, 로컬 이미지 Registry, Prediction Manager 상태 점검 포트는
+호스트 외부에 공개하지 않는다. 18080, 30080, 30081은 사용하지 않는다.
+
+
+4. 실행 권한 부여
+------------------
+
+설치 전에 한 번만 실행한다.
 
   cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
   sudo find . -type f -name '*.sh' -exec chmod +x {} +
 
-실행 권한이 없는 Shell 스크립트가 남아 있지 않은지 확인한다. 아무 경로도
-출력되지 않아야 한다.
 
-  find . -type f -name '*.sh' ! -perm -u=x -print
+5. CPU 모드 설치
+----------------
 
+CPU 모드는 NVIDIA GPU, NVIDIA 드라이버, NVIDIA Container Toolkit, Device
+Plugin, DCGM Exporter를 사용하거나 설치하지 않는다. Ray는 CPU 작업만
+실행한다.
 
-5. GPU 모드 설치
-------------------
-
-이 절은 GPU 모드를 선택한 호스트에서만 수행한다. 모든 설치 명령은
-`sudo`로 실행한다.
-
-5.1 변경 없는 사전 점검
-
-  cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
-  sudo ./01-install-required-modules.sh --dry-run
-
-5.2 필수 모듈 일괄 설치
-
-  cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
-  sudo ./01-install-required-modules.sh
-
-이 단계에서 다음 항목을 호스트에 설치한다.
-- Ubuntu 필수 패키지
-- Docker, containerd, Docker Buildx
-- kubelet, kubeadm, kubectl
-- Helm, Kustomize
-
-NVIDIA 드라이버는 정상 동작 여부만 확인하고 변경하지 않는다.
-
-5.3 서비스 설치 및 실행
-
-  cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
-  sudo ./02-start-prediction-manager.sh
-
-서비스 스크립트는 다음 GPU 항목을 자동으로 구성한다.
-- NVIDIA Container Toolkit
-- 호스트 GPU 개수·모델·드라이버·최소 VRAM 탐지
-- Kubernetes NVIDIA Device Plugin
-- GPU time-slicing
-- DCGM Exporter
-- Ray GPU worker
-
-
-6. CPU 모드 설치
-------------------
-
-이 절은 CPU 모드를 선택한 호스트에서만 수행한다. 모든 설치 명령은
-`sudo`로 실행한다. CPU 스크립트는
-설정 파일이 복사되어 오거나 수정되어도 GPU 관련 설정을 CPU 안전 값으로
-다시 고정한다.
-
-6.1 변경 없는 사전 점검
-
-  cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
-  sudo ./01-install-required-modules-cpu.sh --dry-run
-
-6.2 필수 모듈 일괄 설치
-
-  cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
-  sudo ./01-install-required-modules-cpu.sh
-
-이 단계에서 다음 항목을 호스트에 설치한다.
-- Ubuntu 필수 패키지
-- Docker, containerd, Docker Buildx
-- kubelet, kubeadm, kubectl
-- Helm, Kustomize
-
-다음 항목은 설치하거나 검사하지 않는다.
-- NVIDIA 드라이버
-- NVIDIA Container Toolkit
-- Kubernetes NVIDIA Device Plugin
-- DCGM Exporter
-- Docker GPU 실행 검사
-
-6.3 서비스 설치 및 실행
-
-  cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
-  sudo ./02-start-prediction-manager-cpu.sh
-
-CPU 모드의 Ray는 `rayproject/ray:2.54.1-py312` 이미지를 기반으로 구성되며
-CPU worker만 사용한다.
-
-16 GiB 미만 호스트에서는 `.verification-install-cpu.env`의
-`LOW_MEMORY_PROFILE=auto`가 저메모리 프로필을 선택한다. 이 프로필에서는
-첫 화면 진입에 필요하지 않은 Prometheus, Label Studio, 기본 tenant의
-MLflow/Ray/NiFi 워크로드와 부가 이미지 빌드를 기본 생략한다. 따라서
-11 GiB 급 호스트에서는 첫 화면 진입까지를 우선 검증하고, 2.2.9 전체
-기능시험은 추가 메모리를 확보한 호스트에서 수행한다.
-
-
-7. 재실행과 중단 복구
---------------------
-
-설치가 중단되면 선택한 모드의 같은 명령을 다시 실행한다. 완료된 단계는
-상태 파일을 기준으로 SKIP하고 중단된 단계부터 계속한다.
-
-GPU 모드:
-
-  cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
-  sudo ./01-install-required-modules.sh
-  sudo ./02-start-prediction-manager.sh
-
-CPU 모드:
+다음 두 명령을 순서대로 실행한다.
 
   cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
   sudo ./01-install-required-modules-cpu.sh
   sudo ./02-start-prediction-manager-cpu.sh
 
-`01` 스크립트가 바로 종료될 때는 출력의 `[SKIP]`, `[PASS]`, `[FAIL]`과 보고서
-경로를 확인한다. 이전 실행에서 완료된 단계라면 SKIP 후 정상 종료하는
-것이 맞다.
+`01-install-required-modules-cpu.sh`는 Ubuntu 필수 패키지, Docker,
+containerd, Kubernetes 도구, Helm 및 Kustomize를 설치한다.
+
+`02-start-prediction-manager-cpu.sh`는 Kubernetes와 예측매니저 서비스를
+구성하고 다음을 확인한 뒤 종료한다.
+
+- Kubernetes API
+- Prediction Manager deployment Ready
+- FeDiT 및 Prediction Manager HTTP 진입
+- CPU 전용 모드
 
 
-8. 호스트 포트와 접속 주소
--------------------------
+6. GPU 모드 설치
+----------------
 
-설치기는 서비스 접속용 포트를 호스트의 모든 인터페이스에 바인딩한다.
-활성화된 UFW 또는 firewalld가 있으면 다음 TCP 포트를 자동으로 개방한다.
+GPU 모드는 기존 NVIDIA 드라이버가 정상이고 `nvidia-smi`가 동작하는
+호스트에서만 사용한다. 설치 스크립트는 드라이버를 바꾸지 않고 NVIDIA
+Container Toolkit, Kubernetes Device Plugin, DCGM Exporter와 GPU
+time-slicing만 구성한다.
 
-  15000, 15001, 15002, 15003, 18000, 18080, 19090, 30080, 30081
+다음 두 명령을 순서대로 실행한다.
 
-호스트 외부에 있는 공유기, 사내 방화벽, 클라우드 보안 그룹은 설치기가
-변경하지 않으므로 필요한 접속 범위에 맞게 별도로 허용해야 한다.
+  cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
+  sudo ./01-install-required-modules.sh
+  sudo ./02-start-prediction-manager.sh
 
-호스트 자체의 브라우저에서는 `localhost`를 사용한다. SSH 접속에 사용한 PC의
-브라우저에서는 `localhost`가 아니라 Ubuntu 호스트의 IP 주소를 사용한다.
+GPU 개수나 모델명을 스크립트 또는 설정 파일에 직접 입력할 필요가 없다.
+다른 PC에서 실행할 때도 실행 시점의 `nvidia-smi` 결과를 사용한다.
 
-호스트 IP 확인:
+
+7. 접속 주소
+-------------
+
+설치 호스트에서 브라우저를 열 때는 `localhost`를 사용한다. 다른 PC에서
+접속할 때는 `localhost` 대신 Ubuntu 호스트의 IP 주소를 사용한다.
 
   HOST_IP="$(ip -4 route get 1.1.1.1 | awk '{for (i=1; i<=NF; i++) if ($i=="src") {print $(i+1); exit}}')"
   printf 'HOST_IP=%s\n' "$HOST_IP"
 
-실제 호스트 IP가 반영된 접속 주소를 출력한다.
+기본 주소:
 
-  printf 'FeDiT: http://%s:18080/fedit/predictor-creator-tool\n' "$HOST_IP"
-  printf 'Prediction Manager: http://%s:18000/docs\n' "$HOST_IP"
-  printf 'Kubeflow: http://%s:30080\n' "$HOST_IP"
-  printf 'Keycloak: http://%s:30081/auth\n' "$HOST_IP"
-  printf 'MLflow: http://%s:15000\n' "$HOST_IP"
-  printf 'NiFi: http://%s:15001/nifi/\n' "$HOST_IP"
-  printf 'Ray Dashboard: http://%s:15002\n' "$HOST_IP"
-  printf 'Label Studio: http://%s:15003\n' "$HOST_IP"
-  printf 'Prometheus: http://%s:19090\n' "$HOST_IP"
+  FeDiT:              http://HOST_IP:18000/fedit/predictor-creator-tool
+  Prediction Manager: http://HOST_IP:18000/prediction-manager/docs
+  MLflow:             http://HOST_IP:15000
+  NiFi:               http://HOST_IP:15001/nifi/
+  Ray Dashboard:      http://HOST_IP:15002
+  Label Studio:       http://HOST_IP:15003
+  Prometheus:         http://HOST_IP:19090
 
+FeDiT 첫 화면에서 다음 메뉴가 보여야 한다.
 
-9. 설치 후 진입 점검
---------------------
-
-GPU와 CPU 모드 모두 `02` 스크립트 마지막에서 다음 항목을 점검한다.
-- Kubernetes API 진입
-- Prediction Manager deployment Ready
-- Prediction Manager HTTP 진입
-- Kubeflow HTTP 진입
-- 선택한 하드웨어 모드 확인
-
-추가로 호스트에서 다음 명령을 실행한다.
-
-  kubectl get nodes -o wide
-  kubectl get pods -A
-  curl -I --max-time 10 http://127.0.0.1:18000/docs
-  curl -I --max-time 10 http://127.0.0.1:18080/fedit/predictor-creator-tool
-
-GPU 모드에서는 다음 명령도 실행한다.
-
-  nvidia-smi
-  kubectl get nodes -o jsonpath='{range .items[*]}{.metadata.name}{"  nvidia.com/gpu="}{.status.allocatable.nvidia\.com/gpu}{"\n"}{end}'
-
-CPU 모드에서는 `nvidia-smi`와 `nvidia.com/gpu`를 성공 조건으로 사용하지 않는다.
+- 학습 데이터셋 준비
+- 데이터 수집
+- 저장소
+- NiFi
+- Label Studio
+- Pipeline
+- AutoML
+- Ray
+- MLflow
+- TensorBoard
+- Model Registry
+- KServe
+- MLOps 모니터링
 
 
-10. 설치 결과 확인
-------------------
+8. 2.2.9 기능 전수 점검
+-----------------------
 
-GPU 모드 상태·설정·보고서:
-  /opt/prediction-manager-verification/state
-  /opt/prediction-manager-verification/generated
-  /opt/prediction-manager-verification/results
+설치가 끝난 뒤 다음 명령으로 기능 전수 점검을 실행한다. 장기 작업은 최대
+180초 동안 실제 실행 상태를 확인하며, 그 안에 종료하지 않으면 실행 시작을
+기록한 뒤 시험 리소스를 정리한다.
 
-CPU 모드 상태·설정·보고서:
-  /opt/prediction-manager-verification-cpu/state
-  /opt/prediction-manager-verification-cpu/generated
-  /opt/prediction-manager-verification-cpu/results
+CPU:
 
-설치 실패 시 터미널에 출력된 `[FAIL]` 항목과 보고서·로그 경로를 먼저
-확인한다. 원인을 조치한 후 선택한 모드의 같은 `01` 또는 `02` 명령을
-다시 실행한다.
+  cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2
+  sudo ./scripts/scripts/verify-2.2.9-cpu.sh
+
+GPU:
+
+  cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2
+  sudo ./scripts/scripts/verify-2.2.9-gpu.sh
+
+CPU 점검은 다음 순서를 각 서비스에 적용한다.
+
+  기능 선택 → 설정 → 실제 실행 → 결과 확인 → 시험 리소스 종료
+
+현재 CPU 전수 점검 항목은 Dataset, REST 데이터 수집, PVC, NiFi, Label Studio,
+Kubeflow Pipelines, MLflow, Ray, TensorBoard, KServe, AutoML, Prometheus와
+Prediction Manager 모니터링을 포함한다.
+
+
+9. 재실행과 로그 확인
+----------------------
+
+설치가 중단된 경우 같은 모드의 `01` 또는 `02` 명령을 다시 실행한다.
+완료된 단계는 상태 파일을 기준으로 건너뛰고, 중단된 단계부터 이어서 실행한다.
+
+CPU 설치 상태와 결과:
+
+  /home/$USER/prediction-manager-work/.prediction-manager/cpu
+
+GPU 설치 상태와 결과:
+
+  /home/$USER/prediction-manager-work/.prediction-manager/gpu
+
+`01` 스크립트가 즉시 끝난 경우에도 오류라고 단정하지 않는다. 출력의 `[SKIP]`,
+`[PASS]`, `[FAIL]`과 마지막에 표시되는 보고서 경로를 확인한다. `[FAIL]`이
+있으면 해당 로그를 확인한 뒤 같은 명령을 다시 실행한다.

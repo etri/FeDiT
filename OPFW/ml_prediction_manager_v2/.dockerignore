@@ -1,0 +1,5 @@
+# macOS may create AppleDouble sidecar files while an OPFW overlay is copied
+# through Finder, an archive utility, or a mounted share. They are metadata,
+# not Python modules, so never send them in the Docker build context.
+._*
+__MACOSX/

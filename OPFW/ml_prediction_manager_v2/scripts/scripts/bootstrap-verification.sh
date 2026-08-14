@@ -154,6 +154,10 @@ fi
 : "${IMAGE_PULL_RETRY_ATTEMPTS:=12}"
 : "${IMAGE_PULL_RETRY_DELAY_SECONDS:=15}"
 : "${IMAGE_PULL_TIMEOUT_SECONDS:=300}"
+# One failed CRI download is enough to prefer the Docker fallback.  In the
+# affected CDN condition the next CRI attempt only repeats the same reset,
+# while Docker can retrieve and hand the image back to containerd immediately.
+: "${IMAGE_PULL_CRIO_ATTEMPTS:=1}"
 : "${RUN_IMAGE_IMPORT_SELF_TEST:=false}"
 
 if [[ "$CONTAINER_MODE" == "auto" ]]; then
@@ -1389,6 +1393,47 @@ EOF
   kubectl taint nodes --all node-role.kubernetes.io/master- >/dev/null 2>&1 || true
 }
 
+tune_cpu_control_plane_leases() {
+  # Kubeadm's default 10-second leader-election renewal deadline is designed
+  # for a multi-node control plane.  A fully installed Kubeflow stack can
+  # briefly make a one-node, 11 GiB CPU host spend longer than that processing
+  # informer lists, which needlessly restarts the scheduler and controller
+  # manager although the API server is still healthy.  A longer lease affects
+  # only this single-node CPU verification profile and keeps every service
+  # available while the control plane catches up.
+  [[ "${INSTALL_PROFILE,,}" == "cpu" ]] || return 0
+
+  local manifest
+  for manifest in \
+    /etc/kubernetes/manifests/kube-controller-manager.yaml \
+    /etc/kubernetes/manifests/kube-scheduler.yaml; do
+    [[ -f "$manifest" ]] || continue
+    python3 - "$manifest" <<'PY'
+import sys
+from pathlib import Path
+
+import yaml
+
+path = Path(sys.argv[1])
+document = yaml.safe_load(path.read_text(encoding="utf-8"))
+command = document["spec"]["containers"][0].setdefault("command", [])
+command = [value for value in command if not value.startswith((
+    "--leader-elect-lease-duration=",
+    "--leader-elect-renew-deadline=",
+    "--leader-elect-retry-period=",
+))]
+command.extend((
+    "--leader-elect-lease-duration=60s",
+    "--leader-elect-renew-deadline=40s",
+    "--leader-elect-retry-period=5s",
+))
+document["spec"]["containers"][0]["command"] = command
+path.write_text(yaml.safe_dump(document, sort_keys=False), encoding="utf-8")
+PY
+  done
+  record PASS "CPU control-plane lease" "scheduler/controller-manager renew deadline 40s"
+}
+
 configure_private_nodeports() {
   # The Kubernetes NodePorts are retained only for local bootstrap wiring.
   # Do not publish 30080/30081 on the host NIC: FeDiT (TCP 18000) is the
@@ -1427,13 +1472,15 @@ PY
 
 wait_rollout_if_exists() {
   local namespace="$1" kind="$2" name="$3" timeout="${4:-1200s}"
-  local remaining_seconds slice_seconds desired_replicas ready_replicas
+  local remaining_seconds slice_seconds desired_replicas ready_replicas rollout_output
   if kubectl -n "$namespace" get "$kind/$name" >/dev/null 2>&1; then
     remaining_seconds="${timeout%s}"
     [[ "$remaining_seconds" =~ ^[0-9]+$ ]] || remaining_seconds=1200
     while ((remaining_seconds > 0)); do
       slice_seconds=$((remaining_seconds > 60 ? 60 : remaining_seconds))
-      if kubectl -n "$namespace" rollout status "$kind/$name" --timeout="${slice_seconds}s"; then
+      if rollout_output="$(kubectl -n "$namespace" rollout status "$kind/$name" \
+        --timeout="${slice_seconds}s" 2>&1)"; then
+        [[ -z "$rollout_output" ]] || printf '%s\n' "$rollout_output"
         # StatefulSet rollout status can report completion after the revision is
         # observed, before the first Pod is Ready.  Database consumers (for
         # example Keycloak) must not start in that gap.
@@ -1452,6 +1499,15 @@ wait_rollout_if_exists() {
         fi
         return 0
       fi
+      # First startup of NiFi, MLflow and other data services can legitimately
+      # exceed a one-minute polling slice.  It is not an installation error as
+      # long as the overall timeout remains; report it as progress rather than
+      # leaking kubectl's alarming "error: timed out" message to the user.
+      if [[ "$rollout_output" == *"timed out waiting for the condition"* ]]; then
+        echo "[INFO] ${namespace}/${kind}/${name}: 기동 진행 중, 다음 상태 확인을 계속합니다."
+      else
+        [[ -z "$rollout_output" ]] || printf '%s\n' "$rollout_output" >&2
+      fi
       if recover_image_pull_failures "$namespace"; then
         echo "[INFO] ${namespace}/${kind}/${name}: image pull 실패 Pod 재시도 후 rollout 재확인"
       fi
@@ -1467,6 +1523,13 @@ install_cluster_addons() {
   wait_rollout_if_exists kube-system daemonset calico-node 600s
   kubectl wait --for=condition=Ready nodes --all --timeout=600s
 
+  # The local-path provisioner creates its first PVC with an internal
+  # `busybox` helper Pod.  On a clean host a transient Docker Hub reset while
+  # that Pod is being created leaves a Kubeflow MySQL PVC Pending for the
+  # provisioner's 120-second helper timeout.  Prime both images through the
+  # normal retry/fallback path before the first PVC can be requested.
+  retry_kubernetes_image_pull "rancher/local-path-provisioner:${LOCAL_PATH_PROVISIONER_VERSION}"
+  retry_kubernetes_image_pull "busybox:latest"
   kubectl apply -f "https://raw.githubusercontent.com/rancher/local-path-provisioner/${LOCAL_PATH_PROVISIONER_VERSION}/deploy/local-path-storage.yaml"
   kubectl annotate storageclass local-path storageclass.kubernetes.io/is-default-class=true --overwrite
   wait_rollout_if_exists local-path-storage deployment local-path-provisioner 600s
@@ -1540,29 +1603,52 @@ apply_with_retry() {
 
 retry_kubernetes_image_pull() {
   local image="$1"
+  # containerd occasionally receives a reset from a registry CDN even though
+  # the Docker daemon on the same host can complete the identical download.
+  # Try CRI first because it is the normal Kubernetes path, then use Docker as
+  # a bounded fallback and import the verified image into containerd.  This
+  # keeps a clean host installation progressing without publishing a registry
+  # port or relying on a machine-specific image cache.
+  if retry_command "$IMAGE_PULL_CRIO_ATTEMPTS" "$IMAGE_PULL_RETRY_DELAY_SECONDS" \
+    "Kubernetes image pull: ${image}" timeout "${IMAGE_PULL_TIMEOUT_SECONDS}s" crictl pull "$image"; then
+    return 0
+  fi
+
+  warn "CRI image pull 재시도 한도를 초과하여 Docker 경유로 전환합니다: ${image}"
   retry_command "$IMAGE_PULL_RETRY_ATTEMPTS" "$IMAGE_PULL_RETRY_DELAY_SECONDS" \
-    "Kubernetes image pull: ${image}" timeout "${IMAGE_PULL_TIMEOUT_SECONDS}s" crictl pull "$image"
+    "Docker fallback image pull: ${image}" timeout "${IMAGE_PULL_TIMEOUT_SECONDS}s" docker pull "$image"
+  docker image save "$image" | ctr --namespace k8s.io images import -
+  crictl inspecti "$image" >/dev/null
 }
 
 recover_image_pull_failures() {
-  local namespace="$1" pod image recovered=false
+  local namespace="$1" pod image recovered=false pod_list pod_json
   local -a failed_pods=() images=()
-  mapfile -t failed_pods < <(
-    kubectl -n "$namespace" get pods -o json 2>/dev/null \
-      | jq -r '
+  # Do not feed a transient API-server error into a process substitution.
+  # The global ERR trap reports that error as text; if it is captured by
+  # mapfile it can subsequently be mistaken for an image name and cause an
+  # invalid `docker pull "[FAIL] ..."` loop.  Capture each API response first
+  # and treat an unavailable API as an empty recovery list for this retry.
+  pod_list="$(kubectl -n "$namespace" get pods -o json 2>/dev/null || true)"
+  if [[ -n "$pod_list" ]]; then
+    mapfile -t failed_pods < <(
+      jq -r '
           .items[]
           | select(
               [(.status.initContainerStatuses[]?, .status.containerStatuses[]?)]
               | any(.state.waiting.reason? == "ImagePullBackOff" or .state.waiting.reason? == "ErrImagePull")
             )
           | .metadata.name
-        '
-  )
+        ' <<<"$pod_list" 2>/dev/null || true
+    )
+  fi
   for pod in "${failed_pods[@]:-}"; do
     [[ -n "$pod" ]] || continue
+    pod_json="$(kubectl -n "$namespace" get pod "$pod" -o json 2>/dev/null || true)"
+    [[ -n "$pod_json" ]] || continue
     mapfile -t images < <(
-      kubectl -n "$namespace" get pod "$pod" -o json 2>/dev/null \
-        | jq -r '[.spec.initContainers[]?, .spec.containers[]?] | .[].image'
+      jq -r '[.spec.initContainers[]?, .spec.containers[]?] | .[].image' \
+        <<<"$pod_json" 2>/dev/null || true
     )
     for image in "${images[@]:-}"; do
       [[ -n "$image" ]] || continue
@@ -1654,6 +1740,13 @@ required_deployments = {
     "istio-ingressgateway",
     "dex",
     "centraldashboard",
+    # KFP cannot reach a usable UI until the metadata MySQL and MinIO pods
+    # have their images.  Prime them before the complete manifest creates the
+    # first PVC-backed workloads, rather than relying on kubelet's backoff.
+    "mysql",
+    "minio",
+    "metadata-grpc-deployment",
+    "ml-pipeline",
     "profiles-deployment",
     "notebook-controller-deployment",
     "jupyter-web-app-deployment",
@@ -1679,6 +1772,33 @@ PY
     [[ -n "$image" ]] || continue
     retry_kubernetes_image_pull "$image"
   done
+}
+
+prime_kfp_execution_images() {
+  # A KFP run needs two images that are not referenced by the Kubeflow
+  # installation manifest: Argo creates its executor image at run time and
+  # KFP creates the driver image from the compiled pipeline specification.
+  # On a clean host this otherwise becomes an ImagePullBackOff only after a
+  # user presses "Pipeline 실행", which makes the installation look healthy
+  # while an essential service cannot execute work.
+  #
+  # The old gcr.io argoexec tag used by KFP 2.3 is no longer reliably served.
+  # The matching upstream Argo 3.4.17 image is published on Quay.  We load it
+  # first and register the exact reference expected by KFP in containerd, so
+  # no browser-facing registry or additional host port is required.
+  local argo_source="quay.io/argoproj/argoexec:v3.4.17"
+  local argo_target="gcr.io/ml-pipeline/argoexec:v3.4.17-license-compliance"
+  local kfp_driver="gcr.io/ml-pipeline/kfp-driver@sha256:dc8b56a2eb071f30409828a8884d621092e68385af11a6c06aa9e9fbcfbb19de"
+  local component_image="python:3.10-slim"
+
+  retry_kubernetes_image_pull "$argo_source"
+  ctr --namespace k8s.io images tag "$argo_source" "$argo_target"
+  retry_kubernetes_image_pull "$kfp_driver"
+  retry_kubernetes_image_pull "$component_image"
+  crictl inspecti "$argo_target" >/dev/null
+  crictl inspecti "$kfp_driver" >/dev/null
+  crictl inspecti "$component_image" >/dev/null
+  record PASS "KFP 실행 이미지 준비" "Argo executor, KFP driver, Python component"
 }
 
 prime_manifest_images() {
@@ -1773,6 +1893,30 @@ apply_cpu_single_node_resource_profile() {
   [[ "${INSTALL_PROFILE,,}" == "cpu" ]] || return 0
 
   local namespace kind resource_name applied=false
+  # Upstream Istio and Knative HPAs can keep several replicas after the
+  # initial installation spike.  On an 11 GiB one-node CPU host their
+  # continuous resource-metrics queries also compete with admission webhooks
+  # for the API server.  CPU mode intentionally runs one replica of each
+  # always-on component, so remove those autoscalers after their targets have
+  # been scaled below.  This does not remove a service or its UI; it only
+  # prevents background replica changes that this compact single-node profile
+  # cannot use.
+  while IFS='|' read -r namespace resource_name; do
+    [[ -n "$namespace" && -n "$resource_name" ]] || continue
+    kubectl -n "$namespace" delete hpa "$resource_name" --ignore-not-found=true
+  done < <(kubectl get hpa -A -o jsonpath='{range .items[*]}{.metadata.namespace}{"|"}{.metadata.name}{"\n"}{end}' 2>/dev/null || true)
+
+  # These replicas do not add functional coverage on a single-node
+  # verification host.  The Kube-system and Kubeflow service objects remain
+  # unchanged, so their browser pages and APIs continue to use the same URLs.
+  for namespace in istio-system oauth2-proxy kube-system; do
+    kubectl get namespace "$namespace" >/dev/null 2>&1 || continue
+    while IFS= read -r resource_name; do
+      [[ -n "$resource_name" ]] || continue
+      kubectl -n "$namespace" scale "$resource_name" --replicas=1
+    done < <(kubectl -n "$namespace" get deployment -o name 2>/dev/null || true)
+  done
+
   for namespace in kubeflow knative-serving kserve kubeflow-user-example-com; do
     kubectl get namespace "$namespace" >/dev/null 2>&1 || continue
     for kind in deployment statefulset; do
@@ -1795,6 +1939,87 @@ apply_cpu_single_node_resource_profile() {
   done
 
   if [[ "$applied" == true ]]; then
+    # The upstream probes commonly use Kubernetes' one-second default timeout.
+    # That is unnecessarily aggressive during first reconciliation of a full
+    # Kubeflow stack on a small single node: services are alive but briefly
+    # lose a response race to the API server, then get restarted and amplify
+    # the load.  Retain all probes and only give existing probes a realistic
+    # response window.  The generated strategic patches name each container
+    # and therefore leave unrelated container settings intact.
+    local probe_patch_file probe_source_file
+    probe_patch_file="$(mktemp)"
+    probe_source_file="$(mktemp)"
+    kubectl get deployment -A -o json > "$probe_source_file"
+    python3 - "$probe_source_file" "$probe_patch_file" <<'PY'
+import json
+import sys
+
+source_path, output_path = sys.argv[1:]
+with open(source_path, encoding="utf-8") as source:
+    document = json.load(source)
+with open(output_path, "w", encoding="utf-8") as output:
+    for item in document.get("items", []):
+        containers = []
+        for container in item.get("spec", {}).get("template", {}).get("spec", {}).get("containers", []):
+            update = {"name": container["name"]}
+            found = False
+            for probe_name in ("startupProbe", "livenessProbe", "readinessProbe"):
+                if probe_name in container:
+                    update[probe_name] = {"timeoutSeconds": 10, "failureThreshold": 12}
+                    found = True
+            if found:
+                containers.append(update)
+        if containers:
+            patch = {"spec": {"template": {"spec": {"containers": containers}}}}
+            output.write(
+                f'{item["metadata"]["namespace"]}\t{item["metadata"]["name"]}\t'
+                f'{json.dumps(patch, separators=(",", ":"))}\n'
+            )
+PY
+    while IFS=$'\t' read -r namespace resource_name probe_patch; do
+      [[ -n "$namespace" && -n "$resource_name" && -n "$probe_patch" ]] || continue
+      kubectl -n "$namespace" patch deployment "$resource_name" --type=strategic -p "$probe_patch"
+    done < "$probe_patch_file"
+    rm -f "$probe_patch_file" "$probe_source_file"
+
+    # KServe's upstream controller limit (100m CPU) is too small while it
+    # initializes admission webhooks on a compact single node.  Retain the
+    # small scheduler request, but give this control-plane service sufficient
+    # execution headroom and a realistic startup-probe window.  Limits do not
+    # reserve the host memory that is being conserved by this profile.
+    if kubectl -n kubeflow get deployment/kserve-controller-manager >/dev/null 2>&1; then
+      kubectl -n kubeflow set resources deployment/kserve-controller-manager -c manager \
+        --requests=cpu=250m,memory=256Mi --limits=cpu=1,memory=768Mi
+      kubectl -n kubeflow patch deployment/kserve-controller-manager --type=strategic -p '
+spec:
+  template:
+    spec:
+      containers:
+        - name: manager
+          livenessProbe:
+            initialDelaySeconds: 60
+            failureThreshold: 12
+          readinessProbe:
+            initialDelaySeconds: 30
+'
+    fi
+    # These control-plane services use short health probes upstream.  Their
+    # low default CPU limits turn a busy first reconciliation into a
+    # liveness-triggered restart on small hosts, even when plenty of host
+    # memory remains.  Keep their requests modest while allowing startup and
+    # normal control-plane work to complete.
+    if kubectl -n kubeflow get deployment/kuberay-operator >/dev/null 2>&1; then
+      kubectl -n kubeflow set resources deployment/kuberay-operator -c kuberay-operator \
+        --requests=cpu=250m,memory=256Mi --limits=cpu=1,memory=768Mi
+    fi
+    if kubectl -n knative-serving get deployment/net-istio-webhook >/dev/null 2>&1; then
+      kubectl -n knative-serving set resources deployment/net-istio-webhook -c webhook \
+        --requests=cpu=250m,memory=256Mi --limits=cpu=1,memory=768Mi
+    fi
+    if kubectl -n monitoring get deployment/kube-prometheus-stack-kube-state-metrics >/dev/null 2>&1; then
+      kubectl -n monitoring set resources deployment/kube-prometheus-stack-kube-state-metrics \
+        -c kube-state-metrics --requests=cpu=250m,memory=256Mi --limits=cpu=1,memory=768Mi
+    fi
     record PASS "CPU 단일 노드 리소스 프로파일" "전체 서비스 유지, Kubernetes 요청값 25m CPU / 64Mi memory"
   fi
 }
@@ -1892,6 +2117,68 @@ stabilize_kfp_metadata_service() {
   fi
 }
 
+repair_knative_net_istio_webhook_certificate() {
+  # Some one-node installations leave this upstream Secret as an empty
+  # placeholder.  The net-istio webhook then serves no TLS key, so Kubernetes
+  # cannot create or validate KServe resources.  Do not rotate a working
+  # installation; generate a private, cluster-local certificate only when the
+  # expected key pair is missing, then make every matching admission webhook
+  # trust that certificate.
+  local namespace="knative-serving" secret_name="net-istio-webhook-certs"
+  local current_key current_cert certificate_dir ca_bundle kind webhook_name
+
+  kubectl -n "$namespace" get deployment/net-istio-webhook >/dev/null 2>&1 || return 0
+  current_key="$(kubectl -n "$namespace" get secret "$secret_name" \
+    -o jsonpath='{.data.server-key\\.pem}' 2>/dev/null || true)"
+  current_cert="$(kubectl -n "$namespace" get secret "$secret_name" \
+    -o jsonpath='{.data.server-cert\\.pem}' 2>/dev/null || true)"
+  if [[ -n "$current_key" && -n "$current_cert" ]]; then
+    return 0
+  fi
+
+  command -v openssl >/dev/null || die "Knative webhook 인증서 복구에 openssl이 필요합니다."
+  warn "Knative net-istio webhook TLS 인증서를 복구합니다."
+  certificate_dir="$(mktemp -d)"
+  openssl req -x509 -nodes -newkey rsa:2048 -sha256 -days 3650 \
+    -keyout "$certificate_dir/server-key.pem" \
+    -out "$certificate_dir/server-cert.pem" \
+    -subj '/CN=net-istio-webhook.knative-serving.svc' \
+    -addext 'subjectAltName=DNS:net-istio-webhook,DNS:net-istio-webhook.knative-serving,DNS:net-istio-webhook.knative-serving.svc,DNS:net-istio-webhook.knative-serving.svc.cluster.local' \
+    >/dev/null 2>&1
+  kubectl -n "$namespace" create secret generic "$secret_name" \
+    --from-file=ca-cert.pem="$certificate_dir/server-cert.pem" \
+    --from-file=server-cert.pem="$certificate_dir/server-cert.pem" \
+    --from-file=server-key.pem="$certificate_dir/server-key.pem" \
+    --dry-run=client -o yaml | kubectl apply -f -
+
+  ca_bundle="$(base64 -w 0 "$certificate_dir/server-cert.pem")"
+  rm -rf "$certificate_dir"
+  for kind in mutatingwebhookconfiguration validatingwebhookconfiguration; do
+    while IFS= read -r webhook_name; do
+      [[ -n "$webhook_name" ]] || continue
+      kubectl get "$kind" "$webhook_name" -o json \
+        | jq --arg service "net-istio-webhook" --arg namespace "$namespace" --arg ca "$ca_bundle" '
+            (.webhooks[]
+              | select(.clientConfig.service.name == $service
+                  and .clientConfig.service.namespace == $namespace)
+              | .clientConfig.caBundle) = $ca
+          ' \
+        | kubectl apply -f -
+    done < <(
+      kubectl get "$kind" -o json \
+        | jq -r --arg service "net-istio-webhook" --arg namespace "$namespace" '
+            .items[]
+            | select(any(.webhooks[]?; .clientConfig.service.name == $service
+                and .clientConfig.service.namespace == $namespace))
+            | .metadata.name
+          '
+    )
+  done
+  kubectl -n "$namespace" rollout restart deployment/net-istio-webhook
+  wait_rollout_if_exists "$namespace" deployment net-istio-webhook 300s
+  record PASS "Knative net-istio webhook TLS" "빈 인증서 Secret 복구 및 admission CA 갱신"
+}
+
 install_kubeflow() {
   if [[ ! -d "${KUBEFLOW_MANIFESTS_DIR}/.git" ]]; then
     git clone --depth 1 --branch "$KUBEFLOW_VERSION" \
@@ -1938,10 +2225,18 @@ PY
   # tenant. Download their small set of core images before applying Kubeflow,
   # with bounded retries for transient Docker Hub/CDN connection resets.
   prime_kubeflow_core_images "${GENERATED_DIR}/kubeflow.yaml"
+  prime_kfp_execution_images
   prime_kserve_controller_images "$kubeflow_bootstrap_manifest"
   apply_with_retry "$kubeflow_bootstrap_manifest"
   wait_rollout_if_exists kubeflow deployment kserve-controller-manager 900s
   apply_with_retry "${GENERATED_DIR}/kubeflow.yaml"
+
+  repair_knative_net_istio_webhook_certificate
+
+  # Apply the CPU scheduling requests before waiting for KFP's MySQL
+  # dependency.  On a small single node the upstream MySQL reservation can
+  # otherwise remain Pending and delay the resource-profile step indefinitely.
+  apply_cpu_single_node_resource_profile
 
   if bool_true "$WAIT_ALL_KUBEFLOW_WORKLOADS"; then
     stabilize_kfp_metadata_service
@@ -2393,12 +2688,19 @@ prepare_kserve_model_runtime_image() {
   if bool_true "$LOW_MEMORY_PROFILE_ACTIVE"; then
     patch="[{\"op\":\"replace\",\"path\":\"/spec/containers/0/image\",\"value\":\"${runtime_image}\"},{\"op\":\"replace\",\"path\":\"/spec/containers/0/resources\",\"value\":{\"requests\":{\"cpu\":\"250m\",\"memory\":\"768Mi\"},\"limits\":{\"cpu\":\"1\",\"memory\":\"1536Mi\"}}}]"
   fi
-  kubectl patch clusterservingruntime kserve-mlserver --type=json -p "$patch"
+  # The KServe admission webhook is briefly unavailable while its controller
+  # is reconciling a prior rollout.  Wait for the controller and retry the
+  # idempotent patch instead of failing a completed installation on a
+  # transient webhook timeout.
+  wait_rollout_if_exists kubeflow deployment kserve-controller-manager 600s
+  retry_command 12 10 "KServe MLServer runtime patch" \
+    kubectl patch clusterservingruntime kserve-mlserver --type=json -p "$patch"
   record PASS "KServe MLServer runtime" "공식 runtime 직접 사용: ${runtime_image}; 모델 배포 시 Kubernetes가 pull/retry/cache 처리"
 }
 
 write_prediction_manager_env() {
-  local ray_gpu_worker_enabled=false ray_head_request_cpu=250m ray_head_request_memory=2Gi
+  local ray_gpu_worker_enabled=false ray_cpu_worker_enabled=true ray_cpu_worker_max_replicas=1
+  local ray_head_request_cpu=250m ray_head_request_memory=2Gi
   local ray_head_limit_cpu=1 ray_head_limit_memory=3Gi nifi_jvm_heap_init=512m nifi_jvm_heap_max=1g
   local ray_autoscaler_request_cpu=500m ray_autoscaler_request_memory=512Mi
   local ray_autoscaler_limit_cpu=500m ray_autoscaler_limit_memory=512Mi
@@ -2409,8 +2711,21 @@ write_prediction_manager_env() {
     detect_gpu_hardware
   fi
   if bool_true "$LOW_MEMORY_PROFILE_ACTIVE"; then
-    ray_head_request_cpu=100m
+    # Keep the Ray dashboard reachable, but run compact CPU jobs on the head
+    # node.  A dormant worker still causes KubeRay autoscaler/controller work
+    # on an 11 GiB single-node host and can starve the Kubernetes API server.
+    # This is a resource profile, not a host-memory admission check.
+    ray_cpu_worker_enabled=false
+    ray_cpu_worker_max_replicas=0
+    ray_head_request_cpu=250m
     ray_head_request_memory=256Mi
+    # The Ray dashboard itself starts several Python processes.  A 1.5 GiB
+    # cgroup makes Ray's own 95% memory monitor kill even a trivial CPU job
+    # before it can return a result.  Keep workers disabled, but retain the
+    # normal 3 GiB head envelope so the dashboard and one compact job work on
+    # an 11 GiB host.
+    ray_head_limit_cpu=2
+    ray_head_limit_memory=3Gi
     ray_autoscaler_request_cpu=25m
     ray_autoscaler_request_memory=64Mi
     ray_autoscaler_limit_cpu=250m
@@ -2452,8 +2767,8 @@ PM_TENANT_MLFLOW_REQUEST_MEMORY=${mlflow_request_memory}
 PM_TENANT_MLFLOW_LIMIT_CPU=${mlflow_limit_cpu}
 PM_TENANT_MLFLOW_LIMIT_MEMORY=${mlflow_limit_memory}
 PM_TENANT_RAY_IMAGE=${REGISTRY_HOST}/${RAY_IMAGE_TAG}
-PM_TENANT_RAY_CPU_WORKER_ENABLED=true
-PM_TENANT_RAY_CPU_WORKER_MAX_REPLICAS=1
+PM_TENANT_RAY_CPU_WORKER_ENABLED=${ray_cpu_worker_enabled}
+PM_TENANT_RAY_CPU_WORKER_MAX_REPLICAS=${ray_cpu_worker_max_replicas}
 PM_TENANT_RAY_CPU_WORKER_REQUEST_CPU=500m
 PM_TENANT_RAY_CPU_WORKER_REQUEST_MEMORY=1Gi
 PM_TENANT_RAY_CPU_WORKER_LIMIT_CPU=1
@@ -2928,13 +3243,23 @@ final_validation() {
   ((table_count > 0)) || { echo "Prediction Manager DB 테이블이 생성되지 않았습니다." >&2; return 1; }
   record PASS "PostgreSQL schema" "prediction_manager public table ${table_count}개"
 
-  if ! printf '%s\n' "${FORWARD_PIDS[@]:-}" | grep -q .; then
-    start_port_forward kubeflow prediction-manager "${PM_HEALTHCHECK_PORT}:80" pm-port-forward-final
-  fi
-  curl -fsS "http://127.0.0.1:${PM_HEALTHCHECK_PORT}/healthz" \
+  # The CPU compact profile may restart this Deployment after tenant
+  # provisioning.  A kubectl port-forward is bound to a single backing Pod,
+  # therefore a still-recorded PID is not evidence that it reaches the new
+  # Pod.  Always replace only this short-lived validation forward here.
+  local stale_pf_pid
+  while IFS= read -r stale_pf_pid; do
+    [[ "$stale_pf_pid" =~ ^[0-9]+$ ]] || continue
+    kill "$stale_pf_pid" 2>/dev/null || true
+  done < <(pgrep -f "^kubectl -n kubeflow port-forward( --address=[^[:space:]]+)? service/prediction-manager ${PM_HEALTHCHECK_PORT}:80$" 2>/dev/null || true)
+  sleep 1
+  start_port_forward kubeflow prediction-manager "${PM_HEALTHCHECK_PORT}:80" pm-port-forward-final
+  curl -fsS --retry 30 --retry-all-errors --retry-delay 2 \
+    "http://127.0.0.1:${PM_HEALTHCHECK_PORT}/healthz" \
     > "${RESULT_DIR}/prediction-manager-healthz.json"
   jq -e '.status == "ok"' "${RESULT_DIR}/prediction-manager-healthz.json" >/dev/null
-  curl -fsS "http://127.0.0.1:${PM_HEALTHCHECK_PORT}/api/user-info" \
+  curl -fsS --retry 30 --retry-all-errors --retry-delay 2 \
+    "http://127.0.0.1:${PM_HEALTHCHECK_PORT}/api/user-info" \
     > "${RESULT_DIR}/user-info.json"
   jq -e --arg email "$VERIFICATION_ADMIN_EMAIL" \
     '.email == $email and .is_admin == true and .namespace == "kubeflow-user-example-com"' \
@@ -2952,14 +3277,15 @@ final_validation() {
   fi
 
   curl -fsS "${REGISTRY_URL}/v2/_catalog" > "${RESULT_DIR}/registry-catalog.json"
-  local required_image_count=2
-  bool_true "$BUILD_AUXILIARY_IMAGES" && required_image_count=6
+  # PM itself is always local.  The auxiliary set adds Label Studio, MLflow,
+  # NiFi and Ray.  KServe uses its supported upstream MLServer runtime
+  # directly, so it must not be counted as a locally built Registry image.
+  local required_image_count=1
+  bool_true "$BUILD_AUXILIARY_IMAGES" && required_image_count=5
   bool_true "$BUILD_FRONTEND_IMAGE" && required_image_count=$((required_image_count + 1))
   jq -e --argjson count "$required_image_count" \
     '.repositories | length >= $count' "${RESULT_DIR}/registry-catalog.json" >/dev/null
   jq -e --arg image "${PM_IMAGE_TAG%:*}" \
-    '.repositories | index($image) != null' "${RESULT_DIR}/registry-catalog.json" >/dev/null
-  jq -e --arg image "pm-kserve-mlserver" \
     '.repositories | index($image) != null' "${RESULT_DIR}/registry-catalog.json" >/dev/null
   record PASS "로컬 Registry" "필수 이미지 ${required_image_count}종 이상"
   if bool_true "$BUILD_FRONTEND_IMAGE"; then
@@ -2991,8 +3317,16 @@ final_validation() {
     record PASS "tenant 서비스" "MLflow, Ray, NiFi"
   fi
 
-  local not_ready
-  not_ready="$(kubectl get pods -A -o json | jq -r '[.items[] | select(.status.phase != "Succeeded") | select(.status.phase != "Running" or (any(.status.conditions[]?; .type == "Ready" and .status == "True") | not))] | length')"
+  # Resource-profile updates can replace a Pod immediately before this final
+  # check.  Record the settled state rather than a short-lived Terminating or
+  # container-starting state; a real failure still remains visible after the
+  # bounded two-minute wait below.
+  local not_ready attempt
+  for attempt in $(seq 1 24); do
+    not_ready="$(kubectl get pods -A -o json | jq -r '[.items[] | select(.status.phase != "Succeeded") | select(.status.phase != "Running" or (any(.status.conditions[]?; .type == "Ready" and .status == "True") | not))] | length')"
+    ((not_ready == 0)) && break
+    sleep 5
+  done
   if ((not_ready > 0)); then
     kubectl get pods -A | tee "${RESULT_DIR}/pods.txt"
     record WARN "전체 Pod 상태" "Ready가 아닌 Pod ${not_ready}개; pods.txt 확인"
@@ -3059,6 +3393,7 @@ fi
 
 run_stage 20-runtime "Docker/containerd/Registry 구성" configure_runtime
 run_stage 30-kubernetes "Kubernetes 단일 노드 구성" install_kubernetes
+run_always "CPU control-plane lease 조정" tune_cpu_control_plane_leases
 run_always "Kubernetes NodePort 외부 비노출" configure_private_nodeports
 run_always "CPU 단일 노드 swap" configure_cpu_swap
 run_stage 40-addons "Calico/StorageClass/Metrics Server" install_cluster_addons
