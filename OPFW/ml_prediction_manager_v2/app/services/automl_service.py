@@ -228,25 +228,34 @@ async def _validate_dataset_path(path: str) -> None:
         raise ValueError("데이터셋 경로를 입력하세요.")
     parsed = urlparse(raw)
     if parsed.scheme in {"http", "https"}:
-        try:
-            async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
-                resp = await client.request("HEAD", raw)
-                if resp.status_code in (405, 501):
-                    async with client.stream("GET", raw, headers={"Range": "bytes=0-0"}) as stream_resp:
-                        if stream_resp.status_code >= 400:
-                            raise ValueError(f"HTTP {stream_resp.status_code}")
-                        async for _ in stream_resp.aiter_bytes():
-                            break
-                elif resp.status_code >= 400:
-                    raise ValueError(f"HTTP {resp.status_code}")
-        except ValueError:
-            raise
-        except Exception as e:
-            raise ValueError(
-                f"데이터셋 경로에 접근할 수 없습니다. Prediction Manager와 Ray Job이 접근 가능한 URL인지 확인하세요. "
-                f"오류 유형: {type(e).__name__}"
-            ) from e
-        return
+        # A just-created in-cluster Service can be temporarily unreachable
+        # while its EndpointSlice/DNS entry is converging.  Retry transport
+        # failures a few times, but never hide a deterministic HTTP error
+        # such as 401/404 from the user.
+        transport_error: Exception | None = None
+        for attempt in range(3):
+            try:
+                async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+                    resp = await client.request("HEAD", raw)
+                    if resp.status_code in (405, 501):
+                        async with client.stream("GET", raw, headers={"Range": "bytes=0-0"}) as stream_resp:
+                            if stream_resp.status_code >= 400:
+                                raise ValueError(f"HTTP {stream_resp.status_code}")
+                            async for _ in stream_resp.aiter_bytes():
+                                break
+                    elif resp.status_code >= 400:
+                        raise ValueError(f"HTTP {resp.status_code}")
+                return
+            except ValueError:
+                raise
+            except Exception as error:
+                transport_error = error
+                if attempt < 2:
+                    await asyncio.sleep(attempt + 1)
+        raise ValueError(
+            f"데이터셋 경로에 접근할 수 없습니다. Prediction Manager와 Ray Job이 접근 가능한 URL인지 확인하세요. "
+            f"오류 유형: {type(transport_error).__name__}"
+        ) from transport_error
     if parsed.scheme and parsed.scheme not in {"file"}:
         raise ValueError("데이터셋 경로는 http/https URL 또는 서버 로컬 파일 경로만 지원합니다.")
     local_path = parsed.path if parsed.scheme == "file" else raw
