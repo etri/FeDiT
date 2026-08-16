@@ -2781,15 +2781,21 @@ build_and_push_images() {
 prepare_kserve_model_runtime_image() {
   # MLflow 3 model signatures include fields unsupported by MLServer 1.3.x.
   # Use the current MLServer runtime so AutoML's MLflow 3 artifacts can load.
-  # This image is intentionally fetched by the Kubernetes node, not copied
-  # through Docker and the local registry.  A first AutoML "serve" request
-  # must not be held hostage by a multi-GiB runtime download after the UI has
-  # already registered the model in MLflow.  Warm it once during installation
-  # so the first user-facing deployment has the same readiness behaviour as
-  # subsequent deployments.
+  # Persist the runtime in the installer-managed registry before configuring
+  # KServe.  A containerd cache alone is lost when the clean Docker lab (or a
+  # host runtime) is restarted; then the first AutoML "serve" click regresses
+  # to an unbounded external image pull after the model is already registered
+  # in MLflow.  The loopback registry is not browser-facing and makes both the
+  # installer warm-up and every subsequent KServe revision reproducible.
   local upstream_image="seldonio/mlserver:1.7.1"
-  local runtime_image="$upstream_image"
+  local runtime_image="${REGISTRY_HOST}/kserve-mlserver:1.7.1"
   local patch warmup_pod="prediction-manager-mlserver-warmup"
+
+  retry_command 5 10 "KServe MLServer source pull" docker pull "$upstream_image"
+  docker tag "$upstream_image" "$runtime_image"
+  retry_command 5 10 "KServe MLServer persistent mirror push" docker push "$runtime_image"
+  retry_kubernetes_image_pull "$runtime_image"
+  crictl inspecti "$runtime_image" >/dev/null
 
   patch="[{\"op\":\"replace\",\"path\":\"/spec/containers/0/image\",\"value\":\"${runtime_image}\"}]"
   if bool_true "$LOW_MEMORY_PROFILE_ACTIVE"; then
@@ -2803,10 +2809,10 @@ prepare_kserve_model_runtime_image() {
   retry_command 12 10 "KServe MLServer runtime patch" \
     kubectl patch clusterservingruntime kserve-mlserver --type=json -p "$patch"
 
-  # Pull into the actual Kubernetes node's container runtime.  `kubectl wait`
-  # makes a failed/blocked upstream pull an installation failure instead of a
-  # delayed AutoML UI failure.  The short-lived pod is removed afterwards;
-  # containerd retains the immutable image in its normal cache.
+  # Pull from the loopback registry into the actual Kubernetes node runtime.
+  # `kubectl wait` makes a failed/blocked runtime preparation an installation
+  # failure instead of a delayed AutoML UI failure.  The short-lived pod is
+  # removed afterwards; the persistent registry survives runtime restart.
   kubectl -n kubeflow delete pod "$warmup_pod" --ignore-not-found --wait=true >/dev/null 2>&1 || true
   kubectl -n kubeflow apply -f - <<EOF_KSERVE_WARMUP
 apiVersion: v1
@@ -2839,7 +2845,7 @@ EOF_KSERVE_WARMUP
     die "KServe MLServer runtime 사전 내려받기에 실패했습니다: ${runtime_image}"
   fi
   kubectl -n kubeflow delete pod "$warmup_pod" --wait=true >/dev/null
-  record PASS "KServe MLServer runtime" "공식 runtime을 Kubernetes node cache에 사전 내려받음: ${runtime_image}"
+  record PASS "KServe MLServer runtime" "재시작 후에도 유지되는 MLServer runtime mirror 사전 준비: ${runtime_image}"
 }
 
 write_prediction_manager_env() {
@@ -3451,15 +3457,16 @@ final_validation() {
   fi
 
   curl -fsS "${REGISTRY_URL}/v2/_catalog" > "${RESULT_DIR}/registry-catalog.json"
-  # PM itself is always local.  The auxiliary set adds Label Studio, MLflow,
-  # NiFi and Ray.  KServe uses its supported upstream MLServer runtime
-  # directly, so it must not be counted as a locally built Registry image.
-  local required_image_count=1
-  bool_true "$BUILD_AUXILIARY_IMAGES" && required_image_count=5
+  # PM itself is always local.  The KServe MLServer mirror is always present;
+  # the auxiliary set adds Label Studio, MLflow, NiFi and Ray.
+  local required_image_count=2
+  bool_true "$BUILD_AUXILIARY_IMAGES" && required_image_count=6
   bool_true "$BUILD_FRONTEND_IMAGE" && required_image_count=$((required_image_count + 1))
   jq -e --argjson count "$required_image_count" \
     '.repositories | length >= $count' "${RESULT_DIR}/registry-catalog.json" >/dev/null
   jq -e --arg image "${PM_IMAGE_TAG%:*}" \
+    '.repositories | index($image) != null' "${RESULT_DIR}/registry-catalog.json" >/dev/null
+  jq -e --arg image "kserve-mlserver" \
     '.repositories | index($image) != null' "${RESULT_DIR}/registry-catalog.json" >/dev/null
   record PASS "로컬 Registry" "필수 이미지 ${required_image_count}종 이상"
   if bool_true "$BUILD_FRONTEND_IMAGE"; then
