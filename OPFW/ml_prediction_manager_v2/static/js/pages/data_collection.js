@@ -20,6 +20,7 @@ let _dcState = {
     selectedConnectorId: '',
     selectedAttributeNames: [],
     selectedRecordIds: [],
+    deletedRecordIds: new Set(),
     twinSearch: '',
     twinSearchComposing: false,
     realtimeStatus: {
@@ -595,6 +596,7 @@ function _dcStartRealtimeStatusPolling(connectorId) {
 
 function _dcApplyRealtimeRecord(record) {
     if (!record?.id) return;
+    if (_dcState.deletedRecordIds.has(record.id)) return;
     _dcState.records = [
         record,
         ..._dcState.records.filter(item => item.id !== record.id),
@@ -649,10 +651,11 @@ function _dcOpenRealtimeStream(connectorId, twinId) {
         }
         if (message.type === 'ready') {
             _dcState.realtimeStreamConnected = true;
-            const records = Array.isArray(message.records) ? message.records : [];
-            if (records.length) {
+            const records = (Array.isArray(message.records) ? message.records : [])
+                .filter(record => record?.id && !_dcState.deletedRecordIds.has(record.id));
+            {
                 const merged = new Map();
-                [...records, ..._dcState.records].forEach(record => {
+                [...records, ..._dcState.records.filter(record => !record?.id || !_dcState.deletedRecordIds.has(record.id))].forEach(record => {
                     if (record?.id && !merged.has(record.id)) merged.set(record.id, record);
                 });
                 _dcState.records = [...merged.values()]
@@ -1775,7 +1778,10 @@ function _dcRenderRecords() {
                                         <td>${esc(record.twin_name || record.twin_id || record.device_id || '-')}</td>
                                         <td class="pm-table-mono" title="${esc(JSON.stringify(record.payload || {}))}">${esc(_dcRecordMainValues(record, selectedAttrs))}</td>
                                         <td><span class="dc-dot ok"></span>정상</td>
-                                        <td class="dc-row-actions"><button type="button" class="pm-btn pm-btn-sm dc-record-detail" data-record-id="${esc(record.id)}">상세 보기</button></td>
+                                        <td class="dc-row-actions">
+                                            <button type="button" class="pm-btn pm-btn-sm dc-record-detail" data-record-id="${esc(record.id)}">상세 보기</button>
+                                            <button type="button" class="pm-btn pm-btn-sm pm-btn-danger dc-delete-record" data-record-id="${esc(record.id)}">삭제</button>
+                                        </td>
                                     </tr>`;
                                 }).join('')}
                             </tbody>
@@ -1902,8 +1908,8 @@ async function _dcCreateTwin() {
 }
 
 async function _dcDeleteTwin(twinId) {
-    if (!confirm('이 트윈을 삭제할까요? 연결된 커넥터는 트윈 미연결 상태가 되고, 기존 수집 레코드는 유지됩니다.')) return;
-    await API.del(`/api/data-collection/twins/${encodeURIComponent(twinId)}`);
+    if (!confirm('이 트윈과 연결된 수집 레코드를 모두 삭제할까요? 이 작업은 되돌릴 수 없습니다.')) return;
+    await API.del(`/api/data-collection/twins/${encodeURIComponent(twinId)}?purge_records=true`);
     await _dcLoad();
     _dcRenderAll();
     _dcToast('디지털 트윈을 삭제했습니다.', 'warn');
@@ -2039,12 +2045,53 @@ async function _dcOpenEdgeAgent() {
     _dcOpenInfoModal(title, '', body, true);
 }
 
-async function _dcDeleteRecord(recordId) {
-    if (!confirm('이 수집 레코드를 삭제할까요?')) return;
-    await API.del(`/api/data-collection/records/${encodeURIComponent(recordId)}`);
-    await _dcLoad();
+function _dcOpenRecordDeleteConfirm(recordId) {
+    const record = _dcCurrentRecords().find(item => item.id === recordId);
+    const modal = document.getElementById('dc-modal');
+    const body = document.getElementById('dc-modal-body');
+    if (!modal || !body) return;
+    _dcState.modalConnector = null;
+    _dcState.restOutputModal = null;
+    modal.hidden = false;
+    body.innerHTML = `
+        <div class="dc-modal-card" role="dialog" aria-modal="true" aria-label="수집 레코드 삭제 확인">
+            <div class="dc-modal-head">
+                <div class="dc-form-type"><span>REC</span><b>수집 레코드 삭제</b></div>
+                <div class="dc-modal-head-actions"><button type="button" class="dc-modal-x" id="dc-modal-close" aria-label="닫기">×</button></div>
+            </div>
+            <p class="dc-modal-message">선택한 수집 레코드를 삭제할까요? 이 작업은 되돌릴 수 없습니다.</p>
+            <div class="dc-detail-grid two">
+                <div class="dc-kv"><small>수집 시각</small><b>${esc(_dcFmtDate(record?.timestamp || record?.created_at))}</b></div>
+                <div class="dc-kv"><small>트윈</small><b>${esc(record?.twin_name || record?.twin_id || '-')}</b></div>
+            </div>
+            <div class="dc-form-actions dc-modal-actions">
+                <button type="button" class="pm-btn pm-btn-danger" id="dc-confirm-record-delete" data-record-id="${esc(recordId)}">삭제</button>
+                <button type="button" class="pm-btn pm-btn-ghost" id="dc-modal-cancel">취소</button>
+            </div>
+        </div>`;
+}
+
+async function _dcDeleteRecord(recordId, confirmed = false) {
+    if (!confirmed) {
+        _dcOpenRecordDeleteConfirm(recordId);
+        return;
+    }
+    _dcState.deletedRecordIds.add(recordId);
+    _dcState.records = _dcState.records.filter(record => record.id !== recordId);
+    _dcSetSelectedRecordIds(_dcState.selectedRecordIds.filter(id => id !== recordId));
+    _dcCloseConnectorModal();
     _dcRenderAll();
-    _dcToast('수집 레코드를 삭제했습니다.', 'warn');
+    try {
+        await API.del(`/api/data-collection/records/${encodeURIComponent(recordId)}`);
+        await _dcLoad();
+        _dcRenderAll();
+        _dcToast('수집 레코드를 삭제했습니다.', 'warn');
+    } catch (error) {
+        _dcState.deletedRecordIds.delete(recordId);
+        await _dcLoad();
+        _dcRenderAll();
+        throw error;
+    }
 }
 
 function _dcBindEvents() {
@@ -2061,6 +2108,8 @@ function _dcBindEvents() {
     });
     document.getElementById('dc-modal')?.addEventListener('click', (e) => {
         if (e.target.id === 'dc-modal' || e.target.id === 'dc-modal-body' || e.target.closest('#dc-modal-close, #dc-modal-cancel')) return _dcCloseConnectorModal();
+        const confirmRecordDelete = e.target.closest('#dc-confirm-record-delete');
+        if (confirmRecordDelete) return _dcDeleteRecord(confirmRecordDelete.dataset.recordId, true).catch(err => _dcToast(err.message, 'bad'));
         if (e.target.closest('#dc-rest-output-test')) return _dcTestRestOutput().catch(err => _dcToast(err.message, 'bad'));
         if (e.target.closest('#dc-rest-output-delete')) return _dcDeleteRestOutput().catch(err => _dcToast(err.message, 'bad'));
         if (e.target.closest('#dc-test-connector')) return _dcTestConnector().catch(err => _dcToast(err.message, 'bad'));

@@ -31,6 +31,7 @@ from kfp import compiler, dsl
 def train_until_threshold(
     dataset_url: str = "",
     target_column: str = "target",
+    task: str = "classification",
     threshold: float = 0.90,
     max_attempts: int = 10,
     registered_name: str = "weekly-auto-demo",
@@ -65,13 +66,30 @@ def train_until_threshold(
     tracking_uri = mlflow_uri or f"http://pm-mlflow.{run_namespace}.svc.cluster.local:5000"
     experiment_name = f"pipeline-{run_namespace}-{registered_name}"
 
-    class ThresholdClassifier(mlflow.pyfunc.PythonModel):
-        def __init__(self, feature_names, weights, bias, positive_label, negative_label):
+    class PipelinePredictor(mlflow.pyfunc.PythonModel):
+        def __init__(
+            self,
+            feature_names,
+            weights,
+            bias,
+            task_name,
+            positive_label="",
+            negative_label="",
+            feature_centers=None,
+            feature_scales=None,
+            target_center=0.0,
+            target_scale=1.0,
+        ):
             self.feature_names = feature_names
             self.weights = weights
             self.bias = bias
+            self.task_name = task_name
             self.positive_label = positive_label
             self.negative_label = negative_label
+            self.feature_centers = feature_centers or {}
+            self.feature_scales = feature_scales or {}
+            self.target_center = target_center
+            self.target_scale = target_scale
 
         def _records(self, model_input):
             if hasattr(model_input, "to_dict"):
@@ -93,10 +111,16 @@ def train_until_threshold(
                 score = self.bias
                 for name, weight in zip(self.feature_names, self.weights):
                     try:
-                        score += float(row.get(name, 0) or 0) * weight
+                        value = float(row.get(name, 0) or 0)
+                        if self.task_name == "regression":
+                            value = (value - self.feature_centers.get(name, 0.0)) / self.feature_scales.get(name, 1.0)
+                        score += value * weight
                     except Exception:
                         pass
-                preds.append(self.positive_label if score >= 0 else self.negative_label)
+                if self.task_name == "regression":
+                    preds.append(score * self.target_scale + self.target_center)
+                else:
+                    preds.append(self.positive_label if score >= 0 else self.negative_label)
             return preds
 
     def synthetic_rows():
@@ -107,7 +131,8 @@ def train_until_threshold(
             x2 = rng.uniform(-3, 3)
             x3 = rng.uniform(-3, 3)
             signal = 0.7 * x1 + 0.35 * x2 - 0.55 * x3 + rng.uniform(-0.25, 0.25)
-            rows.append({"x1": x1, "x2": x2, "x3": x3, target_column: "ok" if signal >= 0 else "ng"})
+            target = signal if task == "regression" else ("ok" if signal >= 0 else "ng")
+            rows.append({"x1": x1, "x2": x2, "x3": x3, target_column: target})
         return rows
 
     def _looks_like_parquet(content: bytes, headers) -> bool:
@@ -144,6 +169,10 @@ def train_until_threshold(
         except Exception:
             return None
 
+    task = str(task or "classification").strip().lower()
+    if task not in {"classification", "regression"}:
+        raise ValueError("task must be classification or regression")
+
     raw_rows = load_rows()
     if not raw_rows:
         raise ValueError("dataset is empty")
@@ -159,14 +188,22 @@ def train_until_threshold(
 
     rows = []
     for row in raw_rows:
-        label = str(row.get(target_column, ""))
         features = {name: to_float(row.get(name)) or 0.0 for name in feature_names}
-        rows.append((features, label))
+        if task == "regression":
+            target_value = to_float(row.get(target_column))
+            if target_value is None:
+                raise ValueError(f"regression target is not numeric: {target_column}")
+            rows.append((features, target_value))
+        else:
+            rows.append((features, str(row.get(target_column, ""))))
 
-    labels = sorted({label for _, label in rows})
-    if len(labels) != 2:
-        raise ValueError("this example supports binary classification only")
-    negative_label, positive_label = labels[0], labels[1]
+    positive_label = ""
+    negative_label = ""
+    if task == "classification":
+        labels = sorted({label for _, label in rows})
+        if len(labels) != 2:
+            raise ValueError("classification pipeline supports exactly two target labels")
+        negative_label, positive_label = labels[0], labels[1]
 
     rng = random.Random(20260511)
     rng.shuffle(rows)
@@ -175,17 +212,52 @@ def train_until_threshold(
     test_rows = rows[split:] or rows[:]
 
     def train_candidate(attempt):
+        if task == "regression":
+            feature_centers = {
+                name: sum(features[name] for features, _ in train_rows) / max(1, len(train_rows))
+                for name in feature_names
+            }
+            feature_scales = {
+                name: max(
+                    1.0e-9,
+                    (sum((features[name] - feature_centers[name]) ** 2 for features, _ in train_rows) / max(1, len(train_rows))) ** 0.5,
+                )
+                for name in feature_names
+            }
+            targets = [float(value) for _, value in train_rows]
+            target_center = sum(targets) / max(1, len(targets))
+            target_scale = max(1.0e-9, (sum((value - target_center) ** 2 for value in targets) / max(1, len(targets))) ** 0.5)
+            weights = [0.0 for _ in feature_names]
+            bias = 0.0
+            for _ in range(800):
+                grad_weights = [0.0 for _ in feature_names]
+                grad_bias = 0.0
+                for features, value in train_rows:
+                    values = [(features[name] - feature_centers[name]) / feature_scales[name] for name in feature_names]
+                    expected = (float(value) - target_center) / target_scale
+                    error = bias + sum(weight * item for weight, item in zip(weights, values)) - expected
+                    grad_bias += error
+                    for index, item in enumerate(values):
+                        grad_weights[index] += error * item
+                count = max(1, len(train_rows))
+                bias -= 0.12 * grad_bias / count
+                weights = [weight - 0.12 * gradient / count for weight, gradient in zip(weights, grad_weights)]
+            return weights, bias, {
+                "feature_centers": feature_centers,
+                "feature_scales": feature_scales,
+                "target_center": target_center,
+                "target_scale": target_scale,
+            }
+
         grouped = {positive_label: [], negative_label: []}
         for features, label in train_rows:
             grouped[label].append(features)
-
         weights = []
         for name in feature_names:
             pos_mean = sum(r[name] for r in grouped[positive_label]) / max(1, len(grouped[positive_label]))
             neg_mean = sum(r[name] for r in grouped[negative_label]) / max(1, len(grouped[negative_label]))
             noise = random.Random(attempt * 1009 + len(name)).uniform(-0.05, 0.05)
             weights.append(pos_mean - neg_mean + noise)
-
         midpoint = []
         for name in feature_names:
             pos_mean = sum(r[name] for r in grouped[positive_label]) / max(1, len(grouped[positive_label]))
@@ -193,9 +265,20 @@ def train_until_threshold(
             midpoint.append((pos_mean + neg_mean) / 2.0)
         bias = -sum(w * m for w, m in zip(weights, midpoint))
         bias += random.Random(attempt * 917).uniform(-0.02, 0.02)
-        return weights, bias
+        return weights, bias, {}
 
-    def evaluate(weights, bias):
+    def evaluate(weights, bias, model_context):
+        if task == "regression":
+            errors = []
+            for features, value in test_rows:
+                normalized = [
+                    (features[name] - model_context["feature_centers"][name]) / model_context["feature_scales"][name]
+                    for name in feature_names
+                ]
+                predicted = (bias + sum(weight * item for weight, item in zip(weights, normalized))) * model_context["target_scale"] + model_context["target_center"]
+                errors.append(abs(predicted - float(value)))
+            scale = max(model_context["target_scale"], 1.0e-9)
+            return 1.0 / (1.0 + (sum(errors) / max(1, len(errors))) / scale)
         ok = 0
         for features, label in test_rows:
             score = bias + sum((features[name] * weight) for name, weight in zip(feature_names, weights))
@@ -208,12 +291,13 @@ def train_until_threshold(
 
     best_score = -1.0
     best_run_id = ""
+    best_model_uri = ""
     attempts_used = 0
 
     for attempt in range(max_attempts):
         attempts_used = attempt + 1
-        weights, bias = train_candidate(attempt)
-        score = evaluate(weights, bias)
+        weights, bias, model_context = train_candidate(attempt)
+        score = evaluate(weights, bias, model_context)
 
         with mlflow.start_run(run_name=f"attempt-{attempts_used}") as run:
             mlflow.set_tag("pm.source", "pipeline")
@@ -227,17 +311,23 @@ def train_until_threshold(
             if score > best_score:
                 best_score = score
                 best_run_id = run.info.run_id
-                model = ThresholdClassifier(
+                model = PipelinePredictor(
                     feature_names=feature_names,
                     weights=weights,
                     bias=bias,
+                    task_name=task,
                     positive_label=positive_label,
                     negative_label=negative_label,
+                    **model_context,
                 )
-                mlflow.pyfunc.log_model(
+                model_info = mlflow.pyfunc.log_model(
                     name="model",
                     python_model=model,
                 )
+                # MLflow 3 stores logged models independently from a Run's
+                # legacy artifact folder.  Keep the returned models:/ URI so
+                # the registry step does not point to a missing runs:/model.
+                best_model_uri = getattr(model_info, "model_uri", "") or f"runs:/{best_run_id}/model"
 
         print(f"[attempt {attempts_used}] score={score:.4f} threshold={threshold}")
         if score >= threshold:
@@ -246,7 +336,7 @@ def train_until_threshold(
 
     status = "ok" if best_score >= threshold else "below_threshold"
     version = ""
-    if status == "ok" and best_run_id:
+    if status == "ok" and best_run_id and best_model_uri:
         requests.post(
             f"{tracking_uri}/api/2.0/mlflow/registered-models/create",
             json={"name": registered_name},
@@ -256,7 +346,7 @@ def train_until_threshold(
             f"{tracking_uri}/api/2.0/mlflow/model-versions/create",
             json={
                 "name": registered_name,
-                "source": f"runs:/{best_run_id}/model",
+                "source": best_model_uri,
                 "run_id": best_run_id,
             },
             timeout=10,
@@ -284,6 +374,7 @@ def train_until_threshold(
         "best_score": float(best_score),
         "attempts_used": attempts_used,
         "best_run_id": best_run_id,
+        "best_model_uri": best_model_uri,
         "registered_version": version,
     }
 
@@ -295,6 +386,7 @@ def train_until_threshold(
 def weekly_retrain_pipeline(
     dataset_url: str = "",
     target_column: str = "target",
+    task: str = "classification",
     threshold: float = 0.90,
     max_attempts: int = 10,
     registered_name: str = "weekly-auto-demo",
@@ -304,6 +396,7 @@ def weekly_retrain_pipeline(
     train_until_threshold(
         dataset_url=dataset_url,
         target_column=target_column,
+        task=task,
         threshold=threshold,
         max_attempts=max_attempts,
         registered_name=registered_name,

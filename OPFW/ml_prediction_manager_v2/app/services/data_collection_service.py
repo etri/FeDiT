@@ -951,18 +951,24 @@ def update_twin(namespace: str, twin_id: str, req: TwinUpdateRequest) -> dict:
     return get_twin(namespace, twin_id)
 
 
-def delete_twin(namespace: str, twin_id: str) -> dict:
+def delete_twin(namespace: str, twin_id: str, purge_records: bool = False) -> dict:
     with _connect() as conn:
         row = _fetch_twin(conn, namespace, twin_id)
         if row is None:
             raise ValueError("디지털 트윈을 찾을 수 없습니다.")
+        deleted_records = 0
+        if purge_records:
+            deleted_records = conn.execute(
+                "DELETE FROM collection_records WHERE namespace = ? AND (twin_id = ? OR device_id = ?)",
+                (namespace, twin_id, twin_id),
+            ).rowcount
         conn.execute(
             "UPDATE collection_connectors SET twin_id = '', updated_at = ? WHERE namespace = ? AND twin_id = ?",
             (_now(), namespace, twin_id),
         )
         conn.execute("DELETE FROM digital_twins WHERE namespace = ? AND id = ?", (namespace, twin_id))
         conn.commit()
-    return {"deleted": True, "id": twin_id}
+    return {"deleted": True, "id": twin_id, "deleted_records": deleted_records}
 
 
 def list_connectors(namespace: str) -> list[dict]:

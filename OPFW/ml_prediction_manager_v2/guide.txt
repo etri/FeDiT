@@ -7,10 +7,9 @@ FeDiT 예측매니저 호스트 설치 가이드
 - Docker 컨테이너에 접속하여 설치하는 방법은 다루지 않는다.
 - 한 호스트에는 CPU 모드 또는 GPU 모드 중 하나만 설치한다.
 - 설치 과정은 메모리 용량을 설치 중단 조건으로 사용하지 않는다.
-- CPU 모드는 클린 Ubuntu 22.04 환경에서 설치, FeDiT 메인 메뉴 전체 순회,
-  2.2.9 기능 전수 시험, 컨테이너 재시작 후 회귀 시험까지 완료했다.
-- GPU 모드는 `nvidia-smi`가 정상인 클린 Ubuntu 22.04 환경에서 GPU Device
-  Plugin 인식과 2.2.9 GPU 기능 시험을 완료한 절차를 따른다.
+- CPU/GPU 설치 및 기능 시험은 반드시 서로 분리된 클린 환경에서 수행한다.
+- 데이터셋 기반 KFP 재학습과 AutoML 원클릭 서빙은 8절의 선행 조건을 먼저
+  충족해야 한다. 화면만 열리는 상태는 기능 시험 성공이 아니다.
 - NVIDIA 드라이버는 이 설치 과정에서 설치, 업데이트 또는 재설치하지 않는다.
 
 
@@ -47,18 +46,29 @@ time-slicing 슬롯을 계산하고, 결과를 1~8 범위로 제한한다. 드�
 
   sudo apt-get update
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl git unzip
-  mkdir -p /home/$USER/prediction-manager-work
-  cd /home/$USER/prediction-manager-work
+  INSTALL_USER="${SUDO_USER:-$USER}"
+  INSTALL_HOME="$(getent passwd "$INSTALL_USER" | cut -d: -f6)"
+  mkdir -p "$INSTALL_HOME/prediction-manager-work"
+  cd "$INSTALL_HOME/prediction-manager-work"
   git clone -b OPFW_development_ETRI_pman --single-branch https://github.com/etri/FeDiT.git
+
+이후 절의 명령도 같은 터미널에서 실행한다. 새 터미널을 열었다면 위의
+`INSTALL_USER`, `INSTALL_HOME` 두 줄을 먼저 다시 실행한다. 설치 스크립트는
+sudo로 실행되어도 이 실제 사용자 홈을 판별해 사용하며 `/root`에 사용자 작업
+파일을 만들지 않는다.
+
+Private repository 인증은 Git credential manager, SSH key 또는 Git의 대화형
+인증을 사용한다. 비밀번호나 access token을 명령행, URL, 설정 파일 또는 설치
+로그에 직접 기록하지 않는다.
 
 제공된 코드 압축파일의 최상위 폴더는 `OPFW`이다. 압축을 푼 뒤 그 `OPFW`
 폴더를 다음 FeDiT 저장소의 `OPFW`에 덮어쓴다.
 
-  /home/$USER/prediction-manager-work/FeDiT/OPFW
+  "$INSTALL_HOME/prediction-manager-work/FeDiT/OPFW"
 
 설치 스크립트 폴더는 다음과 같다.
 
-  /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
+  "$INSTALL_HOME/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts"
 
 
 3. 사용할 포트
@@ -81,7 +91,7 @@ Kubernetes NodePort, 로컬 이미지 Registry, Prediction Manager 상태 점검
 
 설치 전에 한 번만 실행한다.
 
-  cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
+  cd "$INSTALL_HOME/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts"
   chmod +x ./*.sh ./scripts/*.sh
 
 
@@ -94,7 +104,7 @@ Plugin, DCGM Exporter를 사용하거나 설치하지 않는다. Ray는 CPU 작�
 
 다음 두 명령을 순서대로 실행한다.
 
-  cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
+  cd "$INSTALL_HOME/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts"
   sudo ./01-install-required-modules-cpu.sh
   sudo ./02-start-prediction-manager-cpu.sh
 
@@ -125,7 +135,7 @@ time-slicing만 구성한다.
 
 다음 두 명령을 순서대로 실행한다.
 
-  cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
+  cd "$INSTALL_HOME/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts"
   sudo ./01-install-required-modules.sh
   sudo ./02-start-prediction-manager.sh
 
@@ -174,8 +184,33 @@ FeDiT 첫 화면에서 다음 메뉴가 보여야 한다.
 - MLOps 모니터링
 
 
-8. 2.2.9 기능 전수 점검
+8. 서비스별 선행 조건과 2.2.9 기능 전수 점검
 -----------------------
+
+데이터셋 → KFP 재학습:
+
+1. Dataset 메뉴에서 CSV 데이터셋 이름, 학습 유형, target column을 지정한다.
+2. 분류는 target label이 정확히 두 종류여야 하며, 회귀는 target 값이 모두
+   숫자여야 한다.
+3. 버전을 업로드한 뒤 전처리 화면에서 `준비 완료`를 포함해 실행한다.
+4. 생성된 준비 완료 버전에서 `파이프라인 입력 생성` → `Pipeline 실행`을 한다.
+   작업 Pod는 데이터 다운로드 토큰을 사용해 내부 Prediction Manager 서비스에
+   접근한다. Ingress 주소를 직접 입력하거나 인증 헤더를 복사할 필요가 없다.
+5. Kubeflow Pipelines Run의 `Succeeded`, MLflow Run과 등록 모델을 확인한 뒤
+   시험용 Run, 데이터셋, 등록 모델을 정리한다.
+
+AutoML 결과 원클릭 서빙:
+
+1. AutoML 메뉴에서 데이터셋 경로와 target column을 설정하여 실제 학습을 완료한다.
+2. 결과 카드에서 모델 artifact와 점수가 확인된 후보를 선택한다.
+3. `서빙`을 눌러 MLflow 모델 등록과 KServe InferenceService 생성을 요청한다.
+4. KServe 메뉴에서 Ready endpoint를 확인하고, 모델 입력 schema에 맞는 실제
+   추론 요청을 수행해 결과를 확인한다.
+5. 시험이 끝나면 KServe UI에서 endpoint를 삭제하고, 시험용 AutoML job 및
+   임시 PVC를 정리한다.
+
+위 두 흐름은 각각 Dataset/AutoML 화면만 방문해서는 완료로 보지 않는다. 반드시
+실행 결과와 종료 후 정리 상태까지 확인한다.
 
 설치가 끝난 뒤 다음 명령으로 기능 전수 점검을 실행한다. 장기 작업은 최대
 180초 동안 실제 실행 상태를 확인하며, 그 안에 종료하지 않으면 실행 시작을
@@ -183,12 +218,12 @@ FeDiT 첫 화면에서 다음 메뉴가 보여야 한다.
 
 CPU:
 
-  cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2
+  cd "$INSTALL_HOME/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2"
   sudo ./scripts/scripts/verify-2.2.9-cpu.sh
 
 GPU:
 
-  cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2
+  cd "$INSTALL_HOME/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2"
   sudo ./scripts/scripts/verify-2.2.9-gpu.sh
 
 CPU/GPU 점검은 다음 순서를 각 서비스에 적용한다.
@@ -209,11 +244,11 @@ Prediction Manager 모니터링을 포함한다. 설치 직후와 재시작 후�
 
 CPU 설치 상태와 결과:
 
-  /home/$USER/prediction-manager-work/.prediction-manager/cpu
+  "$INSTALL_HOME/prediction-manager-work/.prediction-manager/cpu"
 
 GPU 설치 상태와 결과:
 
-  /home/$USER/prediction-manager-work/.prediction-manager/gpu
+  "$INSTALL_HOME/prediction-manager-work/.prediction-manager/gpu"
 
 `01` 스크립트가 즉시 끝난 경우에도 오류라고 단정하지 않는다. 출력의 `[SKIP]`,
 `[PASS]`, `[FAIL]`과 마지막에 표시되는 보고서 경로를 확인한다. `[FAIL]`이

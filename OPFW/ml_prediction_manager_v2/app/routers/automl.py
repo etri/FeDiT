@@ -207,6 +207,9 @@ async def register_model(job_id: str, req: RegisterRequest, request: Request):
     MLFLOW = info.get("mlflow_uri") or tenant_resources.mlflow_tracking_uri(info["namespace"])
     try:
         source = automl_service._resolve_mlflow_model_artifact_uri(MLFLOW, req.run_id)
+        # 모델 등록 레코드를 만들기 전에 실제로 내려받을 수 있는지 확인한다.
+        # 이 검사가 없으면 UI는 성공처럼 보이지만 KServe 배포 단계에서만 실패한다.
+        automl_service._preflight_mlflow_artifact_download(MLFLOW, source)
         # registered model 생성 (없으면)
         httpx.post(
             f"{MLFLOW}/api/2.0/mlflow/registered-models/create",
