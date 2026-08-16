@@ -2750,14 +2750,15 @@ build_and_push_images() {
 prepare_kserve_model_runtime_image() {
   # MLflow 3 model signatures include fields unsupported by MLServer 1.3.x.
   # Use the current MLServer runtime so AutoML's MLflow 3 artifacts can load.
-  # The upstream image is large (currently about 10 GiB).  Downloading it to
-  # Docker, copying it into the local registry, and then pulling it again into
-  # containerd triples the initial-install traffic and can stall installation.
-  # Let KServe pull the official immutable runtime only when an inference
-  # revision is actually created; Kubernetes handles its normal retry/cache.
+  # This image is intentionally fetched by the Kubernetes node, not copied
+  # through Docker and the local registry.  A first AutoML "serve" request
+  # must not be held hostage by a multi-GiB runtime download after the UI has
+  # already registered the model in MLflow.  Warm it once during installation
+  # so the first user-facing deployment has the same readiness behaviour as
+  # subsequent deployments.
   local upstream_image="seldonio/mlserver:1.7.1"
   local runtime_image="$upstream_image"
-  local patch
+  local patch warmup_pod="prediction-manager-mlserver-warmup"
 
   patch="[{\"op\":\"replace\",\"path\":\"/spec/containers/0/image\",\"value\":\"${runtime_image}\"}]"
   if bool_true "$LOW_MEMORY_PROFILE_ACTIVE"; then
@@ -2770,7 +2771,44 @@ prepare_kserve_model_runtime_image() {
   wait_rollout_if_exists kubeflow deployment kserve-controller-manager 600s
   retry_command 12 10 "KServe MLServer runtime patch" \
     kubectl patch clusterservingruntime kserve-mlserver --type=json -p "$patch"
-  record PASS "KServe MLServer runtime" "공식 runtime 직접 사용: ${runtime_image}; 모델 배포 시 Kubernetes가 pull/retry/cache 처리"
+
+  # Pull into the actual Kubernetes node's container runtime.  `kubectl wait`
+  # makes a failed/blocked upstream pull an installation failure instead of a
+  # delayed AutoML UI failure.  The short-lived pod is removed afterwards;
+  # containerd retains the immutable image in its normal cache.
+  kubectl -n kubeflow delete pod "$warmup_pod" --ignore-not-found --wait=true >/dev/null 2>&1 || true
+  kubectl -n kubeflow apply -f - <<EOF_KSERVE_WARMUP
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ${warmup_pod}
+  namespace: kubeflow
+  labels:
+    app.kubernetes.io/name: prediction-manager-kserve-warmup
+  annotations:
+    sidecar.istio.io/inject: "false"
+spec:
+  restartPolicy: Never
+  containers:
+    - name: runtime-cache
+      image: ${runtime_image}
+      imagePullPolicy: IfNotPresent
+      command: ["/bin/sh", "-c", "exit 0"]
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi
+EOF_KSERVE_WARMUP
+  if ! kubectl -n kubeflow wait --for=jsonpath='{.status.phase}'=Succeeded "pod/${warmup_pod}" --timeout=1800s; then
+    kubectl -n kubeflow describe "pod/${warmup_pod}" >&2 || true
+    kubectl -n kubeflow logs "pod/${warmup_pod}" >&2 || true
+    die "KServe MLServer runtime 사전 내려받기에 실패했습니다: ${runtime_image}"
+  fi
+  kubectl -n kubeflow delete pod "$warmup_pod" --wait=true >/dev/null
+  record PASS "KServe MLServer runtime" "공식 runtime을 Kubernetes node cache에 사전 내려받음: ${runtime_image}"
 }
 
 write_prediction_manager_env() {
