@@ -311,11 +311,12 @@ effective_memory_bytes() {
 apply_memory_profile() {
   # This is deliberately an explicit installation profile, not a memory-size
   # gate.  The installer must never reject a host or hide services because of
-  # detected RAM.  CPU mode selects a compact, single-node request profile;
-  # GPU mode keeps the standard resource requests.
+  # detected RAM.  The compact single-node request profile applies equally to
+  # CPU and GPU hosts: it changes Kubernetes reservations only, never GPU
+  # runtime/device use or service availability.
   if bool_true "$LOW_MEMORY_PROFILE"; then
     LOW_MEMORY_PROFILE_ACTIVE=true
-    echo "[INFO] CPU single-node resource profile enabled; all services remain enabled"
+    echo "[INFO] single-node resource profile enabled; all services remain enabled"
   else
     LOW_MEMORY_PROFILE_ACTIVE=false
   fi
@@ -1267,9 +1268,14 @@ EOF
   if bool_true "$INSTALL_NVIDIA_TOOLKIT"; then
     curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
       | gpg --dearmor --yes -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+    # apt downloads as the _apt sandbox user; a keyring created under the
+    # installer's restrictive umask is otherwise unreadable and appears as a
+    # misleading NO_PUBKEY error despite containing NVIDIA's current key.
+    chmod 0644 /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
     curl -fsSL https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list \
       | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' \
       > /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    chmod 0644 /etc/apt/sources.list.d/nvidia-container-toolkit.list
     apt-get update
     apt-get install -y "nvidia-container-toolkit"
     nvidia-ctk runtime configure --runtime=docker
@@ -1281,6 +1287,26 @@ EOF
   if systemd_available; then
     systemctl restart containerd docker
   else
+    # Docker in the privileged clean-install lab is already running before
+    # this script configures NVIDIA.  Reload it so the new named runtime is
+    # available without killing the outer verification container.  Explicitly
+    # select that runtime below: Docker's `--gpus` capability negotiation is
+    # not exposed reliably by this nested daemon, whereas the NVIDIA runtime
+    # still mounts and exercises the physical device.
+    if bool_true "$INSTALL_NVIDIA_TOOLKIT"; then
+      local dockerd_pid
+      dockerd_pid="$(pgrep -xo dockerd || true)"
+      [[ -n "$dockerd_pid" ]] || {
+        echo "실행 중인 dockerd를 찾지 못했습니다." >&2
+        return 1
+      }
+      kill -HUP "$dockerd_pid"
+      for _ in $(seq 1 30); do
+        docker info --format '{{json .Runtimes}}' 2>/dev/null | grep -q '"nvidia"' && break
+        sleep 1
+      done
+      docker info --format '{{json .Runtimes}}' | grep -q '"nvidia"'
+    fi
     export CONTAINER_MODE
     start_container_daemon containerd "$(service_state_dir)/containerd.log" \
       /usr/bin/containerd --config /etc/containerd/config.toml
@@ -1296,7 +1322,13 @@ EOF
   ensure_local_registry
 
   if bool_true "$VERIFY_DOCKER_GPU"; then
-    docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi >/dev/null
+    # See the nested-daemon note above.  This is still a real hardware check:
+    # nvidia-smi runs from a CUDA container with the host GPU explicitly
+    # injected by NVIDIA Container Runtime; an absent driver/device fails.
+    docker run --rm --runtime=nvidia \
+      -e NVIDIA_VISIBLE_DEVICES=all \
+      -e NVIDIA_DRIVER_CAPABILITIES=compute,utility \
+      nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi >/dev/null
   fi
 }
 
@@ -1566,18 +1598,35 @@ install_gpu_plugin() {
     return
   fi
   detect_gpu_hardware
-  export GPU_TIME_SLICES
-  envsubst < "${PROJECT_ROOT}/k8s/verification/nvidia-time-slicing.yaml" \
-    > "${GENERATED_DIR}/nvidia-time-slicing.yaml"
   helm repo add nvdp https://nvidia.github.io/k8s-device-plugin >/dev/null 2>&1 || true
   helm repo update nvdp
   local plugin_release=nvidia-device-plugin
-  helm upgrade --install "$plugin_release" nvdp/nvidia-device-plugin \
-    --namespace nvidia-device-plugin --create-namespace \
-    --version "$NVIDIA_DEVICE_PLUGIN_VERSION" \
-    --set-file config.map.time-slicing="${GENERATED_DIR}/nvidia-time-slicing.yaml" \
-    --set config.default=time-slicing \
-    --set gfd.enabled=true
+  if ((GPU_TIME_SLICES >= 2)); then
+    export GPU_TIME_SLICES
+    envsubst < "${PROJECT_ROOT}/k8s/verification/nvidia-time-slicing.yaml" \
+      > "${GENERATED_DIR}/nvidia-time-slicing.yaml"
+    helm upgrade --install "$plugin_release" nvdp/nvidia-device-plugin \
+      --namespace nvidia-device-plugin --create-namespace \
+      --version "$NVIDIA_DEVICE_PLUGIN_VERSION" \
+      --reset-values \
+      --set-file config.map.time-slicing="${GENERATED_DIR}/nvidia-time-slicing.yaml" \
+      --set config.default=time-slicing \
+      --set gfd.enabled=true
+  else
+    # k8s-device-plugin 0.16 rejects a time-slicing config with a single
+    # replica.  A small GPU whose safe auto-size is one therefore uses the
+    # native, unsliced resource rather than submitting an invalid config.
+    # It still exposes and tests the real physical nvidia.com/gpu resource.
+    # Keep an explicit valid config so the chart renders the plugin service
+    # account and DaemonSet on nodes which are not pre-labelled as NVIDIA.
+    helm upgrade --install "$plugin_release" nvdp/nvidia-device-plugin \
+      --namespace nvidia-device-plugin --create-namespace \
+      --version "$NVIDIA_DEVICE_PLUGIN_VERSION" \
+      --reset-values \
+      --set-file config.map.single="${PROJECT_ROOT}/k8s/verification/nvidia-device-plugin-single.yaml" \
+      --set config.default=single \
+      --set gfd.enabled=true
+  fi
   wait_rollout_if_exists nvidia-device-plugin daemonset nvidia-device-plugin 600s
   local advertised=0
   for _ in $(seq 1 60); do
@@ -1586,7 +1635,11 @@ install_gpu_plugin() {
     sleep 5
   done
   ((advertised >= GPU_EXPECTED_RESOURCES)) || { echo "Time-Slicing GPU ${GPU_EXPECTED_RESOURCES}개가 노출되지 않았습니다: ${advertised}" >&2; return 1; }
-  record PASS "GPU Time-Slicing" "물리 ${GPU_PHYSICAL_COUNT}개 x 슬롯 ${GPU_TIME_SLICES} = nvidia.com/gpu ${advertised}; 메모리 격리 없음"
+  if ((GPU_TIME_SLICES >= 2)); then
+    record PASS "GPU Time-Slicing" "물리 ${GPU_PHYSICAL_COUNT}개 x 슬롯 ${GPU_TIME_SLICES} = nvidia.com/gpu ${advertised}; 메모리 격리 없음"
+  else
+    record PASS "GPU Device Plugin" "물리 ${GPU_PHYSICAL_COUNT}개 = nvidia.com/gpu ${advertised}; 1 슬롯 GPU는 time-slicing 비활성"
+  fi
 }
 
 apply_with_retry() {
@@ -1888,15 +1941,15 @@ apply_low_resource_default_state() {
 apply_cpu_single_node_resource_profile() {
   # A complete Kubeflow stack has conservative upstream reservation values
   # that exceed a small single-node host even though the actual idle services
-  # fit.  Lower requests (not feature availability or container limits) so
-  # Kubernetes can schedule every menu service on a CPU-only machine.
-  [[ "${INSTALL_PROFILE,,}" == "cpu" ]] || return 0
+  # fit.  Lower requests (not feature availability or GPU use) so Kubernetes
+  # can schedule every menu service on a compact single-node CPU or GPU host.
+  bool_true "$LOW_MEMORY_PROFILE_ACTIVE" || return 0
 
   local namespace kind resource_name applied=false
   # Upstream Istio and Knative HPAs can keep several replicas after the
-  # initial installation spike.  On an 11 GiB one-node CPU host their
+  # initial installation spike.  On a compact one-node host their
   # continuous resource-metrics queries also compete with admission webhooks
-  # for the API server.  CPU mode intentionally runs one replica of each
+  # for the API server.  The compact profile intentionally runs one replica of each
   # always-on component, so remove those autoscalers after their targets have
   # been scaled below.  This does not remove a service or its UI; it only
   # prevents background replica changes that this compact single-node profile
@@ -2020,7 +2073,7 @@ spec:
       kubectl -n monitoring set resources deployment/kube-prometheus-stack-kube-state-metrics \
         -c kube-state-metrics --requests=cpu=250m,memory=256Mi --limits=cpu=1,memory=768Mi
     fi
-    record PASS "CPU 단일 노드 리소스 프로파일" "전체 서비스 유지, Kubernetes 요청값 25m CPU / 64Mi memory"
+    record PASS "단일 노드 리소스 프로파일" "전체 서비스 유지, Kubernetes 요청값 25m CPU / 64Mi memory"
   fi
 }
 
@@ -2195,6 +2248,8 @@ import re
 import sys
 from pathlib import Path
 
+import yaml
+
 path = Path(sys.argv[1])
 text = path.read_text(encoding="utf-8")
 text = re.sub(
@@ -2213,7 +2268,27 @@ text = text.replace(
 # Kubeflow contains a few Always policies. Reusing a successfully cached image
 # makes resume reliable when Docker Hub/CDN briefly resets a large download.
 text = text.replace("imagePullPolicy: Always", "imagePullPolicy: IfNotPresent")
-path.write_text(text, encoding="utf-8")
+# A Profile resource can be reconciled as soon as the complete manifest is
+# applied.  Put the replacement image in the profile controller's generated
+# env ConfigMap *before* that first reconciliation.  Setting the Deployment
+# environment later still heals the default tenant, but it first creates an
+# ImagePullBackOff pod for the removed GCR frontend image.
+documents = list(yaml.safe_load_all(text))
+for document in documents:
+    if not isinstance(document, dict) or document.get("kind") != "ConfigMap":
+        continue
+    metadata = document.get("metadata") or {}
+    if not str(metadata.get("name", "")).startswith(
+        "kubeflow-pipelines-profile-controller-env-"
+    ):
+        continue
+    data = document.setdefault("data", {})
+    data["FRONTEND_IMAGE"] = "ghcr.io/kubeflow/kfp-frontend"
+    data["FRONTEND_TAG"] = "2.4.1"
+path.write_text(
+    yaml.safe_dump_all(documents, sort_keys=False, explicit_start=True),
+    encoding="utf-8",
+)
 PY
   if ! bool_true "$WAIT_ALL_KUBEFLOW_WORKLOADS"; then
     prepare_low_resource_kubeflow_manifest "${GENERATED_DIR}/kubeflow.yaml"
@@ -3020,7 +3095,7 @@ configure_host_firewall_ports() {
 }
 
 configure_service_access() {
-  local service_dir runner pid_file old_pid frontend_image frontend_nginx_conf access_unit
+  local service_dir runner pid_file old_pid frontend_image frontend_nginx_conf access_unit docker_bridge_gateway
   service_dir="$(service_state_dir)"
   runner="${service_dir}/port-forwards.sh"
   pid_file="${service_dir}/port-forwards.pid"
@@ -3069,8 +3144,20 @@ PY
       kill "$old_pf_pid" >/dev/null 2>&1 || true
     done < <(pgrep -f '^kubectl -n kubeflow port-forward( --address=[^[:space:]]+)? service/prediction-manager 18000:80' || true)
     sleep 1
+    # Docker Desktop expands the special `host-gateway` value, but the
+    # Docker daemon used by the clean-image test (and older Linux daemons)
+    # can write it literally as "invalid IP" in /etc/hosts.  Nginx resolves
+    # upstream names when it starts, so that makes the public frontend enter
+    # a restart loop.  Resolve the bridge gateway ourselves and pass a real
+    # address; this is also valid on a normal Linux Docker host.
+    docker_bridge_gateway="$(docker network inspect bridge \
+      --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null || true)"
+    if [[ ! "$docker_bridge_gateway" =~ ^[0-9]+(\.[0-9]+){3}$ ]]; then
+      echo "Docker bridge gateway를 확인하지 못했습니다: ${docker_bridge_gateway:-empty}" >&2
+      return 1
+    fi
     docker run -d --restart=unless-stopped --name fedit-fe -p "0.0.0.0:${FEDIT_PUBLIC_PORT}:80" \
-      --add-host=host.docker.internal:host-gateway \
+      --add-host="host.docker.internal:${docker_bridge_gateway}" \
       -e NDXPRO_ENV_PREDICTION_MANAGER_URL=/prediction-manager/ \
       -e NDXPRO_ENV_MLFLOW_URL=http://__BROWSER_HOST__:15000 \
       -e NDXPRO_ENV_RAY_URL=http://__BROWSER_HOST__:15002 \
@@ -3131,16 +3218,31 @@ while true; do
   for spec in "${specs[@]}"; do
     IFS='|' read -r namespace service mapping name visibility <<<"$spec"
     pid_file="${state_dir}/${name}.pid"
+    forward_log="${state_dir}/../${name}-forward.log"
     pid="$(cat "$pid_file" 2>/dev/null || true)"
     if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
-      continue
+      # `kubectl port-forward service/...` chooses one backing Pod.  The
+      # listener process can remain alive after that Pod rolls over, then
+      # accepts browsers but leaves their streams waiting forever.  Its error
+      # is written to the per-forward log, so replace exactly that stale
+      # forward and let the next loop select a current Service endpoint.
+      if [[ -f "$forward_log" ]] && tail -n 20 "$forward_log" \
+          | grep -Eq 'error creating error stream|error forwarding port|lost connection to pod'; then
+        kill "$pid" 2>/dev/null || true
+        rm -f "$pid_file"
+      else
+        continue
+      fi
     fi
     kubectl -n "$namespace" get "service/$service" >/dev/null 2>&1 || continue
     listen_address="0.0.0.0"
     [[ "$visibility" == "private" ]] && listen_address="$private_addresses"
+    # A new process must not inherit an old Pod's error marker; otherwise the
+    # health guard above would immediately replace a healthy forward too.
+    : > "$forward_log"
     kubectl -n "$namespace" port-forward --address="$listen_address" \
       "service/$service" "$mapping" \
-      >>"/opt/prediction-manager-verification/services/${name}-forward.log" 2>&1 8>&- &
+      >>"$forward_log" 2>&1 8>&- &
     printf '%s\n' "$!" >"$pid_file"
   done
   sleep 3
@@ -3393,9 +3495,17 @@ fi
 
 run_stage 20-runtime "Docker/containerd/Registry 구성" configure_runtime
 run_stage 30-kubernetes "Kubernetes 단일 노드 구성" install_kubernetes
-run_always "CPU control-plane lease 조정" tune_cpu_control_plane_leases
+if [[ "${INSTALL_PROFILE,,}" == "cpu" ]]; then
+  run_always "CPU control-plane lease 조정" tune_cpu_control_plane_leases
+else
+  record SKIP "CPU control-plane lease 조정" "GPU 프로파일에는 적용하지 않음"
+fi
 run_always "Kubernetes NodePort 외부 비노출" configure_private_nodeports
-run_always "CPU 단일 노드 swap" configure_cpu_swap
+if [[ "${INSTALL_PROFILE,,}" == "cpu" ]]; then
+  run_always "CPU 단일 노드 swap" configure_cpu_swap
+else
+  record SKIP "CPU 단일 노드 swap" "GPU 프로파일에는 적용하지 않음"
+fi
 run_stage 40-addons "Calico/StorageClass/Metrics Server" install_cluster_addons
 if bool_true "$INSTALL_NVIDIA_TOOLKIT"; then
   gpu_stage_label="GPU Device Plugin과 Time-Slicing"
@@ -3404,10 +3514,10 @@ else
 fi
 run_stage 50-gpu "$gpu_stage_label" install_gpu_plugin
 run_stage 60-kubeflow "Kubeflow/KFP/KServe/KubeRay" install_kubeflow
-run_always "CPU 단일 노드 리소스 프로파일" apply_cpu_single_node_resource_profile
+run_always "단일 노드 리소스 프로파일" apply_cpu_single_node_resource_profile
 run_always "Kubeflow 전체 workload 상태 복원" restore_full_kubeflow_workloads
 run_stage 70-data-services "PostgreSQL/Keycloak/OIDC" install_data_services
-run_always "CPU 단일 노드 리소스 프로파일 (데이터 서비스)" apply_cpu_single_node_resource_profile
+run_always "단일 노드 리소스 프로파일 (데이터 서비스)" apply_cpu_single_node_resource_profile
 if bool_true "$INSTALL_NVIDIA_TOOLKIT"; then
   monitoring_stage_label="Prometheus/DCGM 모니터링"
 else
@@ -3419,7 +3529,7 @@ run_always "AutoML 실행 안정화" patch_automl_runner_for_compact_hosts
 run_always "프로젝트 이미지 빌드 및 Push" build_and_push_images
 run_always "Prediction Manager/Label Studio 배포" deploy_prediction_manager
 run_always "기본 tenant MLflow/Ray/NiFi 구성" provision_tenant_resources
-run_always "CPU 단일 노드 리소스 프로파일 (tenant 서비스)" apply_cpu_single_node_resource_profile
+run_always "단일 노드 리소스 프로파일 (tenant 서비스)" apply_cpu_single_node_resource_profile
 run_always "최종 기능 검증" final_validation
 run_always "서비스 접근 포트 구성" configure_service_access
 

@@ -7,8 +7,10 @@ FeDiT 예측매니저 호스트 설치 가이드
 - Docker 컨테이너에 접속하여 설치하는 방법은 다루지 않는다.
 - 한 호스트에는 CPU 모드 또는 GPU 모드 중 하나만 설치한다.
 - 설치 과정은 메모리 용량을 설치 중단 조건으로 사용하지 않는다.
-- CPU 모드는 클린 Ubuntu 22.04 환경에서 설치, 첫 화면 진입 및 2.2.9 기능
-  전수 시험을 완료했다. GPU 모드의 전체 기능시험은 별도 진행 대상이다.
+- CPU 모드는 클린 Ubuntu 22.04 환경에서 설치, FeDiT 메인 메뉴 전체 순회,
+  2.2.9 기능 전수 시험, 컨테이너 재시작 후 회귀 시험까지 완료했다.
+- GPU 모드는 `nvidia-smi`가 정상인 클린 Ubuntu 22.04 환경에서 GPU Device
+  Plugin 인식과 2.2.9 GPU 기능 시험을 완료한 절차를 따른다.
 - NVIDIA 드라이버는 이 설치 과정에서 설치, 업데이트 또는 재설치하지 않는다.
 
 
@@ -80,7 +82,7 @@ Kubernetes NodePort, 로컬 이미지 Registry, Prediction Manager 상태 점검
 설치 전에 한 번만 실행한다.
 
   cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts
-  sudo find . -type f -name '*.sh' -exec chmod +x {} +
+  chmod +x ./*.sh ./scripts/*.sh
 
 
 5. CPU 모드 설치
@@ -107,6 +109,11 @@ containerd, Kubernetes 도구, Helm 및 Kustomize를 설치한다.
 - FeDiT 및 Prediction Manager HTTP 진입
 - CPU 전용 모드
 
+완료 후에는 8절의 CPU 기능 전수 점검을 실행하고, 설치 대상 컨테이너 또는
+호스트를 재시작한 뒤 같은 점검을 한 번 더 실행한다. 재시작 뒤에는 FeDiT HTTP
+200, Prediction Manager health API, 모든 Kubernetes Pod Ready 및 여섯 공개
+포트를 함께 확인한다.
+
 
 6. GPU 모드 설치
 ----------------
@@ -124,6 +131,11 @@ time-slicing만 구성한다.
 
 GPU 개수나 모델명을 스크립트 또는 설정 파일에 직접 입력할 필요가 없다.
 다른 PC에서 실행할 때도 실행 시점의 `nvidia-smi` 결과를 사용한다.
+
+완료 후에는 8절의 GPU 기능 전수 점검을 실행한다. 이 점검은 GPU Device Plugin
+할당량, CUDA Driver API, GPU Ray 작업 및 DCGM Prometheus metric을 실제로
+확인한다. GPU가 보이지 않거나 GPU 작업이 CPU로만 실행되면 성공으로 처리하지
+않는다.
 
 
 7. 접속 주소
@@ -179,13 +191,14 @@ GPU:
   cd /home/$USER/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2
   sudo ./scripts/scripts/verify-2.2.9-gpu.sh
 
-CPU 점검은 다음 순서를 각 서비스에 적용한다.
+CPU/GPU 점검은 다음 순서를 각 서비스에 적용한다.
 
   기능 선택 → 설정 → 실제 실행 → 결과 확인 → 시험 리소스 종료
 
-현재 CPU 전수 점검 항목은 Dataset, REST 데이터 수집, PVC, NiFi, Label Studio,
+전수 점검 항목은 Dataset, REST 데이터 수집, PVC, NiFi, Label Studio,
 Kubeflow Pipelines, MLflow, Ray, TensorBoard, KServe, AutoML, Prometheus와
-Prediction Manager 모니터링을 포함한다.
+Prediction Manager 모니터링을 포함한다. 설치 직후와 재시작 후에 각각 다시
+실행하여 14개 실제 동작이 모두 PASS인지 확인한다.
 
 
 9. 재실행과 로그 확인
