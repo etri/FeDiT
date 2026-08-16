@@ -3118,20 +3118,25 @@ start_port_forward() {
   # Reuse the persistent access runner when it already exposes this exact
   # service.  Restart attempts otherwise collide with its public port.  Only
   # the unaddressed, short-lived validation forward is removed on retry.
-  if pgrep -f "^kubectl -n ${namespace} port-forward( --address=[^[:space:]]+)? service/${service} ${mapping}$" \
-      >/dev/null 2>&1; then
-    return 0
-  fi
+  # A previous rollout can leave a port-forward PID alive after its backing
+  # Pod has gone away.  Reusing that PID makes the next HTTP probe fail with
+  # connection refused although the replacement Service is healthy.  Replace
+  # every exact mapping, including forwards with an explicit --address.
   while IFS= read -r stale_pid; do
     [[ "$stale_pid" =~ ^[0-9]+$ ]] || continue
     kill "$stale_pid" 2>/dev/null || true
-  done < <(pgrep -f "^kubectl -n ${namespace} port-forward service/${service} ${mapping}$" 2>/dev/null || true)
+  done < <(pgrep -f "^kubectl -n ${namespace} port-forward( --address=[^[:space:]]+)? service/${service} ${mapping}$" 2>/dev/null || true)
   kubectl -n "$namespace" port-forward "service/${service}" "$mapping" \
     > "${RESULT_DIR}/${log_name}.log" 2>&1 &
   local pid=$!
   FORWARD_PIDS+=("$pid")
   sleep 2
   kill -0 "$pid" 2>/dev/null || { cat "${RESULT_DIR}/${log_name}.log" >&2; return 1; }
+  local local_port="${mapping%%:*}"
+  ss -ltn "sport = :${local_port}" | grep -q LISTEN || {
+    cat "${RESULT_DIR}/${log_name}.log" >&2
+    return 1
+  }
 }
 
 provision_tenant_resources() {
