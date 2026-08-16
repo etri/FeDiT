@@ -1833,24 +1833,31 @@ prime_kfp_execution_images() {
   # longer served reliably.  Merely importing it into containerd at install
   # time is not sufficient in the clean Docker lab: the CRI cache can be
   # rebuilt after an outer-container restart.  Mirror the supported upstream
-  # executor into the installer-managed persistent registry and make the
-  # generated workflow-controller manifest use that mirror.  The registry is
+  # executor and controller into the installer-managed persistent registry
+  # and make the generated manifest use those mirrors.  The registry is
   # loopback-only; this does not expose another browser-facing port.
   local argo_source="quay.io/argoproj/argoexec:v3.4.17"
   local argo_target="${REGISTRY_HOST}/kfp-argoexec:v3.4.17-license-compliance"
+  local controller_source="quay.io/argoproj/workflow-controller:v3.4.17"
+  local controller_target="${REGISTRY_HOST}/kfp-workflow-controller:v3.4.17-license-compliance"
   local kfp_driver="gcr.io/ml-pipeline/kfp-driver@sha256:dc8b56a2eb071f30409828a8884d621092e68385af11a6c06aa9e9fbcfbb19de"
   local component_image="python:3.10-slim"
 
   retry_command 5 10 "KFP Argo executor source pull" docker pull "$argo_source"
   docker tag "$argo_source" "$argo_target"
   retry_command 5 10 "KFP Argo executor persistent mirror push" docker push "$argo_target"
+  retry_command 5 10 "KFP workflow controller source pull" docker pull "$controller_source"
+  docker tag "$controller_source" "$controller_target"
+  retry_command 5 10 "KFP workflow controller persistent mirror push" docker push "$controller_target"
   retry_kubernetes_image_pull "$argo_target"
+  retry_kubernetes_image_pull "$controller_target"
   retry_kubernetes_image_pull "$kfp_driver"
   retry_kubernetes_image_pull "$component_image"
   crictl inspecti "$argo_target" >/dev/null
+  crictl inspecti "$controller_target" >/dev/null
   crictl inspecti "$kfp_driver" >/dev/null
   crictl inspecti "$component_image" >/dev/null
-  record PASS "KFP 실행 이미지 준비" "재시작 후에도 유지되는 Argo executor mirror, KFP driver, Python component"
+  record PASS "KFP 실행 이미지 준비" "재시작 후에도 유지되는 Argo executor/controller mirror, KFP driver, Python component"
 }
 
 prime_manifest_images() {
@@ -2243,7 +2250,8 @@ install_kubeflow() {
   kustomize build "${KUBEFLOW_MANIFESTS_DIR}/example-verification" \
     > "${GENERATED_DIR}/kubeflow.yaml"
   python3 - "${GENERATED_DIR}/kubeflow.yaml" \
-    "${REGISTRY_HOST}/kfp-argoexec:v3.4.17-license-compliance" <<'PY'
+    "${REGISTRY_HOST}/kfp-argoexec:v3.4.17-license-compliance" \
+    "${REGISTRY_HOST}/kfp-workflow-controller:v3.4.17-license-compliance" <<'PY'
 import re
 import sys
 from pathlib import Path
@@ -2252,6 +2260,7 @@ import yaml
 
 path = Path(sys.argv[1])
 executor_image = sys.argv[2]
+controller_image = sys.argv[3]
 text = path.read_text(encoding="utf-8")
 text = re.sub(
     r"(?m)^(\s*image:\s*)(?:gcr\.io/ml-pipeline/minio|minio/minio):[^\s]+$",
@@ -2271,9 +2280,13 @@ text = text.replace(
 # prepared before this manifest is applied so a host/container restart cannot
 # turn the next user pipeline into ImagePullBackOff.
 old_executor_image = "gcr.io/ml-pipeline/argoexec:v3.4.17-license-compliance"
+old_controller_image = "gcr.io/ml-pipeline/workflow-controller:v3.4.17-license-compliance"
 if old_executor_image not in text and executor_image not in text:
     raise SystemExit("KFP workflow executor image was not found in the generated manifest")
+if old_controller_image not in text and controller_image not in text:
+    raise SystemExit("KFP workflow controller image was not found in the generated manifest")
 text = text.replace(old_executor_image, executor_image)
+text = text.replace(old_controller_image, controller_image)
 # Kubeflow contains a few Always policies. Reusing a successfully cached image
 # makes resume reliable when Docker Hub/CDN briefly resets a large download.
 text = text.replace("imagePullPolicy: Always", "imagePullPolicy: IfNotPresent")
