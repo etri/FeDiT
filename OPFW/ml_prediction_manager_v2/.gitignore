@@ -15,6 +15,7 @@ htmlcov/
 # Virtual environments
 venv/
 .venv/
+.test-venv/
 env/
 
 # Runtime / local config
@@ -33,6 +34,11 @@ dist/
 tmp/
 *.sqlite
 *.db
+
+# Local installer dry-run/install evidence contains machine-specific paths and
+# may include generated credentials. Keep the curated internal reports under
+# tests/internal instead.
+scripts/verification-install-results/
 
 # Rendered Kubernetes manifests
 k8s/deployment.yaml

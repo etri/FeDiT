@@ -1,0 +1,9 @@
+version: v1
+flags:
+  migStrategy: none
+  failOnInitError: true
+  plugin:
+    passDeviceSpecs: false
+    deviceListStrategy:
+      - envvar
+    deviceIDStrategy: uuid
