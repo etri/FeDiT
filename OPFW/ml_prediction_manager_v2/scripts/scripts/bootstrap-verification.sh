@@ -2778,6 +2778,37 @@ build_and_push_images() {
   fi
 }
 
+configure_knative_local_registry_resolution() {
+  # Knative resolves image tags in its controller Pod before kubelet creates a
+  # revision.  `127.0.0.1` in that Pod is not the node loopback where the
+  # installer-managed registry lives, so a local image reference otherwise
+  # fails even when containerd has already warmed the image.  Tell Knative to
+  # retain the tag for this node-private registry; kubelet then uses its
+  # verified cache and the runtime's IfNotPresent pull policy below.
+  local current updated entry
+  local -a entries=()
+  current="$(kubectl -n knative-serving get configmap config-deployment \
+    -o jsonpath='{.data.registries-skipping-tag-resolving}' 2>/dev/null || true)"
+  updated=""
+  IFS=',' read -r -a entries <<<"$current"
+  for entry in "${entries[@]:-}"; do
+    entry="${entry//[[:space:]]/}"
+    [[ -z "$entry" || "$entry" == "$REGISTRY_HOST" ]] && continue
+    updated="${updated:+${updated},}${entry}"
+  done
+  updated="${updated:+${updated},}${REGISTRY_HOST}"
+  retry_command 12 5 "Knative local registry tag resolution setting" \
+    kubectl -n knative-serving patch configmap config-deployment --type=merge \
+      -p "{\"data\":{\"registries-skipping-tag-resolving\":\"${updated}\"}}"
+  current="$(kubectl -n knative-serving get configmap config-deployment \
+    -o jsonpath='{.data.registries-skipping-tag-resolving}')"
+  case ",${current}," in
+    *",${REGISTRY_HOST},"*) ;;
+    *) die "Knative local registry 태그 해석 생략 설정을 확인하지 못했습니다: ${REGISTRY_HOST}" ;;
+  esac
+  record PASS "Knative 로컬 Registry 태그 해석" "controller 외부 pull 생략: ${REGISTRY_HOST}"
+}
+
 prepare_kserve_model_runtime_image() {
   # MLflow 3 model signatures include fields unsupported by MLServer 1.3.x.
   # Use the current MLServer runtime so AutoML's MLflow 3 artifacts can load.
@@ -2787,6 +2818,8 @@ prepare_kserve_model_runtime_image() {
   # to an unbounded external image pull after the model is already registered
   # in MLflow.  The loopback registry is not browser-facing and makes both the
   # installer warm-up and every subsequent KServe revision reproducible.
+  # Knative's controller must not try to resolve that node-loopback reference
+  # from inside its own Pod; configure that before the runtime is patched.
   local upstream_image="seldonio/mlserver:1.7.1"
   local runtime_image="${REGISTRY_HOST}/kserve-mlserver:1.7.1"
   local patch warmup_pod="prediction-manager-mlserver-warmup"
@@ -2797,15 +2830,17 @@ prepare_kserve_model_runtime_image() {
   retry_kubernetes_image_pull "$runtime_image"
   crictl inspecti "$runtime_image" >/dev/null
 
-  patch="[{\"op\":\"replace\",\"path\":\"/spec/containers/0/image\",\"value\":\"${runtime_image}\"}]"
+  patch="[{\"op\":\"replace\",\"path\":\"/spec/containers/0/image\",\"value\":\"${runtime_image}\"},{\"op\":\"add\",\"path\":\"/spec/containers/0/imagePullPolicy\",\"value\":\"IfNotPresent\"}]"
   if bool_true "$LOW_MEMORY_PROFILE_ACTIVE"; then
-    patch="[{\"op\":\"replace\",\"path\":\"/spec/containers/0/image\",\"value\":\"${runtime_image}\"},{\"op\":\"replace\",\"path\":\"/spec/containers/0/resources\",\"value\":{\"requests\":{\"cpu\":\"250m\",\"memory\":\"768Mi\"},\"limits\":{\"cpu\":\"1\",\"memory\":\"1536Mi\"}}}]"
+    patch="[{\"op\":\"replace\",\"path\":\"/spec/containers/0/image\",\"value\":\"${runtime_image}\"},{\"op\":\"add\",\"path\":\"/spec/containers/0/imagePullPolicy\",\"value\":\"IfNotPresent\"},{\"op\":\"replace\",\"path\":\"/spec/containers/0/resources\",\"value\":{\"requests\":{\"cpu\":\"250m\",\"memory\":\"768Mi\"},\"limits\":{\"cpu\":\"1\",\"memory\":\"1536Mi\"}}}]"
   fi
   # The KServe admission webhook is briefly unavailable while its controller
   # is reconciling a prior rollout.  Wait for the controller and retry the
   # idempotent patch instead of failing a completed installation on a
   # transient webhook timeout.
   wait_rollout_if_exists kubeflow deployment kserve-controller-manager 600s
+  wait_rollout_if_exists knative-serving deployment controller 600s
+  configure_knative_local_registry_resolution
   retry_command 12 10 "KServe MLServer runtime patch" \
     kubectl patch clusterservingruntime kserve-mlserver --type=json -p "$patch"
 
@@ -2845,7 +2880,7 @@ EOF_KSERVE_WARMUP
     die "KServe MLServer runtime 사전 내려받기에 실패했습니다: ${runtime_image}"
   fi
   kubectl -n kubeflow delete pod "$warmup_pod" --wait=true >/dev/null
-  record PASS "KServe MLServer runtime" "재시작 후에도 유지되는 MLServer runtime mirror 사전 준비: ${runtime_image}"
+  record PASS "KServe MLServer runtime" "재시작 후에도 유지되는 MLServer runtime mirror/cache 사전 준비: ${runtime_image}"
 }
 
 write_prediction_manager_env() {
@@ -3469,6 +3504,19 @@ final_validation() {
   jq -e --arg image "kserve-mlserver" \
     '.repositories | index($image) != null' "${RESULT_DIR}/registry-catalog.json" >/dev/null
   record PASS "로컬 Registry" "필수 이미지 ${required_image_count}종 이상"
+  local knative_skip_registries runtime_pull_policy
+  knative_skip_registries="$(kubectl -n knative-serving get configmap config-deployment \
+    -o jsonpath='{.data.registries-skipping-tag-resolving}')"
+  case ",${knative_skip_registries}," in
+    *",${REGISTRY_HOST},"*) ;;
+    *) die "Knative 로컬 Registry 태그 해석 생략 설정 누락: ${REGISTRY_HOST}" ;;
+  esac
+  runtime_pull_policy="$(kubectl get clusterservingruntime kserve-mlserver \
+    -o jsonpath='{.spec.containers[0].imagePullPolicy}')"
+  [[ "$runtime_pull_policy" == "IfNotPresent" ]] || {
+    die "KServe MLServer imagePullPolicy가 IfNotPresent가 아닙니다: ${runtime_pull_policy:-empty}"
+  }
+  record PASS "KServe 원클릭 서빙 사전 조건" "Knative local tag skip 및 MLServer node cache 정책 확인"
   if bool_true "$BUILD_FRONTEND_IMAGE"; then
     jq -e --arg image "${FRONTEND_IMAGE_TAG%:*}" \
       '.repositories | index($image) != null' "${RESULT_DIR}/registry-catalog.json" >/dev/null
