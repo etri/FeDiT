@@ -161,11 +161,15 @@ const services: Service[] = [
   },
   {
     name: 'KServe 엔드포인트',
-    description: '모델 서빙 엔드포인트 관리',
+    description: '실제 모델 서빙 엔드포인트 상태와 Ready 여부 확인',
     icon: HomeKserveIcon,
     path: '/kserve',
-    kubeflowApp: '/kserve-endpoints/',
-    needsNamespace: true,
+    // Kubeflow의 기본 Angular endpoint 화면은 AutoML이 방금 만든
+    // InferenceService의 상태를 이 FeDiT 흐름에서 안정적으로 표시하지 못한다.
+    // Prediction Manager 화면은 현재 사용자의 namespace를 기준으로 실제 KServe
+    // resource와 Ready 상태를 읽어 표시하므로, 원클릭 서빙 결과 확인에는 이
+    // 통합 화면을 사용한다.
+    url: '/prediction-manager/kserve-endpoints/',
   },
   {
     name: 'MLOps 모니터링',
