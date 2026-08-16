@@ -202,6 +202,10 @@ FeDiT 첫 화면에서 다음 메뉴가 보여야 한다.
 AutoML 결과 원클릭 서빙:
 
 1. AutoML 메뉴에서 데이터셋 경로와 target column을 설정하여 실제 학습을 완료한다.
+   HTTP(S) 데이터셋은 Prediction Manager와 Ray worker 양쪽에서 접근 가능해야 한다.
+   새로 생성한 클러스터 Service는 endpoint/DNS 반영 중의 일시적 연결 실패를
+   설치 코드가 제한적으로 재시도하며, 재시도 후에도 실패하면 Service endpoint와
+   namespace 간 통신을 확인한다.
 2. 결과 카드에서 모델 artifact와 점수가 확인된 후보를 선택한다.
 3. `서빙`을 눌러 MLflow 모델 등록과 KServe InferenceService 생성을 요청한다.
    설치 스크립트는 이 단계에 필요한 MLServer runtime을 Kubernetes node cache에
