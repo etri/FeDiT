@@ -1840,6 +1840,8 @@ prime_kfp_execution_images() {
   local argo_target="${REGISTRY_HOST}/kfp-argoexec:v3.4.17-license-compliance"
   local controller_source="quay.io/argoproj/workflow-controller:v3.4.17"
   local controller_target="${REGISTRY_HOST}/kfp-workflow-controller:v3.4.17-license-compliance"
+  local frontend_source="ghcr.io/kubeflow/kfp-frontend:2.4.1"
+  local frontend_target="${REGISTRY_HOST}/kfp-frontend:2.4.1"
   local kfp_driver="gcr.io/ml-pipeline/kfp-driver@sha256:dc8b56a2eb071f30409828a8884d621092e68385af11a6c06aa9e9fbcfbb19de"
   local component_image="python:3.10-slim"
 
@@ -1849,15 +1851,20 @@ prime_kfp_execution_images() {
   retry_command 5 10 "KFP workflow controller source pull" docker pull "$controller_source"
   docker tag "$controller_source" "$controller_target"
   retry_command 5 10 "KFP workflow controller persistent mirror push" docker push "$controller_target"
+  retry_command 5 10 "KFP frontend source pull" docker pull "$frontend_source"
+  docker tag "$frontend_source" "$frontend_target"
+  retry_command 5 10 "KFP frontend persistent mirror push" docker push "$frontend_target"
   retry_kubernetes_image_pull "$argo_target"
   retry_kubernetes_image_pull "$controller_target"
+  retry_kubernetes_image_pull "$frontend_target"
   retry_kubernetes_image_pull "$kfp_driver"
   retry_kubernetes_image_pull "$component_image"
   crictl inspecti "$argo_target" >/dev/null
   crictl inspecti "$controller_target" >/dev/null
+  crictl inspecti "$frontend_target" >/dev/null
   crictl inspecti "$kfp_driver" >/dev/null
   crictl inspecti "$component_image" >/dev/null
-  record PASS "KFP 실행 이미지 준비" "재시작 후에도 유지되는 Argo executor/controller mirror, KFP driver, Python component"
+  record PASS "KFP 실행 이미지 준비" "재시작 후에도 유지되는 Argo executor/controller/frontend mirror, KFP driver, Python component"
 }
 
 prime_manifest_images() {
@@ -2251,7 +2258,8 @@ install_kubeflow() {
     > "${GENERATED_DIR}/kubeflow.yaml"
   python3 - "${GENERATED_DIR}/kubeflow.yaml" \
     "${REGISTRY_HOST}/kfp-argoexec:v3.4.17-license-compliance" \
-    "${REGISTRY_HOST}/kfp-workflow-controller:v3.4.17-license-compliance" <<'PY'
+    "${REGISTRY_HOST}/kfp-workflow-controller:v3.4.17-license-compliance" \
+    "${REGISTRY_HOST}/kfp-frontend:2.4.1" <<'PY'
 import re
 import sys
 from pathlib import Path
@@ -2261,6 +2269,7 @@ import yaml
 path = Path(sys.argv[1])
 executor_image = sys.argv[2]
 controller_image = sys.argv[3]
+frontend_image = sys.argv[4]
 text = path.read_text(encoding="utf-8")
 text = re.sub(
     r"(?m)^(\s*image:\s*)(?:gcr\.io/ml-pipeline/minio|minio/minio):[^\s]+$",
@@ -2273,7 +2282,7 @@ text = text.replace(
 )
 text = text.replace(
     "gcr.io/ml-pipeline/frontend:2.3.0",
-    "ghcr.io/kubeflow/kfp-frontend:2.4.1",
+    frontend_image,
 )
 # KFP 2.3's generated workflow controller references an executor tag that is
 # no longer published upstream.  Use the persistent, node-private mirror
@@ -2305,7 +2314,7 @@ for document in documents:
     ):
         continue
     data = document.setdefault("data", {})
-    data["FRONTEND_IMAGE"] = "ghcr.io/kubeflow/kfp-frontend"
+    data["FRONTEND_IMAGE"] = frontend_image.rsplit(":", 1)[0]
     data["FRONTEND_TAG"] = "2.4.1"
 path.write_text(
     yaml.safe_dump_all(documents, sort_keys=False, explicit_start=True),
