@@ -446,6 +446,41 @@ systemd_available() {
     [[ "$(ps -p 1 -o comm= 2>/dev/null || true)" == "systemd" ]]
 }
 
+# Package-signing keys are an installation prerequisite, but the CDN hosting
+# them can momentarily reset a newly created TLS connection.  Do not stream a
+# one-shot response directly into the live keyring: a transport failure would
+# leave an empty/partial file and make a retry look like an apt signature
+# issue.  Download and dearmor into temporary files, then replace the keyring
+# only after a complete successful conversion.
+download_and_dearmor_key() {
+  local url="$1" destination="$2" description="$3"
+  local attempt ascii_key binary_key
+  local destination_dir
+  destination_dir="$(dirname "$destination")"
+  install -d -m 0755 "$destination_dir"
+
+  for attempt in $(seq 1 4); do
+    ascii_key="$(mktemp "${destination_dir}/.key-download.XXXXXX")"
+    binary_key="$(mktemp "${destination_dir}/.keyring.XXXXXX")"
+    rm -f "$binary_key"
+    if curl --fail --show-error --location --connect-timeout 20 --max-time 120 \
+      --retry 3 --retry-delay 2 --retry-all-errors --output "$ascii_key" "$url" \
+      && gpg --batch --dearmor --yes -o "$binary_key" "$ascii_key" \
+      && [[ -s "$binary_key" ]]; then
+      install -m 0644 "$binary_key" "$destination"
+      rm -f "$ascii_key" "$binary_key"
+      return 0
+    fi
+    rm -f "$ascii_key" "$binary_key"
+    if ((attempt < 4)); then
+      echo "[WARN] ${description} 다운로드 또는 변환 실패 (${attempt}/4); 5초 후 재시도" >&2
+      sleep 5
+    fi
+  done
+  echo "[FAIL] ${description} 다운로드 또는 변환이 4회 모두 실패했습니다." >&2
+  return 1
+}
+
 service_state_dir() {
   printf '%s\n' "${INSTALL_STATE_ROOT}/services"
 }
@@ -1050,9 +1085,10 @@ host_dependencies() {
 
   install -d -m 0755 /etc/apt/keyrings
   local kubernetes_minor="${KUBERNETES_VERSION%.*}"
-  curl -fsSL "https://pkgs.k8s.io/core:/stable:/v${kubernetes_minor}/deb/Release.key" \
-    | gpg --dearmor --yes -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-  chmod 0644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  download_and_dearmor_key \
+    "https://pkgs.k8s.io/core:/stable:/v${kubernetes_minor}/deb/Release.key" \
+    /etc/apt/keyrings/kubernetes-apt-keyring.gpg \
+    "Kubernetes APT 서명 키"
   echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v${kubernetes_minor}/deb/ /" \
     > /etc/apt/sources.list.d/kubernetes.list
   apt-get update
@@ -1266,12 +1302,10 @@ server = "http://${REGISTRY_HOST}"
 EOF
 
   if bool_true "$INSTALL_NVIDIA_TOOLKIT"; then
-    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
-      | gpg --dearmor --yes -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-    # apt downloads as the _apt sandbox user; a keyring created under the
-    # installer's restrictive umask is otherwise unreadable and appears as a
-    # misleading NO_PUBKEY error despite containing NVIDIA's current key.
-    chmod 0644 /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+    download_and_dearmor_key \
+      https://nvidia.github.io/libnvidia-container/gpgkey \
+      /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+      "NVIDIA Container Toolkit APT 서명 키"
     curl -fsSL https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list \
       | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' \
       > /etc/apt/sources.list.d/nvidia-container-toolkit.list
