@@ -109,7 +109,10 @@ Plugin, DCGM Exporter를 사용하거나 설치하지 않는다. Ray는 CPU 작�
   sudo ./02-start-prediction-manager-cpu.sh
 
 `01-install-required-modules-cpu.sh`는 Ubuntu 필수 패키지, Docker,
-containerd, Kubernetes 도구, Helm 및 Kustomize를 설치한다.
+containerd, Kubernetes 도구, Helm 및 Kustomize를 설치한다. Kubernetes 및
+GPU 모드의 NVIDIA 패키지 서명 키 다운로드는 임시 파일 검증 후 반영하며, 일시적인
+네트워크 실패는 제한적으로 재시도한다. 재시도까지 실패한 경우에만 명확히 실패로
+종료하므로, 같은 `sudo ./01-...` 명령을 다시 실행해 중단 지점부터 복구한다.
 
 `02-start-prediction-manager-cpu.sh`는 Kubernetes와 예측매니저 서비스를
 구성하고 다음을 확인한 뒤 종료한다.
