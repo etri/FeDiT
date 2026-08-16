@@ -1912,6 +1912,7 @@ def build_pipeline_inputs(namespace: str, dataset_id: str, version: int, req) ->
     params = {
         "dataset_url": dataset_url,
         "target_column": target_column,
+        "task": ds.get("task") or "classification",
         "threshold": req.threshold,
         "max_attempts": req.max_attempts,
         "registered_name": registered_name,

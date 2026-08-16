@@ -1,3 +1,15 @@
+# PIPELINE DEFINITION
+# Name: weekly-retrain
+# Description: 사용자 namespace 전용 MLflow 에 기록하는 주간 재학습 예제.
+# Inputs:
+#    dataset_url: str [Default: '']
+#    max_attempts: int [Default: 10.0]
+#    mlflow_uri: str [Default: '']
+#    namespace: str [Default: '']
+#    registered_name: str [Default: 'weekly-auto-demo']
+#    target_column: str [Default: 'target']
+#    task: str [Default: 'classification']
+#    threshold: float [Default: 0.9]
 components:
   comp-train-until-threshold:
     executorLabel: exec-train-until-threshold
@@ -27,6 +39,10 @@ components:
           defaultValue: target
           isOptional: true
           parameterType: STRING
+        task:
+          defaultValue: classification
+          isOptional: true
+          parameterType: STRING
         threshold:
           defaultValue: 0.9
           isOptional: true
@@ -47,10 +63,12 @@ deploymentSpec:
         command:
         - sh
         - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install\
-          \ python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'mlflow>=3.0'\
-          \ 'requests' 'pyarrow>=15.0'  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.16.1' '--no-deps'\
-          \ 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n"
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'mlflow>=3.0'\
+          \ 'requests' 'pyarrow>=15.0'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.16.1' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -61,96 +79,209 @@ deploymentSpec:
           _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
           '
-        - "import kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef train_until_threshold(\n  \
-          \  dataset_url: str = \"\",\n    target_column: str = \"target\",\n    threshold: float = 0.90,\n    max_attempts:\
-          \ int = 10,\n    registered_name: str = \"weekly-auto-demo\",\n    namespace: str = \"\",\n    mlflow_uri: str =\
-          \ \"\",\n) -> dict:\n    \"\"\"임계값 달성까지 반복 학습하고, 성공 시 namespace 전용 MLflow Registry 에 등록.\"\"\"\n    import csv\n\
-          \    import io\n    import os\n    import random\n    import urllib.request\n\n    import mlflow\n    import mlflow.pyfunc\n\
-          \    import requests\n\n    def current_namespace() -> str:\n        if namespace:\n            return namespace\n\
-          \        for key in (\"POD_NAMESPACE\", \"NAMESPACE\", \"KFP_NAMESPACE\"):\n            value = os.environ.get(key)\n\
-          \            if value:\n                return value\n        try:\n            with open(\"/var/run/secrets/kubernetes.io/serviceaccount/namespace\"\
-          ) as f:\n                return f.read().strip()\n        except OSError:\n            return \"kubeflow-admin\"\
-          \n\n    run_namespace = current_namespace()\n    tracking_uri = mlflow_uri or f\"http://pm-mlflow.{run_namespace}.svc.cluster.local:5000\"\
-          \n    experiment_name = f\"pipeline-{run_namespace}-{registered_name}\"\n\n    class ThresholdClassifier(mlflow.pyfunc.PythonModel):\n\
-          \        def __init__(self, feature_names, weights, bias, positive_label, negative_label):\n            self.feature_names\
-          \ = feature_names\n            self.weights = weights\n            self.bias = bias\n            self.positive_label\
-          \ = positive_label\n            self.negative_label = negative_label\n\n        def _records(self, model_input):\n\
-          \            if hasattr(model_input, \"to_dict\"):\n                return model_input.to_dict(orient=\"records\"\
-          )\n            if isinstance(model_input, list):\n                if not model_input:\n                    return\
-          \ []\n                if isinstance(model_input[0], dict):\n                    return model_input\n           \
-          \     return [\n                    {name: value for name, value in zip(self.feature_names, row)}\n            \
-          \        for row in model_input\n                ]\n            return []\n\n        def predict(self, context,\
-          \ model_input):\n            preds = []\n            for row in self._records(model_input):\n                score\
-          \ = self.bias\n                for name, weight in zip(self.feature_names, self.weights):\n                    try:\n\
-          \                        score += float(row.get(name, 0) or 0) * weight\n                    except Exception:\n\
-          \                        pass\n                preds.append(self.positive_label if score >= 0 else self.negative_label)\n\
-          \            return preds\n\n    def synthetic_rows():\n        rows = []\n        rng = random.Random(42)\n   \
-          \     for _ in range(240):\n            x1 = rng.uniform(-3, 3)\n            x2 = rng.uniform(-3, 3)\n         \
-          \   x3 = rng.uniform(-3, 3)\n            signal = 0.7 * x1 + 0.35 * x2 - 0.55 * x3 + rng.uniform(-0.25, 0.25)\n\
-          \            rows.append({\"x1\": x1, \"x2\": x2, \"x3\": x3, target_column: \"ok\" if signal >= 0 else \"ng\"})\n\
-          \        return rows\n\n    def _looks_like_parquet(content: bytes, headers) -> bool:\n        content_type = str(headers.get(\"\
-          Content-Type\", \"\")).lower()\n        disposition = str(headers.get(\"Content-Disposition\", \"\")).lower()\n\
-          \        url_path = dataset_url.split(\"?\", 1)[0].lower()\n        return (\n            content.startswith(b\"\
-          PAR1\")\n            or content.endswith(b\"PAR1\")\n            or url_path.endswith(\".parquet\")\n          \
-          \  or \"parquet\" in content_type\n            or \".parquet\" in disposition\n        )\n\n    def load_rows():\n\
-          \        if not dataset_url:\n            return synthetic_rows()\n        with urllib.request.urlopen(dataset_url,\
-          \ timeout=20) as resp:\n            content = resp.read()\n            headers = resp.headers\n        if _looks_like_parquet(content,\
-          \ headers):\n            import pyarrow.parquet as pq\n\n            table = pq.read_table(io.BytesIO(content))\n\
-          \            return [dict(row) for row in table.to_pylist()]\n        text = content.decode(\"utf-8-sig\")\n   \
-          \     return list(csv.DictReader(io.StringIO(text)))\n\n    def to_float(value):\n        try:\n            if value\
-          \ is None or value == \"\":\n                return 0.0\n            return float(value)\n        except Exception:\n\
-          \            return None\n\n    raw_rows = load_rows()\n    if not raw_rows:\n        raise ValueError(\"dataset\
-          \ is empty\")\n    if target_column not in raw_rows[0]:\n        raise ValueError(f\"target column not found: {target_column}\"\
-          )\n\n    feature_names = [\n        key for key in raw_rows[0].keys()\n        if key != target_column and to_float(raw_rows[0].get(key))\
-          \ is not None\n    ]\n    if not feature_names:\n        raise ValueError(\"no numeric feature columns found\")\n\
-          \n    rows = []\n    for row in raw_rows:\n        label = str(row.get(target_column, \"\"))\n        features =\
-          \ {name: to_float(row.get(name)) or 0.0 for name in feature_names}\n        rows.append((features, label))\n\n \
-          \   labels = sorted({label for _, label in rows})\n    if len(labels) != 2:\n        raise ValueError(\"this example\
-          \ supports binary classification only\")\n    negative_label, positive_label = labels[0], labels[1]\n\n    rng =\
-          \ random.Random(20260511)\n    rng.shuffle(rows)\n    split = max(1, int(len(rows) * 0.8))\n    train_rows = rows[:split]\n\
-          \    test_rows = rows[split:] or rows[:]\n\n    def train_candidate(attempt):\n        grouped = {positive_label:\
-          \ [], negative_label: []}\n        for features, label in train_rows:\n            grouped[label].append(features)\n\
-          \n        weights = []\n        for name in feature_names:\n            pos_mean = sum(r[name] for r in grouped[positive_label])\
-          \ / max(1, len(grouped[positive_label]))\n            neg_mean = sum(r[name] for r in grouped[negative_label]) /\
-          \ max(1, len(grouped[negative_label]))\n            noise = random.Random(attempt * 1009 + len(name)).uniform(-0.05,\
-          \ 0.05)\n            weights.append(pos_mean - neg_mean + noise)\n\n        midpoint = []\n        for name in feature_names:\n\
-          \            pos_mean = sum(r[name] for r in grouped[positive_label]) / max(1, len(grouped[positive_label]))\n \
-          \           neg_mean = sum(r[name] for r in grouped[negative_label]) / max(1, len(grouped[negative_label]))\n  \
-          \          midpoint.append((pos_mean + neg_mean) / 2.0)\n        bias = -sum(w * m for w, m in zip(weights, midpoint))\n\
-          \        bias += random.Random(attempt * 917).uniform(-0.02, 0.02)\n        return weights, bias\n\n    def evaluate(weights,\
-          \ bias):\n        ok = 0\n        for features, label in test_rows:\n            score = bias + sum((features[name]\
-          \ * weight) for name, weight in zip(feature_names, weights))\n            pred = positive_label if score >= 0 else\
-          \ negative_label\n            ok += int(pred == label)\n        return ok / max(1, len(test_rows))\n\n    mlflow.set_tracking_uri(tracking_uri)\n\
-          \    mlflow.set_experiment(experiment_name)\n\n    best_score = -1.0\n    best_run_id = \"\"\n    attempts_used\
-          \ = 0\n\n    for attempt in range(max_attempts):\n        attempts_used = attempt + 1\n        weights, bias = train_candidate(attempt)\n\
-          \        score = evaluate(weights, bias)\n\n        with mlflow.start_run(run_name=f\"attempt-{attempts_used}\"\
-          ) as run:\n            mlflow.set_tag(\"pm.source\", \"pipeline\")\n            mlflow.set_tag(\"pm.namespace\"\
-          , run_namespace)\n            mlflow.set_tag(\"pipeline.registered_name\", registered_name)\n            mlflow.log_param(\"\
-          features\", \",\".join(feature_names))\n            mlflow.log_param(\"attempt\", attempts_used)\n            mlflow.log_metric(\"\
-          score\", score)\n            mlflow.log_metric(\"threshold\", threshold)\n\n            if score > best_score:\n\
-          \                best_score = score\n                best_run_id = run.info.run_id\n                model = ThresholdClassifier(\n\
-          \                    feature_names=feature_names,\n                    weights=weights,\n                    bias=bias,\n\
-          \                    positive_label=positive_label,\n                    negative_label=negative_label,\n      \
-          \          )\n                mlflow.pyfunc.log_model(\n                    name=\"model\",\n                  \
-          \  python_model=model,\n                )\n\n        print(f\"[attempt {attempts_used}] score={score:.4f} threshold={threshold}\"\
-          )\n        if score >= threshold:\n            print(\"threshold reached; stop retraining\")\n            break\n\
-          \n    status = \"ok\" if best_score >= threshold else \"below_threshold\"\n    version = \"\"\n    if status ==\
-          \ \"ok\" and best_run_id:\n        requests.post(\n            f\"{tracking_uri}/api/2.0/mlflow/registered-models/create\"\
-          ,\n            json={\"name\": registered_name},\n            timeout=10,\n        )\n        created = requests.post(\n\
-          \            f\"{tracking_uri}/api/2.0/mlflow/model-versions/create\",\n            json={\n                \"name\"\
-          : registered_name,\n                \"source\": f\"runs:/{best_run_id}/model\",\n                \"run_id\": best_run_id,\n\
-          \            },\n            timeout=10,\n        )\n        created.raise_for_status()\n        version = created.json().get(\"\
-          model_version\", {}).get(\"version\", \"\")\n        if version:\n            requests.post(\n                f\"\
-          {tracking_uri}/api/2.0/mlflow/model-versions/transition-stage\",\n                json={\n                    \"\
-          name\": registered_name,\n                    \"version\": version,\n                    \"stage\": \"Production\"\
-          ,\n                    \"archive_existing_versions\": True,\n                },\n                timeout=10,\n \
-          \           )\n        print(f\"registry updated: {registered_name} v{version}\")\n\n    return {\n        \"status\"\
-          : status,\n        \"namespace\": run_namespace,\n        \"mlflow_uri\": tracking_uri,\n        \"experiment_name\"\
-          : experiment_name,\n        \"best_score\": float(best_score),\n        \"attempts_used\": attempts_used,\n    \
-          \    \"best_run_id\": best_run_id,\n        \"registered_version\": version,\n    }\n"
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef train_until_threshold(\n    dataset_url: str = \"\",\n    target_column:\
+          \ str = \"target\",\n    task: str = \"classification\",\n    threshold:\
+          \ float = 0.90,\n    max_attempts: int = 10,\n    registered_name: str =\
+          \ \"weekly-auto-demo\",\n    namespace: str = \"\",\n    mlflow_uri: str\
+          \ = \"\",\n) -> dict:\n    \"\"\"\uC784\uACC4\uAC12 \uB2EC\uC131\uAE4C\uC9C0\
+          \ \uBC18\uBCF5 \uD559\uC2B5\uD558\uACE0, \uC131\uACF5 \uC2DC namespace \uC804\
+          \uC6A9 MLflow Registry \uC5D0 \uB4F1\uB85D.\"\"\"\n    import csv\n    import\
+          \ io\n    import os\n    import random\n    import urllib.request\n\n  \
+          \  import mlflow\n    import mlflow.pyfunc\n    import requests\n\n    def\
+          \ current_namespace() -> str:\n        if namespace:\n            return\
+          \ namespace\n        for key in (\"POD_NAMESPACE\", \"NAMESPACE\", \"KFP_NAMESPACE\"\
+          ):\n            value = os.environ.get(key)\n            if value:\n   \
+          \             return value\n        try:\n            with open(\"/var/run/secrets/kubernetes.io/serviceaccount/namespace\"\
+          ) as f:\n                return f.read().strip()\n        except OSError:\n\
+          \            return \"kubeflow-admin\"\n\n    run_namespace = current_namespace()\n\
+          \    tracking_uri = mlflow_uri or f\"http://pm-mlflow.{run_namespace}.svc.cluster.local:5000\"\
+          \n    experiment_name = f\"pipeline-{run_namespace}-{registered_name}\"\n\
+          \n    class PipelinePredictor(mlflow.pyfunc.PythonModel):\n        def __init__(\n\
+          \            self,\n            feature_names,\n            weights,\n \
+          \           bias,\n            task_name,\n            positive_label=\"\
+          \",\n            negative_label=\"\",\n            feature_centers=None,\n\
+          \            feature_scales=None,\n            target_center=0.0,\n    \
+          \        target_scale=1.0,\n        ):\n            self.feature_names =\
+          \ feature_names\n            self.weights = weights\n            self.bias\
+          \ = bias\n            self.task_name = task_name\n            self.positive_label\
+          \ = positive_label\n            self.negative_label = negative_label\n \
+          \           self.feature_centers = feature_centers or {}\n            self.feature_scales\
+          \ = feature_scales or {}\n            self.target_center = target_center\n\
+          \            self.target_scale = target_scale\n\n        def _records(self,\
+          \ model_input):\n            if hasattr(model_input, \"to_dict\"):\n   \
+          \             return model_input.to_dict(orient=\"records\")\n         \
+          \   if isinstance(model_input, list):\n                if not model_input:\n\
+          \                    return []\n                if isinstance(model_input[0],\
+          \ dict):\n                    return model_input\n                return\
+          \ [\n                    {name: value for name, value in zip(self.feature_names,\
+          \ row)}\n                    for row in model_input\n                ]\n\
+          \            return []\n\n        def predict(self, context, model_input):\n\
+          \            preds = []\n            for row in self._records(model_input):\n\
+          \                score = self.bias\n                for name, weight in\
+          \ zip(self.feature_names, self.weights):\n                    try:\n   \
+          \                     value = float(row.get(name, 0) or 0)\n           \
+          \             if self.task_name == \"regression\":\n                   \
+          \         value = (value - self.feature_centers.get(name, 0.0)) / self.feature_scales.get(name,\
+          \ 1.0)\n                        score += value * weight\n              \
+          \      except Exception:\n                        pass\n               \
+          \ if self.task_name == \"regression\":\n                    preds.append(score\
+          \ * self.target_scale + self.target_center)\n                else:\n   \
+          \                 preds.append(self.positive_label if score >= 0 else self.negative_label)\n\
+          \            return preds\n\n    def synthetic_rows():\n        rows = []\n\
+          \        rng = random.Random(42)\n        for _ in range(240):\n       \
+          \     x1 = rng.uniform(-3, 3)\n            x2 = rng.uniform(-3, 3)\n   \
+          \         x3 = rng.uniform(-3, 3)\n            signal = 0.7 * x1 + 0.35\
+          \ * x2 - 0.55 * x3 + rng.uniform(-0.25, 0.25)\n            target = signal\
+          \ if task == \"regression\" else (\"ok\" if signal >= 0 else \"ng\")\n \
+          \           rows.append({\"x1\": x1, \"x2\": x2, \"x3\": x3, target_column:\
+          \ target})\n        return rows\n\n    def _looks_like_parquet(content:\
+          \ bytes, headers) -> bool:\n        content_type = str(headers.get(\"Content-Type\"\
+          , \"\")).lower()\n        disposition = str(headers.get(\"Content-Disposition\"\
+          , \"\")).lower()\n        url_path = dataset_url.split(\"?\", 1)[0].lower()\n\
+          \        return (\n            content.startswith(b\"PAR1\")\n         \
+          \   or content.endswith(b\"PAR1\")\n            or url_path.endswith(\"\
+          .parquet\")\n            or \"parquet\" in content_type\n            or\
+          \ \".parquet\" in disposition\n        )\n\n    def load_rows():\n     \
+          \   if not dataset_url:\n            return synthetic_rows()\n        with\
+          \ urllib.request.urlopen(dataset_url, timeout=20) as resp:\n           \
+          \ content = resp.read()\n            headers = resp.headers\n        if\
+          \ _looks_like_parquet(content, headers):\n            import pyarrow.parquet\
+          \ as pq\n\n            table = pq.read_table(io.BytesIO(content))\n    \
+          \        return [dict(row) for row in table.to_pylist()]\n        text =\
+          \ content.decode(\"utf-8-sig\")\n        return list(csv.DictReader(io.StringIO(text)))\n\
+          \n    def to_float(value):\n        try:\n            if value is None or\
+          \ value == \"\":\n                return 0.0\n            return float(value)\n\
+          \        except Exception:\n            return None\n\n    task = str(task\
+          \ or \"classification\").strip().lower()\n    if task not in {\"classification\"\
+          , \"regression\"}:\n        raise ValueError(\"task must be classification\
+          \ or regression\")\n\n    raw_rows = load_rows()\n    if not raw_rows:\n\
+          \        raise ValueError(\"dataset is empty\")\n    if target_column not\
+          \ in raw_rows[0]:\n        raise ValueError(f\"target column not found:\
+          \ {target_column}\")\n\n    feature_names = [\n        key for key in raw_rows[0].keys()\n\
+          \        if key != target_column and to_float(raw_rows[0].get(key)) is not\
+          \ None\n    ]\n    if not feature_names:\n        raise ValueError(\"no\
+          \ numeric feature columns found\")\n\n    rows = []\n    for row in raw_rows:\n\
+          \        features = {name: to_float(row.get(name)) or 0.0 for name in feature_names}\n\
+          \        if task == \"regression\":\n            target_value = to_float(row.get(target_column))\n\
+          \            if target_value is None:\n                raise ValueError(f\"\
+          regression target is not numeric: {target_column}\")\n            rows.append((features,\
+          \ target_value))\n        else:\n            rows.append((features, str(row.get(target_column,\
+          \ \"\"))))\n\n    positive_label = \"\"\n    negative_label = \"\"\n   \
+          \ if task == \"classification\":\n        labels = sorted({label for _,\
+          \ label in rows})\n        if len(labels) != 2:\n            raise ValueError(\"\
+          classification pipeline supports exactly two target labels\")\n        negative_label,\
+          \ positive_label = labels[0], labels[1]\n\n    rng = random.Random(20260511)\n\
+          \    rng.shuffle(rows)\n    split = max(1, int(len(rows) * 0.8))\n    train_rows\
+          \ = rows[:split]\n    test_rows = rows[split:] or rows[:]\n\n    def train_candidate(attempt):\n\
+          \        if task == \"regression\":\n            feature_centers = {\n \
+          \               name: sum(features[name] for features, _ in train_rows)\
+          \ / max(1, len(train_rows))\n                for name in feature_names\n\
+          \            }\n            feature_scales = {\n                name: max(\n\
+          \                    1.0e-9,\n                    (sum((features[name] -\
+          \ feature_centers[name]) ** 2 for features, _ in train_rows) / max(1, len(train_rows)))\
+          \ ** 0.5,\n                )\n                for name in feature_names\n\
+          \            }\n            targets = [float(value) for _, value in train_rows]\n\
+          \            target_center = sum(targets) / max(1, len(targets))\n     \
+          \       target_scale = max(1.0e-9, (sum((value - target_center) ** 2 for\
+          \ value in targets) / max(1, len(targets))) ** 0.5)\n            weights\
+          \ = [0.0 for _ in feature_names]\n            bias = 0.0\n            for\
+          \ _ in range(800):\n                grad_weights = [0.0 for _ in feature_names]\n\
+          \                grad_bias = 0.0\n                for features, value in\
+          \ train_rows:\n                    values = [(features[name] - feature_centers[name])\
+          \ / feature_scales[name] for name in feature_names]\n                  \
+          \  expected = (float(value) - target_center) / target_scale\n          \
+          \          error = bias + sum(weight * item for weight, item in zip(weights,\
+          \ values)) - expected\n                    grad_bias += error\n        \
+          \            for index, item in enumerate(values):\n                   \
+          \     grad_weights[index] += error * item\n                count = max(1,\
+          \ len(train_rows))\n                bias -= 0.12 * grad_bias / count\n \
+          \               weights = [weight - 0.12 * gradient / count for weight,\
+          \ gradient in zip(weights, grad_weights)]\n            return weights, bias,\
+          \ {\n                \"feature_centers\": feature_centers,\n           \
+          \     \"feature_scales\": feature_scales,\n                \"target_center\"\
+          : target_center,\n                \"target_scale\": target_scale,\n    \
+          \        }\n\n        grouped = {positive_label: [], negative_label: []}\n\
+          \        for features, label in train_rows:\n            grouped[label].append(features)\n\
+          \        weights = []\n        for name in feature_names:\n            pos_mean\
+          \ = sum(r[name] for r in grouped[positive_label]) / max(1, len(grouped[positive_label]))\n\
+          \            neg_mean = sum(r[name] for r in grouped[negative_label]) /\
+          \ max(1, len(grouped[negative_label]))\n            noise = random.Random(attempt\
+          \ * 1009 + len(name)).uniform(-0.05, 0.05)\n            weights.append(pos_mean\
+          \ - neg_mean + noise)\n        midpoint = []\n        for name in feature_names:\n\
+          \            pos_mean = sum(r[name] for r in grouped[positive_label]) /\
+          \ max(1, len(grouped[positive_label]))\n            neg_mean = sum(r[name]\
+          \ for r in grouped[negative_label]) / max(1, len(grouped[negative_label]))\n\
+          \            midpoint.append((pos_mean + neg_mean) / 2.0)\n        bias\
+          \ = -sum(w * m for w, m in zip(weights, midpoint))\n        bias += random.Random(attempt\
+          \ * 917).uniform(-0.02, 0.02)\n        return weights, bias, {}\n\n    def\
+          \ evaluate(weights, bias, model_context):\n        if task == \"regression\"\
+          :\n            errors = []\n            for features, value in test_rows:\n\
+          \                normalized = [\n                    (features[name] - model_context[\"\
+          feature_centers\"][name]) / model_context[\"feature_scales\"][name]\n  \
+          \                  for name in feature_names\n                ]\n      \
+          \          predicted = (bias + sum(weight * item for weight, item in zip(weights,\
+          \ normalized))) * model_context[\"target_scale\"] + model_context[\"target_center\"\
+          ]\n                errors.append(abs(predicted - float(value)))\n      \
+          \      scale = max(model_context[\"target_scale\"], 1.0e-9)\n          \
+          \  return 1.0 / (1.0 + (sum(errors) / max(1, len(errors))) / scale)\n  \
+          \      ok = 0\n        for features, label in test_rows:\n            score\
+          \ = bias + sum((features[name] * weight) for name, weight in zip(feature_names,\
+          \ weights))\n            pred = positive_label if score >= 0 else negative_label\n\
+          \            ok += int(pred == label)\n        return ok / max(1, len(test_rows))\n\
+          \n    mlflow.set_tracking_uri(tracking_uri)\n    mlflow.set_experiment(experiment_name)\n\
+          \n    best_score = -1.0\n    best_run_id = \"\"\n    best_model_uri = \"\
+          \"\n    attempts_used = 0\n\n    for attempt in range(max_attempts):\n \
+          \       attempts_used = attempt + 1\n        weights, bias, model_context\
+          \ = train_candidate(attempt)\n        score = evaluate(weights, bias, model_context)\n\
+          \n        with mlflow.start_run(run_name=f\"attempt-{attempts_used}\") as\
+          \ run:\n            mlflow.set_tag(\"pm.source\", \"pipeline\")\n      \
+          \      mlflow.set_tag(\"pm.namespace\", run_namespace)\n            mlflow.set_tag(\"\
+          pipeline.registered_name\", registered_name)\n            mlflow.log_param(\"\
+          features\", \",\".join(feature_names))\n            mlflow.log_param(\"\
+          attempt\", attempts_used)\n            mlflow.log_metric(\"score\", score)\n\
+          \            mlflow.log_metric(\"threshold\", threshold)\n\n           \
+          \ if score > best_score:\n                best_score = score\n         \
+          \       best_run_id = run.info.run_id\n                model = PipelinePredictor(\n\
+          \                    feature_names=feature_names,\n                    weights=weights,\n\
+          \                    bias=bias,\n                    task_name=task,\n \
+          \                   positive_label=positive_label,\n                   \
+          \ negative_label=negative_label,\n                    **model_context,\n\
+          \                )\n                model_info = mlflow.pyfunc.log_model(\n\
+          \                    name=\"model\",\n                    python_model=model,\n\
+          \                )\n                # MLflow 3 stores logged models independently\
+          \ from a Run's\n                # legacy artifact folder.  Keep the returned\
+          \ models:/ URI so\n                # the registry step does not point to\
+          \ a missing runs:/model.\n                best_model_uri = getattr(model_info,\
+          \ \"model_uri\", \"\") or f\"runs:/{best_run_id}/model\"\n\n        print(f\"\
+          [attempt {attempts_used}] score={score:.4f} threshold={threshold}\")\n \
+          \       if score >= threshold:\n            print(\"threshold reached; stop\
+          \ retraining\")\n            break\n\n    status = \"ok\" if best_score\
+          \ >= threshold else \"below_threshold\"\n    version = \"\"\n    if status\
+          \ == \"ok\" and best_run_id and best_model_uri:\n        requests.post(\n\
+          \            f\"{tracking_uri}/api/2.0/mlflow/registered-models/create\"\
+          ,\n            json={\"name\": registered_name},\n            timeout=10,\n\
+          \        )\n        created = requests.post(\n            f\"{tracking_uri}/api/2.0/mlflow/model-versions/create\"\
+          ,\n            json={\n                \"name\": registered_name,\n    \
+          \            \"source\": best_model_uri,\n                \"run_id\": best_run_id,\n\
+          \            },\n            timeout=10,\n        )\n        created.raise_for_status()\n\
+          \        version = created.json().get(\"model_version\", {}).get(\"version\"\
+          , \"\")\n        if version:\n            requests.post(\n             \
+          \   f\"{tracking_uri}/api/2.0/mlflow/model-versions/transition-stage\",\n\
+          \                json={\n                    \"name\": registered_name,\n\
+          \                    \"version\": version,\n                    \"stage\"\
+          : \"Production\",\n                    \"archive_existing_versions\": True,\n\
+          \                },\n                timeout=10,\n            )\n      \
+          \  print(f\"registry updated: {registered_name} v{version}\")\n\n    return\
+          \ {\n        \"status\": status,\n        \"namespace\": run_namespace,\n\
+          \        \"mlflow_uri\": tracking_uri,\n        \"experiment_name\": experiment_name,\n\
+          \        \"best_score\": float(best_score),\n        \"attempts_used\":\
+          \ attempts_used,\n        \"best_run_id\": best_run_id,\n        \"best_model_uri\"\
+          : best_model_uri,\n        \"registered_version\": version,\n    }\n\n"
         image: python:3.10-slim
 pipelineInfo:
-  description: 사용자 namespace 전용 MLflow 에 기록하는 주간 재학습 예제.
+  description: "\uC0AC\uC6A9\uC790 namespace \uC804\uC6A9 MLflow \uC5D0 \uAE30\uB85D\
+    \uD558\uB294 \uC8FC\uAC04 \uC7AC\uD559\uC2B5 \uC608\uC81C."
   name: weekly-retrain
 root:
   dag:
@@ -173,6 +304,8 @@ root:
               componentInputParameter: registered_name
             target_column:
               componentInputParameter: target_column
+            task:
+              componentInputParameter: task
             threshold:
               componentInputParameter: threshold
         taskInfo:
@@ -201,6 +334,10 @@ root:
         parameterType: STRING
       target_column:
         defaultValue: target
+        isOptional: true
+        parameterType: STRING
+      task:
+        defaultValue: classification
         isOptional: true
         parameterType: STRING
       threshold:

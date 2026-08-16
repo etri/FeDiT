@@ -24,6 +24,3 @@ spec:
         - namespaceSelector:
             matchLabels:
               prediction-manager.io/tenant: "true"
-          podSelector:
-            matchLabels:
-              app: pm-user-nifi

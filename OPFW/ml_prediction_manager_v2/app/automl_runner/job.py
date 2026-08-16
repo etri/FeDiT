@@ -296,6 +296,47 @@ def _mlflow_pip_requirements() -> list[str]:
         "joblib",
     ]
 
+
+def _find_candidate_model_reference(
+    tracking_uri: str,
+    experiment_name: str,
+    job_id: str,
+    model_id: str,
+    trial_id: str,
+) -> tuple[str, str] | None:
+    """Find the MLflow 3 LoggedModel written by a Ray worker.
+
+    Ray Tune keeps only numeric values in a trial result.  A worker therefore
+    cannot return an MLflow ``models:/`` URI through ``tune.report``.  The
+    worker records a stable trial tag instead and the driver resolves that tag
+    after ranking the trials.
+    """
+    if not trial_id:
+        return None
+    try:
+        client = mlflow.tracking.MlflowClient(tracking_uri=tracking_uri)
+        experiment = client.get_experiment_by_name(experiment_name)
+        if not experiment:
+            return None
+        filters = " and ".join([
+            f"tags.`automl.job_id` = '{job_id}'",
+            f"tags.`automl.model` = '{model_id}'",
+            f"tags.`automl.ray_trial_id` = '{trial_id}'",
+        ])
+        runs = client.search_runs(
+            [experiment.experiment_id],
+            filter_string=filters,
+            order_by=["attributes.start_time DESC"],
+            max_results=10,
+        )
+        for run in runs:
+            artifact_uri = (run.data.tags or {}).get("automl.model_uri")
+            if artifact_uri and artifact_uri.startswith(("models:/", "runs:/")):
+                return run.info.run_id, artifact_uri
+    except Exception as error:
+        print(f"[AutoML] candidate model reference lookup failed: {error}", flush=True)
+    return None
+
 def _train_fn_builder(
     model_id: str,
     task: str,
@@ -340,10 +381,12 @@ def _train_fn_builder(
                     _mlflow.set_tracking_uri(mlflow_uri)
                     _mlflow.set_experiment(experiment_name)
                     input_example = _pd.DataFrame([{c: 0.0 for c in X.columns}])
+                    ray_trial_id = tune.get_context().get_trial_id()
                     with _mlflow.start_run(run_name=f"candidate-{model_id}") as mrun:
                         tags = dict(base_tags or {})
                         tags.update({
                             "automl.model": model_id,
+                            "automl.ray_trial_id": ray_trial_id,
                             "automl.task": task,
                             "framework": _MODEL_FRAMEWORK_MAP.get(model_id, "unknown"),
                             "framework.version": _get_framework_version(model_id),
@@ -365,14 +408,17 @@ def _train_fn_builder(
                         )
                         _mlflow.log_artifact(model_file, artifact_path="model")
                         _mlflow.log_artifact(features_file, artifact_path="model")
-                        metrics["_model_run_id"] = mrun.info.run_id
-                        metrics["_model_artifact_uri"] = (
+                        model_artifact_uri = (
                             getattr(model_info, "model_uri", None)
                             or f"runs:/{mrun.info.run_id}/model"
                         )
+                        # Persist the non-numeric model reference in MLflow.
+                        # Ray Tune result metrics intentionally discard string
+                        # metadata, so the driver resolves this tag by trial ID.
+                        _mlflow.set_tag("automl.model_uri", model_artifact_uri)
                         print(
                             f"[AutoML] worker log_model OK for {model_id}: "
-                            f"{metrics['_model_artifact_uri']}",
+                            f"{model_artifact_uri}",
                             flush=True,
                         )
                 except Exception as e:
@@ -617,11 +663,19 @@ def run(cfg: dict) -> dict:
             # 각 top-N 모델을 MLflow artifact로 업로드 (job-level run)
             saved_models = []
             for rank, t in enumerate(top_trials, 1):
-                if t.get("model_run_id") and t.get("model_artifact_uri"):
+                candidate_reference = _find_candidate_model_reference(
+                    mlflow_uri,
+                    cfg["experiment_name"],
+                    cfg["job_id"],
+                    model_id,
+                    t.get("trial_id") or "",
+                )
+                if candidate_reference:
+                    candidate_run_id, candidate_artifact_uri = candidate_reference
                     try:
                         client = mlflow.tracking.MlflowClient(tracking_uri=mlflow_uri)
-                        client.set_tag(t["model_run_id"], "automl.rank", str(rank))
-                        client.set_tag(t["model_run_id"], "automl.top_model", "true")
+                        client.set_tag(candidate_run_id, "automl.rank", str(rank))
+                        client.set_tag(candidate_run_id, "automl.top_model", "true")
                     except Exception as _e:
                         print(f"[AutoML] top model tag update failed: {_e}", flush=True)
                     saved_models.append({
@@ -630,8 +684,8 @@ def run(cfg: dict) -> dict:
                         "score": t["score"],
                         "metric": primary,
                         "params": t["config"],
-                        "run_id": t["model_run_id"],
-                        "artifact_path": t["model_artifact_uri"],
+                        "run_id": candidate_run_id,
+                        "artifact_path": candidate_artifact_uri,
                         "virtual_path": f"/workspace/models/automl/{cfg['job_id']}/{model_id}_rank{rank}",
                     })
                     continue
@@ -763,6 +817,11 @@ def run(cfg: dict) -> dict:
     reverse = mode == "max"
     valid.sort(key=lambda r: r["best_metric"], reverse=reverse)
     overall_best = valid[0] if valid else None
+    if overall_best and not overall_best.get("top_models"):
+        raise RuntimeError(
+            "AutoML 학습은 완료됐지만 서빙 가능한 MLflow 모델 아티팩트를 저장하지 못했습니다. "
+            "MLflow 연결과 Ray worker 로그를 확인한 뒤 다시 실행해 주세요."
+        )
     print(f"[AutoML] Overall best: {overall_best}", flush=True)
     done_payload = {
         "event": "done",

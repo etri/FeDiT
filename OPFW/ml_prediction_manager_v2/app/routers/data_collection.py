@@ -97,11 +97,11 @@ async def update_twin(twin_id: str, req: TwinUpdateRequest, request: Request):
 
 
 @router.delete("/twins/{twin_id}")
-async def delete_twin(twin_id: str, request: Request):
+async def delete_twin(twin_id: str, request: Request, purge_records: bool = False):
     require_authenticated(request)
     namespace = get_user_namespace(request)
     try:
-        return data_collection_service.delete_twin(namespace, twin_id)
+        return data_collection_service.delete_twin(namespace, twin_id, purge_records=purge_records)
     except ValueError as e:
         raise _not_found_or_bad_request(e)
 

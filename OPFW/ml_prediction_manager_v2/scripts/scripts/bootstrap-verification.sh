@@ -2828,8 +2828,11 @@ MLFLOW_IMAGE_TAG=${MLFLOW_IMAGE_TAG}
 DEFAULT_NAMESPACE=kubeflow-user-example-com
 KUBEFLOW_URL=${KUBEFLOW_URL}
 PROMETHEUS_URL=http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
-DATASET_INTERNAL_BASE_URL=http://istio-ingressgateway.istio-system.svc.cluster.local/prediction-manager
-FEEDBACK_DATASET_INTERNAL_BASE_URL=http://istio-ingressgateway.istio-system.svc.cluster.local/prediction-manager
+# Pipeline 작업 Pod는 Ingress 인증을 거치지 않고 Prediction Manager 서비스에
+# 직접 접근해야 한다. Ingress URL을 사용하면 다운로드 토큰이 있어도 인증 필터에서
+# 401이 발생해 데이터셋 기반 재학습이 시작되지 않는다.
+DATASET_INTERNAL_BASE_URL=http://prediction-manager.kubeflow.svc.cluster.local
+FEEDBACK_DATASET_INTERNAL_BASE_URL=http://prediction-manager.kubeflow.svc.cluster.local
 LABEL_STUDIO_URL=http://label-studio.kubeflow.svc.cluster.local
 LABEL_STUDIO_API_TOKEN=
 ADMIN_EMAILS=${VERIFICATION_ADMIN_EMAIL}
