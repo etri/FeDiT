@@ -1828,30 +1828,29 @@ PY
 }
 
 prime_kfp_execution_images() {
-  # A KFP run needs two images that are not referenced by the Kubeflow
-  # installation manifest: Argo creates its executor image at run time and
-  # KFP creates the driver image from the compiled pipeline specification.
-  # On a clean host this otherwise becomes an ImagePullBackOff only after a
-  # user presses "Pipeline 실행", which makes the installation look healthy
-  # while an essential service cannot execute work.
-  #
-  # The old gcr.io argoexec tag used by KFP 2.3 is no longer reliably served.
-  # The matching upstream Argo 3.4.17 image is published on Quay.  We load it
-  # first and register the exact reference expected by KFP in containerd, so
-  # no browser-facing registry or additional host port is required.
+  # A KFP run needs images that are not otherwise requested until a user
+  # actually starts a pipeline.  The old upstream executor reference is no
+  # longer served reliably.  Merely importing it into containerd at install
+  # time is not sufficient in the clean Docker lab: the CRI cache can be
+  # rebuilt after an outer-container restart.  Mirror the supported upstream
+  # executor into the installer-managed persistent registry and make the
+  # generated workflow-controller manifest use that mirror.  The registry is
+  # loopback-only; this does not expose another browser-facing port.
   local argo_source="quay.io/argoproj/argoexec:v3.4.17"
-  local argo_target="gcr.io/ml-pipeline/argoexec:v3.4.17-license-compliance"
+  local argo_target="${REGISTRY_HOST}/kfp-argoexec:v3.4.17-license-compliance"
   local kfp_driver="gcr.io/ml-pipeline/kfp-driver@sha256:dc8b56a2eb071f30409828a8884d621092e68385af11a6c06aa9e9fbcfbb19de"
   local component_image="python:3.10-slim"
 
-  retry_kubernetes_image_pull "$argo_source"
-  ctr --namespace k8s.io images tag "$argo_source" "$argo_target"
+  retry_command 5 10 "KFP Argo executor source pull" docker pull "$argo_source"
+  docker tag "$argo_source" "$argo_target"
+  retry_command 5 10 "KFP Argo executor persistent mirror push" docker push "$argo_target"
+  retry_kubernetes_image_pull "$argo_target"
   retry_kubernetes_image_pull "$kfp_driver"
   retry_kubernetes_image_pull "$component_image"
   crictl inspecti "$argo_target" >/dev/null
   crictl inspecti "$kfp_driver" >/dev/null
   crictl inspecti "$component_image" >/dev/null
-  record PASS "KFP 실행 이미지 준비" "Argo executor, KFP driver, Python component"
+  record PASS "KFP 실행 이미지 준비" "재시작 후에도 유지되는 Argo executor mirror, KFP driver, Python component"
 }
 
 prime_manifest_images() {
@@ -2243,7 +2242,8 @@ install_kubeflow() {
     "${KUBEFLOW_MANIFESTS_DIR}/example-verification/kustomization.yaml"
   kustomize build "${KUBEFLOW_MANIFESTS_DIR}/example-verification" \
     > "${GENERATED_DIR}/kubeflow.yaml"
-  python3 - "${GENERATED_DIR}/kubeflow.yaml" <<'PY'
+  python3 - "${GENERATED_DIR}/kubeflow.yaml" \
+    "${REGISTRY_HOST}/kfp-argoexec:v3.4.17-license-compliance" <<'PY'
 import re
 import sys
 from pathlib import Path
@@ -2251,6 +2251,7 @@ from pathlib import Path
 import yaml
 
 path = Path(sys.argv[1])
+executor_image = sys.argv[2]
 text = path.read_text(encoding="utf-8")
 text = re.sub(
     r"(?m)^(\s*image:\s*)(?:gcr\.io/ml-pipeline/minio|minio/minio):[^\s]+$",
@@ -2265,6 +2266,14 @@ text = text.replace(
     "gcr.io/ml-pipeline/frontend:2.3.0",
     "ghcr.io/kubeflow/kfp-frontend:2.4.1",
 )
+# KFP 2.3's generated workflow controller references an executor tag that is
+# no longer published upstream.  Use the persistent, node-private mirror
+# prepared before this manifest is applied so a host/container restart cannot
+# turn the next user pipeline into ImagePullBackOff.
+old_executor_image = "gcr.io/ml-pipeline/argoexec:v3.4.17-license-compliance"
+if old_executor_image not in text and executor_image not in text:
+    raise SystemExit("KFP workflow executor image was not found in the generated manifest")
+text = text.replace(old_executor_image, executor_image)
 # Kubeflow contains a few Always policies. Reusing a successfully cached image
 # makes resume reliable when Docker Hub/CDN briefly resets a large download.
 text = text.replace("imagePullPolicy: Always", "imagePullPolicy: IfNotPresent")
