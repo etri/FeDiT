@@ -31,7 +31,7 @@ from app.routers import (
     monitoring,
     data_collection,
 )
-from app.services import kubernetes_client
+from app.services import kubernetes_client, monitoring_service
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("prediction-manager")
@@ -90,11 +90,29 @@ async def standalone_api_docs() -> _HTMLResponse:
     )
 
 
-def _standalone_platform_page(title: str, subtitle: str, tabs: list[str], empty_text: str) -> _HTMLResponse:
+def _standalone_platform_page(
+    title: str,
+    subtitle: str,
+    tabs: list[str],
+    empty_text: str,
+    *,
+    metrics: list[tuple[str, str]] | None = None,
+    content: str | None = None,
+) -> _HTMLResponse:
     tab_markup = "".join(
         f'<button class="tab" type="button" onclick="selectTab(this)">{_escape(tab)}</button>'
         for tab in tabs
     )
+    metric_items = metrics or [
+        ("Service", "Available"),
+        ("Active resources", "0"),
+        ("Last update", "Ready"),
+    ]
+    metric_markup = "".join(
+        f'<div class="metric">{_escape(label)}<b>{_escape(value)}</b></div>'
+        for label, value in metric_items
+    )
+    content_markup = content or f'<div class="empty" role="status">{_escape(empty_text)}</div>'
     html = f"""<!doctype html>
 <html lang="ko">
 <head>
@@ -117,6 +135,13 @@ def _standalone_platform_page(title: str, subtitle: str, tabs: list[str], empty_
     .grid {{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-bottom:24px; }}
     .metric {{ background:#f8fafc; border-radius:10px; padding:16px; }}
     .metric b {{ display:block; font-size:22px; margin-top:7px; }}
+    .endpoint-table {{ width:100%; border-collapse:collapse; }}
+    .endpoint-table th, .endpoint-table td {{ text-align:left; padding:13px 10px; border-bottom:1px solid #e2e8f0; }}
+    .endpoint-table th {{ color:#64748b; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }}
+    .state {{ display:inline-block; border-radius:999px; padding:4px 9px; font-size:12px; font-weight:700; }}
+    .state.ready {{ color:#18794e; background:#ecfbf3; }}
+    .state.pending {{ color:#9a6700; background:#fff8c5; }}
+    .refresh {{ float:right; border:1px solid #bfdbfe; background:#eff6ff; color:#1d4ed8; border-radius:7px; padding:7px 10px; cursor:pointer; }}
     @media(max-width:720px) {{ .shell {{ padding:18px; }} .head {{ display:block; }} .status {{ display:inline-block; margin-top:16px; }} .grid {{ grid-template-columns:1fr; }} }}
   </style>
 </head>
@@ -125,8 +150,8 @@ def _standalone_platform_page(title: str, subtitle: str, tabs: list[str], empty_
     <div class="head"><div><h1>{_escape(title)}</h1><p class="subtitle">{_escape(subtitle)}</p></div><div class="status">Service connected · standalone mode</div></div>
     <nav class="tabs" aria-label="{_escape(title)} sections">{tab_markup}</nav>
     <section class="card">
-      <div class="grid"><div class="metric">Service<b>Available</b></div><div class="metric">Active resources<b>0</b></div><div class="metric">Last update<b>Ready</b></div></div>
-      <div class="empty" role="status">{_escape(empty_text)}</div>
+      <div class="grid">{metric_markup}</div>
+      {content_markup}
     </section>
   </main>
   <script>function selectTab(button){{document.querySelectorAll('.tab').forEach(function(item){{item.classList.remove('active')}});button.classList.add('active')}}document.querySelector('.tab')?.classList.add('active');</script>
@@ -155,13 +180,71 @@ async def standalone_tensorboards():
     )
 
 
+def _standalone_namespace(request: Request) -> str:
+    """Return a namespace the current user is allowed to inspect in a sub-app."""
+    default_namespace = get_user_namespace(request)
+    requested = request.query_params.get("ns", "").strip()
+    if not requested:
+        return default_namespace
+    if is_admin(request):
+        return requested
+    accessible = {
+        item.get("namespace")
+        for item in get_user_accessible_namespaces(request)
+        if item.get("namespace")
+    }
+    return requested if requested in accessible else default_namespace
+
+
 @app.get("/kserve-endpoints/", include_in_schema=False)
-async def standalone_kserve_endpoints():
+async def standalone_kserve_endpoints(request: Request):
+    """Show live InferenceService state after AutoML one-click serving."""
+    namespace = _standalone_namespace(request)
+    result = monitoring_service.get_kserve_endpoints(namespace=namespace)
+    endpoints = sorted(result.get("endpoints", []), key=lambda item: item["name"])
+    ready_count = sum(1 for endpoint in endpoints if endpoint.get("ready"))
+    if result.get("error"):
+        content = (
+            '<div class="empty" role="alert">KServe 상태를 읽을 수 없습니다. '
+            '클러스터 연결과 권한을 확인한 후 새로고침하십시오.</div>'
+        )
+        last_update = "Unavailable"
+    elif not endpoints:
+        content = (
+            '<div class="empty" role="status">현재 이 네임스페이스에 배포된 '
+            'KServe 엔드포인트가 없습니다. AutoML 결과에서 서빙을 실행하면 '
+            '여기에 실제 배포 상태가 표시됩니다.</div>'
+        )
+        last_update = "Ready"
+    else:
+        rows = "".join(
+            "<tr data-name=\"{name}\"><td><strong>{name}</strong></td>"
+            "<td>{namespace}</td><td><span class=\"state {state_class}\">{state}</span></td></tr>".format(
+                name=_escape(endpoint["name"]),
+                namespace=_escape(endpoint["namespace"]),
+                state_class="ready" if endpoint.get("ready") else "pending",
+                state="Ready" if endpoint.get("ready") else "Not ready",
+            )
+            for endpoint in endpoints
+        )
+        content = (
+            '<button class="refresh" type="button" onclick="window.location.reload()">새로고침</button>'
+            '<table class="endpoint-table"><thead><tr><th>Endpoint</th><th>Namespace</th>'
+            '<th>Status</th></tr></thead><tbody>'
+            f"{rows}</tbody></table>"
+        )
+        last_update = "Live"
     return _standalone_platform_page(
         "KServe Endpoints",
         "Model serving endpoint status and inference operations",
         ["Endpoints", "Revisions", "Inference"],
-        "No serving endpoint is deployed yet. The endpoint management screen is available and ready for a KServe cluster.",
+        "",
+        metrics=[
+            ("Namespace", namespace),
+            ("Active resources", str(len(endpoints))),
+            ("Ready endpoints", f"{ready_count} · {last_update}"),
+        ],
+        content=content,
     )
 
 

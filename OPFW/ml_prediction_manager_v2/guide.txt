@@ -220,8 +220,10 @@ AutoML 결과 원클릭 서빙:
    따라서 최초 서빙과 Docker/Kubernetes 재시작 뒤의 서빙도 외부 이미지 pull
    또는 controller의 잘못된 loopback 조회 때문에 별도 실패하거나 장시간
    무응답 상태가 되지 않아야 한다.
-4. KServe 메뉴에서 Ready endpoint를 확인하고, 모델 입력 schema에 맞는 실제
-   추론 요청을 수행해 결과를 확인한다.
+4. KServe 메뉴에서 방금 배포한 endpoint 이름과 `Ready` 상태를 확인한다. 이
+   화면은 선택한 사용자 namespace의 실제 InferenceService 목록을 읽어 표시하며,
+   고정된 빈 안내 화면을 성공 증거로 사용하지 않는다. 이어서 모델 관리 화면에서
+   모델 입력 schema에 맞는 실제 추론 요청을 수행해 HTTP 200 결과를 확인한다.
 5. 시험이 끝나면 KServe UI에서 endpoint를 삭제하고, 시험용 AutoML job 및
    임시 PVC를 정리한다.
 
