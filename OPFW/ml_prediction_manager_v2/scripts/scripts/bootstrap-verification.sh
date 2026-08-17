@@ -154,6 +154,12 @@ fi
 : "${IMAGE_PULL_RETRY_ATTEMPTS:=12}"
 : "${IMAGE_PULL_RETRY_DELAY_SECONDS:=15}"
 : "${IMAGE_PULL_TIMEOUT_SECONDS:=300}"
+# The MLServer runtime is about 11 GiB.  On a clean nested Docker host its
+# first containerd unpack can legitimately exceed the generic image timeout;
+# use a dedicated bound instead of recording a recoverable timeout as a
+# failed installation step and then copying the same image a second time.
+: "${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:=900}"
+: "${CONTAINERD_IMAGE_VISIBILITY_TIMEOUT_SECONDS:=180}"
 # One failed CRI download is enough to prefer the Docker fallback.  In the
 # affected CDN condition the next CRI attempt only repeats the same reset,
 # while Docker can retrieve and hand the image back to containerd immediately.
@@ -1689,23 +1695,39 @@ apply_with_retry() {
 }
 
 retry_kubernetes_image_pull() {
-  local image="$1"
+  local image="$1" pull_timeout="$IMAGE_PULL_TIMEOUT_SECONDS" attempt
   # containerd occasionally receives a reset from a registry CDN even though
   # the Docker daemon on the same host can complete the identical download.
   # Try CRI first because it is the normal Kubernetes path, then use Docker as
   # a bounded fallback and import the verified image into containerd.  This
   # keeps a clean host installation progressing without publishing a registry
   # port or relying on a machine-specific image cache.
-  if retry_command "$IMAGE_PULL_CRIO_ATTEMPTS" "$IMAGE_PULL_RETRY_DELAY_SECONDS" \
-    "Kubernetes image pull: ${image}" timeout "${IMAGE_PULL_TIMEOUT_SECONDS}s" crictl pull "$image"; then
-    return 0
-  fi
+  case "$image" in
+    *kserve-mlserver*|*seldonio/mlserver*)
+      pull_timeout="$LARGE_IMAGE_PULL_TIMEOUT_SECONDS"
+      ;;
+  esac
+  for attempt in $(seq 1 "$IMAGE_PULL_CRIO_ATTEMPTS"); do
+    if timeout "${pull_timeout}s" crictl pull "$image"; then
+      return 0
+    fi
+    if ((attempt < IMAGE_PULL_CRIO_ATTEMPTS)); then
+      sleep "$IMAGE_PULL_RETRY_DELAY_SECONDS"
+    fi
+  done
 
   warn "CRI image pull 재시도 한도를 초과하여 Docker 경유로 전환합니다: ${image}"
   retry_command "$IMAGE_PULL_RETRY_ATTEMPTS" "$IMAGE_PULL_RETRY_DELAY_SECONDS" \
-    "Docker fallback image pull: ${image}" timeout "${IMAGE_PULL_TIMEOUT_SECONDS}s" docker pull "$image"
+    "Docker fallback image pull: ${image}" timeout "${pull_timeout}s" docker pull "$image"
   docker image save "$image" | ctr --namespace k8s.io images import -
-  crictl inspecti "$image" >/dev/null
+  for _ in $(seq 1 "$CONTAINERD_IMAGE_VISIBILITY_TIMEOUT_SECONDS"); do
+    if crictl inspecti "$image" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "containerd image import 후에도 이미지가 표시되지 않습니다: ${image}" >&2
+  return 1
 }
 
 recover_image_pull_failures() {
