@@ -371,7 +371,8 @@ def _input_schema_from_source(source: str | None, namespace: str | None = None) 
         else:
             inputs = []
         columns = []
-        kserve_inputs = []
+        default_values = []
+        datatypes = []
         for item in inputs:
             if not isinstance(item, dict):
                 continue
@@ -385,15 +386,35 @@ def _input_schema_from_source(source: str | None, namespace: str | None = None) 
                 "required": item.get("required", True),
                 "datatype": datatype,
             })
-            kserve_inputs.append({
-                "name": name,
-                "shape": [1],
-                "datatype": datatype,
-                "data": [_schema_default_value(datatype)],
-            })
+            default_values.append(_schema_default_value(datatype))
+            datatypes.append(datatype)
+
+        # MLflow column signatures describe one dataframe-like feature row.
+        # MLServer's V2 NumPy codec, which serves the sklearn/pyfunc artifacts
+        # used by AutoML, accepts that row as *one* tensor.  Sending one V2
+        # input for every dataframe column makes MLServer reject the request
+        # ("np codec only supports a single input tensor").  Keep the column
+        # metadata for the UI, but construct a single feature tensor for the
+        # runnable default request.  AutoML currently creates numeric models;
+        # use FP64 when its columns have mixed numeric precisions so every
+        # feature still has one valid common tensor datatype.
+        serving_payload = None
+        if default_values:
+            numeric_types = {"FP64", "FP32", "INT64", "INT32"}
+            unique_types = set(datatypes)
+            if unique_types.issubset(numeric_types):
+                datatype = "FP64" if len(unique_types) > 1 else datatypes[0]
+                serving_payload = {
+                    "inputs": [{
+                        "name": "input-0",
+                        "shape": [1, len(default_values)],
+                        "datatype": datatype,
+                        "data": default_values,
+                    }],
+                }
         result = {
             "columns": columns,
-            "serving_payload": {"inputs": kserve_inputs} if kserve_inputs else None,
+            "serving_payload": serving_payload,
         } if columns else None
     except Exception as e:
         print(f"[registry] input schema read failed for {source}: {e}", flush=True)

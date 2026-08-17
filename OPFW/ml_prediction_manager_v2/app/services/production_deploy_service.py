@@ -594,7 +594,14 @@ def test_production(
     payload: dict[str, Any],
     timeout_seconds: float = 60,
 ) -> dict:
-    """Send a test inference request to the model's Production KServe endpoint."""
+    """Send a test inference request to the model's Production KServe endpoint.
+
+    Knative may scale a Production endpoint to zero.  The first request can
+    therefore receive KServe's transient ``model is not ready yet`` response
+    while the revision is starting.  Retry only that documented cold-start
+    condition within the caller's requested timeout; payload and model errors
+    are returned immediately so the UI remains an accurate diagnostic tool.
+    """
     import httpx
 
     status = get_production_status(model_name, namespace)
@@ -607,12 +614,34 @@ def test_production(
     else:
         url = f"{service_url}/v2/models/{isvc_name}/infer"
     started = time.monotonic()
-    try:
-        resp = httpx.post(url, json=payload, timeout=timeout_seconds)
-    except httpx.TimeoutException as e:
-        raise RuntimeError("KServe 테스트 요청 timeout") from e
-    except httpx.RequestError as e:
-        raise RuntimeError(f"KServe 테스트 요청 실패: {e}") from e
+    deadline = started + max(float(timeout_seconds), 1.0)
+    resp = None
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise RuntimeError("KServe 테스트 요청 timeout")
+        try:
+            # The total deadline remains authoritative across all cold-start
+            # retries, while a healthy but genuinely slow inference still
+            # receives the full timeout selected in the UI.
+            resp = httpx.post(url, json=payload, timeout=remaining)
+        except httpx.TimeoutException as e:
+            raise RuntimeError("KServe 테스트 요청 timeout") from e
+        except httpx.RequestError as e:
+            raise RuntimeError(f"KServe 테스트 요청 실패: {e}") from e
+
+        transient_body = resp.text.lower()
+        cold_start = (
+            resp.status_code in {400, 404, 503}
+            and "not ready yet" in transient_body
+        )
+        if not cold_start:
+            break
+        if time.monotonic() >= deadline:
+            break
+        time.sleep(min(2.0, max(0.0, deadline - time.monotonic())))
+
+    assert resp is not None
     elapsed_ms = int((time.monotonic() - started) * 1000)
     content_type = resp.headers.get("content-type", "")
     response_json: Any | None = None
