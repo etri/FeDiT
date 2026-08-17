@@ -1284,6 +1284,10 @@ def get_model_owner_namespace(name: str, namespace: str | None = None) -> str | 
                 return namespace
         except Exception:
             return None
+        # The scoped lookup is the recursion base case.  Without this return,
+        # a deleted model falls through to the tenant-wide loop below, which
+        # invokes the same scoped lookup again for every namespace forever.
+        return None
     if tenant_resources.TENANT_RESOURCES_ENABLED:
         for ns in tenant_resources.known_profile_namespaces():
             found = get_model_owner_namespace(name, namespace=ns)
