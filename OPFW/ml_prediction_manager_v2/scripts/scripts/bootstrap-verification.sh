@@ -3139,6 +3139,29 @@ start_port_forward() {
   }
 }
 
+start_pod_port_forward() {
+  local namespace="$1" pod="$2" mapping="$3" log_name="$4" stale_pid
+  # A Service forward resolves one backing Pod when it is opened.  During a
+  # rolling update that may be the old, terminating Pod even after the Service
+  # itself has healthy endpoints.  Final validation must instead bind to the
+  # specifically selected Ready Pod below.
+  while IFS= read -r stale_pid; do
+    [[ "$stale_pid" =~ ^[0-9]+$ ]] || continue
+    kill "$stale_pid" 2>/dev/null || true
+  done < <(pgrep -f "^kubectl -n ${namespace} port-forward pod/${pod} ${mapping}$" 2>/dev/null || true)
+  kubectl -n "$namespace" port-forward "pod/${pod}" "$mapping" \
+    > "${RESULT_DIR}/${log_name}.log" 2>&1 &
+  local pid=$!
+  FORWARD_PIDS+=("$pid")
+  sleep 2
+  kill -0 "$pid" 2>/dev/null || { cat "${RESULT_DIR}/${log_name}.log" >&2; return 1; }
+  local local_port="${mapping%%:*}"
+  ss -ltn "sport = :${local_port}" | grep -q LISTEN || {
+    cat "${RESULT_DIR}/${log_name}.log" >&2
+    return 1
+  }
+}
+
 provision_tenant_resources() {
   if ! bool_true "$PROVISION_DEFAULT_TENANT"; then
     record SKIP "기본 tenant 리소스" "PROVISION_DEFAULT_TENANT=false"
@@ -3507,7 +3530,22 @@ final_validation() {
     kill "$stale_pf_pid" 2>/dev/null || true
   done < <(pgrep -f "^kubectl -n kubeflow port-forward( --address=[^[:space:]]+)? service/prediction-manager ${PM_HEALTHCHECK_PORT}:80$" 2>/dev/null || true)
   sleep 1
-  start_port_forward kubeflow prediction-manager "${PM_HEALTHCHECK_PORT}:80" pm-port-forward-final
+  # Do not forward through the Service here: during a rollout kubectl can bind
+  # it to an old terminating replica.  Select its actual Ready Pod only after
+  # rollout completion, then retain that exact endpoint for the HTTP checks.
+  kubectl -n kubeflow rollout status deployment/prediction-manager --timeout=300s
+  local pm_ready_pod=""
+  for _ in $(seq 1 30); do
+    pm_ready_pod="$(kubectl -n kubeflow get pods -l app=prediction-manager -o json | jq -r '
+      .items[]
+      | select(.status.phase == "Running")
+      | select(any(.status.conditions[]?; .type == "Ready" and .status == "True"))
+      | .metadata.name' | head -n 1)"
+    [[ -n "$pm_ready_pod" ]] && break
+    sleep 2
+  done
+  [[ -n "$pm_ready_pod" ]] || { echo "Ready Prediction Manager Pod를 찾지 못했습니다." >&2; return 1; }
+  start_pod_port_forward kubeflow "$pm_ready_pod" "${PM_HEALTHCHECK_PORT}:8000" pm-port-forward-final
   curl -fsS --retry 30 --retry-all-errors --retry-delay 2 \
     "http://127.0.0.1:${PM_HEALTHCHECK_PORT}/healthz" \
     > "${RESULT_DIR}/prediction-manager-healthz.json"
