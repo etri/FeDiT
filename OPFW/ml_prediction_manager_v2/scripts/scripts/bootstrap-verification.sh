@@ -1831,6 +1831,41 @@ PY
   done
 }
 
+prime_knative_control_plane_images() {
+  # The Kubeflow bootstrap manifest creates the Knative admission and
+  # networking control plane in one apply.  On a clean single-node machine,
+  # letting kubelet unpack those images concurrently can leave the net-istio
+  # webhook in PodInitializing beyond the certificate-repair rollout window.
+  # Fetch this mandatory control-plane set in sequence before the apply.
+  local manifest="$1" image
+  local -a images=()
+  mapfile -t images < <(
+    python3 - "$manifest" <<'PY'
+import sys
+from pathlib import Path
+
+import yaml
+
+for document in yaml.safe_load_all(Path(sys.argv[1]).read_text(encoding="utf-8")):
+    if not isinstance(document, dict) or document.get("kind") != "Deployment":
+        continue
+    metadata = document.get("metadata") or {}
+    if metadata.get("namespace") != "knative-serving":
+        continue
+    spec = ((document.get("spec") or {}).get("template") or {}).get("spec") or {}
+    for container in list(spec.get("initContainers") or []) + list(spec.get("containers") or []):
+        image = container.get("image")
+        if image:
+            print(image)
+PY
+  )
+  for image in "${images[@]:-}"; do
+    [[ -n "$image" ]] || continue
+    retry_kubernetes_image_pull "$image"
+  done
+  record PASS "Knative 제어면 이미지 준비" "${#images[@]}개 이미지"
+}
+
 prime_kubeflow_core_images() {
   local manifest="$1" image
   local -a images=()
@@ -2297,7 +2332,10 @@ repair_knative_net_istio_webhook_certificate() {
     )
   done
   kubectl -n "$namespace" rollout restart deployment/net-istio-webhook
-  wait_rollout_if_exists "$namespace" deployment net-istio-webhook 300s
+  # Final sidecar and network initialization is asynchronous on a clean
+  # nested containerd.  Keep this bounded, but do not misclassify a healthy
+  # installation solely because it exceeds the former five-minute limit.
+  wait_rollout_if_exists "$namespace" deployment net-istio-webhook 900s
   record PASS "Knative net-istio webhook TLS" "빈 인증서 Secret 복구 및 admission CA 갱신"
 }
 
@@ -2389,6 +2427,7 @@ PY
   prime_kubeflow_core_images "${GENERATED_DIR}/kubeflow.yaml"
   prime_kfp_execution_images
   prime_kserve_controller_images "$kubeflow_bootstrap_manifest"
+  prime_knative_control_plane_images "$kubeflow_bootstrap_manifest"
   apply_with_retry "$kubeflow_bootstrap_manifest"
   wait_rollout_if_exists kubeflow deployment kserve-controller-manager 900s
   apply_with_retry "${GENERATED_DIR}/kubeflow.yaml"
