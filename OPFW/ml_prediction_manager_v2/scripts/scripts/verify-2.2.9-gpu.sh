@@ -295,9 +295,15 @@ EOF
   # The API accepts the deletion immediately, but the local-path helper and
   # kubelet may take longer to remove the backing directory.  Do not turn
   # that asynchronous housekeeping into a false functional-test timeout.
+  # A successful delete request is not sufficient before the restart
+  # regression that follows this suite: the local-path provisioner can still
+  # be terminating the pod/PVC.  Wait for both resources to disappear so a
+  # completed verification never carries test state into the next lifecycle.
   kubectl -n "$TEST_NAMESPACE" delete pod "${PREFIX}-pvc" --wait=false >/dev/null || return
   kubectl -n "$TEST_NAMESPACE" delete pvc "${PREFIX}-pvc" --wait=false >/dev/null || return
-  DETAIL="local-path PVC bind/write/read/delete 요청 통과"
+  kubectl -n "$TEST_NAMESPACE" wait --for=delete "pod/${PREFIX}-pvc" --timeout=180s >/dev/null || return
+  kubectl -n "$TEST_NAMESPACE" wait --for=delete "pvc/${PREFIX}-pvc" --timeout=180s >/dev/null || return
+  DETAIL="local-path PVC bind/write/read/delete 및 삭제 완료 확인 통과"
 }
 
 test_nifi_cycle() {
