@@ -1590,8 +1590,54 @@ wait_rollout_if_exists() {
   fi
 }
 
+download_verified_kubernetes_manifest() {
+  # Download external bootstrap manifests once into the invoking user's
+  # installation state.  `kubectl apply -f URL` has no durable cache and
+  # turns a temporary GitHub 429/reset into a failed clean installation.
+  # Keep the requested version in both the filename and content marker, then
+  # use the pinned jsDelivr GitHub mirror only when the canonical source is
+  # temporarily unavailable.
+  local label="$1" destination="$2" expected_marker="$3"
+  shift 3
+  local temporary source
+  if [[ -s "$destination" ]] \
+    && grep -q '^apiVersion:' "$destination" \
+    && grep -qF "$expected_marker" "$destination"; then
+    echo "[INFO] ${label}: 검증된 매니페스트 캐시 사용 (${destination})"
+    return 0
+  fi
+
+  mkdir -p "$DOWNLOADS_DIR"
+  for source in "$@"; do
+    temporary="$(mktemp "${DOWNLOADS_DIR}/.${label// /-}.XXXXXX")"
+    echo "[INFO] ${label}: ${source} 다운로드 시도"
+    if curl -fL --retry 12 --retry-all-errors --retry-delay 3 \
+      --connect-timeout 15 --max-time 240 "$source" -o "$temporary" \
+      && grep -q '^apiVersion:' "$temporary" \
+      && grep -qF "$expected_marker" "$temporary"; then
+      install -m 0644 "$temporary" "$destination"
+      chown "$ORIGINAL_USER:$ORIGINAL_GROUP" "$destination"
+      rm -f "$temporary"
+      return 0
+    fi
+    rm -f "$temporary"
+    echo "[WARN] ${label}: 다운로드 또는 버전 검증 실패, 다음 소스 시도" >&2
+  done
+  echo "${label} 매니페스트를 다운로드하거나 검증하지 못했습니다." >&2
+  return 1
+}
+
 install_cluster_addons() {
-  kubectl apply -f "https://raw.githubusercontent.com/projectcalico/calico/${CALICO_VERSION}/manifests/calico.yaml"
+  local calico_manifest local_path_manifest metrics_manifest
+  calico_manifest="${DOWNLOADS_DIR}/calico-${CALICO_VERSION}.yaml"
+  local_path_manifest="${DOWNLOADS_DIR}/local-path-${LOCAL_PATH_PROVISIONER_VERSION}.yaml"
+  metrics_manifest="${DOWNLOADS_DIR}/metrics-server-${METRICS_SERVER_VERSION}.yaml"
+
+  download_verified_kubernetes_manifest \
+    "Calico ${CALICO_VERSION}" "$calico_manifest" "calico/node:${CALICO_VERSION}" \
+    "https://raw.githubusercontent.com/projectcalico/calico/${CALICO_VERSION}/manifests/calico.yaml" \
+    "https://cdn.jsdelivr.net/gh/projectcalico/calico@${CALICO_VERSION}/manifests/calico.yaml"
+  kubectl apply -f "$calico_manifest"
   wait_rollout_if_exists kube-system daemonset calico-node 600s
   kubectl wait --for=condition=Ready nodes --all --timeout=600s
 
@@ -1602,11 +1648,18 @@ install_cluster_addons() {
   # normal retry/fallback path before the first PVC can be requested.
   retry_kubernetes_image_pull "rancher/local-path-provisioner:${LOCAL_PATH_PROVISIONER_VERSION}"
   retry_kubernetes_image_pull "busybox:latest"
-  kubectl apply -f "https://raw.githubusercontent.com/rancher/local-path-provisioner/${LOCAL_PATH_PROVISIONER_VERSION}/deploy/local-path-storage.yaml"
+  download_verified_kubernetes_manifest \
+    "local-path ${LOCAL_PATH_PROVISIONER_VERSION}" "$local_path_manifest" "local-path-provisioner:${LOCAL_PATH_PROVISIONER_VERSION}" \
+    "https://raw.githubusercontent.com/rancher/local-path-provisioner/${LOCAL_PATH_PROVISIONER_VERSION}/deploy/local-path-storage.yaml" \
+    "https://cdn.jsdelivr.net/gh/rancher/local-path-provisioner@${LOCAL_PATH_PROVISIONER_VERSION}/deploy/local-path-storage.yaml"
+  kubectl apply -f "$local_path_manifest"
   kubectl annotate storageclass local-path storageclass.kubernetes.io/is-default-class=true --overwrite
   wait_rollout_if_exists local-path-storage deployment local-path-provisioner 600s
 
-  kubectl apply -f "https://github.com/kubernetes-sigs/metrics-server/releases/download/${METRICS_SERVER_VERSION}/components.yaml"
+  download_verified_kubernetes_manifest \
+    "Metrics Server ${METRICS_SERVER_VERSION}" "$metrics_manifest" "metrics-server:${METRICS_SERVER_VERSION}" \
+    "https://github.com/kubernetes-sigs/metrics-server/releases/download/${METRICS_SERVER_VERSION}/components.yaml"
+  kubectl apply -f "$metrics_manifest"
   kubectl -n kube-system patch deployment metrics-server --type strategic -p '
 spec:
   template:
