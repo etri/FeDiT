@@ -483,18 +483,21 @@ EOF
   # tensorboard-name.  Selecting by an absent label fell back to a textual
   # match, which can select an old terminating ReplicaSet Pod during a
   # controller rollout.  Use only the actual Ready Pod behind the deployment.
-  pod="$(kubectl -n "$TEST_NAMESPACE" get pods -l "app=${K8S_PREFIX}-tb" -o json | jq -r '
-    .items[]
-    | select(.status.phase == "Running")
-    | select(any(.status.conditions[]?; .type == "Ready" and .status == "True"))
-    | .metadata.name' | head -n 1)"
-  [[ -n "$pod" ]] || { echo "TensorBoard pod missing"; return 1; }
   # The controller's Deployment Available condition can precede TensorBoard's
   # own initial data-server start by a few seconds on small-memory systems.
   # Confirm the actual HTTP UI with a bounded retry instead of treating that
   # harmless startup window as a functional failure.
   code=""
-  for attempt in $(seq 1 30); do
+  for attempt in $(seq 1 90); do
+    # The controller can replace a Ready Pod once more while it converges after
+    # a container restart.  Resolve the Ready endpoint for every probe rather
+    # than keeping a stale Pod name for the whole check.
+    pod="$(kubectl -n "$TEST_NAMESPACE" get pods -l "app=${K8S_PREFIX}-tb" -o json | jq -r '
+      .items[]
+      | select(.status.phase == "Running")
+      | select(any(.status.conditions[]?; .type == "Ready" and .status == "True"))
+      | .metadata.name' | head -n 1)"
+    [[ -n "$pod" ]] || { sleep 2; continue; }
     code="$(kubectl -n "$TEST_NAMESPACE" exec "$pod" -c tensorboard -- python -c \
       'import urllib.request; print(urllib.request.urlopen("http://127.0.0.1:6006/",timeout=5).status)' 2>/dev/null || true)"
     [[ "$code" == *200* ]] && break
