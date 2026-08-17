@@ -358,13 +358,12 @@ def _train_fn_builder(
         preds, proba = _fit_predict(model_id, model, X_train, y_train, X_test, task)
         metrics = _score_all(y_test, preds, task, proba=proba)
         metrics["model_id"] = model_id
-        # Report the completed score before artifact packaging.  MLflow model
-        # packaging can outlive a short Tune budget on compact CPU hosts; the
-        # result itself must not be discarded merely because artifact metadata
-        # is still being written.
-        tune.report(metrics)
-        # worker local 파일은 driver가 읽을 수 없으므로, worker에서 바로 MLflow에 모델을 남긴다.
+        # Worker-local files are not visible to the Ray driver. Persist the
+        # serving artifact before reporting a terminal Tune result: after
+        # ``tune.report`` Ray may tear the worker down, which otherwise leaves
+        # a successful-looking trial without an MLflow model artifact.
         try:
+            artifact_logged = False
             tmp_dir = tempfile.mkdtemp(prefix=f"automl_{model_id}_")
             model_file = os.path.join(tmp_dir, "model.joblib")
             features_file = os.path.join(tmp_dir, "features.json")
@@ -416,15 +415,29 @@ def _train_fn_builder(
                         # Ray Tune result metrics intentionally discard string
                         # metadata, so the driver resolves this tag by trial ID.
                         _mlflow.set_tag("automl.model_uri", model_artifact_uri)
+                        artifact_logged = True
                         print(
                             f"[AutoML] worker log_model OK for {model_id}: "
                             f"{model_artifact_uri}",
                             flush=True,
                         )
                 except Exception as e:
-                    print(f"[AutoML] worker log_model warning: {e}", flush=True)
+                    print(f"[AutoML] worker log_model failed: {e}", flush=True)
+                    raise RuntimeError(
+                        f"AutoML candidate MLflow artifact logging failed: {e}"
+                    ) from e
+            if not artifact_logged:
+                raise RuntimeError(
+                    "AutoML candidate MLflow artifact logging requires a tracking URI and experiment"
+                )
         except Exception as e:
             print(f"[AutoML] model save warning: {e}", flush=True)
+            raise RuntimeError(f"AutoML candidate artifact logging failed: {e}") from e
+
+        # The driver resolves this candidate by its MLflow tags and returns
+        # its run ID to the UI's one-click serving action. Do not rank it
+        # before the artifact write has completed.
+        tune.report(metrics)
         return
 
     return train_fn
@@ -764,6 +777,10 @@ def run(cfg: dict) -> dict:
                             # features.json은 별도 artifact로 유지 (serving 단계에서 참조)
                             if os.path.isfile(fj):
                                 mlflow.log_artifact(fj, artifact_path="model")
+                        if not model_artifact_uri:
+                            raise RuntimeError(
+                                f"serving artifact was not created for {model_id} rank{rank}"
+                            )
                         saved_models.append({
                             "rank": rank,
                             "model_id": model_id,

@@ -2794,6 +2794,7 @@ from pathlib import Path
 
 path = Path(sys.argv[1])
 text = path.read_text(encoding="utf-8")
+original = text
 
 replacements = [
     (
@@ -2844,28 +2845,18 @@ fallback_log_model_compact = '''                                    _model_info 
                                     )'''
 text = text.replace(fallback_log_model, fallback_log_model_compact)
 
-early_report = '''        metrics["model_id"] = model_id
-        # Report the completed score before artifact packaging.  MLflow model
-        # packaging can outlive a short Tune budget on compact CPU hosts; the
-        # result itself must not be discarded merely because artifact metadata
-        # is still being written.
-        tune.report(metrics)
-        # worker local 파일은 driver가 읽을 수 없으므로, worker에서 바로 MLflow에 모델을 남긴다.'''
-old_report = '''        metrics["model_id"] = model_id
-        # worker local 파일은 driver가 읽을 수 없으므로, worker에서 바로 MLflow에 모델을 남긴다.'''
-if early_report not in text:
-    if old_report not in text:
-        raise SystemExit('AutoML runner report insertion point was not found')
-    text = text.replace(old_report, early_report, 1)
+model_logging_pos = text.find('model_info = _mls.log_model')
+first_report_pos = text.find('        tune.report(metrics)')
+if model_logging_pos < 0 or first_report_pos < 0 or first_report_pos <= model_logging_pos:
+    raise SystemExit(
+        'AutoML runner must persist the MLflow model artifact before tune.report(metrics)'
+    )
 
-trailing_report = '        tune.report(metrics)\n\n    return train_fn'
-if trailing_report in text:
-    text = text.replace(trailing_report, '        return\n\n    return train_fn', 1)
-
-path.write_text(text, encoding="utf-8")
-print(f"patched: {path}")
+if text != original:
+    path.write_text(text, encoding="utf-8")
+print(f"prepared and validated: {path}")
 PY
-  record PASS "AutoML 실행 안정화" "짧은 CPU 시험에서도 점수 보고와 MLflow 모델 기록을 완료하도록 적용"
+  record PASS "AutoML 실행 안정화" "경량화 설정 적용 및 MLflow artifact 저장 후 Tune 결과 보고 순서 검증"
 }
 
 build_and_push_images() {
