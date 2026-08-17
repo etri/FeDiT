@@ -479,8 +479,15 @@ EOF
     --timeout="${TEST_ACTION_TIMEOUT_SECONDS}s" || return
   kubectl -n "$TEST_NAMESPACE" get service "${K8S_PREFIX}-tb" >/dev/null || return
   local pod code attempt
-  pod="$(kubectl -n "$TEST_NAMESPACE" get pods -l tensorboard-name="${K8S_PREFIX}-tb" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
-  [[ -n "$pod" ]] || pod="$(kubectl -n "$TEST_NAMESPACE" get pods -o name | grep "${K8S_PREFIX}-tb" | head -1 | cut -d/ -f2)"
+  # TensorBoard controller Pods are labelled app=<Tensorboard CR name>, not
+  # tensorboard-name.  Selecting by an absent label fell back to a textual
+  # match, which can select an old terminating ReplicaSet Pod during a
+  # controller rollout.  Use only the actual Ready Pod behind the deployment.
+  pod="$(kubectl -n "$TEST_NAMESPACE" get pods -l "app=${K8S_PREFIX}-tb" -o json | jq -r '
+    .items[]
+    | select(.status.phase == "Running")
+    | select(any(.status.conditions[]?; .type == "Ready" and .status == "True"))
+    | .metadata.name' | head -n 1)"
   [[ -n "$pod" ]] || { echo "TensorBoard pod missing"; return 1; }
   # The controller's Deployment Available condition can precede TensorBoard's
   # own initial data-server start by a few seconds on small-memory systems.
