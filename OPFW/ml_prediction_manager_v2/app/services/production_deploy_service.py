@@ -76,8 +76,19 @@ def _preflight_model_artifact(mlflow_uri: str, artifact_uri: str, model_format: 
             raise RuntimeError("MLflow artifact에 MLmodel 파일이 없습니다")
         if model_format == "onnx" and "model.onnx" not in names:
             raise RuntimeError("ONNX artifact에 model.onnx 파일이 없습니다")
-        if model_format == "sklearn" and "model.joblib" not in names:
-            raise RuntimeError("scikit-learn artifact에 model.joblib 파일이 없습니다")
+        # MLflow's sklearn flavor stores the serialized estimator as
+        # ``model.pkl``.  Directly uploaded sklearn packages use the
+        # Prediction Manager convention ``model.joblib``.  Both are valid
+        # sources for the MLServer sklearn runtime; the helper below
+        # normalizes the former to the latter on the serving PVC.
+        if model_format == "sklearn" and not {
+            "model.joblib",
+            "model.pkl",
+            "model.pickle",
+        }.intersection(names):
+            raise RuntimeError(
+                "scikit-learn artifact에 model.joblib, model.pkl 또는 model.pickle 파일이 없습니다"
+            )
         if model_format in {"xgboost", "lightgbm"} and "model.bst" not in names:
             raise RuntimeError(f"{model_format} artifact에 model.bst 파일이 없습니다")
         if model_format == "pytorch":
@@ -214,6 +225,16 @@ for name in os.listdir(local):
         shutil.copy2(src, dst)
     elif os.path.isdir(src):
         shutil.copytree(src, dst, dirs_exist_ok=True)
+# MLflow sklearn flavor serializes the estimator as model.pkl, while the
+# KServe MLServer sklearn runtime used by this deployment expects
+# model.joblib.  Preserve uploaded model.joblib files and normalize only the
+# standard MLflow name when necessary.
+if '{model_format}' == 'sklearn' and not os.path.exists('/target/model/model.joblib'):
+    for legacy_name in ('model.pkl', 'model.pickle'):
+        legacy_path = os.path.join('/target/model', legacy_name)
+        if os.path.exists(legacy_path):
+            shutil.copy2(legacy_path, '/target/model/model.joblib')
+            break
 {validation}
 print('files in /target/model:')
 for f in sorted(os.listdir('/target/model')):
