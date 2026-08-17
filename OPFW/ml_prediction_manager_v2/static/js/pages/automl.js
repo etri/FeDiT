@@ -1068,11 +1068,18 @@ async function deployModelAsKServe(data) {
         return;
     }
 
-    // 3) KServe 배포 (자동 scale-to-zero) — 사용자 입력 이름을 ISVC 이름으로도 사용
+    // 3) 모델 관리 화면과 같은 Production 배포 경로를 사용한다.  이전의
+    // AutoML 전용 KServe 생성 경로는 ISVC만 만들고 Registry version을
+    // Production으로 전환하지 않아, 배포는 Ready인데 모델 관리의 운영
+    // 테스트/중단 기능이 비활성인 분리 상태를 만들 수 있었다.
+    // 등록 직후 받은 정확한 version을 넘겨야 동명이인의 최신 version을
+    // 잘못 배포하지 않으며, 서버는 artifact 검증 → KServe Ready →
+    // Production stage 전환을 하나의 트랜잭션으로 처리한다.
     try {
-        const r = await API.post(`/api/automl/jobs/${data.jobid}/deploy`, {
-            run_id: data.run, rank: parseInt(data.rank), model_id: data.model,
-            serving_name: trimmed,
+        const r = await API.post(`/api/models/${encodeURIComponent(registered.name)}/deploy-production`, {
+            version: String(registered.version),
+            scale_to_zero: true,
+            reason: 'AutoML 결과 원클릭 서빙',
         });
         if (r.isvc_url) {
             alert(
