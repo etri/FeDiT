@@ -3162,6 +3162,45 @@ start_pod_port_forward() {
   }
 }
 
+select_stable_ready_pod() {
+  local namespace="$1" label_selector="$2" required_samples="${3:-3}"
+  local previous_pod="" ready_pod="" stable_samples=0
+
+  # A deployment can report a successful rollout while an asynchronous
+  # reconciliation is still replacing the just-selected endpoint.  Do not
+  # attach a validation port-forward to the first Ready Pod we observe: use
+  # the same non-terminating Ready Pod for several observations first.
+  for _ in $(seq 1 60); do
+    ready_pod="$(kubectl -n "$namespace" get pods -l "$label_selector" -o json | jq -r '
+      .items[]
+      | select(.metadata.deletionTimestamp == null)
+      | select(.status.phase == "Running")
+      | select(any(.status.conditions[]?; .type == "Ready" and .status == "True"))
+      | .metadata.name' | sort | head -n 1)"
+    if [[ -n "$ready_pod" && "$ready_pod" == "$previous_pod" ]]; then
+      stable_samples=$((stable_samples + 1))
+    else
+      previous_pod="$ready_pod"
+      stable_samples=1
+    fi
+    if [[ -n "$ready_pod" && "$stable_samples" -ge "$required_samples" ]]; then
+      printf '%s\n' "$ready_pod"
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
+
+stop_pod_port_forwards() {
+  local namespace="$1" mapping="$2" stale_pid
+  while IFS= read -r stale_pid; do
+    [[ "$stale_pid" =~ ^[0-9]+$ ]] || continue
+    kill "$stale_pid" 2>/dev/null || true
+  done < <(pgrep -f "^kubectl -n ${namespace} port-forward pod/.+ ${mapping}$" 2>/dev/null || true)
+  sleep 1
+}
+
 provision_tenant_resources() {
   if ! bool_true "$PROVISION_DEFAULT_TENANT"; then
     record SKIP "기본 tenant 리소스" "PROVISION_DEFAULT_TENANT=false"
@@ -3534,21 +3573,28 @@ final_validation() {
   # it to an old terminating replica.  Select its actual Ready Pod only after
   # rollout completion, then retain that exact endpoint for the HTTP checks.
   kubectl -n kubeflow rollout status deployment/prediction-manager --timeout=300s
-  local pm_ready_pod=""
-  for _ in $(seq 1 30); do
-    pm_ready_pod="$(kubectl -n kubeflow get pods -l app=prediction-manager -o json | jq -r '
-      .items[]
-      | select(.status.phase == "Running")
-      | select(any(.status.conditions[]?; .type == "Ready" and .status == "True"))
-      | .metadata.name' | head -n 1)"
-    [[ -n "$pm_ready_pod" ]] && break
-    sleep 2
+  local pm_ready_pod="" pm_validation_attempt=false
+  # Resource-profile and tenant reconciliation updates are asynchronous.  A
+  # port-forward is bound to one Pod and cannot recover after that Pod is
+  # replaced, so select a stable Ready endpoint and recreate the forward when
+  # any transient connection error proves that its endpoint disappeared.
+  for _ in $(seq 1 6); do
+    pm_ready_pod="$(select_stable_ready_pod kubeflow app=prediction-manager 3 || true)"
+    [[ -n "$pm_ready_pod" ]] || continue
+    stop_pod_port_forwards kubeflow "${PM_HEALTHCHECK_PORT}:8000"
+    start_pod_port_forward kubeflow "$pm_ready_pod" "${PM_HEALTHCHECK_PORT}:8000" pm-port-forward-final || continue
+    if curl -fsS --retry 5 --retry-all-errors --retry-delay 2 \
+      "http://127.0.0.1:${PM_HEALTHCHECK_PORT}/healthz" \
+      > "${RESULT_DIR}/prediction-manager-healthz.json"; then
+      pm_validation_attempt=true
+      break
+    fi
+    echo "Prediction Manager Ready Pod ${pm_ready_pod} 포트포워드가 교체되어 재선택합니다." >&2
   done
-  [[ -n "$pm_ready_pod" ]] || { echo "Ready Prediction Manager Pod를 찾지 못했습니다." >&2; return 1; }
-  start_pod_port_forward kubeflow "$pm_ready_pod" "${PM_HEALTHCHECK_PORT}:8000" pm-port-forward-final
-  curl -fsS --retry 30 --retry-all-errors --retry-delay 2 \
-    "http://127.0.0.1:${PM_HEALTHCHECK_PORT}/healthz" \
-    > "${RESULT_DIR}/prediction-manager-healthz.json"
+  [[ "$pm_validation_attempt" == true ]] || {
+    echo "안정된 Prediction Manager Ready Pod에 연결하지 못했습니다." >&2
+    return 1
+  }
   jq -e '.status == "ok"' "${RESULT_DIR}/prediction-manager-healthz.json" >/dev/null
   curl -fsS --retry 30 --retry-all-errors --retry-delay 2 \
     "http://127.0.0.1:${PM_HEALTHCHECK_PORT}/api/user-info" \
