@@ -389,7 +389,18 @@ detect_gpu_hardware() {
 
   command -v nvidia-smi >/dev/null 2>&1 || return 1
   local health line index model driver memory_mib
-  health="$(nvidia-smi -q 2>&1 || true)"
+  # A laptop GPU can report a transient recovery state while the NVIDIA
+  # container runtime, DCGM exporter, and Kubernetes device plugin are being
+  # restarted together.  Do not abort a clean install on one stale sample;
+  # require the reset state to persist across bounded fresh probes.
+  local gpu_health_attempt
+  for gpu_health_attempt in 1 2 3 4 5 6; do
+    health="$(timeout 15s nvidia-smi -q 2>&1 || true)"
+    if ! grep -q 'GPU requires reset' <<<"$health"; then
+      break
+    fi
+    [[ "$gpu_health_attempt" -eq 6 ]] || sleep 5
+  done
   if grep -q 'GPU requires reset' <<<"$health"; then
     echo "NVIDIA GPU가 reset 필요 상태입니다. 호스트를 재부팅하거나 승인된 GPU reset 절차를 먼저 수행하세요." >&2
     return 1
@@ -2342,17 +2353,57 @@ PY
 
 stabilize_kfp_metadata_service() {
   # metadata-grpc exits immediately when it starts before the MySQL first-run
-  # initialization has completed.  A pod restart after MySQL is Ready is
-  # enough to recover, but relying on kubelet's exponential backoff made a
-  # fresh installation look permanently stalled for several minutes.
+  # initialization has completed.  Two replicas can race while creating the
+  # MLMD schema, leaving MLMDEnv without its schema_version row; restarting
+  # both replicas only repeats that race.  Bootstrap one replica first, then
+  # restore the requested HA pair after MLMD is ready.
+  local metadata_deployment="metadata-grpc-deployment"
+  local metadata_selector="application-crd-id=kubeflow-pipelines,component=metadata-grpc-server"
+  local mysql_pod mysql_user mysql_password mlmd_state mlmd_rows
+
   wait_rollout_if_exists kubeflow deployment mysql 1200s
-  if kubectl -n kubeflow get deployment/metadata-grpc-deployment >/dev/null 2>&1; then
-    if ! kubectl -n kubeflow rollout status deployment/metadata-grpc-deployment --timeout=45s; then
-      warn "KFP metadata-grpc를 MySQL 준비 완료 후 다시 시작합니다."
-      kubectl -n kubeflow rollout restart deployment/metadata-grpc-deployment
-    fi
-    wait_rollout_if_exists kubeflow deployment metadata-grpc-deployment 1200s
+  if ! kubectl -n kubeflow get "deployment/${metadata_deployment}" >/dev/null 2>&1; then
+    return 0
   fi
+
+  mysql_pod="$(kubectl -n kubeflow get pod -l 'application-crd-id=kubeflow-pipelines,app=mysql' \
+    -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+  mysql_user="$(kubectl -n kubeflow get secret mysql-secret -o jsonpath='{.data.username}' \
+    2>/dev/null | base64 -d 2>/dev/null || true)"
+  mysql_password="$(kubectl -n kubeflow get secret mysql-secret -o jsonpath='{.data.password}' \
+    2>/dev/null | base64 -d 2>/dev/null || true)"
+
+  # The first manifest apply may already have created an empty/partial MLMD
+  # database.  On a genuinely empty database it is safe to recreate metadb;
+  # never drop a database that contains user metadata.
+  if [[ -n "$mysql_pod" && -n "$mysql_user" ]]; then
+    local mysql_auth=("-u${mysql_user}")
+    [[ -n "$mysql_password" ]] && mysql_auth+=("-p${mysql_password}")
+    mlmd_state="$(kubectl -n kubeflow exec "$mysql_pod" -c mysql -- \
+      mysql "${mysql_auth[@]}" -Nse \
+      "SELECT IF((SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='metadb' AND table_name='MLMDEnv')=0,'missing',IF((SELECT COUNT(*) FROM metadb.MLMDEnv)>0,'ready','empty'))" \
+      2>/dev/null || true)"
+    mlmd_rows="$(kubectl -n kubeflow exec "$mysql_pod" -c mysql -- \
+      mysql "${mysql_auth[@]}" -Nse \
+      "SELECT COALESCE(SUM(TABLE_ROWS),0) FROM information_schema.tables WHERE TABLE_SCHEMA='metadb'" \
+      2>/dev/null || true)"
+    if [[ "$mlmd_state" == "empty" && "${mlmd_rows:-0}" =~ ^0$ ]]; then
+      warn "빈 MLMD metadb 감지: 단일 metadata-grpc 파드로 초기화합니다."
+      kubectl -n kubeflow scale "deployment/${metadata_deployment}" --replicas=0 >/dev/null
+      kubectl -n kubeflow wait --for=delete pod -l "$metadata_selector" --timeout=120s >/dev/null 2>&1 || true
+      kubectl -n kubeflow exec "$mysql_pod" -c mysql -- mysql "${mysql_auth[@]}" -e \
+        "DROP DATABASE IF EXISTS metadb; CREATE DATABASE metadb;" >/dev/null
+    fi
+  fi
+
+  kubectl -n kubeflow scale "deployment/${metadata_deployment}" --replicas=1 >/dev/null
+  if ! kubectl -n kubeflow rollout status "deployment/${metadata_deployment}" --timeout=300s; then
+    warn "KFP metadata-grpc 단일 파드 초기화가 지연되어 파드를 재생성합니다."
+    kubectl -n kubeflow delete pod -l "$metadata_selector" --wait=true >/dev/null 2>&1 || true
+    kubectl -n kubeflow rollout status "deployment/${metadata_deployment}" --timeout=300s
+  fi
+  kubectl -n kubeflow scale "deployment/${metadata_deployment}" --replicas=2 >/dev/null
+  wait_rollout_if_exists kubeflow deployment "$metadata_deployment" 1200s
 }
 
 repair_knative_net_istio_webhook_certificate() {
