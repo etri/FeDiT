@@ -375,7 +375,13 @@ function _defaultProductionTestPayload(versionInfo, productionStatus) {
         return { instances: [[0.0]] };
     }
     const schemaPayload = versionInfo?.input_schema?.serving_payload;
-    if (schemaPayload?.inputs?.length) return schemaPayload;
+    if (schemaPayload?.inputs?.length) {
+        const hasNamedInputs = schemaPayload.inputs.every(input => {
+            const name = String(input?.name || '');
+            return name && !/^input-\d+$/.test(name);
+        });
+        if (hasNamedInputs) return schemaPayload;
+    }
     // MLflow LoggedModel signatures expose named scalar columns (for example
     // x1 and x2), while the generic input-0 fallback is rejected by MLServer's
     // sklearn flavor as an unexpected input name.  Build a V2 request with one
