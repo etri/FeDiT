@@ -570,6 +570,11 @@ def _ray_cluster(namespace: str, owner_email: str) -> dict:
         "autoscalerOptions": {
             "upscalingMode": "Default",
             "idleTimeoutSeconds": 60,
+            # The NVIDIA container runtime may be the node default in GPU
+            # installations.  The KubeRay-injected autoscaler is CPU-only;
+            # explicitly hide GPU devices so its container does not trigger
+            # CDI/MIG probing while the GPU worker remains opt-in.
+            "env": [{"name": "NVIDIA_VISIBLE_DEVICES", "value": ""}],
             "resources": {
                 "requests": {
                     "cpu": RAY_AUTOSCALER_REQUEST_CPU,
