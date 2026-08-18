@@ -140,6 +140,37 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Do not start the functional matrix while the clean-install services are
+# still converging.  A TCP listener can exist before the application is ready;
+# this is common for NiFi and MLflow and previously caused a misleading wall
+# of connection-refused failures followed by long, pointless timers.
+wait_for_verification_http() {
+  local url="$1" name="$2" attempt code
+  for attempt in $(seq 1 60); do
+    code="$(curl -sS --connect-timeout 3 --max-time 10 -o /dev/null -w '%{http_code}' "$url" 2>/dev/null || true)"
+    if [[ "$code" =~ ^2[0-9][0-9]$ ]]; then
+      printf '[READY] %s HTTP %s\n' "$name" "$code"
+      return 0
+    fi
+    sleep 2
+  done
+  printf '[NOT READY] %s HTTP %s after 120s: %s\n' "$name" "${code:-000}" "$url" >&2
+  return 1
+}
+
+preflight_services() {
+  wait_for_verification_http "${PM_URL}/healthz" "Prediction Manager" || return
+  wait_for_verification_http "${MLFLOW_URL}/health" "MLflow" || return
+  wait_for_verification_http "${NIFI_URL}/nifi-api/system-diagnostics" "NiFi" || return
+  wait_for_verification_http "${RAY_URL}/api/version" "Ray Dashboard" || return
+  # Label Studio protects /api/projects with SSO and correctly returns 403 to
+  # anonymous probes.  Its public health endpoint is the readiness contract.
+  wait_for_verification_http "${LABEL_STUDIO_URL}/health" "Label Studio" || return
+  wait_for_verification_http "${PROMETHEUS_URL}/-/ready" "Prometheus" || return
+  wait_for_verification_http "${FRONTEND_URL}/fedit/predictor-creator-tool" "FeDiT" || return
+  DETAIL="Prediction Manager/MLflow/NiFi/Ray/Label Studio/Prometheus/FeDiT HTTP readiness 확인"
+}
+
 cat > "$REPORT" <<EOF
 # Prediction Manager guide.txt 2.2.9 ${VERIFY_PROFILE^^} 기능 검증
 
@@ -733,6 +764,20 @@ test_monitoring() {
     DETAIL="Prometheus ready/PromQL 정상; CPU profile monitoring API 정상"
   fi
 }
+
+run_test "서비스 HTTP readiness preflight" preflight_services
+if ((FAIL_COUNT > 0)); then
+  cat >> "$REPORT" <<EOF
+
+## 결과
+
+- PASS: ${PASS_COUNT}
+- FAIL: ${FAIL_COUNT}
+- 판정: **실패 (서비스 준비 전 기능 시험 중단)**
+- 상세 로그: ${LOG_DIR}
+EOF
+  exit 1
+fi
 
 run_test "${VERIFY_PROFILE^^} compute profile" test_compute_profile
 run_test "FeDiT·Prediction Manager 기본 화면/API" test_frontend_and_core_api
