@@ -1325,6 +1325,20 @@ EOF
     apt-get update
     apt-get install -y "nvidia-container-toolkit"
     nvidia-ctk runtime configure --runtime=docker
+    # The clean-install lab runs a second Docker daemon inside a privileged
+    # container.  NVIDIA Container Toolkit 1.20 defaults to CDI auto mode;
+    # that mode re-probes MIG/GSP state from the nested namespace and can
+    # incorrectly put a healthy laptop GPU into "GPU requires reset".  The
+    # legacy runtime uses the same explicit NVIDIA_VISIBLE_DEVICES path as
+    # the verifier and is stable for this nested-dockerd topology.  Leave the
+    # host installation's normal CDI default unchanged.
+    if bool_true "$CONTAINER_MODE" && [[ -f /etc/nvidia-container-runtime/config.toml ]]; then
+      sed -i -E 's/^mode = "(auto|cdi|legacy)"/mode = "legacy"/' \
+        /etc/nvidia-container-runtime/config.toml
+      grep -q '^mode = "legacy"' /etc/nvidia-container-runtime/config.toml \
+        || { echo "중첩 NVIDIA runtime legacy 모드 설정에 실패했습니다." >&2; return 1; }
+      record PASS "중첩 NVIDIA runtime" "container mode에서 legacy 모드로 CDI 재탐색 방지"
+    fi
     nvidia-ctk runtime configure --runtime=containerd --set-as-default
   else
     record SKIP "NVIDIA Container Toolkit" "INSTALL_NVIDIA_TOOLKIT=false"
