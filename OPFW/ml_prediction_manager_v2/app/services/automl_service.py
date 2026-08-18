@@ -97,6 +97,15 @@ RAY_DASHBOARD_URL = os.environ.get(
 MLFLOW_URI = os.environ.get("MLFLOW_URI", "http://mlflow-service.ray-system:5000")
 MAX_CONCURRENT_PER_NS = int(os.environ.get("AUTOML_MAX_CONCURRENT_PER_NS", "2"))
 SCHEDULER_INTERVAL = float(os.environ.get("AUTOML_SCHEDULER_INTERVAL", "5"))
+# The verification and production images install the AutoML stack up front.
+# Installing the same packages again in every Ray runtime environment makes a
+# submitted job remain PENDING while Ray resolves/downloads wheels (and fails
+# completely in an offline installation).  Keep the dependency list available
+# as an explicit opt-in for deployments whose Ray worker image is intentionally
+# minimal.
+RAY_RUNTIME_INSTALL_DEPS = os.environ.get("AUTOML_RAY_INSTALL_DEPS", "false").strip().lower() in {
+    "1", "true", "yes", "on"
+}
 
 RUNNER_DIR = Path(__file__).resolve().parent.parent / "automl_runner"
 
@@ -460,9 +469,10 @@ async def _submit_to_ray(info: dict) -> None:
         pip_list += ["torch", "pytorch-tabnet"]
     runtime_env = {
         "working_dir": str(RUNNER_DIR),
-        "pip": pip_list,
         "env_vars": {"MLFLOW_TRACKING_URI": mlflow_uri},
     }
+    if RAY_RUNTIME_INSTALL_DEPS:
+        runtime_env["pip"] = pip_list
     entrypoint = f"python job.py --config '{json.dumps(cfg)}'"
     try:
         submission_id = await _submit_ray_job(ray_dashboard_url, runtime_env, entrypoint)

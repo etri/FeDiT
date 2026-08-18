@@ -131,6 +131,16 @@ def _detect_model_format(
     if tagged_format in supported:
         return tagged_format
 
+    # AutoML registers MLflow LoggedModels (``models:/m-...``), even when the
+    # underlying estimator is scikit-learn.  The registry metadata also keeps
+    # the AutoML source URI/job marker.  Prefer the MLflow flavor here so the
+    # preflight and helper resolve the LoggedModel's MLmodel manifest instead
+    # of misclassifying it as a bare sklearn package when MLflow's artifact-list
+    # endpoint does not expose LoggedModel files under the legacy ``model``
+    # path.
+    if tags.get("automl.model_uri") or tags.get("automl.job_id"):
+        return "mlflow"
+
     import httpx
     MLFLOW = _mlflow_uri(mlflow_namespace)
     try:

@@ -376,6 +376,25 @@ function _defaultProductionTestPayload(versionInfo, productionStatus) {
     }
     const schemaPayload = versionInfo?.input_schema?.serving_payload;
     if (schemaPayload?.inputs?.length) return schemaPayload;
+    // MLflow LoggedModel signatures expose named scalar columns (for example
+    // x1 and x2), while the generic input-0 fallback is rejected by MLServer's
+    // sklearn flavor as an unexpected input name.  Build a V2 request with one
+    // scalar input per declared feature so the one-click AutoML serving demo
+    // can execute the real inference without manual JSON editing.
+    const schemaColumns = (versionInfo?.input_schema?.columns || [])
+        .map(column => typeof column === 'string' ? column : column?.name)
+        .map(String)
+        .filter(Boolean);
+    if (schemaColumns.length) {
+        return {
+            inputs: schemaColumns.map(name => ({
+                name,
+                shape: [1],
+                datatype: 'FP64',
+                data: [0.0],
+            })),
+        };
+    }
     return {
         inputs: [
             {
