@@ -92,6 +92,7 @@ fi
 : "${HELM_VERSION:=v3.15.4}"
 : "${KUBEFLOW_VERSION:=v1.9.1}"
 : "${NVIDIA_DEVICE_PLUGIN_VERSION:=0.16.2}"
+: "${KSERVE_STORAGE_INITIALIZER_IMAGE:=kserve/storage-initializer:v0.13.1}"
 : "${KUBE_PROMETHEUS_STACK_VERSION:=61.7.1}"
 : "${DCGM_EXPORTER_VERSION:=3.3.1}"
 : "${GPU_TIME_SLICES:=auto}"
@@ -387,7 +388,12 @@ detect_gpu_hardware() {
   GPU_EXPECTED_RESOURCES=0
 
   command -v nvidia-smi >/dev/null 2>&1 || return 1
-  local line index model driver memory_mib
+  local health line index model driver memory_mib
+  health="$(nvidia-smi -q 2>&1 || true)"
+  if grep -q 'GPU requires reset' <<<"$health"; then
+    echo "NVIDIA GPU가 reset 필요 상태입니다. 호스트를 재부팅하거나 승인된 GPU reset 절차를 먼저 수행하세요." >&2
+    return 1
+  fi
   local min_memory_mib=0
   local -a models=()
   while IFS= read -r line; do
@@ -1884,6 +1890,14 @@ PY
   done
 }
 
+prime_kserve_runtime_images() {
+  # KServe creates the storage-initializer only when the first model endpoint
+  # is submitted.  Pull it during installation so a transient registry/CDN
+  # reset cannot surface much later as an opaque InferenceService Pending.
+  retry_kubernetes_image_pull "$KSERVE_STORAGE_INITIALIZER_IMAGE"
+  record PASS "KServe storage initializer 이미지 사전 확보" "$KSERVE_STORAGE_INITIALIZER_IMAGE"
+}
+
 prime_knative_control_plane_images() {
   # The Kubeflow bootstrap manifest creates the Knative admission and
   # networking control plane in one apply.  On a clean single-node machine,
@@ -2480,6 +2494,7 @@ PY
   prime_kubeflow_core_images "${GENERATED_DIR}/kubeflow.yaml"
   prime_kfp_execution_images
   prime_kserve_controller_images "$kubeflow_bootstrap_manifest"
+  prime_kserve_runtime_images
   prime_knative_control_plane_images "$kubeflow_bootstrap_manifest"
   apply_with_retry "$kubeflow_bootstrap_manifest"
   wait_rollout_if_exists kubeflow deployment kserve-controller-manager 900s
