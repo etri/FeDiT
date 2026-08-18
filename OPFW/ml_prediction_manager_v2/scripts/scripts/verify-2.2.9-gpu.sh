@@ -415,15 +415,15 @@ test_ray_job() {
   status=""
   elapsed=0
   while ((elapsed < TEST_ACTION_TIMEOUT_SECONDS)); do
-    status="$(curl -fsS "${RAY_URL}/api/jobs/${submission}" | jq -r '.status')" || return
+    status="$(curl -fsS --connect-timeout 5 --max-time 15 "${RAY_URL}/api/jobs/${submission}" | jq -r '.status')" || return
     [[ "$status" =~ ^(SUCCEEDED|FAILED|STOPPED)$ ]] && break
     sleep 5
     elapsed=$((elapsed + 5))
   done
   if [[ ! "$status" =~ ^(SUCCEEDED|FAILED|STOPPED)$ ]]; then
-    curl -fsS -X DELETE "${RAY_URL}/api/jobs/${submission}" >/dev/null 2>&1 || true
-    DETAIL="Ray ${VERIFY_PROFILE} job accepted and remained RUNNING for ${TEST_ACTION_TIMEOUT_SECONDS}s; stopped by time-limit policy"
-    return 0
+    curl -fsS --connect-timeout 5 --max-time 15 -X DELETE "${RAY_URL}/api/jobs/${submission}" >/dev/null 2>&1 || true
+    echo "Ray ${VERIFY_PROFILE} job did not reach a terminal state within ${TEST_ACTION_TIMEOUT_SECONDS}s (last status=${status:-unknown})"
+    return 1
   fi
   [[ "$status" == "SUCCEEDED" ]] || { curl -fsS "${RAY_URL}/api/jobs/${submission}/logs"; echo "Ray status=${status}"; return 1; }
   logs="$(curl -fsS "${RAY_URL}/api/jobs/${submission}/logs" | jq -r '.logs')" || return
