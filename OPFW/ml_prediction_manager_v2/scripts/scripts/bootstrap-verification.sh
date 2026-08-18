@@ -3392,6 +3392,25 @@ wait_for_private_port() {
   return 1
 }
 
+# A listening port only proves that kubectl port-forward has been created.
+# The backing application (especially NiFi after a clean JVM start) can still
+# be initializing and will return connection resets/5xx for a short period.
+# Gate the functional verifier on the real HTTP endpoint so one startup race
+# cannot be misreported as failures in every downstream service.
+wait_for_http_endpoint() {
+  local url="$1" name="$2" attempt code
+  for attempt in $(seq 1 60); do
+    code="$(curl -sS --connect-timeout 3 --max-time 10 -o /dev/null -w '%{http_code}' "$url" 2>/dev/null || true)"
+    if [[ "$code" =~ ^2[0-9][0-9]$ ]]; then
+      record PASS "${name} HTTP 준비" "${url} (${code})"
+      return 0
+    fi
+    sleep 2
+  done
+  echo "${name} HTTP endpoint가 120초 안에 준비되지 않았습니다: ${url} (last=${code:-000})" >&2
+  return 1
+}
+
 configure_host_firewall_ports() {
   bool_true "$CONTAINER_MODE" && {
     record SKIP "호스트 방화벽" "컨테이너 외부 Docker 호스트에서 관리"
@@ -3651,14 +3670,29 @@ EOF_ACCESS_UNIT
 
   configure_host_firewall_ports
   wait_for_private_port "$PM_HEALTHCHECK_PORT" "Prediction Manager"
+  wait_for_http_endpoint "http://127.0.0.1:${PM_HEALTHCHECK_PORT}/healthz" "Prediction Manager"
   if bool_true "$PROVISION_DEFAULT_TENANT"; then
     wait_for_access_port 15000 "MLflow"
+    wait_for_http_endpoint "http://127.0.0.1:15000/health" "MLflow"
     wait_for_access_port 15001 "NiFi"
+    wait_for_http_endpoint "http://127.0.0.1:15001/nifi-api/system-diagnostics" "NiFi"
     wait_for_access_port 15002 "Ray Dashboard"
+    wait_for_http_endpoint "http://127.0.0.1:15002/api/version" "Ray Dashboard"
   fi
-  bool_true "$INSTALL_LABEL_STUDIO" && wait_for_access_port 15003 "Label Studio"
-  bool_true "$INSTALL_MONITORING" && wait_for_access_port 19090 "Prometheus"
-  bool_true "$BUILD_FRONTEND_IMAGE" && wait_for_access_port "$FEDIT_PUBLIC_PORT" "FeDiT"
+  if bool_true "$INSTALL_LABEL_STUDIO"; then
+    wait_for_access_port 15003 "Label Studio"
+    # /api/projects intentionally requires the Kubeflow SSO identity and
+    # returns 403 without it.  /health is the unauthenticated readiness API.
+    wait_for_http_endpoint "http://127.0.0.1:15003/health" "Label Studio"
+  fi
+  if bool_true "$INSTALL_MONITORING"; then
+    wait_for_access_port 19090 "Prometheus"
+    wait_for_http_endpoint "http://127.0.0.1:19090/-/ready" "Prometheus"
+  fi
+  if bool_true "$BUILD_FRONTEND_IMAGE"; then
+    wait_for_access_port "$FEDIT_PUBLIC_PORT" "FeDiT"
+    wait_for_http_endpoint "http://127.0.0.1:${FEDIT_PUBLIC_PORT}/fedit/predictor-creator-tool" "FeDiT"
+  fi
   record PASS "서비스 접근 포트" "15000-15003, 18000, 19090"
 }
 
