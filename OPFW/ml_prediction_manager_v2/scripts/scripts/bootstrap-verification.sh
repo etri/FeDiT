@@ -1148,10 +1148,23 @@ host_dependencies() {
 }
 
 retry_command() {
-  local attempts="$1" delay="$2" description="$3" try
+  local attempts="$1" delay="$2" description="$3" try command_timeout
   shift 3
   for try in $(seq 1 "$attempts"); do
-    if "$@"; then
+    # Docker registry/CDN reads can leave a direct `docker pull` blocked after
+    # the socket has stopped making progress.  Keep every pull bounded so a
+    # transient reset is recorded and retried instead of stalling the entire
+    # clean installation forever.  Callers that already pass an explicit
+    # `timeout` retain their tighter, image-specific bound.
+    if [[ "${1:-}" == docker && "${2:-}" == pull ]]; then
+      command_timeout="${DOCKER_PULL_TIMEOUT_SECONDS:-${IMAGE_PULL_TIMEOUT_SECONDS:-300}}"
+      if [[ "${3:-}" == *seldonio/mlserver* || "${3:-}" == *kserve-mlserver* ]]; then
+        command_timeout="${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:-900}"
+      fi
+      if timeout "${command_timeout}s" "$@"; then
+        return 0
+      fi
+    elif "$@"; then
       return 0
     fi
     if ((try < attempts)); then
