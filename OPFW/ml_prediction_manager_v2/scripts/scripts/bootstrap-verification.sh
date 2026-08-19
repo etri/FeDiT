@@ -2799,7 +2799,7 @@ PY
     # existing request is greater than that limit.  Normalize the generated
     # manifest before every apply so both a clean install and a resume use the
     # same valid request/limit pair.
-    python3 "${GENERATED_DIR}/kuberay.yaml" <<'PY'
+    python3 - "${GENERATED_DIR}/kuberay.yaml" <<'PY'
 import sys
 from pathlib import Path
 
