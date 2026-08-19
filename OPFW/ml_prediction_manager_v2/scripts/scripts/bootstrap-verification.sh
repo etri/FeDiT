@@ -153,6 +153,7 @@ fi
 : "${NEXT_START_SCRIPT:=02-start-prediction-manager.sh}"
 : "${LOW_MEMORY_PROFILE:=false}"
 : "${CPU_SWAP_SIZE_GIB:=8}"
+: "${CPU_SWAP_REQUIRED:=false}"
 : "${IMAGE_PULL_RETRY_ATTEMPTS:=12}"
 : "${IMAGE_PULL_RETRY_DELAY_SECONDS:=15}"
 : "${IMAGE_PULL_TIMEOUT_SECONDS:=300}"
@@ -354,14 +355,83 @@ configure_cpu_swap() {
   fi
 
   local swap_file=/swapfile config_file=/var/lib/kubelet/config.yaml fstab_line
+  local desired_bytes existing_bytes temp_file swap_active=false
   fstab_line="${swap_file} none swap sw 0 0"
-  if ! swapon --noheadings --show=NAME 2>/dev/null | awk '{print $1}' | grep -Fxq "$swap_file"; then
-    if [[ ! -e "$swap_file" ]]; then
-      fallocate -l "${CPU_SWAP_SIZE_GIB}G" "$swap_file"
-      chmod 600 "$swap_file"
-      mkswap "$swap_file"
+
+  # Swap is a performance aid for the compact profile, not a prerequisite for
+  # Kubernetes or the service graph.  A host kernel/filesystem can reject
+  # swapon (for example, a restricted VM or a copy-on-write filesystem).  Keep
+  # that case observable without making an otherwise usable CPU installation
+  # fail unless the operator explicitly makes swap mandatory.
+  swap_failure() {
+    local message="$1"
+    if bool_true "$CPU_SWAP_REQUIRED"; then
+      echo "$message" >&2
+      return 1
     fi
-    swapon "$swap_file"
+    record WARN "CPU 단일 노드 swap" "$message; 선택적 단계이므로 설치를 계속함"
+    return 0
+  }
+
+  if swapon --noheadings --show=NAME 2>/dev/null \
+      | awk '{print $1}' | grep -Fxq "$swap_file"; then
+    swap_active=true
+  fi
+
+  if [[ "$swap_active" != true ]]; then
+    desired_bytes=$((CPU_SWAP_SIZE_GIB * 1024 * 1024 * 1024))
+    if [[ -e "$swap_file" ]]; then
+      existing_bytes="$(stat -c '%s' "$swap_file" 2>/dev/null || printf '0')"
+      if [[ ! -f "$swap_file" || ! "$existing_bytes" =~ ^[0-9]+$ \
+          || "$existing_bytes" -lt "$desired_bytes" ]]; then
+        rm -f -- "$swap_file"
+      fi
+    fi
+    if [[ ! -e "$swap_file" ]]; then
+      temp_file="${swap_file}.tmp.$$"
+      rm -f -- "$temp_file"
+      if ! fallocate -l "${CPU_SWAP_SIZE_GIB}G" "$temp_file" 2>/dev/null; then
+        if ! dd if=/dev/zero of="$temp_file" bs=1M \
+            count=$((CPU_SWAP_SIZE_GIB * 1024)) status=none conv=fsync; then
+          rm -f -- "$temp_file"
+          swap_failure "swap 파일 ${swap_file} 생성 실패"
+          return $?
+        fi
+      fi
+      chmod 600 "$temp_file"
+      if ! mkswap "$temp_file" >/dev/null; then
+        rm -f -- "$temp_file"
+        swap_failure "swap 헤더 생성 실패 (${swap_file})"
+        return $?
+      fi
+      mv -f -- "$temp_file" "$swap_file"
+    else
+      chmod 600 "$swap_file"
+      # An inactive file may be left over from an interrupted run. Rewriting
+      # the header makes the retry deterministic without touching active swap.
+      if ! mkswap "$swap_file" >/dev/null; then
+        swap_failure "기존 swap 파일 헤더 복구 실패 (${swap_file})"
+        return $?
+      fi
+    fi
+    if ! swapon "$swap_file" 2>/dev/null; then
+      # fallocate can produce a layout rejected by swapon on some filesystems.
+      # Retry once with a fully written zero-filled file before giving up.
+      temp_file="${swap_file}.tmp.$$"
+      rm -f -- "$swap_file" "$temp_file"
+      if dd if=/dev/zero of="$temp_file" bs=1M \
+          count=$((CPU_SWAP_SIZE_GIB * 1024)) status=none conv=fsync \
+          && chmod 600 "$temp_file" \
+          && mkswap "$temp_file" >/dev/null \
+          && mv -f -- "$temp_file" "$swap_file" \
+          && swapon "$swap_file" 2>/dev/null; then
+        :
+      else
+        rm -f -- "$temp_file"
+        swap_failure "swap 활성화 실패 (${swap_file})"
+        return $?
+      fi
+    fi
   fi
   grep -Fqx "$fstab_line" /etc/fstab || printf '%s\n' "$fstab_line" >> /etc/fstab
 
@@ -374,7 +444,11 @@ configure_cpu_swap() {
     systemctl restart kubelet
     kubectl wait --for=condition=Ready nodes --all --timeout=300s
   fi
-  record PASS "CPU 단일 노드 swap" "${CPU_SWAP_SIZE_GIB} GiB 활성화; 모든 서비스 동시 기동 지원"
+  if [[ "$swap_active" == true ]]; then
+    record PASS "CPU 단일 노드 swap" "기존 ${CPU_SWAP_SIZE_GIB} GiB swap 활성 상태 유지"
+  else
+    record PASS "CPU 단일 노드 swap" "${CPU_SWAP_SIZE_GIB} GiB 활성화; 모든 서비스 동시 기동 지원"
+  fi
 }
 
 gpu_stack_enabled() {
