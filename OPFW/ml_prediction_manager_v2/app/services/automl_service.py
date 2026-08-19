@@ -821,7 +821,22 @@ async def deploy_to_kserve(
         except Exception as e:
             return f"predictor log 조회 실패: {e}"
 
-    async def _wait_for_predictor_ready(timeout_seconds: int = 180) -> None:
+    # A first KServe revision can need several minutes to unpack the large
+    # MLServer runtime image and mount a PVC on a compact single-node host.
+    # The previous fixed three-minute window reported a false deployment
+    # failure while the revision was still legitimately ContainerCreating.
+    # Keep the timeout bounded, but make it configurable for slower/faster
+    # installations and use a conservative default for the supported CPU
+    # verification profile.
+    try:
+        predictor_ready_timeout = max(
+            60,
+            int(os.environ.get("KSERVE_PREDICTOR_READY_TIMEOUT_SECONDS", "600")),
+        )
+    except (TypeError, ValueError):
+        predictor_ready_timeout = 600
+
+    async def _wait_for_predictor_ready(timeout_seconds: int = predictor_ready_timeout) -> None:
         import time as _t
         deadline = _t.time() + timeout_seconds
         last_state = "predictor pod 생성 대기"
