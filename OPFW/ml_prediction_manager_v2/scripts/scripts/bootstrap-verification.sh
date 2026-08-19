@@ -72,6 +72,7 @@ fi
 : "${PROJECTS_ONLY:=false}"
 : "${BUILD_AUXILIARY_IMAGES:=true}"
 : "${MIN_CPU_CORES:=4}"
+: "${CHECK_MIN_CPU_CORES:=true}"
 : "${MIN_DISK_GIB:=200}"
 : "${REQUIRE_NVIDIA_GPU:=true}"
 : "${INSTALL_NVIDIA_TOOLKIT:=true}"
@@ -1058,7 +1059,12 @@ preflight() {
   cpu="$(nproc)"
   memory="$(( $(awk '/MemTotal/ {print $2}' /proc/meminfo) / 1024 / 1024 ))"
   disk="$(df -BG --output=avail / | tail -1 | tr -dc '0-9')"
-  ((cpu >= MIN_CPU_CORES)) || { echo "CPU 부족: ${cpu} core" >&2; return 1; }
+  if bool_true "$CHECK_MIN_CPU_CORES"; then
+    ((cpu >= MIN_CPU_CORES)) || { echo "CPU 부족: ${cpu} core" >&2; return 1; }
+    record PASS "CPU 최소 코어 검사" "${cpu} core 감지; 최소 ${MIN_CPU_CORES} core"
+  else
+    record SKIP "CPU 최소 코어 검사" "설정으로 비활성화 (${cpu} core 감지)"
+  fi
   ((disk >= MIN_DISK_GIB)) || { echo "디스크 부족: ${disk} GiB" >&2; return 1; }
   record PASS "메모리 용량 제한" "${memory} GiB 감지; 설치 최소 용량 검사 비활성화"
   record PASS "서버 사양" "CPU ${cpu}, Memory ${memory} GiB, Disk ${disk} GiB"
