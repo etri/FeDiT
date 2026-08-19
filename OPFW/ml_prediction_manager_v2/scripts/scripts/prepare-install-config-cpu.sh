@@ -93,6 +93,7 @@ set_setting RAY_BASE_IMAGE rayproject/ray:2.54.1-py312
 set_setting RAY_XGBOOST_PACKAGE xgboost-cpu
 set_setting NEXT_START_SCRIPT 02-start-prediction-manager-cpu.sh
 set_setting LOW_MEMORY_PROFILE true
+set_setting CHECK_MIN_CPU_CORES false
 
 if ((EUID == 0)); then
   chown "$INSTALL_OWNER:$INSTALL_OWNER_GROUP" "$CONFIG_FILE"
