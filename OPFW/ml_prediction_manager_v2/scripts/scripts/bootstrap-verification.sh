@@ -1938,6 +1938,12 @@ pull_docker_image_via_registry_api() {
   # independent of daemon download concurrency and is only used after normal
   # docker pull retries have failed.
   local source="$1" archive
+  local registry_name="${source%%/*}"
+  if [[ "$registry_name" == *.* || "$registry_name" == *:* ]] && \
+      [[ "$registry_name" != "docker.io" ]]; then
+    echo "Registry API fallback은 Docker Hub 이미지에만 적용됩니다: ${source}" >&2
+    return 1
+  fi
   archive="$(mktemp "${DOWNLOADS_DIR}/docker-registry-image.XXXXXX.tar")"
   if ! python3 - "$source" "$archive" <<'PY'
 import hashlib
@@ -2391,15 +2397,9 @@ prime_kfp_execution_images() {
   local kfp_driver="gcr.io/ml-pipeline/kfp-driver@sha256:dc8b56a2eb071f30409828a8884d621092e68385af11a6c06aa9e9fbcfbb19de"
   local component_image="python:3.10-slim"
 
-  retry_command 5 10 "KFP Argo executor source pull" docker pull "$argo_source"
-  docker tag "$argo_source" "$argo_target"
-  retry_command 5 10 "KFP Argo executor persistent mirror push" docker push "$argo_target"
-  retry_command 5 10 "KFP workflow controller source pull" docker pull "$controller_source"
-  docker tag "$controller_source" "$controller_target"
-  retry_command 5 10 "KFP workflow controller persistent mirror push" docker push "$controller_target"
-  retry_command 5 10 "KFP frontend source pull" docker pull "$frontend_source"
-  docker tag "$frontend_source" "$frontend_target"
-  retry_command 5 10 "KFP frontend persistent mirror push" docker push "$frontend_target"
+  pull_and_mirror_docker_image "$argo_source" "$argo_target"
+  pull_and_mirror_docker_image "$controller_source" "$controller_target"
+  pull_and_mirror_docker_image "$frontend_source" "$frontend_target"
   retry_kubernetes_image_pull "$argo_target"
   retry_kubernetes_image_pull "$controller_target"
   retry_kubernetes_image_pull "$frontend_target"
@@ -3440,9 +3440,7 @@ prepare_kserve_model_runtime_image() {
   local runtime_image="${REGISTRY_HOST}/kserve-mlserver:1.7.1"
   local patch warmup_pod="prediction-manager-mlserver-warmup"
 
-  retry_command 5 10 "KServe MLServer source pull" docker pull "$upstream_image"
-  docker tag "$upstream_image" "$runtime_image"
-  retry_command 5 10 "KServe MLServer persistent mirror push" docker push "$runtime_image"
+  pull_and_mirror_docker_image "$upstream_image" "$runtime_image"
   retry_kubernetes_image_pull "$runtime_image"
   crictl inspecti "$runtime_image" >/dev/null
 
