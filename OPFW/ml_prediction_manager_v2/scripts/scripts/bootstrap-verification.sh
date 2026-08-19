@@ -2081,15 +2081,20 @@ PY
 
 pull_and_mirror_docker_image() {
   local source="$1" target="$2"
+  local pull_attempts=8
   local -a pull_command=(docker pull --platform=linux/amd64 "$source")
   # MLServer is a multi-gigabyte image.  Keep each attempt bounded by the
   # normal image timeout; retry_command's large-image default is intended for
   # CRI unpacking, not for an external Docker Hub download that has stopped
   # making progress after a CDN reset.
   if [[ "$source" == *seldonio/mlserver* || "$source" == *kserve-mlserver* ]]; then
-    pull_command=(timeout "${IMAGE_PULL_TIMEOUT_SECONDS}s" docker pull --platform=linux/amd64 "$source")
+    # This image is known to stall on one Docker Hub blob in this network.
+    # Give the direct path one bounded chance, then use the sequential API
+    # downloader instead of spending eight long attempts on the same reset.
+    pull_attempts=1
+    pull_command=(timeout "${MLSERVER_DOCKER_PULL_TIMEOUT_SECONDS:-90}s" docker pull --platform=linux/amd64 "$source")
   fi
-  if ! retry_command 8 15 "Docker image pull: ${source}" "${pull_command[@]}"; then
+  if ! retry_command "$pull_attempts" 15 "Docker image pull: ${source}" "${pull_command[@]}"; then
     warn "Docker pull 재시도 후 Registry API 순차 다운로드로 전환합니다: ${source}"
     pull_docker_image_via_registry_api "$source" || {
       echo "Docker pull 및 Registry API fallback 모두 실패했습니다: ${source}" >&2
