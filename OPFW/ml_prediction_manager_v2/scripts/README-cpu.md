@@ -18,3 +18,7 @@ CPU 전용 설치기는 단일 노드 리소스 프로필을 적용한다. 메�
 Kubernetes 요청값과 제한값은 안전한 스케줄링을 위해 유지된다. Prediction Manager, Dataset, AutoML,
 Ray, MLflow, TensorBoard, KServe, NiFi, Label Studio 및 모니터링 서비스를
 동일한 CPU 설치에서 사용할 수 있다.
+
+CPU swap은 성능 보조 단계이며 기본값은 best-effort다. 커널이나 파일시스템이
+swap 활성화를 거부해도 설치를 중단하지 않고 경고를 기록한다. 반드시 swap이
+필요한 장비에서만 설정 파일의 `CPU_SWAP_REQUIRED=true`를 사용한다.
