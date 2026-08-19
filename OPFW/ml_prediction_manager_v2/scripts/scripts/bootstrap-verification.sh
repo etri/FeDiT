@@ -1930,6 +1930,163 @@ apply_with_retry() {
   return 1
 }
 
+pull_docker_image_via_registry_api() {
+  # Docker Hub may reset one of the many parallel CloudFront layer requests
+  # even when the registry API and each individual blob are reachable.  Use a
+  # sequential, resumable API download as a bounded fallback, then hand the
+  # normal Docker daemon a standard docker-archive.  This keeps the recovery
+  # independent of daemon download concurrency and is only used after normal
+  # docker pull retries have failed.
+  local source="$1" archive
+  archive="$(mktemp "${DOWNLOADS_DIR}/docker-registry-image.XXXXXX.tar")"
+  if ! python3 - "$source" "$archive" <<'PY'
+import hashlib
+import json
+import os
+import shutil
+import sys
+import tarfile
+import tempfile
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+
+source, archive = sys.argv[1:]
+if source.startswith("docker.io/"):
+    source = source[len("docker.io/"):]
+if "/" not in source.split(":", 1)[0]:
+    repo = "library/" + source.split(":", 1)[0]
+else:
+    repo = source.split(":", 1)[0]
+tag = source.rsplit(":", 1)[1] if ":" in source.rsplit("/", 1)[-1] else "latest"
+registry = "https://registry-1.docker.io"
+scope = urllib.parse.quote(f"repository:{repo}:pull", safe="")
+
+def read_url(url, headers=None, attempts=8):
+    last = None
+    for attempt in range(attempts):
+        try:
+            req = urllib.request.Request(url, headers=headers or {})
+            with urllib.request.urlopen(req, timeout=120) as response:
+                return response.read()
+        except Exception as exc:
+            last = exc
+            if attempt + 1 < attempts:
+                time.sleep(min(5, 1 + attempt))
+    raise RuntimeError(f"registry request failed: {url}: {last}")
+
+token = json.loads(read_url(
+    f"https://auth.docker.io/token?service=registry.docker.io&scope={scope}"
+))["token"]
+auth = {"Authorization": f"Bearer {token}"}
+accept = ", ".join([
+    "application/vnd.oci.image.index.v1+json",
+    "application/vnd.docker.distribution.manifest.list.v2+json",
+    "application/vnd.oci.image.manifest.v1+json",
+    "application/vnd.docker.distribution.manifest.v2+json",
+])
+manifest_url = f"{registry}/v2/{repo}/manifests/{tag}"
+index = json.loads(read_url(manifest_url, {**auth, "Accept": accept}))
+if "manifests" in index:
+    candidates = [item for item in index["manifests"]
+                  if item.get("platform", {}).get("os") == "linux"
+                  and item.get("platform", {}).get("architecture") == "amd64"]
+    if not candidates:
+        raise RuntimeError("Docker Hub manifest has no linux/amd64 image")
+    digest = candidates[0]["digest"]
+    # Fetch the selected digest explicitly so an arm64 entry can never be
+    # selected when the tag is a multi-platform index.
+    index = json.loads(read_url(f"{registry}/v2/{repo}/manifests/{digest}", {
+        **auth, "Accept": "application/vnd.oci.image.manifest.v1+json"
+    }))
+
+work = tempfile.mkdtemp(prefix="docker-registry-image-", dir=os.path.dirname(archive))
+try:
+    os.makedirs(os.path.join(work, "blobs", "sha256"))
+    config_digest = index["config"]["digest"]
+    config_name = f"blobs/sha256/{config_digest.split(':', 1)[1]}"
+    config_path = os.path.join(work, config_name)
+
+    def download_blob(digest, path):
+        url = f"{registry}/v2/{repo}/blobs/{digest}"
+        expected = digest.split(":", 1)[1]
+        for attempt in range(12):
+            existing = os.path.getsize(path) if os.path.exists(path) else 0
+            headers = dict(auth)
+            if existing:
+                headers["Range"] = f"bytes={existing}-"
+            try:
+                req = urllib.request.Request(url, headers=headers)
+                with urllib.request.urlopen(req, timeout=120) as response:
+                    if existing and response.status == 200:
+                        existing = 0
+                        open(path, "wb").close()
+                    mode = "ab" if existing else "wb"
+                    with open(path, mode) as output:
+                        while True:
+                            chunk = response.read(8 * 1024 * 1024)
+                            if not chunk:
+                                break
+                            output.write(chunk)
+                digest_hash = hashlib.sha256()
+                with open(path, "rb") as downloaded:
+                    for chunk in iter(lambda: downloaded.read(8 * 1024 * 1024), b""):
+                        digest_hash.update(chunk)
+                digest_hex = digest_hash.hexdigest()
+                if digest_hex == expected:
+                    return
+                raise RuntimeError(f"digest mismatch for {digest}: {digest_hex}")
+            except Exception as exc:
+                if attempt == 11:
+                    raise RuntimeError(f"blob download failed {digest}: {exc}")
+                time.sleep(min(8, 1 + attempt))
+
+    download_blob(config_digest, config_path)
+    layer_names = []
+    for layer in index["layers"]:
+        name = f"blobs/sha256/{layer['digest'].split(':', 1)[1]}"
+        download_blob(layer["digest"], os.path.join(work, name))
+        layer_names.append(name)
+
+    manifest_name = "manifest.json"
+    with open(os.path.join(work, manifest_name), "w", encoding="utf-8") as output:
+        json.dump([{
+            "Config": config_name,
+            "RepoTags": [source],
+            "Layers": layer_names,
+        }], output)
+    with tarfile.open(archive, "w") as output:
+        for name in [manifest_name, config_name, *layer_names]:
+            output.add(os.path.join(work, name), arcname=name)
+finally:
+    shutil.rmtree(work, ignore_errors=True)
+PY
+  then
+    rm -f -- "$archive"
+    return 1
+  fi
+  if ! docker load --input "$archive" >/dev/null; then
+    rm -f -- "$archive"
+    return 1
+  fi
+  rm -f -- "$archive"
+}
+
+pull_and_mirror_docker_image() {
+  local source="$1" target="$2"
+  if ! retry_command 8 15 "Docker image pull: ${source}" \
+      docker pull --platform=linux/amd64 "$source"; then
+    warn "Docker pull 재시도 후 Registry API 순차 다운로드로 전환합니다: ${source}"
+    pull_docker_image_via_registry_api "$source" || {
+      echo "Docker pull 및 Registry API fallback 모두 실패했습니다: ${source}" >&2
+      return 1
+    }
+  fi
+  retry_command 5 10 "Docker image tag: ${target}" docker tag "$source" "$target"
+  retry_command 5 10 "Docker image push: ${target}" docker push "$target"
+}
+
 retry_kubernetes_image_pull() {
   local image="$1" pull_timeout="$IMAGE_PULL_TIMEOUT_SECONDS" attempt
   local archive containerd_address="/run/containerd/containerd.sock"
@@ -3202,8 +3359,7 @@ build_and_push_images() {
       -t "$ray_image" "${PROJECT_ROOT}/docker/ray-mlflow"
     retry_command 3 15 "NiFi image build" docker buildx build --load --pull -t "$nifi_image" \
       "${PREDICTION_MANAGER_ROOT}/docker/nifi-python"
-    retry_command 5 10 "Label Studio image pull" docker pull heartexlabs/label-studio:1.18.0
-    docker tag heartexlabs/label-studio:1.18.0 "$label_image"
+    pull_and_mirror_docker_image heartexlabs/label-studio:1.18.0 "$label_image"
   fi
   if bool_true "$BUILD_FRONTEND_IMAGE"; then
     install_node_runtime
