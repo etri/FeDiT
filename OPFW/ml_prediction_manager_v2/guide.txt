@@ -242,6 +242,9 @@ AutoML 결과 원클릭 서빙:
 	   다운로드 경로를 통해 검증된 모델 저장소를 복사한다. 따라서 MLflow 3
 	   LoggedModel URI와 namespace 간 PVC 경계 때문에 서빙이 실패하지 않아야 한다.
 	4. KServe 메뉴에서 방금 배포한 endpoint 이름과 `Ready` 상태를 확인한다. 이
+	   최초 MLServer Revision은 단일 노드에서 이미지 압축 해제와 PVC 마운트에
+	   수 분이 걸릴 수 있으므로 기본 준비 대기 시간은 600초이다. 더 느린 장비는
+	   `KSERVE_PREDICTOR_READY_TIMEOUT_SECONDS` 환경 변수로 늘릴 수 있다(최소 60초).
 	   화면은 선택한 사용자 namespace의 실제 InferenceService 목록을 읽어 표시하며,
 	   고정된 빈 안내 화면을 성공 증거로 사용하지 않는다. 이어서 모델 관리 화면에서
 	   모델 입력 schema에 맞는 실제 추론 요청을 수행해 HTTP 200 결과를 확인한다.
