@@ -595,6 +595,7 @@ async def change_lifecycle_status(name: str, version: str, req: LifecycleStatusR
                 scale_to_zero=req.scale_to_zero,
                 mlflow_namespace=owner_ns,
                 stage_after_deploy=True,
+                artifact_download_email=email,
             )
             registry.set_operation_tags(name, version, [], updated_by=email, namespace=owner_ns)
             _record_deploy_history(
@@ -1164,6 +1165,7 @@ async def rollback_model(name: str, request: Request, req: RollbackRequest | Non
             scale_to_zero=body.scale_to_zero,
             mlflow_namespace=owner_ns,
             stage_after_deploy=True,
+            artifact_download_email=actor,
         )
         _record_deploy_history(
             event_type="rollback",
@@ -1244,6 +1246,7 @@ async def deploy_production(name: str, req: DeployProductionRequest, request: Re
             ns,
             scale_to_zero=req.scale_to_zero,
             mlflow_namespace=owner_ns,
+            artifact_download_email=actor,
         )
         _record_deploy_history(
             event_type="deploy",

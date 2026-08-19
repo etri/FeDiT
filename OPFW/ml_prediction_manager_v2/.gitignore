@@ -40,5 +40,8 @@ tmp/
 # tests/internal instead.
 scripts/verification-install-results/
 
+# Browser recordings and machine-specific evidence are kept outside Git.
+tests/internal/evidence/
+
 # Rendered Kubernetes manifests
 k8s/deployment.yaml
