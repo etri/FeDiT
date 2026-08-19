@@ -1932,6 +1932,8 @@ apply_with_retry() {
 
 retry_kubernetes_image_pull() {
   local image="$1" pull_timeout="$IMAGE_PULL_TIMEOUT_SECONDS" attempt
+  local archive containerd_address="/run/containerd/containerd.sock"
+  local mirror_suffix mirror_image
   # containerd occasionally receives a reset from a registry CDN even though
   # the Docker daemon on the same host can complete the identical download.
   # Try CRI first because it is the normal Kubernetes path, then use Docker as
@@ -1954,15 +1956,67 @@ retry_kubernetes_image_pull() {
 
   warn "CRI image pull 재시도 한도를 초과하여 Docker 경유로 전환합니다: ${image}"
   retry_command "$IMAGE_PULL_RETRY_ATTEMPTS" "$IMAGE_PULL_RETRY_DELAY_SECONDS" \
-    "Docker fallback image pull: ${image}" timeout "${pull_timeout}s" docker pull "$image"
-  docker image save "$image" | ctr --namespace k8s.io images import -
-  for _ in $(seq 1 "$CONTAINERD_IMAGE_VISIBILITY_TIMEOUT_SECONDS"); do
-    if crictl inspecti "$image" >/dev/null 2>&1; then
-      return 0
+    "Docker fallback image pull: ${image}" timeout "${pull_timeout}s" \
+    docker pull --platform=linux/amd64 "$image"
+
+  # Docker 29 can expose an image whose OCI export is incomplete after a
+  # registry/CDN reset: `docker image save` then writes a manifest that refers
+  # to a config blob which is not present in the archive, and the old pipe to
+  # `ctr images import` failed with "content digest ... not found".  Keep the
+  # archive path as a fast fallback, but make it deterministic (a real file,
+  # the CRI containerd socket, and all platforms) and continue to the registry
+  # mirror path when the archive is incomplete.
+  archive="$(mktemp "${DOWNLOADS_DIR}/docker-image.XXXXXX.tar")"
+  if docker image save --output "$archive" "$image" \
+    && [[ -s "$archive" ]] \
+    && tar -tf "$archive" >/dev/null 2>&1 \
+    && ctr --address "$containerd_address" --namespace k8s.io images import \
+      --all-platforms --digests "$archive"; then
+    for _ in $(seq 1 "$CONTAINERD_IMAGE_VISIBILITY_TIMEOUT_SECONDS"); do
+      if crictl inspecti "$image" >/dev/null 2>&1; then
+        rm -f -- "$archive"
+        return 0
+      fi
+      sleep 1
+    done
+    warn "containerd 이미지 import 후 CRI에서 이미지가 보이지 않습니다: ${image}"
+  else
+    warn "Docker 이미지 archive import 실패; 로컬 Registry mirror로 전환합니다: ${image}"
+  fi
+  rm -f -- "$archive"
+
+  # The installer already owns a loopback-only registry for project images.
+  # Mirroring through that registry is independent of Docker's content store,
+  # and lets CRI pull the image normally.  Use a tag even for digest-pinned
+  # sources because Docker does not accept an @digest destination in `tag`.
+  if [[ "$image" == "${REGISTRY_HOST}/"* ]]; then
+    mirror_suffix="${image#${REGISTRY_HOST}/}"
+  else
+    mirror_suffix="${image#docker.io/}"
+  fi
+  mirror_suffix="${mirror_suffix//@/--}"
+  mirror_image="${REGISTRY_HOST}/fallback/${mirror_suffix}"
+  retry_command "$IMAGE_PULL_RETRY_ATTEMPTS" "$IMAGE_PULL_RETRY_DELAY_SECONDS" \
+    "Docker fallback image tag: ${image}" docker tag "$image" "$mirror_image"
+  retry_command "$IMAGE_PULL_RETRY_ATTEMPTS" "$IMAGE_PULL_RETRY_DELAY_SECONDS" \
+    "Docker fallback registry push: ${mirror_image}" timeout "${pull_timeout}s" \
+    docker push "$mirror_image"
+  for attempt in $(seq 1 "$IMAGE_PULL_RETRY_ATTEMPTS"); do
+    if timeout "${pull_timeout}s" crictl pull "$mirror_image" \
+      && ctr --address "$containerd_address" --namespace k8s.io images tag \
+        --force "$mirror_image" "$image"; then
+      for _ in $(seq 1 "$CONTAINERD_IMAGE_VISIBILITY_TIMEOUT_SECONDS"); do
+        if crictl inspecti "$image" >/dev/null 2>&1; then
+          return 0
+        fi
+        sleep 1
+      done
     fi
-    sleep 1
+    if ((attempt < IMAGE_PULL_RETRY_ATTEMPTS)); then
+      sleep "$IMAGE_PULL_RETRY_DELAY_SECONDS"
+    fi
   done
-  echo "containerd image import 후에도 이미지가 표시되지 않습니다: ${image}" >&2
+  echo "Docker archive import 및 로컬 Registry mirror 후에도 이미지가 표시되지 않습니다: ${image}" >&2
   return 1
 }
 
