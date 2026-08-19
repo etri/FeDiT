@@ -1072,9 +1072,31 @@ preflight() {
   # stage. A truly clean Ubuntu image must therefore not fail preflight just
   # because that package has not been installed yet.
   if command -v curl >/dev/null 2>&1; then
-    curl -fsSI --max-time 15 https://github.com/ >/dev/null
-    curl -fsSI --max-time 15 https://registry.k8s.io/v2/ >/dev/null
-    record PASS "인터넷 연결" "GitHub와 registry.k8s.io"
+    local github_status registry_status
+    github_status="$(curl -kLsS -o /dev/null -w '%{http_code}' \
+      --max-time 15 https://github.com/ 2>/dev/null || true)"
+    case "$github_status" in
+      2??|3??) ;;
+      *)
+        echo "GitHub 연결 실패: HTTP ${github_status:-000}" >&2
+        return 1
+        ;;
+    esac
+
+    # OCI registries normally answer /v2/ with 401 and a Bearer challenge.
+    # That response proves the endpoint is reachable; curl -f would wrongly
+    # classify it as a network failure before image authentication starts.
+    registry_status="$(curl -kLsS -o /dev/null -w '%{http_code}' \
+      --max-time 15 https://registry.k8s.io/v2/ 2>/dev/null || true)"
+    case "$registry_status" in
+      2??|3??|401) ;;
+      *)
+        echo "registry.k8s.io 연결 실패: HTTP ${registry_status:-000}" >&2
+        return 1
+        ;;
+    esac
+    record PASS "인터넷 연결" \
+      "GitHub HTTP ${github_status}; registry.k8s.io HTTP ${registry_status} (401 인증 도전 허용)"
   else
     record SKIP "인터넷 연결" "curl은 다음 필수 모듈 설치 단계에서 설치 후 실제 다운로드로 확인"
   fi
