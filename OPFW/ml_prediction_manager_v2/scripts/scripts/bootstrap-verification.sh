@@ -355,7 +355,7 @@ configure_cpu_swap() {
   fi
 
   local swap_file=/swapfile config_file=/var/lib/kubelet/config.yaml fstab_line
-  local desired_bytes existing_bytes temp_file swap_active=false
+  local desired_bytes existing_bytes temp_file swap_active=false kubelet_config_changed=false
   fstab_line="${swap_file} none swap sw 0 0"
 
   # Swap is a performance aid for the compact profile, not a prerequisite for
@@ -437,12 +437,49 @@ configure_cpu_swap() {
 
   if [[ -f "$config_file" ]]; then
     if grep -q '^failSwapOn:' "$config_file"; then
-      sed -i 's/^failSwapOn:.*/failSwapOn: false/' "$config_file"
+      if ! grep -qx 'failSwapOn: false' "$config_file"; then
+        sed -i 's/^failSwapOn:.*/failSwapOn: false/' "$config_file"
+        kubelet_config_changed=true
+      fi
     else
       printf '%s\n' 'failSwapOn: false' >> "$config_file"
+      kubelet_config_changed=true
     fi
-    systemctl restart kubelet
-    kubectl wait --for=condition=Ready nodes --all --timeout=300s
+    if [[ "$kubelet_config_changed" == true ]]; then
+      local kubelet_restarted=false restart_attempt
+      for restart_attempt in 1 2 3; do
+        if systemctl restart kubelet; then
+          kubelet_restarted=true
+          break
+        fi
+        [[ "$restart_attempt" -eq 3 ]] || sleep 5
+      done
+      if [[ "$kubelet_restarted" != true ]]; then
+        # Swap is optional by default. Leave the kubelet on its previous
+        # working state rather than turning a recoverable restart race into a
+        # failed installation; the next resume will retry this policy.
+        swap_failure "kubelet 재시작 실패 (failSwapOn 설정은 저장됨)"
+        return $?
+      fi
+      # Calico is installed in the next addon stage. Until that stage runs,
+      # kubelet correctly reports NetworkPluginNotReady/CNI uninitialized and
+      # the node cannot become Ready. Check API registration here and defer the
+      # Ready condition to install_cluster_addons after calico-node is ready.
+      local node_seen=false node_attempt
+      for node_attempt in $(seq 1 30); do
+        if kubectl get nodes --no-headers 2>/dev/null | grep -q .; then
+          node_seen=true
+          break
+        fi
+        sleep 2
+      done
+      if [[ "$node_seen" != true ]]; then
+        swap_failure "kubelet 재시작 후 Kubernetes Node API 등록 대기 실패"
+        return $?
+      fi
+      record PASS "kubelet swap 설정 적용" \
+        "재시작 완료; Node Ready/CNI 확인은 Calico 설치 후 수행"
+    fi
   fi
   if [[ "$swap_active" == true ]]; then
     record PASS "CPU 단일 노드 swap" "기존 ${CPU_SWAP_SIZE_GIB} GiB swap 활성 상태 유지"
