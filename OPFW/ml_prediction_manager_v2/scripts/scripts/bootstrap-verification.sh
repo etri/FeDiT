@@ -2792,6 +2792,41 @@ PY
 
   kustomize build "${KUBEFLOW_MANIFESTS_DIR}/contrib/ray/kuberay-operator/overlays/kubeflow" \
     > "${GENERATED_DIR}/kuberay.yaml"
+  if bool_true "$LOW_MEMORY_PROFILE_ACTIVE"; then
+    # A resumed install may already have KubeRay's compact profile applied
+    # (250m request / 1 CPU limit).  The upstream manifest only declares a
+    # 100m limit, so server-side apply would then be rejected because the
+    # existing request is greater than that limit.  Normalize the generated
+    # manifest before every apply so both a clean install and a resume use the
+    # same valid request/limit pair.
+    python3 "${GENERATED_DIR}/kuberay.yaml" <<'PY'
+import sys
+from pathlib import Path
+
+import yaml
+
+path = Path(sys.argv[1])
+documents = []
+for document in yaml.safe_load_all(path.read_text(encoding="utf-8")):
+    if (
+        isinstance(document, dict)
+        and document.get("kind") == "Deployment"
+        and (document.get("metadata") or {}).get("name") == "kuberay-operator"
+    ):
+        pod_spec = (document.setdefault("spec", {}).setdefault("template", {}).setdefault("spec", {}))
+        for container in pod_spec.get("containers") or []:
+            if container.get("name") != "kuberay-operator":
+                continue
+            resources = container.setdefault("resources", {})
+            resources["requests"] = {"cpu": "250m", "memory": "256Mi"}
+            resources["limits"] = {"cpu": "1", "memory": "768Mi"}
+    documents.append(document)
+path.write_text(
+    yaml.safe_dump_all(documents, sort_keys=False, explicit_start=True),
+    encoding="utf-8",
+)
+PY
+  fi
   prime_manifest_images "${GENERATED_DIR}/kuberay.yaml" "KubeRay"
   apply_with_retry "${GENERATED_DIR}/kuberay.yaml" 10 15
   apply_cpu_single_node_resource_profile
