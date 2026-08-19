@@ -61,16 +61,29 @@ def _resolve_model_artifact_uri(run_id: str, mlflow_namespace: str | None = None
     return f"runs:/{run_id}/model"
 
 
-def _preflight_model_artifact(mlflow_uri: str, artifact_uri: str, model_format: str) -> None:
+def _preflight_model_artifact(
+    mlflow_uri: str,
+    artifact_uri: str,
+    model_format: str,
+    local_path: str | None = None,
+) -> None:
     tmpdir = tempfile.mkdtemp(prefix="pm-prod-artifact-preflight-")
     try:
-        import mlflow as _mlflow
-        _mlflow.set_tracking_uri(mlflow_uri)
-        local = _mlflow.artifacts.download_artifacts(artifact_uri=artifact_uri, dst_path=tmpdir)
-        local_path = Path(local) if local else None
-        if not local_path or not local_path.exists() or not local_path.is_dir():
+        if local_path:
+            # AutoML materializes a verified copy in the Prediction Manager
+            # model-store PVC. MLflow 3 LoggedModel URIs can lack a legacy
+            # artifact listing, so prefer the synchronized copy when present.
+            artifact_path = Path(local_path)
+        else:
+            import mlflow as _mlflow
+            _mlflow.set_tracking_uri(mlflow_uri)
+            downloaded = _mlflow.artifacts.download_artifacts(
+                artifact_uri=artifact_uri, dst_path=tmpdir
+            )
+            artifact_path = Path(downloaded) if downloaded else None
+        if not artifact_path or not artifact_path.exists() or not artifact_path.is_dir():
             raise RuntimeError("MLflow artifact download result is empty")
-        files = [path for path in local_path.rglob("*") if path.is_file()]
+        files = [path for path in artifact_path.rglob("*") if path.is_file()]
         names = {path.name for path in files}
         if model_format == "mlflow" and "MLmodel" not in names:
             raise RuntimeError("MLflow artifact에 MLmodel 파일이 없습니다")
@@ -182,7 +195,20 @@ def _detect_model_format(
     return "mlflow"
 
 
-async def _run_helper_pod(core_v1, pod_name: str, namespace: str, pvc_name: str, artifact_uri: str, model_format: str, mlflow_uri: str) -> None:
+async def _run_helper_pod(
+    core_v1,
+    pod_name: str,
+    namespace: str,
+    pvc_name: str,
+    artifact_uri: str,
+    model_format: str,
+    mlflow_uri: str,
+    source_path: str | None = None,
+    source_pvc_name: str = "prediction-manager-model-store",
+    source_download_url: str | None = None,
+    source_download_email: str | None = None,
+    source_download_namespace: str | None = None,
+) -> None:
     """MLflow artifact를 PVC로 복사하는 helper Pod 실행 후 완료 대기.
 
     MLflow 3.x LoggedModels 호환: Python client 의 download_artifacts 가
@@ -209,6 +235,10 @@ async def _run_helper_pod(core_v1, pod_name: str, namespace: str, pvc_name: str,
     if not validation:
         raise ValueError(f"지원하지 않는 KServe 모델 형식입니다: {model_format}")
 
+    source_literal = repr(source_path) if source_path else "None"
+    download_url_literal = repr(source_download_url) if source_download_url else "None"
+    download_email_literal = repr(source_download_email) if source_download_email else "None"
+    download_namespace_literal = repr(source_download_namespace) if source_download_namespace else "None"
     script = f"""
 set -e
 mkdir -p /target/model
@@ -217,8 +247,41 @@ chmod 777 /target /target/model
 python3 <<'PYEOF'
 import os, shutil, mlflow
 mlflow.set_tracking_uri('{mlflow_uri}')
-local = mlflow.artifacts.download_artifacts(artifact_uri='{artifact_uri}')
-print('downloaded to', local)
+source_rel = {source_literal}
+download_url = {download_url_literal}
+if download_url:
+    import shutil as _shutil
+    import urllib.request as _urlrequest
+    import zipfile as _zipfile
+    archive_path = '/tmp/model-repository.zip'
+    request = _urlrequest.Request(
+        download_url,
+        headers={{
+            'kubeflow-userid': {download_email_literal} or '',
+            'x-pm-namespace': {download_namespace_literal} or '',
+        }},
+    )
+    with _urlrequest.urlopen(request, timeout=120) as response, open(archive_path, 'wb') as output:
+        _shutil.copyfileobj(response, output)
+    extract_root = '/tmp/model-repository'
+    _shutil.rmtree(extract_root, ignore_errors=True)
+    os.makedirs(extract_root, exist_ok=True)
+    with _zipfile.ZipFile(archive_path) as archive:
+        for member in archive.infolist():
+            target = os.path.realpath(os.path.join(extract_root, member.filename))
+            if not target.startswith(os.path.realpath(extract_root) + os.sep):
+                raise RuntimeError('model repository archive contains an unsafe path')
+        archive.extractall(extract_root)
+    local = extract_root
+    print('using synchronized model repository download', download_url)
+elif source_rel:
+    local = os.path.join('/source', source_rel)
+    if not os.path.isdir(local):
+        raise RuntimeError(f'model repository source is missing: {{local}}')
+    print('using synchronized model repository', local)
+else:
+    local = mlflow.artifacts.download_artifacts(artifact_uri='{artifact_uri}')
+    print('downloaded to', local)
 if not local or not os.path.isdir(local):
     raise RuntimeError(f'MLflow artifact download failed: {{local}}')
 # 다운로드 검증 후 기존 파일 제거
@@ -270,12 +333,31 @@ ls -la /target/model/
                     requests={"cpu": "100m", "memory": "512Mi"},
                     limits={"cpu": "1", "memory": "2Gi"},
                 ),
-                volume_mounts=[client.V1VolumeMount(name="model-pvc", mount_path="/target")],
+                volume_mounts=[
+                    client.V1VolumeMount(name="model-pvc", mount_path="/target"),
+                    *([
+                        client.V1VolumeMount(
+                            name="source-model-store", mount_path="/source", read_only=True
+                        )
+                    ] if source_path else []),
+                ],
             )],
-            volumes=[client.V1Volume(
-                name="model-pvc",
-                persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name),
-            )],
+            volumes=[
+                client.V1Volume(
+                    name="model-pvc",
+                    persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                        claim_name=pvc_name
+                    ),
+                ),
+                *([
+                    client.V1Volume(
+                        name="source-model-store",
+                        persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                            claim_name=source_pvc_name
+                        ),
+                    )
+                ] if source_path else []),
+            ],
         ),
     )
     try:
@@ -449,6 +531,7 @@ async def deploy_production(
     scale_to_zero: bool = False,
     mlflow_namespace: str | None = None,
     stage_after_deploy: bool = False,
+    artifact_download_email: str | None = None,
 ) -> dict:
     """
     1) MLflow Stage → Production (기존 Production은 Archived)
@@ -474,7 +557,44 @@ async def deploy_production(
         tags=version_info.get("tags") or {},
     )
     artifact_uri = _resolve_model_artifact_uri(run_id, mlflow_namespace=mlflow_namespace)
-    _preflight_model_artifact(_mlflow_uri(mlflow_namespace), artifact_uri, model_format)
+    # AutoML synchronizes every registered model into the shared model-store
+    # PVC before exposing it in the registry. MLflow 3 LoggedModel output URIs
+    # are not always downloadable through the legacy artifact endpoint, so
+    # prefer the synchronized PVC copy and keep MLflow as a fallback.
+    repository = version_info.get("repository") or {}
+    repository_path_text = repository.get("path")
+    repository_source_path: str | None = None
+    if repository_path_text:
+        try:
+            repository_root = Path(repository.get("root") or "/models").resolve()
+            repository_path = Path(repository_path_text).resolve()
+            repository_source_path = str(repository_path.relative_to(repository_root))
+            if not repository_path.is_dir():
+                repository_source_path = None
+        except (OSError, ValueError):
+            repository_source_path = None
+    _preflight_model_artifact(
+        _mlflow_uri(mlflow_namespace),
+        artifact_uri,
+        model_format,
+        local_path=repository_path_text if repository_source_path else None,
+    )
+    repository_download_url: str | None = None
+    if repository_source_path and artifact_download_email:
+        from urllib.parse import quote
+
+        owner_namespace = mlflow_namespace or target_namespace
+        repository_download_url = (
+            "http://prediction-manager.kubeflow.svc.cluster.local"
+            "/api/models/"
+            f"{quote(model_name, safe='')}/versions/{quote(str(version), safe='')}/download"
+            f"?ns={quote(owner_namespace, safe='')}"
+        )
+    # The model-store PVC belongs to the Prediction Manager namespace. A
+    # tenant helper Pod cannot mount a PVC from another namespace, so use the
+    # authenticated internal download endpoint for cross-namespace copies.
+    if target_namespace != "kubeflow":
+        repository_source_path = None
 
     # 3) PVC
     _ensure_pvc(core_v1, pvc_name, target_namespace)
@@ -488,6 +608,10 @@ async def deploy_production(
         artifact_uri,
         model_format,
         _mlflow_uri(mlflow_namespace),
+        source_path=repository_source_path,
+        source_download_url=repository_download_url,
+        source_download_email=artifact_download_email,
+        source_download_namespace=mlflow_namespace or target_namespace,
     )
     if helper_phase != "Succeeded":
         try:

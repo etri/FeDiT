@@ -12,6 +12,16 @@ FeDiT 예측매니저 호스트 설치 가이드
   충족해야 한다. 화면만 열리는 상태는 기능 시험 성공이 아니다.
 - NVIDIA 드라이버는 이 설치 과정에서 설치, 업데이트 또는 재설치하지 않는다.
 
+최종 검증 상태(2026-08-19):
+
+- CPU 클린 설치와 브라우저 기반 전체 기능 흐름을 완료했다.
+- CPU 최종 브라우저 세션은 메뉴 15/15, Dataset Catalog, Data Collection/NiFi,
+  Label Studio, Dataset→KFP Pipeline, AutoML 원클릭 서빙·추론·중단을 확인했다.
+- GPU는 CPU와 분리된 환경에서 별도로 설치·검증해야 하며, CPU 결과를 GPU 성공으로
+  간주하지 않는다.
+- 브라우저 증거 도구는 `tests/internal`에 있으며, 녹화 영상·스크린샷·런타임 로그는
+  저장소에 포함하지 않는다. 최종 결과 요약만 커밋한다.
+
 
 1. 설치 전 확인
 ----------------
@@ -216,17 +226,20 @@ AutoML 결과 원클릭 서빙:
    namespace 간 통신을 확인한다.
 2. 결과 카드에서 모델 artifact와 점수가 확인된 후보를 선택한다.
 3. `서빙`을 눌러 MLflow 모델 등록과 KServe InferenceService 생성을 요청한다.
-   설치 스크립트는 이 단계에 필요한 MLServer runtime을 설치 전용 loopback
-   registry에 영구 미러링하고 Kubernetes node에도 미리 내려받는다. 또한
-   Knative controller가 Pod 내부 loopback에서 이 registry를 다시 조회하지
-   않도록 로컬 태그 해석을 생략하고 `IfNotPresent` cache 정책을 확인한다.
-   따라서 최초 서빙과 Docker/Kubernetes 재시작 뒤의 서빙도 외부 이미지 pull
-   또는 controller의 잘못된 loopback 조회 때문에 별도 실패하거나 장시간
-   무응답 상태가 되지 않아야 한다.
-4. KServe 메뉴에서 방금 배포한 endpoint 이름과 `Ready` 상태를 확인한다. 이
-   화면은 선택한 사용자 namespace의 실제 InferenceService 목록을 읽어 표시하며,
-   고정된 빈 안내 화면을 성공 증거로 사용하지 않는다. 이어서 모델 관리 화면에서
-   모델 입력 schema에 맞는 실제 추론 요청을 수행해 HTTP 200 결과를 확인한다.
+	   설치 스크립트는 이 단계에 필요한 MLServer runtime을 설치 전용 loopback
+	   registry에 영구 미러링하고 Kubernetes node에도 미리 내려받는다. 또한
+	   Knative controller가 Pod 내부 loopback에서 이 registry를 다시 조회하지
+	   않도록 로컬 태그 해석을 생략하고 `IfNotPresent` cache 정책을 확인한다.
+	   따라서 최초 서빙과 Docker/Kubernetes 재시작 뒤의 서빙도 외부 이미지 pull
+	   또는 controller의 잘못된 loopback 조회 때문에 별도 실패하거나 장시간
+	   무응답 상태가 되지 않아야 한다. Tenant namespace의 helper Pod는
+	   Prediction Manager namespace PVC를 직접 마운트하지 않고, 인증된 내부 모델
+	   다운로드 경로를 통해 검증된 모델 저장소를 복사한다. 따라서 MLflow 3
+	   LoggedModel URI와 namespace 간 PVC 경계 때문에 서빙이 실패하지 않아야 한다.
+	4. KServe 메뉴에서 방금 배포한 endpoint 이름과 `Ready` 상태를 확인한다. 이
+	   화면은 선택한 사용자 namespace의 실제 InferenceService 목록을 읽어 표시하며,
+	   고정된 빈 안내 화면을 성공 증거로 사용하지 않는다. 이어서 모델 관리 화면에서
+	   모델 입력 schema에 맞는 실제 추론 요청을 수행해 HTTP 200 결과를 확인한다.
 5. 시험이 끝나면 KServe UI에서 endpoint를 삭제하고, 시험용 AutoML job 및
    임시 PVC를 정리한다.
 
@@ -255,6 +268,21 @@ CPU/GPU 점검은 다음 순서를 각 서비스에 적용한다.
 Kubeflow Pipelines, MLflow, Ray, TensorBoard, KServe, AutoML, Prometheus와
 Prediction Manager 모니터링을 포함한다. 설치 직후와 재시작 후에 각각 다시
 실행하여 14개 실제 동작이 모두 PASS인지 확인한다.
+
+브라우저 전수 녹화(내부 시험용):
+
+  cd "$INSTALL_HOME/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/tests/internal"
+  FEDIT_TEST_MODE=CPU \
+  FEDIT_RECORD_CONTAINER=fedit-clean-ubuntu22-browser-cpu \
+  ./record_profile_browser_functional_lifecycle.sh \
+    "$INSTALL_HOME/prediction-manager-work/browser-evidence/CPU"
+
+이 도구는 FeDiT 내부 서비스는 iframe을 유지하고, 외부 대시보드는 직접 서비스
+페이지로 전환해 화면을 기록한다. Dataset, Data Collection, Label Studio,
+Pipeline, AutoML은 기능 선택 → 설정 → 실제 실행 → 결과 → 종료/정리 화면을
+캡처한다. Swagger, curl, Kubernetes 출력은 브라우저 기능 증거로 사용하지 않는다.
+시험을 반복할 때는 기존 시험 컨테이너와 fixture를 먼저 제거하고 새 클린 환경에서
+실행한다.
 
 
 9. 재실행과 로그 확인
