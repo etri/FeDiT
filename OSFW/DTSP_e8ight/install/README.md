@@ -47,7 +47,7 @@ cd fdt-service-backend
 ./install/3-ndxpro.sh         # NDXPro 코어 + 파일 서비스 + FDT 뷰어
 
 cd ../fdt-service-frontend
-./install/1-front.sh          # 화면 + BFF   (프록시 없으면 --expose)
+./install/1-front.sh --expose   # 화면 + BFF   (프록시 없으면 --expose)
 
 cd ../fdt-service-backend
 ./scripts/health.sh           # 설치 확인
