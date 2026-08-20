@@ -41,9 +41,4 @@ PLAYCANVAS_EXAMPLE/engine/
 .env.*
 
 # 생성 가능한 VTK 예제 (npm run samples 로 언제든 재생성)
-# *.vtk 는 .gitattributes 에서 LFS 대상이라 커밋하면 LFS 용량을 잡아먹습니다.
 /data/samples/
-
-#
-/digital-twin-321/
-/.junie/

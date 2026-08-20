@@ -18,8 +18,8 @@ npm run samples:verify   # 앱 파서로 왕복 검증
 | `--up y` | Z-up 대신 Y-up 으로 축 변환해서 출력 |
 | `--out <dir>` | 출력 폴더 (기본 `data/samples`) |
 
-생성물은 `.gitignore` 되어 있습니다. `*.vtk` 가 `.gitattributes` 에서 LFS 대상이라
-35 MB를 커밋하면 LFS 용량만 잡아먹고, 어차피 스크립트로 언제든 재생성되기 때문입니다.
+생성물은 `.gitignore` 되어 있습니다. 전체 생성 시 35 MB가 넘고,
+어차피 스크립트로 언제든 재생성되기 때문입니다.
 
 ---
 
