@@ -26,12 +26,12 @@ importers:
       axios:
         specifier: ^1.7.2
         version: 1.7.2
-      bpmn-font:
-        specifier: ^0.12.1
-        version: 0.12.1
+      bpmn-auto-layout:
+        specifier: ^1.3.0
+        version: 1.3.0
       bpmn-moddle:
         specifier: ^9.0.1
-        version: 9.0.1
+        version: 9.0.2
       classnames:
         specifier: ^2.5.1
         version: 2.5.1
@@ -56,9 +56,6 @@ importers:
       inherits-browser:
         specifier: ^0.1.0
         version: 0.1.0
-      marked:
-        specifier: ^13.0.2
-        version: 13.0.2
       min-dash:
         specifier: ^4.2.1
         version: 4.2.1
@@ -1056,11 +1053,16 @@ packages:
   boolbase@1.0.0:
     resolution: {integrity: sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==}
 
-  bpmn-font@0.12.1:
-    resolution: {integrity: sha512-quQ47cFuFSZw3y5ta4J2eg+g/UG38pN9Uk8QzR988RyjFP7agdgwmVXPErCGqaFm4UyTTNGtx9jCFdcxw990vg==}
+  bpmn-auto-layout@1.3.0:
+    resolution: {integrity: sha512-ufjMy1MaaZxkQF7f2wY6EL6TnRMSFr/r9eBhp0QvS41UHXW77aQVt65+dn2MmVMlHdyvZyOMNYXO2qYpgX6bQA==}
+    engines: {node: '>= 18'}
 
-  bpmn-moddle@9.0.1:
-    resolution: {integrity: sha512-jO2P5RBx0cZCCd+imqhpNE5anttaYuGd71u76NEA/qMZwJSW1t5ETAtw9/E2InfiPU2w0TR8oxPyopJXRc9VQg==}
+  bpmn-moddle@10.0.0:
+    resolution: {integrity: sha512-vXePD5jkatcILmM3zwJG/m6IIHIghTGB7WvgcdEraEw8E8VdJHrTgrvBUhbzqaXJpnsGQz15QS936xeBY6l9aA==}
+    engines: {node: '>= 20.12'}
+
+  bpmn-moddle@9.0.2:
+    resolution: {integrity: sha512-HXWMJ+UZSm2PeBS9FuY713AB6Pjwbzp6l2ncWdUpuPrQVGdtcsS/FIK5P3CVQKR8LYrf0BUaM+ID+0Xu7PdsIw==}
     engines: {node: '>= 18'}
 
   brace-expansion@1.1.11:
@@ -1933,11 +1935,6 @@ packages:
     resolution: {integrity: sha512-8vBuFF/I/+OSLRmdf2wwFCJCz+nSn0m6DPvGH1fS/KiQoSaR+sETbov0eIk9KhEKy8CYqIkIAnbohxT/4H0kuA==}
     engines: {node: '>=12'}
 
-  marked@13.0.2:
-    resolution: {integrity: sha512-J6CPjP8pS5sgrRqxVRvkCIkZ6MFdRIjDkwUwgJ9nL2fbmM6qGQeB2C16hi8Cc9BOzj6xXzy0jyi0iPIfnMHYzA==}
-    engines: {node: '>= 18'}
-    hasBin: true
-
   mdast-util-from-markdown@0.8.5:
     resolution: {integrity: sha512-2hkTXtYYnr+NubD/g6KGBS/0mFmBcifAsI0yIWRiRo0PjVs6SSOSOdtzbp6kSGnShDN6G5aWZpKQ2lWRy27mWQ==}
 
@@ -1983,6 +1980,9 @@ packages:
   min-dash@4.2.1:
     resolution: {integrity: sha512-to+unsToePnm7cUeR9TrMzFlETHd/UXmU+ELTRfWZj5XGT41KF6X3L233o3E/GdEs3sk2Tbw/lOLD1avmWkg8A==}
 
+  min-dash@5.0.0:
+    resolution: {integrity: sha512-EGuoBnVL7/Fnv2sqakpX5WGmZehZ3YMmLayT7sM8E9DRU74kkeyMg4Rik1lsOkR2GbFNeBca4/L+UfU6gF0Edw==}
+
   min-dom@4.2.1:
     resolution: {integrity: sha512-TMoL8SEEIhUWYgkj7XMSgxmwSyGI+4fP2KFFGnN3FbHfbGHVdsLYSz8LoIsgPhz4dWRmLvxWWSMgzZMJW5sZuA==}
 
@@ -2013,8 +2013,17 @@ packages:
     peerDependencies:
       moddle: '>= 6.2.0'
 
-  moddle@7.0.0:
-    resolution: {integrity: sha512-Hpte2hfKDwoZWPvDngsEHjloPnO+sKMUVkAPc0r9PrpnVLqsyPUTV0ZQU8CAp87YmRZ9QzeQMJxdKbaP9vEIKA==}
+  moddle-xml@12.0.0:
+    resolution: {integrity: sha512-NJc2+sCe4tvuGlaUBcoZcYf6j9f+z+qxHOyGm/LB3ZrlJXVPPHoBTg/KXgDRCufdBJhJ3AheFs3QU/abABNzRg==}
+    engines: {node: '>= 18'}
+    peerDependencies:
+      moddle: '>= 6.2.0'
+
+  moddle@7.2.0:
+    resolution: {integrity: sha512-x1+JREThy7JBOBR3g2hbOnOfrlC/YAWXX9RzrSZS5HhqeuBly9H/PCtOBtcQs+Y2sjRAXF+WTNSgHvn8Uq+6Yw==}
+
+  moddle@8.1.0:
+    resolution: {integrity: sha512-dBddc1CNuZHgro8nQWwfPZ2BkyLWdnxoNpPu9d+XKPN96DAiiBOeBw527ft++ebDuFez5PMdaR3pgUgoOaUGrA==}
 
   ms@2.1.2:
     resolution: {integrity: sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==}
@@ -2346,6 +2355,10 @@ packages:
   saxen@10.0.0:
     resolution: {integrity: sha512-RXsmWok/SAWqOG/f5ADEz51DN9WtZEzqih3e08ranldcaXekxjx8NBKjGh/y5hlowjo0JH/LekBu6gtPFD1G6g==}
     engines: {node: '>= 18'}
+
+  saxen@11.0.2:
+    resolution: {integrity: sha512-WDb4gqac8uiJzOdOdVpr9NWh9NrJMm7Brn5GX2Poj+mjE/QTXqYQENr8T/mom54dDDgbd3QjwTg23TRHYiWXRA==}
+    engines: {node: '>= 20.12'}
 
   scheduler@0.23.2:
     resolution: {integrity: sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ==}
@@ -3751,13 +3764,22 @@ snapshots:
 
   boolbase@1.0.0: {}
 
-  bpmn-font@0.12.1: {}
+  bpmn-auto-layout@1.3.0:
+    dependencies:
+      bpmn-moddle: 10.0.0
+      min-dash: 5.0.0
 
-  bpmn-moddle@9.0.1:
+  bpmn-moddle@10.0.0:
+    dependencies:
+      min-dash: 5.0.0
+      moddle: 8.1.0
+      moddle-xml: 12.0.0(moddle@8.1.0)
+
+  bpmn-moddle@9.0.2:
     dependencies:
       min-dash: 4.2.1
-      moddle: 7.0.0
-      moddle-xml: 11.0.0(moddle@7.0.0)
+      moddle: 7.2.0
+      moddle-xml: 11.0.0(moddle@7.2.0)
 
   brace-expansion@1.1.11:
     dependencies:
@@ -4681,8 +4703,6 @@ snapshots:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.4.15
 
-  marked@13.0.2: {}
-
   mdast-util-from-markdown@0.8.5:
     dependencies:
       '@types/mdast': 3.0.15
@@ -4727,6 +4747,8 @@ snapshots:
 
   min-dash@4.2.1: {}
 
+  min-dash@5.0.0: {}
+
   min-dom@4.2.1:
     dependencies:
       component-event: 0.2.1
@@ -4757,15 +4779,25 @@ snapshots:
       pkg-types: 1.0.3
       ufo: 1.4.0
 
-  moddle-xml@11.0.0(moddle@7.0.0):
+  moddle-xml@11.0.0(moddle@7.2.0):
     dependencies:
       min-dash: 4.2.1
-      moddle: 7.0.0
+      moddle: 7.2.0
       saxen: 10.0.0
 
-  moddle@7.0.0:
+  moddle-xml@12.0.0(moddle@8.1.0):
+    dependencies:
+      min-dash: 5.0.0
+      moddle: 8.1.0
+      saxen: 11.0.2
+
+  moddle@7.2.0:
     dependencies:
       min-dash: 4.2.1
+
+  moddle@8.1.0:
+    dependencies:
+      min-dash: 5.0.0
 
   ms@2.1.2: {}
 
@@ -5073,6 +5105,8 @@ snapshots:
       queue-microtask: 1.2.3
 
   saxen@10.0.0: {}
+
+  saxen@11.0.2: {}
 
   scheduler@0.23.2:
     dependencies:
