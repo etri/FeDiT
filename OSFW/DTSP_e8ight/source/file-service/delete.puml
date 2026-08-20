@@ -1,0 +1,28 @@
+@startuml
+title File Delete
+
+actor Client as client
+participant "File Service" as service
+database PostgreSQL as db
+collections Disk as disk
+participant "Cache Service" as cache
+
+client -> service ++ : HTTP DELETE /files/{ufId}
+service -> db ++ : UFID로 논리 File 객체 및 연관된 File 객체 검색
+return
+alt DB에 주어진 UFID의 논리 File 객체가 없음
+    service -> client : response '404 file not found'
+end
+
+service -> db ++ : 검색된 File 객체와 연관된 논리 File 객체 검색
+return
+alt 검색된 File 객체와 연관된 논리 File 객체 없음
+    service -> service : File 객체 isDeleted true로 수정
+end
+service -> service : 논리 File 객체 isDeleted true로 수정
+service -> db ++ : 논리 File 객체 및 File 객체 수정 반영
+return
+service ->> cache : 비동기 파일 캐시 제거 요청
+return response 제거된 논리 File 객체 정보
+
+@enduml

@@ -1,0 +1,46 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: DATABROKER-SERVICE
+
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+      databaseName: ${MONGODB_DATABASE_NAME}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_URL}
+    topic:
+      entity: ${KAFKA_TOPIC_FOR_ENTITY}
+      observedAt: ${KAFKA_TOPIC_FOR_OBSERVED_AT}
+    consumer:
+      group: ${KAFKA_CONSUMER_GROUP}
+
+  cache:
+    type: redis
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT}
+    password: ${REDIS_PASSWORD}
+
+  sleuth:
+    sampler:
+      probability: 1.0
+  zipkin:
+    base-url: ${ZIPKIN_URL}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL}
+
+datamanager:
+  url: ${DATAMANAGER_URL}
+  api-path:
+    data-models: ${DATAMANAGER_GET_DATA_MODELS_API_PATH}
+    attributes: ${DATAMANAGER_GET_ATTRIBUTES_API_PATH}
+
+logging:
+  logstash:
+    url: ${LOGSTASH_URL}

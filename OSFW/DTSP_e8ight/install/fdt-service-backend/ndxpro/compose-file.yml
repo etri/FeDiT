@@ -1,0 +1,34 @@
+# -----------------------------------------------------------------------------
+# 4단계: 파일 서비스 (첨부/모델 파일 업로드·다운로드)
+#   ./install/3-ndxpro.sh 가 함께 올린다
+#
+#  기존 docker-compose-file.yml 은 DB 주소를 호스트 IP(220.124.222.90:55432)로
+#  직접 박아 두었다. 같은 도커 네트워크 안이므로 postgres:5432 로 바꿨다.
+#  DB 를 다른 서버에 두는 구성이라면 DATASOURCE_URL 만 그 주소로 되돌리면 된다.
+# -----------------------------------------------------------------------------
+name: ndxpro-file
+
+services:
+  file-service:
+    container_name: file-service
+    image: ${IMAGE_REPO_URL}/ndxpro-file-service:${TAG_FILE_SERVICE:-${IMAGE_TAG}}
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      EUREKA_URL: http://eureka:8761/eureka
+      DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      WRITER_COUNT: 1
+      TZ: ${TZ}
+    volumes:
+      - ${REPO}/file-service/data:/data     # 업로드된 실제 파일. 백업 대상.
+      - ${REPO}/file-service/logs:/opt/logs
+    ports:
+      - "${PORT_FILE_SERVICE}:8080"
+      - "${PORT_FILE_SERVICE_ACTUATOR}:8081"
+
+networks:
+  default:
+    name: ${DOCKER_NETWORK}
+    external: true

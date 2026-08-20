@@ -1,0 +1,45 @@
+#!/bin/sh
+
+# 허용 패턴
+# - main, master                        : 메인/마스터 브랜치
+# - release/{app}/{version_or_name}     : 배포용 브랜치 (예: release/union-twin-fe/v1.0.0 또는 release/union-twin-be/hotfix)
+# - {type}/common/{desc}                : 루트 레벨 작업 (예: feat/common/dockerfile-cleanup)
+# - {type}/{scope}/{desc}/{ticket}      : 스코프 작업 (예: feat/client/add-login/123)
+# - {issue}-{desc}                      : GitLab 이슈에서 생성한 브랜치 (예: 341-union-twin-portal-api)
+# - revert-{sha}                        : GitLab revert 브랜치 (예: revert-81e9c57a)
+#
+# {type} 은 commitlint.config.js 의 type-enum 12종과 동일하며, 커밋 타입이 없는
+# temp (팀원 간 코드 공유용 임시 브랜치) 만 추가로 허용한다.
+branch_types="feat|fix|hotfix|docs|style|refactor|perf|test|chore|ci|build|revert|temp"
+valid_pattern="^(main|master|release\/[a-z0-9-]+\/(v[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9-]+)?|[a-z0-9-]+)|($branch_types)\/common\/[a-z0-9-]+|($branch_types)\/[a-z0-9-]+\/[a-z0-9-]+\/[0-9]+|[0-9]+-[a-z0-9-]+|revert-[0-9a-f]+)$"
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/*) ;;
+    *) continue ;;
+  esac
+
+  case "$local_sha" in
+    *[!0]*) ;;
+    *) continue ;;
+  esac
+
+  branch=${remote_ref#refs/heads/}
+
+  if ! echo "$branch" | grep -Eq "$valid_pattern"; then
+    echo "❌ 브랜치명 규격 오류: $branch"
+    echo ""
+    echo "📋 허용 패턴:"
+    echo "   main, master                        메인/마스터 브랜치"
+    echo "   release/{app}/{version}             배포용 (예: release/union-twin-fe/v1.0.0)"
+    echo "   {type}/common/{desc}                루트 레벨 (예: feat/common/dockerfile-cleanup)"
+    echo "   {type}/{scope}/{desc}/{ticket}      스코프 작업 (예: feat/client/add-login/123)"
+    echo "   {issue}-{desc}                      GitLab 이슈 브랜치 (예: 341-union-twin-portal-api)"
+    echo "   revert-{sha}                        GitLab revert 브랜치 (예: revert-81e9c57a)"
+    echo ""
+    echo "   {type}: feat, fix, hotfix, docs, style, refactor, perf, test, chore, ci, build, revert, temp"
+    echo "   {scope}: client, server, ui, root, deps, docker, ci"
+    echo ""
+    exit 1
+  fi
+done

@@ -1,0 +1,95 @@
+{
+  "name": "@e8ight/ui",
+  "version": "0.2.6",
+  "description": "e8ight shared React component library — shadcn-based primitives, hooks, design tokens, and font assets.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "src/assets",
+    "styles.css",
+    "fonts.css",
+    "themes",
+    "README.md"
+  ],
+  "exports": {
+    "./assets/*": "./src/assets/*",
+    "./styles.css": "./styles.css",
+    "./themes/*.css": "./themes/*.css",
+    "./utils/*": {
+      "source": "./src/utils/*.ts",
+      "types": "./src/utils/*.ts",
+      "default": "./dist/utils/*.js"
+    },
+    "./components/theme-provider": {
+      "source": "./src/components/theme-provider.tsx",
+      "types": "./src/components/theme-provider.tsx",
+      "default": "./dist/components/theme-provider.js"
+    },
+    "./components/ui/*": {
+      "source": "./src/components/ui/*.tsx",
+      "types": "./src/components/ui/*.tsx",
+      "default": "./dist/components/ui/*.js"
+    },
+    "./hooks": {
+      "source": "./src/hooks/index.ts",
+      "types": "./src/hooks/index.ts",
+      "default": "./dist/hooks/index.js"
+    },
+    "./contexts/*": {
+      "source": "./src/contexts/*.tsx",
+      "types": "./src/contexts/*.tsx",
+      "default": "./dist/contexts/*.js"
+    }
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint '**/*.{js,jsx,ts,tsx}'",
+    "lint:prettier": "prettier --check '**/*.{js,jsx,ts,tsx,css,scss}'",
+    "format": "prettier --write '**/*.{js,jsx,ts,tsx,css,scss}' && eslint --fix '**/*.{js,jsx,ts,tsx}'",
+    "check": "pnpm run lint && pnpm run lint:prettier && pnpm run type-check",
+    "type-check": "tsc --noEmit --pretty --incremental"
+  },
+  "dependencies": {
+    "@tanstack/react-virtual": "catalog:",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "lucide-react": "catalog:",
+    "radix-ui": "catalog:",
+    "react-day-picker": "^10.0.1",
+    "react-resizable-panels": "catalog:",
+    "sonner": "catalog:",
+    "tailwind-merge": "catalog:",
+    "tw-animate-css": "^1.4.0"
+  },
+  "peerDependencies": {
+    "overlay-kit": "^1.9.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.2.1"
+  },
+  "peerDependenciesMeta": {
+    "overlay-kit": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "eslint": "catalog:",
+    "overlay-kit": "catalog:",
+    "prettier": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:"
+  }
+}

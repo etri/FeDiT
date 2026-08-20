@@ -1,0 +1,17 @@
+@startuml
+entity Separator:ET-101
+entity Model2D:Separator:ET-101
+entity Model3D:Separator:ET-101
+entity File:1
+entity File:2
+
+"Separator:ET-101" --> "Model2D:Separator:ET-101" : hasModel2D
+"Model2D:Separator:ET-101" --> "Separator:ET-101" : isModel2DOf
+"Model2D:Separator:ET-101" --> "File:1" : hasFile
+"File:1" --> "Model2D:Separator:ET-101" : isFileOf
+
+"Separator:ET-101" --> "Model3D:Separator:ET-101" : hasModel3D
+"Model3D:Separator:ET-101" --> "Separator:ET-101" : isModel3DOf
+"Model3D:Separator:ET-101" --> "File:2" : hasFile
+"File:2" --> "Model3D:Separator:ET-101" : isFileOf
+@enduml

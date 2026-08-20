@@ -1,0 +1,8 @@
+@import 'tailwindcss';
+@import '@e8ight/ui/styles.css';
+@import '@e8ight/ui/themes/naxis.css';
+
+html,
+body {
+  height: 100%;
+}

@@ -1,0 +1,50 @@
+server:
+  port: 54004
+
+eureka:
+  client:
+    enabled: false
+
+spring:
+  jpa:
+    generate-ddl: 'true'
+    database: h2
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:test;MODE=PostgreSQL;INIT=CREATE SCHEMA IF NOT EXISTS NGSI_TRANSLATOR
+    username: ndxpro
+    password:
+  sleuth:
+    enabled: false
+  zipkin:
+    enabled: false
+  h2:
+    console:
+      enabled: true
+
+translator:
+  dir: ./translatorJars
+  kafka-url: 172.16.28.218:19092,172.16.28.218:29092,172.16.28.218:39092,172.16.28.218:49092,172.16.28.218:59092
+  default:
+    poll-duration: 300
+  inspector:
+    inspect-duration: 10000
+    threshold: 60000
+
+data-ingest:
+  url: http://localhost:54003/ndxpro/v1/ingest
+data-manager:
+  url: http://172.16.28.223:54002/ndxpro/v1/manager
+translator-builder:
+  url: http://172.16.28.223:54002/ndxpro/v1/translator-builder
+gateway:
+  url: http://172.16.28.222:54002
+auth:
+  url: ${gateway.url}/ndxpro/v1/auth
+
+logging:
+  logstash:
+    url: 172.16.28.221:50000

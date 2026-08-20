@@ -1,0 +1,84 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.4'
+    id 'io.spring.dependency-management' version '1.1.6'
+    id 'com.google.cloud.tools.jib' version '3.4.0'
+}
+
+group = 'kr.co.e8ight'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+repositories {
+    maven {
+        url 'http://172.16.28.217:9081/repository/maven-releases/'
+        allowInsecureProtocol = true
+        credentials {
+            username = "admin"
+            password = "ndxpro123!"
+        }
+    }
+}
+
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+
+    // common
+    implementation 'kr.co.e8ight.ndxpro:ndxpro_common:0.2.6'
+
+    // swagger
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
+
+    // gson
+    implementation 'org.json:json:20231013'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+jib {
+    from {
+        image = "eclipse-temurin:21-jre"
+//                platforms {
+//            platform {
+//                architecture = 'arm64'
+//                os = 'linux'
+//            }
+//        }
+    }
+    to {
+        image = "172.16.28.217:12000/fdt-service"
+        tags = ["v1.1"]
+        auth {
+            username = "admin"
+            password = "ndxpro123!"
+        }
+        container {
+            mainClass ="kr.co.e8ight.fdttwinservice.FdtTwinServiceApplication"
+            environment = ["TZ" : "Asia/Seoul"]
+        }
+    }
+    setAllowInsecureRegistries(true)
+}

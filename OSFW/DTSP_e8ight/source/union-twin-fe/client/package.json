@@ -1,0 +1,48 @@
+{
+  "name": "@workspace/union-twin-client",
+  "private": true,
+  "dependencies": {
+    "@e8ight/ui": "workspace:*",
+    "@hookform/resolvers": "catalog:",
+    "@monaco-editor/react": "catalog:",
+    "@suspensive/react": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "@uiw/react-md-editor": "^4.1.1",
+    "axios": "catalog:",
+    "chart.js": "catalog:",
+    "dayjs": "^1.11.21",
+    "es-toolkit": "catalog:",
+    "lucide-react": "catalog:",
+    "next": "^15.5.21",
+    "next-themes": "catalog:",
+    "overlay-kit": "catalog:",
+    "react": "catalog:",
+    "react-chartjs-2": "catalog:",
+    "react-dom": "catalog:",
+    "react-hook-form": "catalog:",
+    "server-only": "^0.0.1",
+    "zod": "catalog:",
+    "zustand": "catalog:"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint '**/*.{js,cjs,mjs,jsx,ts,tsx}'",
+    "lint:prettier": "prettier --check '**/*.{js,cjs,mjs,jsx,ts,tsx,css,scss}'",
+    "format": "prettier --write '**/*.{js,cjs,mjs,jsx,ts,tsx,css,scss}' && eslint --fix '**/*.{js,cjs,mjs,jsx,ts,tsx}'",
+    "check": "pnpm run lint && pnpm run lint:prettier && pnpm run type-check",
+    "type-check": "tsc --noEmit --pretty --incremental"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "agentation": "catalog:",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:"
+  }
+}

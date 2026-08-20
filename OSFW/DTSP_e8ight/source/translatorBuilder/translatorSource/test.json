@@ -1,0 +1,846 @@
+[
+  {
+    "id": "00:FF:0C:0B:01:01:STHP7090-438O-74",
+    "name": "B2층 EV홀",
+    "type": "AirConditioner.Indoor",
+    "parentId": "STHP7090-438O-74",
+    "parentName": "192.168.10.23",
+    "parentType": "AirConditionerController.DMS",
+    "registrationStatus": "Registered",
+    "representativeStatus": "Normal",
+    "locations": [
+      {
+        "id": "Fixed",
+        "description": "성수 팩토리얼, B2",
+        "foundation_space_buildings_id": 1,
+        "foundation_space_floors_id": 12,
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            560.0,
+            380.0
+          ]
+        }
+      }
+    ],
+    "groups": [
+      {
+        "dms_groups_id": 4,
+        "dms_groups_name": "B2F_IDU"
+      }
+    ],
+    "schedules": [
+      {
+        "schedules_id": 30,
+        "schedules_name": "지열 실내기 스케쥴(B2F)",
+        "schedules_activated": true
+      }
+    ],
+    "information": {
+      "updatedTime": "2025-12-01T21:27:36+09:00",
+      "manufacturer": "Samsung Electronics Co., Ltd.",
+      "modelName": "1Way",
+      "versions": [
+        {
+          "type": "Firmware",
+          "number": "2023-07-21"
+        }
+      ]
+    },
+    "configuration": {
+      "remoteControl": "Allowed"
+    },
+    "modes": [
+      {
+        "id": "AirConditioner.Indoor.General",
+        "supportedModes": [
+          "HeatStorage",
+          "Auto",
+          "Fan",
+          "Heat",
+          "CoolStorage",
+          "Cool",
+          "Dry"
+        ],
+        "mode": "Auto"
+      },
+      {
+        "id": "AirConditioner.Indoor.ModeLimit",
+        "supportedModes": [
+          "HeatOnly",
+          "CoolOnly",
+          "NoLimit"
+        ],
+        "mode": "NoLimit"
+      }
+    ],
+    "operations": [
+      {
+        "id": "AirConditioner.Indoor.General",
+        "power": "Off"
+      }
+    ],
+    "temperatures": [
+      {
+        "id": "AirConditioner.Indoor.Room",
+        "unit": "Celsius",
+        "desired": 24.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Cool.Limit",
+        "enabled": true,
+        "unit": "Celsius",
+        "desired": 18.0,
+        "minimum": 18.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Heat.Limit",
+        "enabled": true,
+        "unit": "Celsius",
+        "desired": 30.0,
+        "minimum": 16.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.DischargeAir",
+        "enabled": false,
+        "unit": "Celsius"
+      },
+      {
+        "id": "AirConditioner.Indoor.DischargeAir.Cool",
+        "unit": "Celsius",
+        "desired": 8.0,
+        "minimum": 8.0,
+        "maximum": 18.0
+      },
+      {
+        "id": "AirConditioner.Indoor.DischargeAir.Heat",
+        "unit": "Celsius",
+        "desired": 30.0,
+        "minimum": 30.0,
+        "maximum": 43.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Auto",
+        "unit": "Celsius",
+        "minimum": 18.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Cool",
+        "unit": "Celsius",
+        "minimum": 18.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Heat",
+        "unit": "Celsius",
+        "minimum": 16.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Dry",
+        "unit": "Celsius",
+        "minimum": 18.0,
+        "maximum": 30.0
+      }
+    ],
+    "winds": [
+      {
+        "id": "AirConditioner.Indoor.General.Speed",
+        "wind": "Auto"
+      },
+      {
+        "id": "AirConditioner.Indoor.General.Direction",
+        "wind": "Fix"
+      }
+    ],
+    "airConditioner": {
+      "installationInformation": [
+        "09",
+        "1F",
+        "0F",
+        "85",
+        "07",
+        "03",
+        "43",
+        "0F",
+        "00",
+        "00",
+        "00",
+        "00",
+        "00",
+        "00"
+      ],
+      "panelConfigurationInformation": [
+        "01",
+        "1F",
+        "01",
+        "81",
+        "07",
+        "03",
+        "03",
+        "0F",
+        "00",
+        "00",
+        "00",
+        "00",
+        "00",
+        "00"
+      ],
+      "indoorUnitType": "AirConditioner.Indoor.Cassette1Way",
+      "defrost": "Off",
+      "filterResetRequired": false,
+      "peakPowerControl": "Off",
+      "spi": "Off",
+      "stillAir": "Off",
+      "temperatureReference": "Indoor",
+      "relatedUnits": [
+        {
+          "id": "00:FF:0C:0B:00:02:STHP7090-438O-74",
+          "name": "12.11.00",
+          "locations": "성수 팩토리얼, B5",
+          "representativeStatus": "Normal",
+          "mode": "None",
+          "power": false,
+          "model": "DVM S WATER HP"
+        }
+      ],
+      "longWind": "Off"
+    }
+  },
+  {
+    "id": "00:FF:0C:0B:02:01:STHP7090-438O-74",
+    "name": "B2층 복도1",
+    "type": "AirConditioner.Indoor",
+    "parentId": "STHP7090-438O-74",
+    "parentName": "192.168.10.23",
+    "parentType": "AirConditionerController.DMS",
+    "registrationStatus": "Registered",
+    "representativeStatus": "Normal",
+    "locations": [
+      {
+        "id": "Fixed",
+        "description": "성수 팩토리얼, B2",
+        "foundation_space_buildings_id": 1,
+        "foundation_space_floors_id": 12,
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            560.0,
+            380.0
+          ]
+        }
+      }
+    ],
+    "groups": [
+      {
+        "dms_groups_id": 4,
+        "dms_groups_name": "B2F_IDU"
+      }
+    ],
+    "schedules": [
+      {
+        "schedules_id": 30,
+        "schedules_name": "지열 실내기 스케쥴(B2F)",
+        "schedules_activated": true
+      }
+    ],
+    "information": {
+      "updatedTime": "2025-12-01T21:27:36+09:00",
+      "manufacturer": "Samsung Electronics Co., Ltd.",
+      "modelName": "2Way",
+      "versions": [
+        {
+          "type": "Firmware",
+          "number": "2022-06-30"
+        }
+      ]
+    },
+    "configuration": {
+      "remoteControl": "Allowed"
+    },
+    "modes": [
+      {
+        "id": "AirConditioner.Indoor.General",
+        "supportedModes": [
+          "HeatStorage",
+          "Auto",
+          "Fan",
+          "Heat",
+          "CoolStorage",
+          "Cool",
+          "Dry"
+        ],
+        "mode": "Auto"
+      },
+      {
+        "id": "AirConditioner.Indoor.ModeLimit",
+        "supportedModes": [
+          "HeatOnly",
+          "CoolOnly",
+          "NoLimit"
+        ],
+        "mode": "NoLimit"
+      }
+    ],
+    "operations": [
+      {
+        "id": "AirConditioner.Indoor.General",
+        "power": "Off"
+      }
+    ],
+    "temperatures": [
+      {
+        "id": "AirConditioner.Indoor.Room",
+        "unit": "Celsius",
+        "desired": 24.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Cool.Limit",
+        "enabled": true,
+        "unit": "Celsius",
+        "desired": 18.0,
+        "minimum": 18.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Heat.Limit",
+        "enabled": true,
+        "unit": "Celsius",
+        "desired": 30.0,
+        "minimum": 16.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.DischargeAir",
+        "enabled": false,
+        "unit": "Celsius"
+      },
+      {
+        "id": "AirConditioner.Indoor.DischargeAir.Cool",
+        "unit": "Celsius",
+        "desired": 8.0,
+        "minimum": 8.0,
+        "maximum": 18.0
+      },
+      {
+        "id": "AirConditioner.Indoor.DischargeAir.Heat",
+        "unit": "Celsius",
+        "desired": 30.0,
+        "minimum": 30.0,
+        "maximum": 43.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Auto",
+        "unit": "Celsius",
+        "minimum": 18.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Cool",
+        "unit": "Celsius",
+        "minimum": 18.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Heat",
+        "unit": "Celsius",
+        "minimum": 16.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Dry",
+        "unit": "Celsius",
+        "minimum": 18.0,
+        "maximum": 30.0
+      }
+    ],
+    "winds": [
+      {
+        "id": "AirConditioner.Indoor.General.Speed",
+        "wind": "Auto"
+      },
+      {
+        "id": "AirConditioner.Indoor.General.Direction",
+        "wind": "Fix"
+      }
+    ],
+    "airConditioner": {
+      "installationInformation": [
+        "09",
+        "1F",
+        "0F",
+        "85",
+        "07",
+        "03",
+        "43",
+        "0F",
+        "00",
+        "00",
+        "00",
+        "00",
+        "00",
+        "00"
+      ],
+      "panelConfigurationInformation": [
+        "01",
+        "1F",
+        "01",
+        "81",
+        "07",
+        "03",
+        "03",
+        "0F",
+        "00",
+        "00",
+        "00",
+        "00",
+        "00",
+        "00"
+      ],
+      "indoorUnitType": "AirConditioner.Indoor.Cassette2Way",
+      "defrost": "Off",
+      "filterResetRequired": false,
+      "peakPowerControl": "Off",
+      "spi": "Off",
+      "stillAir": "Off",
+      "temperatureReference": "Indoor",
+      "relatedUnits": [
+        {
+          "id": "00:FF:0C:0B:00:02:STHP7090-438O-74",
+          "name": "12.11.00",
+          "locations": "성수 팩토리얼, B5",
+          "representativeStatus": "Normal",
+          "mode": "None",
+          "power": false,
+          "model": "DVM S WATER HP"
+        }
+      ],
+      "longWind": "Off"
+    }
+  },
+  {
+    "id": "00:FF:0C:0B:03:01:STHP7090-438O-74",
+    "name": "B2층 복도2",
+    "type": "AirConditioner.Indoor",
+    "parentId": "STHP7090-438O-74",
+    "parentName": "192.168.10.23",
+    "parentType": "AirConditionerController.DMS",
+    "registrationStatus": "Registered",
+    "representativeStatus": "Normal",
+    "locations": [
+      {
+        "id": "Fixed",
+        "description": "성수 팩토리얼, B2",
+        "foundation_space_buildings_id": 1,
+        "foundation_space_floors_id": 12,
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            560.0,
+            380.0
+          ]
+        }
+      }
+    ],
+    "groups": [
+      {
+        "dms_groups_id": 4,
+        "dms_groups_name": "B2F_IDU"
+      }
+    ],
+    "schedules": [
+      {
+        "schedules_id": 30,
+        "schedules_name": "지열 실내기 스케쥴(B2F)",
+        "schedules_activated": true
+      }
+    ],
+    "information": {
+      "updatedTime": "2025-12-01T21:27:36+09:00",
+      "manufacturer": "Samsung Electronics Co., Ltd.",
+      "modelName": "4Way",
+      "versions": [
+        {
+          "type": "Firmware",
+          "number": "2023-07-21"
+        }
+      ]
+    },
+    "configuration": {
+      "remoteControl": "Allowed"
+    },
+    "modes": [
+      {
+        "id": "AirConditioner.Indoor.General",
+        "supportedModes": [
+          "HeatStorage",
+          "Auto",
+          "Fan",
+          "Heat",
+          "CoolStorage",
+          "Cool",
+          "Dry"
+        ],
+        "mode": "Auto"
+      },
+      {
+        "id": "AirConditioner.Indoor.ModeLimit",
+        "supportedModes": [
+          "HeatOnly",
+          "CoolOnly",
+          "NoLimit"
+        ],
+        "mode": "NoLimit"
+      }
+    ],
+    "operations": [
+      {
+        "id": "AirConditioner.Indoor.General",
+        "power": "Off"
+      }
+    ],
+    "temperatures": [
+      {
+        "id": "AirConditioner.Indoor.Room",
+        "unit": "Celsius",
+        "desired": 24.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Cool.Limit",
+        "enabled": true,
+        "unit": "Celsius",
+        "desired": 18.0,
+        "minimum": 18.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Heat.Limit",
+        "enabled": true,
+        "unit": "Celsius",
+        "desired": 30.0,
+        "minimum": 16.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.DischargeAir",
+        "enabled": false,
+        "unit": "Celsius"
+      },
+      {
+        "id": "AirConditioner.Indoor.DischargeAir.Cool",
+        "unit": "Celsius",
+        "desired": 8.0,
+        "minimum": 8.0,
+        "maximum": 18.0
+      },
+      {
+        "id": "AirConditioner.Indoor.DischargeAir.Heat",
+        "unit": "Celsius",
+        "desired": 30.0,
+        "minimum": 30.0,
+        "maximum": 43.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Auto",
+        "unit": "Celsius",
+        "minimum": 18.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Cool",
+        "unit": "Celsius",
+        "minimum": 18.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Heat",
+        "unit": "Celsius",
+        "minimum": 16.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Dry",
+        "unit": "Celsius",
+        "minimum": 18.0,
+        "maximum": 30.0
+      }
+    ],
+    "winds": [
+      {
+        "id": "AirConditioner.Indoor.General.Speed",
+        "wind": "Auto"
+      },
+      {
+        "id": "AirConditioner.Indoor.General.Direction",
+        "wind": "Fix"
+      }
+    ],
+    "airConditioner": {
+      "installationInformation": [
+        "09",
+        "1F",
+        "0F",
+        "85",
+        "07",
+        "03",
+        "43",
+        "09",
+        "00",
+        "00",
+        "00",
+        "00",
+        "00",
+        "00"
+      ],
+      "panelConfigurationInformation": [
+        "01",
+        "1F",
+        "01",
+        "81",
+        "07",
+        "03",
+        "03",
+        "09",
+        "00",
+        "00",
+        "00",
+        "00",
+        "00",
+        "00"
+      ],
+      "indoorUnitType": "AirConditioner.Indoor.Cassette4Way",
+      "defrost": "Off",
+      "filterResetRequired": false,
+      "peakPowerControl": "Off",
+      "spi": "Off",
+      "stillAir": "Off",
+      "temperatureReference": "Indoor",
+      "relatedUnits": [
+        {
+          "id": "00:FF:0C:0B:00:02:STHP7090-438O-74",
+          "name": "12.11.00",
+          "locations": "성수 팩토리얼, B5",
+          "representativeStatus": "Normal",
+          "mode": "None",
+          "power": false,
+          "model": "DVM S WATER HP"
+        }
+      ],
+      "longWind": "Off"
+    }
+  },
+  {
+    "id": "00:FF:0C:0B:04:01:STHP7090-438O-74",
+    "name": "B2층 복도3",
+    "type": "AirConditioner.Indoor",
+    "parentId": "STHP7090-438O-74",
+    "parentName": "192.168.10.23",
+    "parentType": "AirConditionerController.DMS",
+    "registrationStatus": "Registered",
+    "representativeStatus": "Normal",
+    "locations": [
+      {
+        "id": "Fixed",
+        "description": "성수 팩토리얼, B2",
+        "foundation_space_buildings_id": 1,
+        "foundation_space_floors_id": 12,
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            560.0,
+            380.0
+          ]
+        }
+      }
+    ],
+    "groups": [
+      {
+        "dms_groups_id": 4,
+        "dms_groups_name": "B2F_IDU"
+      }
+    ],
+    "schedules": [
+      {
+        "schedules_id": 30,
+        "schedules_name": "지열 실내기 스케쥴(B2F)",
+        "schedules_activated": true
+      }
+    ],
+    "information": {
+      "updatedTime": "2025-12-01T21:27:36+09:00",
+      "manufacturer": "Samsung Electronics Co., Ltd.",
+      "modelName": "4Way",
+      "versions": [
+        {
+          "type": "Firmware",
+          "number": "2023-07-21"
+        }
+      ]
+    },
+    "configuration": {
+      "remoteControl": "Allowed"
+    },
+    "modes": [
+      {
+        "id": "AirConditioner.Indoor.General",
+        "supportedModes": [
+          "HeatStorage",
+          "Auto",
+          "Fan",
+          "Heat",
+          "CoolStorage",
+          "Cool",
+          "Dry"
+        ],
+        "mode": "Auto"
+      },
+      {
+        "id": "AirConditioner.Indoor.ModeLimit",
+        "supportedModes": [
+          "HeatOnly",
+          "CoolOnly",
+          "NoLimit"
+        ],
+        "mode": "NoLimit"
+      }
+    ],
+    "operations": [
+      {
+        "id": "AirConditioner.Indoor.General",
+        "power": "Off"
+      }
+    ],
+    "temperatures": [
+      {
+        "id": "AirConditioner.Indoor.Room",
+        "unit": "Celsius",
+        "desired": 24.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Cool.Limit",
+        "enabled": true,
+        "unit": "Celsius",
+        "desired": 18.0,
+        "minimum": 18.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Heat.Limit",
+        "enabled": true,
+        "unit": "Celsius",
+        "desired": 30.0,
+        "minimum": 16.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.DischargeAir",
+        "enabled": false,
+        "unit": "Celsius"
+      },
+      {
+        "id": "AirConditioner.Indoor.DischargeAir.Cool",
+        "unit": "Celsius",
+        "desired": 8.0,
+        "minimum": 8.0,
+        "maximum": 18.0
+      },
+      {
+        "id": "AirConditioner.Indoor.DischargeAir.Heat",
+        "unit": "Celsius",
+        "desired": 30.0,
+        "minimum": 30.0,
+        "maximum": 43.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Auto",
+        "unit": "Celsius",
+        "minimum": 18.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Cool",
+        "unit": "Celsius",
+        "minimum": 18.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Heat",
+        "unit": "Celsius",
+        "minimum": 16.0,
+        "maximum": 30.0
+      },
+      {
+        "id": "AirConditioner.Indoor.Room.Dry",
+        "unit": "Celsius",
+        "minimum": 18.0,
+        "maximum": 30.0
+      }
+    ],
+    "winds": [
+      {
+        "id": "AirConditioner.Indoor.General.Speed",
+        "wind": "Auto"
+      },
+      {
+        "id": "AirConditioner.Indoor.General.Direction",
+        "wind": "Fix"
+      }
+    ],
+    "airConditioner": {
+      "installationInformation": [
+        "09",
+        "1F",
+        "0F",
+        "85",
+        "07",
+        "03",
+        "43",
+        "09",
+        "00",
+        "00",
+        "00",
+        "00",
+        "00",
+        "00"
+      ],
+      "panelConfigurationInformation": [
+        "01",
+        "1F",
+        "01",
+        "81",
+        "07",
+        "03",
+        "03",
+        "09",
+        "00",
+        "00",
+        "00",
+        "00",
+        "00",
+        "00"
+      ],
+      "indoorUnitType": "AirConditioner.Indoor.Cassette4Way",
+      "defrost": "Off",
+      "filterResetRequired": false,
+      "peakPowerControl": "Off",
+      "spi": "Off",
+      "stillAir": "Off",
+      "temperatureReference": "Indoor",
+      "relatedUnits": [
+        {
+          "id": "00:FF:0C:0B:00:02:STHP7090-438O-74",
+          "name": "12.11.00",
+          "locations": "성수 팩토리얼, B5",
+          "representativeStatus": "Normal",
+          "mode": "None",
+          "power": false,
+          "model": "DVM S WATER HP"
+        }
+      ],
+      "longWind": "Off"
+    }
+  }
+]

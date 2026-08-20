@@ -1,0 +1,59 @@
+# -----------------------------------------------------------------------------
+# 6단계: 연합트윈 서비스 화면 (프론트엔드 + BFF)
+#   ./install/1-front.sh
+#
+#  union-twin-fe 는 호스트 포트를 열지 않는다(expose 만). 앞단 nginx 가
+#  ${PUBLIC_URL} 로 받아 http://union-twin-fe:50028 로 프록시하는 구성이다.
+#  프록시 없이 직접 접속해야 하면 아래 ports 주석을 해제한다.
+# -----------------------------------------------------------------------------
+name: union-twin
+
+services:
+  union-twin-be:
+    container_name: union-twin-be
+    image: ${IMAGE_REPO_URL}/union-twin-be:${TAG_UNION_TWIN_BE:-${IMAGE_TAG}}
+    restart: always
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_DATABASE: ${UNION_TWIN_DB}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: ${PUBLIC_URL}
+      ADMIN_SEED_PASSWORD: ${ADMIN_SEED_PASSWORD}
+      TZ: ${TZ}
+    # BFF 를 직접 호출해 디버깅할 때만 열면 된다.
+    # ports:
+    #   - "${PORT_UNION_TWIN_BE}:4000"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_ENABLED}"
+
+  union-twin-fe:
+    container_name: union-twin-fe
+    image: ${IMAGE_REPO_URL}/union-twin-fe:${TAG_UNION_TWIN_FE:-${IMAGE_TAG}}
+    restart: always
+    environment:
+      UNION_TWIN_BFF_URL: http://union-twin-be:4000
+      PORT: ${PORT_UNION_TWIN_FE}
+      NDXPRO_API_URL: http://${HOST}:${PORT_GATEWAY}
+      NDXPRO_TOKEN: ${NDXPRO_TOKEN}
+      VIEWER_URL: http://${HOST}:${PORT_FDT_SERVICE}
+      DTMETA_API_URL: ${DTMETA_API_URL}
+      DTMETA_TOKEN: ${DTMETA_TOKEN}
+      FDT_SYNC_API_URL: ${FDT_SYNC_API_URL}
+      TZ: ${TZ}
+    expose:
+      - "${PORT_UNION_TWIN_FE}"
+    # 리버스 프록시가 없다면 아래 주석을 해제해 직접 노출한다.
+    # ports:
+    #   - "${PORT_UNION_TWIN_FE}:${PORT_UNION_TWIN_FE}"
+    depends_on:
+      - union-twin-be
+    labels:
+      - "com.centurylinklabs.watchtower.enable=${WATCHTOWER_ENABLED}"
+
+networks:
+  default:
+    name: ${DOCKER_NETWORK}
+    external: true

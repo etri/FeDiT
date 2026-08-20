@@ -1,0 +1,12 @@
+version: "3.8"
+services:
+  # @context file is served from here
+  ndxpro-ld-context:
+    volumes:
+      - /Users/kimsunghoon/Desktop/ndxpro_v1/ndxpro_v1_dataManager/ngsi-context:/usr/local/apache2/htdocs/
+    image: httpd:alpine
+    hostname: context
+    container_name: ndxpro-ld-context
+    ports:
+        - "3005:80"
+

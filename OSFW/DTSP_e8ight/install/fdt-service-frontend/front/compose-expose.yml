@@ -1,0 +1,9 @@
+# 리버스 프록시(nginx) 없이 화면을 바로 열어야 할 때 함께 올린다.
+#   ./install/1-front.sh --expose
+services:
+  union-twin-fe:
+    ports:
+      - "${PORT_UNION_TWIN_FE}:${PORT_UNION_TWIN_FE}"
+  union-twin-be:
+    ports:
+      - "${PORT_UNION_TWIN_BE}:4000"

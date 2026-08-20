@@ -1,0 +1,62 @@
+@startuml
+
+title <dataModel> Sequence Diagram
+
+collections UI as ui
+queue Server as server
+database Database as data
+
+autonumber 1.0
+== POST / dataModel 생성 ==
+ui -> server : dataModel 정보 전달
+note over server
+dataModel 유효성 검사
+end note
+server -> data: dataModel 저장
+
+autonumber 2.0
+== GET / dataModel 전체 조회 ==
+ui -> server: dataModel category 전체 조회 요청 전달
+server -> data: dataModel category 전체 조회
+data --> ui: dataModel category 정보 전달
+
+autonumber 3.0
+== GET / dataModel category 별 조회 ==
+ui -> server: category 별 dataModel 조회 요청 전달
+server ->data: category 별 dataModel 조회
+data --> ui: category 별 dataModel 정보 전달
+
+autonumber 4.0
+
+== GET / dataModel 단건 조회 ==
+ui -> server: dataModel 단건 요청 전달
+server ->data: dataModel 단건 조회
+data --> ui: dataModel 정보 전달
+
+
+autonumber 5.0
+== PUT / dataModel 수정 ==
+ui -> server: 수정할 dataModel 조회 요청
+server -> data: 수정할 dataModel 조회
+data --> ui: 수정할 dataModel 정보 전달
+
+ui -> server : 수정한 dataModel 정보 전달
+note over server
+DataModel 사용 중, 사용 할 준비 여부만 변경 가능
+end note
+server -> data: 수정한 dataModel 정보 저장
+
+autonumber 6.0
+== DELETE / dataModel 삭제==
+ui -> server: 삭제할 dataModel 조회 요청
+server -> data: 삭제할 dataModel 조회
+data --> ui: 삭제할 dataMode 정보 전달
+
+ui -> server : attribute 삭제 요청
+note over server
+해당 데이터 모델로 수집된 엔티티 여부 확인
+end note
+server -> data: attribute 삭제
+
+
+@enduml

@@ -1,0 +1,15 @@
+@layer base {
+  :root {
+    --primary: oklch(0.588 0.118 230.9);
+
+    --status-success: oklch(0.696 0.17 162.48);
+    --status-error: var(--destructive);
+    --status-warn: oklch(0.555 0.163 48.998);
+  }
+
+  .dark {
+    --primary: oklch(0.623 0.118 230.9);
+
+    --status-warn: oklch(0.828 0.189 84.429);
+  }
+}

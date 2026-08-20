@@ -1,0 +1,22 @@
+@startuml
+title File Download
+
+actor Client as client
+participant "File Service" as service
+database PostgreSQL as db
+collections Disk as disk
+participant "Cache Service" as cache
+
+client -> service ++ : HTTP GET /files/{ufId}
+service -> db ++ : UFID로 논리 File 객체 및 연관된 File 객체 검색
+return
+
+alt DB에 주어진 UFID의 논리 File 객체가 없음
+    service -> client : response '404 file not found'
+    end
+service -> service : File 객체에서 파일 경로 확인
+service -> disk ++ : 파일 읽기
+return
+service ->> cache : 비동기 파일 캐싱 요청
+return response Body : File byte[] ( contentType : application/octet-stream )
+@enduml

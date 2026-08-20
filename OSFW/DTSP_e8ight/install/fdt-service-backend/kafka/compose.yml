@@ -1,0 +1,63 @@
+# -----------------------------------------------------------------------------
+# 2단계: 메시지 파이프라인 (Zookeeper / Kafka / Kafka UI)
+#   make build-kafka   # 최초 1회, 로컬 이미지 pipeline-kafka:pipeline-zookeeper 생성
+#   ./install/2-kafka.sh
+#
+#  주의) Zookeeper 가 먼저 완전히 떠야 Kafka 가 붙는다. depends_on 은 기동 순서만
+#        보장하므로 Kafka 가 재시작 루프를 돌면 잠시 기다렸다가 로그를 확인한다.
+# -----------------------------------------------------------------------------
+name: ndxpro-kafka
+
+services:
+  pipeline-zookeeper-a:
+    container_name: pipeline-zookeeper-a
+    hostname: pipeline-zookeeper-a
+    image: ${IMG_ZOOKEEPER}
+    restart: always
+    environment:
+      MY_ID: 1
+      TZ: ${TZ}
+    ports:
+      - "${PORT_ZOOKEEPER}:2181"
+    volumes:
+      - ${REPO}/docker-volumes/pipeline-zookeeper-a-volume:/data
+
+  pipeline-kafka-1:
+    container_name: pipeline-kafka-1
+    hostname: pipeline-kafka-1
+    image: ${IMG_KAFKA}
+    restart: always
+    environment:
+      BROKER_ID: 1
+      # 컨테이너 네트워크 내부에서 광고할 호스트명
+      IN_IP: pipeline-kafka-1
+      # 외부(호스트/타 서버)에서 접속할 주소. HOST 를 잘못 두면 외부 프로듀서가 붙지 못한다.
+      OUT_IP: ${HOST}:${PORT_KAFKA}
+      OUT_PORT: ${PORT_KAFKA}
+      TZ: ${TZ}
+    ports:
+      - "${PORT_KAFKA}:${PORT_KAFKA}"
+    volumes:
+      - ${REPO}/docker-volumes/pipeline-kafka-1-volume:/data
+    depends_on:
+      - pipeline-zookeeper-a
+
+  # 운영 필수는 아님. 토픽/메시지 확인용 웹 UI.
+  kafka-ui:
+    container_name: kafka-ui
+    image: ${IMG_KAFKA_UI}
+    restart: always
+    environment:
+      DYNAMIC_CONFIG_ENABLED: 'true'
+      KAFKA_CLUSTERS_0_NAME: ndxpro
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: pipeline-kafka-1:9092
+      TZ: ${TZ}
+    ports:
+      - "${PORT_KAFKA_UI}:8080"
+    depends_on:
+      - pipeline-kafka-1
+
+networks:
+  default:
+    name: ${DOCKER_NETWORK}
+    external: true
