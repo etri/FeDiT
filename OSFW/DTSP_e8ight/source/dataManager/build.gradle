@@ -1,0 +1,123 @@
+plugins {
+    id 'org.springframework.boot' version '2.7.4'
+    id 'io.spring.dependency-management' version '1.0.14.RELEASE'
+    id 'java'
+    id 'com.google.cloud.tools.jib' version '3.2.1'
+    id 'jacoco'
+
+}
+
+group = 'kr.co.e8ight'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '11'
+
+repositories {
+    mavenCentral()
+}
+
+repositories {
+    maven {
+        url 'http://172.16.28.217:9081/repository/maven-releases/'
+        allowInsecureProtocol = true
+        credentials {
+            username = "admin"
+            password = "ndxpro123!"
+        }
+    }
+}
+
+
+dependencies {
+
+
+    implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'de.flapdoodle.embed:de.flapdoodle.embed.mongo'
+
+    implementation 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    implementation 'com.google.code.gson:gson:2.10'
+    implementation 'com.googlecode.json-simple:json-simple:1.1.1'
+
+    //url validator
+    implementation 'commons-validator:commons-validator:1.7'
+//    implementation 'com.querydsl:querydsl-mongodb:4.4.0' // 적절한 버전을 사용하세요
+
+//    implementation 'com.querydsl:querydsl-mongodb'
+
+
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client:3.1.4'
+
+    //mongoDB persistence
+    implementation 'javax.persistence:javax.persistence-api:2.2'
+    // swagger
+    implementation 'org.springdoc:springdoc-openapi-ui:1.5.13'
+
+    // common
+    implementation 'kr.co.e8ight.ndxpro:ndxpro_common:0.1.0'
+//
+    implementation group: 'net.logstash.logback', name: 'logstash-logback-encoder', version: '7.0.1'
+    implementation 'org.springframework.cloud:spring-cloud-starter-sleuth:3.1.1'
+    implementation 'org.springframework.cloud:spring-cloud-sleuth-zipkin:3.1.1'
+
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+jib {
+    from {
+        image = "openjdk:11.0.14-jre-slim"
+//                platforms {
+//            platform {
+//                architecture = 'arm64'
+//                os = 'linux'
+//            }
+//        }
+    }
+    to {
+//        image = "172.16.28.217:12000/ndxpro-datamanager"
+        image = "172.16.28.217:12000/ndxpro-datamanager"
+//        tags = ["v1.2"]
+        tags = ["v1.1"]
+        auth {
+            username = "admin"
+            password = "ndxpro123!"
+        }
+                container {
+            mainClass ="kr.co.e8ight.ndxpro_v1_datamanager.NdxProV1DataManagerApplication"
+            environment = ["TZ" : "Asia/Seoul"]
+        }
+    }
+    setAllowInsecureRegistries(true)
+}
+
+//jib {
+//    from {
+//        image = "openjdk:11.0.14-jre-slim"
+//        platforms {
+//            platform {
+//                architecture = 'arm64'
+//                os = 'linux'
+//            }
+//        }
+//
+//    }
+//    to {
+//        image = "172.16.28.217:12000/ndxpro-datamanager-v1"
+//        tags = ["latest"]
+//        auth {
+//            username = "admin"
+//            password = "ndxpro123!"
+//        }
+//        container {
+//            mainClass ="kr.co.e8ight.ndxpro_v1_datamanager.NdxProV1DataManagerApplication"
+//            ports = ["9091"]
+//            environment = ["TZ" : "Asia/Seoul"]
+//        }
+//    }
+//    setAllowInsecureRegistries(true)
+//}

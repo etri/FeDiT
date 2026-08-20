@@ -1,0 +1,208 @@
+# -----------------------------------------------------------------------------
+# 3단계: NDXPro 코어 서비스
+#   ./install/3-ndxpro.sh
+#
+#  기동 순서: eureka -> gateway -> data-manager -> data-broker -> 나머지
+#  depends_on 은 "컨테이너 시작 순서"만 보장한다. 스프링 부트 기동에 30~90초가
+#  걸리므로, 직후 헬스체크가 실패해도 1~2분 기다렸다가 다시 확인한다.
+# -----------------------------------------------------------------------------
+name: ndxpro-core
+
+x-common: &common
+  restart: always
+  environment: &common-env
+    SPRING_PROFILES_ACTIVE: prod
+    EUREKA_URL: http://eureka:8761/eureka
+    LOGSTASH_URL: ${LOGSTASH_URL}
+    ZIPKIN_URL: ${ZIPKIN_URL}
+    TZ: ${TZ}
+
+services:
+  # --- 서비스 디스커버리 -------------------------------------------------------
+  eureka:
+    <<: *common
+    container_name: eureka
+    image: ${IMAGE_REPO_URL}/ndxpro-eurekaserver:${TAG_EUREKA:-${IMAGE_TAG}}
+    environment:
+      SPRING_PROFILES_ACTIVE: dev      # eureka 만 dev 프로파일을 쓴다 (기존 설정 유지)
+      TZ: ${TZ}
+    ports:
+      - "${PORT_EUREKA}:8761"
+
+  # --- API 게이트웨이 ----------------------------------------------------------
+  gateway:
+    <<: *common
+    container_name: gateway
+    image: ${IMAGE_REPO_URL}/ndxpro-gatewayserver:${TAG_GATEWAY:-${IMAGE_TAG}}
+    ports:
+      - "${PORT_GATEWAY}:8000"
+    depends_on:
+      - eureka
+
+  # --- 수집 -------------------------------------------------------------------
+  data-ingest:
+    <<: *common
+    container_name: data-ingest
+    image: ${IMAGE_REPO_URL}/ndxpro-dataingest:${TAG_DATA_INGEST:-${IMAGE_TAG}}
+    environment:
+      <<: *common-env
+      JAVA_OPTS: -Xms2g -Xmx2g          # 서버 메모리에 맞춰 조정
+      GATEWAY_URL: http://gateway:8000
+      DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      KAFKA_URL: pipeline-kafka-1:9092
+    volumes:
+      - ${REPO}/logs/data-ingest:/opt/logs
+      - flume:/opt/flume/conf/files
+    ports:
+      - "${PORT_DATA_INGEST}:8080"
+    depends_on:
+      - eureka
+      - gateway
+
+  # --- 변환기 빌더 -------------------------------------------------------------
+  translator-builder:
+    <<: *common
+    container_name: translator-builder
+    image: ${IMAGE_REPO_URL}/ndxpro-translatorbuilder:${TAG_TRANSLATOR_BUILDER:-${IMAGE_TAG}}
+    volumes:
+      - ${REPO}/logs/translator-builder:/opt/logs
+    ports:
+      - "${PORT_TRANSLATOR_BUILDER}:8080"
+    depends_on:
+      - eureka
+      - gateway
+
+  # --- NGSI-LD 변환 ------------------------------------------------------------
+  ngsi-translator:
+    <<: *common
+    container_name: ngsi-translator
+    image: ${IMAGE_REPO_URL}/ndxpro-ngsi-translator:${TAG_NGSI_TRANSLATOR:-${IMAGE_TAG}}
+    environment:
+      <<: *common-env
+      GATEWAY_URL: http://gateway:8000
+      DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      KAFKA_URL: pipeline-kafka-1:9092
+    volumes:
+      - ${REPO}/logs/ngsi-translator:/opt/logs
+      - ${REPO}/translatorJars:/translatorJars     # 빌더가 생성한 변환기 jar 공유
+    ports:
+      - "${PORT_NGSI_TRANSLATOR}:8080"
+    depends_on:
+      - eureka
+      - gateway
+      - translator-builder
+      - data-ingest
+
+  # --- 데이터 브로커 (NGSI-LD 엔티티 저장/조회) ---------------------------------
+  data-broker-1:
+    <<: *common
+    container_name: data-broker-1
+    image: ${IMAGE_REPO_URL}/ndxpro-core-databroker:${TAG_DATA_BROKER:-${IMAGE_TAG}}
+    environment:
+      <<: *common-env
+      MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/
+      MONGODB_DATABASE_NAME: ${MONGO_DB}
+      KAFKA_URL: pipeline-kafka-1:9092
+      KAFKA_TOPIC_FOR_ENTITY: ngsild.topic
+      KAFKA_TOPIC_FOR_OBSERVED_AT: observedAt.topic
+      KAFKA_CONSUMER_GROUP: e8ight-group_record
+      DATAMANAGER_URL: http://data-manager:8080
+      DATAMANAGER_GET_DATA_MODELS_API_PATH: /ndxpro/v1/manager/data-models
+      DATAMANAGER_GET_ATTRIBUTES_API_PATH: /ndxpro/v1/manager/attributes
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - ${REPO}/logs/data-broker-1:/logFile
+    ports:
+      - "${PORT_DATA_BROKER}:8080"
+    depends_on:
+      - eureka
+      - gateway
+      - data-manager
+
+  # --- 데이터 제공 API ---------------------------------------------------------
+  data-service:
+    <<: *common
+    container_name: data-service
+    image: ${IMAGE_REPO_URL}/ndxpro-dataservice:${TAG_DATA_SERVICE:-${IMAGE_TAG}}
+    environment:
+      <<: *common-env
+      DATABROKER_URL: http://data-broker-1:8080
+      DATABROKER_API_PATH: /ndxpro/v1/broker/entities
+    volumes:
+      - ${REPO}/logs/data-service:/logFile
+    ports:
+      - "${PORT_DATA_SERVICE}:8080"
+    depends_on:
+      - eureka
+      - gateway
+      - data-broker-1
+
+  # --- 데이터 모델/속성 관리 ----------------------------------------------------
+  data-manager:
+    <<: *common
+    container_name: data-manager
+    image: ${IMAGE_REPO_URL}/ndxpro-datamanager:${TAG_DATA_MANAGER:-${IMAGE_TAG}}
+    environment:
+      <<: *common-env
+      MONGO_HOST: mongodb
+      MONGO_DATABASE: ${MONGO_DB}
+      # 이미지가 쓰는 변수명이 ..._ROOT_... 이지만 실제로는 애플리케이션 계정을 넣는다.
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      DATABROKER_URL: http://data-broker-1:8080
+      DATABROKER_API_PATH: /ndxpro/v1/broker/entities
+    volumes:
+      - ${REPO}/logs/data-manager:/logFile
+      - ${REPO}/ngsi-context:/ngsi-context
+    ports:
+      - "${PORT_DATA_MANAGER}:8080"
+    depends_on:
+      - eureka
+      - gateway
+
+  # --- 인증/인가 (JWT 발급) -----------------------------------------------------
+  data-authorization:
+    <<: *common
+    container_name: data-auth
+    image: ${IMAGE_REPO_URL}/ndxpro-authorization:${TAG_DATA_AUTH:-${IMAGE_TAG}}
+    environment:
+      <<: *common-env
+      GATEWAY_URL: http://gateway:8000
+      DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ${REPO}/logs/data-auth:/logFile
+    ports:
+      - "${PORT_DATA_AUTH}:8080"
+    depends_on:
+      - eureka
+      - gateway
+
+  # --- NGSI-LD @context 정적 배포 (httpd) ---------------------------------------
+  ndxpro-core-context:
+    container_name: ndxpro-core-context
+    image: ${IMG_HTTPD}
+    hostname: context
+    restart: always
+    environment:
+      TZ: ${TZ}
+    volumes:
+      - ${REPO}/ngsi-context:/usr/local/apache2/htdocs/
+    ports:
+      - "${PORT_CONTEXT}:80"
+
+networks:
+  default:
+    name: ${DOCKER_NETWORK}
+    external: true
+
+volumes:
+  flume:
+    name: flume

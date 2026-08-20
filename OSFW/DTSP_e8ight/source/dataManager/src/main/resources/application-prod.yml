@@ -1,0 +1,45 @@
+spring:
+  sleuth:
+    sampler:
+      probability: 1.0 # 기본값 0.1  샘플링 정의 0~1(100%)
+  zipkin:
+    base-url: ${ZIPKIN_URL} # zipkin 주소
+  config:
+    activate:
+      on-profile: prod
+  application:
+    name: DATAMANAGER-SERVICE
+  data:
+    mongodb:
+      host: ${MONGO_HOST}
+      port: 27017
+      authentication-database: ndxpro
+      database: ${MONGO_DATABASE}
+      username: ${MONGO_INITDB_ROOT_USERNAME}
+      password: ${MONGO_INITDB_ROOT_PASSWORD}
+
+logging:
+  logstash:
+    url: ${LOGSTASH_URL}
+  level:
+    org:
+      springframework:
+        data:
+          mongodb:
+            core:
+              MongoTemplate: DEBUG
+eureka:
+  instance:
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_URL}
+
+
+databroker:
+  url: ${DATABROKER_URL}
+  api-path: ${DATABROKER_API_PATH}
+

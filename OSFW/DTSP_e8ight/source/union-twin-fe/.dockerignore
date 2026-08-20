@@ -1,0 +1,13 @@
+.git
+.DS_Store
+.vscode
+**/*.md
+**/.env*
+**/node_modules
+**/dist
+**/build
+**/coverage
+**/.turbo
+**/.cache
+**/.next
+**/out

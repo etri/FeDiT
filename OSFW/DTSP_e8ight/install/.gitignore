@@ -1,0 +1,14 @@
+# 실제 값이 담긴 환경변수 파일 (비밀번호·토큰 포함)
+.env
+image-bundle/bundle.env
+
+# 묶음 제작 작업물 (완성본은 저장소 루트의 union-twin-service-images.tar.gz 로 옮긴다)
+image-bundle/out/
+
+# 백업
+backup/
+
+.DS_Store
+.idea/
+*.swp
+~$*

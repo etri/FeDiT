@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: NGSI-TRANSLATOR-SERVICE
+
+logging:
+  file:
+    name: NGSITranslator
+    path: /opt/logs
+  logback:
+    rollingpolicy:
+      file-name-pattern: ${LOG_PATH}/${LOG_FILE}.%d{yyyy-MM-dd}
+      max-file-size: 100MB
+      max-history: 10

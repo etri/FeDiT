@@ -1,0 +1,146 @@
+@startuml
+title 파일 업로드 전 확인
+
+actor Client as client
+participant "File Service" as service
+queue "File Write Queue" as queue
+participant "Notifier" as notifier
+entity "File Writer" as writer
+database PostgreSQL as db
+collections Disk as disk
+
+== 동일한 논리 파일이 있는지 확인 ==
+client -> service ++ : HTTP GET /logical-files, request param (filename, checksum, document_id)
+service -> service : UFID 계산 (checksum + filename + document_id)
+service -> db ++ : UFID로 논리 File 객체 검색
+return
+|||
+
+return response 논리 File 및 File 객체 정보
+
+alt#Gold DB에 동일한 UFID의 논리 File 객체가 있음
+    note right of client: 논리 파일이 이미 있다면 file upload 작업을 할 필요 없이 해당 객체 사용.
+    alt#Gold 논리 파일 상태가 deleted인 경우
+        client -> service ++ : HTTP PATCH /files/{ufID}, request body { deleted : false }
+        service -> db ++ : 논리 File 객체 update (deleted = false)
+        return
+        return response 논리 File 및 File 객체 정보
+    end
+    |||
+else DB에 동일한 UFID의 논리 File 객체가 없음
+    == 동일한 파일이 있는지 확인 ==
+    client -> service ++ : HTTP GET /files, request param (checksum)
+    service -> db ++ : checksum으로 File 객체 검색
+    return
+    return response File 객체 정보
+end
+
+alt#Gold #LightBlue File 객체 있음
+    note right of client: 파일이 이미 있다면 논리 파일 객체만 생성.
+else #FFC314 File 객체 없음
+    note right of client: 파일이 없다면 파일 업로드
+end
+
+
+newpage 논리 파일 객체 생성
+client -> service ++ : HTTP POST /logical-files, request body : (filename, checksum, document_id)
+service -> service : UFID 생성 (checksum + filename + document_id)
+service -> db ++ : UFID로 논리 File 객체 검색
+return
+|||
+
+alt DB에 동일한 UFID의 논리 File 객체가 있음
+    service --> client : response 'already exist'
+end
+
+service -> db ++ : checksum으로 File 객체 검색
+return
+
+alt#Gold DB에 동일한 checksum의 File 객체 없음
+    service -> client : 404 file not found.
+else DB에 동일한 checksum의 File 객체 있음
+    |||
+    alt#Gold File 객체 isDeleted = true
+        service -> db ++ : File 객체 상태 변경 (isDeleted false)
+        return
+    end
+    |||
+    alt#Gold File 객체 status = wait
+        service ->> notifier : register(checksum)
+        notifier -> service : notify(checksum)
+    end
+    alt write fail
+        service --> client : 500 file write error
+    end
+    |||
+end
+|||
+service -> db ++ : 새로운 논리 File 객체 생성
+return
+return response 논리 File 객체 정보
+|||
+newpage 파일 업로드
+client -> service ++ : HTTP POST /files, request body : multipart/form-data with checksum, document_id
+service -> service : UFID 생성 (checksum + filename + document_id)
+service -> db ++ : UFID로 논리 File 객체 검색
+return
+|||
+
+alt DB에 동일한 UFID의 논리 File 객체가 있음
+    service --> client : response 'already exist'
+end
+
+service -> db ++ : checksum으로 File 객체 검색
+return
+
+alt#Gold DB에 동일한 checksum의 File 객체 없음
+|||
+    service -> db ++ : 새로운 파일 객체 추가 (wait)
+    return
+    service -> db ++ : 파일이 저장될 위치 계산하여 setLocation()
+    return
+    service ->> notifier : register(checksum)
+    service -> queue ++ : 쓰기 대기 큐에 파일 쓰기 요청
+    alt 쓰기 대기 큐 여유 공간 부족
+        queue --> service : out of queue memory exception
+        service --> client : response 'system busy'
+    end
+    return
+            |||
+            writer -> queue ++ : poll()
+            return
+            writer -> disk ++ : wait 디렉토리에 파일 쓰기
+            return
+            writer -> disk ++ : move 파일 (wait to files)
+            return
+            writer -> notifier ++ : 파일 쓰기 결과 전달
+            notifier -> service -- : notify(checksum)
+            alt write fail
+                service --> client : 500 file write error
+            end
+            service -> db ++ : File 객체 업데이트 (ready)
+            return
+    |||
+else DB에 동일한 checksum의 File 객체 있음
+    |||
+    alt#Gold File 객체 isDeleted = true
+        service -> db ++ : File 객체 상태 변경 (isDeleted false)
+        return
+    end
+    |||
+    alt#Gold File 객체 status = wait
+        service ->> notifier : register(checksum)
+                        notifier -> service : notify(checksum)
+    end
+    alt write fail
+        service --> client : 500 file write error
+    end
+    |||
+end
+|||
+service -> db ++ : 새로운 논리 File 객체 생성
+return
+return response 논리 File 객체 정보
+|||
+
+@enduml

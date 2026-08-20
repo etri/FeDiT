@@ -1,0 +1,57 @@
+logging:
+  file:
+    name: file-service
+    path: /opt/logs
+  pattern:
+    console: "[%d{yyyy-MM-dd HH:mm:ss}] %-5level %logger{36} - %msg%n"
+    file: "[%d{yyyy-MM-dd HH:mm:ss}] %-5level %logger{36} - %msg%n"
+  logback:
+    rollingpolicy:
+      file-name-pattern: ${LOG_PATH}/${LOG_FILE}.%d{yyyy-MM-dd}
+      max-file-size: 100MB
+      max-history: 10
+
+eureka:
+  instance:
+    hostname: ${spring.cloud.client.ip-address}
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_URL}
+
+spring:
+  application:
+    name: FILE-SERVICE
+  jpa:
+    generate-ddl: 'true'
+    database: postgresql
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        default_batch_fetch_size: 1000
+  datasource:
+    password: ndxpro123!
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: '20'
+    username: ndxpro
+    url: ${DATASOURCE_URL}
+  servlet:
+    multipart:
+      maxFileSize: 24GB
+      maxRequestSize: 24GB
+
+file-service:
+  dir: /data
+  queue:
+    size: 25769803776
+  max-fail-count: 3
+  writer:
+    interval: 1000
+    count: ${WRITER_COUNT}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

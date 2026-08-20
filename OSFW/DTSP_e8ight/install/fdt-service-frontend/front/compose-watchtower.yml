@@ -1,0 +1,28 @@
+# -----------------------------------------------------------------------------
+# (선택) :latest 태그 이미지 자동 갱신.
+#   .env 의 WATCHTOWER_ENABLED=true 로 라벨이 붙은 컨테이너만 대상으로 한다.
+#   운영 배포를 사람이 통제하려면 이 파일을 아예 올리지 않는다(권장).
+#   docker compose --env-file ../.env -f front/compose-watchtower.yml up -d
+# -----------------------------------------------------------------------------
+name: ndxpro-watchtower
+
+services:
+  watchtower:
+    container_name: watchtower
+    image: containrrr/watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ~/.docker/config.json:/config.json:ro   # 프라이빗 레지스트리 인증 정보
+    environment:
+      WATCHTOWER_POLL_INTERVAL: 60
+      WATCHTOWER_LABEL_ENABLE: 'true'
+      WATCHTOWER_CLEANUP: 'true'
+      WATCHTOWER_ROLLING_RESTART: 'true'
+      TZ: ${TZ}
+    command: --label-enable
+
+networks:
+  default:
+    name: ${DOCKER_NETWORK}
+    external: true

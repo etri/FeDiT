@@ -1,0 +1,30 @@
+# Server Port
+server:
+  port: 8050
+
+# Application name
+spring:
+  application:
+    name: FDT-SERVICE
+
+
+# swagger 설정
+springdoc:
+  swagger-ui:
+    #    operations-sorter: method
+    tags-sorter: alpha
+
+token : ${TOKEN}
+
+gateway:
+  url: ${GATEWAY_URL}
+
+broker:
+  url: ${BROKER_URL}
+
+manager:
+  url: ${MANAGER_URL}
+
+context:
+  url: ${FDT_CONTEXT}
+

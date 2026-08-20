@@ -1,0 +1,77 @@
+# -----------------------------------------------------------------------------
+# 1단계: 데이터 저장소 (PostgreSQL / MongoDB / Redis)
+#   ./install/1-db.sh
+# -----------------------------------------------------------------------------
+name: ndxpro-infra
+
+services:
+  postgres:
+    container_name: postgres
+    image: ${IMG_POSTGRES}
+    restart: always
+    environment:
+      # 이미지가 최초 기동 시 만드는 슈퍼유저
+      POSTGRES_DB: postgres
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      # 아래 4개는 init/postgres/01-init.sh 가 사용하는 값
+      APP_USER: ${POSTGRES_USER}
+      APP_PASSWORD: ${POSTGRES_PASSWORD}
+      APP_DB: ${POSTGRES_DB}
+      UNION_TWIN_DB: ${UNION_TWIN_DB}
+      TZ: ${TZ}
+    volumes:
+      - ${REPO}/docker-volumes/postgres-data:/var/lib/postgresql/data
+      - ./init/postgres:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${PORT_POSTGRES}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mongodb:
+    container_name: mongodb
+    image: ${IMG_MONGO}
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      APP_USER: ${MONGO_USER}
+      APP_PASSWORD: ${MONGO_PASSWORD}
+      APP_DB: ${MONGO_DB}
+      TZ: ${TZ}
+    volumes:
+      - ${REPO}/docker-volumes/mongodb-data:/data/db
+      - ./init/mongo:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${PORT_MONGO}:27017"
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand({ping:1})' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    container_name: redis
+    image: ${IMG_REDIS}
+    restart: always
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--appendonly", "yes"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      TZ: ${TZ}
+    volumes:
+      - ${REPO}/docker-volumes/redis-data:/data
+    ports:
+      - "${PORT_REDIS}:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+networks:
+  default:
+    name: ${DOCKER_NETWORK}
+    external: true

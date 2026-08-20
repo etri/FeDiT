@@ -1,0 +1,96 @@
+plugins {
+    id 'org.springframework.boot' version '3.1.4'
+    id 'io.spring.dependency-management' version '1.0.13.RELEASE'
+    id 'java'
+    id 'com.google.cloud.tools.jib' version '3.3.2'
+}
+
+group = 'kr.co.e8ight.ndxpro'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '21'
+
+repositories {
+    maven {
+        url 'http://172.16.28.217:9081/repository/maven-releases/'
+        allowInsecureProtocol = true
+        credentials {
+            username = "admin"
+            password = "ndxpro123!"
+        }
+    }
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    //eureka-client
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client:4.0.3'
+
+    // swagger
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
+
+    implementation 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    implementation 'kr.co.e8ight.ndxpro:ndxpro_common:0.2.2'
+
+    //logstash encoder
+    implementation group: 'net.logstash.logback', name: 'logstash-logback-encoder', version: '7.0.1'
+
+    //zipkin
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
+    implementation 'io.zipkin.reporter2:zipkin-reporter-brave'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+tasks.jibDockerBuild.doFirst {
+    copy {
+        from("translatorSource/")
+        into("src/main/jib/translatorSource/")
+    }
+}
+
+tasks.jibDockerBuild.doLast() {
+    delete("src/main/jib/translatorSource/")
+}
+
+tasks.jib.doFirst {
+    copy {
+        from("translatorSource/")
+        into("src/main/jib/translatorSource/")
+    }
+}
+
+tasks.jib.doLast() {
+    delete("src/main/jib/translatorSource/")
+}
+
+jib {
+    from{
+        image = "openjdk:21-jdk-slim"
+    }
+    to {
+        image = "172.16.28.217:12000/ndxpro-translatorbuilder"
+        tags = ["v1.2"]
+        auth {
+            username = "admin"
+            password = "ndxpro123!"
+        }
+        container {
+            mainClass ="kr.co.e8ight.ndxpro.translatorbuilder.TranslatorBuilderApplication"
+            ports = ["9901"]
+            environment = ["TZ" : "Asia/Seoul"]
+        }
+    }
+    extraDirectories {
+        permissions = ["/translatorSource/gradlew":"744"]
+    }
+    setAllowInsecureRegistries(true)
+}

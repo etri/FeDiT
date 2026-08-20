@@ -1,0 +1,53 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "globalEnv": ["NODE_ENV"],
+  "globalPassThroughEnv": [
+    "DB_HOST",
+    "DB_PORT",
+    "DB_USERNAME",
+    "DB_PASSWORD",
+    "DB_DATABASE",
+    "JWT_SECRET",
+    "CORS_ORIGIN",
+    "ADMIN_SEED_PASSWORD",
+    "PORT",
+    "UNION_TWIN_BFF_URL",
+    "COOKIE_SECURE",
+    "NDXPRO_API_URL",
+    "NDXPRO_TOKEN",
+    "VIEWER_URL",
+    "DTMETA_API_URL",
+    "DTMETA_TOKEN",
+    "FDT_SYNC_API_URL"
+  ],
+  "concurrency": "12",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "!.next/dev/**"]
+    },
+    "dev": {
+      "persistent": true,
+      "cache": false
+    },
+    "@workspace/union-twin-client#dev": {
+      "dependsOn": ["^build"],
+      "persistent": true,
+      "cache": false
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "lint:prettier": {
+      "dependsOn": ["^lint:prettier"]
+    },
+    "format": {
+      "cache": false
+    },
+    "type-check": {
+      "dependsOn": ["^type-check"],
+      "outputs": ["tsconfig.tsbuildinfo", "dist/tsconfig.tsbuildinfo"]
+    }
+  }
+}

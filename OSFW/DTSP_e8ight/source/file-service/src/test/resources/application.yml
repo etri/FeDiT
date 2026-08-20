@@ -1,0 +1,45 @@
+logging:
+  file:
+    name: file-service
+    path: /opt/logs
+  pattern:
+    console: "[%d{yyyy-MM-dd HH:mm:ss}] %-5level %logger{36} - %msg%n"
+    file: "[%d{yyyy-MM-dd HH:mm:ss}] %-5level %logger{36} - %msg%n"
+  logback:
+    rollingpolicy:
+      file-name-pattern: ${LOG_PATH}/${LOG_FILE}.%d{yyyy-MM-dd}
+      max-file-size: 100MB
+      max-history: 10
+
+spring:
+  jpa:
+    generate-ddl: 'true'
+    database: h2
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:test;MODE=PostgreSQL;INIT=CREATE SCHEMA IF NOT EXISTS FILE_SERVICE
+    username: ndxpro
+    password:
+  h2:
+    console:
+      enabled: true
+  servlet:
+    multipart:
+      maxFileSize: 4GB
+      maxRequestSize: 4GB
+
+file-service:
+  dir: ./data
+  queue:
+    size: 10240000000
+  max-fail-count: 3
+  writer:
+    interval: 1000
+    count: 3
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

@@ -1,0 +1,13 @@
+172.16.28.217:12000/fdt-service:v1.1
+172.16.28.217:12000/ndxpro-authorization:v1.1
+172.16.28.217:12000/ndxpro-core-databroker:v1.1.2
+172.16.28.217:12000/ndxpro-dataingest:v1.1
+172.16.28.217:12000/ndxpro-datamanager:v1.1
+172.16.28.217:12000/ndxpro-dataservice:v1.1
+172.16.28.217:12000/ndxpro-eurekaserver:v1.1
+172.16.28.217:12000/ndxpro-file-service:v1.0
+172.16.28.217:12000/ndxpro-gatewayserver:v1.1
+172.16.28.217:12000/ndxpro-ngsi-translator:v1.1.1
+172.16.28.217:12000/ndxpro-translatorbuilder:v1.1.1
+172.16.28.217:12000/union-twin-be:latest
+172.16.28.217:12000/union-twin-fe:latest

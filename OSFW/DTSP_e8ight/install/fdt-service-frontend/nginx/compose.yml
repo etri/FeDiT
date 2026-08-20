@@ -1,0 +1,26 @@
+# -----------------------------------------------------------------------------
+# 7단계(선택): 리버스 프록시.
+#   union-twin-fe 를 호스트에 직접 노출하지 않고 이 nginx 로 받는다.
+#   HTTPS 를 쓰면 assets/nginx/certs 에 인증서를 두고 아래 마운트를 해제한다.
+#   ./install/1-front.sh --nginx
+# -----------------------------------------------------------------------------
+name: ndxpro-proxy
+
+services:
+  nginx:
+    container_name: nginx
+    image: ${IMG_NGINX}
+    restart: always
+    environment:
+      TZ: ${TZ}
+    volumes:
+      - ./union-twin.conf:/etc/nginx/conf.d/default.conf:ro
+      # - ./certs:/etc/nginx/certs:ro
+    ports:
+      - "80:80"
+      # - "443:443"
+
+networks:
+  default:
+    name: ${DOCKER_NETWORK}
+    external: true

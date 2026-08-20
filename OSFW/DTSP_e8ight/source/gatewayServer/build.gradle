@@ -1,0 +1,76 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '2.7.4'
+    id 'io.spring.dependency-management' version '1.0.14.RELEASE'
+    id 'com.google.cloud.tools.jib' version '3.2.1'
+}
+
+group = 'kr.co.e8ight'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '11'
+
+repositories {
+    mavenCentral()
+}
+
+repositories {
+    maven {
+//        url 'http://1.233.183.202:59081/repository/maven-releases/'
+        url 'http://172.16.28.217:9081/repository/maven-releases/'
+        allowInsecureProtocol = true
+        credentials {
+            username = "admin"
+            password = "ndxpro123!"
+        }
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'org.springframework.cloud:spring-cloud-starter-gateway:3.1.4'
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client:3.1.4'
+
+//    jwt token
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.2'
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.2'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.2'
+
+    implementation('org.projectlombok:lombok')
+    testImplementation('org.projectlombok:lombok')
+    annotationProcessor('org.projectlombok:lombok')
+    testAnnotationProcessor('org.projectlombok:lombok')
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'io.projectreactor:reactor-test'
+
+    // common
+    implementation 'kr.co.e8ight.ndxpro:ndxpro_common:0.0.5'
+
+    implementation 'io.netty:netty-resolver-dns-native-macos:4.1.68.Final:osx-aarch_64'
+
+
+
+    //Log
+    implementation group: 'net.logstash.logback', name: 'logstash-logback-encoder', version: '7.0.1'
+    implementation 'org.springframework.cloud:spring-cloud-starter-sleuth:3.1.1'
+    implementation 'org.springframework.cloud:spring-cloud-sleuth-zipkin:3.1.1'
+}
+
+//tasks.named('test') {
+//    useJUnitPlatform()
+//}
+
+jib {
+    from {
+        image = "openjdk:11.0.14-jre-slim"
+    }
+    to {
+        image = "172.16.28.217:12000/ndxpro-gatewayserver"
+        tags = ["v1.1"]
+        auth {
+            username = "admin"
+            password = "ndxpro123!"
+        }
+    }
+    setAllowInsecureRegistries(true)
+}

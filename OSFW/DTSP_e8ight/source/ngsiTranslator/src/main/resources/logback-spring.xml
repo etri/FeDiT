@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 30초마다 설정 파일의 변경을 확인한다. 파일이 변경되면 다시 로딩한다 -->
+<configuration scan="true" scanPeriod="30 seconds">
+    <springProperty name="LOGSTASH_URL" source="logging.logstash.url"/>
+
+    <!-- Spring Boot 컬러 컨버터. %clr(...) 은 콘솔에서만 ANSI 색을 입힌다. -->
+    <conversionRule conversionWord="clr"
+                    converterClass="org.springframework.boot.logging.logback.ColorConverter"/>
+    <conversionRule conversionWord="wEx"
+                    converterClass="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter"/>
+
+    <!--
+      콘솔: 레벨별 색 구분 (ERROR=빨강, WARN=노랑, INFO=초록, DEBUG/TRACE=기본)
+      시간/스레드는 흐리게(faint), 로거명은 청록(cyan)으로 두어 메시지가 눈에 먼저 들어오게 한다.
+    -->
+    <property name="CONSOLE_PATTERN"
+              value="%clr([%d{yyyy-MM-dd HH:mm:ss.SSS}]){faint} %clr(%-5level) %clr([%15.15thread]){faint} %clr(%-40.40logger{39}){cyan} %clr(|){faint} %msg%n%wEx"/>
+    <!-- 파일: ANSI 코드가 섞이면 안 되므로 색 없이 동일한 컬럼 구성 -->
+    <property name="FILE_PATTERN"
+              value="[%d{yyyy-MM-dd HH:mm:ss.SSS}] %-5level [%15.15thread] %-40.40logger{39} | %msg%n%wEx"/>
+
+    <!-- CONSOLE appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${CONSOLE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- file appender -->
+    <appender name="INFO_DEFAULT_FILE_APPENDER"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/${LOG_FILE}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/${LOG_FILE}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>10</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${FILE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="ERROR_DEFAULT_FILE_APPENDER"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <file>${LOG_PATH}/${LOG_FILE}-error.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/${LOG_FILE}-error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${FILE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 30초마다 반복돼 로그를 덮어버리는 인프라성 로그는 WARN 이상만 남긴다 -->
+    <logger name="com.netflix.discovery" level="WARN"/>
+    <logger name="com.netflix.eureka" level="WARN"/>
+    <logger name="org.apache.http" level="WARN"/>
+    <logger name="org.apache.hc" level="WARN"/>
+
+    <springProfile name="local">
+        <logger name="kr.co.e8ight.ndxpro.translatorManager" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="INFO_DEFAULT_FILE_APPENDER"/>
+            <appender-ref ref="ERROR_DEFAULT_FILE_APPENDER"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="INFO_DEFAULT_FILE_APPENDER"/>
+            <appender-ref ref="ERROR_DEFAULT_FILE_APPENDER"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="dev">
+        <logger name="kr.co.e8ight.ndxpro.translatorManager" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="prod">
+<!--        <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">-->
+<!--            <destination>${LOGSTASH_URL}</destination>-->
+<!--            <encoder class="net.logstash.logback.encoder.LogstashEncoder">-->
+<!--                <customFields>{"service": "ngsi-translator-service"}</customFields>-->
+<!--            </encoder>-->
+<!--        </appender>-->
+
+        <logger name="kr.co.e8ight.ndxpro.translatorManager" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+<!--            <appender-ref ref="LOGSTASH"/>-->
+            <appender-ref ref="INFO_DEFAULT_FILE_APPENDER"/>
+            <appender-ref ref="ERROR_DEFAULT_FILE_APPENDER"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+<!--            <appender-ref ref="LOGSTASH"/>-->
+            <appender-ref ref="INFO_DEFAULT_FILE_APPENDER"/>
+            <appender-ref ref="ERROR_DEFAULT_FILE_APPENDER"/>
+        </root>
+    </springProfile>
+</configuration>

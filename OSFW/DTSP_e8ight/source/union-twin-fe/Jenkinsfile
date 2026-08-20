@@ -1,0 +1,101 @@
+pipeline {
+    agent any
+    options {
+        disableConcurrentBuilds()
+        timeout(time: 30, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+    }
+    environment {
+        NEXUS_REPO = '172.16.28.217:12000'
+        DEPLOY_SERVER = '223-server'
+        // 모노레포 시절 경로를 그대로 쓴다 — 바꾸면 223 에 옛 스택이 그대로 남는다.
+        DEPLOY_DIR = '/mnt/sda1/home/e8ight/frontend/monorepo/union-twin'
+    }
+    stages {
+        stage('Verify') {
+            steps {
+                script {
+                    env.BRANCH = (env.BRANCH_NAME ?: env.GIT_BRANCH ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim())
+                        .replaceFirst(/^origin\//, '')
+                    echo "[union-twin] 브랜치: ${env.BRANCH}"
+                    gitlabCommitStatus(name: 'Verify') {
+                        nodeRun('corepack pnpm install --frozen-lockfile && corepack pnpm exec turbo run lint lint:prettier type-check')
+                    }
+                }
+            }
+        }
+        stage('Build and Deploy') {
+            when { expression { env.BRANCH in ['main', 'master'] } }
+            steps {
+                script {
+                    gitlabCommitStatus(name: 'Build and Deploy') {
+                        // 앱이 둘뿐이고 두 이미지가 pruner/builder 레이어를 공유한다 — 항상 둘 다 빌드한다.
+                        parallel([
+                            'union-twin-fe': { buildImage('union-twin-fe', '@workspace/union-twin-client') },
+                            'union-twin-be': { buildImage('union-twin-be', '@workspace/union-twin-be') },
+                            failFast: true
+                        ])
+                        // fe / be 가 compose 파일 한 벌을 공유하므로 배포는 한 번만 돈다.
+                        deploy()
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always { sh 'docker image prune -f 2>/dev/null || true' }
+    }
+}
+
+def buildImage(String image, String pkg) {
+    def tag = "${env.NEXUS_REPO}/${image}:latest"
+    echo "[union-twin] Docker 빌드: ${image}"
+    // 컨텍스트는 레포 루트다 — Dockerfile 이 turbo prune 을 루트 기준으로 수행한다.
+    sh """set -e
+        DOCKER_BUILDKIT=1 docker build --platform linux/amd64 --target '${image}' --build-arg PKG='${pkg}' -t '${tag}' .
+        docker push '${tag}'
+        docker rmi '${tag}' || true"""
+}
+
+def deploy() {
+    def composeContent = readFile('docker-compose.yml')
+    echo "[union-twin] 배포: ${env.DEPLOY_SERVER}:${env.DEPLOY_DIR}"
+
+    sshPublisher(publishers: [sshPublisherDesc(
+        configName: env.DEPLOY_SERVER, verbose: true,
+        transfers: [sshTransfer(execCommand: """
+            set -e
+            mkdir -p '${env.DEPLOY_DIR}'
+            cd '${env.DEPLOY_DIR}'
+            cat > 'docker-compose.yml' <<'E8IGHT_COMPOSE_EOF'
+${composeContent}
+E8IGHT_COMPOSE_EOF
+
+            docker compose pull
+            docker compose up -d --remove-orphans --wait --wait-timeout 60 || { docker compose logs --tail=20; exit 1; }
+
+            docker image prune -f >/dev/null 2>&1 || true
+        """)]
+    )])
+}
+
+// Jenkins 에이전트에 node 가 없다 — node 이미지 안에서 돌리고 캐시는 JENKINS_HOME 에 남긴다.
+def nodeRun(String cmd) {
+    def home = env.JENKINS_HOME ?: env.HOME ?: '/tmp'
+    def vols = sh(script: '''
+        if docker inspect "$(hostname)" >/dev/null 2>&1; then
+            printf -- '--volumes-from %s' "$(hostname)"
+        else
+            h="${JENKINS_HOME:-$HOME}"
+            printf -- '-v %s:%s -v %s:%s' "$WORKSPACE" "$WORKSPACE" "$h" "$h"
+        fi
+    ''', returnStdout: true).trim()
+
+    sh """set -e
+        docker run --rm ${vols} -u "\$(id -u):\$(id -g)" \\
+          -e HOME='${home}' -e COREPACK_HOME='${home}/.cache/corepack' -e npm_config_store_dir='${home}/.cache/pnpm-store' -e TURBO_CACHE_DIR='${home}/.cache/turbo' \\
+          -w '${env.WORKSPACE}' node:22-bookworm-slim \\
+          sh -lc ${shellQuote("set -e; mkdir -p '${home}/.cache/corepack' '${home}/.cache/pnpm-store' '${home}/.cache/turbo'; corepack enable; ${cmd}")}"""
+}
+
+def shellQuote(v) { "'${v.replace("'", "'\"'\"'")}'" }

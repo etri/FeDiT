@@ -1,0 +1,42 @@
+# 제주 서버(https://service.fedit.or.kr) 배포용.
+services:
+  union-twin-fe:
+    image: 210.217.93.129:52000/union-twin-fe:latest
+    restart: always
+    depends_on:
+      - union-twin-be
+    environment:
+      - UNION_TWIN_BFF_URL=http://union-twin-be:4000
+      - PORT=50028
+      - NDXPRO_API_URL=http://220.124.222.90:54002
+      - VIEWER_URL=http://service.fedit.or.kr:50038
+      - NDXPRO_TOKEN=${NDXPRO_TOKEN}
+      - DTMETA_API_URL=http://dtmeta.fedit.or.kr:16997
+      # KETI 발급 PAT(meta_admin). 만료값이 없어 배포 .env로 주입한다.
+      - DTMETA_TOKEN=${DTMETA_TOKEN}
+      # KETI 동기화 엔진(연합 디지털 브레인). 인증 없음. 수집 토픽 조회용.
+      - FDT_SYNC_API_URL=http://220.124.222.84:1221
+    expose:
+      - '50028'
+    networks:
+      - ndxpro
+
+  union-twin-be:
+    image: 210.217.93.129:52000/union-twin-be:latest
+    restart: always
+    environment:
+      - TZ=UTC
+      - DB_HOST=220.124.222.90
+      - DB_PORT=55432
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=union_twin
+      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGIN=https://service.fedit.or.kr
+      - ADMIN_SEED_PASSWORD=${ADMIN_SEED_PASSWORD:-}
+    networks:
+      - ndxpro
+
+networks:
+  ndxpro:
+    external: true

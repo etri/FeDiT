@@ -1,0 +1,27 @@
+# -----------------------------------------------------------------------------
+# 5단계: FDT 뷰어 서비스 (3D 트윈 뷰어 백엔드)
+#   ./install/3-ndxpro.sh 가 함께 올린다
+# -----------------------------------------------------------------------------
+name: ndxpro-fdt
+
+services:
+  fdt-service:
+    container_name: fdt-service
+    image: ${IMAGE_REPO_URL}/fdt-service:${TAG_FDT_SERVICE:-${IMAGE_TAG}}
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      GATEWAY_URL: http://gateway:8000
+      BROKER_URL: http://data-broker-1:8080
+      MANAGER_URL: http://data-manager:8080
+      FDT_CONTEXT: http://${HOST}:${PORT_CONTEXT}/${CONTEXT_FILE}
+      # 기존 compose 에 평문으로 박혀 있던 서비스 토큰. .env 로 분리했다.
+      TOKEN: ${NDXPRO_TOKEN}
+      TZ: ${TZ}
+    ports:
+      - "${PORT_FDT_SERVICE}:8050"
+
+networks:
+  default:
+    name: ${DOCKER_NETWORK}
+    external: true
