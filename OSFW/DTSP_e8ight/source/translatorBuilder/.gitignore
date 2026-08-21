@@ -1,4 +1,5 @@
 translatorSource/translatorJars/*
+!translatorSource/translatorJars/.gitkeep
 src/main/jib/translatorSource/*
 
 HELP.md

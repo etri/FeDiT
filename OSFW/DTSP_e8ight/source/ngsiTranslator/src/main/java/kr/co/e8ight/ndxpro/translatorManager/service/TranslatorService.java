@@ -11,6 +11,7 @@ import kr.co.e8ight.ndxpro.translatorManager.exception.TranslatorException;
 import kr.co.e8ight.ndxpro.translatorManager.repository.TranslatorRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +37,10 @@ public class TranslatorService {
     private final DataModelService dataModelService;
     private final MemberService memberService;
 
+    /** target topic 미지정 시 사용할 기본값. 브로커가 실제로 consume 하는 토픽이어야 한다. */
+    @Value("${translator.default.target-topic}")
+    private String defaultTargetTopic;
+
     @Transactional
     public TranslatorResponseDto register(TranslatorRegisterDto translatorRegisterDto, String token) {
         if ( !agentService.exist(translatorRegisterDto.getAgentId(), token) ) {
@@ -55,11 +60,13 @@ public class TranslatorService {
 
         // 저장/이력 기록 전에 source topic 을 확정한다. 뒤에서 검증하면 미완성 상태가 이력에 남는다.
         String sourceTopic = resolveSourceTopic(translatorRegisterDto, token);
+        String targetTopic = resolveTargetTopic(translatorRegisterDto, sourceTopic);
 
         String memberId = memberService.getMemberId(token);
 
         Translator savedTranslator = translatorRepository.save(Translator.create(translatorRegisterDto, memberId));
         savedTranslator.setSourceTopic(sourceTopic);
+        savedTranslator.setTargetTopic(targetTopic);
         translatorHistoryService.recordHistory(savedTranslator, memberId);
 
         ResponseEntity<ProcessResultDto> responseEntity = build(translatorRegisterDto, token);
@@ -79,6 +86,22 @@ public class TranslatorService {
             return translatorRegisterDto.getSourceTopic();
         }
         return agentService.getTargetTopic(translatorRegisterDto.getAgentId(), token);
+    }
+
+    /**
+     * 요청에 target topic 이 있으면 그 값을, 없으면 설정된 기본 토픽을 쓴다.
+     * source 와 같은 토픽이면 변환 결과를 자기가 다시 consume 하는 무한 루프가 되므로 막는다.
+     */
+    private String resolveTargetTopic(TranslatorRegisterDto translatorRegisterDto, String sourceTopic) {
+        String targetTopic = translatorRegisterDto.getTargetTopic();
+        if ( targetTopic == null || targetTopic.equals("") ) {
+            targetTopic = defaultTargetTopic;
+        }
+        if ( targetTopic.equals(sourceTopic) ) {
+            throw new TranslatorException(ErrorCode.BAD_REQUEST_DATA,
+                    "Kafka target topic must differ from source topic. (" + targetTopic + ")");
+        }
+        return targetTopic;
     }
 
     private synchronized ResponseEntity<ProcessResultDto> build(TranslatorRegisterDto translatorRegisterDto, String token) {
@@ -157,7 +180,9 @@ public class TranslatorService {
         }
 
         translator.update(translatorRegisterDto, memberId);
-        translator.setSourceTopic(resolveSourceTopic(translatorRegisterDto, token));
+        String updatedSourceTopic = resolveSourceTopic(translatorRegisterDto, token);
+        translator.setSourceTopic(updatedSourceTopic);
+        translator.setTargetTopic(resolveTargetTopic(translatorRegisterDto, updatedSourceTopic));
 
         ResponseEntity<ProcessResultDto> responseEntity = build(translatorRegisterDto, token);
         fileService.replaceJarFileOnTranslatorDir(translator.getFileName(), Objects.requireNonNull(responseEntity.getBody()).getSavedFile());
@@ -271,7 +296,10 @@ public class TranslatorService {
                 "public class " + translatorName + " extends EntityTranslator {\n" +
                 "\tprivate static final Logger log = LoggerFactory.getLogger(" + translatorName + ".class);\n" +
                 "\n" +
-                "\tpublic " + translatorName + "() { }\n" +
+                // TranslatorRunner.getTranslator() 가 getConstructor(String.class) 로 찾으므로
+                // String 파라미터 생성자가 반드시 있어야 한다. 없으면 NoSuchMethodException 이
+                // 삼켜지고 translator 가 null 이 되어 레코드마다 NPE 가 난다.
+                "\tpublic " + translatorName + "(String modelType) { }\n" +
                 "\n" +
                 "\t@Override\n" +
                 "\tpublic List<Entity> translate(JSONObject jsonObject) {\n" +

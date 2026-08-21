@@ -51,6 +51,7 @@ public class Translator {
     @Setter
     private String sourceTopic;
 
+    @Setter
     private String targetTopic;
 
     private Boolean transferObservedAt;
@@ -71,7 +72,7 @@ public class Translator {
 
     private String modifiedBy;
 
-    public Translator(Long agentId, String name, String translateCode, String context, String modelType, TranslatorStatus status, String sourceTopic, Boolean transferObservedAt, Integer observedAtTopicScenarioId, String observedAtTopicScenarioType, Boolean isReady, String createdBy, String modifiedBy) {
+    public Translator(Long agentId, String name, String translateCode, String context, String modelType, TranslatorStatus status, String sourceTopic, String targetTopic, Boolean transferObservedAt, Integer observedAtTopicScenarioId, String observedAtTopicScenarioType, Boolean isReady, String createdBy, String modifiedBy) {
         this.agentId = agentId;
         this.name = name;
         this.translateCode = translateCode;
@@ -79,7 +80,7 @@ public class Translator {
         this.modelType = modelType;
         this.status = status;
         this.sourceTopic = sourceTopic;
-        this.targetTopic = "ngsild_topic_" + Math.toIntExact(agentId % 10);
+        this.targetTopic = targetTopic;
         this.transferObservedAt = transferObservedAt;
         this.observedAtTopicScenarioId = observedAtTopicScenarioId;
         this.observedAtTopicScenarioType = observedAtTopicScenarioType;
@@ -96,6 +97,7 @@ public class Translator {
                 translatorRegisterDto.getModelType(),
                 TranslatorStatus.CREATED,
                 translatorRegisterDto.getSourceTopic(),
+                translatorRegisterDto.getTargetTopic(),
                 translatorRegisterDto.getTransferObservedAt(),
                 translatorRegisterDto.getObservedAtTopicScenarioId(),
                 translatorRegisterDto.getObservedAtTopicScenarioType(),

@@ -6,17 +6,17 @@ import kr.co.e8ight.ndxpro.translatorbuilder.dto.TranslatorCompileRequestDto;
 import kr.co.e8ight.ndxpro.translatorbuilder.dto.TranslatorRegisterDto;
 import kr.co.e8ight.ndxpro.translatorbuilder.dto.ProcessResultDto;
 import kr.co.e8ight.ndxpro.translatorbuilder.service.BuildService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.validation.Valid;
+import javax.validation.Valid;
 
 @RestController
 @Tag(name = "Translator Builder Controller", description = "Data Translator 빌드 API 그룹입니다.")
-@Slf4j
 @RequestMapping("/ndxpro/v1/translator-builder")
 public class BuildController {
 
@@ -34,11 +34,5 @@ public class BuildController {
     public ResponseEntity<ProcessResultDto> buildTranslator(@RequestBody @Valid TranslatorRegisterDto translatorRegisterDto) {
         ProcessResultDto resultDto = buildService.build(translatorRegisterDto);
         return ResponseEntity.ok(resultDto);
-    }
-
-    @GetMapping("/health-check")
-    public ResponseEntity<Void> healthCheck() {
-        log.info("OK");
-        return new ResponseEntity<>(HttpStatus.OK);
     }
 }

@@ -58,14 +58,28 @@
         </encoder>
     </appender>
 
-    <logger name="kr.co.e8ight.ndxpro.translatorbuilder" level="DEBUG" additivity="false">
-        <appender-ref ref="CONSOLE"/>
-    </logger>
-    <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="LOGSTASH"/>
-        <appender-ref ref="ERROR_DEFAULT_FILE_APPENDER"/>
-        <appender-ref ref="INFO_DEFAULT_FILE_APPENDER"/>
-    </root>
+    <springProfile name="dev">
+        <logger name="kr.co.e8ight.ndxpro.translatorbuilder" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+        <logger name="kr.co.e8ight.ndxpro.translatorbuilder" level="INFO"/>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ERROR_DEFAULT_FILE_APPENDER"/>
+            <appender-ref ref="INFO_DEFAULT_FILE_APPENDER"/>
+        </root>
+    </springProfile>
+    <springProfile name="prod">
+        <logger name="kr.co.e8ight.ndxpro.translatorbuilder" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+        <logger name="kr.co.e8ight.ndxpro.translatorbuilder" level="INFO"/>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="LOGSTASH"/>
+            <appender-ref ref="ERROR_DEFAULT_FILE_APPENDER"/>
+            <appender-ref ref="INFO_DEFAULT_FILE_APPENDER"/>
+        </root>
+    </springProfile>
 
 </configuration>

@@ -5,17 +5,21 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Schema(description = "Translator 컴파일/빌드 요청 데이터")
 public class TranslatorRegisterDto {
-    @Schema(description = "연계 Data Source ID", example = "1")
-    @NotNull(message = "Data Source ID Required.")
-    private Long dataSourceId;
+    @Schema(description = "연계 Flume Agent ID", example = "1")
+    @NotNull(message = "Agent ID Required.")
+    private Long agentId;
+
+    @Schema(description = "Translator 이름", example = "VehicleTranslator")
+    @NotEmpty(message = "Translator name Required.")
+    private String name;
 
     @Schema(description = "Translator 자바 클래스, 클래스의 이름은 name과 같아야 함.")
     @NotEmpty(message = "Translator java class code Required.")

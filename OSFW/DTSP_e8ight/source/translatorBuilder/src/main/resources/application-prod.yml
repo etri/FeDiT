@@ -1,22 +1,16 @@
 eureka:
-  instance:
-    hostname: ${spring.cloud.client.ip-address}
   client:
-    register-with-eureka: true
-    fetch-registry: true
     service-url:
       defaultZone: ${EUREKA_URL}
 
-management:
-  tracing:
-    sampling:
+spring:
+  sleuth:
+    scheduled:
+      enabled: false
+    sampler:
       probability: 1.0
-    propagation:
-      consume: w3c
-      produce: w3c
   zipkin:
-    tracing:
-      endpoint: ${ZIPKIN_URL}
+    base-url: ${ZIPKIN_URL}
 
 logging:
   logstash:

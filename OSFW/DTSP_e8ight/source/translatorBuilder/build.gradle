@@ -1,13 +1,13 @@
 plugins {
-    id 'org.springframework.boot' version '3.1.4'
+    id 'org.springframework.boot' version '2.7.3'
     id 'io.spring.dependency-management' version '1.0.13.RELEASE'
     id 'java'
-    id 'com.google.cloud.tools.jib' version '3.3.2'
+    id 'com.google.cloud.tools.jib' version '3.2.1'
 }
 
 group = 'kr.co.e8ight.ndxpro'
 version = '0.0.1-SNAPSHOT'
-sourceCompatibility = '21'
+sourceCompatibility = '11'
 
 repositories {
     maven {
@@ -25,25 +25,20 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
-
-    //eureka-client
-    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client:4.0.3'
-
-    // swagger
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client:3.1.4'
+    implementation 'org.springdoc:springdoc-openapi-ui:1.5.13'
 
     implementation 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
-    implementation 'kr.co.e8ight.ndxpro:ndxpro_common:0.2.2'
+    implementation 'kr.co.e8ight.ndxpro:ndxpro_common:0.0.4'
 
     //logstash encoder
     implementation group: 'net.logstash.logback', name: 'logstash-logback-encoder', version: '7.0.1'
 
-    //zipkin
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
-    implementation 'io.zipkin.reporter2:zipkin-reporter-brave'
+    //sleuth & zipkin
+    implementation 'org.springframework.cloud:spring-cloud-starter-sleuth:3.1.1'
+    implementation 'org.springframework.cloud:spring-cloud-sleuth-zipkin:3.1.1'
 }
 
 tasks.named('test') {
@@ -55,10 +50,31 @@ tasks.jibDockerBuild.doFirst {
         from("translatorSource/")
         into("src/main/jib/translatorSource/")
     }
+    copy {
+        from("translatorLib/")
+        into("src/main/jib/root/.gradle/caches/modules-2/")
+    }
 }
 
 tasks.jibDockerBuild.doLast() {
     delete("src/main/jib/translatorSource/")
+    delete("src/main/jib/root/.gradle/caches/modules-2/")
+}
+
+tasks.jibBuildTar.doFirst {
+    copy {
+        from("translatorSource/")
+        into("src/main/jib/translatorSource/")
+    }
+    copy {
+        from("translatorLib/")
+        into("src/main/jib/root/.gradle/caches/modules-2/")
+    }
+}
+
+tasks.jibBuildTar.doLast() {
+    delete("src/main/jib/translatorSource/")
+    delete("src/main/jib/root/.gradle/caches/modules-2/")
 }
 
 tasks.jib.doFirst {
@@ -66,19 +82,24 @@ tasks.jib.doFirst {
         from("translatorSource/")
         into("src/main/jib/translatorSource/")
     }
+    copy {
+        from("translatorLib/")
+        into("src/main/jib/root/.gradle/caches/modules-2/")
+    }
 }
 
 tasks.jib.doLast() {
     delete("src/main/jib/translatorSource/")
+    delete("src/main/jib/root/.gradle/caches/modules-2/")
 }
 
 jib {
     from{
-        image = "openjdk:21-jdk-slim"
+        image = "openjdk:11.0.14"
     }
     to {
         image = "172.16.28.217:12000/ndxpro-translatorbuilder"
-        tags = ["v1.2"]
+        tags = ["v1.1.1"]
         auth {
             username = "admin"
             password = "ndxpro123!"

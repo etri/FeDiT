@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -39,6 +40,11 @@ public class TranslatorRegisterDto {
 
     @Schema(description = "kafka source topic", example = "lji.dev.pintel.simul.org2.vehicle.json")
     private String sourceTopic;
+
+    @Schema(description = "kafka target topic. 미지정 시 translator.default.target-topic 을 사용한다.",
+            example = "ngsild_topic")
+    @Pattern(regexp = "[a-zA-Z0-9._-]{1,249}", message = "Invalid kafka target topic name.")
+    private String targetTopic;
 
     @Schema(description = "ObservedAt Transfer Option", example = "true")
     private Boolean transferObservedAt = false;

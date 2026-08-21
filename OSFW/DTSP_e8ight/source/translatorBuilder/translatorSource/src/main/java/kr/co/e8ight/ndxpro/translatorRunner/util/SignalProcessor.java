@@ -6,7 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 public class SignalProcessor {
 
@@ -18,7 +18,7 @@ public class SignalProcessor {
 
     private static final Logger log = LoggerFactory.getLogger(SignalProcessor.class);
 
-    public void sendSignal(Long translatorId) {
+    public void sendSignal(String type, Long translatorId) {
         Headers headers = new Headers.Builder()
                 .add("Accept", "application/json")
                 .build();
@@ -28,6 +28,7 @@ public class SignalProcessor {
                 .host("localhost")
                 .port(8080)
                 .addPathSegments("ndxpro/v1/translator/signal")
+                .addQueryParameter("type", type)
                 .addQueryParameter("translatorId", String.valueOf(translatorId))
                 .build();
         Request signalRequest = new Request.Builder()
@@ -86,9 +87,9 @@ public class SignalProcessor {
     private static OkHttpClient getSignalClient() {
         return new OkHttpClient.Builder()
                 .addInterceptor(new CustomInterceptorImpl())
-                .connectTimeout(Duration.ofSeconds(10))
-                .writeTimeout(Duration.ofSeconds(10))
-                .readTimeout(Duration.ofSeconds(10))
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .writeTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(10, TimeUnit.SECONDS)
                 .build();
     }
 }

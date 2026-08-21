@@ -33,6 +33,7 @@ translator:
   kafka-url: 220.124.222.90:19092
   default:
     poll-duration: 100
+    target-topic: ngsild_topic
   inspector:
     inspect-duration: 10000
     threshold: 60000

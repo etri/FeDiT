@@ -3,6 +3,12 @@
 <configuration scan="true" scanPeriod="30 seconds">
     <!-- log packagename -->
     <property name="LOG_PACKAGE_NAME" value="kr.co.e8ight.ndxpro.translatorRunner"/>
+    <!-- log file path -->
+    <property name="LOG_PATH">${translator.logDir}</property>>
+    <!-- log file name -->
+    <property name="LOG_FILE_NAME">${translator.id}</property>
+    <!-- logstash URL -->
+    <property name="LOGSTASH_URL">${logstash.url}</property>
     <!-- log days -->
     <property name="LOG_DAYS" value="10"/>
     <!-- log filesize log -->
@@ -75,7 +81,6 @@
     </appender>
 
     <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
         <appender-ref ref="ERROR_DEFAULT_FILE_APPENDER"/>
         <appender-ref ref="INFO_DEFAULT_FILE_APPENDER"/>
         <appender-ref ref="LOGSTASH"/>

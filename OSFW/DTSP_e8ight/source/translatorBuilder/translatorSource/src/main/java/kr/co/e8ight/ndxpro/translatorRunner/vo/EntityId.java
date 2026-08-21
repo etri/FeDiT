@@ -8,24 +8,18 @@ public class EntityId implements Serializable {
 
     private String type;
 
-    private String provider;
+    private String servicePath;
 
-    public EntityId(String type, String provider) {
+    public EntityId(String type, String servicePath) {
         this.id = null;
         this.type = type;
-        this.provider = provider;
+        this.servicePath = servicePath;
     }
 
-    public EntityId(String id, String type, String provider) {
+    public EntityId(String id, String type, String servicePath) {
         this.id = id;
         this.type = type;
-        this.provider = provider;
-    }
-
-    private EntityId(Builder builder) {
-        this.id = "urn:ngsi-ld:" + builder.type + ":" + builder.id;
-        this.type = builder.type;
-        this.provider = builder.provider;
+        this.servicePath = servicePath;
     }
 
     public String getId() {
@@ -40,8 +34,8 @@ public class EntityId implements Serializable {
         return type;
     }
 
-    public String getProvider() {
-        return provider;
+    public String getServicePath() {
+        return servicePath;
     }
 
     @Override
@@ -49,32 +43,7 @@ public class EntityId implements Serializable {
         return "EntityId{" +
                 "id='" + id + '\'' +
                 ", type='" + type + '\'' +
-                ", servicePath='" + provider + '\'' +
+                ", servicePath='" + servicePath + '\'' +
                 '}';
-    }
-
-    public static class Builder {
-        private String id;
-        private String type;
-        private String provider;
-
-        public Builder id(String id) {
-            this.id = id;
-            return this;
-        }
-
-        public Builder type(String type) {
-            this.type = type;
-            return this;
-        }
-
-        public Builder provider(String provider) {
-            this.provider = provider;
-            return this;
-        }
-
-        public EntityId build() {
-            return new EntityId(this);
-        }
     }
 }
