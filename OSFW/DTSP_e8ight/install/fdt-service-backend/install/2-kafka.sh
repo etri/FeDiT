@@ -43,11 +43,12 @@ while :; do
   sleep 3; t=$((t+3)); printf '.'
 done
 
-# 이 클러스터는 auto.create.topics.enable=false 다. NDXPro 가 쓰는 토픽을 미리 만들어 둔다.
-echo "-- 토픽 확인 --"
+# 이 클러스터는 auto.create.topics.enable=false 이고 애플리케이션도 토픽을 만들지 않는다.
+# .env 의 KAFKA_TOPICS 에 적힌 것을 미리 만들어 둔다. 없으면 데이터가 조용히 흐르지 않는다.
+echo "-- 토픽 확인 (파티션 ${KAFKA_TOPIC_PARTITIONS:-5}) --"
 KBIN=/usr/local/kafka/bin
 existing=$(docker exec pipeline-kafka-1 $KBIN/kafka-topics.sh --bootstrap-server pipeline-kafka-1:9092 --list 2>/dev/null)
-for topic in ngsild.topic observedAt.topic; do
+for topic in ${KAFKA_TOPICS:-ngsild.topic observedAt.topic fdt_topic}; do
   if echo "$existing" | grep -qx "$topic"; then
     echo "   $topic (있음)"
   else
