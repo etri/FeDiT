@@ -31,6 +31,7 @@ translator:
   kafka-url: ${KAFKA_URL}
   default:
     poll-duration: 100
+    target-topic: ${TARGET_TOPIC:ngsild_topic}
   inspector:
     inspect-duration: 10000
     threshold: 60000

@@ -1,7 +1,6 @@
 package kr.co.e8ight.ndxpro.translatorbuilder.service;
 
 import kr.co.e8ight.ndxpro.common.exception.error.ErrorCode;
-import kr.co.e8ight.ndxpro.translatorbuilder.domain.ProcessingResult;
 import kr.co.e8ight.ndxpro.translatorbuilder.dto.TranslatorCompileRequestDto;
 import kr.co.e8ight.ndxpro.translatorbuilder.dto.TranslatorRegisterDto;
 import kr.co.e8ight.ndxpro.translatorbuilder.dto.ProcessResultDto;
@@ -34,11 +33,10 @@ public class BuildService {
         log.info("compile start.");
 
         log.debug("save Translator class.");
-        String publicClassName = PublicClassNameFinder.findPublicClassName(translatorCompileRequestDto.getTranslateCode());
-        fileService.saveOrReplaceFile(translatorPath + "/" + publicClassName + ".java", translatorCompileRequestDto.getTranslateCode());
+        fileService.saveOrReplaceFile(translatorPath + "/" + translatorCompileRequestDto.getName() + ".java", translatorCompileRequestDto.getTranslateCode());
 
         log.debug(translatorDir +"/gradlew compileJava.");
-        ProcessResultDto processResultDto = gradleCompileTest(publicClassName);
+        ProcessResultDto processResultDto = gradleCompileTest(translatorCompileRequestDto);
 
         log.info("compile completed.");
         return processResultDto;
@@ -48,17 +46,17 @@ public class BuildService {
         log.info("build start.");
 
         log.debug("save Translator class.");
-        String publicClassName = PublicClassNameFinder.findPublicClassName(translatorRegisterDto.getTranslateCode());
-        fileService.saveOrReplaceFile(translatorPath + "/" + publicClassName + ".java", translatorRegisterDto.getTranslateCode());
+        fileService.saveOrReplaceFile(translatorPath + "/" + translatorRegisterDto.getName() + ".java", translatorRegisterDto.getTranslateCode());
 
-        ProcessResultDto buildResult = gradleBuild(publicClassName);
-        String jarTargetPath = moveJarFile(publicClassName);
-        removeClassFile(publicClassName);
+        ProcessResultDto buildResult = gradleBuild(translatorRegisterDto);
+        String jarTargetPath = moveJarFile(translatorRegisterDto);
+        removeClassFile(translatorRegisterDto.getName());
 
         buildResult.setSavedFilePath(jarTargetPath);
         Path path = Paths.get(buildResult.getSavedFilePath());
 
-        try (InputStream inputStream = Files.newInputStream(path)) {
+        try {
+            InputStream inputStream = Files.newInputStream(path);
             byte[] bytes = inputStream.readAllBytes();
             buildResult.setSavedFile(bytes);
         } catch (IOException e) {
@@ -70,90 +68,63 @@ public class BuildService {
 
     private void removeClassFile(String name) {
         log.debug("remove translator class. : " + name + ".java");
-        ProcessingResult result = run("rm", translatorPath + "/" + name + ".java");
-        if ( result.getExitCode() != 0 ) {
-            throw new BuildTranslatorException(ErrorCode.INTERNAL_SERVER_ERROR, result.getError());
+        Process remove = run("rm " + translatorPath + "/" + name + ".java");
+        if ( remove.exitValue() != 0 ) {
+            throw new BuildTranslatorException(ErrorCode.INTERNAL_SERVER_ERROR, inputStreamToString(remove.getErrorStream()));
         }
     }
 
-    private String moveJarFile(String publicClassName) {
+    private String moveJarFile(TranslatorRegisterDto translatorRegisterDto) {
         String sourcePath = translatorDir + "/build/libs/translator.jar";
-        String targetPath = translatorDir + "/translatorJars/" + publicClassName + ".jar";
+        String targetPath = translatorDir + "/translatorJars/" + translatorRegisterDto.getName() + ".jar";
 
-        log.debug("move jar {} to {}", sourcePath, targetPath);
+        log.debug("move jar." + sourcePath + " to " + targetPath);
 
-        ProcessingResult result = run("mv", sourcePath, targetPath);
-        if ( result.getExitCode() != 0 ) {
-            removeClassFile(publicClassName);
-            throw new BuildTranslatorException(ErrorCode.INTERNAL_SERVER_ERROR, result.getError());
+        // translatorJars 는 .gitignore 로 내용이 제외돼 있어 클론 환경에는 디렉터리가 없다.
+        // 없으면 mv 가 "No such file or directory" 로 실패하므로 먼저 만든다.
+        Process mkdir = run("mkdir -p " + translatorDir + "/translatorJars");
+        if ( mkdir.exitValue() != 0 ) {
+            removeClassFile(translatorRegisterDto.getName());
+            throw new BuildTranslatorException(ErrorCode.INTERNAL_SERVER_ERROR, inputStreamToString(mkdir.getErrorStream()));
+        }
+
+        Process move = run("mv " + sourcePath + " " + targetPath);
+        if ( move.exitValue() != 0 ) {
+            removeClassFile(translatorRegisterDto.getName());
+            throw new BuildTranslatorException(ErrorCode.INTERNAL_SERVER_ERROR, inputStreamToString(move.getErrorStream()));
         }
 
         return targetPath;
     }
 
-    private ProcessResultDto gradleCompileTest(String publicClassName) {
-        log.info("gradle compileTest.");
-        ProcessingResult result = run(translatorDir + "/gradlew", "compileTest", "--no-build-cache", "-p", translatorDir);
-        return new ProcessResultDto(result.getExitCode(), result.getOutput(), result.getError());
+    private ProcessResultDto gradleCompileTest(TranslatorCompileRequestDto translatorCompileRequestDto) {
+        log.debug("gradle compileTest.");
+
+        Process build = run(translatorDir + "/gradlew compileTest --no-build-cache -p " + translatorDir);
+        removeClassFile(translatorCompileRequestDto.getName());
+        if ( build.exitValue() != 0 ) {
+            return new ProcessResultDto(build.exitValue(), inputStreamToString(build.getInputStream()), inputStreamToString(build.getErrorStream()));
+        } else {
+            return new ProcessResultDto(build.exitValue(), inputStreamToString(build.getInputStream()));
+        }
     }
 
-    private ProcessResultDto gradleBuild(String publicClassName) {
+    private ProcessResultDto gradleBuild(TranslatorRegisterDto translatorRegisterDto) {
         log.debug("gradle build.");
-        ProcessingResult result = run(translatorDir + "/gradlew", "build", "--no-build-cache", "-p", translatorDir);
 
-        if ( result.getExitCode() != 0 ) {
-            removeClassFile(publicClassName);
-            throw new BuildTranslatorException(ErrorCode.BAD_REQUEST_DATA, result.getError());
+        Process build = run(translatorDir + "/gradlew build --no-build-cache -p " + translatorDir);
+        if ( build.exitValue() != 0 ) {
+            removeClassFile(translatorRegisterDto.getName());
+            throw new BuildTranslatorException(ErrorCode.BAD_REQUEST_DATA, inputStreamToString(build.getErrorStream()));
         }
-        return new ProcessResultDto(result.getExitCode(), result.getOutput(), result.getError());
+        return new ProcessResultDto(build.exitValue(), inputStreamToString(build.getInputStream()));
     }
 
-    private static void readStream(InputStream inputStream, StringBuilder output) throws IOException {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append(System.lineSeparator());
-            }
-        }
-    }
-
-    private ProcessingResult run(String... command) {
+    private Process run(String command) {
         try {
-            log.debug("run command : {}", (Object[]) command);
-            ProcessBuilder processBuilder = new ProcessBuilder(command);
-
-            Process process = processBuilder.start();
-
-            StringBuilder output = new StringBuilder();
-            StringBuilder error = new StringBuilder();
-
-            Thread outputThread = new Thread(() -> {
-                try {
-                    readStream(process.getInputStream(), output);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            });
-
-            Thread errorThread = new Thread(() -> {
-                try {
-                    readStream(process.getErrorStream(), error);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            });
-
-            // 스레드를 시작하여 출력을 읽어옵니다.
-            outputThread.start();
-            errorThread.start();
-
-            // 프로세스가 종료될 때까지 대기합니다.
-            int exitCode = process.waitFor();
-            outputThread.join();
-            errorThread.join();
-
-            log.debug("exit code : {}", exitCode);
-            return new ProcessingResult(exitCode, output.toString(), error.toString());
+            Process process = Runtime.getRuntime().exec(command);
+            process.waitFor();
+            return process;
         } catch (InterruptedException | IOException e) {
             throw new BuildTranslatorException(ErrorCode.INTERNAL_SERVER_ERROR, e.getMessage());
         }

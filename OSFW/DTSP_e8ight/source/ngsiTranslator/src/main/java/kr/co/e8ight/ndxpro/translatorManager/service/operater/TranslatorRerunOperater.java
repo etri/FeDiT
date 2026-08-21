@@ -24,6 +24,9 @@ public class TranslatorRerunOperater extends Operater {
     @Value("${translator.default.poll-duration}")
     private String pollDuration;
 
+    @Value("${logging.logstash.url}")
+    private String logstashUrl;
+
     @Value("${logging.file.path}")
     private String logDir;
 
@@ -54,13 +57,18 @@ public class TranslatorRerunOperater extends Operater {
     private List<String> buildCommand(Translator translator) {
         return List.of("java", "-jar",
                 "-Dtranslator.mode=run",
+                "-Dtranslator.context=" + translator.getContext(),
                 "-Dtranslator.model=" + translator.getModelType(),
                 "-Dtranslator.sourceTopic=" + translator.getSourceTopic(),
+                "-Dtranslator.targetTopic=" + translator.getTargetTopic(),
                 "-Dtranslator.classname=kr.co.e8ight.ndxpro.translatorRunner.translator." + translator.getName(),
                 "-Dtranslator.kafkaUrl=" + kafkaUrl,
                 "-Dtranslator.pollduration=" + pollDuration,
                 "-Dlogback.configurationFile=logback.xml",
+                "-Dlogstash.url=" + logstashUrl,
+                "-Dtranslator.logDir=" + logDir,
                 "-Dtranslator.id=" + translator.getId(),
+                "-Dtranslator.agentId=" + translator.getAgentId(),
                 "-Dtranslator.transferObservedAt=" + translator.getTransferObservedAt(),
                 "-Dtranslator.observedAtScenarioId=" + translator.getObservedAtTopicScenarioId(),
                 "-Dtranslator.observedAtScenarioType=" + translator.getObservedAtTopicScenarioType(),

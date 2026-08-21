@@ -17,19 +17,8 @@ public class CommonJsonDeserializer implements Deserializer<JSONObject> {
         try {
             if (data == null)
                 return null;
-            else {
-                String source = new String(data, encoding);
-                if ( !(source.startsWith("[") || source.startsWith("{")) ) {
-                    return null;
-                }
-                if ( source.startsWith("[") ) {
-                    StringBuilder newSource = new StringBuilder(source);
-                    newSource.insert(0, "{ \"data\": ");
-                    newSource.append("}");
-                    source = newSource.toString();
-                }
-                return new JSONObject(source);
-            }
+            else
+                return new JSONObject(new String(data, encoding));
         } catch (UnsupportedEncodingException e) {
             throw new SerializationException("Error when deserializing Json to string due to unsupported encoding " + encoding);
         }

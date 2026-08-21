@@ -1,66 +1,129 @@
 package kr.co.e8ight.ndxpro.translatorRunner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import kr.co.e8ight.ndxpro.translatorRunner.serializer.EntitySerializer;
+import kr.co.e8ight.ndxpro.translatorRunner.translator.EntityTranslator;
+import kr.co.e8ight.ndxpro.translatorRunner.translator.TestResult;
+import kr.co.e8ight.ndxpro.translatorRunner.util.KafkaUtil;
+import kr.co.e8ight.ndxpro.translatorRunner.util.SignalProcessor;
+import kr.co.e8ight.ndxpro.translatorRunner.vo.Entity;
+import kr.co.e8ight.ndxpro.translatorRunner.vo.ZonedDateTimeVo;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.time.Duration;
+import java.time.ZonedDateTime;
+import java.util.Collections;
 import java.util.List;
-import java.util.Properties;
-import kr.co.e8ight.ndxpro.translatorRunner.deserializer.CommonJsonDeserializer;
-import kr.co.e8ight.ndxpro.translatorRunner.deserializer.EntityDeserializer;
-import kr.co.e8ight.ndxpro.translatorRunner.serializer.EntitySerializer;
-import kr.co.e8ight.ndxpro.translatorRunner.translator.EPCTranslator;
-import kr.co.e8ight.ndxpro.translatorRunner.translator.EntityTranslator;
-import kr.co.e8ight.ndxpro.translatorRunner.translator.TestResult;
-import kr.co.e8ight.ndxpro.translatorRunner.util.AlertAndFailUncaughtExceptionHandler;
-import kr.co.e8ight.ndxpro.translatorRunner.util.AlertProcessor;
-import kr.co.e8ight.ndxpro.translatorRunner.util.KafkaUtil;
-import kr.co.e8ight.ndxpro.translatorRunner.util.SignalProcessor;
-import kr.co.e8ight.ndxpro.translatorRunner.vo.Entity;
-import kr.co.e8ight.ndxpro.translatorRunner.vo.Mode;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.kstream.Branched;
-import org.apache.kafka.streams.kstream.Consumed;
-import org.apache.kafka.streams.kstream.Produced;
-import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TranslatorRunner {
 
     private static Logger log = LoggerFactory.getLogger(TranslatorRunner.class);
-    private static String mode;
-    private static String kafkaUrl;
-    private static String translatorClassName;
-    private static String sampleJson;
-    private static String sourceTopic;
-    private static String targetTopic;
-    private static String context;
-    private static String dataIngestUrl;
+    private static String mode = "test";
+    private static String kafkaUrl = "172.16.28.222:19092,172.16.28.222:29092,172.16.28.222:39092,172.16.28.222:49092,172.16.28.222:59092";
+    private static String modelType = "DEMODATA";
+    private static String context = "DEMODATA";
+    private static Long pollDuration = 5000L;
+    private static String translatorClassName = "EVCharge_001";
+    private static String sampleJson = "{}";
+    private static String sourceTopic = "tag";
+    private static String targetTopic = "ngsild_topic";
+    private static String observedAtScenarioId = null;
+    private static String observedAtScenarioType = null;
+    private static Long agentId;
     private static Long translatorId;
-    private static Long dataSourceId;
     private static EntityTranslator translator;
+
+    private static boolean transferObservedAt = false;
 
     private static String logDir;
 
     public static void main(String[] args) {
-        setup();
+
+        SignalProcessor signalProcessor = SignalProcessor.INSTANCE;
+
+        readProperties();
         translator = getTranslator();
 
-        if ( mode.equals(Mode.RUN) ) {
-            try {
-                topic2Stream();
-            } catch (Exception e) {
-                log.error(ExceptionUtils.getStackTrace(e));
+        if ( mode.equals("run") ) {
+            KafkaUtil kafkaUtil = new KafkaUtil(kafkaUrl);
+            KafkaConsumer<String, JSONObject> kafkaConsumer = kafkaUtil.getKafkaConsumer(translatorId);
+            KafkaProducer<Integer, Entity> kafkaProducer = kafkaUtil.getEntityKafkaProducer();
+
+            kafkaConsumer.subscribe(Collections.singletonList(sourceTopic));
+
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
+                    ConsumerRecords<String, JSONObject> records = kafkaConsumer.poll(Duration.ofMillis(pollDuration));
+                    kafkaConsumer.commitAsync();
+
+                    for (ConsumerRecord<String, JSONObject> consumerRecord : records) {
+                        //init observedAtList
+                        List<ZonedDateTime> observedAtList = TranslatorRunner.translator.getObservedAtList();
+                        observedAtList.clear();
+
+                        List<Entity> entities = translate(consumerRecord, kafkaUtil, observedAtScenarioId, observedAtScenarioType);
+
+                        //send event
+                        for (Entity entity : entities) {
+                            entity.setContext(context);
+                            ProducerRecord<Integer, Entity> producerRecord = new ProducerRecord<>(targetTopic, entity);
+                            kafkaProducer.send(producerRecord);
+                        }
+
+                        if ( transferObservedAt ) {
+                            //send observedAt
+                            observedAtList = TranslatorRunner.translator.getObservedAtList();
+                            KafkaProducer<Integer, ZonedDateTimeVo> offsetDateTimeKafkaProducer = kafkaUtil.getZonedDateTimeKafkaProducer();
+                            String isFinish;
+                            for (int i = 0; i < observedAtList.size(); i++) {
+                                if ( i < observedAtList.size() - 1 ) {
+                                    isFinish = "N";
+                                } else {
+                                    isFinish = translator.getIsFinish();
+                                }
+
+                                ZonedDateTime observedAt = observedAtList.get(i);
+                                ZonedDateTimeVo zonedDateTimeVo = new ZonedDateTimeVo(
+                                        observedAt,
+                                        translator.getObservedAtTopicScenarioId(),
+                                        observedAtScenarioType,
+                                        translator.getDate(),
+                                        isFinish);
+
+                                ProducerRecord<Integer, ZonedDateTimeVo> producerRecord =
+                                        new ProducerRecord<>("observedAt.topic", zonedDateTimeVo);
+                                offsetDateTimeKafkaProducer.send(producerRecord);
+                            }
+                        }
+
+                        //send signal
+                        signalProcessor.sendSignal(modelType, translatorId);
+
+                        if ( TranslatorRunner.translator.isOver() ) {
+                            translator.setOver(false);
+                            signalProcessor.stopSignal(agentId, translatorId);
+                        }
+                        Thread.sleep(pollDuration);
+                    }
+
+                } catch (Exception e) {
+                    log.error(ExceptionUtils.getStackTrace(e));
+                }
             }
-        } else if ( mode.equals(Mode.TEST) ) {
+        } else if ( mode.equals("test") ) {
             log.info("test start");
 
             String resultJsonPath = logDir + "/translator_" + translatorId + ".json";
@@ -73,81 +136,19 @@ public class TranslatorRunner {
                 result = new TestResult(true, translate.get(0), null);
                 saveTestResultJsonFile(result, resultJsonPath);
             } catch (Exception e) {
-                log.error(ExceptionUtils.getStackTrace(e));
-                result = new TestResult(false, null, ExceptionUtils.getStackTrace(e));
+                log.error("test fail : " + e.getMessage());
+                StringBuilder error = new StringBuilder();
+                error.append(e.getClass()).append(": ").append(e.getMessage());
+                for (StackTraceElement stackTraceElement : e.getStackTrace()) {
+                    log.error("at " + stackTraceElement);
+                    error.append("at ").append(stackTraceElement);
+                }
+                result = new TestResult(false, null, error.toString());
                 saveTestResultJsonFile(result, resultJsonPath);
                 throw e;
             }
 
             log.info("test end");
-        }
-    }
-
-    private static void topic2Stream() {
-        KafkaUtil kafkaUtil = new KafkaUtil(kafkaUrl);
-        Properties kafkaStreamsProperties = kafkaUtil.getKafkaStreamsProperties(translatorId);
-        SignalProcessor signalProcessor = SignalProcessor.INSTANCE;
-
-        CommonJsonDeserializer commonJsonDeserializer = new CommonJsonDeserializer();
-//        Serde<JSONObject> jsonObjectSerde = Serdes.serdeFrom(new JsonObjectSerializer(), new CommonJsonDeserializer());
-        Serde<Entity> entitySerde = Serdes.serdeFrom(new EntitySerializer(), new EntityDeserializer());
-
-        StreamsBuilder builder = new StreamsBuilder();
-
-//        builder.stream(sourceTopic, Consumed.with(Serdes.String(), jsonObjectSerde).withOffsetResetPolicy(Topology.AutoOffsetReset.LATEST))
-        builder.stream(sourceTopic, Consumed.with(Serdes.String(), new Serdes.ByteArraySerde(), null, Topology.AutoOffsetReset.LATEST))
-            .split()
-            .branch((key, value) -> "EPC".equals(key), Branched.withConsumer(ks ->
-                ks.mapValues(value -> commonJsonDeserializer.deserialize(sourceTopic, value))
-                .filter((key, value) -> value != null)
-                .mapValues(TranslatorRunner::makeNgsiLdForEPC)
-                .filter((key, value) -> value != null)
-                .peek((key, value) -> {
-                    log.info("receive data from datasource " + key);
-                    signalProcessor.sendSignal(translatorId);
-                })
-                .flatMapValues(value -> value)
-                .filter((key, value) -> value != null)
-                .to(targetTopic, Produced.with(Serdes.String(), entitySerde))))
-            .defaultBranch(Branched.withConsumer(ks ->
-                ks.filter((key, value) -> key != null && key.equals(String.valueOf(dataSourceId)))
-                    .mapValues(value -> commonJsonDeserializer.deserialize(sourceTopic, value))
-                    .filter((key, value) -> value != null)
-                    .mapValues(TranslatorRunner::makeNgsiLd)
-                    .filter((key, value) -> value != null)
-                    .peek((key, value) -> {
-                        log.info("receive data from datasource " + key);
-                        signalProcessor.sendSignal(translatorId);
-                    })
-                    .flatMapValues(value -> value)
-                    .filter((key, value) -> value != null)
-                    .to(targetTopic, Produced.with(Serdes.String(), entitySerde))));
-
-        KafkaStreams streams = new KafkaStreams(builder.build(), kafkaStreamsProperties);
-        streams.setUncaughtExceptionHandler(new AlertAndFailUncaughtExceptionHandler());
-        streams.start();
-    }
-
-    private static List<Entity> makeNgsiLdForEPC(JSONObject jsonObject) {
-        try {
-            EPCTranslator epcTranslator = new EPCTranslator(context);
-          return epcTranslator.translate(jsonObject);
-        } catch (Exception e) {
-            log.error(ExceptionUtils.getStackTrace(e));
-            AlertProcessor alertProcessor = AlertProcessor.INSTANCE;
-            alertProcessor.sendAlert(e);
-            return null;
-        }
-    }
-
-    private static List<Entity> makeNgsiLd(JSONObject jsonObject) {
-        try {
-            return TranslatorRunner.translator.translate(jsonObject);
-        } catch (Exception e) {
-            log.error(ExceptionUtils.getStackTrace(e));
-            AlertProcessor alertProcessor = AlertProcessor.INSTANCE;
-            alertProcessor.sendAlert(e);
-            return null;
         }
     }
 
@@ -166,13 +167,24 @@ public class TranslatorRunner {
             bufferedWriter.write(objectMapper.writeValueAsString(result));
             bufferedWriter.close();
         } catch (IOException e) {
-            log.error(ExceptionUtils.getStackTrace(e));
+            log.error("TRANSLATE_FAIL: " + e.getMessage());
+            for (StackTraceElement stackTraceElement : e.getStackTrace()) {
+                log.error("at " + stackTraceElement);
+            }
+            Throwable cause = e.getCause();
+            while ( cause != null ) {
+                log.error(cause.getMessage());
+                for (StackTraceElement stackTraceElement : cause.getStackTrace()) {
+                    log.error("at " + stackTraceElement);
+                }
+                cause = cause.getCause();
+            }
         }
     }
 
     private static EntityTranslator getTranslator() {
         try {
-            Object object = Class.forName(translatorClassName).getConstructor(String.class).newInstance(context);
+            Object object = Class.forName(translatorClassName).getConstructor(String.class).newInstance(modelType);
             if ( object instanceof EntityTranslator) {
                 return (EntityTranslator) object;
             } else {
@@ -181,29 +193,38 @@ public class TranslatorRunner {
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException |
                  ClassNotFoundException e) {
             String errorMessage = "Kafka error. translator class " + translatorClassName + " is invalid.";
-            log.error(errorMessage, e);
+            log.warn(errorMessage, e);
         }
         return null;
     }
 
-    private static void setup() {
+    private static List<Entity> translate(ConsumerRecord<String, JSONObject> consumerRecord, KafkaUtil kafkaUtil, String observedAtScenarioId, String observedAtScenarioType) {
+        JSONObject jsonObject = consumerRecord.value();
+        return TranslatorRunner.translator.translate(jsonObject);
+    }
+
+    private static void readProperties() {
         mode = System.getProperty("translator.mode");
-        translatorId = Long.valueOf(System.getProperty("translator.id"));
-        context = System.getProperty("translator.context");
-        logDir = System.getProperty("translator.logDir");
-        translatorClassName = System.getProperty("translator.classname");
 
         if (mode.equals("run")) {
             kafkaUrl = System.getProperty("translator.kafkaUrl");
+            pollDuration = Long.valueOf(System.getProperty("translator.pollduration"));
             sourceTopic = System.getProperty("translator.sourceTopic");
-            targetTopic = System.getProperty("translator.targetTopic");
-            dataSourceId = Long.valueOf(System.getProperty("translator.dataSourceId"));
-            dataIngestUrl = System.getProperty("dataIngest.url");
-
-            AlertProcessor alertProcessor = AlertProcessor.INSTANCE;
-            alertProcessor.setup(translatorId, dataSourceId, dataIngestUrl);
+            String configuredTargetTopic = System.getProperty("translator.targetTopic");
+            if ( configuredTargetTopic != null && !configuredTargetTopic.isEmpty() ) {
+                targetTopic = configuredTargetTopic;
+            }
+            transferObservedAt = Boolean.parseBoolean(System.getProperty("translator.transferObservedAt"));
+            observedAtScenarioId = System.getProperty("translator.observedAtScenarioId");
+            observedAtScenarioType = System.getProperty("translator.observedAtScenarioType");
         } else if (mode.equals("test")) {
             sampleJson = System.getProperty("translator.sample");
         }
+        agentId = Long.valueOf(System.getProperty("translator.agentId"));
+        translatorId = Long.valueOf(System.getProperty("translator.id"));
+        logDir = System.getProperty("translator.logDir");
+        modelType = System.getProperty("translator.model");
+        context = System.getProperty("translator.context");
+        translatorClassName = System.getProperty("translator.classname");
     }
 }
