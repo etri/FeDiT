@@ -227,7 +227,7 @@ table(
         ["묶음 제작", "없음",
          "image-bundle/ 폴더로 분리. 전체 또는 바뀐 것만(--only) 말 수 있다"],
         ["Kafka 토픽", "수동 생성",
-         "2-kafka.sh 가 ngsild.topic·observedAt.topic 생성 (자동 생성이 꺼져 있음)"],
+         "2-kafka.sh 가 .env 의 KAFKA_TOPICS 를 생성 (자동 생성이 꺼져 있음)"],
         ["주소 설정", "compose·env 여러 곳에 서버 IP 반복",
          "HOST 한 줄만 고치면 게이트웨이·뷰어·컨텍스트 주소가 따라 바뀐다"],
     ],
