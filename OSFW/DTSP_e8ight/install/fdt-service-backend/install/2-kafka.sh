@@ -48,7 +48,7 @@ done
 echo "-- 토픽 확인 (파티션 ${KAFKA_TOPIC_PARTITIONS:-5}) --"
 KBIN=/usr/local/kafka/bin
 existing=$(docker exec pipeline-kafka-1 $KBIN/kafka-topics.sh --bootstrap-server pipeline-kafka-1:9092 --list 2>/dev/null)
-for topic in ${KAFKA_TOPICS:-ngsild.topic observedAt.topic fdt_topic}; do
+for topic in ${KAFKA_TOPICS:-ngsild_topic observedAt_topic fdt_topic}; do
   if echo "$existing" | grep -qx "$topic"; then
     echo "   $topic (있음)"
   else
