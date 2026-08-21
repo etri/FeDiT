@@ -226,7 +226,28 @@ docker exec -it mongodb mongosh --quiet -u mongoadmin -p --eval 'db.getSiblingDB
 ./install/2-kafka.sh
 ```
 
-이미지 묶음에 포함돼 있으면 빌드하지 않는다. 이미지가 없을 때만 `kafka/build/` 에서 빌드하며, 이때는 인터넷이 필요하다(5~10분). 브로커가 뜰 때까지 기다린 뒤 `ngsild.topic`, `observedAt.topic` 을 만든다. 이 클러스터는 `auto.create.topics.enable=false` 라 토픽이 없으면 데이터가 흐르지 않는다.
+이미지가 없을 때만 `kafka/build/` 에서 빌드한다(최초 1회 5~10분, 인터넷 필요). 브로커가 뜬 뒤
+`.env` 의 `KAFKA_TOPICS` 에 적힌 토픽을 만든다.
+
+```bash
+KAFKA_TOPICS="ngsild_topic observedAt_topic fdt_topic"
+KAFKA_TOPIC_PARTITIONS=5
+```
+
+| 토픽 | 쓰는 쪽 |
+|---|---|
+| `fdt_topic` | agent 가 수집해 넣는 원본 토픽 |
+| `ngsild_topic` | translator 가 변환해 넣고, 브로커가 구독 (`KAFKA_TOPIC_FOR_ENTITY`) |
+| `observedAt_topic` | 브로커가 구독 (`KAFKA_TOPIC_FOR_OBSERVED_AT`) |
+
+데이터 흐름은 `agent → fdt_topic → translator → ngsild_topic → broker → MongoDB` 다.
+
+이 클러스터는 `auto.create.topics.enable=false` 이고 **애플리케이션도 토픽을 만들지 않는다.**
+agent·translator 코드 어디에도 `AdminClient` 호출이 없어서, 토픽이 없으면 오류 없이 조용히
+데이터가 흐르지 않는다. 수집 소스를 추가하면 그 토픽 이름을 `KAFKA_TOPICS` 에 덧붙인다.
+
+파티션은 나중에 늘릴 수는 있어도 줄일 수 없다. 운영이 5개라 기본값을 5로 맞췄다.
+Kafka 가 스스로 만드는 내부 토픽(`__consumer_offsets`)은 이 설정과 무관하게 생성된다.
 
 ```bash
 ./install/2-kafka.sh --rebuild   # 이미지가 있어도 다시 빌드
@@ -683,7 +704,7 @@ Windows 11 22H2 / Windows Server 2022 이상은 `%USERPROFILE%\.wslconfig` 에
 | watchtower 상시 동작 | 기본 비활성(`WATCHTOWER_ENABLED=false`, 별도 compose) | 운영 중 예고 없는 자동 재배포 방지 |
 | 설치 시 레지스트리 pull 필수 | 묶음(tar.gz) 적재 또는 소스 빌드 | 설치 서버가 사내망에 없어도 된다. 레지스트리 계정이 설치 서버에 남지 않는다 |
 | `cd infra`, `cd kafka` 로 옮겨 다니며 실행 | 각 폴더에서 `install/` 스크립트 실행 | 기동 대기·상태 확인이 스크립트에 포함된다 |
-| Kafka 토픽을 수동 생성 | `2-kafka.sh` 가 `ngsild.topic`·`observedAt.topic` 생성 | `auto.create.topics.enable=false` 라 없으면 데이터가 흐르지 않는다 |
+| Kafka 토픽을 수동 생성 | `2-kafka.sh` 가 `.env` 의 `KAFKA_TOPICS` 를 생성 | `auto.create.topics.enable=false` 라 없으면 데이터가 흐르지 않는다 |
 | 백엔드·프론트가 같은 폴더 깊이에서 뒤섞임 | 두 폴더로 분리, `.env` 만 공유 | 프론트는 자체 BFF 서버가 있어 따로 배포·재기동한다 |
 | `version:` 키 사용 | 제거 | Compose v2 에서 무시되며 경고를 낸다 |
 
