@@ -52,7 +52,7 @@ for topic in ngsild.topic observedAt.topic; do
     echo "   $topic (있음)"
   else
     docker exec pipeline-kafka-1 $KBIN/kafka-topics.sh --bootstrap-server pipeline-kafka-1:9092 \
-      --create --topic "$topic" --partitions 1 --replication-factor 1 >/dev/null 2>&1 \
+      --create --topic "$topic" --partitions "${KAFKA_TOPIC_PARTITIONS:-5}" --replication-factor 1 >/dev/null 2>&1 \
       && echo "   $topic (생성)" || echo "   [!] $topic 생성 실패"
   fi
 done
