@@ -107,8 +107,8 @@ services:
       MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/
       MONGODB_DATABASE_NAME: ${MONGO_DB}
       KAFKA_URL: pipeline-kafka-1:9092
-      KAFKA_TOPIC_FOR_ENTITY: ngsild.topic
-      KAFKA_TOPIC_FOR_OBSERVED_AT: observedAt.topic
+      KAFKA_TOPIC_FOR_ENTITY: ngsild_topic
+      KAFKA_TOPIC_FOR_OBSERVED_AT: observedAt_topic
       KAFKA_CONSUMER_GROUP: e8ight-group_record
       DATAMANAGER_URL: http://data-manager:8080
       DATAMANAGER_GET_DATA_MODELS_API_PATH: /ndxpro/v1/manager/data-models
