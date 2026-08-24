@@ -1,3 +1,7 @@
 etri_fedit.code-workspace
 .DS_Store
 **/.DS_Store
+
+# Visual Studio temporary files (locked by devenv.exe, e.g. FileContentIndex)
+.vs/
+**/.vs/
