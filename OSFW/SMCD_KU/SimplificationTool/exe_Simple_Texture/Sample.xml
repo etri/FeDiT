@@ -1,0 +1,45 @@
+<Root>
+    <HDRIPath>kloofendal_48d_partly_cloudy_puresky_16k.hdr</HDRIPath>
+    <BasicTextureName>Yellow</BasicTextureName>
+    <TextureNamePath>
+        <Texture name="Yellow">
+            <DiffuseMapPath>Painted_Metal_Yellow\DIFFUSE.png</DiffuseMapPath>
+            <NormalMapPath>Painted_Metal_Yellow\NORMAL.png</NormalMapPath>
+            <ORMMapPath>Painted_Metal_Yellow\ORM.png</ORMMapPath>
+            <SampleImage>Painted_Metal_Yellow\flaking-painted-metal_preview.jpg</SampleImage>
+            <Scale>1000</Scale>
+        </Texture>
+    </TextureNamePath>
+    <PartTypeTexture>
+        <Part name="ATTA">
+            <TextureName>Yellow</TextureName>
+        </Part>
+        <Part name="ELBO">
+            <TextureName>Yellow</TextureName>
+        </Part>
+        <Part name="FLAN">
+            <TextureName>Yellow</TextureName>
+        </Part>
+        <Part name="GASK">
+            <TextureName>Yellow</TextureName>
+        </Part>
+        <Part name="INST">
+            <TextureName>Yellow</TextureName>
+        </Part>
+        <Part name="OLET">
+            <TextureName>Yellow</TextureName>
+        </Part>
+        <Part name="PipingComponent">
+            <TextureName>Yellow</TextureName>
+        </Part>
+        <Part name="REDU">
+            <TextureName>Yellow</TextureName>
+        </Part>
+        <Part name="TEE">
+            <TextureName>Yellow</TextureName>
+        </Part>
+        <Part name="VALV">
+            <TextureName>Yellow</TextureName>
+        </Part>
+    </PartTypeTexture>
+</Root>
