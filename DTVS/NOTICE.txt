@@ -1,0 +1,6 @@
+# NOTICE
+
+This project includes software developed by ExampleCorp and other contributors
+under the Apache License, Version 2.0.
+
+Modifications made by Jaehong Jang (2025)
