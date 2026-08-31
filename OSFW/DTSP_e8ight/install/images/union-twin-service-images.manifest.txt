@@ -1,8 +1,8 @@
-생성: 2026-08-24 10:31
+생성: 2026-08-31 09:40
 종류: 사내 이미지만
 플랫폼: linux/amd64
 
-172.16.28.217:12000/fdt-service:v1.1                       linux/amd64 sha256:1c3a28aeca59
+172.16.28.217:12000/fdt-service:v1.1                       linux/amd64 sha256:54f6b6a7eced
 172.16.28.217:12000/ndxpro-authorization:v1.1              linux/amd64 sha256:a68bbff5fa76
 172.16.28.217:12000/ndxpro-core-databroker:v1.1.2          linux/amd64 sha256:a3c6eb898766
 172.16.28.217:12000/ndxpro-dataingest:v1.1                 linux/amd64 sha256:51dd24db3335
@@ -13,5 +13,5 @@
 172.16.28.217:12000/ndxpro-gatewayserver:v1.1              linux/amd64 sha256:e815a221e910
 172.16.28.217:12000/ndxpro-ngsi-translator:v1.1.1          linux/amd64 sha256:72c2b8b08405
 172.16.28.217:12000/ndxpro-translatorbuilder:v1.1.1        linux/amd64 sha256:704b986ec16c
-172.16.28.217:12000/union-twin-be:latest                   linux/amd64 sha256:ece07268c4fe
-172.16.28.217:12000/union-twin-fe:latest                   linux/amd64 sha256:120f25d2c031
+172.16.28.217:12000/union-twin-be:latest                   linux/amd64 sha256:90108cf2bd39
+172.16.28.217:12000/union-twin-fe:latest                   linux/amd64 sha256:9806c688ae8d
