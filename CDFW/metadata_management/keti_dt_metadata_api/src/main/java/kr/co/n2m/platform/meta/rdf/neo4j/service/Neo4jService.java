@@ -731,7 +731,22 @@ public class Neo4jService {
      * @param medataSetId
      */
     public void saveNeo4jMetadataSet(String medataSetId) {
+    	this.saveNeo4jMetadataSet(medataSetId, new HashSet<>());
+    }
+
+    /**
+     * 셋 ID 로 NEO4J 그래프에 메타데이터 저장 (RDF)
+     *
+     * 삭제 이력을 따라 다른 셋을 다시 저장하는데, 그 목록에 자기 자신이나 앞서 들른 셋이 들어올 수 있다.
+     * 들른 셋을 모아 두 번 처리하지 않도록 막는다. 안 막으면 재귀가 끝나지 않는다.
+     *
+     * @param medataSetId
+     * @param visitedIdSet 이번 저장에서 이미 처리한 셋 ID
+     */
+    private void saveNeo4jMetadataSet(String medataSetId, Set<String> visitedIdSet) {
         log.debug("[셋 ID 로 NEO4J 그래프에 메타데이터 저장 (RDF)] 서비스 시작");
+
+        if (!visitedIdSet.add(medataSetId)) return;
         
 		try {
 			MetadataSetDto setDto = metadataSetService.getMetadataSet(medataSetId);
@@ -754,9 +769,14 @@ public class Neo4jService {
     			
     			if("del".equals(metadataRecentStatus)) { // 최근 상태가 del(삭제)인 경우
     				// 해당되는 node를 삭제 후 재생성해야 상위 node와의 관계가 끊어지므로, 삭제 - 재생성 동작을 진행
+    				if (visitedIdSet.contains(deletedSetId)) {
+    					// 이미 들른 셋은 그 자리에서 처리한다. 자기 자신이면 아래 isReg 와 같이 지우고 다시 만든다.
+    					if (medataSetId.equals(deletedSetId)) isReg = true;
+    					continue;
+    				}
     				this.deleteNeo4jMetadataSet(deletedSetId);
     				try {
-    					this.saveNeo4jMetadataSet(deletedSetId);
+    					this.saveNeo4jMetadataSet(deletedSetId, visitedIdSet);
 					} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 						log.error("[RDF 정보를 NEO4J에 저장 (RDF)] 실패/오류 (정보성) (SKIP) : {} - {}", deletedSetId, e.getReason());
 					} catch (Exception e) {
@@ -2220,7 +2240,22 @@ public class Neo4jService {
      * @param medataSetId
      */
     public void saveNeo4jRdbMetadataSet(String medataSetId) {
+    	this.saveNeo4jRdbMetadataSet(medataSetId, new HashSet<>());
+    }
+
+    /**
+     * 셋 ID 로 NEO4J 그래프에 메타데이터 저장 (RDB)
+     *
+     * 삭제 이력을 따라 다른 셋을 다시 저장하는데, 그 목록에 자기 자신이나 앞서 들른 셋이 들어올 수 있다.
+     * 들른 셋을 모아 두 번 처리하지 않도록 막는다. 안 막으면 재귀가 끝나지 않는다.
+     *
+     * @param medataSetId
+     * @param visitedIdSet 이번 저장에서 이미 처리한 셋 ID
+     */
+    private void saveNeo4jRdbMetadataSet(String medataSetId, Set<String> visitedIdSet) {
         log.debug("[셋 ID 로 NEO4J 그래프에 메타데이터 저장 (RDB)] 서비스 시작");
+
+        if (!visitedIdSet.add(medataSetId)) return;
         
 		try {
 			MetadataSetDto setDto = metadataSetService.getMetadataSet(medataSetId);
@@ -2243,9 +2278,14 @@ public class Neo4jService {
     			
     			if("del".equals(metadataRecentStatus)) { // 최근 상태가 del(삭제)인 경우
     				// 해당되는 node를 삭제 후 재생성해야 상위 node와의 관계가 끊어지므로, 삭제 - 재생성 동작을 진행
+    				if (visitedIdSet.contains(deletedSetId)) {
+    					// 이미 들른 셋은 그 자리에서 처리한다. 자기 자신이면 아래 isReg 와 같이 지우고 다시 만든다.
+    					if (medataSetId.equals(deletedSetId)) isReg = true;
+    					continue;
+    				}
     				this.deleteNeo4jRdbMetadataSet(deletedSetId);
     				try {
-    					this.saveNeo4jRdbMetadataSet(deletedSetId);
+    					this.saveNeo4jRdbMetadataSet(deletedSetId, visitedIdSet);
 					} catch (ResBadRequestException | ResBizInfoException | ResNotFoundException e) {
 						log.error("[RDB 메타데이터 정보를 NEO4J에 저장 (RDB)] 실패/오류 (정보성) (SKIP) : {} - {}", deletedSetId, e.getReason());
 					} catch (Exception e) {
