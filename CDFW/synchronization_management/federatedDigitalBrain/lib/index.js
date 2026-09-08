@@ -76,6 +76,30 @@ exports.arryToString = (arr) => {
 };
 
 /**
+ * control_execution_result 를 text 로 정규화한다.
+ *
+ * federated_control_result.federated_digital_object_control_execution_result 는 text 컬럼이고,
+ * 이 값은 fdo_control_result 토픽 -> JDBC sink(upsert) 를 거쳐 그 컬럼에 들어간다.
+ * joi 는 object 도 허용하지만, object 인 채로 produce 하면 sink 가 text 컬럼에 넣지 못해
+ * 컬럼이 NULL 로 upsert 된다. 그러면
+ *   - markTimeoutControlResults() 가 (execution_result IS NULL 조건) 그 제어를 TIMEOUT 으로 확정하고
+ *     CONTROL_TIMEOUT 알림을 추가 발송하며
+ *   - searchControl() 도 같은 컬럼으로 상태를 계산하므로 TIMEOUT 으로 보고한다
+ * 즉 성공한 제어가 뒤늦게 실패로 뒤집힌다. 그래서 produce 전에 반드시 문자열로 만든다.
+ *
+ * @param {*} result object | string
+ * @returns {String}
+ */
+exports.normalizeControlExecutionResult = (result) => {
+   if (typeof result === "string") return result;
+   try {
+      return JSON.stringify(result);
+   } catch (e) {
+      return String(result);
+   }
+};
+
+/**
  * timestamp format: 'YYYY-MM-DD HH:mm:ss.SSS'
  * @returns {String} timestamp
  */

@@ -296,11 +296,20 @@ class FederatedDigitalTwins {
     let sql = `SELECT federated_digital_object_id FROM federated_controls where federated_digital_object_control_data_id = '${federated_digital_object_control_data_id}' `;
     let selectResult = await model.postgres.selectData({ sql });
     let federated_digital_object_id = selectResult.federated_digital_object_id;
+    // text 컬럼에 들어가야 하므로 문자열로 정규화. 상세는 lib.normalizeControlExecutionResult 참고.
+    //
+    // NOTE: 이 메시지의 control_execution_result / control_execution_time 은
+    //   BufferedRecords.java 의 "fdo_control_result" 스키마 필드명
+    //   (federated_digital_object_control_execution_result / _execution_time) 과 다르다.
+    //   그래서 이 경로로 온 결과는 sink 가 필드를 버려 federated_control_result 에 반영되지 않는다.
+    //   필드명을 맞추기 전까지 아래 정규화는 효력이 없다(같은 토픽의 다른 소비자와 호환성 확인 필요).
     let fdoExecutionResultMessage = {
       federated_digital_object_id,
       digital_object_id,
       federated_digital_object_control_data_id,
-      control_execution_result,
+      control_execution_result: lib.normalizeControlExecutionResult(
+        control_execution_result
+      ),
       control_execution_time,
     };
     console.log(fdoExecutionResultMessage);

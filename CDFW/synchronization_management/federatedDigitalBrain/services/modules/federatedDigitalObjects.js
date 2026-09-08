@@ -24,17 +24,7 @@ class FederatedDigitalObjects {
    * @returns {Json} {}
    */
   async create(federated_digital_twin_id, params) {
-    // 1. Digital Twin 존재 체크
-    const isExistDtId = await model.postgres.checkIdExist({
-      table: "federated_digital_twins",
-      check: "federated_digital_twin_id",
-      id: federated_digital_twin_id,
-    });
-    if (!isExistDtId) {
-      throw new ErrorHandler(412, 412, "Unregistered federated digital-twin");
-    }
-
-    // 2. 파라미터 구조 분해
+    // 1. 파라미터 구조 분해
     const {
       federated_digital_object_identifier,
       federated_digital_object_name,
@@ -1538,13 +1528,20 @@ class FederatedDigitalObjects {
       );
     }
 
+    // text 컬럼(federated_control_result...execution_result)에 들어가야 하므로 문자열로 정규화.
+    // object 인 채로 보내면 JDBC sink 가 컬럼을 NULL 로 upsert 하고,
+    // 성공한 제어가 60초 뒤 TIMEOUT 으로 뒤집힌다. 상세는 lib.normalizeControlExecutionResult 참고.
+    const normalizedExecutionResult = lib.normalizeControlExecutionResult(
+      control_execution_result,
+    );
+
     // Kafka에 최소 이벤트만 발행 (DB 업데이트는 Consumer에서 처리 권장)
     const fdoExecutionResultMessage = {
       federated_digital_object_id,
       digital_object_id,
       federated_digital_object_control_data_id,
       federated_digital_object_control_execution_result:
-        control_execution_result,
+        normalizedExecutionResult,
       federated_digital_object_control_execution_time: control_execution_time,
     };
 
@@ -1561,7 +1558,9 @@ class FederatedDigitalObjects {
      * - 그 외는 SUCCEEDED
      * - 추후 controller가 명시적으로 status를 보내면 params.control_status 우선 사용 가능
      */
-    const normalizedResult = String(control_execution_result).toLowerCase();
+    // 원본이 object 면 String() 이 "[object object]" 가 되어 fail/error 판정이 절대 걸리지 않는다.
+    // 정규화된 문자열로 검사해야 실패 결과가 CONTROL_FAILED 로 나간다.
+    const normalizedResult = normalizedExecutionResult.toLowerCase();
     const controlStatus =
       params.control_status ||
       (normalizedResult.includes("fail") || normalizedResult.includes("error")
