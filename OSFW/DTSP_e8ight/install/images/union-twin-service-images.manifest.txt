@@ -1,17 +1,17 @@
-생성: 2026-09-18 11:49
+생성: 2026-09-18 17:07
 종류: 사내 이미지만
 플랫폼: linux/amd64
 
 172.16.28.217:12000/fdt-service:v1.1                       linux/amd64 sha256:54f6b6a7eced
 172.16.28.217:12000/ndxpro-authorization:v1.1              linux/amd64 sha256:a68bbff5fa76
-172.16.28.217:12000/ndxpro-core-databroker:v1.1.2          linux/amd64 sha256:50ff32d148ea
+172.16.28.217:12000/ndxpro-core-databroker:v1.1.2          linux/amd64 sha256:61ed8bc9ade8
 172.16.28.217:12000/ndxpro-dataingest:v1.1                 linux/amd64 sha256:51dd24db3335
-172.16.28.217:12000/ndxpro-datamanager:v1.1                linux/amd64 sha256:3b4225a2da61
+172.16.28.217:12000/ndxpro-datamanager:v1.1                linux/amd64 sha256:c4ada0623932
 172.16.28.217:12000/ndxpro-dataservice:v1.1                linux/amd64 sha256:3df6ae22f106
 172.16.28.217:12000/ndxpro-eurekaserver:v1.1               linux/amd64 sha256:8e9b73531511
 172.16.28.217:12000/ndxpro-file-service:v1.0               linux/amd64 sha256:99a801698328
 172.16.28.217:12000/ndxpro-gatewayserver:v1.1              linux/amd64 sha256:e815a221e910
 172.16.28.217:12000/ndxpro-ngsi-translator:v1.1.1          linux/amd64 sha256:72c2b8b08405
 172.16.28.217:12000/ndxpro-translatorbuilder:v1.1.1        linux/amd64 sha256:704b986ec16c
-172.16.28.217:12000/union-twin-be:latest                   linux/amd64 sha256:a2d20da6a5e2
-172.16.28.217:12000/union-twin-fe:latest                   linux/amd64 sha256:5e2872dabafe
+172.16.28.217:12000/union-twin-be:latest                   linux/amd64 sha256:de72bff6ee6a
+172.16.28.217:12000/union-twin-fe:latest                   linux/amd64 sha256:5a8b30bbae95
