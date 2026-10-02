@@ -1,4 +1,0 @@
-eclipse-zenoh==1.0.0
-pandas
-matplotlib
-numpy
