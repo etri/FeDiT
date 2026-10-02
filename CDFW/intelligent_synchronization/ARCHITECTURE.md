@@ -1,63 +1,70 @@
-# ROS 2 기반 차세대 디지털 트윈 아키텍처 기획안 (V2)
+# 구역 단위 분산 디지털 트윈
 
-본 문서는 기존의 커스텀 하이브리드 통신망(WebRTC+gRPC)과 커스텀 웹소켓 백엔드를 걷어내고, **로보틱스 생태계의 글로벌 표준인 ROS 2 기반으로 전체 시스템을 전면 재구성(Refactoring)** 하는 아키텍처 V2 기획서입니다.
+목표는 여러 카메라 관측을 캠퍼스 좌표계의 사람 위치·자세로 실시간 반영하고, 결과를 기록·재사용할 수 있게 하는 것이다. 사용자는 구역을 선택해 작업을 실행한다. 장치의 실행 순서와 내부 추론 인자를 반복 입력하지 않는다.
 
----
+## 관리 흐름과 데이터 흐름
 
-## 1. 패러다임 전환 (Paradigm Shift)
+```mermaid
+flowchart TD
+  CLI[edge_manager CLI] --> API[edge_manager 관리 API]
+  GUI[frontend_api GUI] --> API
+  API --> C[ControlPlane: 구역 작업과 상태]
+  C --> R[구역 catalog + 장치 registry]
+  C --> S[서버 프로세스 감독]
+  C --> Z[Zenoh 명령 / ACK / lease]
+  Z --> A[각 엣지의 상시 agent]
+  A --> E[엣지 추론 프로세스 감독]
+  CAM[카메라] --> E
+  E -->|기존 ZNH2 관측| S
+  S -->|SceneOutput| V[브라우저 / Isaac Sim]
+  S -->|SceneOutput| REC[별도 큐와 스레드로 장면 기록]
+```
 
-기존 시스템의 방대한 커스텀 통신/렌더링 코드를 오픈소스 생태계의 검증된 모듈로 대체하여 유지보수성을 극대화합니다.
+## 책임
 
-| 기존 아키텍처 (V1) | 🚀 ROS 2 기반 아키텍처 (V2) | 도입 효과 및 기대 이점 |
-| :--- | :--- | :--- |
-| 커스텀 gRPC + WebRTC + Redis | **ROS 2 + Zenoh (`rmw_zenoh`)** | 원격지 통신망(WAN) 라우팅을 Zenoh가 전담. ROS 2의 QoS(Reliable/Best Effort)를 그대로 사용하며, Nginx 포트 포워딩이나 TURN 서버 구축 불필요. |
-| 커스텀 딥러닝 큐 (`dl_worker`) | **ROS 2 Inference Node** | Redis 인프라 걷어냄. `/camera/tensor` 토픽을 구독하여 추론 후 `/tf` (Transform) 토픽으로 발행. |
-| 커스텀 `sim_backend` (WebSocket) | **Isaac Sim ROS 2 Bridge** | Isaac Sim에 내장된 OmniGraph ROS 2 익스텐션 활성화. 커스텀 통신 코드 없이 `/tf` 토픽을 받으면 아바타가 즉시 연동. |
-| 커스텀 Web 3D 대시보드 (`frontend`) | **Foxglove Studio + Foxglove Bridge** | Three.js 커스텀 코딩 불필요. 현존 최고의 로봇 관제 UI로 카메라, 3D Pose, 텔레메트리 즉시 시각화. |
+| 구성 | 소유하는 책임 |
+| --- | --- |
+| `apps/deployments/regions.json` | 사용자에게 보이는 구역 ID/이름, 공통 배포와 서버 프로파일 참조 |
+| 기존 배포 manifest | 참여 엣지, 카메라 순서, 공통 공간·calibration 계약 |
+| `EdgeRegistry` | 발견된 장치, 승인, 마지막 연결·카메라 상태 |
+| `ControlPlane` | 구역 작업의 단일 소유자, 검증→실행→종료, 명령 및 실제 관측 상태 통합 |
+| `EdgeAgent` / `EdgeInferenceRuntime` | 로컬 카메라 설정, 실제 엣지 프로세스, lease 만료에 따른 종료 |
+| `ManagedProcess` | 중복 실행 방지, 프로세스 그룹 종료, 유한한 재시도와 로그 |
+| `frontend_api` | 동일 API 중계와 화면 표시. 별도 실행 로직을 갖지 않음 |
+| 추론 worker | 기존 관측 입력 계약, ReID, 위치 연결, LOD, 자세 추론, SceneOutput |
 
----
+현재 센터지하1층복도는 `center-b1-corridor`이며 edge_1=2/4/6/8, edge_2=1/3/5/7이다. ID에 소속을 인코딩하지 않는다. 카메라 키는 기존 `{edge_id}/camera/{number}`를 유지한다.
 
-## 2. V2 아키텍처 노드 및 네트워크 토폴로지
+## 상태의 근거
 
-전체 시스템은 중앙 메세지 브로커 없이 각 마이크로서비스가 독립적인 **ROS 2 노드(Node)** 로 동작합니다.
+프로세스 생성 성공, agent heartbeat, 유효한 관측은 서로 다른 증거이다. 관리 API는 모두 분리해 반환한다. `running`은 서버 프로세스와 각 agent의 해당 run 소유권, 승인/연결, 새로운 SceneOutput의 `runtime.input_status`가 모두 확인될 때만 표시한다. 오래된 장면이나 재생된 장면을 현재 관측으로 집계하지 않는다.
 
-### 🌐 인프라: 통신 레이어
-*   **Zenoh Router:** 엣지(Jetson)와 서버(Cloud) 간의 WAN 통신을 책임집니다. 엣지의 ROS 2 노드들은 로컬 네트워크처럼 통신하지만, 밑단에서는 `rmw_zenoh`가 이를 가로채 UDP/QUIC 프로토콜로 암호화하여 클라우드로 초저지연 라우팅합니다. 방화벽 및 NAT 트래버설을 자체 지원합니다.
+한 구역의 작업은 직렬화된다. live와 replay/calibration을 같은 구역에서 중복 실행할 수 없다. 시작은 같은 옵션에 대해 멱등이며 옵션 변경은 중지 후 새 run으로 수행한다. 다른 구역은 별도의 작업과 프로세스/토픽을 사용한다. 같은 엣지의 중복 구역 소속과 장면 토픽 중복은 catalog 검증에서 거부한다.
 
-### 💻 엣지 파트 (Jetson Orin)
-1. **`camera_capture_node`**: RTSP 카메라 스트림을 읽어 ROS 2의 `sensor_msgs/Image` 로 퍼블리시.
-2. **`edge_feature_node`**: 무거운 원본 영상 대신 특징점(Tensor)만 추출하여 커스텀 `TensorMsg`로 패키징 후 Best-Effort QoS로 퍼블리시.
+서버 설정을 먼저 검증한 뒤 서버 처리와 엣지 추론을 준비한다. 각 엣지도 자기 환경에서 배포 파일 일치, 카메라 배치, 기존 공간 계약을 검증한다. 서버 검증과 엣지 검증은 설정 검사이며 실제 GPU·카메라 건강의 보증이 아니다. 정상 상태는 실제 데이터로 확인한다.
 
-### ☁️ 클라우드/서버 파트
-1. **`inference_node`**: 서버 GPU를 독점. 엣지에서 넘어온 `TensorMsg`를 구독(Subscribe). 무거운 PyTorch 3D Pose 연산 후, 절대 좌표계 위치를 로보틱스 표준인 `tf2_msgs/TFMessage` 및 `geometry_msgs/PoseArray` 로 변환하여 퍼블리시.
-2. **`foxglove_bridge_node`**: Nginx를 거쳐 들어오는 웹 클라이언트(관제실) 접속 요청을 처리. ROS 2 토픽들을 WebSocket(또는 WebRTC)으로 자동 변환하여 프론트엔드로 송출.
+관리 기능으로 완료한 보정은 엣지 적용 ACK와 좌표계 일치를 확인한 후 `calibration-overrides.json`에 채택한다. 다음 실행에서 해당 엣지에 소속된 카메라만 공통 보정에 병합한다. `dt_common.deployment`가 각 호스트의 지도 파일에 로컬 링크를 만들고, 동일한 상대 경로와 canonical calibration JSON으로 실행 설정을 생성한다. 따라서 설치 경로가 달라도 공간·보정 식별자가 일치한다. 원본 배포/보정 파일은 보존한다. 관리 경로의 모든 호스트는 dt-common 0.3.0과 새 agent를 함께 사용한다.
 
-### 🎮 디지털 트윈 렌더링 파트
-1. **Isaac Sim (ROS 2 Bridge Extension)**: 어떠한 커스텀 Python 네트워크 스크립트도 불필요합니다. OmniGraph 내에서 `ROS2 Subscriber` 노드를 드래그 앤 드롭으로 배치하고 `/tf` 토픽을 아바타 관절(Articulation)에 연결하면 자동으로 동기화됩니다.
+## 장애와 종료
 
----
+- 엣지의 실패는 해당 엣지 오류로 표시한다. 다른 엣지 및 독립 입력 모드의 서버 처리는 계속된다.
+- 프로세스는 지수 대기로 최대 3회 재시도한다. 한도 초과를 성공으로 숨기지 않는다.
+- 엣지는 관리자의 실행 lease를 갱신받는다. 30초 동안 갱신이 없으면 해당 추론을 정지한다. 연결 복구 후 같은 활성 run을 다시 준비할 수 있다.
+- 명시적으로 중지한 run은 agent 수명 동안 재실행을 차단한다. 지연된 명령은 만료시각과 run ID로 검사한다.
+- manager/agent는 소유권 파일 잠금으로 같은 상태 파일의 중복 소유자를 거부한다. 각 프로세스의 하위 카메라 프로세스도 그룹으로 종료한다.
+- systemd는 관리 프로그램 자체의 재시작을 맡고, 관리자 재시작 시 이전 작업은 interrupted로 표시한다. 자동 작업 재개는 하지 않는다.
+- 중지 ACK를 받지 못한 엣지가 있으면 API에 표시한다. `stopped`가 모든 원격 장비의 즉각적인 정지를 증명한다고 해석하지 않는다.
 
-## 3. 새로운 시운전 시나리오 (Tutorial Scenario V2)
+## 기록과 개인정보 경계
 
-커스텀 로직이 대폭 사라지며 시스템 기동이 극도로 단순해집니다.
+원본 RTSP 및 인증정보는 엣지 로컬 설정에 유지한다. 원본 영상/특징값을 장면 기록에 추가하지 않는다. 장면 기록은 기존 SceneOutput 형식이며 사람 ID·위치·자세가 포함된다. 데이터 최소화와 법적/운영 정책 적합성이 완성됐다는 주장은 하지 않는다.
 
-### 🎥 Step 1. 전원 인가 및 디스커버리 (Zero-Config Network)
-1. 서버 인프라(Zenoh Router, Foxglove, Inference Node)를 `docker compose up`으로 기동.
-2. 현장의 Jetson 엣지에 전원이 들어오면, 내장된 `rmw_zenoh`가 클라우드 라우터 IP를 찾아 자동으로 연결 수립. 별도의 시그널링이나 커넥션 맺기 로직 불필요.
+운영 기록은 명시적 `record=true`일 때만 시작한다. 기록 큐는 유한하며 누락 수를 표시한다. 기본 파일 크기 제한은 1 GiB (`DT_RECORDING_MAX_BYTES`), 남은 공간이 256 MiB 미만이면 기록을 중단한다. 파일 쓰기는 실시간 추론과 분리되어 실패가 데이터 전송을 막지 않는다. 보관·삭제 기간은 자동 결정하지 않는다.
 
-### 🏃 Step 2. 실시간 동적 추론 파이프라인
-1. Jetson에서 `/edge/camera1/tensor` 토픽(Best Effort QoS)으로 10FPS 데이터가 쏟아짐.
-2. 서버의 `inference_node` 콜백 함수가 이를 받아 즉각 추론 후, `/world_to_person_01` 이라는 표준 TF 토픽(Reliable QoS) 발행.
+`data/manager/runs/<run_id>/`에 manifest, 생성된 서버 설정, 로그, 선택적 scenes.jsonl을 둔다. manager 재시작 전에 끝나지 않은 run은 interrupted가 된다. 출력 재생에는 `runtime.playback=true`를 붙인다. 기존 입력 `.dtframe` 재추론 평가 경로와 출력 장면 재생을 구분한다.
 
-### 📺 Step 3. 관제 및 시각화 (No Code Rendering)
-1. 관리자는 웹 브라우저로 `https://<서버IP>/foxglove` 접속. Foxglove Studio UI에서 클릭 몇 번으로 3D Scene에 `/tf` 좌표계를 올리면 현장 상황 모니터링 즉시 완료.
-2. 렌더링 서버에서는 Isaac Sim이 켜져 있으며, ROS Bridge가 `/tf`를 읽어들여 언리얼/유니티 수준의 고품질 픽셀 렌더링 화면을 송출.
+## 설치와 보안 경계
 
----
+라우터, manager, frontend, 각 edge agent는 최초 설치 시 상시 서비스로 준비한다. GUI/CLI는 GPU worker를 시작·중지하며 장비 전원을 원격으로 켜는 기능은 아니다. 관리 API는 기본 loopback이며 외부 바인딩 시 관리 토큰이 필요하다. frontend는 같은 origin 요청만 중계한다. Zenoh 전송 자체는 기존의 신뢰 네트워크/VPN 배치를 전제로 하며, 장치 승인 registry가 네트워크 암호화/인증을 대체하지 않는다.
 
-## 4. 검증 및 테스트 (향후 Action Plan)
-
-기존 코드를 모두 버리는 것이 아니라 **통신과 데이터 규격만 ROS 2 생태계로 래핑(Wrapping)** 하는 작업입니다.
-*   **우선 과제 1:** 기존 FastAPI 기반의 `dl_worker` 추론 코드를 `rclpy` (ROS 2 Python) 노드 콜백 함수로 마이그레이션.
-*   **우선 과제 2:** Isaac Sim 내부의 커스텀 웹소켓 확장 프로그램을 비활성화하고, 기본 탑재된 `omni.isaac.ros2_bridge` 활성화 후 TF 트리 구성 연동 테스트.
-*   **우선 과제 3:** LAN 환경에서 ROS 2 동작 확인 후, `rmw_fastrtps`를 `rmw_zenoh`로 교체하여 LTE 망 테스트 진행.
+GUI/API의 보정 작업은 기존 worker를 감독하며 결과를 엣지와 registry에 반영한다. 보정의 실제 품질을 자동으로 보증하지 않으며 다른 좌표계의 결과는 채택하지 않는다. 원본 모델 알고리즘, 카메라 intrinsic 측정, 3D 지도 제작, Rank/Zone 연구 평가의 내부 옵션은 운영 수명주기와 분리된 개발 도구로 유지한다.
