@@ -1,0 +1,9 @@
+# Shell scripts must keep LF line endings to run on Linux.
+*.sh  text eol=lf
+
+# Archives, geometry and media are stored byte for byte.
+*.7z  binary
+*.xz  binary
+*.stl -text
+*.mp4 binary
+*.png binary

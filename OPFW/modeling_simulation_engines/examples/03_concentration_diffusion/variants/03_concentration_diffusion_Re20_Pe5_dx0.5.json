@@ -1,0 +1,225 @@
+{
+	"meta": {
+		"version": 202502,
+		"title": "03_concentration_diffusion_Re20_Pe5_dx0.5"
+	},
+	"config": {
+		"solver_common": {
+			"solver_type": "concentration_diffusion",
+			"collision_model": "Cumulant_HR_D3Q27",
+			"sigma_HR": 1.0,
+			"simulation_start_time": 0.0,
+			"simulation_end_time": 2000.0,
+			"time_step": 0.025,
+			"devices": [
+				0
+			]
+		},
+		"initial_conditions": [
+			{
+				"is_main_initial_condition": true,
+				"pressure": 101325,
+				"velocity": [
+					0.0,
+					0.5,
+					0.0
+				],
+				"concentration1": 1.0
+			}
+		],
+		"reference_values": {
+			"pressure": 0.0,
+			"velocity": [
+				0.0,
+				0.0,
+				0.0
+			],
+			"concentration1": 1.0
+		},
+		"source_terms": {
+			"momentum_source": [
+				0.0,
+				0.0,
+				0.0
+			],
+			"gravity": [
+				0.0,
+				0.0,
+				0.0
+			]
+		},
+		"materials": [
+			{
+				"name": "fluid",
+				"is_main_material": true,
+				"phase": "gas",
+				"density": 1.0,
+				"kinematic_viscosity": 0.8,
+				"diffusivity1": 3.2
+			}
+		],
+		"model_settings": {
+			"turbulence_model": "none"
+		},
+		"concentration_diffusion_settings": {
+			"turbulent_Schmidt": 1.0
+		},
+		"outer_boundary_condition": {
+			"xmin": {
+				"type": "periodic"
+			},
+			"xmax": {
+				"type": "periodic"
+			},
+			"ymin": {
+				"type": "inlet",
+				"scheme": "equilibrium",
+				"momentum_type": "velocity",
+				"velocity": [
+					0.0,
+					0.5,
+					0.0
+				],
+				"concentration1": 1.0
+			},
+			"ymax": {
+				"type": "inlet",
+				"scheme": "equilibrium",
+				"momentum_type": "velocity",
+				"velocity": [
+					0.5,
+					0.5,
+					0.0
+				],
+				"concentration1": 1.1
+			},
+			"zmin": {
+				"type": "periodic"
+			},
+			"zmax": {
+				"type": "periodic"
+			}
+		},
+		"lattice_generation": [
+			{
+				"inertial_frame": true,
+				"position": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"angular_velocity": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"domain_general": false,
+				"base_dx": 0.5,
+				"base_region": {
+					"min": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"max": [
+						8.0,
+						32.5,
+						0.5
+					]
+				},
+				"regional_segment": []
+			}
+		],
+		"result_report": {
+			"export_path": "",
+			"export_format": [
+				"BINARY_VTK",
+				"NFILE"
+			],
+			"save_start_time": 0.0,
+			"save_end_time": 2000.0,
+			"save_time_interval": 500.0,
+			"items": {
+				"density": true,
+				"pressure": true,
+				"dynamic_viscosity": false,
+				"kinematic_viscosity": false,
+				"turbulent_viscosity": false,
+				"smagorinsky_constant": false,
+				"material_index": true,
+				"boundary_id": true,
+				"y_plus": false,
+				"friction_velocity": false,
+				"wall_shear_stress": false,
+				"wall_noremal_stress": false,
+				"velocity": true,
+				"wall_normal": false,
+				"Q-gradient": false,
+				"angular_velocity": false,
+				"momentum_source": false,
+				"interface_normal": false,
+				"gravity": false,
+				"position": true,
+				"projection_point": false,
+				"net_force": false,
+				"body_force": false,
+				"concentration1": true,
+				"concentration1_source": true,
+				"artificial_viscosity": false,
+				"diffusion_coefficient": false,
+				"u_plus": false,
+				"region_id": true,
+				"wall_shear_coefficient": false,
+				"pressure_coefficient": false
+			},
+			"cell_flags": {
+				"gas": true,
+				"vapor": false,
+				"liquid": false,
+				"solid": true,
+				"supercritical": false,
+				"ftor": false,
+				"rtof": false,
+				"boundary_conservation": false,
+				"boundary_specified": false,
+				"boundary_flux": false,
+				"boundary_non_reflecting": false,
+				"boundary_absorbing": false,
+				"boundary_inlet": true,
+				"boundary_wallmodel": false,
+				"boundary_wall": true,
+				"boundary_moving_wall": true,
+				"boundary_outlet": true,
+				"boundary_outflow": true,
+				"boundary_symmetry": false,
+				"boundary_symmetry_x": false,
+				"boundary_symmetry_y": false,
+				"boundary_symmetry_z": false,
+				"boundary_periodic": false,
+				"boundary_periodic_x": false,
+				"boundary_periodic_y": false,
+				"boundary_periodic_z": false,
+				"boundary_xmin": false,
+				"boundary_xmax": false,
+				"boundary_ymin": false,
+				"boundary_ymax": false,
+				"boundary_zmin": false,
+				"boundary_zmax": false,
+				"region_inner": false,
+				"region_outer": false,
+				"cell_divided": false,
+				"cell_divided_buffer": false,
+				"multi_level_CTOF": true,
+				"multi_level_FTOC": true,
+				"multi_level_CTOF_CHILD": true,
+				"multi_level_FTOC_CHILD": true,
+				"boundary_inner": false,
+				"boundary_outer": false,
+				"grid_interconnect": false,
+				"subdivision_region": false,
+				"nearby_subdivision_region": false,
+				"erase_later": false
+			}
+		}
+	}
+}
