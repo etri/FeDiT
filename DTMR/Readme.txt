@@ -1,0 +1,1 @@
+본 폴더는 Digital Twin Metadata Registry 오픈소스 폴더입니다.
