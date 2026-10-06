@@ -2,10 +2,10 @@
 collab/
 
 # Visual Studio / MSBuild / CMake build output
+# ("Release/" is not listed: Git on Windows matches case-insensitively and it would hide release/.)
 .vs/
 x64/
 Debug/
-Release/
 build/
 out/
 *.pdb
