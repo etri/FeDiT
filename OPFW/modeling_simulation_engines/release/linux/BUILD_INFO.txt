@@ -1,0 +1,7 @@
+NFLOW Linux build (FeDiT release)
+Date      : 2026-10-02
+Builder   : nvidia/cuda:12.1.1-devel-ubuntu22.04 (nvcc 12.1.105, gcc 11.4, cmake 3.22.1)
+CUDA arch : 75;80;86;89 (other GPUs run through PTX JIT)
+lbm: NFLOW LBM @ e20c70943288668bf891a61f1f960dcd0c49ca6e -> lbm/bin/NFLOW_LBM
+lbm_dem: NFLOW LBM_DEM @ 9a73e00dd080f98caabbc44d04760b5b375c7e70 -> lbm_dem/bin/NFLOW_LBM_DEM
+Packaging : 2026-10-06. RUNPATH set to $ORIGIN-relative paths (no LD_LIBRARY_PATH needed). NVRTC 12.1.105 added to lbm/lib.
