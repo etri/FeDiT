@@ -1,0 +1,228 @@
+{
+	"meta": {
+		"version": 202410,
+		"title": "01_multi_component_short"
+	},
+	"config": {
+		"solver_common": {
+			"solver_type": "Multi_component",
+			"collision_model": "two_component_D3Q19",
+			"simulation_start_time": 0.0,
+			"simulation_end_time": 640.0,
+			"time_step": 1.0,
+			"devices": [
+				0
+			]
+		},
+		"initial_conditions": [
+			{
+				"is_main_initial_condition": true,
+				"pressure": 101325,
+				"velocity": [
+					0.0,
+					0.0,
+					0.0
+				]
+			}
+		],
+		"reference_quantities": {
+			"pressure": 101325
+		},
+		"source_terms": {
+			"gravity": [
+				0,
+				0,
+				-1.25e-05
+			],
+			"momentum_source": [
+				0,
+				0,
+				0
+			]
+		},
+		"materials": [
+			{
+				"name": "low_density_fluid",
+				"is_main_material": true,
+				"phase": "gas",
+				"density": 1.0,
+				"dynamic_viscosity": 0.005
+			},
+			{
+				"name": "high_density_fluid",
+				"is_main_material": false,
+				"phase": "liquid",
+				"density": 3.0,
+				"dynamic_viscosity": 0.015
+			},
+			{
+				"name": "Duralumin A6061",
+				"is_main_material": false,
+				"phase": "solid",
+				"density": 0.0,
+				"dynamic_viscosity": 0.0
+			}
+		],
+		"model_settings": {
+			"turbulence_model": "NONE",
+			"smagorinsky_constant": 0.2,
+			"K": 0.41,
+			"B": 5
+		},
+		"multi_component_settings": {
+			"number_of_components": 2,
+			"interface_width": 4.0,
+			"mobility": 0.01,
+			"surface_tension": [
+				0.0001,
+				0.0,
+				0.0
+			],
+			"miscibility": [
+				1,
+				0,
+				0
+			]
+		},
+		"outer_boundary_condition": {
+			"xmin": {
+				"type": "periodic"
+			},
+			"xmax": {
+				"type": "periodic"
+			},
+			"ymin": {
+				"type": "periodic"
+			},
+			"ymax": {
+				"type": "periodic"
+			},
+			"zmin": {
+				"type": "wall",
+				"scheme": "halfway"
+			},
+			"zmax": {
+				"type": "wall",
+				"scheme": "halfway"
+			}
+		},
+		"lattice_generation": [
+			{
+				"inertial_frame": true,
+				"position": [
+					0,
+					0,
+					0
+				],
+				"angular_velocity": [
+					0,
+					0,
+					0
+				],
+				"domain_general": false,
+				"base_dx": 1.0,
+				"base_region": {
+					"min": [
+						0,
+						0,
+						0
+					],
+					"max": [
+						128,
+						128,
+						512
+					]
+				},
+				"regional_segment": [
+					{
+						"name": "C0",
+						"mesh_path": "RTI_region.stl",
+						"invert_normal": false,
+						"material": "high_density_fluid",
+						"region_type": "region_ref",
+						"initial_condition_id": 0,
+						"origin": [
+							0,
+							0,
+							0
+						],
+						"scale": [
+							1,
+							1,
+							1
+						],
+						"translate": [
+							0,
+							0,
+							0
+						],
+						"boundary": [
+							{
+								"subdivision_max_depth": 0,
+								"subdivision_min_buffer": 8,
+								"boundary_condition": {
+									"type": "wall"
+								}
+							}
+						],
+						"local_source_term_id": 0
+					}
+				]
+			}
+		],
+		"result_report": {
+			"export_path": "",
+			"export_format": [
+				"BINARY_VTK",
+				"NFILE"
+			],
+			"save_start_time": 0.0,
+			"save_end_time": 640.0,
+			"save_time_interval": 320.0,
+			"items": {
+				"density": true,
+				"pressure": false,
+				"velocity": false,
+				"temperature": false,
+				"dynamic_viscosity": false,
+				"kinematic_viscosity": false,
+				"turbulent_viscosity": false,
+				"artificial_viscosity": false,
+				"diffusion_coefficient": false,
+				"y_plus": false,
+				"u_plus": false,
+				"pressure_coefficient": false,
+				"wall_shear_coefficient": false,
+				"cell_center": false,
+				"wall_normal": false,
+				"projection_point": false,
+				"net_force": false,
+				"gravity": false,
+				"body_force": false,
+				"region_ref_id": true,
+				"order_parameter1": true,
+				"pressure_norm": true,
+				"order_parameter1_gradient": false,
+				"material_index": true
+			},
+			"cell_flags": {
+				"boundary_wall": false,
+				"boundary_symmetry_x": false,
+				"boundary_symmetry_y": false,
+				"boundary_symmetry_z": false,
+				"boundary_periodic_x": false,
+				"boundary_periodic_y": false,
+				"boundary_periodic_z": false
+			}
+		},
+		"local_source_terms": [
+			{
+				"momentum_source": [
+					0.0,
+					0.0,
+					0.0
+				]
+			}
+		]
+	}
+}
