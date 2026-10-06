@@ -1,0 +1,8 @@
+# integration/Dockerfile 빌드 때 이미지로 보내는 파일만 남긴다 (빌드 위치: modeling_simulation_engines).
+*
+!release/linux/NFLOW_LBM_linux_x64.tar.xz
+!release/linux/NFLOW_LBM_DEM_linux_x64.tar.xz
+!release/linux/BUILD_INFO.txt
+!integration/api/requirements.txt
+!integration/api/engine_api/
+integration/api/engine_api/__pycache__/
