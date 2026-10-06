@@ -61,11 +61,15 @@
   - `traffic_prediction`: 교통량 예측 모델
 
 ### **`modeling_simulation_engines`**
-- **설명**: 모델링 및 시뮬레이션 엔진 소스코드와 문서 저장
+- **설명**: LBM 기반 해석기 5종(다성분, 다상, 농도확산, 복합 열전달, 유체-DEM 연성)의 실행 파일, 예제, 문서, 물리 식 소스, FeDiT 연동 API
 - **담당 기관**: 이에이트㈜
 - **하위 폴더**:
-  - `2D Lid-Driven Cavity Flow LBGK`: 2D 유체 시뮬레이션 모델
-  - `MC_CD_MP_ENGINE`: 몬테카를로 기반 엔진
+  - `release`: 실행 파일 묶음(Windows, Linux)과 사용 약관
+  - `examples`: 해석기별 예제
+  - `scripts`: 예제 실행 스크립트
+  - `doc`: 입력·결과 형식과 확인 결과
+  - `integration`: FeDiT 연동용 해석엔진 API와 Docker 이미지
+  - `src`: 해석기 물리 식 소스
 
 ### **`msa_device_api_gateway`**
 - **설명**: MSA 장치 API 게이트웨이 소스코드와 문서 저장

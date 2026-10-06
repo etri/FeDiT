@@ -1,0 +1,319 @@
+{
+	"meta": {
+		"version": 202505,
+		"title": "05_fluid_dem_short"
+	},
+	"config": {
+		"solver_common": {
+			"solver_type": "free_surface",
+			"collision_model": "Cumulant_D3Q27",
+			"simulation_start_time": 0.0,
+			"simulation_end_time": 0.02,
+			"time_step": 0.0001,
+			"DEM_iteration": 2,
+			"H": -1,
+			"radius": 0.000675,
+			"devices": [
+				0
+			]
+		},
+		"initial_conditions": [
+			{
+				"is_main_initial_condition": true,
+				"pressure": 0,
+				"velocity": [
+					0.0,
+					0.0,
+					0.0
+				]
+			},
+			{
+				"s_curr_vel": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"s_angl_vel": [
+					0.0,
+					0.0,
+					0.0
+				]
+			}
+		],
+		"reference_values": {
+			"pressure": 0
+		},
+		"source_terms": {
+			"gravity": [
+				0.0,
+				-9.81,
+				0.0
+			],
+			"momentum_source": [
+				0.0,
+				0.0,
+				0.0
+			]
+		},
+		"materials": [
+			{
+				"name": "water",
+				"is_main_material": true,
+				"phase": "liquid",
+				"density": 1000,
+				"kinematic_viscosity": 1e-06
+			},
+			{
+				"name": "Duralumin A6061",
+				"is_main_material": false,
+				"phase": "solid",
+				"density": 1000,
+				"kinematic_viscosity": 0
+			},
+			{
+				"name": "dummy",
+				"is_main_material": false,
+				"phase": "solid",
+				"rigid_density": 2500,
+				"Y_modulus": 1000000.0,
+				"Poisson_ratio": 0.3,
+				"friction_coefficient": 0.2,
+				"rolling_friction_coefficient": 0.0,
+				"restitution_coefficient": 0.9,
+				"cohesive": 0.0
+			},
+			{
+				"name": "granule",
+				"is_main_material": false,
+				"phase": "solid",
+				"rigid_density": 2500,
+				"Y_modulus": 1000000.0,
+				"Poisson_ratio": 0.3,
+				"friction_coefficient": 0.2,
+				"rolling_friction_coefficient": 0.0,
+				"restitution_coefficient": 0.9,
+				"cohesive": 0.0
+			}
+		],
+		"model_settings": {
+			"turbulence_model": "smagorinsky",
+			"smagorinsky_constant": 0.4,
+			"K": 0.41,
+			"B": 5
+		},
+		"outer_boundary_condition": {
+			"xmin": {
+				"type": "wall",
+				"scheme": "halfway"
+			},
+			"xmax": {
+				"type": "wall",
+				"scheme": "halfway"
+			},
+			"ymin": {
+				"type": "wall",
+				"scheme": "halfway"
+			},
+			"ymax": {
+				"type": "wall",
+				"scheme": "halfway"
+			},
+			"zmin": {
+				"type": "wall",
+				"scheme": "halfway"
+			},
+			"zmax": {
+				"type": "wall",
+				"scheme": "halfway"
+			}
+		},
+		"lattice_generation": [
+			{
+				"inertial_frame": true,
+				"position": [
+					0,
+					0,
+					0
+				],
+				"angular_velocity": [
+					0,
+					0,
+					0
+				],
+				"domain_general": false,
+				"base_dx": 0.004,
+				"base_region": {
+					"min": [
+						0.0,
+						0.0,
+						-0.05
+					],
+					"max": [
+						0.2,
+						0.15,
+						0.05
+					]
+				},
+				"regional_segment": [
+					{
+						"name": "FREE_SURFACE",
+						"mesh_path": "water.stl",
+						"invert_normal": false,
+						"material": "water",
+						"region_type": "free_surface",
+						"origin": [
+							0.0,
+							0.0,
+							0.0
+						],
+						"scale": [
+							1.1,
+							1.1,
+							1.1
+						],
+						"translate": [
+							-0.00486,
+							-0.00999,
+							0.0
+						],
+						"boundary": [
+							{
+								"subdivision_max_depth": 0,
+								"subdivision_min_buffer": 8,
+								"boundary_condition": {
+									"type": "wall"
+								}
+							}
+						]
+					}
+				]
+			}
+		],
+		"grid": [
+			{
+				"name": "dummy",
+				"domain": {
+					"min": [
+						-0.1,
+						-0.1,
+						-0.1
+					],
+					"max": [
+						0.3,
+						0.3,
+						0.1
+					]
+				},
+				"width": -1,
+				"max_particle": 10000,
+				"comment": "max_particle는 초기화시 allocate할 입자 수. 너무 크게 잡으면 메모리가 부족할 수 있음. 이후 동적으로 늘어남"
+			},
+			{
+				"name": "granule",
+				"domain": {
+					"min": [
+						-0.1,
+						-0.1,
+						-0.1
+					],
+					"max": [
+						0.3,
+						0.3,
+						0.1
+					]
+				},
+				"width": -1,
+				"max_particle": 1000000
+			}
+		],
+		"particle_generation": [
+			{
+				"type": "particle",
+				"grid": 0,
+				"radius": 0.000675,
+				"domain_general": true,
+				"regional_segment": [
+					{
+						"mesh_path": "wall.stl",
+						"material": "dummy",
+						"region_type": "fixed",
+						"boundary": []
+					}
+				]
+			},
+			{
+				"type": "particle",
+				"grid": 1,
+				"radius": 0.000675,
+				"domain_general": true,
+				"regional_segment": [
+					{
+						"mesh_path": "granular.stl",
+						"material": "granule",
+						"region_type": "region_ref",
+						"boundary": []
+					}
+				]
+			}
+		],
+		"result_report": {
+			"export_path": "",
+			"export_format": [
+				"BINARY_VTK",
+				"NFILE"
+			],
+			"save_start_time": 0.0,
+			"save_end_time": 0.02,
+			"save_time_interval": 0.004,
+			"cell_items": {
+				"position": true,
+				"density": true,
+				"velocity": true,
+				"pressure": true,
+				"turbulent_viscosity": false,
+				"wall_normal": true,
+				"mass": true,
+				"fraction": true,
+				"interface_normal": true,
+				"mass_source": false,
+				"free_surface_id": true,
+				"volume_fraction": true,
+				"force": true
+			},
+			"cell_flags": {
+				"solid": true,
+				"total_sum": true,
+				"rtof": false,
+				"ftor": false,
+				"boundary_wall": true,
+				"boundary_moving_wall": false,
+				"boundary_wallmodel": false,
+				"multi_level_CTOF": false,
+				"multi_level_FTOC": false,
+				"multi_level_CTOF_CHILD": false,
+				"multi_level_FTOC_CHILD": false,
+				"boundary_inner": false,
+				"boundary_outer": false
+			},
+			"particle_items": {
+				"particle_position": true,
+				"p_force_dummy": true,
+				"p_force_granule": true,
+				"p_force_fluid": true,
+				"p_force_DRAG": true,
+				"p_force_BUOY": true,
+				"p_force_LIFT": true,
+				"p_force_ADDM": true,
+				"p_force_body": true,
+				"s_curr_vel": true,
+				"s_angl_vel": false,
+				"s_curr_acc": true,
+				"s_angl_acc": false,
+				"radius": true
+			},
+			"particle_flags": {
+				"P_GRANULE": true
+			}
+		}
+	}
+}
