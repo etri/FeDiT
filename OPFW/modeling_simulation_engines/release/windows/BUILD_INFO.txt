@@ -1,0 +1,7 @@
+NFLOW Windows build (FeDiT release)
+Date      : 2026-10-06
+Builder   : Visual Studio 2019 (MSVC 14.29), CUDA 11.7 (nvcc 11.7.99)
+CUDA arch : lbm 61;75;86, lbm_dem 61;75;80 (other GPUs run through PTX JIT)
+lbm: NFLOW LBM @ e20c70943288668bf891a61f1f960dcd0c49ca6e -> LBM/LBM_Runtime.exe
+lbm_dem: NFLOW LBM_DEM @ 9a73e00dd080f98caabbc44d04760b5b375c7e70 -> LBM_DEM/LBM_DEM_Runtime.exe
+Debug symbols are not included. The binaries record PDB file names only.

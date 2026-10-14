@@ -67,7 +67,7 @@ cd ../fdt-service-backend
 | `HOST` | 플랫폼이 설치되는 서버 IP | `220.124.222.90` |
 | `PUBLIC_URL` | 브라우저로 접속할 주소 | `http://220.124.222.90` 또는 `https://service.fedit.or.kr` |
 | `REPO` | 데이터·로그 저장 경로 | `/data/ndxpro` |
-| `LOGSTASH_URL` `ZIPKIN_URL`<br>`DTMETA_API_URL` `FDT_SYNC_API_URL` | 외부 연동 주소 | 안 쓰면 비워 둔다 |
+| `LOGSTASH_URL` `ZIPKIN_URL`<br>`DTMETA_API_URL` `FDT_SYNC_API_URL`<br>`FDT_SYNC_KAFKA_URL` `TRACKING_URL` | 외부 연동 주소 (2세부 메타데이터 · 동기화 엔진 · 동기화 Kafka · 트래킹 화면) | 안 쓰면 비워 둔다 |
 
 ### 어떻게 고치는가
 
@@ -91,6 +91,8 @@ cd ../fdt-service-backend
 | 게이트웨이 (`NDXPRO_API_URL`) | `http://10.0.1.50:54002` |
 | 뷰어 (`VIEWER_URL`) | `http://10.0.1.50:50038` |
 | 컨텍스트 (`FDT_CONTEXT`) | `http://10.0.1.50:53005/fdt-twin-context-v1.0.1.jsonld` |
+| 브로커 공개 조회 (`NDXPRO_BROKER_URL`) — 연합 객체 dataAccessURL · 엔티티 조회 Swagger | `http://10.0.1.50:54011` |
+| 데이터 모델 Swagger (`NDXPRO_MANAGER_URL`) | `http://10.0.1.50:54008` |
 | Kafka 외부 접속 주소 | `10.0.1.50:19092` |
 
 ### 그 밖에 준비할 것

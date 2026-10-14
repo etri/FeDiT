@@ -3,6 +3,7 @@ package kr.co.n2m.platform.meta.resource.metadata.service;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -715,7 +716,8 @@ public class MetadataSetService {
 					List<String> outChangedIdList = new ArrayList<>();
 					
 					// 현재 셋부터 하위 셋 전체를 사용 상태 변경 (하위 셋이 사용 상태로 변경이 가능한 경우만)
-					this.changeSetStatusHierachilyToUse(outChangedIdList, modelInfoDto, prevSetDto.getMedataSetId(), prevSetDto.getMedataSetNm(), prevSetDto.getMedataSetSttusMtcd(), metadataSetVo.getMedataSetSttusWhy(), loginUserVo);
+					Set<String> visitedIdSet = new LinkedHashSet<>();
+					this.changeSetStatusHierachilyToUse(visitedIdSet, outChangedIdList, modelInfoDto, prevSetDto.getMedataSetId(), prevSetDto.getMedataSetNm(), prevSetDto.getMedataSetSttusMtcd(), metadataSetVo.getMedataSetSttusWhy(), loginUserVo);
 					
 					// 버투소 USE 그래프에 메타데이터 셋 정보 저장 (오류나도 SKIP)
 					String logRegrId = loginUserVo.getUserId();
@@ -1249,8 +1251,10 @@ public class MetadataSetService {
 	
 	/**
 	 * 메타데이터 셋을 사용 상태로 변경 + 하위 메타데이터 셋 전체도 사용 상태로 변경(사용 상태 아닌 경우)
+	 * 폐기(제외) 상태인 하위 셋은 건너뛴다. 이미 들른 셋도 건너뛰어 자기 참조·상호 참조로 재귀가 끝나지 않는 것을 막는다.
 	 * @Author      : heenim
 	 * @Date        : 2023. 09. 13.
+	 * @param visitedIdSet
 	 * @param outChangedIdList
 	 * @param modelInfoDto
 	 * @param medataSetId
@@ -1259,7 +1263,11 @@ public class MetadataSetService {
 	 * @param statusWhy
 	 * @param asyncUserVo
 	 */
-	private void changeSetStatusHierachilyToUse(List<String> outChangedIdList, ModelInfoDto modelInfoDto, String medataSetId, String medataSetLabel, String prevStatus, String statusWhy, LoginUserVo asyncUserVo) {
+	private void changeSetStatusHierachilyToUse(Set<String> visitedIdSet, List<String> outChangedIdList, ModelInfoDto modelInfoDto, String medataSetId, String medataSetLabel, String prevStatus, String statusWhy, LoginUserVo asyncUserVo) {
+		// 이미 들른 셋이면 건너뛴다. 자기 자신이나 서로를 참조하고 있으면 재귀가 끝나지 않는다.
+		// 먼저 들른 쪽이 하위 처리를 마친 뒤 상태를 바꾸므로 건너뛰어도 누락되지 않는다.
+		if (!visitedIdSet.add(medataSetId)) return;
+		
 		StringBuilder sb = new StringBuilder();
 		int errCnt = 0;
 		
@@ -1313,11 +1321,14 @@ public class MetadataSetService {
 		List<CamelCaseMap> valueList = metadataMapper.selectMetadataValStatusListBySetIdForObjectTypeCheck(paramVo3);
 		if (valueList != null && !valueList.isEmpty()) {
 			for (CamelCaseMap tMap : valueList) {
+				// 폐기(제외) 상태인 셋은 건드리지 않는다. 사용자가 일부러 내린 상태라 상위 셋 전환으로 되살리지 않는다.
+				if (StringUtils.equals(Constant.SET_STATUS_DIS, String.valueOf(tMap.get("medataValSttusMtcd")))) continue;
+				
 				String subModelId = String.valueOf(tMap.get("medataValModelId"));
 				ModelInfoDto subModelInfoDto = modelService.getModelInfoByIdFromCache(subModelId);
 				String subLabel = medataSetLabel + "\n  - " + String.valueOf(tMap.get("prptyNm")) + " : " + String.valueOf(tMap.get("medataValNm"));
 				// recursive call
-				this.changeSetStatusHierachilyToUse(outChangedIdList, subModelInfoDto, String.valueOf(tMap.get("medataVal")), subLabel, String.valueOf(tMap.get("medataValSttusMtcd")), statusWhy, asyncUserVo);
+				this.changeSetStatusHierachilyToUse(visitedIdSet, outChangedIdList, subModelInfoDto, String.valueOf(tMap.get("medataVal")), subLabel, String.valueOf(tMap.get("medataValSttusMtcd")), statusWhy, asyncUserVo);
 			}
 		}
 

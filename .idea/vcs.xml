@@ -3,6 +3,7 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/OSFW/DTSP_e8ight/source/NGSITranslator" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/OSFW/DTSP_e8ight/source/dataIngest" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/OSFW/DTSP_e8ight/source/translatorBuilder" vcs="Git" />
   </component>
 </project>
