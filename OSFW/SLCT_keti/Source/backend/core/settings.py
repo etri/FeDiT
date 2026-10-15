@@ -25,6 +25,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # 운영(gunicorn, DEBUG=0)에서도 관리자 화면의 정적 파일을 서빙한다.
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -82,13 +84,42 @@ TIME_ZONE = 'Asia/Seoul'
 USE_I18N = True
 USE_TZ = True
 
+# 역방향 프록시 뒤에서 외부 주소(https://도메인)를 올바르게 만들기 위해 전달 헤더를 믿는다.
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = True
+from corsheaders.defaults import default_headers  # noqa: E402
+CORS_ALLOW_HEADERS = (*default_headers, 'x-slct-token')
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
+        # 조회는 공개, 쓰기는 편집 토큰(SLCT_EDIT_TOKEN)이 필요하다.
+        'core.edit_token.EditTokenPermission',
     ]
+}
+
+# 로그는 표준 출력으로 낸다(컨테이너에서는 `docker compose logs backend` 로 본다).
+# slct.integration: 연합트윈 프레임워크 API 호출 기록(어떤 트윈 메타정보를 조회했는지).
+SLCT_LOG_LEVEL = os.environ.get('SLCT_LOG_LEVEL', 'INFO').upper()
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'plain': {'format': '%(asctime)s %(levelname)s %(name)s %(message)s', 'datefmt': '%Y-%m-%d %H:%M:%S'},
+    },
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler', 'formatter': 'plain'},
+    },
+    'root': {'handlers': ['console'], 'level': 'WARNING'},
+    'loggers': {
+        'slct.integration': {'handlers': ['console'], 'level': SLCT_LOG_LEVEL, 'propagate': False},
+        'pipelines': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+        'digitaltwins': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+        'llm': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+    },
 }

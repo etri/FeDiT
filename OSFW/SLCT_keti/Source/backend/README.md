@@ -1,6 +1,6 @@
 ### core (Django)
 
-이 프로젝트는 기존 프런트엔드가 기대하는 `/api/bpmns`와 `/api/feditscraper/json` 엔드포인트를 Strapi 없이 그대로 제공하기 위해 구성한 Django 서비스입니다.  
+이 프로젝트는 기존 프런트엔드가 기대하는 `/api/bpmns` 엔드포인트를 Strapi 없이 그대로 제공하기 위해 구성한 Django 서비스입니다.  
 호출 경로와 요청/응답 구조를 Strapi와 동일하게 맞춰두었기 때문에, 프런트 코드 변경 없이 서버 주소만 새 인스턴스로 전환할 수 있습니다.
 
 #### 준비
@@ -126,10 +126,101 @@ curl -L -o models/qwen2.5-1.5b-instruct-q4_k_m.gguf \
 
 | Method | Path | 설명 |
 |--------|------|------|
-| GET | `/api/feditscraper/json` | 기존 Strapi가 반환하던 정적 엔티티 데이터 그대로 제공. |
-| GET/POST | `/api/pipelines/run` | 토큰 시뮬레이션 트리거(`?id=` 수신, 바디 에코). |
+| GET/POST | `/api/pipelines/run` | 카탈로그 모의 실행 경로. `?id=` 항목의 출력 이름대로 모의 값을 돌려준다(`_mock: true`). |
+| POST | `/api/pipelines/execute` | 서비스 로직 서버 실행. 본문 `{ "uid", "xml", "inputs", "start", "wait" }`. `xml` 이 없으면 저장된 `uid` 다이어그램을 실행. 기본은 비동기(202), `wait: true` 면 끝난 뒤 결과 반환. |
+| GET | `/api/pipelines/runs` | 실행 기록 목록. `?diagram=<uid>`, `?limit=` (기본 20). |
+| GET | `/api/pipelines/runs/:id` | 실행 기록과 노드별 입력·출력·요청·응답·경고. |
 | GET | `/api/custom-nodes` | 외부 API 노드 카탈로그(`?q=` 부분검색). |
 | GET | `/api/search` | 통합 검색. `?q=` 키워드, `?types=builtin,custom,digitaltwin` 필터. |
+
+#### 서비스 로직 실행기
+
+`pipelines/engine.py` 가 BPMN XML 을 서버에서 해석해 실행한다. 노드 호출 결과가 다음 노드의
+입력으로 넘어가고 분기 조건이 평가되며, 노드별 입출력은 `PipelineRun`/`PipelineStep` 에 기록된다.
+
+- 흐름: 순서 흐름·조건식·기본 흐름, 배타/병렬/포괄 게이트웨이, 하위 프로세스, 타이머 중간 이벤트(최대 60초 대기), 오류 경계 이벤트
+- 병렬 가지는 번갈아 처리한다(동시 호출 아님). 단계가 1000개를 넘으면 순환으로 보고 멈춘다.
+- 노드 설정은 `extensionElements` 의 `pipeline:parameters` 에서 읽는다.
+
+```xml
+<pipeline:parameters>
+  <pipeline:parameter url="/api/pipelines/run?id=tour-comfort" method="POST" timeout="30" retry="1" delay="0" />
+  <pipeline:input name="혼잡도" />                      <!-- 비우면 같은 이름의 앞선 값이 자동 연결 -->
+  <pipeline:input name="미세먼지" source="Task_1.PM10" /> <!-- 식 -->
+  <pipeline:input name="지역코드" value="47111" />        <!-- 고정 값 -->
+  <pipeline:output name="쾌적지수" path="data.index" />   <!-- 비우면 응답에서 같은 이름을 찾음 -->
+</pipeline:parameters>
+```
+
+- 식(조건·입력)은 파이썬 문법의 안전한 부분집합이다. `PM10 > 80 and 등급 == '나쁨'`, `Task_1["PM2.5"]`, `var("PM2.5")`.
+  `${...}` 감싸기와 `&&`·`||`·`===`·`true` 같은 JS 표기도 받는다.
+- URL 이 http(s) 면 그대로, `/api/pipelines/run` 이면 프로세스 안에서 모의 응답, 그 밖의 상대 경로는
+  `PIPELINE_BASE_URL`(기본 `http://127.0.0.1:1337`) 기준으로 호출한다.
+- 실행기는 다이어그램에 적힌 주소를 서버에서 호출하므로, 외부에 공개하는 배포에서는 접근 가능한 대상을 네트워크에서 제한할 것.
+
+#### 연합트윈 실데이터 · 로직 API
+
+| Method | Path | 설명 |
+|--------|------|------|
+| GET | `/api/fedit/objects` | Digital Brain 에서 데이터가 들어오는 연합객체 목록과 측정값 이름(10분 캐시, `?refresh=1`). |
+| GET | `/api/fedit/objects/latest?fdt=&fdo=` | 연합객체 최신 데이터를 평평한 이름(`pm10`, `temp` …)으로. 디지털객체별 전체 이름(`KR-104111-0024.pm10`)도 함께. |
+| GET | `/api/fedit/objects/series?fdt=&fdo=&property=&count=` | 속성 하나의 최근 값과 최솟값·최댓값·평균. |
+| GET | `/api/logics` | 공개 가능한 로직 목록(호출 주소, 입력·결과 이름, 연합트윈 등록 정보). |
+| POST | `/api/logics/:uid/invoke` | 저장된 로직 실행(동기). 본문이 입력값. 연합트윈 시뮬레이션 호출 형식(`input_data`)이면 연합객체 데이터를 평평하게 풀어 입력으로 쓴다. 응답 `{data:{runId,status,result}}`. |
+| GET | `/api/logics/:uid/spec` | 로직 API 의 OpenAPI 3 문서(다이어그램에서 자동 생성). |
+| GET/POST | `/api/logics/:uid/fedit` | 연합트윈 시뮬레이션 등록 상태 조회 / 등록(`{fdt, subjects, timeStep}`). 등록하면 Digital Brain 이 대상 연합객체 데이터를 주기적으로 invoke 주소에 보내고 응답을 결과로 저장한다. |
+
+- 종료 이벤트에 입력을 정의하면 그 값이 로직의 결과(API 응답)가 된다. 없으면 실행 중 만든 값 전체를 돌려준다.
+- 연합트윈이 호출할 외부 주소는 `SLCT_PUBLIC_URL`(예: `https://slct.k-sw.org`)로 지정한다. 없으면 요청 주소로 만든다.
+- Digital Brain 주소는 `FEDIT_BRAIN_URL`(기본 `http://220.124.222.84:1213`).
+- 예제 로직: `python manage.py load_samples` → 편집기에서 `/pohang-air-alert` (포항 대기 실데이터로 등급·경보 판정).
+
+#### 트윈 노드 (메타정보·속성)
+
+연합트윈 프레임워크에 등록된 트윈을 로직 노드로 쓴다. 노드는 트윈 참조(`twin`)를 가지며,
+편집기 속성 패널이 그 트윈의 메타정보와 속성 목록을 보여주고 사용자가 고른 속성을 출력으로 삼는다.
+
+| Method | Path | 설명 |
+|--------|------|------|
+| GET | `/api/twins` | 노드로 쓸 수 있는 트윈 목록(단일 트윈 디지털객체 `do:` + 연합 객체 `fdo:`), 갱신 상태·숫자 속성 (10분 캐시) |
+| GET | `/api/twins/{do\|fdo}/{a}/{b}` | 메타정보(트윈·객체 이름, 소유, 설명, 키워드, 원천)와 속성 목록(이름·타입·지금 값, 데이터 모델 정의 여부) |
+| GET | `/api/twins/{do\|fdo}/{a}/{b}/latest` | 최신값(평평한 이름, 숫자 문자열은 숫자로). 트윈 노드를 실행하면 호출된다 |
+| GET | `/api/twins/linkage?refs=do:…,fdo:…` | 로직이 연계한 단일 트윈(메타정보 종) 목록. 연합 객체는 구성 디지털객체의 트윈으로 펼친다 |
+
+- 단일 트윈은 Digital Connector(`FEDIT_CONNECTOR_URL`, 기본 `http://220.124.222.84:1219`), 연합 객체는 Digital Brain 에서 조회한다.
+- 분기 조건은 편집기에서 앞 노드 출력(트윈 속성)을 골라 만들며 `Node_2.pm10 > 80 and Node_3.WIND_SPEED < 2` 같은 식으로 저장된다.
+
+#### 연합트윈 API 호출 기록 (로그)
+
+Digital Connector · Digital Brain · 2세부 메타데이터 저장소를 호출할 때마다 `slct.integration` 로거가 표준 출력에 한 줄씩 남긴다. 토큰과 응답 본문은 남기지 않는다.
+
+```bash
+docker compose logs -f backend | grep -E '연합트윈 API|메타정보 연계'
+```
+
+```
+INFO slct.integration [연합트윈 API] Digital Connector GET http://…:1219/fedit/v1/digital-twins/KR-01-O84213-20260002/digital-objects/KR-104111-0024/data?count=1 → 201 (1건, 35ms)
+INFO slct.integration [메타정보 연계] 실행 #2 twin-air-wind-alert: 단일 트윈 2종 (메타정보 출처: Digital Connector 단일 트윈 등록 정보)
+INFO slct.integration [메타정보 연계]   1. 포항 환경 통합 디지털 트윈 | 트윈 ID KR-01-O84213-20260002 | 소유 keti | 연계 노드 포항 대기 환경 관측 객체
+```
+
+- 로직을 실행하면 트윈 노드가 부른 조회가 한 줄씩, 실행이 끝나면 연계한 단일 트윈 요약이 남는다(요약은 실행 응답을 늦추지 않도록 따로 남긴다).
+- 트윈 목록 캐시를 채우는 일괄 조회는 요약 한 줄(`트윈 목록 갱신: 호출 N건, 실패 M건`)만 남긴다. 줄마다 보려면 `SLCT_LOG_LEVEL=DEBUG`.
+- 실패한 호출은 WARNING 으로 남는다.
+
+#### 외부 시스템 보호
+
+서비스 로직 도구는 다른 기관 시스템에 기록을 남기지 않는 것을 기본으로 한다.
+
+- `SLCT_FEDIT_REGISTER=1` 일 때만 연합트윈 Digital Brain 에 시뮬레이션을 등록할 수 있다(기본 꺼짐, 편집기 등록 양식도 숨김).
+- 로직 실행 중 외부 http(s) 주소에 대한 GET 외 호출(예: GENIX 대기환경 시뮬레이션 생성)은 `SLCT_EXTERNAL_WRITE=1` 일 때만 보낸다(기본 차단). 조회(GET)와 이 서버의 경로(`/api/...`)는 그대로 동작한다.
+
+#### 편집 토큰
+
+`SLCT_EDIT_TOKEN` 을 설정하면 조회는 누구나, 수정·실행·LLM 생성·연합트윈 등록은 토큰이 있어야 한다.
+편집기는 `https://{주소}/{로직ID}?token={토큰}` 으로 접속하면 토큰을 브라우저에 저장한다(주소창의 토큰도 그대로 둔다. 그 주소를 공유하면 편집 권한도 넘어간다).
+API 는 `X-SLCT-Token` 헤더나 `?token=` 으로 받는다. 연합트윈이 부르는 `/api/logics/{uid}/invoke` 는 토큰 없이 열려 있다.
+`?token=` (빈 값)으로 접속하면 저장된 토큰을 지운다. 토큰을 바꾸면 기존 링크는 모두 무효가 된다.
 
 **문서 · 관리자**
 

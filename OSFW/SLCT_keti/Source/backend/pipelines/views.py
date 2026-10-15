@@ -3,53 +3,117 @@ from rest_framework.response import Response
 from rest_framework import status
 from typing import List, Dict
 from django.db.models import Q
-from digitaltwins import catalog, fedit_client
+from urllib.parse import urlencode
+
+from digitaltwins import brain, catalog, fedit_client, twins
 from digitaltwins.models import DigitalTwinSource
+from bpmns.models import BpmnDiagram
 
-
-class FedItScraperJsonView(APIView):
-    def get(self, request):
-        # Minimal stubbed dataset; adjust as needed
-        data = [
-            {
-                "id": "entity_1",
-                "title": "샘플 엔티티 1",
-                "description": "데모 용도의 엔티티",
-                "type": "demo",
-                "reference": "https://example.com/ref/1",
-            },
-            {
-                "id": "entity_2",
-                "title": "샘플 엔티티 2",
-                "description": "데모 용도의 엔티티",
-                "type": "demo",
-                "reference": "https://example.com/ref/2",
-            },
-        ]
-        return Response({"data": data})
+from . import mock, runner
+from .engine import ModelError, parse
+from .models import PipelineRun
 
 
 class PipelineRunView(APIView):
+    """카탈로그 모의 실행 경로(`/api/pipelines/run?id=...`).
+
+    토큰 시뮬레이션과 로직 실행기가 호출한다. 식별자에 정의된 출력 이름대로
+    모의 값을 채워 돌려준다(`_mock: true`).
+    """
+
     def post(self, request):
-        # Accept simulation trigger from the diagram token simulation
-        sim_id = request.query_params.get("id")
-        payload = request.data or {}
-        # Echo back minimal result
-        result = {
+        sim_id = request.query_params.get("id") or ""
+        payload = request.data if isinstance(request.data, dict) else {}
+        # 토큰 시뮬레이션은 {did, uid, object} 를 보내므로 입력값으로 보지 않는다.
+        inputs = {} if "object" in payload else payload
+        result = mock.outputs_for(sim_id, inputs)
+        result.update({
             "message": f"Pipeline run triggered for id={sim_id}",
             "received": payload,
             "status": "accepted",
-        }
+        })
         return Response({"data": result}, status=status.HTTP_200_OK)
 
     def get(self, request):
-        # Optional GET handler for testing
-        sim_id = request.query_params.get("id")
-        result = {
-            "message": f"Pipeline run (GET) for id={sim_id}",
-            "status": "ok",
-        }
+        sim_id = request.query_params.get("id") or ""
+        inputs = {k: v for k, v in request.query_params.items() if k != "id"}
+        result = mock.outputs_for(sim_id, inputs)
+        result.update({"message": f"Pipeline run (GET) for id={sim_id}", "status": "ok"})
         return Response({"data": result})
+
+
+class PipelineExecuteView(APIView):
+    """서비스 로직을 서버에서 실행한다.
+
+    본문
+      - uid:    저장된 다이어그램 식별자 (xml 이 없으면 이 다이어그램을 실행)
+      - xml:    실행할 BPMN XML (편집 중인 다이어그램을 저장 전에 실행할 때)
+      - inputs: 실행 입력값 {이름: 값}
+      - start:  시작 이벤트 id (생략하면 첫 프로세스의 시작 이벤트 전부)
+      - wait:   true 면 실행이 끝날 때까지 기다렸다가 결과를 돌려준다
+    """
+
+    def post(self, request):
+        body = request.data if isinstance(request.data, dict) else {}
+        uid = str(body.get("uid") or "").strip()
+        xml = body.get("xml") or ""
+        inputs = body.get("inputs") or {}
+        start = str(body.get("start") or "").strip()
+        wait = str(body.get("wait", "")).lower() in ("1", "true", "yes")
+
+        if not isinstance(inputs, dict):
+            return Response({"error": "inputs 는 객체여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        diagram = BpmnDiagram.objects.filter(uid=uid).first() if uid else None
+        if not xml:
+            if diagram is None:
+                return Response({"error": "xml 또는 저장된 다이어그램의 uid 가 필요합니다."},
+                                status=status.HTTP_400_BAD_REQUEST)
+            xml = diagram.xml
+        if not isinstance(xml, str):
+            return Response({"error": "xml 은 문자열이어야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 실행 기록을 만들기 전에 다이어그램을 해석할 수 있는지 먼저 확인한다.
+        try:
+            parse(xml)
+        except ModelError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        run = PipelineRun.objects.create(
+            diagram=diagram, diagram_uid=uid, xml=xml, inputs=inputs, start=start[:128],
+        )
+        if wait:
+            runner.execute(run)
+            return Response({"data": runner.serialize_run(run)}, status=status.HTTP_200_OK)
+
+        runner.execute_in_background(run.pk)
+        return Response({"data": runner.serialize_run(run, with_steps=False)}, status=status.HTTP_202_ACCEPTED)
+
+
+class PipelineRunListView(APIView):
+    """실행 기록 목록. `diagram=<uid>` 로 다이어그램별 조회."""
+
+    def get(self, request):
+        qs = PipelineRun.objects.all()
+        uid = request.query_params.get("diagram")
+        if uid:
+            qs = qs.filter(diagram_uid=uid)
+        try:
+            limit = max(1, min(int(request.query_params.get("limit", 20)), 200))
+        except ValueError:
+            limit = 20
+        items = [runner.serialize_run(r, with_steps=False) for r in qs[:limit]]
+        return Response({"data": items, "meta": {"count": len(items)}})
+
+
+class PipelineRunDetailView(APIView):
+    """실행 기록 하나와 단계별 입출력."""
+
+    def get(self, request, pk: int):
+        run = PipelineRun.objects.filter(pk=pk).first()
+        if run is None:
+            return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"data": runner.serialize_run(run)})
 
 
 # ---- Custom Nodes (External API Nodes) - Mocked Endpoints ----
@@ -116,7 +180,15 @@ class UnifiedSearchView(APIView):
                 "bpmn_type": item.get("bpmn_type", "bpmn:Task"),
                 "icon": item.get("icon", "bpmn-icon-task"),
                 "description": item.get("description", ""),
-                "payload": {"api_id": item.get("api_id"), "schema": item.get("schema", {})},
+                "payload": {
+                    "api_id": item.get("api_id"),
+                    "schema": item.get("schema", {}),
+                    # 로직 실행기·토큰 시뮬레이션이 호출할 실행 경로와 입출력 규격
+                    "url": item.get("url") or f"{mock.MOCK_PATH}?id={item.get('api_id')}",
+                    "method": item.get("method", ""),
+                    "inputs": item.get("schema", {}).get("inputs", []),
+                    "outputs": item.get("schema", {}).get("outputs", []),
+                },
             }
             for item in custom
         ]
@@ -127,12 +199,14 @@ class UnifiedSearchView(APIView):
             qs_items = list(qs.values("id", "name", "category", "url", "meta"))
             origin = "model"
         else:
-            # DigitalTwinListView 와 같은 순서로 대체 자료를 찾는다.
-            entries = fedit_client.list_simulations() if fedit_client.is_configured() else []
-            origin = "fedit"
-            if not entries:
-                entries = catalog.simulation_entries()
-                origin = "catalog"
+            # 내장 카탈로그에 2세부 메타데이터의 실행 가능한 시뮬레이션을 더한다(대체하지 않음).
+            entries = catalog.simulation_entries()
+            if fedit_client.is_configured():
+                known = {e["name"] for e in entries}
+                extra = [e for e in fedit_client.list_simulations() if e["name"] not in known]
+                for offset, e in enumerate(extra, start=len(entries) + 1):
+                    entries.append({**e, "id": offset, "meta": {**e.get("meta", {}), "description": "2세부 메타데이터에 등록된 시뮬레이션"}})
+            origin = "catalog+fedit" if any(e.get("meta", {}).get("source") == "fedit" for e in entries) else "catalog"
             qs_items = entries
 
         out = []
@@ -145,16 +219,68 @@ class UnifiedSearchView(APIView):
                 "label": item.get("name"),
                 # 분류를 세분화해 팔레트/검색에서 도메인별로 묶이도록 한다.
                 "category": f"디지털 트윈 · {item.get('category')}" if item.get("category") else "디지털 트윈",
-                "bpmn_type": "bpmn:ServiceTask",
-                "icon": "bpmn-icon-service-task",
+                "bpmn_type": catalog.SIMULATION_TYPE,
+                "icon": catalog.ICONS[catalog.SIMULATION_TYPE],
                 "description": f"[{twin}] {description}" if twin else description,
                 "payload": {
                     "url": item.get("url"),
                     "source": origin,
                     "twinId": meta.get("twinId", ""),
                     "provider": meta.get("provider", ""),
+                    "method": meta.get("method", ""),
                     "inputs": meta.get("inputs", []),
                     "outputs": meta.get("outputs", []),
+                },
+            })
+        return out
+
+    def _fedit_objects(self) -> List[Dict]:
+        """연합트윈 프레임워크에 등록된 트윈(단일 트윈 디지털객체·연합 객체)을 노드로 내놓는다.
+
+        노드에는 트윈 참조(twin)를 담아, 속성 패널이 메타정보와 속성 목록을 보여주고
+        사용자가 고른 속성을 출력으로 삼게 한다. 처음 놓을 때는 숫자 속성 몇 개를 고른다.
+        """
+        entries, _ = twins.catalog()
+        out = []
+        for item in entries:
+            single = item["kind"] == "do"
+            category = f"단일 트윈 · {item['twinName']}" if single else f"연합 객체 · {item['twinName']}"
+            fresh = {"live": "실시간", "recent": "최근", "stale": "갱신 멈춤"}.get(item["freshness"], "")
+            out.append({
+                "id": f"twin::{item['ref']}",
+                "label": item["name"],
+                "category": category,
+                "bpmn_type": "bpmn:ServiceTask",
+                "icon": "bpmn-icon-service-task",
+                "description": f"[{item['twinName']}] {item['name']} · {item.get('owner') or '소유 미상'} · {fresh}",
+                "payload": {
+                    "url": twins.latest_url(item["ref"]),
+                    "method": "GET",
+                    "twin": item["ref"],
+                    "source": "fedit-connector" if single else "fedit-brain",
+                    "twinId": item["twinId"],
+                    "provider": f"{item.get('owner') or ''} · {fresh}".strip(" ·"),
+                    "freshness": item["freshness"],
+                    "inputs": [],
+                    "outputs": item["numeric"][:twins.DEFAULT_OUTPUTS],
+                },
+            })
+        if out:
+            # 속성 하나의 추세가 필요할 때 쓰는 범용 시계열 노드
+            out.append({
+                "id": "fedit::series",
+                "label": "연합객체 시계열 요약",
+                "category": "연합트윈 실데이터 · 공통",
+                "bpmn_type": "bpmn:ServiceTask",
+                "icon": "bpmn-icon-service-task",
+                "description": "연합객체 속성 하나의 최근 값 목록과 최솟값·최댓값·평균",
+                "payload": {
+                    "url": "/api/fedit/objects/series",
+                    "method": "GET",
+                    "source": "fedit-brain",
+                    "provider": "연합트윈 Digital Brain",
+                    "inputs": ["fdt", "fdo", "property", "count"],
+                    "outputs": ["latest", "min", "max", "avg", "count"],
                 },
             })
         return out
@@ -162,13 +288,15 @@ class UnifiedSearchView(APIView):
     def get(self, request):
         q = (request.query_params.get("q") or "").strip().lower()
         types = (request.query_params.get("types") or "").strip().lower()
-        type_set = {t for t in types.split(",") if t} if types else {"builtin", "custom", "digitaltwin"}
+        type_set = {t for t in types.split(",") if t} if types else {"builtin", "custom", "digitaltwin", "fedit"}
 
         data: List[Dict] = []
         if "builtin" in type_set:
             data.extend(self._builtin_nodes())
         if "custom" in type_set:
             data.extend(self._custom_nodes())
+        if "fedit" in type_set:
+            data.extend(self._fedit_objects())
         if "digitaltwin" in type_set:
             data.extend(self._digital_twins())
 

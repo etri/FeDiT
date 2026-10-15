@@ -1,4 +1,3 @@
-version: "3"
 services:
 
   backend:
@@ -7,6 +6,8 @@ services:
     image: bpmn-backend:latest
     restart: unless-stopped
     env_file: ./backend/.env
+    volumes:
+      - backend-data:/opt/app/data
     ports:
       - "1337:1337"
     networks:
@@ -16,10 +17,17 @@ services:
   
   frontend:
     container_name: frontend
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        # 편집기 도구모음에 표시되는 버전. 예) SLCT_VERSION=$(git rev-parse --short HEAD) docker compose up --build -d
+        VITE_APP_VERSION: ${SLCT_VERSION:-v2.0}
     image: bpmn-frontend:latest
     restart: unless-stopped
-    env_file: ./frontend/.env
+    environment:
+      BACKEND_URL: http://backend:1337
+    depends_on:
+      - backend
     ports:
       - "9900:9900"
     networks:
@@ -46,3 +54,6 @@ networks:
   kt-bpmn:
     name: kt-bpmn
     driver: bridge
+
+volumes:
+  backend-data:

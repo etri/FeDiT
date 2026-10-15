@@ -1,0 +1,58 @@
+# 서비스 로직 생성 도구 운영 배포용.
+# 레지스트리의 이미지를 받아 실행한다(빌드하지 않음).
+#
+#   SLCT_TAG=20260929 docker compose -f docker-compose.prod.yml pull
+#   SLCT_TAG=20260929 docker compose -f docker-compose.prod.yml up -d
+#
+# 이미지는 scripts/build-and-push.sh 로 만든다.
+name: slct
+
+x-registry: &registry ${SLCT_REGISTRY:-harbor.k-sw.org/keti}
+
+services:
+  backend:
+    image: ${SLCT_REGISTRY:-harbor.k-sw.org/keti}/slct-backend:${SLCT_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?DJANGO_SECRET_KEY 를 .env 에 지정하세요}
+      DJANGO_DEBUG: "0"
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-*}
+      # 코파일럿 엔진 순서: Ollama 서버 → 내장 CPU LLM(AVX2 필요) → 규칙 기반.
+      # 기본값은 배포 호스트에 띄운 Ollama. 닿지 않으면 자동으로 다음 엔진으로 넘어간다.
+      OLLAMA_ENABLED: ${OLLAMA_ENABLED:-1}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-}
+      FEDIT_META_TOKEN: ${FEDIT_META_TOKEN:-}
+      FEDIT_BRAIN_URL: ${FEDIT_BRAIN_URL:-http://220.124.222.84:1213}
+      # 연합트윈이 로직을 호출할 외부 주소(역방향 프록시 도메인)
+      SLCT_PUBLIC_URL: ${SLCT_PUBLIC_URL:-}
+      # 편집 토큰. 설정하면 조회는 공개, 수정·실행은 ?token= 으로 접속한 사람만 가능
+      SLCT_EDIT_TOKEN: ${SLCT_EDIT_TOKEN:-}
+    volumes:
+      - backend-data:/opt/app/data
+    ports:
+      - "${SLCT_BACKEND_PORT:-1337}:1337"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  frontend:
+    image: ${SLCT_REGISTRY:-harbor.k-sw.org/keti}/slct-frontend:${SLCT_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://backend:1337
+    depends_on:
+      - backend
+    ports:
+      - "${SLCT_FRONTEND_PORT:-9900}:9900"
+
+  processor:
+    image: ${SLCT_REGISTRY:-harbor.k-sw.org/keti}/slct-processor:${SLCT_TAG:-latest}
+    restart: unless-stopped
+    volumes:
+      - processor-data:/app/data
+    ports:
+      - "${SLCT_PROCESSOR_PORT:-9901}:9901"
+
+volumes:
+  backend-data:
+  processor-data:

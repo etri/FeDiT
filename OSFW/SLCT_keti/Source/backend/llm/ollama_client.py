@@ -24,7 +24,10 @@ from .bpmn_spec import NODE_TYPES, parse_spec_json
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_BASE_URL = "http://localhost:11434"
+# 설정(LlmConfig)이 없거나 설정한 서버에 닿지 않을 때 쓰는 기본 Ollama 서버·모델.
+# 컨테이너 배포에서는 호스트에 띄운 Ollama 를 host.docker.internal 로 가리킨다.
+DEFAULT_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").strip() or "http://localhost:11434"
+DEFAULT_MODEL = os.environ.get("OLLAMA_MODEL", "").strip()
 
 # 임베딩 전용 모델은 대화 생성에 쓸 수 없으므로 목록에서 제외한다.
 EMBEDDING_HINTS = ("embed", "bge", "e5-", "gte-")
@@ -158,6 +161,8 @@ def pick_model(base_url: Optional[str] = None) -> str:
     models = list_models(base_url)
     if not models:
         return ""
+    if DEFAULT_MODEL and any(m["name"] == DEFAULT_MODEL for m in models):
+        return DEFAULT_MODEL
     running = set(list_running(base_url))
     warm = [m for m in models if m["name"] in running]
     if warm:
@@ -219,3 +224,40 @@ def generate_spec(prompt: str, model: str, base_url: Optional[str] = None,
         "tokens_out": payload.get("eval_count", 0) or 0,
     }
     return spec
+
+
+def generate_plan(prompt: str, model: str, system: str, schema: Dict[str, Any],
+                  base_url: Optional[str] = None, api_key: str = "") -> Optional[Dict[str, Any]]:
+    """Ollama 로 plan(요구사항 양식)을 채운다. 스키마의 enum 으로 등록된 이름만 고르게 한다.
+
+    실패하면 None. 호출자는 빈 plan 으로 보정 단계를 거쳐 계속 진행한다.
+    """
+    if not model:
+        return None
+    body = {
+        "model": model,
+        "stream": False,
+        "think": False,
+        "format": schema,
+        "options": {"temperature": 0.2, "num_predict": 400},
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": "요구사항: " + (prompt or "").strip()[:2000]},
+        ],
+    }
+    headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+    try:
+        response = requests.post(f"{normalize_base_url(base_url)}/api/chat", json=body, headers=headers,
+                                 timeout=_env_int("OLLAMA_TIMEOUT", 180))
+        response.raise_for_status()
+        payload = response.json()
+    except (requests.RequestException, ValueError) as exc:
+        logger.warning("Ollama plan 요청 실패(%s): %s", model, exc)
+        return None
+    plan = parse_spec_json((payload.get("message") or {}).get("content") or "")
+    if not plan:
+        logger.warning("Ollama plan 출력을 해석하지 못함(%s)", model)
+        return None
+    plan["_usage"] = {"tokens_in": payload.get("prompt_eval_count", 0) or 0,
+                      "tokens_out": payload.get("eval_count", 0) or 0}
+    return plan

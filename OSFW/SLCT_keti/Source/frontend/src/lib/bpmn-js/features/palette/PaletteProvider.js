@@ -211,67 +211,7 @@ PaletteProvider.prototype.getPaletteEntries = function() {
     'create.group': createAction(
       'bpmn:Group', 'artifact', 'bpmn-icon-group',
       translate('Create group')
-    ),
-    'create.simulation': {
-			group: 'simulation',
-			className: 'bpmn-icon-service-task',
-			title: translate('Create simulation task'),
-      action: {
-        click: async (event) => {
-					console.log('Create simulation task', event, this._popupMenu);
-					ApiService.query('/digitaltwins').then(resp => {
-						var { meta, data } = resp?.data || {};
-						data = data.map(x => ({ ...x.attributes }));
-
-						console.log(data, meta);
-						this._popupMenu.open({ data, meta, event }, 'bpmn-simulations', event, {
-							title: translate('Select simulation'),
-							width: 400,
-							search: true
-						});
-					});
-				}
-      }
-		},
-    // fedit 엔티티 타입 받아와서 추가
-    'create.fedit-entity': {
-      group: 'fedit-entity',
-      className: 'bpmn-icon-data-store',
-      title: translate('Create Fedit Entity Task'),
-      action: {
-        click: async (event) => {
-          console.log('Create Fedit Entity Task', event, this._popupMenu);
-
-          // API 요청
-          ApiService.query('/feditscraper/json').then((resp) => {
-
-            // 데이터 구조 매핑
-            var { data } = resp?.data || {};
-            data = data.map((item) => ({
-              id: item.id || 'unknown-id',
-              title: item.title || 'No Title',
-              description: item.description || 'No Description',
-              type: item.type || 'Unknown Type',
-              reference: item.reference || 'No Reference'
-            }));
-
-            console.log(data);
-
-            // 팝업 메뉴 열기
-            this._popupMenu.open({ data, event }, 'bpmn-fedit-entity', event, {
-              title: translate('Select Fedit Entity'),
-              width: 400,
-              search: true
-            });
-          }).catch((error) => {
-            console.error('API 요청 중 오류 발생:', error);
-          });
-        }
-      }
-    }
-
-
-
+    )
   });
 	console.log("actions", actions, new Error().stack);
 

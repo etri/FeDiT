@@ -1,9 +1,10 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from . import catalog, fedit_client
+from . import brain, catalog, fedit_client, twins
 from .models import DigitalTwinSource, DigitalTwinCallLog
 from .serializers import DigitalTwinSourceSerializer, DigitalTwinCallLogSerializer
+import json
 import time
 
 
@@ -15,13 +16,14 @@ class DigitalTwinListView(APIView):
     def get(self, request):
         qs = DigitalTwinSource.objects.filter(enabled=True).order_by("name")
         if not qs.exists():
-            # DB 가 비어 있으면 실제 연합트윈 메타데이터를 시도하고,
-            # 토큰이 없거나 연결되지 않으면 내장 카탈로그로 대체한다.
-            entries = fedit_client.list_simulations() if fedit_client.is_configured() else []
-            origin = "fedit"
-            if not entries:
-                entries = catalog.simulation_entries()
-                origin = "catalog"
+            # 내장 카탈로그에 2세부 메타데이터의 실행 가능한 시뮬레이션을 더한다(대체하지 않음).
+            entries = catalog.simulation_entries()
+            if fedit_client.is_configured():
+                known = {e["name"] for e in entries}
+                extra = [e for e in fedit_client.list_simulations() if e["name"] not in known]
+                for offset, e in enumerate(extra, start=len(entries) + 1):
+                    entries.append({**e, "id": offset, "meta": {**e.get("meta", {}), "description": "2세부 메타데이터에 등록된 시뮬레이션"}})
+            origin = "catalog+fedit" if any(e.get("meta", {}).get("source") == "fedit" for e in entries) else "catalog"
             items = [
                 {
                     "id": entry["id"],
@@ -94,3 +96,160 @@ class DigitalTwinCallView(APIView):
             duration_ms=duration_ms,
         )
         return Response({"data": {"ok": True, "logId": log.id}})
+
+
+# ---- 연합트윈 Digital Brain 실데이터 ----------------------------------------
+
+class FeditObjectListView(APIView):
+    """데이터가 들어오는 연합객체 목록과 각 객체의 측정값 이름."""
+
+    def get(self, request):
+        refresh = request.query_params.get("refresh") in ("1", "true")
+        items = brain.object_catalog(refresh=refresh)
+        return Response({"data": items, "meta": {"count": len(items), "brain": brain.base_url()}})
+
+
+class FeditObjectLatestView(APIView):
+    """연합객체 최신 데이터를 평평한 이름(`pm10`, `temp` …)으로 돌려준다."""
+
+    def get(self, request):
+        fdt = request.query_params.get("fdt", "").strip()
+        fdo = request.query_params.get("fdo", "").strip()
+        if not fdt or not fdo:
+            return Response({"error": "fdt, fdo 는 필수입니다."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            return Response({"data": brain.latest(fdt, fdo)})
+        except brain.BrainError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+
+class FeditObjectSeriesView(APIView):
+    """연합객체 속성 하나의 최근 값과 최솟값·최댓값·평균."""
+
+    def get(self, request):
+        fdt = request.query_params.get("fdt", "").strip()
+        fdo = request.query_params.get("fdo", "").strip()
+        prop = request.query_params.get("property", "").strip()
+        if not fdt or not fdo or not prop:
+            return Response({"error": "fdt, fdo, property 는 필수입니다."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            count = int(request.query_params.get("count", 24))
+        except ValueError:
+            count = 24
+        try:
+            return Response({"data": brain.series(fdt, fdo, prop, count)})
+        except brain.BrainError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+
+class FeditMetadataView(APIView):
+    """2세부 메타데이터 저장소의 단일 트윈 메타정보 요약(디지털 트윈·센서·제어기·시뮬레이션)."""
+
+    def get(self, request):
+        if not fedit_client.is_configured():
+            return Response({"data": {}, "meta": {"configured": False}})
+        data = {}
+        for resource, label in fedit_client.RESOURCES.items():
+            items = [fedit_client.summarize(x) for x in fedit_client.list_resource(resource)]
+            data[resource] = {"label": label, "count": len(items), "items": items}
+        return Response({"data": data, "meta": {"configured": True, "source": fedit_client.base_url()}})
+
+
+class FeditMetadataResourceView(APIView):
+    """2세부 메타데이터 리소스 조회(노드용).
+
+    ?id= (digitalTwinId / simulationId 별칭) 로 한 건, ?q= (검색어 별칭) 로 이름·설명·키워드 검색.
+    둘 다 없으면 전체 목록. 응답에는 목록과 함께 첫 항목의 필드를 평평하게 넣어
+    노드 출력(name, description …)으로 바로 쓸 수 있게 한다.
+    """
+
+    ID_ALIASES = ("id", "digitalTwinId", "simulationId")
+    QUERY_ALIASES = ("q", "검색어", "keyword")
+
+    def get(self, request, resource: str):
+        if resource not in fedit_client.RESOURCES:
+            return Response({"error": f"지원하지 않는 메타데이터 리소스입니다: {resource}"}, status=status.HTTP_404_NOT_FOUND)
+        if not fedit_client.is_configured():
+            return Response({"error": "메타데이터 저장소 토큰(FEDIT_META_TOKEN)이 설정되지 않았습니다."},
+                            status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        wanted_id = next((request.query_params.get(k) for k in self.ID_ALIASES if request.query_params.get(k)), "")
+        query = next((request.query_params.get(k) for k in self.QUERY_ALIASES if request.query_params.get(k)), "")
+        if wanted_id and not query:
+            # 한 건은 저장소의 단건 조회(/resource/{분류}/{id})로 받는다. 연계 항목 수까지 나온다.
+            one = fedit_client.get_resource(resource, wanted_id)
+            if one is not None:
+                item = fedit_client.detail_summary(one)
+                return Response({"data": {"count": 1, "names": [item["name"]], "items": [item], **item}})
+        items = [fedit_client.summarize(x) for x in fedit_client.list_resource(resource)]
+        if wanted_id:
+            items = [i for i in items if i["id"] == wanted_id or i["digitalTwinId"] == wanted_id]
+        if query:
+            needle = query.lower()
+            items = [i for i in items if needle in " ".join(
+                [i["name"], i["description"], " ".join(map(str, i["keywords"] or []))]).lower()]
+        first = items[0] if items else {}
+        data = {
+            "count": len(items),
+            "names": [i["name"] for i in items],
+            "items": items,
+            **{k: first.get(k) for k in ("id", "name", "description", "keywords", "owner", "accessUrl", "digitalTwinId")},
+        }
+        return Response({"data": data})
+
+
+# ---- 트윈 노드(메타정보·속성) -------------------------------------------------
+
+class TwinListView(APIView):
+    """노드로 쓸 수 있는 트윈 목록(단일 트윈 디지털객체 + 연합 객체)."""
+
+    def get(self, request):
+        entries, _ = twins.catalog(refresh=request.query_params.get("refresh") in ("1", "true"))
+        return Response({"data": entries, "meta": {"count": len(entries), "connector": twins.connector_url(),
+                                                   "brain": brain.base_url()}})
+
+
+class TwinDetailView(APIView):
+    """트윈 메타정보와 속성 목록(이름·타입·지금 값)."""
+
+    def get(self, request, kind: str, a: str, b: str):
+        try:
+            return Response({"data": twins.detail(f"{kind}:{a}:{b}")})
+        except (twins.TwinError, brain.BrainError) as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+
+class TwinLatestView(APIView):
+    """트윈 최신값(평평한 이름). 트윈 노드를 실행하면 이 경로가 호출된다."""
+
+    def get(self, request, kind: str, a: str, b: str):
+        try:
+            return Response({"data": twins.latest(f"{kind}:{a}:{b}")})
+        except (twins.TwinError, brain.BrainError) as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+
+class TwinLinkageView(APIView):
+    """로직이 연계한 단일 트윈 목록.
+
+    ?refs=do:…,fdo:…,meta:… (쉼표 구분) 또는 ?diagram={서비스 로직 ID} (저장된 다이어그램에서 뽑는다).
+    """
+
+    def get(self, request):
+        uid = (request.query_params.get("diagram") or "").strip()
+        if uid:
+            from bpmns.models import BpmnDiagram
+
+            diagram = BpmnDiagram.objects.filter(uid=uid).first()
+            if diagram is None:
+                return Response({"error": f"서비스 로직을 찾을 수 없습니다: {uid}"}, status=status.HTTP_404_NOT_FOUND)
+            refs, labels = twins.refs_in_xml(diagram.xml, with_labels=True)
+            return Response({"data": {**twins.linkage(refs, labels), "diagram": uid}})
+        refs = [r for r in (request.query_params.get("refs") or "").split(",") if r.strip()]
+        try:  # labels: {"참조": "노드 이름"} (편집기가 연계 노드 이름을 함께 보낸다)
+            labels = json.loads(request.query_params.get("labels") or "{}")
+        except ValueError:
+            labels = {}
+        if not isinstance(labels, dict):
+            labels = {}
+        labels = {str(k): str(v)[:120] for k, v in labels.items()}
+        return Response({"data": twins.linkage(refs, labels)})

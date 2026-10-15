@@ -2,6 +2,9 @@
   <div class="h-full w-full flex">
     <div ref="container" class="vue-bpmn-diagram-container"></div>
     <aside class="bpmn-sidebar">
+      <div v-if="!editable" class="readonly-banner">
+        보기 전용입니다. 실행·시뮬레이션·API 확인은 그대로 할 수 있고, 수정하려면 편집 토큰이 포함된 주소(<code>?token=…</code>)로 접속하세요.
+      </div>
       <section class="bpmn-tools">
         <header class="bpmn-tools__header">
           <span class="bpmn-tools__title">도구모음</span>
@@ -64,12 +67,20 @@
         </div>
       </section>
 
+      <nav class="bpmn-tabs" role="tablist" aria-label="사이드바">
+        <button
+          v-for="tab in sidebarTabs"
+          :key="tab.id"
+          type="button"
+          role="tab"
+          :aria-selected="activeTab === tab.id"
+          :class="['bpmn-tab', { 'bpmn-tab--active': activeTab === tab.id }]"
+          @click="setTab(tab.id)"
+        >{{ tab.label }}</button>
+      </nav>
+
       <section class="bpmn-accordion">
-        <button class="bpmn-accordion-header" type="button" @click="toggleAccordion('assistant')">
-          <span>서비스로직 생성 AI</span>
-          <span :class="['bpmn-accordion-icon', { 'bpmn-accordion-icon--open': accordionOpen.assistant }]">▼</span>
-        </button>
-        <div class="bpmn-accordion-body" v-show="accordionOpen.assistant">
+        <div class="bpmn-accordion-body" v-show="activeTab === 'ai'">
           <div class="copilot-chat">
             <div class="copilot-chat__toolbar">
               <div class="copilot-toolbar-left">
@@ -207,7 +218,7 @@
                 <button
                   class="copilot-composer-send"
                   type="submit"
-                  :disabled="!copilotPrompt.trim() || aiBusy"
+                  :disabled="!copilotPrompt.trim() || aiBusy || !editable"
                 >
                   {{ aiBusy ? '전송 중...' : '전송' }}
                 </button>
@@ -218,11 +229,7 @@
       </section>
 
       <section class="bpmn-accordion">
-        <button class="bpmn-accordion-header" type="button" @click="toggleAccordion('catalog')">
-          <span>노드 카탈로그</span>
-          <span :class="['bpmn-accordion-icon', { 'bpmn-accordion-icon--open': accordionOpen.catalog }]">▼</span>
-        </button>
-        <div class="bpmn-accordion-body" v-show="accordionOpen.catalog">
+        <div class="bpmn-accordion-body" v-show="activeTab === 'catalog'">
           <p class="bpmn-ai-helper">
             연합트윈 시뮬레이터와 연계 서비스를 검색해 다이어그램에 추가합니다.
           </p>
@@ -232,6 +239,7 @@
             type="search"
             placeholder="이름·기관·설명으로 검색 (예: 혼잡, 미세먼지)"
           />
+          <p v-if="catalogNotice" class="catalog-notice" role="status">{{ catalogNotice }}</p>
           <p v-if="catalogLoading" class="catalog-empty">불러오는 중...</p>
           <p v-else-if="!filteredCatalog.length" class="catalog-empty">검색 결과가 없습니다.</p>
           <div v-else class="catalog-list">
@@ -245,6 +253,7 @@
                 :title="item.description"
                 @click="addCatalogNode(item)"
               >
+                <span :class="['catalog-item__icon', item.icon || 'bpmn-icon-task']" aria-hidden="true"></span>
                 <span class="catalog-item__label">{{ item.label }}</span>
                 <span v-if="item.payload && item.payload.provider" class="catalog-item__meta">
                   {{ item.payload.provider }}
@@ -256,11 +265,187 @@
       </section>
 
       <section class="bpmn-accordion">
-        <button class="bpmn-accordion-header" type="button" @click="toggleAccordion('layout')">
-          <span>레이아웃 최적화</span>
-          <span :class="['bpmn-accordion-icon', { 'bpmn-accordion-icon--open': accordionOpen.layout }]">▼</span>
-        </button>
-        <div class="bpmn-accordion-body" v-show="accordionOpen.layout">
+        <div class="bpmn-accordion-body" v-show="activeTab === 'run'">
+          <p class="bpmn-ai-helper">
+            서버에서 다이어그램을 순서대로 실행합니다. 노드 호출 결과가 다음 노드의 입력으로 넘어가고
+            분기 조건이 평가되며, 노드별 입출력이 기록됩니다.
+          </p>
+          <label class="run-inputs">
+            <span class="run-inputs__label">실행 입력값 (JSON, 선택)</span>
+            <textarea
+              v-model="runInputsText"
+              class="run-inputs__textarea"
+              rows="3"
+              placeholder='{"지역코드": "47111", "기온": 24}'
+            />
+          </label>
+          <p v-if="!editable" class="bpmn-ai-helper">보기 전용에서는 저장된 로직을 실행합니다.</p>
+          <p v-if="runError" class="run-error">{{ runError }}</p>
+          <div class="bpmn-ai-actions">
+            <button
+              class="bpmn-btn bpmn-btn--primary"
+              type="button"
+              @click="executeLogic"
+              :disabled="runBusy"
+            >
+              {{ runBusy ? '실행 중...' : '서버에서 실행' }}
+            </button>
+          </div>
+
+          <div v-if="currentRun" class="run-result">
+            <div class="run-result__head">
+              <span :class="['run-badge', `run-badge--${currentRun.status}`]">{{ runStatusLabel(currentRun.status) }}</span>
+              <button type="button" class="publish-copy" @click="markRunSteps(true)" title="실행 순서대로 다시 보기">▶ 재생</button>
+              <span class="run-result__meta">
+                #{{ currentRun.id }}
+                <template v-if="currentRun.durationMs != null"> · {{ formatDuration(currentRun.durationMs) }}</template>
+              </span>
+            </div>
+            <p v-if="currentRun.error" class="run-error">{{ currentRun.error }}</p>
+            <ol class="run-steps">
+              <li
+                v-for="step in currentRun.steps || []"
+                :key="step.seq"
+                :class="['run-step', `run-step--${step.status}`]"
+              >
+                <details>
+                  <summary @click="focusElement(step.nodeId)">
+                    <span class="run-step__seq">{{ step.seq }}</span>
+                    <span class="run-step__name">{{ step.nodeName || step.nodeId }}</span>
+                    <span class="run-step__meta">{{ formatDuration(step.durationMs) }}</span>
+                  </summary>
+                  <div class="run-step__body">
+                    <div v-if="step.request && step.request.url" class="run-step__row">
+                      <b>호출</b> {{ step.request.method }} {{ step.request.url }}
+                      <template v-if="step.attempts > 1"> ({{ step.attempts }}회 시도)</template>
+                    </div>
+                    <div v-if="hasKeys(step.inputs)" class="run-step__row">
+                      <b>입력</b><pre>{{ prettyJson(step.inputs) }}</pre>
+                    </div>
+                    <div v-if="hasKeys(step.outputs)" class="run-step__row">
+                      <b>출력</b><pre>{{ prettyJson(step.outputs) }}</pre>
+                    </div>
+                    <div v-if="step.error" class="run-step__row run-error">{{ step.error }}</div>
+                    <div v-for="(warning, index) in step.warnings" :key="index" class="run-step__row run-warning">
+                      {{ warning }}
+                    </div>
+                  </div>
+                </details>
+              </li>
+            </ol>
+          </div>
+
+          <div v-if="runHistory.length" class="run-history">
+            <div class="catalog-group__label">최근 실행</div>
+            <button
+              v-for="run in runHistory"
+              :key="run.id"
+              type="button"
+              class="catalog-item"
+              @click="loadRun(run.id)"
+            >
+              <span class="catalog-item__label">#{{ run.id }} {{ formatTime(run.createdAt) }}</span>
+              <span :class="['run-badge', `run-badge--${run.status}`]">{{ runStatusLabel(run.status) }}</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="bpmn-accordion">
+        <div class="bpmn-accordion-body" v-show="activeTab === 'api'">
+          <div class="linkage">
+            <div class="linkage__head">
+              <span class="linkage__title">연계 트윈 현황</span>
+              <span :class="['linkage__count', { 'linkage__count--ok': linkage && linkage.count >= 3 }]">
+                {{ linkage ? `${linkage.count}종` : '…' }}
+              </span>
+            </div>
+            <p class="linkage__goal">이 로직이 메타정보를 연계한 단일 트윈 수 (계획서 목표 3종 이상)</p>
+            <p v-if="linkageError" class="run-error">{{ linkageError }}</p>
+            <ul v-if="linkage && linkage.twins.length" class="linkage__list">
+              <li v-for="twin in linkage.twins" :key="twin.twinId">
+                <b>{{ twin.twinName || twin.twinId }}</b>
+                <span class="linkage__owner">{{ twin.owner }}</span>
+                <div class="linkage__via">{{ twin.via.join(' · ') }}</div>
+                <div v-if="twin.sources && twin.sources.length" class="linkage__source">메타정보 출처: {{ twin.sources.join(', ') }}</div>
+              </li>
+            </ul>
+            <p v-else-if="linkage" class="bpmn-ai-helper">아직 연계한 트윈 노드가 없습니다. 카탈로그의 '단일 트윈'·'연합 객체'·'디지털트윈 메타데이터 조회'에서 노드를 추가하세요.</p>
+          </div>
+
+          <p class="bpmn-ai-helper">
+            저장된 로직은 아래 주소로 호출할 수 있습니다. 연합트윈에 시뮬레이션으로 등록하면
+            Digital Brain 이 연합객체 데이터를 주기적으로 넣어 이 로직을 실행하고 결과를 저장합니다.
+          </p>
+          <p v-if="publishError" class="run-error">{{ publishError }}</p>
+          <template v-if="logicInfo">
+            <div class="publish-row">
+              <span class="publish-label">호출 주소</span>
+              <code class="publish-code">POST {{ logicInfo.invokeUrl }}</code>
+              <button type="button" class="publish-copy" @click="copyText(logicInfo.invokeUrl)">복사</button>
+            </div>
+            <div class="publish-row">
+              <span class="publish-label">API 문서</span>
+              <a :href="logicInfo.specUrl.replace(/spec$/, 'docs')" target="_blank" rel="noopener" class="publish-link">API 문서(Swagger)</a>
+              <a :href="logicInfo.specUrl" target="_blank" rel="noopener" class="publish-link">OpenAPI JSON</a>
+            </div>
+            <div class="publish-row">
+              <span class="publish-label">입력</span>
+              <span>{{ logicInfo.inputs.length ? logicInfo.inputs.join(', ') : '없음 (연합객체 데이터·노드 값으로 동작)' }}</span>
+            </div>
+            <div class="publish-row">
+              <span class="publish-label">결과</span>
+              <span>{{ logicInfo.outputs.length ? logicInfo.outputs.join(', ') : '전체 값 (종료 이벤트에 입력을 정의하면 결과로 반환)' }}</span>
+            </div>
+
+            <div class="catalog-group__label">연합트윈 시뮬레이션 등록</div>
+            <p v-if="!feditStatus || !feditStatus.registerEnabled" class="bpmn-ai-helper">
+              연합트윈 공용 서버에 기록을 남기는 기능이라 꺼져 있습니다(서버 설정으로만 켤 수 있음).
+            </p>
+            <template v-if="feditStatus && feditStatus.registerEnabled">
+            <div v-if="feditStatus && feditStatus.registration" class="publish-registered">
+              등록됨: {{ feditStatus.registration.fdt }} · {{ feditStatus.registration.subjects.join(', ') }}
+              (주기 {{ feditStatus.registration.timeStep }})
+              <span v-if="feditStatus.remote && feditStatus.remote.length"> · Brain 확인됨</span>
+            </div>
+            <label class="publish-field">
+              <span>연합트윈</span>
+              <select v-model="feditForm.fdt" class="catalog-search">
+                <option value="" disabled>선택하세요</option>
+                <option v-for="twin in feditTwins" :key="twin.id" :value="twin.id">{{ twin.name }}</option>
+              </select>
+            </label>
+            <div v-if="feditForm.fdt" class="publish-objects">
+              <label v-for="obj in feditObjectsOf(feditForm.fdt)" :key="obj.fdo_id" class="publish-object">
+                <input type="checkbox" :value="obj.fdo_id" v-model="feditForm.subjects" />
+                <span>{{ obj.fdo_name }}</span>
+              </label>
+            </div>
+            <label class="publish-field">
+              <span>수집 주기(time_step)</span>
+              <input v-model.number="feditForm.timeStep" type="number" min="1" class="catalog-search" />
+            </label>
+            <div class="bpmn-ai-actions">
+              <button
+                class="bpmn-btn bpmn-btn--primary"
+                type="button"
+                :disabled="publishBusy || !editable || !feditForm.fdt || !feditForm.subjects.length"
+                @click="registerFedit"
+              >
+                {{ publishBusy ? '등록 중...' : '연합트윈에 등록' }}
+              </button>
+            </div>
+            </template>
+          </template>
+          <div class="bpmn-ai-actions">
+            <button class="bpmn-btn" type="button" @click="loadLogicInfo">새로고침</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="bpmn-accordion">
+        <h3 class="bpmn-section-title" v-show="activeTab === 'ai'">레이아웃 최적화</h3>
+        <div class="bpmn-accordion-body" v-show="activeTab === 'ai'">
           <p class="bpmn-ai-helper">
             배치 전략을 선택하면 현재 다이어그램을 분석해 자동으로 정리합니다.
           </p>
@@ -297,7 +482,10 @@
         </div>
       </section>
 
-      <div id="properties" class="bpmn-properties"></div>
+      <div v-show="activeTab === 'props'" class="bpmn-props-wrap">
+        <p v-if="!selectedElementName" class="bpmn-ai-helper bpmn-props-hint">캔버스에서 노드를 클릭하면 이름·실행 설정·입력 매핑·출력을 여기서 편집합니다.</p>
+        <div id="properties" class="bpmn-properties"></div>
+      </div>
     </aside>
   </div>
 </template>
@@ -310,11 +498,12 @@ import {BpmnPropertiesPanelModule, BpmnPropertiesProviderModule} from '@/lib/bpm
 import TokenSimulationModule from '@/lib/bpmn-js-token-simulation';
 import BpmnColorPickerModule from '@/lib/bpmn-js-color-picker';
 import BpmnPipelinePropertiesModule, {PipelineModdleDescriptor, GetPipelineParameters} from '@/lib/bpmn-js-pipeline-properties';
+import { createCatalogExtension } from '@/lib/bpmn-js-pipeline-properties/util';
+import { linkageRefOf } from '@/lib/bpmn-js-pipeline-properties/twin';
 import BpmnAddExporter from '@/lib/bpmn-js-add-exporter';
 import CatalogPaletteModule from '@/lib/bpmn-js-catalog-palette';
 import { is, getBusinessObject } from 'bpmn-js/lib/util/ModelUtil';
 import ApiService from "@/common/api.service";
-import parse from 'url-parse';
 import { layoutProcess } from 'bpmn-auto-layout';
 
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || 'alpha';
@@ -366,12 +555,52 @@ export default {
       copilotPrompt: "",
       copilotMessages: [],
       aiBusy: false,
+      activeTab: "ai",
+      selectedElementName: "",
+      sidebarTabs: [
+        { id: "props", label: "속성" },
+        { id: "ai", label: "AI 생성" },
+        { id: "catalog", label: "카탈로그" },
+        { id: "run", label: "실행" },
+        { id: "api", label: "API" },
+      ],
       accordionOpen: {
         assistant: true,
         catalog: false,
+        run: false,
+        publish: false,
         layout: false,
       },
+      // 편집 권한. 서버에 편집 토큰이 설정돼 있고 토큰이 없으면 보기 전용이다.
+      editable: true,
+      editTokenRequired: false,
+      logicInfo: null,
+      linkage: null,
+      linkageError: "",
+      feditStatus: null,
+      feditObjects: [],
+      feditForm: { fdt: "", subjects: [], timeStep: 1 },
+      publishBusy: false,
+      publishError: "",
+      runInputsText: "",
+      runBusy: false,
+      runError: "",
+      currentRun: null,
+      runHistory: [],
+      runPollTimer: null,
+      runMarkedIds: [],
+      simToken: null,
+      simSteps: null,
+      simPending: false,
+      simError: "",
+      simSeen: {},
+      simWaiting: {},
+      simMarked: [],
+      replayTimer: null,
       catalogItems: [],
+      catalogNotice: "",
+      catalogNoticeTimer: null,
+      catalogAddCount: 0,
       catalogQuery: "",
       catalogLoading: false,
       quickPrompts: [
@@ -419,10 +648,18 @@ export default {
     this.prepareCondensedPrompts();
     this.fetchLlmOptions();
     this.fetchCatalog();
+    this.fetchRunHistory();
+    this.checkEditPermission();
 
     const PipelineModule = {
       __init__: [
         [ 'eventBus', 'bpmnjs', 'toggleMode', function(eventBus, bpmnjs, toggleMode) {
+          eventBus.on('commandStack.changed', () => {
+            if (self.activeTab === 'api') {
+              clearTimeout(self.linkageTimer);
+              self.linkageTimer = setTimeout(() => self.loadLinkage(), 600);
+            }
+          });
           if (self.persistent) {
             eventBus.on('commandStack.changed', function() {
               // queue debounced save to backend
@@ -432,53 +669,28 @@ export default {
           eventBus.on('diagram.init', 500, () => {
             //toggleMode.toggleMode(true);
           });
-          eventBus.on('tokenSimulation.playSimulation', (event) => {
-            console.log("tokenSimulation.playSimulation", event);
-            self.process = null;
-            self.processUrl = null;
+          // 캔버스에서 노드를 누르면 속성 탭을 연다(빈 바탕을 누르면 그대로 둔다).
+          eventBus.on('element.click', (event) => {
+            const element = event.element;
+            if (!element || !element.parent || element.type === 'label') return;
+            self.selectedElementName = (element.businessObject && element.businessObject.name) || element.id;
+            self.activeTab = 'props';
           });
-          eventBus.on('tokenSimulation.resetSimulation', (event) => {
-            console.log("tokenSimulation.resetSimulation", event);
+          // 시뮬레이션 모드: 켜는 순간 서버가 현재 다이어그램을 실데이터로 한 번 실행하고,
+          // 토큰이 노드에 들어갈 때마다 그 노드에서 실제로 오간 값을 꼬리표로 보여준다.
+          // (예전에는 브라우저가 노드 URL 을 직접 호출했는데, 서버의 외부 쓰기 차단을
+          //  우회할 수 있어 없앴다. 실제 호출은 서버 실행기만 한다.)
+          eventBus.on('tokenSimulation.toggleMode', (event) => {
+            if (event.active) self.startSimulationRun();
+            else self.clearSimulationRun();
+          });
+          eventBus.on('tokenSimulation.resetSimulation', () => {
+            self.clearSimulationBadges();
           });
           eventBus.on('tokenSimulation.simulator.trace', (event) => {
-            const { action, scope, element } = event;
-            const parameters = GetPipelineParameters(element);
-            const { url, businessObject } = parameters;
-
-            console.log("tokenSimulation.simulator.trace", action, event);
-            if(action != 'signal' && action != 'enter') {
-              return;
-            }
-
-            if(is(element, 'bpmn:Process')) {
-              self.process = element;
-              return;
-            }
-            if(is(element, 'bpmn:StartEvent')) {
-              self.processUrl = url;
-            }
-
-            if(url) {
-              var endpoint = url;
-              var pat = /^https?:\/\//i;
-              if (!pat.test(url))
-              {
-                console.log(self.processUrl, parse(self.processUrl, true));
-                console.log(url, parse(url, true));
-                var a = parse(self.processUrl, true);
-                var b = parse(url, true);
-                a.pathname = b.pathname;
-                a.query = {...a.query, ...b.query}
-                endpoint = a.toString();
-              }
-              console.log("url", endpoint, businessObject);
-              const object = {
-                id: businessObject['id'],
-                type: businessObject['$type'],
-                url,
-              }
-              axios.post(endpoint, { uid: scope.parent ? scope.parent.id : scope.id, did: self.id, object });
-            }
+            const { action, element } = event;
+            if (action !== 'enter' || !element || is(element, 'bpmn:Process')) return;
+            self.showSimulationValue(element);
           });
         } ]
       ],
@@ -551,6 +763,7 @@ export default {
       }
 
       self.bpmn.get('canvas').zoom('fit-viewport');
+      self.keepClearOfPalette();
 
       // if XML was imported via our custom menu, persist it once
       if (self.persistent && self.importing && self.diagram && self.diagram.id) {
@@ -609,6 +822,7 @@ export default {
   },
 
   beforeDestroy: function() {
+    this.stopRunPolling();
     if (this.searchKeyHandler) {
       window.removeEventListener('keydown', this.searchKeyHandler);
       this.searchKeyHandler = null;
@@ -638,6 +852,13 @@ export default {
   },
 
   computed: {
+    feditTwins() {
+      const seen = new Map();
+      this.feditObjects.forEach((obj) => {
+        if (!seen.has(obj.fdt_id)) seen.set(obj.fdt_id, { id: obj.fdt_id, name: obj.fdt_name });
+      });
+      return [...seen.values()];
+    },
     // 카탈로그를 검색어로 거르고 분류별로 묶어 보여준다.
     filteredCatalog() {
       const query = this.catalogQuery.trim().toLowerCase();
@@ -699,6 +920,405 @@ export default {
       }
     },
 
+    async checkEditPermission() {
+      try {
+        const resp = await ApiService.get("/auth/edit");
+        const info = resp.data.data || {};
+        this.editTokenRequired = !!info.required;
+        this.editable = !!info.editable;
+      } catch (e) {
+        this.editable = true; // 확인하지 못하면 막지 않고 서버 응답(403)에 맡긴다
+      }
+    },
+
+    // ---- 로직 API · 연합트윈 연계 -----------------------------------------
+
+    async loadLogicInfo() {
+      this.publishError = "";
+      try {
+        // 호출은 저장된 XML 로 실행되므로 편집 내용을 먼저 저장한다.
+        await this.saveDiagram();
+      } catch (e) {
+        // 저장 실패는 아래 조회 결과로 드러나므로 여기서는 넘어간다.
+      }
+      try {
+        const [logics, status, objects] = await Promise.all([
+          ApiService.get("/logics"),
+          ApiService.get(`/logics/${this.id}/fedit`),
+          ApiService.get("/fedit/objects"),
+        ]);
+        this.logicInfo = (logics.data.data || []).find((item) => item.uid === this.id) || null;
+        this.feditStatus = status.data.data;
+        this.feditObjects = objects.data.data || [];
+        if (!this.logicInfo) {
+          this.publishError = "저장된 로직을 찾지 못했습니다. 시작 이벤트가 있는지 확인하세요.";
+        }
+        const reg = this.feditStatus && this.feditStatus.registration;
+        if (reg) {
+          this.feditForm = { fdt: reg.fdt, subjects: [...reg.subjects], timeStep: reg.timeStep };
+        }
+      } catch (error) {
+        this.publishError = "로직 정보를 불러오지 못했습니다.";
+      }
+    },
+
+    feditObjectsOf(fdt) {
+      return this.feditObjects.filter((obj) => obj.fdt_id === fdt);
+    },
+
+    async registerFedit() {
+      const twin = this.feditTwins.find((t) => t.id === this.feditForm.fdt);
+      const ok = window.confirm(
+        `연합트윈 '${twin ? twin.name : this.feditForm.fdt}' 에 이 로직을 시뮬레이션으로 등록합니다.\n` +
+        "공용 Digital Brain 에 기록이 남습니다. 진행할까요?"
+      );
+      if (!ok) return;
+      this.publishBusy = true;
+      this.publishError = "";
+      try {
+        await ApiService.post(`/logics/${this.id}/fedit`, { ...this.feditForm });
+        await this.loadLogicInfo();
+      } catch (error) {
+        const data = error && error.response && error.response.data;
+        this.publishError = (data && data.error) || "등록에 실패했습니다.";
+      } finally {
+        this.publishBusy = false;
+      }
+    },
+
+    copyText(text) {
+      if (navigator.clipboard) navigator.clipboard.writeText(text);
+    },
+
+    // ---- 시뮬레이션 모드 실데이터 표시 ------------------------------------
+
+    /** 시뮬레이션 모드를 켜면 서버에서 실데이터로 한 번 실행해 둔다. */
+    async startSimulationRun() {
+      this.clearSimulationRun();
+      const token = (this.simToken = Symbol('sim'));
+      let inputs = {};
+      try { inputs = this.runInputsText.trim() ? JSON.parse(this.runInputsText) : {}; } catch (e) { inputs = {}; }
+      this.simPending = true;
+      try {
+        let run;
+        if (this.editable) {
+          const { xml } = await this.bpmn.saveXML();
+          run = (await ApiService.post('/pipelines/execute', { xml, inputs, wait: true })).data.data;
+        } else {
+          const runId = (await ApiService.post(`/logics/${this.id}/invoke`, inputs)).data.data.runId;
+          run = (await ApiService.get(`/pipelines/runs/${runId}`)).data.data;
+        }
+        if (token !== this.simToken) return; // 그 사이 모드를 끄거나 다시 켬
+        this.simSteps = {};
+        (run.steps || []).forEach((step) => {
+          (this.simSteps[step.nodeId] = this.simSteps[step.nodeId] || []).push(step);
+        });
+        this.currentRun = run;
+        this.syncSimulationGateways(run);
+        // 결과보다 먼저 도착한 토큰의 '조회 중' 꼬리표를 실제 값으로 바꾼다.
+        Object.keys(this.simWaiting).forEach((id) => this.showSimulationValue(this.bpmn.get('elementRegistry').get(id)));
+      } catch (error) {
+        const data = error && error.response && error.response.data;
+        this.simError = (data && (data.error || (data.data && data.data.error))) || '실데이터 실행에 실패했습니다.';
+      } finally {
+        if (token === this.simToken) this.simPending = false;
+      }
+    },
+
+    /** 서버 실행이 고른 흐름으로 배타 게이트웨이의 토큰 방향을 맞춘다. */
+    syncSimulationGateways(run) {
+      try {
+        const registry = this.bpmn.get('elementRegistry');
+        const simulator = this.bpmn.get('simulator');
+        const settings = this.bpmn.get('exclusiveGatewaySettings');
+        (run.steps || []).forEach((step) => {
+          if (step.nodeType !== 'exclusiveGateway' || !(step.flows || []).length) return;
+          const gateway = registry.get(step.nodeId);
+          const wanted = registry.get(step.flows[0]);
+          if (!gateway || !wanted) return;
+          for (let i = 0; i < gateway.outgoing.length + 1; i += 1) {
+            const active = simulator.getConfig(gateway).activeOutgoing;
+            if (active && active.id === wanted.id) break;
+            settings.setSequenceFlow(gateway); // 다음 흐름으로 돌리며 색도 함께 바뀐다
+          }
+        });
+      } catch (e) {
+        // 게이트웨이 맞추기는 보조 기능이라 실패해도 시뮬레이션은 계속된다.
+      }
+    },
+
+    showSimulationValue(element) {
+      if (!element || !this.bpmn) return;
+      const overlays = this.bpmn.get('overlays');
+      const canvas = this.bpmn.get('canvas');
+      overlays.remove({ element: element.id, type: 'sim-value' });
+      const steps = this.simSteps && this.simSteps[element.id];
+      let text = '';
+      let status = 'succeeded';
+      if (steps && steps.length) {
+        const step = steps[Math.min((this.simSeen[element.id] || 0), steps.length - 1)];
+        this.simSeen[element.id] = (this.simSeen[element.id] || 0) + 1;
+        delete this.simWaiting[element.id];
+        text = this.stepBadge(step);
+        status = step.status;
+        canvas.addMarker(element.id, `run-marker--${step.status}`);
+        this.simMarked.push(element.id);
+      } else if (this.simPending) {
+        this.simWaiting[element.id] = true;
+        text = '조회 중…';
+        status = 'pending';
+      }
+      if (!text) return;
+      const badge = document.createElement('div');
+      badge.className = `run-value run-value--${status}`;
+      badge.textContent = text;
+      badge.title = text;
+      overlays.add(element.id, 'sim-value', { position: { bottom: -6, left: 0 }, html: badge });
+    },
+
+    clearSimulationBadges() {
+      if (!this.bpmn) return;
+      this.bpmn.get('overlays').remove({ type: 'sim-value' });
+      const canvas = this.bpmn.get('canvas');
+      const registry = this.bpmn.get('elementRegistry');
+      this.simMarked.forEach((id) => {
+        if (registry.get(id)) ['run-marker--succeeded', 'run-marker--failed', 'run-marker--skipped'].forEach((m) => canvas.removeMarker(id, m));
+      });
+      this.simMarked = [];
+      this.simSeen = {};
+      this.simWaiting = {};
+    },
+
+    clearSimulationRun() {
+      this.simToken = null;
+      this.simSteps = null;
+      this.simPending = false;
+      this.simError = '';
+      this.clearSimulationBadges();
+    },
+
+    // ---- 로직 실행 ---------------------------------------------------------
+
+    async executeLogic() {
+      this.runError = "";
+      let inputs = {};
+      if (this.runInputsText.trim()) {
+        try {
+          inputs = JSON.parse(this.runInputsText);
+        } catch (e) {
+          this.runError = "입력값이 올바른 JSON 이 아닙니다.";
+          return;
+        }
+        if (!inputs || typeof inputs !== "object" || Array.isArray(inputs)) {
+          this.runError = "입력값은 { } 형태의 객체여야 합니다.";
+          return;
+        }
+      }
+
+      this.runBusy = true;
+      this.stopRunPolling();
+      try {
+        if (!this.editable) {
+          // 보기 전용: 저장된 로직을 공개 로직 API 로 실행하고 기록을 불러와 재생한다.
+          const resp = await ApiService.post(`/logics/${this.id}/invoke`, inputs);
+          const runId = resp.data.data.runId;
+          this.runBusy = false;
+          await this.loadRun(runId, true);
+          this.fetchRunHistory();
+          return;
+        }
+        // 저장 전 편집 내용까지 실행되도록 현재 XML 을 함께 보낸다.
+        const { xml } = await this.bpmn.saveXML();
+        const resp = await ApiService.post("/pipelines/execute", { uid: this.id, xml, inputs });
+        this.currentRun = resp.data.data;
+        this.markRunSteps();
+        this.pollRun(this.currentRun.id);
+      } catch (error) {
+        const data = error && error.response && error.response.data;
+        const runId = data && data.data && data.data.runId;
+        if (runId) {
+          await this.loadRun(runId, true); // 실패한 실행도 어디서 멈췄는지 보여준다
+        }
+        this.runError = (data && (data.error || (data.data && data.data.error))) || "실행 요청에 실패했습니다.";
+        this.runBusy = false;
+      }
+    },
+
+    pollRun(runId) {
+      const tick = async () => {
+        try {
+          const resp = await ApiService.get(`/pipelines/runs/${runId}`);
+          this.currentRun = resp.data.data;
+          this.markRunSteps();
+        } catch (e) {
+          this.runError = "실행 상태를 가져오지 못했습니다.";
+          this.runBusy = false;
+          return;
+        }
+        if (["succeeded", "failed"].includes(this.currentRun.status)) {
+          this.runBusy = false;
+          this.runPollTimer = null;
+          this.fetchRunHistory();
+          this.markRunSteps(true); // 끝나면 실행 순서대로 다시 보여준다
+          return;
+        }
+        this.runPollTimer = setTimeout(tick, 1000);
+      };
+      tick();
+    },
+
+    stopRunPolling() {
+      if (this.runPollTimer) {
+        clearTimeout(this.runPollTimer);
+        this.runPollTimer = null;
+      }
+    },
+
+    async loadRun(runId, animate = false) {
+      this.stopRunPolling();
+      this.runBusy = false;
+      try {
+        const resp = await ApiService.get(`/pipelines/runs/${runId}`);
+        this.currentRun = resp.data.data;
+        this.markRunSteps(animate);
+        if (!["succeeded", "failed"].includes(this.currentRun.status)) {
+          this.runBusy = true;
+          this.pollRun(runId);
+        }
+      } catch (e) {
+        this.runError = "실행 기록을 가져오지 못했습니다.";
+      }
+    },
+
+    async fetchRunHistory() {
+      if (!this.id) return;
+      try {
+        const resp = await ApiService.query("/pipelines/runs", { params: { diagram: this.id, limit: 10 } });
+        this.runHistory = resp.data.data || [];
+      } catch (e) {
+        this.runHistory = [];
+      }
+    },
+
+    /** 실행 결과를 캔버스 노드 색으로 표시한다. */
+    /**
+     * 실행 결과를 캔버스에 표시한다.
+     * 지나간 노드와 흐름에 색을 칠하고, 노드 아래에 실제로 오간 값을 꼬리표로 단다.
+     * animate 가 참이면 실행 순서대로 하나씩 보여준다(실행 재생).
+     */
+    markRunSteps(animate = false) {
+      if (!this.bpmn) return;
+      const canvas = this.bpmn.get("canvas");
+      const registry = this.bpmn.get("elementRegistry");
+      const overlays = this.bpmn.get("overlays");
+      if (this.replayTimer) {
+        clearTimeout(this.replayTimer);
+        this.replayTimer = null;
+      }
+      this.runMarkedIds.forEach((id) => {
+        if (registry.get(id)) {
+          ["run-marker--succeeded", "run-marker--failed", "run-marker--skipped", "run-marker--flow"]
+            .forEach((m) => canvas.removeMarker(id, m));
+        }
+      });
+      overlays.remove({ type: "run-value" });
+      this.runMarkedIds = [];
+
+      const steps = (this.currentRun && this.currentRun.steps) || [];
+      const show = (step) => {
+        if (!registry.get(step.nodeId)) return;
+        canvas.addMarker(step.nodeId, `run-marker--${step.status}`);
+        this.runMarkedIds.push(step.nodeId);
+        (step.flows || []).forEach((flowId) => {
+          if (registry.get(flowId)) {
+            canvas.addMarker(flowId, "run-marker--flow");
+            this.runMarkedIds.push(flowId);
+          }
+        });
+        const label = this.stepBadge(step);
+        if (label) {
+          const badge = document.createElement("div");
+          badge.className = `run-value run-value--${step.status}`;
+          badge.textContent = label;
+          badge.title = label;
+          overlays.add(step.nodeId, "run-value", { position: { bottom: -6, left: 0 }, html: badge });
+        }
+      };
+
+      if (!animate) {
+        steps.forEach(show);
+        return;
+      }
+      let index = 0;
+      const next = () => {
+        if (index >= steps.length) {
+          this.replayTimer = null;
+          return;
+        }
+        show(steps[index]);
+        index += 1;
+        this.replayTimer = setTimeout(next, 450);
+      };
+      next();
+    },
+
+    /** 노드 꼬리표 문구: 출력 값 두 개, 실패면 오류, 게이트웨이는 고른 흐름. */
+    stepBadge(step) {
+      if (step.status === "failed") return `실패: ${(step.error || "").slice(0, 40)}`;
+      if (step.nodeType && step.nodeType.endsWith("Gateway")) {
+        const registry = this.bpmn.get("elementRegistry");
+        const names = (step.flows || [])
+          .map((id) => registry.get(id))
+          .filter(Boolean)
+          .map((el) => el.businessObject.name)
+          .filter(Boolean);
+        return names.length ? `→ ${names.join(", ")}` : "";
+      }
+      const values = Object.entries(step.outputs || {})
+        .filter(([key, value]) => !key.startsWith("_") && value !== null && typeof value !== "object")
+        .slice(0, 2)
+        .map(([key, value]) => `${key} ${typeof value === "number" ? Math.round(value * 100) / 100 : String(value).slice(0, 14)}`);
+      return values.join(" · ");
+    },
+
+    focusElement(nodeId) {
+      const registry = this.bpmn.get("elementRegistry");
+      const element = registry.get(nodeId);
+      if (element) {
+        this.bpmn.get("selection").select(element);
+        this.bpmn.get("canvas").scrollToElement(element);
+      }
+    },
+
+    runStatusLabel(status) {
+      return { pending: "대기", running: "실행 중", succeeded: "성공", failed: "실패", skipped: "통과" }[status] || status;
+    },
+
+    formatDuration(ms) {
+      if (ms == null) return "";
+      return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
+    },
+
+    formatTime(iso) {
+      if (!iso) return "";
+      const date = new Date(iso);
+      return `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+    },
+
+    hasKeys(value) {
+      return value && typeof value === "object" && Object.keys(value).length > 0;
+    },
+
+    prettyJson(value) {
+      return JSON.stringify(value, null, 2);
+    },
+
+    showCatalogNotice(text) {
+      this.catalogNotice = text;
+      clearTimeout(this.catalogNoticeTimer);
+      this.catalogNoticeTimer = setTimeout(() => { this.catalogNotice = ""; }, 2500);
+    },
+
     addCatalogNode(item) {
       // 카탈로그 항목을 현재 다이어그램에 노드로 추가하고 메타데이터를 붙인다.
       try {
@@ -710,12 +1330,32 @@ export default {
         const type = item.bpmn_type || 'bpmn:ServiceTask';
         const shape = elementFactory.createShape({ type });
 
-        // 기존 요소와 겹치지 않도록 배치 지점을 아래로 밀어낸다.
-        const existing = elementRegistry.filter((el) => el.parent && !el.waypoints && !el.labelTarget);
-        const bottom = existing.reduce((max, el) => Math.max(max, (el.y || 0) + (el.height || 0)), 0);
-        const position = { x: 200, y: (bottom || 100) + 80 };
+        // 지금 보고 있는 화면 가운데에 둔다. 다이어그램 맨 아래에 두면 큰 다이어그램에서는
+        // 화면 밖에 생겨 추가된 줄 모른다. 연달아 추가하면 조금씩 비켜 놓는다.
+        const viewbox = canvas.viewbox();
+        const nudge = (this.catalogAddCount = ((this.catalogAddCount || 0) + 1) % 6) * 30;
+        const position = {
+          x: Math.round(viewbox.x + viewbox.width / 2 + nudge),
+          y: Math.round(viewbox.y + viewbox.height / 2 + nudge),
+        };
 
-        const created = modeling.createShape(shape, position, canvas.getRootElement());
+        // 풀(Participant)이 있는 협업 다이어그램은 최상위가 Collaboration 이라 노드를 바로
+        // 올릴 수 없다. 화면 가운데를 품은 풀(없으면 첫 풀) 안에 넣는다.
+        let parent = canvas.getRootElement();
+        if (is(parent, 'bpmn:Collaboration')) {
+          const pools = elementRegistry.filter((el) => is(el, 'bpmn:Participant') && el.businessObject.processRef);
+          const inside = (el) => position.x > el.x && position.x < el.x + el.width
+            && position.y > el.y && position.y < el.y + el.height;
+          const pool = pools.find(inside) || pools[0];
+          if (pool) {
+            parent = pool;
+            if (!inside(pool)) {
+              position.x = Math.round(pool.x + pool.width / 2);
+              position.y = Math.round(pool.y + pool.height / 2);
+            }
+          }
+        }
+        const created = modeling.createShape(shape, position, parent);
         modeling.updateProperties(created, { name: item.label });
 
         // 실행 정보를 문서화 필드에 남겨 시뮬레이션·검토 시 참고할 수 있게 한다.
@@ -733,21 +1373,15 @@ export default {
           modeling.updateProperties(created, { documentation: [documentation] });
         }
 
-        // 시뮬레이션이 호출할 수 있도록 실행 URL 을 확장 속성으로 붙인다.
+        // 실행 URL 과 입출력 규격을 확장 속성으로 붙인다.
         // (설명에만 적어두면 사람만 읽을 수 있고 실제로 호출되지 않는다)
-        if (payload.url) {
-          const parameter = moddle.create('pipeline:Parameter', {
-            name: item.label,
-            url: payload.url,
-          });
-          const parameters = moddle.create('pipeline:Parameters', { values: [parameter] });
-          const extensionElements = moddle.create('bpmn:ExtensionElements', {
-            values: [parameters],
-          });
+        const extensionElements = createCatalogExtension(moddle, item);
+        if (extensionElements) {
           modeling.updateProperties(created, { extensionElements });
         }
 
-        canvas.scrollToElement(created);
+        this.bpmn.get('selection').select(created); // 속성 패널에 바로 보이게
+        this.showCatalogNotice(`추가됨: ${item.label}`);
         this.$emit('catalog-node-added', item);
       } catch (error) {
         console.error('노드를 추가하지 못했습니다.', error);
@@ -784,6 +1418,7 @@ export default {
     // Debounced save trigger
     queueSave() {
       if (!this.persistent) return;
+      if (!this.editable) return; // 보기 전용이면 서버에 저장하지 않는다
       if (this.importing) return; // skip while importing XML
       if (this.saveTimer) clearTimeout(this.saveTimer);
       this.saveTimer = setTimeout(() => {
@@ -793,6 +1428,7 @@ export default {
     },
 
     async saveDiagram() {
+      if (!this.editable) return;
       try {
         if (this.importing) return;
         this.saving = true;
@@ -975,6 +1611,63 @@ export default {
         .replace(/__(.+?)__/g, '$1')
         .replace(/`(.+?)`/g, '$1');
     },
+    /**
+     * fit-viewport 는 왼쪽 팔레트를 고려하지 않아 다이어그램 왼쪽이 팔레트에 가린다.
+     * 가려지는 만큼 화면을 오른쪽으로 민다(다이어그램이 화면보다 넓으면 축소도 한 단계).
+     */
+    keepClearOfPalette() {
+      try {
+        const canvas = this.bpmn.get('canvas');
+        const palette = this.$refs.container && this.$refs.container.querySelector('.djs-palette');
+        const container = this.$refs.container && this.$refs.container.getBoundingClientRect();
+        if (!palette || !container) return;
+        const gutter = palette.getBoundingClientRect().right - container.left + 16;
+        const viewbox = canvas.viewbox();
+        const inner = viewbox.inner;
+        const scale = viewbox.scale;
+        const leftOnScreen = (inner.x - viewbox.x) * scale;
+        if (leftOnScreen >= gutter) return;
+        if ((inner.width * scale) + gutter > container.width) {
+          canvas.zoom(scale * (container.width - gutter - 16) / (inner.width * scale + 16));
+          canvas.scroll({ dx: gutter - (canvas.viewbox().inner.x - canvas.viewbox().x) * canvas.viewbox().scale, dy: 0 });
+        } else {
+          canvas.scroll({ dx: gutter - leftOnScreen, dy: 0 });
+        }
+      } catch (e) {
+        // 보정은 보기 편의 기능이라 실패해도 무시한다.
+      }
+    },
+
+    setTab(tab) {
+      this.activeTab = tab;
+      if (tab === "api") {
+        this.loadLogicInfo();
+        this.loadLinkage();
+      }
+    },
+
+    /** 다이어그램의 트윈 노드 참조를 모아 연계한 단일 트윈(메타정보 종)을 조회한다. */
+    async loadLinkage() {
+      this.linkageError = "";
+      try {
+        const registry = this.bpmn.get("elementRegistry");
+        const refs = new Set();
+        const labels = {};
+        registry.forEach((el) => {
+          const ref = linkageRefOf(el);
+          if (!ref) return;
+          refs.add(ref);
+          if (!labels[ref]) labels[ref] = (el.businessObject && el.businessObject.name) || el.id;
+        });
+        const resp = await ApiService.query("/twins/linkage", {
+          params: { refs: [...refs].join(","), labels: JSON.stringify(labels) },
+        });
+        this.linkage = resp.data.data;
+      } catch (e) {
+        this.linkageError = "연계 현황을 불러오지 못했습니다.";
+      }
+    },
+
     toggleAccordion(key) {
       this.accordionOpen[key] = !this.accordionOpen[key];
     },
@@ -1116,9 +1809,7 @@ export default {
     applyQuickPrompt(prompt) {
       if (this.aiBusy) return;
       this.copilotPrompt = prompt;
-      if (!this.accordionOpen.assistant) {
-        this.toggleAccordion('assistant');
-      }
+      this.activeTab = "ai";
       this.$nextTick(() => {
         this.submitCopilot();
       });
@@ -1419,13 +2110,14 @@ export default {
       ApiService.get('/llm/configs')
         .then(({ data }) => {
           const items = data?.data || [];
-          this.llmOptions = items.map(item => ({
+          // '자동' 은 서버가 연결되는 엔진을 순서대로 고른다(배포 서버의 Ollama → 내장 LLM → 규칙 기반).
+          // 등록된 설정은 서버가 꺼져 있을 수 있어 기본 선택으로 두지 않는다.
+          this.llmOptions = [{ id: 'auto', label: '자동 (연결되는 엔진)' }].concat(items.map(item => ({
             id: item.id,
             label: item.attributes?.name || `LLM #${item.id}`,
             isDefault: item.attributes?.isDefault,
-          }));
-          const defaultOption = this.llmOptions.find(opt => opt.isDefault);
-          this.selectedLlm = defaultOption?.id || (this.llmOptions[0] && this.llmOptions[0].id) || null;
+          })));
+          this.selectedLlm = 'auto';
           this.backendHealthy = true;
         })
         .catch(() => {
@@ -1707,8 +2399,44 @@ export default {
     line-height: 1.2;
   }
   .bpmn-accordion {
+    border-bottom: none;
+  }
+  .bpmn-accordion-body {
+    padding-top: 12px !important;
+  }
+  .bpmn-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    gap: 2px;
+    padding: 0 8px;
+    background: #fafafa;
     border-bottom: 1px solid #e5e7eb;
   }
+  .bpmn-tab {
+    flex: 1;
+    padding: 9px 2px 8px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: #6b7280;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .bpmn-tab:hover { color: #111827; }
+  .bpmn-tab--active { color: #1d4ed8; border-bottom-color: #1d4ed8; }
+  .bpmn-tab:focus-visible { outline: 2px solid #93c5fd; outline-offset: -2px; }
+  .bpmn-section-title {
+    margin: 20px 0 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #374151;
+  }
+  .bpmn-props-wrap { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+  .bpmn-props-hint { margin: 12px; }
   .bpmn-accordion-header {
     width: 100%;
     padding: 12px;
@@ -2136,6 +2864,15 @@ export default {
     font-size: 12px;
   }
 
+  .catalog-notice {
+    margin: 0 0 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: #dcfce7;
+    color: #166534;
+    font-size: 12px;
+  }
+
   .catalog-empty {
     margin: 6px 0;
     font-size: 12px;
@@ -2175,6 +2912,14 @@ export default {
     background: #f2f7fd;
   }
 
+  .catalog-item__icon {
+    flex-shrink: 0;
+    width: 18px;
+    font-size: 17px;
+    line-height: 1;
+    color: #374151;
+  }
+
   .catalog-item__label {
     flex: 1;
     overflow: hidden;
@@ -2187,6 +2932,108 @@ export default {
     font-size: 10px;
     color: #8a92a0;
   }
+
+  .readonly-banner {
+    margin: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .publish-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; margin: 4px 0; font-size: 12px; }
+  .publish-label { min-width: 56px; font-weight: 700; color: #5a6472; }
+  .publish-code { flex: 1; min-width: 0; font-size: 11px; background: #f6f8fa; padding: 2px 4px; border-radius: 4px; word-break: break-all; }
+  .publish-copy { font-size: 11px; border: 1px solid #d5dae2; border-radius: 4px; padding: 0 6px; background: #fff; cursor: pointer; }
+  .publish-link { color: #2563eb; }
+  .publish-field { display: block; margin: 6px 0; font-size: 12px; }
+  .publish-field > span { display: block; margin-bottom: 2px; color: #5a6472; font-weight: 700; font-size: 11px; }
+  .publish-objects { max-height: 160px; overflow-y: auto; border: 1px solid #e2e6ec; border-radius: 6px; padding: 4px 6px; }
+  .publish-object { display: flex; gap: 6px; align-items: center; font-size: 12px; padding: 2px 0; }
+  .publish-registered { font-size: 12px; color: #166534; background: #dcfce7; border-radius: 6px; padding: 4px 6px; margin: 4px 0; }
+
+  .run-inputs {
+    display: block;
+    margin-bottom: 8px;
+  }
+  .run-inputs__label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #5a6472;
+  }
+  .run-inputs__textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    border: 1px solid #d5dae2;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 12px;
+  }
+  .run-error { color: #c0392b; font-size: 12px; margin: 4px 0; }
+  .run-warning { color: #9a6700; font-size: 11px; }
+  .run-result { margin-top: 10px; }
+  .run-result__head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .run-result__meta { font-size: 11px; color: #7a8290; }
+  .run-badge {
+    flex-shrink: 0;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    background: #e5e7eb;
+    color: #374151;
+  }
+  .run-badge--succeeded { background: #dcfce7; color: #166534; }
+  .run-badge--failed { background: #fee2e2; color: #991b1b; }
+  .run-badge--running, .run-badge--pending { background: #dbeafe; color: #1e40af; }
+  .run-steps { list-style: none; margin: 0; padding: 0; max-height: 360px; overflow-y: auto; }
+  .run-step { border-left: 3px solid #d1d5db; margin-bottom: 4px; background: #fff; }
+  .run-step--succeeded { border-left-color: #22c55e; }
+  .run-step--failed { border-left-color: #ef4444; }
+  .run-step summary { display: flex; gap: 6px; align-items: center; padding: 4px 6px; font-size: 12px; cursor: pointer; }
+  .run-step__seq { color: #9ca3af; min-width: 16px; }
+  .run-step__name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .run-step--skipped .run-step__name { color: #9ca3af; }
+  .run-step__meta { font-size: 10px; color: #9ca3af; }
+  .run-step__body { padding: 2px 8px 6px 28px; font-size: 11px; color: #374151; }
+  .run-step__row { margin-top: 3px; word-break: break-all; }
+  .run-step__row pre {
+    margin: 2px 0 0;
+    padding: 4px 6px;
+    background: #f6f8fa;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    max-height: 160px;
+    overflow-y: auto;
+  }
+  .run-history { margin-top: 10px; }
+  .djs-connection.run-marker--flow .djs-visual > path { stroke: #16a34a !important; stroke-width: 3px !important; }
+  .run-value {
+    max-width: 180px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: #166534;
+    color: #fff;
+    font-size: 10px;
+    line-height: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transform: translateY(100%);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    animation: run-value-in 0.25s ease-out;
+  }
+  .run-value--failed { background: #b91c1c; }
+  .run-value--skipped { background: #6b7280; }
+  .run-value--pending { background: #1e40af; }
+  @keyframes run-value-in { from { opacity: 0; transform: translateY(80%); } to { opacity: 1; transform: translateY(100%); } }
+  .djs-element.run-marker--succeeded .djs-visual > :nth-child(1) { stroke: #16a34a !important; stroke-width: 3px !important; }
+  .djs-element.run-marker--failed .djs-visual > :nth-child(1) { stroke: #dc2626 !important; stroke-width: 3px !important; }
 
   .layout-option {
     display: flex;
@@ -2221,4 +3068,66 @@ export default {
     color: #4b5563;
     line-height: 1.5;
   }
+
+  /* 연계 현황 */
+  .linkage { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; background: #fff; }
+  .linkage__head { display: flex; align-items: baseline; justify-content: space-between; }
+  .linkage__title { font-weight: 700; font-size: 13px; color: #111827; }
+  .linkage__count { font-size: 18px; font-weight: 700; color: #b45309; font-variant-numeric: tabular-nums; }
+  .linkage__count--ok { color: #15803d; }
+  .linkage__goal { margin: 2px 0 6px; font-size: 11px; color: #6b7280; }
+  .linkage__list { list-style: none; margin: 0; padding: 0; font-size: 12px; }
+  .linkage__list li { padding: 5px 0; border-top: 1px solid #f3f4f6; }
+  .linkage__owner { margin-left: 6px; font-size: 11px; color: #6b7280; }
+  .linkage__via { font-size: 11px; color: #4b5563; }
+  .linkage__source { font-size: 10px; color: #9ca3af; }
+
+  /* 속성 패널: 트윈 정보 */
+  .twin-panel { margin: 4px 12px 10px; font-size: 12px; color: #1f2937; }
+  .twin-muted { color: #6b7280; }
+  .twin-error { color: #b91c1c; }
+  .twin-warn { background: #fef3c7; color: #92400e; padding: 8px 10px; border-radius: 6px; line-height: 1.5; }
+  .twin-head { display: flex; gap: 6px; margin-bottom: 6px; }
+  .twin-badge { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: #e5e7eb; color: #374151; }
+  .twin-badge--src { background: #dbeafe; color: #1e40af; }
+  .twin-badge--live { background: #dcfce7; color: #166534; }
+  .twin-badge--recent { background: #fef9c3; color: #854d0e; }
+  .twin-badge--stale { background: #fee2e2; color: #991b1b; }
+  .twin-meta { display: grid; grid-template-columns: 52px 1fr; gap: 3px 8px; margin: 0 0 8px; }
+  .twin-meta dt { color: #6b7280; font-weight: 600; }
+  .twin-meta dd { margin: 0; word-break: break-all; }
+  .twin-id { display: block; font-family: monospace; font-size: 10.5px; color: #6b7280; }
+  .twin-subtitle { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin: 8px 0 4px; font-weight: 600; color: #374151; font-size: 11.5px; }
+  .twin-aux { font-weight: 400; color: #6b7280; white-space: nowrap; }
+  .twin-members ul { margin: 0; padding-left: 16px; }
+  .twin-props { max-height: 300px; overflow: auto; border: 1px solid #e5e7eb; border-radius: 6px; }
+  .twin-props table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .twin-props th:nth-child(1), .twin-props td:nth-child(1) { width: 24px; }
+  .twin-props th:nth-child(3), .twin-props td:nth-child(3) { width: 52px; }
+  .twin-props th:nth-child(4), .twin-props td:nth-child(4) { width: 80px; }
+  .twin-props td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .twin-props th { position: sticky; top: 0; background: #f9fafb; text-align: left; font-weight: 600; color: #6b7280; font-size: 11px; padding: 4px 6px; }
+  .twin-props td { padding: 3px 6px; border-top: 1px solid #f3f4f6; }
+  .twin-props tr.is-chosen td { background: #eff6ff; }
+  .twin-pname { font-family: monospace; }
+  .twin-ptype { color: #6b7280; font-size: 11px; }
+  .twin-pval { font-variant-numeric: tabular-nums; text-align: right; }
+  .twin-foot { margin: 4px 0 0; font-size: 10.5px; color: #6b7280; }
+
+  /* 속성 패널: 분기 조건·값 선택 */
+  .cond-panel { margin: 4px 12px 10px; font-size: 12px; }
+  .cond-default { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+  .cond-row { display: flex; flex-direction: column; gap: 4px; padding: 6px 0; border-top: 1px solid #f3f4f6; }
+  .cond-row select, .cond-row input, .cond-raw textarea, .pick-row select { width: 100%; box-sizing: border-box; padding: 4px 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 12px; background: #fff; }
+  .cond-line { display: flex; gap: 4px; }
+  .cond-line select { width: 64px; flex: none; }
+  .cond-join { width: 90px !important; }
+  .cond-del { flex: none; width: 26px; border: 1px solid #d1d5db; border-radius: 4px; background: #fff; cursor: pointer; }
+  .cond-actions { display: flex; gap: 6px; margin-top: 6px; }
+  .cond-actions button { padding: 3px 10px; border: 1px solid #d1d5db; border-radius: 4px; background: #fff; font-size: 12px; cursor: pointer; }
+  .cond-actions button:disabled { opacity: .5; cursor: not-allowed; }
+  .cond-hint { color: #6b7280; margin: 0 0 6px; }
+  .cond-expr { margin: 8px 0 0; color: #4b5563; word-break: break-all; }
+  .cond-expr code { font-size: 11px; }
+  .pick-row { margin: 4px 12px 0; display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; color: #374151; }
 </style>

@@ -278,27 +278,33 @@ SERVICES: List[Dict[str, Any]] = [
         "name": "디지털트윈 메타데이터 조회",
         "category": "연합트윈 연계",
         "api_id": "fedit.meta.dts",
-        "description": "디지털트윈 상세 메타데이터를 조회한다.",
+        "description": "2세부 메타데이터 저장소에서 디지털트윈 메타정보(이름·설명·키워드·소유)를 조회한다. digitalTwinId 를 비우면 전체 목록.",
         "inputs": ["digitalTwinId"],
-        "outputs": ["메타데이터", "simulations"],
+        "outputs": ["name", "description", "keywords", "owner", "count", "names"],
+        "url": "/api/fedit/metadata/digitalTwins",
+        "method": "GET",
         "bpmn_type": "bpmn:ServiceTask",
     },
     {
         "name": "시뮬레이션 메타데이터 조회",
         "category": "연합트윈 연계",
         "api_id": "fedit.meta.simulations",
-        "description": "등록된 시뮬레이션 목록/상세를 조회한다.",
+        "description": "2세부 메타데이터 저장소에 등록된 시뮬레이션 메타정보(이름·설명·실행 주소)를 조회한다. simulationId 를 비우면 전체 목록.",
         "inputs": ["simulationId"],
-        "outputs": ["simulationName", "입출력 정의"],
+        "outputs": ["name", "description", "accessUrl", "count", "names"],
+        "url": "/api/fedit/metadata/simulations",
+        "method": "GET",
         "bpmn_type": "bpmn:ServiceTask",
     },
     {
         "name": "디지털트윈 검색",
         "category": "연합트윈 연계",
         "api_id": "fedit.search",
-        "description": "키워드로 디지털트윈을 검색한다.",
+        "description": "2세부 메타데이터 저장소에서 이름·설명·키워드로 디지털트윈을 검색한다.",
         "inputs": ["검색어"],
-        "outputs": ["트윈 목록"],
+        "outputs": ["count", "names", "items"],
+        "url": "/api/fedit/metadata/digitalTwins",
+        "method": "GET",
         "bpmn_type": "bpmn:ServiceTask",
     },
     {
@@ -326,7 +332,7 @@ SERVICES: List[Dict[str, Any]] = [
         "description": "지표가 기준값을 넘는지 판정한다.",
         "inputs": ["지표값", "임계치"],
         "outputs": ["초과여부", "심각도"],
-        "bpmn_type": "bpmn:Task",
+        "bpmn_type": "bpmn:BusinessRuleTask",
     },
     {
         "name": "이상 탐지",
@@ -335,7 +341,7 @@ SERVICES: List[Dict[str, Any]] = [
         "description": "시계열에서 이상 구간을 탐지한다.",
         "inputs": ["시계열 데이터"],
         "outputs": ["이상구간", "점수"],
-        "bpmn_type": "bpmn:Task",
+        "bpmn_type": "bpmn:BusinessRuleTask",
     },
     {
         "name": "SMS 알림 발송",
@@ -376,6 +382,23 @@ SERVICES: List[Dict[str, Any]] = [
 ]
 
 
+# 노드 역할 → BPMN 표준 요소. 편집기는 bpmn-js 기본 아이콘을 그대로 쓰므로,
+# 역할에 맞는 요소 타입을 고르면 아이콘도 표준 표기로 구분된다.
+#   데이터 조회·연계 서비스  → 서비스 작업(톱니)
+#   외부 시뮬레이션 호출     → 호출 활동(굵은 테두리)
+#   판정·분석               → 업무 규칙 작업(표)
+#   알림·통보               → 전송 작업(봉투)
+SIMULATION_TYPE = "bpmn:CallActivity"
+ICONS = {
+    "bpmn:ServiceTask": "bpmn-icon-service-task",
+    "bpmn:CallActivity": "bpmn-icon-call-activity",
+    "bpmn:BusinessRuleTask": "bpmn-icon-business-rule-task",
+    "bpmn:SendTask": "bpmn-icon-send-task",
+    "bpmn:ScriptTask": "bpmn-icon-script-task",
+    "bpmn:Task": "bpmn-icon-task",
+}
+
+
 def simulation_entries() -> List[Dict[str, Any]]:
     """디지털 트윈 소스 형태로 정규화한 시뮬레이션 목록."""
     entries = []
@@ -411,8 +434,11 @@ def all_entries() -> List[Dict[str, Any]]:
             "category": item["category"],
             "url": item["url"],
             "provider": item["provider"],
-            "bpmn_type": "bpmn:ServiceTask",
+            "bpmn_type": SIMULATION_TYPE,
             "twin_id": item["twin_id"],
+            "method": item.get("method", ""),
+            "inputs": item["inputs"],
+            "outputs": item["outputs"],
         }
         for item in SIMULATIONS
     ]
@@ -420,10 +446,13 @@ def all_entries() -> List[Dict[str, Any]]:
         {
             "name": item["name"],
             "category": item["category"],
-            "url": f"/api/pipelines/run?id={item['api_id']}",
+            "url": item.get("url") or f"/api/pipelines/run?id={item['api_id']}",
             "provider": "",
             "bpmn_type": item["bpmn_type"],
             "twin_id": "",
+            "method": "",
+            "inputs": item["inputs"],
+            "outputs": item["outputs"],
         }
         for item in SERVICES
     ]
@@ -466,11 +495,14 @@ def service_entries() -> List[Dict[str, Any]]:
             "api_id": item["api_id"],
             "description": item["description"],
             "schema": {"inputs": item["inputs"], "outputs": item["outputs"]},
+            # 실연계된 항목은 실제 경로를, 나머지는 모의 실행 경로를 쓴다(빈 값이면 호출 측이 결정).
+            "url": item.get("url", ""),
+            "method": item.get("method", ""),
             "bpmn_type": item["bpmn_type"],
             "icon": {
                 "bpmn:ServiceTask": "bpmn-icon-service-task",
                 "bpmn:SendTask": "bpmn-icon-send-task",
                 "bpmn:Task": "bpmn-icon-task",
-            }.get(item["bpmn_type"], "bpmn-icon-task"),
+            }.get(item["bpmn_type"], ICONS.get(item["bpmn_type"], "bpmn-icon-task")),
         })
     return entries
