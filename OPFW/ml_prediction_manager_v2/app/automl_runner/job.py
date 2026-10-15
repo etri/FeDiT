@@ -17,8 +17,6 @@ import numpy as np
 import pandas as pd
 import joblib
 from ray import tune
-from ray.tune.search.optuna import OptunaSearch
-from ray.air.integrations.mlflow import MLflowLoggerCallback
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -65,7 +63,7 @@ SEARCH_SPACE = {
 }
 
 
-GPU_CAPABLE_MODELS = {"tabnet"}
+GPU_CAPABLE_MODELS = {"xgb", "tabnet"}
 
 
 # metric name → sklearn function, mode, task applicability
@@ -202,37 +200,51 @@ def _validate_training_dataset(cfg: dict) -> None:
         flush=True,
     )
 
-def _build_model(model_id: str, task: str, params: dict):
+def _build_model(model_id: str, task: str, params: dict, *, use_gpu: bool = False,
+                 cpu_per_trial: float = 1, gpu_memory_fraction: float = 0.8):
+    threads = max(1, int(cpu_per_trial))
     if model_id == "rf":
         from sklearn.ensemble import (
             RandomForestClassifier,
             RandomForestRegressor,
         )
         cls = RandomForestClassifier if task == "classification" else RandomForestRegressor
-        return cls(random_state=42, n_jobs=1, **params)
+        return cls(random_state=42, n_jobs=threads, **params)
     if model_id == "xgb":
         from xgboost import XGBClassifier, XGBRegressor
+        if use_gpu:
+            import xgboost
+            if not xgboost.build_info().get("USE_CUDA", False):
+                raise RuntimeError("GPU XGBoost requires the CUDA-enabled xgboost package, not xgboost-cpu")
         cls = XGBClassifier if task == "classification" else XGBRegressor
-        return cls(random_state=42, tree_method="hist", n_jobs=1, **params)
+        return cls(random_state=42, tree_method="hist", device="cuda" if use_gpu else "cpu", n_jobs=threads, **params)
     if model_id == "lgbm":
         from lightgbm import LGBMClassifier, LGBMRegressor
         cls = LGBMClassifier if task == "classification" else LGBMRegressor
-        return cls(random_state=42, n_jobs=1, verbose=-1, **params)
+        return cls(random_state=42, n_jobs=threads, verbose=-1, **params)
     if model_id == "mlp":
         from sklearn.neural_network import MLPClassifier, MLPRegressor
         cls = MLPClassifier if task == "classification" else MLPRegressor
         return cls(random_state=42, max_iter=300, early_stopping=True, **params)
     if model_id == "tabnet":
         # pytorch-tabnet wrapper
+        import torch
+        torch.set_num_threads(threads)
+        if use_gpu:
+            if not torch.cuda.is_available():
+                raise RuntimeError("GPU requested but PyTorch CUDA is unavailable on this Ray worker")
+            torch.cuda.set_per_process_memory_fraction(gpu_memory_fraction, device=0)
         from pytorch_tabnet.tab_model import TabNetClassifier, TabNetRegressor
         tabnet_params = {k: v for k, v in params.items() if k != "lr"}
         optimizer_params = {"lr": params.get("lr", 2e-2)}
         cls = TabNetClassifier if task == "classification" else TabNetRegressor
-        return cls(optimizer_params=optimizer_params, verbose=0, **tabnet_params)
+        return cls(optimizer_params=optimizer_params, verbose=0,
+                   device_name="cuda" if use_gpu else "cpu", **tabnet_params)
     raise ValueError(f"Unknown model: {model_id}")
 
 
-def _fit_predict(model_id: str, model, X_train, y_train, X_test, task: str):
+def _fit_predict(model_id: str, model, X_train, y_train, X_test, task: str,
+                 *, batch_size: int = 256, max_epochs: int = 30):
     if model_id == "tabnet":
         import numpy as np
         X_tr = np.array(X_train, dtype=np.float32)
@@ -242,13 +254,25 @@ def _fit_predict(model_id: str, model, X_train, y_train, X_test, task: str):
         else:
             y_tr = y_tr.astype(np.int64)
         X_te = np.array(X_test, dtype=np.float32)
-        model.fit(X_tr, y_tr, max_epochs=30, patience=10, batch_size=256)
+        if len(X_tr) < 2:
+            raise ValueError("TabNet requires at least two training rows")
+        effective_batch = min(batch_size, len(X_tr))
+        model.fit(X_tr, y_tr, max_epochs=max_epochs, patience=10,
+                  batch_size=effective_batch,
+                  virtual_batch_size=min(32, effective_batch), num_workers=0,
+                  drop_last=True)
         preds = model.predict(X_te)
         proba = None
         if task == "classification" and hasattr(model, "predict_proba"):
             proba = model.predict_proba(X_te)
+            if proba.shape[1] == 2:
+                proba = proba[:, 1]
         return preds.ravel(), proba
     model.fit(X_train, y_train)
+    if model_id == "xgb" and model.get_params().get("device") == "cuda":
+        actual_device = json.loads(model.get_booster().save_config())["learner"]["generic_param"]["device"]
+        if not actual_device.startswith("cuda"):
+            raise RuntimeError("XGBoost fell back to CPU although GPU training was requested")
     preds = model.predict(X_test)
     proba = None
     if task == "classification" and hasattr(model, "predict_proba"):
@@ -273,6 +297,45 @@ def _score_all(y_true, y_pred, task: str, proba=None) -> dict:
     return out
 
 
+def _as_serving_model(model_id: str, model):
+    """Export inference artifacts without requiring a GPU or worker-local code.
+
+    TabNet indexes rows of arrays, whereas MLflow pyfunc supplies DataFrames.
+    Use standard sklearn components so unpickling needs no job.py module.
+    Called only after training and evaluation have finished.
+    """
+    if model_id == "xgb":
+        model.set_params(device="cpu")
+    if model_id != "tabnet":
+        return model
+    import torch
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import FunctionTransformer
+
+    model.network.cpu()
+    model.device = torch.device("cpu")
+    model.device_name = "cpu"
+    # TabNet 4.1 keeps attention/group matrices as ordinary attributes, not
+    # registered buffers; Module.cpu() alone leaves those tensors on CUDA.
+    moved = {}
+    for owner in [model, *model.network.modules()]:
+        for name, value in list(vars(owner).items()):
+            if isinstance(value, torch.Tensor):
+                if id(value) not in moved:
+                    moved[id(value)] = value.cpu()
+                setattr(owner, name, moved[id(value)])
+    optimizer = getattr(model, "_optimizer", None)
+    if optimizer is not None:
+        for state in optimizer.state.values():
+            for key, value in state.items():
+                if isinstance(value, torch.Tensor):
+                    state[key] = value.cpu()
+    return Pipeline([
+        ("array", FunctionTransformer(np.asarray, kw_args={"dtype": np.float32})),
+        ("model", model),
+    ])
+
+
 def _resolve_metric(task: str, requested: str) -> tuple[str, str]:
     if requested and requested != "auto":
         if requested not in METRICS:
@@ -286,15 +349,27 @@ def _resolve_metric(task: str, requested: str) -> tuple[str, str]:
 
 
 
-def _mlflow_pip_requirements() -> list[str]:
+def _mlflow_pip_requirements(model_id: str | None = None) -> list[str]:
     """Avoid slow run-time dependency inference while logging AutoML models."""
     import cloudpickle
     import sklearn
-    return [
+    requirements = [
         f"scikit-learn=={sklearn.__version__}",
         f"cloudpickle=={cloudpickle.__version__}",
         "joblib",
     ]
+    if model_id == "xgb":
+        import xgboost
+        requirements.append(f"xgboost=={xgboost.__version__}")
+    elif model_id == "lgbm":
+        import lightgbm
+        requirements.append(f"lightgbm=={lightgbm.__version__}")
+    elif model_id == "tabnet":
+        import torch
+        # Artifacts contain CPU tensors. Allow a serving runtime to provide
+        # the CPU wheel of this same release instead of forcing CUDA wheels.
+        requirements += [f"torch=={torch.__version__.split('+')[0]}", "pytorch-tabnet==4.1.0"]
+    return requirements
 
 
 def _find_candidate_model_reference(
@@ -347,6 +422,11 @@ def _train_fn_builder(
     mlflow_uri: str | None = None,
     experiment_name: str | None = None,
     base_tags: dict | None = None,
+    use_gpu: bool = False,
+    cpu_per_trial: float = 1,
+    batch_size: int = 256,
+    max_epochs: int = 30,
+    gpu_memory_fraction: float = 0.8,
 ):
     def train_fn(config):
         df = _load_dataset(data_path)
@@ -354,8 +434,10 @@ def _train_fn_builder(
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=test_size, random_state=random_state
         )
-        model = _build_model(model_id, task, config)
-        preds, proba = _fit_predict(model_id, model, X_train, y_train, X_test, task)
+        model = _build_model(model_id, task, config, use_gpu=use_gpu,
+                             cpu_per_trial=cpu_per_trial, gpu_memory_fraction=gpu_memory_fraction)
+        preds, proba = _fit_predict(model_id, model, X_train, y_train, X_test, task,
+                                   batch_size=batch_size, max_epochs=max_epochs)
         metrics = _score_all(y_test, preds, task, proba=proba)
         metrics["model_id"] = model_id
         # Worker-local files are not visible to the Ray driver. Persist the
@@ -364,10 +446,11 @@ def _train_fn_builder(
         # a successful-looking trial without an MLflow model artifact.
         try:
             artifact_logged = False
+            serving_model = _as_serving_model(model_id, model)
             tmp_dir = tempfile.mkdtemp(prefix=f"automl_{model_id}_")
             model_file = os.path.join(tmp_dir, "model.joblib")
             features_file = os.path.join(tmp_dir, "features.json")
-            joblib.dump(model, model_file)
+            joblib.dump(serving_model, model_file)
             with open(features_file, "w") as f:
                 json.dump({"columns": list(X.columns), "target": target}, f)
             metrics["_model_dir"] = tmp_dir
@@ -389,6 +472,7 @@ def _train_fn_builder(
                             "automl.task": task,
                             "framework": _MODEL_FRAMEWORK_MAP.get(model_id, "unknown"),
                             "framework.version": _get_framework_version(model_id),
+                            "automl.device": "cuda" if use_gpu else "cpu",
                         })
                         _mlflow.set_tags(tags)
                         _mlflow.log_params(config)
@@ -400,10 +484,10 @@ def _train_fn_builder(
                             except Exception:  # nosec
                                 pass
                         model_info = _mls.log_model(
-                            model,
+                            serving_model,
                             artifact_path="model",
                             input_example=input_example,
-                            pip_requirements=_mlflow_pip_requirements(),
+                            pip_requirements=_mlflow_pip_requirements(model_id),
                         )
                         _mlflow.log_artifact(model_file, artifact_path="model")
                         _mlflow.log_artifact(features_file, artifact_path="model")
@@ -540,6 +624,10 @@ def _compute_dataset_id(dataset_path: str) -> tuple[str, int]:
 
 
 def run(cfg: dict) -> dict:
+    # Search/storage integrations are needed by the driver, not by every
+    # training worker or the standalone GPU probe.
+    from ray.tune.search.optuna import OptunaSearch
+    from ray.air.integrations.mlflow import MLflowLoggerCallback
     mlflow_uri = _require_http_url(cfg.get("mlflow_uri", "http://mlflow-service.ray-system:5000"), "mlflow_uri")
     mlflow.set_tracking_uri(mlflow_uri)
 
@@ -613,6 +701,11 @@ def run(cfg: dict) -> dict:
             mlflow_uri=mlflow_uri,
             experiment_name=cfg["experiment_name"],
             base_tags=base_tags,
+            use_gpu=model_gpu_per_trial > 0,
+            cpu_per_trial=cpu_per_trial,
+            batch_size=int(cfg.get("batch_size", 256)),
+            max_epochs=int(cfg.get("max_epochs", 30)),
+            gpu_memory_fraction=float(cfg.get("gpu_memory_fraction", 0.8)),
         )
         # 모델별 기본 GPU 사용 - tabnet은 GPU 있으면 자동 사용
         resources = {"cpu": cpu_per_trial, "memory": mem_per_trial_bytes}
@@ -625,13 +718,17 @@ def run(cfg: dict) -> dict:
             tune_config=tune.TuneConfig(
                 search_alg=OptunaSearch(metric=primary, mode=mode),
                 num_samples=cfg["num_trials"],
+                max_concurrent_trials=int(cfg.get("max_concurrent_trials", 1)),
+                # Parameter-expanded names exceed Windows path limits even
+                # for a single trial under the user's normal temp directory.
+                trial_dirname_creator=lambda trial: trial.trial_id,
                 metric=primary,
                 mode=mode,
                 time_budget_s=per_model_budget,
             ),
             run_config=tune.RunConfig(
                 name=f"{cfg['experiment_name']}-{model_id}",
-                storage_path="/tmp/ray_automl",  # nosec
+                storage_path=cfg.get("storage_path") or str(Path.home() / ".cache" / "prediction-manager" / "ray_automl"),
                 callbacks=[
                     MLflowLoggerCallback(
                         tracking_uri=mlflow_uri,
@@ -757,7 +854,7 @@ def run(cfg: dict) -> dict:
                                         _model_obj,
                                         artifact_path="model",
                                         input_example=input_example,
-                                        pip_requirements=_mlflow_pip_requirements(),
+                                        pip_requirements=_mlflow_pip_requirements(model_id),
                                     )
                                     model_artifact_uri = getattr(_model_info, "model_uri", None)
                                     logged_mlflow_model = True

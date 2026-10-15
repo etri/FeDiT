@@ -27,6 +27,24 @@ spec:
               containerPort: 8000
               protocol: TCP
           env:
+            - name: AUTOML_MAX_CONCURRENT_PER_NS
+              value: "${AUTOML_MAX_CONCURRENT_PER_NS}"
+            - name: AUTOML_MAX_CONCURRENT_TRIALS
+              value: "${AUTOML_MAX_CONCURRENT_TRIALS}"
+            - name: AUTOML_BATCH_SIZE
+              value: "${AUTOML_BATCH_SIZE}"
+            - name: AUTOML_GPU_MEMORY_FRACTION
+              value: "${AUTOML_GPU_MEMORY_FRACTION}"
+            - name: PM_TENANT_RAY_GPU_WORKER_ENABLED
+              value: "${PM_TENANT_RAY_GPU_WORKER_ENABLED}"
+            - name: PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS
+              value: "${PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS}"
+            - name: PM_TENANT_RAY_GPU_WORKER_REQUEST_MEMORY
+              value: "${PM_TENANT_RAY_GPU_WORKER_REQUEST_MEMORY}"
+            - name: PM_TENANT_RAY_GPU_WORKER_LIMIT_MEMORY
+              value: "${PM_TENANT_RAY_GPU_WORKER_LIMIT_MEMORY}"
+            - name: PM_TENANT_RAY_GPU_WORKER_LIMIT_CPU
+              value: "${PM_TENANT_RAY_GPU_WORKER_LIMIT_CPU}"
             - name: REGISTRY_URL
               value: "${REGISTRY_URL}"
             - name: REGISTRY_HOST

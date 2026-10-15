@@ -415,6 +415,10 @@ async def submit(req: AutoMLJobRequest, user_email: str, namespace: str, extra: 
         "gpu_per_trial": req.gpu_per_trial,
         "memory_per_trial_gb": req.memory_per_trial_gb,
         "top_n": req.top_n,
+        "max_concurrent_trials": req.max_concurrent_trials,
+        "batch_size": req.batch_size,
+        "max_epochs": req.max_epochs,
+        "gpu_memory_fraction": req.gpu_memory_fraction,
         "priority": _next_priority,
         "submitted_at": _now(),
         "mlflow_uri": mlflow_uri,
@@ -453,20 +457,25 @@ async def _submit_to_ray(info: dict) -> None:
         "gpu_per_trial": info.get("gpu_per_trial", 0.0),
         "memory_per_trial_gb": info.get("memory_per_trial_gb", 2.0),
         "top_n": info.get("top_n", 3),
+        "max_concurrent_trials": info.get("max_concurrent_trials", 1),
+        "batch_size": info.get("batch_size", 256),
+        "max_epochs": info.get("max_epochs", 30),
+        "gpu_memory_fraction": info.get("gpu_memory_fraction", 0.8),
         "submitted_by": info.get("submitted_by", ""),
         "namespace": info.get("namespace", ""),
         "mlflow_uri": mlflow_uri,
     }
-    needs_torch = any(m in ("mlp", "tabnet") for m in info.get("models", []))
+    needs_torch = "tabnet" in info.get("models", [])
     # 서빙 런타임(MLServer 1.7.1, sklearn 1.7.0)과 minor 일치 유지
     # 1.8 은 MLServer 업그레이드 전까지 금지
     pip_list = [
         "mlflow>=3.0", "optuna",
         "scikit-learn>=1.7,<1.8",
-        "xgboost", "lightgbm", "pandas", "pyarrow",
+        "xgboost==2.1.4", "lightgbm", "pandas>=2.2,<3", "pyarrow",
     ]
     if needs_torch:
-        pip_list += ["torch", "pytorch-tabnet"]
+        pip_list += ["--extra-index-url https://download.pytorch.org/whl/cu118",
+                     "torch==2.7.1+cu118", "pytorch-tabnet==4.1.0"]
     runtime_env = {
         "working_dir": str(RUNNER_DIR),
         "env_vars": {"MLFLOW_TRACKING_URI": mlflow_uri},
