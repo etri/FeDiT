@@ -11,8 +11,6 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from app.config import settings
 from app.models.image_models import ImageBuildRequest
 
-client = docker.from_env()
-
 template_dir = Path(__file__).parent.parent / "templates"
 jinja_env = Environment(
     loader=FileSystemLoader(str(template_dir)),

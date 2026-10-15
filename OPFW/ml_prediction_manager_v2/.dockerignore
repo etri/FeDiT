@@ -3,3 +3,10 @@
 # not Python modules, so never send them in the Docker build context.
 ._*
 __MACOSX/
+.venv/
+__pycache__/
+*.pyc
+tmp/
+.git/
+.env
+*.log

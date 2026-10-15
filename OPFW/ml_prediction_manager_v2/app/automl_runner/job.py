@@ -95,49 +95,39 @@ def _require_http_url(url: str, label: str) -> str:
 
 
 def _load_dataset(path: str) -> pd.DataFrame:
-    # Remote URL → download to temp (크기 상한 적용)
-    if path.startswith("http://") or path.startswith("https://"):
-        path = _require_http_url(path, "dataset_url")
-        suffix = Path(path).suffix.lower() or ".csv"
-        tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
-        # HEAD로 사전 크기 확인
-        try:
-            head_req = urllib.request.Request(path, method="HEAD")
-            with urllib.request.urlopen(head_req, timeout=10) as hr:  # nosec
-                cl = hr.headers.get("Content-Length")
-                if cl and int(cl) > _DATASET_HARD_BYTES:
-                    raise ValueError(
-                        f"데이터셋 크기 초과: {int(cl) / 1024**3:.2f} GB "
-                        f"(최대 {_DATASET_HARD_BYTES / 1024**3:.0f} GB)"
-                    )
-        except ValueError:
-            raise
-        except Exception:  # nosec
-            pass  # HEAD 실패는 무시 (스트림 시 재검증)
-        # 스트리밍 다운로드 + 크기 누적 체크
-        with urllib.request.urlopen(path, timeout=60) as resp, open(tmp.name, "wb") as f:  # nosec
+    def read(local_path):
+        if Path(local_path).suffix.lower() == ".parquet":
+            return pd.read_parquet(local_path)
+        return pd.read_csv(local_path)
+
+    if not path.startswith(("http://", "https://")):
+        return read(path)
+
+    path = _require_http_url(path, "dataset_url")
+    # Parse only the URL path: signed URLs may append a query to .parquet.
+    suffix = Path(urlparse(path).path).suffix.lower() or ".csv"
+    try:
+        head_req = urllib.request.Request(path, method="HEAD")
+        with urllib.request.urlopen(head_req, timeout=10) as response:  # nosec
+            length = response.headers.get("Content-Length")
+            if length and int(length) > _DATASET_HARD_BYTES:
+                raise ValueError("Dataset exceeds the configured download size limit")
+    except ValueError:
+        raise
+    except Exception:  # nosec
+        pass  # Servers without HEAD support are checked while streaming.
+
+    # Close before reopening (Windows), and clean up on read/download failure.
+    with tempfile.TemporaryDirectory(prefix="pman-dataset-") as directory:
+        local_path = Path(directory) / ("dataset" + suffix)
+        with urllib.request.urlopen(path, timeout=60) as response, local_path.open("wb") as output:  # nosec
             total = 0
-            while True:
-                chunk = resp.read(1024 * 1024)  # 1 MB
-                if not chunk:
-                    break
+            while chunk := response.read(1024 * 1024):
                 total += len(chunk)
                 if total > _DATASET_HARD_BYTES:
-                    f.close()
-                    os.unlink(tmp.name)
-                    raise ValueError(
-                        f"데이터셋 다운로드 중 크기 초과: "
-                        f"{total / 1024**3:.2f} GB (최대 {_DATASET_HARD_BYTES / 1024**3:.0f} GB)"
-                    )
-                f.write(chunk)
-        local_path = tmp.name
-    else:
-        local_path = path
-
-    ext = Path(local_path).suffix.lower()
-    if ext == ".parquet":
-        return pd.read_parquet(local_path)
-    return pd.read_csv(local_path)
+                    raise ValueError("Dataset exceeds the configured download size limit")
+                output.write(chunk)
+        return read(local_path)
 
 
 def _prepare_features_target(df: pd.DataFrame, target: str, task: str, test_size: float) -> tuple[pd.DataFrame, pd.Series]:

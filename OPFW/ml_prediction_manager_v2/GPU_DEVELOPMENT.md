@@ -55,7 +55,12 @@ GPU worker 이미지 태그는 `ray-mlflow:2.54.1-gpu-cu118`로 분리하여 기
 ./.venv/Scripts/python.exe scripts/automl-gpu-integration.py
 ```
 
-WSL은 기존 약 8GiB 제한을 유지한다. 이 환경에서는 전체 Kubeflow를 새로 설치하지
+WSL은 Linux 통합 검증 후 `memory=6GB`, `processors=4`, `swap=4GB`로 조정했다.
+기존 NVIDIA 커널 경로를 유지했고 `.wslconfig.pman-validation-backup-20261015`로
+사용자 홈에 원본을 백업했다. 약 8GiB 기본 상태에서는 Windows 여유 RAM 고갈과
+WSL 응답 정지를 재현했고, 4GB 제한에서는 Linux 메모리/스왑 부족을 재현했다.
+6GB/4GB 스왑에서 다른 검증 서비스를 정지하고 GPU 통합 검증을 순차 수행했다.
+이 환경에서는 전체 Kubeflow를 새로 설치하지
 않고 Windows 사용자 가상환경으로 실제 CUDA 학습을 먼저 검증했다. 최초 WSL
 점검에서는 DNS/HTTPS 실패가 있었으나, 같은 날 추가 점검에서 DNS와 HTTPS가
 정상 응답했고 pip wheel 다운로드와 Docker manifest 조회도 성공했다. 추가 점검
@@ -66,6 +71,33 @@ Linux Kubernetes 배포 성공으로 간주하지 않는다.
 Windows 설정 스크립트는 Python 프로세스에 UTF-8을 적용한다. 전체 AutoML 점검
 스크립트도 한글 Windows에서 UTF-8로 재실행하며 OS 언어/보안 설정은 변경하지 않는다.
 실제 수행 결과와 미검증 범위는 `tests/GPU_VALIDATION.md`에 기록했다.
+
+Linux 검증은 새 클론의 코드를 읽기 전용으로 `/home/ray/source`에 연결해 수행했다.
+GPU 이미지의 실행 사용자는 `ray`, API 검증 사용자는 uid/gid 1000이다. WSL에서는
+호스트 NVIDIA 런타임 설정을 수정하는 대신 `/dev/dxg`와 `/usr/lib/wsl`을 컨테이너에
+연결했다. 서버의 표준 NVIDIA Container Toolkit/device plugin 검증을 대신하지 않는다.
+검증용 Docker 네트워크는 `10.254.254.224/28`이며 기존 네트워크를 변경하지 않았다.
+GPU 이미지 크기는 약 9.06GB, 백엔드는 약 1.79GB(압축 전)였다. 빌드 중간 파일과
+Kubernetes 전체 이미지까지 필요하므로 서버 루트의 여유 18GB로 진행하지 않는다.
+
+추가 재실행 도구:
+
+```bash
+# GPU 컨테이너에서 학습 산출물 생성. 출력 디렉터리는 사용자 소유 쓰기 가능 경로.
+python scripts/gpu-portability-test.py export /home/ray/portability
+# GPU 없는 별도 컨테이너: joblib/pyfunc 및 실제 HTTP 모델 서버 예측 검증.
+python scripts/gpu-portability-test.py verify /home/ray/portability
+# 임시 PostgreSQL이 연결된 실제 API에 수행. 데이터셋을 생성한 뒤 삭제한다.
+python scripts/api-smoke-test.py --url http://pman-validation-api:8000
+```
+
+`automl-gpu-integration.py`의 임시 MLflow는 tracking/artifacts 검증에 필요 없는
+비동기 평가 작업자(`MLFLOW_SERVER_ENABLE_JOB_EXECUTION=false`)를 끈다.
+이 설정 없이 추가 작업자가 뜬 환경에서는 Ray 메모리 부족 종료를 재현했다.
+운영 MLflow의 비동기 평가 기능이나 배포 설정을 이 점검으로 변경하지 않는다.
+백그라운드 API/DB 검증 중에는 WSL 셸을 열어 유지한다. systemd 서비스만으로
+WSL 인스턴스가 계속 실행되는 것은 아니다. 검증 서비스의 시작과 재시작은
+직전 명령이 끝난 것을 확인한 뒤 수행하고, DB 준비 후 API를 시작한다.
 
 `scripts/profiles/local-rtx3050.env.example`은 배치 64, 단일 trial, PyTorch 메모리
 비율 0.75를 사용한다. 서버 프로필은 배치 512, 단일 trial, 비율 0.8이며 GPU worker
