@@ -4,8 +4,8 @@ import { Tabs, TabsList, TabsTrigger } from '@e8ight/ui/components/ui/tabs';
 import { X } from 'lucide-react';
 import Link from 'next/link';
 
-import { useSwitchEntityTab } from '@/app/(app)/service/entities/_hooks/useActiveEntityTab';
 import { useEntityParams } from '@/app/(app)/service/entities/_hooks/useEntityParams';
+import { useSwitchEntityTab } from '@/app/(app)/service/entities/_hooks/useSwitchEntityTab';
 import {
   entityHistoryPath,
   entityPath,
@@ -102,7 +102,7 @@ function EntityTabList({ entityTabList, removeEntityTabList }: IProps1) {
       <ScrollArea className="w-full min-w-0">
         <TabsList
           variant="line"
-          className="flex h-10 justify-start gap-0 rounded-none bg-transparent p-0 pb-1"
+          className="flex justify-start gap-0 rounded-none bg-transparent p-0 pb-1 group-data-[orientation=horizontal]/tabs:h-auto"
         >
           {entityTabList.map((entityTabInfo) => {
             return (

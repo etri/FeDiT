@@ -4,8 +4,8 @@
 ```
 ./gradlew build -p ~/IdeaProjects/dataIngest/dataAdapter
 docker buildx build --platform linux/amd64 -t ndxpro/ndxpro-dataadapter:v1.1 .
-docker tag ndxpro/ndxpro-dataadapter:v1 172.16.28.217:12000/ndxpro-dataadapter:v1.1
-docker push 172.16.28.217:12000/ndxpro-dataadapter:v1.1
+docker tag ndxpro/ndxpro-dataadapter:v1 docker-registry:12000/ndxpro-dataadapter:v1.1
+docker push docker-registry:12000/ndxpro-dataadapter:v1.1
 ```
 
 2. Run gradle jib
@@ -15,7 +15,7 @@ docker push 172.16.28.217:12000/ndxpro-dataadapter:v1.1
 
 3. Run Docker Container
 ```
-docker run -p 8080:8080 -d --name data-ingest 172.16.28.217:12000/data-ingest:v1.1
+docker run -p 8080:8080 -d --name data-ingest docker-registry:12000/data-ingest:v1.1
 ```
 
 ---
@@ -41,12 +41,12 @@ Content-Type: application/json
     "name":"vehicleAgent",
     "type":"HTTP",
     "modelType":"Vehicle",
-    "urlAddress":"http://1.233.183.202:51002",
+    "urlAddress":"http://data-source-server:51002",
     "connTerm":1,
     "isSaveSource":false,
     "tag":"dev.pintel.simul.org",
     "format":"json",
-    "contextUrl":"http://172.16.28.218:3005/e8ight-context.jsonld"
+    "contextUrl":"http://context-server:3005/e8ight-context.jsonld"
 }
 ```
  - run

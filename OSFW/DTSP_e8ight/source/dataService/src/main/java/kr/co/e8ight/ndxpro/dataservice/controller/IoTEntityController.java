@@ -41,7 +41,7 @@ public class IoTEntityController {
                                                              @RequestParam(defaultValue = "50") int limit,
                                                              @RequestParam(defaultValue = "DESC") String sort,
                                                              @RequestParam(defaultValue = "modDate") String sortproperty,
-                                                             @RequestHeader(value = HttpHeaders.LINK, required = false) @Schema(example = "<http://172.16.28.222:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
+                                                             @RequestHeader(value = HttpHeaders.LINK, required = false) @Schema(example = "<http://context-server:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
         log.info("getIoTEntities request type={}, q={}, offset={}, limit={}, sort={}, sortproperty={}, options={}, Link={}", type, q, offset, limit, sort, sortproperty, link);
         return ioTEntityService.getIoTEntities(offset, limit, sort, sortproperty, type, q, link);
     }
@@ -54,7 +54,7 @@ public class IoTEntityController {
     )
     @GetMapping("/entities/iot/{entityId}")
     public Object getIoTEntity(@PathVariable @Schema(example = "urn:e8ight:SimulationVehicle:695") String entityId,
-                                          @RequestHeader(value = HttpHeaders.LINK, required = false) @Schema(example = "<http://172.16.28.222:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
+                                          @RequestHeader(value = HttpHeaders.LINK, required = false) @Schema(example = "<http://context-server:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
         log.info("getIoTEntity request entityId={}, Link={}", entityId, link);
         return ioTEntityService.getIoTEntity(entityId, link);
     }
@@ -83,7 +83,7 @@ public class IoTEntityController {
                                                         @RequestParam(defaultValue = "50") int limit,
                                                         @RequestParam(defaultValue = "DESC") String sort,
                                                         @RequestParam(defaultValue = "entity.modDate") String sortproperty,
-                                                        @RequestHeader(value = HttpHeaders.LINK, required = false) @Schema(example = "<http://172.16.28.222:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
+                                                        @RequestHeader(value = HttpHeaders.LINK, required = false) @Schema(example = "<http://context-server:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
         log.info("getIoTEntityHistories request entityId={}, timerel={}, time={}, endTime={}, timeproperty={}, q={}, offset={}, limit={}, sort={}, sortproperty={}, Link={}", entityId, timerel, time, endTime, timeproperty, q, offset, limit, sort, sortproperty, link);
         return ioTEntityService.getEntityHistories(offset, limit, sort, sortproperty, entityId, timeproperty, timerel, time, endTime, q, link);
     }

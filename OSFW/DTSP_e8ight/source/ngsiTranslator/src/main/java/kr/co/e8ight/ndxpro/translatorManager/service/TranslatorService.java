@@ -1,6 +1,7 @@
 package kr.co.e8ight.ndxpro.translatorManager.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.co.e8ight.ndxpro.common.exception.error.ErrorCode;
 import kr.co.e8ight.ndxpro.translatorManager.config.Constants;
@@ -190,6 +191,31 @@ public class TranslatorService {
         return TranslatorResponseDto.from(translator);
     }
 
+    /**
+     * 저장된 코드 그대로 jar 만 다시 빌드한다.
+     * translator jar 에는 runner 코드가 함께 들어가므로, builder 의 runner 를 고친 뒤 기존 translator 에 반영할 때 쓴다.
+     * 실행 중인 jar 를 교체하면 아직 로드하지 않은 클래스를 읽다 깨질 수 있어 정지 상태에서만 허용한다.
+     */
+    @Transactional
+    public TranslatorResponseDto rebuild(Long translatorId, String token) {
+        String memberId = memberService.getMemberId(token);
+        Translator translator = translatorRepository.findById(translatorId)
+                .orElseThrow(() -> new TranslatorException(ErrorCode.RESOURCE_NOT_FOUND, "not found translator"));
+
+        if ( translator.getStatus().equals(TranslatorStatus.DELETED) ) {
+            throw new TranslatorException(ErrorCode.OPERATION_NOT_SUPPORTED, "Translator id :" + translatorId + " is Deleted.");
+        }
+        if ( TranslatorStatus.getAliveStatusSet().contains(translator.getStatus()) ) {
+            throw new TranslatorException(ErrorCode.OPERATION_NOT_SUPPORTED, "Translator (Id :" + translatorId + ") is currently running, Stop translator before rebuild.");
+        }
+
+        ResponseEntity<ProcessResultDto> responseEntity = build(TranslatorRegisterDto.from(translator), token);
+        fileService.replaceJarFileOnTranslatorDir(translator.getFileName(), Objects.requireNonNull(responseEntity.getBody()).getSavedFile());
+        translatorHistoryService.recordHistory(translator, memberId);
+
+        return TranslatorResponseDto.from(translator);
+    }
+
     @Transactional
     public TranslatorCheckResponseDto check(Long translatorId, TranslatorCheckRequestDto requestdto, String token) {
         TranslatorOperation translatorOperation = TranslatorOperation.CHECK;
@@ -197,27 +223,29 @@ public class TranslatorService {
         Translator translator = getById(translatorId);
         operater.operate(translator, requestdto);
 
-        TestResult testResult = getTestResultFromJson(translatorId);
+        String testResultJson = readTestResultJson(translatorId);
+        TestResult testResult = parseTestResultJson(testResultJson, TestResult.class);
+        JsonNode result = parseTestResultJson(testResultJson, JsonNode.class).get("result");
 
         if ( testResult.getSuccess() ) {
             // @context 필드에 값이 있는지
             if ( testResult.getResult().getContext() == null || testResult.getResult().getContext().equals("") ) {
-                return new TranslatorCheckResponseDto(false, "@context is empty.");
+                return new TranslatorCheckResponseDto(false, "@context is empty.", result);
             }
 
             // _id.type이 컨버터에 정의된 타입과 같은지
             if ( !testResult.getResult().getId().getType().equals(translator.getModelType()) ) {
-                return new TranslatorCheckResponseDto(false, "Test result entity's model type : " + testResult.getResult().getId().getType() + " is invalid.");
+                return new TranslatorCheckResponseDto(false, "Test result entity's model type : " + testResult.getResult().getId().getType() + " is invalid.", result);
             }
 
             // attrs 필드(리스트)의 요소 수와 attrNames(맵)의 요소 수의 크기가 같고 이름이 일치하는지
             List<Attribute> attrs = testResult.getResult().getAttrs();
             if ( attrs.size() != testResult.getResult().getAttrNames().size() ) {
-                return new TranslatorCheckResponseDto(false, "The size of the attribute list and the size of the attribute name list are different.");
+                return new TranslatorCheckResponseDto(false, "The size of the attribute list and the size of the attribute name list are different.", result);
             }
             for (Attribute attr : attrs) {
                 if ( !testResult.getResult().getAttrNames().containsKey(attr.getName()) ) {
-                    return new TranslatorCheckResponseDto(false, "List of attribute names doesn't have " + attr.getName() + ".");
+                    return new TranslatorCheckResponseDto(false, "List of attribute names doesn't have " + attr.getName() + ".", result);
                 }
             }
 
@@ -225,7 +253,7 @@ public class TranslatorService {
             DataModelDto dataModelDto = dataModelService.getDataModel(translator.getModelType(), token);
             for (Attribute attr : attrs) {
                 if ( !dataModelDto.getAttributeNames().containsKey(attr.getName()) ) {
-                    return new TranslatorCheckResponseDto(false, translator.getModelType() + " model does not have " + attr.getName() + " attribute.");
+                    return new TranslatorCheckResponseDto(false, translator.getModelType() + " model does not have " + attr.getName() + " attribute.", result);
                 }
             }
 
@@ -233,24 +261,26 @@ public class TranslatorService {
             List<String> requiredAttrNameList = dataModelDto.getRequired();
             for (String requiredAttrName : requiredAttrNameList) {
                 if ( !testResult.getResult().getAttrNames().containsKey(requiredAttrName) ) {
-                    return new TranslatorCheckResponseDto(false, requiredAttrName + " attribute is required on Model Type " + translator.getModelType() + ".");
+                    return new TranslatorCheckResponseDto(false, requiredAttrName + " attribute is required on Model Type " + translator.getModelType() + ".", result);
                 }
             }
 
             //success
             translator.ready();
-            return new TranslatorCheckResponseDto(true, testResult.getResult().toString());
+            return new TranslatorCheckResponseDto(true, testResult.getResult().toString(), result);
         } else {
-            return new TranslatorCheckResponseDto(false, testResult.getError());
+            return new TranslatorCheckResponseDto(false, testResult.getError(), null);
         }
     }
 
-    public TestResult getTestResultFromJson(Long translatorId) {
+    private String readTestResultJson(Long translatorId) {
         String filePath = logService.getTranslatorLogPath() + "/translator_" + translatorId + Constants.JSON_FILE_EXTENSION;
-        String jsonString = fileService.readFile(filePath);
+        return fileService.readFile(filePath);
+    }
 
+    private <T> T parseTestResultJson(String jsonString, Class<T> type) {
         try {
-            return objectMapper.readValue(jsonString, TestResult.class);
+            return objectMapper.readValue(jsonString, type);
         } catch (JsonProcessingException e) {
             log.error(e.getMessage());
             log.error(e.getOriginalMessage());

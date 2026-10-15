@@ -8,8 +8,8 @@ import { ErrorBoundary, Suspense } from '@suspensive/react';
 import { AttributeDetailSkeleton } from '@/app/(app)/service/entities/_components/AttributeDetailSkeleton';
 import AttributeInfo from '@/app/(app)/service/entities/_components/AttributeInfo';
 import EntityTabList from '@/app/(app)/service/entities/_components/EntityTabList';
-import { useSwitchEntityTab } from '@/app/(app)/service/entities/_hooks/useActiveEntityTab';
 import { useEntityParams } from '@/app/(app)/service/entities/_hooks/useEntityParams';
+import { useSwitchEntityTab } from '@/app/(app)/service/entities/_hooks/useSwitchEntityTab';
 import { QueryErrorFallback } from '@/components/common/QueryErrorFallback';
 
 import type { EntityTabType } from '@/app/(app)/service/entities/_types/entity';

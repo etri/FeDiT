@@ -32,10 +32,11 @@ function EntityHistoryHeader({
           <BreadcrumbItem>
             <Button
               variant="ghost"
-              className="text-muted-foreground hover:text-foreground h-auto p-0 text-xs font-medium"
+              title={modelId}
+              className="text-muted-foreground hover:text-foreground h-auto max-w-[240px] min-w-0 overflow-hidden p-0 text-xs font-medium"
               onClick={onShowEntityList}
             >
-              {modelId}
+              <span className="block max-w-full truncate">{modelId}</span>
             </Button>
           </BreadcrumbItem>
           <BreadcrumbSeparator />

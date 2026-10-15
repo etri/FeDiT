@@ -2,8 +2,10 @@ spring:
   sleuth:
     sampler:
       probability: 1.0 # 기본값 0.1  샘플링 정의 0~1(100%)
+    enabled: false
   zipkin:
     base-url: ${ZIPKIN_URL} # zipkin 주소
+    enabled: false
   cloud:
     gateway:
       #       cors-configurations:
@@ -43,8 +45,6 @@ spring:
             - Path=/ndxpro/v1/auth/**
           filters:
             - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
-#            - RemoveRequestHeader=Cookie
-#            - RewritePath=/authorization-service/(?<segment>.*), /$\{segment}
             - OrderedLogging=OrderedLogging Gateway Custom Filter, true, true
         - id: dataManagerId
           uri: lb://DATAMANAGER-SERVICE
@@ -53,7 +53,6 @@ spring:
           filters:
             - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
             - JwtAuthentication=ROLE_ADMIN
-            #            - OrderedLogging=OrderedLogging Gateway Custom Filter, true, true
             - Logging=Logging Gw, true, true
         - id: dataIngestId
           uri: lb://DATAINGEST-SERVICE
@@ -157,5 +156,5 @@ logging:
     url: ${LOGSTASH_URL}
 
 token:
-  secret: ZThpZ2h0LW5keHByby1wbGF0Zm9ybS1kZXZlbG9wbWVudC10ZWFtLXN1Y2Nlc3MtcHJvamVjdC1kZXY=
+  secret: ${JWT_SECRET}
 

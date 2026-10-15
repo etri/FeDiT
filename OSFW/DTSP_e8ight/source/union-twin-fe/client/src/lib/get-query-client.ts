@@ -17,11 +17,13 @@ function makeQueryClient() {
       },
       mutations: {
         onError: (error) => {
-          const msg = axios.isAxiosError(error)
-            ? ((error.response?.data as { detail?: string })?.detail ??
-              error.message)
-            : 'An error occurred';
-          toast.error(msg);
+          if (!axios.isAxiosError(error)) {
+            toast.error('An error occurred');
+            return;
+          }
+          const data = error.response?.data as
+            { detail?: string; error?: { message?: string } } | undefined;
+          toast.error(data?.detail ?? data?.error?.message ?? error.message);
         },
       },
       dehydrate: {

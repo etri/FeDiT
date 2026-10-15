@@ -17,11 +17,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 
 import { fdtSyncQueries } from '@/apis/fdtSync';
-import {
-  KAFKA_TOPIC,
-  KAFKA_URL_ADDRESS,
-} from '@/app/(app)/service/agents/_constants/kafkaAgent';
+import { DEFAULT_TOPIC } from '@/app/(app)/service/agents/_constants/kafkaAgent';
 import { useAgentStore } from '@/app/(app)/service/agents/_stores/useAgentStore';
+import { useRuntimeConfig } from '@/components/providers/RuntimeConfigProvider';
 
 function toKafkaTopic(federatedObjectId: string) {
   return federatedObjectId ? `FDO_${federatedObjectId}` : '';
@@ -33,6 +31,7 @@ function AgentKafkaSection() {
   );
   const [federatedTwinId, setFederatedTwinId] = useState('');
   const [federatedObjectId, setFederatedObjectId] = useState('');
+  const { fdtSyncKafkaUrl } = useRuntimeConfig();
 
   const {
     data: twins = [],
@@ -61,7 +60,7 @@ function AgentKafkaSection() {
             URL <span className="text-destructive">*</span>
           </FieldLabel>
           <Input
-            placeholder={KAFKA_URL_ADDRESS}
+            placeholder={fdtSyncKafkaUrl}
             value={agent.urlAddress}
             onChange={(e) =>
               setAgent((prev) => ({ ...prev, urlAddress: e.target.value }))
@@ -172,14 +171,11 @@ function AgentKafkaSection() {
           <FieldLabel>
             목적지 Topic <span className="text-destructive">*</span>
           </FieldLabel>
-          <Input
-            placeholder={KAFKA_TOPIC}
-            value={agent.topic}
-            onChange={(e) =>
-              setAgent((prev) => ({ ...prev, topic: e.target.value }))
-            }
-          />
-          <FieldDescription>수집한 데이터를 넣을 채널 토픽</FieldDescription>
+          <Input value={DEFAULT_TOPIC} readOnly />
+          <FieldDescription>
+            수집한 데이터를 넣을 고정 토픽입니다. Translator가 이 토픽을
+            구독합니다.
+          </FieldDescription>
         </Field>
       </div>
     </div>

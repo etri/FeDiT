@@ -25,8 +25,8 @@ import {
 } from '@e8ight/ui/components/ui/item';
 import { Spinner } from '@e8ight/ui/components/ui/spinner';
 import { useDebounce, useInfiniteScroll } from '@e8ight/ui/hooks';
-import { cn } from '@e8ight/ui/utils/cn';
 import { useSuspenseInfiniteQuery } from '@tanstack/react-query';
+import { cn } from 'cn';
 import { Check, Database, PlusCircle, Search, SearchX } from 'lucide-react';
 
 import { modelQueries } from '@/apis/model';
@@ -115,7 +115,10 @@ export function ContextSelector({
                     />
                   </ItemMedia>
                   <ItemContent className="min-w-0">
-                    <ItemTitle className="w-full min-w-0 truncate">
+                    <ItemTitle
+                      className="w-full min-w-0 truncate"
+                      title={item.type}
+                    >
                       {item.type}
                     </ItemTitle>
                   </ItemContent>

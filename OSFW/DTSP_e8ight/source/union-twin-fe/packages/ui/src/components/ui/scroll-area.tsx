@@ -13,6 +13,18 @@ type ScrollAreaProps = React.ComponentProps<typeof ScrollAreaPrimitive.Root> & {
   onViewportScroll?: React.UIEventHandler<HTMLDivElement>;
   /** Which scrollbars to render. Defaults to vertical for backward compatibility. */
   scrollbars?: 'vertical' | 'horizontal' | 'both';
+  /**
+   * 렌더링되는 scrollbar에 추가로 넘길 props.
+   *
+   * Radix는 scrollbar 위치(bottom/left/right)를 inline style로 주지만
+   * 넘긴 style을 마지막에 spread하므로 여기서 덮어쓸 수 있다.
+   * 오버레이가 viewport 일부를 가릴 때 scrollbar를 보이는 영역 안으로
+   * 밀어 넣는 용도.
+   */
+  scrollBarProps?: {
+    vertical?: React.ComponentProps<typeof ScrollBar>;
+    horizontal?: React.ComponentProps<typeof ScrollBar>;
+  };
 };
 
 function ScrollArea({
@@ -21,6 +33,7 @@ function ScrollArea({
   viewportRef,
   onViewportScroll,
   scrollbars = 'vertical',
+  scrollBarProps,
   ...props
 }: ScrollAreaProps) {
   return (
@@ -37,8 +50,12 @@ function ScrollArea({
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
-      {scrollbars !== 'horizontal' && <ScrollBar orientation="vertical" />}
-      {scrollbars !== 'vertical' && <ScrollBar orientation="horizontal" />}
+      {scrollbars !== 'horizontal' && (
+        <ScrollBar orientation="vertical" {...scrollBarProps?.vertical} />
+      )}
+      {scrollbars !== 'vertical' && (
+        <ScrollBar orientation="horizontal" {...scrollBarProps?.horizontal} />
+      )}
       <ScrollAreaPrimitive.Corner />
     </ScrollAreaPrimitive.Root>
   );

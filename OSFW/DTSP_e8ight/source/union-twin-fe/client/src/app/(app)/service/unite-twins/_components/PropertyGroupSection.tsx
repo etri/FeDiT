@@ -54,11 +54,17 @@ export function PropertyGroupSection({
       <div className="border-border rounded-lg border">
         <div className="flex items-center justify-between gap-2 px-3 py-2">
           <div className="min-w-0">
-            <span className="text-foreground block truncate text-sm font-bold">
+            <span
+              className="text-foreground block truncate text-sm font-bold"
+              title={title}
+            >
               {title}
             </span>
             {subtitle && (
-              <p className="text-muted-foreground truncate text-xs">
+              <p
+                className="text-muted-foreground truncate text-xs"
+                title={subtitle}
+              >
                 {subtitle}
               </p>
             )}

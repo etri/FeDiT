@@ -1,5 +1,3 @@
-import { useMemo } from 'react';
-
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { entityQueries } from '@/apis/entity/entity.queries';
@@ -14,29 +12,13 @@ export function useEntityDetail({
 }: UseEntityDetailOptions) {
   const param = useEntityParams();
 
-  const dynamicDetailConfig = useMemo(() => {
-    if (!observedTimeInfoProperty) {
-      return undefined;
-    }
+  const dynamicDetailConfig = observedTimeInfoProperty
+    ? { params: { timeproperty: `${observedTimeInfoProperty}.observedAt` } }
+    : undefined;
 
-    return {
-      params: {
-        timeproperty: `${observedTimeInfoProperty}.observedAt`,
-      },
-    };
-  }, [observedTimeInfoProperty]);
-
-  const staticDetailConfig = useMemo(() => {
-    if (!param.contextId) {
-      return undefined;
-    }
-
-    return {
-      headers: {
-        Link: `<${param.contextId}>`,
-      },
-    };
-  }, [param.contextId]);
+  const staticDetailConfig = param.contextId
+    ? { headers: { Link: `<${param.contextId}>` } }
+    : undefined;
 
   const shouldReadHistoryDetail =
     param.historyId !== undefined && dynamicDetailConfig !== undefined;

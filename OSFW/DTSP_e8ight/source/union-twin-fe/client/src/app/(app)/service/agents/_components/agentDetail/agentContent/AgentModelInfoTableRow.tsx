@@ -23,7 +23,7 @@ function AgentModelInfoTableRow({
   return (
     <>
       <TableRow onClick={handleToggle} className="cursor-pointer">
-        <TableCell className="flex items-center gap-1.5">
+        <TableCell className="flex items-center gap-1.5 wrap-anywhere whitespace-normal">
           {isExpanded ? (
             <ChevronUp className="size-3 transition-transform duration-200" />
           ) : (

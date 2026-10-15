@@ -42,6 +42,7 @@ import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
+import org.json.simple.parser.ParseException;
 
 @Service
 @Slf4j
@@ -54,6 +55,7 @@ public class DataModelService {
     private final UnitCodeRepository unitCodeRepository;
 
     private final FileService fileService;
+    private final ContextService contextService;
 
     private static final int DEFAULT_PAGE_SIZE = 25;
     private static final String FIRST_VERSION = "1.0";
@@ -68,11 +70,12 @@ public class DataModelService {
     private final MongoTemplate mongoTemplate;
     public DataModelService(DataModelRepository dataModelRepository,
             UnitCodeRepository unitCodeRepository, FileService fileService,
-            MongoTemplate mongoTemplate) {
+            MongoTemplate mongoTemplate, ContextService contextService) {
         this.dataModelRepository = dataModelRepository;
         this.unitCodeRepository = unitCodeRepository;
         this.fileService = fileService;
         this.mongoTemplate = mongoTemplate;
+        this.contextService = contextService;
     }
 
     public String createDataModel(DataModelRequestDto dataModelRequestDto)
@@ -157,7 +160,7 @@ public class DataModelService {
 
         return dataModel;
     }
-    public PagingResult<List<String>> readAllDataModel(Integer curPage, Integer size, String word, Boolean isReady) {
+    public PagingResult<List<DataModelResponseDto>> readAllDataModel(Integer curPage, Integer size, String word, Boolean isReady) {
 
         curPage *= size;
 
@@ -327,18 +330,15 @@ public class DataModelService {
     }
 
 
-    public String deleteDataModel(String type) {
+    public String deleteDataModel(String type) throws IOException, ParseException {
 
         DataModel existingDataModel = dataModelRepository.findFirstByAndTypeOrderByCreatedAtDesc(type)
                 .orElseThrow(
                         () -> new ContextException(ErrorCode.RESOURCE_NOT_FOUND,
                                 "Not Exists. DataModel= " + type));
 
-        if (existingDataModel.getIsReady() != null && existingDataModel.getIsReady()) {
-            throw new DataModelException(ErrorCode.OPERATION_NOT_SUPPORTED,
-                    "You cannot modify a ready model= " + existingDataModel.getType());
-        }
-
+        // Context가 모델 정의를 참조하므로 모델을 삭제하기 전에 모든 context에서 매핑을 제거한다.
+        contextService.removeDataModelFromAllContexts(existingDataModel);
         dataModelRepository.deleteById(existingDataModel.get_id());
         return ResponseMessage.DATA_MODEL_DELETE_SUCCESS;
     }

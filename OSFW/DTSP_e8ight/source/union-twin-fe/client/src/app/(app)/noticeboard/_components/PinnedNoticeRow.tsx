@@ -1,5 +1,5 @@
 import { Card } from '@e8ight/ui/components/ui/card';
-import { cn } from '@e8ight/ui/utils/cn';
+import { cn } from 'cn';
 import { ArrowUpRight, Clock, Eye, Pin } from 'lucide-react';
 import Link from 'next/link';
 

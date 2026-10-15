@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@e8ight/ui/components/ui/select';
-import { cn } from '@e8ight/ui/utils/cn';
+import { cn } from 'cn';
 
 import { getPageItems } from '@/hooks/usePagination';
 import { NOTICE_PAGE_SIZE_VALUES } from '@/types/noticeboard';

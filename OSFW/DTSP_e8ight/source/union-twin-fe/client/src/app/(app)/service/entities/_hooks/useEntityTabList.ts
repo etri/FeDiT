@@ -1,5 +1,8 @@
 import { useCallback } from 'react';
 
+import { useRouter } from 'next/navigation';
+
+import { useEntityParams } from '@/app/(app)/service/entities/_hooks/useEntityParams';
 import { useSetTreeHistory } from '@/app/(app)/service/entities/_hooks/useTreeHistory';
 import { useEntityTabStore } from '@/app/(app)/service/entities/_stores/useEntityTabStore';
 
@@ -11,6 +14,8 @@ function useEntityTabList() {
   const removeTab = useEntityTabStore((s) => s.removeTab);
 
   const setTreeHistory = useSetTreeHistory();
+  const router = useRouter();
+  const { contextId, modelId } = useEntityParams();
 
   const append = useCallback(
     (newEntityTab: EntityTabType) => {
@@ -37,8 +42,17 @@ function useEntityTabList() {
       setTreeHistory((prev) =>
         prev.filter((el) => el.treeHistoryId !== entityDetailId),
       );
+      if (
+        useEntityTabStore.getState().tabs.length === 0 &&
+        contextId &&
+        modelId
+      ) {
+        router.push(
+          `/service/entities/${encodeURIComponent(contextId)}/${modelId}`,
+        );
+      }
     },
-    [removeTab, setTreeHistory],
+    [contextId, modelId, removeTab, router, setTreeHistory],
   );
 
   return [entityTabList, { append, remove }] as const;

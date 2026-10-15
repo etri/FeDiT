@@ -1,6 +1,7 @@
 package kr.co.e8ight.ndxpro.translatorManager.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import kr.co.e8ight.ndxpro.translatorManager.domain.Translator;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,7 +31,7 @@ public class TranslatorRegisterDto {
     @NotEmpty(message = "Model type Required.")
     private String modelType;
 
-    @Schema(description = "수집된 데이터의 context 정보", example = "http://172.16.28.218:43005/e8ight-context-v1.0.1.jsonld")
+    @Schema(description = "수집된 데이터의 context 정보", example = "http://context-server:43005/e8ight-context-v1.0.1.jsonld")
     @NotEmpty(message = "Context Required.")
     private String context;
 
@@ -54,4 +55,22 @@ public class TranslatorRegisterDto {
 
     @Schema(description = "ObservedAt topic scenario type", example = "TOD")
     private String observedAtTopicScenarioType;
+
+    /**
+     * 저장된 translator 로 builder 요청을 만든다. 코드는 그대로 두고 jar 만 다시 빌드할 때 쓴다.
+     */
+    public static TranslatorRegisterDto from(Translator translator) {
+        return new TranslatorRegisterDto(
+                translator.getAgentId(),
+                translator.getName(),
+                translator.getTranslateCode(),
+                translator.getModelType(),
+                translator.getContext(),
+                translator.getIsCustomTopic(),
+                translator.getSourceTopic(),
+                translator.getTargetTopic(),
+                translator.getTransferObservedAt(),
+                translator.getObservedAtTopicScenarioId(),
+                translator.getObservedAtTopicScenarioType());
+    }
 }

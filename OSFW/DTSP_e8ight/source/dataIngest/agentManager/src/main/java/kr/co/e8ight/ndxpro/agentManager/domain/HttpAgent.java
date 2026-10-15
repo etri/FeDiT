@@ -57,4 +57,9 @@ public class HttpAgent extends Agent {
         this.method = requestDto.getMethod();
         this.body = requestDto.getBody();
     }
+
+    @Override
+    protected Long pollingIntervalMillis() {
+        return connTermToMillis(this.connTerm);
+    }
 }

@@ -1,8 +1,13 @@
 package kr.co.e8ight.ndxpro.databroker.controller.iot;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.co.e8ight.ndxpro.common.exception.error.ErrorCode;
+import kr.co.e8ight.ndxpro.databroker.config.SwaggerConfiguration;
+import kr.co.e8ight.ndxpro.databroker.config.SwaggerDescription;
 import kr.co.e8ight.ndxpro.databroker.dto.EntityDto;
 import kr.co.e8ight.ndxpro.databroker.dto.EntityProviderDto;
 import kr.co.e8ight.ndxpro.databroker.dto.QueryDto;
@@ -10,6 +15,7 @@ import kr.co.e8ight.ndxpro.databroker.dto.iot.IoTObservedAtDto;
 import kr.co.e8ight.ndxpro.databroker.dto.iot.IoTEntityDto;
 import kr.co.e8ight.ndxpro.databroker.exception.DataBrokerException;
 import kr.co.e8ight.ndxpro.databroker.service.EntityDocumentKey;
+import kr.co.e8ight.ndxpro.databroker.service.EntityService;
 import kr.co.e8ight.ndxpro.databroker.service.iot.IoTEntityHistoryService;
 import kr.co.e8ight.ndxpro.databroker.service.iot.IoTEntityService;
 import kr.co.e8ight.ndxpro.databroker.util.HttpHeadersUtil;
@@ -22,31 +28,70 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 
 @Slf4j
 @RestController
 @RequestMapping("/ndxpro/v1/broker")
+@Tag(name = SwaggerConfiguration.TAG_TIME_SERIES)
 public class IoTEntityController {
 
     private final IoTEntityService ioTEntityService;
 
     private final IoTEntityHistoryService ioTEntityHistoryService;
 
-    public IoTEntityController(IoTEntityService ioTEntityService, IoTEntityHistoryService ioTEntityHistoryService) {
+    private final EntityService entityService;
+
+    private final ObjectMapper objectMapper;
+
+    public IoTEntityController(IoTEntityService ioTEntityService, IoTEntityHistoryService ioTEntityHistoryService, EntityService entityService, ObjectMapper objectMapper) {
         this.ioTEntityService = ioTEntityService;
         this.ioTEntityHistoryService = ioTEntityHistoryService;
+        this.entityService = entityService;
+        this.objectMapper = objectMapper;
     }
 
     @Operation(
-            summary = "IoT NGSI-LD Entity 단건 조회 (by entityId)",
-            description = "NGSI-LD Entity id 로 IoT NGSI-LD Entity 단건 조회하는 API 입니다.<br><br>" +
-                    "Header의 Link에는 context 값을 넣어주세요.",
+            summary = "시계열 Entity 저장",
+            description = "NGSI-LD Entity 를 시계열 Entity 로 저장하는 API 입니다. 최신 스냅샷을 갱신하고 이력(history)에 추가합니다.<br><br>" +
+                    "Kafka 수집 경로와 동일하게 저장되며, 유효성 검사 실패 시 400 을 반환합니다.<br>" +
+                    "<ul>" +
+                    "<li>하나 이상의 attribute 에 <code>observedAt</code> 이 있어야 합니다.</li>" +
+                    "<li><code>observedAt</code> 은 타임존을 포함한 <code>yyyy-MM-dd'T'HH:mm:ss.SSSXXX</code> 형식입니다. (예: 2026-10-02T13:50:00.123+09:00)</li>" +
+                    "<li>같은 Entity 에 같은 <code>observedAt</code> 이 이미 있으면 이력은 추가되지 않습니다.</li>" +
+                    "</ul>" +
+                    SwaggerDescription.SAVE_ENTITY_RULES,
+            method = "POST"
+    )
+    @PostMapping("/entities/iot")
+    public void saveIoTEntity(
+            @RequestBody @Schema(example = "{" +
+                    "  \"id\": \"urn:ngsi-ld:SimulationVehicle:695\", " +
+                    "  \"type\": \"SimulationVehicle\"," +
+                    "    \"speed\": {" +
+                    "      \"type\": \"Property\"," +
+                    "      \"value\": 32.5," +
+                    "      \"observedAt\": \"2026-10-02T13:50:00.123+09:00\"" +
+                    "    }," +
+                    "    \"@context\": \"http://context-server:53005/e8ight-context-v1.0.1.jsonld\"" +
+                    "}") LinkedHashMap<String, Object> entity) {
+        log.info("saveIoTEntity(), Entity : {}", entity);
+
+        EntityDto entityDto = objectMapper.convertValue(entity, EntityDto.class);
+        entityService.mapAttributeDto(entityDto);
+        ioTEntityService.createIoTEntity(entityService.mapEntityDtoToIoTEntity(entityDto));
+    }
+
+    @Operation(
+            summary = "시계열 Entity 최신 단건 조회 (by entityId)",
+            description = "NGSI-LD Entity id 로 시계열 Entity 의 최신 스냅샷을 조회하는 API 입니다.<br><br>" +
+                    "Link 헤더(context)는 선택이며, 생략하면 id 만으로 조회합니다.",
             method = "GET"
     )
     @GetMapping("/entities/iot/{entityId}")
-    public EntityDto getIoTEntity(@PathVariable(required = false) @Schema(example = "urn:e8ight:SimulationVehicle:695") String entityId,
-                                  @RequestHeader(value = HttpHeaders.LINK, required = false) @Schema(example = "<http://172.16.28.218:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
+    public EntityDto getIoTEntity(@PathVariable(required = false) @Parameter(description = SwaggerDescription.ENTITY_ID, example = "urn:ngsi-ld:SimulationVehicle:695") String entityId,
+                                  @RequestHeader(value = HttpHeaders.LINK, required = false) @Parameter(description = SwaggerDescription.LINK_HEADER, example = "<http://context-server:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
         log.info("getIoTEntity request entityId={}, Link={}", entityId, link);
         String parsedLink = HttpHeadersUtil.parseLinkURI(link);
 
@@ -54,26 +99,22 @@ public class IoTEntityController {
     }
 
     @Operation(
-            summary = "IoT NGSI-LD Entity 전체 조회 (by queryDto)",
-            description = "QueryDto(id, type, q) 로 IoT NGSI-LD Entity 전체 조회하는 API 입니다.<br><br>" +
-                    "Header의 Link에는 context 값을 넣어주세요.<br><br>" +
-                    "q 파라미터의 key 값은 attribute 또는 child attribute name 입니다. 연산자 별 지원되는 attribute value type은 다음과 같습니다." +
-                    " == 와 ~= 연산자의 경우, entity id key(_id.id), entity service path key(_id.servicePath)도 지원 됩니다.<br>" +
-                    "== : String, DateTime String, Boolean, Integer, Double<br>" +
-                    "~= : String<br>" +
-                    "<= 또는 >= : DateTime String, Integer, Double",
+            summary = "시계열 Entity 최신 목록 조회 (by queryDto)",
+            description = "QueryDto(id, type, q) 로 시계열 Entity 의 최신 스냅샷 목록을 조회하는 API 입니다.<br><br>" +
+                    "Link 헤더(context)는 선택입니다.<br><br>" +
+                    SwaggerDescription.Q_OPERATORS_WITH_ID,
             method = "GET"
     )
     @GetMapping("/entities/iot")
-    public ResponseEntity<List<EntityDto>> getIoTEntities(@RequestParam(required = false) @Schema(example = "urn:e8ight:SimulationVehicle:695") String id,
-                                                          @RequestParam(required = false) @Schema(example = "SimulationVehicle") String type,
-                                                          @RequestParam(required = false) @Schema(example = "vehicleType==car") String q,
-                                                          @RequestParam(defaultValue = "0") int offset,
-                                                          @RequestParam(defaultValue = "50") int limit,
-                                                          @RequestParam(defaultValue = "DESC") SortTypeCode sort,
-                                                          @RequestParam(defaultValue = EntityDocumentKey.DEFAULT_ENTITY_SORT_PROPERTY_KEY) String sortproperty,
-                                                          @RequestParam(required = false) @Schema(example = "count") String options,
-                                                          @RequestHeader(value = HttpHeaders.LINK, required = false) @Schema(example = "<http://172.16.28.218:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
+    public ResponseEntity<List<EntityDto>> getIoTEntities(@RequestParam(required = false) @Parameter(description = SwaggerDescription.ENTITY_ID, example = "urn:ngsi-ld:SimulationVehicle:695") String id,
+                                                          @RequestParam(required = false) @Parameter(description = SwaggerDescription.TYPE, example = "SimulationVehicle") String type,
+                                                          @RequestParam(required = false) @Parameter(description = SwaggerDescription.Q, example = "vehicleType==car") String q,
+                                                          @RequestParam(defaultValue = "0") @Parameter(description = SwaggerDescription.OFFSET) int offset,
+                                                          @RequestParam(defaultValue = "50") @Parameter(description = SwaggerDescription.LIMIT) int limit,
+                                                          @RequestParam(defaultValue = "DESC") @Parameter(description = SwaggerDescription.SORT) SortTypeCode sort,
+                                                          @RequestParam(defaultValue = EntityDocumentKey.DEFAULT_ENTITY_SORT_PROPERTY_KEY) @Parameter(description = SwaggerDescription.SORT_PROPERTY) String sortproperty,
+                                                          @RequestParam(required = false) @Parameter(description = SwaggerDescription.OPTIONS, example = "count") String options,
+                                                          @RequestHeader(value = HttpHeaders.LINK, required = false) @Parameter(description = SwaggerDescription.LINK_HEADER, example = "<http://context-server:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
         log.info("getIoTEntities request id={}, type={}, q={}, offset={}, limit={}, sort={}, sortproperty={}, options={}, Link={}", id, type, q, offset, limit, sort, sortproperty, options, link);
         String parsedLink = HttpHeadersUtil.parseLinkURI(link);
 
@@ -93,14 +134,14 @@ public class IoTEntityController {
     }
 
     @Operation(
-            summary = "IoT NGSI-LD Entity 단건 조회 with provider (by entityId)",
-            description = "NGSI-LD Entity id 로 수집처 정보를 포함한 IoT NGSI-LD Entity 단건 조회하는 API 입니다.<br><br>" +
-                    "Header의 Link에는 context 값을 넣어주세요.",
+            summary = "시계열 Entity 최신 단건 조회 with provider (by entityId)",
+            description = "NGSI-LD Entity id 로 수집처 정보를 포함한 시계열 Entity 의 최신 스냅샷을 조회하는 API 입니다.<br><br>" +
+                    "Link 헤더(context)는 선택이며, 생략하면 id 만으로 조회합니다.",
             method = "GET"
     )
     @GetMapping("/entities/iot/provider/{entityId}")
-    public EntityProviderDto getIoTEntityWithProvider(@PathVariable(required = false) @Schema(example = "urn:e8ight:SimulationVehicle:695") String entityId,
-                                  @RequestHeader(value = HttpHeaders.LINK, required = false) @Schema(example = "<http://172.16.28.218:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
+    public EntityProviderDto getIoTEntityWithProvider(@PathVariable(required = false) @Parameter(description = SwaggerDescription.ENTITY_ID, example = "urn:ngsi-ld:SimulationVehicle:695") String entityId,
+                                  @RequestHeader(value = HttpHeaders.LINK, required = false) @Parameter(description = SwaggerDescription.LINK_HEADER, example = "<http://context-server:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
         log.info("getIoTEntityWithProvider request entityId={}, Link={}", entityId, link);
         String parsedLink = HttpHeadersUtil.parseLinkURI(link);
 
@@ -108,26 +149,22 @@ public class IoTEntityController {
     }
 
     @Operation(
-            summary = "IoT NGSI-LD Entity 전체 조회 with provider (by queryDto)",
-            description = "QueryDto(id, type, q) 로 수집처 정보를 포함한 IoT NGSI-LD Entity 전체 조회하는 API 입니다.<br><br>" +
-                    "Header의 Link에는 context 값을 넣어주세요.<br><br>" +
-                    "q 파라미터의 key 값은 attribute 또는 child attribute name 입니다. 연산자 별 지원되는 attribute value type은 다음과 같습니다." +
-                    " == 와 ~= 연산자의 경우, entity id key(_id.id), entity service path key(_id.servicePath)도 지원 됩니다.<br>" +
-                    "== : String, DateTime String, Boolean, Integer, Double<br>" +
-                    "~= : String<br>" +
-                    "<= 또는 >= : DateTime String, Integer, Double",
+            summary = "시계열 Entity 최신 목록 조회 with provider (by queryDto)",
+            description = "QueryDto(id, type, q) 로 수집처 정보를 포함한 시계열 Entity 의 최신 스냅샷 목록을 조회하는 API 입니다.<br><br>" +
+                    "Link 헤더(context)는 선택입니다.<br><br>" +
+                    SwaggerDescription.Q_OPERATORS_WITH_ID,
             method = "GET"
     )
     @GetMapping("/entities/iot/provider")
-    public ResponseEntity<List<EntityProviderDto>> getIoTEntitiesWithProvider(@RequestParam(required = false) @Schema(example = "urn:e8ight:SimulationVehicle:695") String id,
-                                                                              @RequestParam(required = false) @Schema(example = "SimulationVehicle") String type,
-                                                                              @RequestParam(required = false) @Schema(example = "vehicleType==car") String q,
-                                                                              @RequestParam(defaultValue = "0") int offset,
-                                                                              @RequestParam(defaultValue = "50") int limit,
-                                                                              @RequestParam(defaultValue = "DESC") SortTypeCode sort,
-                                                                              @RequestParam(defaultValue = EntityDocumentKey.DEFAULT_ENTITY_SORT_PROPERTY_KEY) String sortproperty,
-                                                                              @RequestParam(required = false) @Schema(example = "count") String options,
-                                                                              @RequestHeader(value = HttpHeaders.LINK, required = false) @Schema(example = "<http://172.16.28.218:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
+    public ResponseEntity<List<EntityProviderDto>> getIoTEntitiesWithProvider(@RequestParam(required = false) @Parameter(description = SwaggerDescription.ENTITY_ID, example = "urn:ngsi-ld:SimulationVehicle:695") String id,
+                                                                              @RequestParam(required = false) @Parameter(description = SwaggerDescription.TYPE, example = "SimulationVehicle") String type,
+                                                                              @RequestParam(required = false) @Parameter(description = SwaggerDescription.Q, example = "vehicleType==car") String q,
+                                                                              @RequestParam(defaultValue = "0") @Parameter(description = SwaggerDescription.OFFSET) int offset,
+                                                                              @RequestParam(defaultValue = "50") @Parameter(description = SwaggerDescription.LIMIT) int limit,
+                                                                              @RequestParam(defaultValue = "DESC") @Parameter(description = SwaggerDescription.SORT) SortTypeCode sort,
+                                                                              @RequestParam(defaultValue = EntityDocumentKey.DEFAULT_ENTITY_SORT_PROPERTY_KEY) @Parameter(description = SwaggerDescription.SORT_PROPERTY) String sortproperty,
+                                                                              @RequestParam(required = false) @Parameter(description = SwaggerDescription.OPTIONS, example = "count") String options,
+                                                                              @RequestHeader(value = HttpHeaders.LINK, required = false) @Parameter(description = SwaggerDescription.LINK_HEADER, example = "<http://context-server:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
         log.info("getIoTEntitiesWithProvider request id={}, type={}, q={}, offset={}, limit={}, sort={}, sortproperty={}, options={}, Link={}", id, type, q, offset, limit, sort, sortproperty, options, link);
         String parsedLink = HttpHeadersUtil.parseLinkURI(link);
 
@@ -147,28 +184,27 @@ public class IoTEntityController {
     }
 
     @Operation(
-            summary = "IoT NGSI-LD Entities 조회 (by temporal query)",
-            description = "temporal query로 IoT NGSI-LD Entity 들을 조회하는 API 입니다.<br><br>" +
-                    "Header의 Link에는 context 값을 넣어주세요.<br><br>" +
-                    "temporal query 파라미터 예시1 : timeproperty=speed.observedAt&time=2023-03-14T09:04:46.117<br>" +
-                    "temporal query 파라미터 예시2 : timeproperty=speed.observedAt&time=2023-03-14T09:04:46.117&timerel=after<br><br>" +
-                    "q 파라미터의 key 값은 attribute 또는 child attribute name 입니다. 연산자 별 지원되는 attribute value type은 다음과 같습니다.<br>" +
-                    "== : String, DateTime String, Boolean, Integer, Double<br>" +
-                    "~= : String<br>" +
-                    "<= 또는 >= : DateTime String, Integer, Double",
+            summary = "시계열 Entity 시점 조회 (by temporal query)",
+            description = "특정 시점(time) 또는 시간 조건(timerel)에 해당하는 시계열 Entity 들을 type 단위로 조회하는 API 입니다.<br><br>" +
+                    "Link 헤더(context)는 선택입니다.<br><br>" +
+                    "<b>예시</b><br>" +
+                    "- 특정 시점 : timeproperty=speed.observedAt&time=2023-03-14T09:04:46.117<br>" +
+                    "- 특정 시점 이후 : timeproperty=speed.observedAt&time=2023-03-14T09:04:46.117&timerel=after<br>" +
+                    "- 기간 : timeproperty=speed.observedAt&timerel=between&time=2023-03-14T09:00:00.000&endtime=2023-03-14T10:00:00.000<br><br>" +
+                    SwaggerDescription.Q_OPERATORS,
             method = "GET"
     )
     @GetMapping("/entities/iot/temporal")
-    public ResponseEntity<List<EntityDto>> getTemporalIoTEntities(@RequestParam(required = false) @Schema(example = "SimulationVehicle") String type,
-                                                                  @RequestParam(required = false) String timerel,
-                                                                  @RequestParam String time,
-                                                                  @RequestParam(required = false) String endtime,
-                                                                  @RequestParam @Schema(example = "speed.observedAt") String timeproperty,
-                                                                  @RequestParam(required = false) @Schema(example = "scenarioId==2;scenarioType==TOD;") String q,
-                                                                  @RequestParam(defaultValue = "0") int offset,
-                                                                  @RequestParam(defaultValue = "50") int limit,
-                                                                  @RequestParam(required = false) @Schema(example = "count") String options,
-                                                                  @RequestHeader(value = HttpHeaders.LINK, required = false) @Schema(example = "<http://172.16.28.218:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
+    public ResponseEntity<List<EntityDto>> getTemporalIoTEntities(@RequestParam(required = false) @Parameter(description = SwaggerDescription.TYPE, example = "SimulationVehicle") String type,
+                                                                  @RequestParam(required = false) @Parameter(description = SwaggerDescription.TIMEREL, schema = @Schema(allowableValues = {"before", "after", "between"})) String timerel,
+                                                                  @RequestParam @Parameter(description = SwaggerDescription.TEMPORAL_TIME, example = "2023-03-14T09:04:46.117") String time,
+                                                                  @RequestParam(required = false) @Parameter(description = SwaggerDescription.END_TIME, example = "2023-03-14T10:04:46.117") String endtime,
+                                                                  @RequestParam @Parameter(description = SwaggerDescription.TIME_PROPERTY, example = "speed.observedAt") String timeproperty,
+                                                                  @RequestParam(required = false) @Parameter(description = SwaggerDescription.Q, example = "scenarioId==2;scenarioType==TOD;") String q,
+                                                                  @RequestParam(defaultValue = "0") @Parameter(description = SwaggerDescription.OFFSET) int offset,
+                                                                  @RequestParam(defaultValue = "50") @Parameter(description = SwaggerDescription.LIMIT) int limit,
+                                                                  @RequestParam(required = false) @Parameter(description = SwaggerDescription.OPTIONS, example = "count") String options,
+                                                                  @RequestHeader(value = HttpHeaders.LINK, required = false) @Parameter(description = SwaggerDescription.LINK_HEADER, example = "<http://context-server:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
         log.info("getTemporalIoTEntities request type={}, timerel={}, time={}, endtime={}, timeproperty={}, q={}, offset={}, limit={}, options={}, Link={}", type, timerel, time, endtime, timeproperty, q, offset, limit, options, link);
         String parsedLink = HttpHeadersUtil.parseLinkURI(link);
 
@@ -191,14 +227,15 @@ public class IoTEntityController {
     }
 
     @Operation(
-            summary = "IoT NGSI-LD Entities observedAt date time 조회",
-            description = "IoT NGSI-LD Entity 들을 조회하는 API 입니다.<br><br>",
+            summary = "시계열 Entity observedAt 일시 조회",
+            description = "시나리오(scenarioId, scenarioType)의 observedAt 일시를 순서대로 조회하는 API 입니다.<br><br>" +
+                    "nextDateTime 을 생략하면 첫 번째 observedAt 을, 지정하면 그 다음 observedAt 을 반환합니다.",
             method = "GET"
     )
     @GetMapping("/entities/iot/temporal/observed-at")
-    public IoTObservedAtDto getIoTObservedAt(@RequestParam(required = false) String nextDateTime,
-                                             @RequestParam @Schema(example = "2") int scenarioId,
-                                             @RequestParam @Schema(example = "RTSC") String scenarioType) {
+    public IoTObservedAtDto getIoTObservedAt(@RequestParam(required = false) @Parameter(description = "기준 일시. 생략 시 첫 번째 observedAt 반환") String nextDateTime,
+                                             @RequestParam @Parameter(description = "시나리오 id", example = "2") int scenarioId,
+                                             @RequestParam @Parameter(description = "시나리오 type", example = "RTSC") String scenarioType) {
         IoTObservedAtDto observedAt = null;
         if(ValidateUtil.isEmptyData(nextDateTime))
             observedAt = ioTEntityService.getFirstObservedAt(scenarioId, scenarioType);
@@ -224,30 +261,31 @@ public class IoTEntityController {
 //    }
 
     @Operation(
-            summary = "IoT NGSI-LD Entity Histories 조회 (by entityId, timeproperty)",
-            description = "NGSI-LD Entity id 로 IoT NGSI-LD Entity 를 시계열(observedAt) 순으로 조회하는 API 입니다.<br><br>" +
-                    "Header의 Link에는 context url값을 넣어주세요.<br><br>" +
-                    "timeproperty 기준으로 history를 조회 하기 때문에, timeproperty를 필수로 넣어주세요.<br><br>" +
-                    "q 파라미터의 key 값은 attribute 또는 child attribute name 입니다. 연산자 별 지원되는 attribute value type은 다음과 같습니다.<br>" +
-                    "== : String, DateTime String, Boolean, Integer, Double<br>" +
-                    "~= : String<br>" +
-                    "<= 또는 >= : DateTime String, Integer, Double<br><br>" +
-                    "timerel은 'before', 'after', 'between' 값을 지원합니다. timerel을 요청할 경우 time 값은 필수 값이고, timerel이 'between'의 경우 time 뿐만아니라 endTime 값이 필수 값입니다.",
+            summary = "시계열 Entity 이력 목록 조회 (by entityId, timeproperty)",
+            description = "NGSI-LD Entity id 로 시계열 Entity 의 이력을 observedAt 순으로 조회하는 API 입니다.<br><br>" +
+                    "Link 헤더(context)는 선택입니다.<br><br>" +
+                    "<b>사용 방법</b><br>" +
+                    "1. entityId 와 timeproperty(<code>{속성명}.observedAt</code>) 를 넣습니다. (필수)<br>" +
+                    "2. 기간을 제한하려면 timerel 을 선택하고 time / endTime 을 넣습니다.<br>" +
+                    "&nbsp;&nbsp;- before / after : time 필수<br>" +
+                    "&nbsp;&nbsp;- between : time, endTime 필수<br>" +
+                    "3. 응답의 historyId 로 <code>/entities/iot/history/{historyId}</code> 를 호출하면 해당 시점의 전체 속성값을 확인할 수 있습니다.<br><br>" +
+                    SwaggerDescription.Q_OPERATORS,
             method = "GET"
     )
     @GetMapping("/entities/iot/history")
-    public ResponseEntity<List<IoTEntityDto>> getIoTEntityHistories(@RequestParam @Schema(example = "urn:e8ight:SimulationVehicle:695")String entityId,
-                                                                    @RequestParam(required = false) @Schema(example = "between") String timerel,
-                                                                    @RequestParam(required = false) @Schema(example = "2023-03-01T09:00:00.000") String time,
-                                                                    @RequestParam(required = false) @Schema(example = "2023-03-30T09:00:00.000") String endTime,
-                                                                    @RequestParam @Schema(example = "speed.observedAt") String timeproperty,
-                                                                    @RequestParam(required = false) @Schema(example = "vehicleType==car") String q,
-                                                                    @RequestParam(defaultValue = "0") int offset,
-                                                                    @RequestParam(defaultValue = "50") int limit,
-                                                                    @RequestParam(defaultValue = "DESC") SortTypeCode sort,
-                                                                    @RequestParam(defaultValue = EntityDocumentKey.DEFAULT_HISTORY_ENTITY_SORT_PROPERTY_KEY) String sortproperty,
-                                                                    @RequestParam(required = false) @Schema(example = "count") String options,
-                                                                    @RequestHeader(value = HttpHeaders.LINK, required = false) @Schema(example = "<http://172.16.28.218:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
+    public ResponseEntity<List<IoTEntityDto>> getIoTEntityHistories(@RequestParam @Parameter(description = SwaggerDescription.ENTITY_ID, example = "urn:ngsi-ld:SimulationVehicle:695") String entityId,
+                                                                    @RequestParam(required = false) @Parameter(description = SwaggerDescription.TIMEREL, example = "between", schema = @Schema(allowableValues = {"before", "after", "between"})) String timerel,
+                                                                    @RequestParam(required = false) @Parameter(description = SwaggerDescription.TIME, example = "2023-03-01T09:00:00.000") String time,
+                                                                    @RequestParam(required = false) @Parameter(description = SwaggerDescription.END_TIME, example = "2023-03-30T09:00:00.000") String endTime,
+                                                                    @RequestParam @Parameter(description = SwaggerDescription.TIME_PROPERTY, example = "speed.observedAt") String timeproperty,
+                                                                    @RequestParam(required = false) @Parameter(description = SwaggerDescription.Q, example = "vehicleType==car") String q,
+                                                                    @RequestParam(defaultValue = "0") @Parameter(description = SwaggerDescription.OFFSET) int offset,
+                                                                    @RequestParam(defaultValue = "50") @Parameter(description = SwaggerDescription.LIMIT) int limit,
+                                                                    @RequestParam(defaultValue = "DESC") @Parameter(description = SwaggerDescription.SORT) SortTypeCode sort,
+                                                                    @RequestParam(defaultValue = EntityDocumentKey.DEFAULT_HISTORY_ENTITY_SORT_PROPERTY_KEY) @Parameter(description = SwaggerDescription.SORT_PROPERTY) String sortproperty,
+                                                                    @RequestParam(required = false) @Parameter(description = SwaggerDescription.OPTIONS, example = "count") String options,
+                                                                    @RequestHeader(value = HttpHeaders.LINK, required = false) @Parameter(description = SwaggerDescription.LINK_HEADER, example = "<http://context-server:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
         log.info("getIoTEntityHistories request entityId={}, timerel={}, time={}, endTime={}, timeproperty={}, q={}, offset={}, limit={}, sort={}, sortproperty={}, options={}, Link={}", entityId, timerel, time, endTime, timeproperty, q, offset, limit, sort, sortproperty, options, link);
         String parsedLink = HttpHeadersUtil.parseLinkURI(link);
 
@@ -272,14 +310,14 @@ public class IoTEntityController {
     }
 
     @Operation(
-            summary = "History 정보 조회 (by historyId)",
-            description = "History id 로 Iot NGSI-LD Entity History 정보를 조회하는 API 입니다.<br><br>" +
-                    "timeproperty 기준으로 history를 조회 하기 때문에, timeproperty를 필수로 넣어주세요.",
+            summary = "시계열 Entity 이력 단건 조회 (by historyId)",
+            description = "이력 목록 조회에서 받은 historyId 로 해당 시점의 시계열 Entity 전체 속성값을 조회하는 API 입니다.<br><br>" +
+                    "timeproperty 기준으로 이력을 조회 하기 때문에, 이력 목록 조회에서 사용한 timeproperty 를 동일하게 넣어주세요.",
             method = "GET"
     )
     @GetMapping("/entities/iot/history/{historyId}")
-    public IoTEntityDto getIoTEntityHistory(@PathVariable @Schema(example = "640fc74c564f7778f58e8088") String historyId,
-                                            @RequestParam @Schema(example = "speed.observedAt") String timeproperty) {
+    public IoTEntityDto getIoTEntityHistory(@PathVariable @Parameter(description = SwaggerDescription.HISTORY_ID, example = "640fc74c564f7778f58e8088") String historyId,
+                                            @RequestParam @Parameter(description = SwaggerDescription.TIME_PROPERTY, example = "speed.observedAt") String timeproperty) {
         log.info("getIoTEntityHistory request historyId={}, timeproperty={}", historyId, timeproperty);
 
         return ioTEntityHistoryService.getIoTEntityHistory(historyId, timeproperty);

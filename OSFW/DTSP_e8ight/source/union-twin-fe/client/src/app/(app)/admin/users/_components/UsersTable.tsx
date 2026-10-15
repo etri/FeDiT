@@ -39,8 +39,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@e8ight/ui/components/ui/tooltip';
-import { cn } from '@e8ight/ui/utils/cn';
 import { useSuspenseQuery } from '@tanstack/react-query';
+import { cn } from 'cn';
 import {
   ChevronLeft,
   ChevronRight,
@@ -277,7 +277,9 @@ function UserRow({
           >
             {user.name}
           </span>
-          <span className="text-muted-foreground text-xs">{user.email}</span>
+          <span className="text-muted-foreground text-xs wrap-anywhere whitespace-normal">
+            {user.email}
+          </span>
         </div>
       </TableCell>
       <TableCell className="text-muted-foreground min-w-32 whitespace-normal">

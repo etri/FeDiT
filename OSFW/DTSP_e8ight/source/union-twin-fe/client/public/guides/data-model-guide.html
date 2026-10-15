@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FEDIT 데이터 모델링 가이드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDEFF2;
+  --panel:#FFFFFF;
+  --ink:#111A24;
+  --ink-2:#46586A;
+  --ink-3:#7C8B99;
+  --rule:#D3DAE0;
+  --rule-2:#E3E8EC;
+  --blue:#2438C8;
+  --teal:#0D7A66;
+  --amber:#8F6300;
+  --code-bg:#0E1720;
+  --code-fg:#C6D4E1;
+  --code-com:#5D7286;
+  --code-str:#7FD1B9;
+  --code-key:#8FA8FF;
+  --code-num:#E0B341;
+
+  --display:'Space Grotesk','IBM Plex Sans KR',system-ui,sans-serif;
+  --body:'IBM Plex Sans KR','Space Grotesk',system-ui,sans-serif;
+  --mono:'IBM Plex Mono','SFMono-Regular',Menlo,monospace;
+
+  --shell:1180px;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:90px}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--body);
+  font-weight:400;
+  font-size:15px;
+  line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- top bar ---------- */
+.topbar{
+  border-bottom:1px solid var(--rule);
+  background:var(--paper);
+  position:sticky;top:0;z-index:40;
+  backdrop-filter:saturate(1.2) blur(6px);
+}
+.topbar__in{
+  max-width:var(--shell);margin:0 auto;padding:9px 28px;
+  display:flex;justify-content:space-between;align-items:center;gap:16px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-3);
+}
+.topbar__id{color:var(--ink-2)}
+.topbar__id b{color:var(--blue);font-weight:500}
+
+/* ---------- hero ---------- */
+.hero{max-width:var(--shell);margin:0 auto;padding:64px 28px 40px}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);
+  display:flex;align-items:center;gap:12px;margin-bottom:22px;
+}
+.eyebrow::after{content:"";flex:1;height:1px;background:var(--rule)}
+.hero h1{
+  font-family:var(--display);font-weight:700;
+  font-size:clamp(2.1rem,5.2vw,3.5rem);
+  line-height:1.06;letter-spacing:-.02em;margin:0 0 26px;max-width:16ch;
+}
+.thesis{
+  font-family:var(--mono);font-size:clamp(11px,1.35vw,14px);
+  color:var(--ink-2);display:flex;flex-wrap:wrap;align-items:center;
+  gap:6px 10px;padding:16px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+}
+.thesis .node{color:var(--ink);font-weight:500}
+.thesis .arrow{color:var(--blue)}
+.thesis .topic{color:var(--teal)}
+.hero__note{margin-top:18px;color:var(--ink-2);max-width:62ch}
+
+/* ---------- layout ---------- */
+.shell{max-width:var(--shell);margin:0 auto;padding:0 28px 90px;display:grid;grid-template-columns:212px 1fr;gap:56px;align-items:start}
+.rail{position:sticky;top:78px;padding-top:8px}
+.rail__title{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px}
+.rail a{
+  display:block;text-decoration:none;color:var(--ink-2);
+  padding:5px 0 5px 13px;border-left:2px solid var(--rule-2);
+  font-size:13.5px;transition:color .18s,border-color .18s;
+}
+.rail a:hover{color:var(--ink)}
+.rail a.top{font-family:var(--display);font-weight:600;color:var(--ink);margin-top:16px}
+.rail a.top:first-of-type{margin-top:0}
+.rail a.on{color:var(--blue);border-left-color:var(--blue)}
+.rail a .n{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-right:7px}
+.rail a.on .n{color:var(--blue)}
+
+.main{min-width:0}
+
+/* ---------- sections ---------- */
+.sec{padding-top:16px;margin-bottom:76px}
+.sec__head{display:flex;gap:20px;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:30px}
+.sec__num{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--blue);letter-spacing:.1em;padding-top:6px}
+.sec__head h2{font-family:var(--display);font-weight:700;font-size:clamp(1.5rem,3vw,2rem);letter-spacing:-.015em;margin:0}
+
+h3{font-family:var(--display);font-weight:600;font-size:1.12rem;letter-spacing:-.01em;margin:42px 0 12px}
+h4{font-family:var(--display);font-weight:600;font-size:.94rem;margin:26px 0 8px;color:var(--ink-2)}
+p{margin:0 0 14px;max-width:72ch}
+.lead{color:var(--ink-2)}
+
+/* ---------- cards ---------- */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:20px 0 8px}
+.card{background:var(--panel);border:1px solid var(--rule);padding:18px 18px 20px}
+.card__tag{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--blue);text-transform:uppercase}
+.card h4{margin:8px 0 6px;color:var(--ink);font-size:1rem}
+.card p{font-size:13.5px;color:var(--ink-2);margin:0}
+
+/* ---------- code ---------- */
+.codeblock{position:relative;margin:16px 0 22px}
+.codeblock__bar{
+  display:flex;justify-content:space-between;align-items:center;
+  background:#182430;border:1px solid #182430;border-bottom:none;
+  padding:7px 14px;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:#8098AD;
+}
+.copy{
+  background:none;border:1px solid #33465A;color:#9FB4C7;
+  font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  padding:3px 9px;cursor:pointer;transition:.18s;
+}
+.copy:hover{background:#24333F;color:#fff}
+.copy.done{border-color:var(--code-str);color:var(--code-str)}
+pre{
+  margin:0;background:var(--code-bg);color:var(--code-fg);
+  padding:16px 18px;overflow-x:auto;font-family:var(--mono);
+  font-size:12.6px;line-height:1.68;tab-size:4;
+}
+code{font-family:var(--mono)}
+.tok-com{color:var(--code-com);font-style:italic}
+.tok-str{color:var(--code-str)}
+.tok-key{color:var(--code-key)}
+.tok-num{color:var(--code-num)}
+.tok-ann{color:#D89BE0}
+
+p code,li code,td code,th code{
+  background:#DCE2E8;color:var(--ink);padding:1px 5px;font-size:12.4px;border-radius:2px;
+}
+
+.split{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.split .codeblock{margin:0}
+
+/* ---------- tables ---------- */
+.tablewrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--rule);background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:520px}
+th{
+  text-align:left;font-family:var(--mono);font-weight:500;font-size:10.5px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);
+  padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap;
+}
+td{padding:10px 14px;border-bottom:1px solid var(--rule-2);vertical-align:top;color:var(--ink-2)}
+tbody tr:last-child td{border-bottom:none}
+td:first-child{color:var(--ink);font-weight:500}
+td.mono,th.mono{font-family:var(--mono);font-size:12.4px}
+
+/* ---------- callout ---------- */
+.note{border-left:3px solid var(--amber);background:#F6F2E8;padding:14px 18px;margin:20px 0;font-size:14px;color:var(--ink-2)}
+.note strong{color:var(--ink)}
+.note--blue{border-left-color:var(--blue);background:#E9ECFA}
+
+/* ---------- signature: URN encoder ---------- */
+.encoder{border:1px solid var(--ink);background:var(--panel);margin:22px 0 26px}
+.encoder__head{
+  display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:12px 18px;border-bottom:1px solid var(--rule);
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
+}
+.encoder__body{padding:20px 18px}
+.enc-input{
+  width:100%;font-family:var(--mono);font-size:13px;color:var(--ink);
+  background:#F4F6F8;border:1px solid var(--rule);padding:10px 12px;
+}
+.enc-input:focus{outline:2px solid var(--blue);outline-offset:1px;background:#fff}
+.seg{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:20px 0 4px}
+.seg__part{
+  font-family:var(--mono);font-size:13px;background:#E7EBEF;color:var(--ink);
+  padding:6px 10px;border:1px solid var(--rule);
+}
+.seg__sep{
+  font-family:var(--mono);font-size:13px;font-weight:600;
+  padding:6px 9px;border:1px solid transparent;
+  background:#F6EEDC;color:var(--amber);
+  transition:background .22s,color .22s,transform .22s;
+}
+.encoder.is-encoded .seg__sep{background:#E4E8FA;color:var(--blue);transform:translateY(-1px)}
+.enc-out{
+  margin-top:16px;padding-top:14px;border-top:1px dashed var(--rule);
+  display:grid;grid-template-columns:82px 1fr;gap:6px 14px;align-items:start;
+}
+.enc-out dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);padding-top:3px}
+.enc-out dd{margin:0;font-family:var(--mono);font-size:12.6px;color:var(--ink);word-break:break-all}
+.enc-out dd.url{color:var(--blue)}
+.toggle{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  background:var(--ink);color:#fff;border:none;padding:6px 13px;cursor:pointer;transition:.18s;
+}
+.toggle:hover{background:var(--blue)}
+
+/* ---------- pipeline schematic ---------- */
+.flow{border:1px solid var(--rule);background:var(--panel);padding:30px 24px;margin:22px 0 26px}
+.flow__row{display:grid;grid-template-columns:150px 1fr;gap:22px;align-items:center}
+.flow__stage{
+  font-family:var(--display);font-weight:600;font-size:15px;
+  border:1px solid var(--ink);padding:11px 14px;background:var(--panel);text-align:center;
+}
+.flow__stage.is-broker{background:var(--ink);color:#fff}
+.flow__side{font-size:13px;color:var(--ink-2)}
+.flow__side .topic{
+  font-family:var(--mono);font-size:12px;color:var(--teal);
+  border:1px dashed var(--teal);padding:2px 8px;display:inline-block;
+}
+.flow__link{
+  grid-column:1;justify-self:center;width:1px;height:30px;background:var(--rule);
+  position:relative;
+}
+.flow__link::after{
+  content:"";position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  border-left:4px solid transparent;border-right:4px solid transparent;border-top:6px solid var(--blue);
+}
+.flow__linkrow{display:grid;grid-template-columns:150px 1fr;gap:22px;align-items:center}
+.flow__linknote{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+
+/* ---------- checklist ---------- */
+.check{list-style:none;padding:0;margin:16px 0 22px;counter-reset:ck}
+.check li{
+  counter-increment:ck;position:relative;padding:9px 0 9px 40px;
+  border-bottom:1px solid var(--rule-2);color:var(--ink-2);font-size:14px;
+}
+.check li::before{
+  content:counter(ck,decimal-leading-zero);position:absolute;left:0;top:9px;
+  font-family:var(--mono);font-size:11px;color:var(--blue);letter-spacing:.06em;
+}
+.check li:last-child{border-bottom:none}
+
+ul.plain{padding-left:18px;margin:12px 0 20px;color:var(--ink-2)}
+ul.plain li{margin-bottom:6px}
+
+/* ---------- footer ---------- */
+.foot{border-top:1px solid var(--rule);max-width:var(--shell);margin:0 auto;padding:26px 28px 60px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-3);
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+a{color:var(--blue)}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+@media (max-width:980px){
+  .shell{grid-template-columns:1fr;gap:0}
+  .rail{position:static;display:flex;flex-wrap:wrap;gap:4px 10px;border-bottom:1px solid var(--rule);padding-bottom:16px;margin-bottom:34px}
+  .rail__title{width:100%;margin-bottom:8px}
+  .rail a{border-left:none;border-top:2px solid var(--rule-2);padding:6px 0 0}
+  .rail a.on{border-left:none;border-top-color:var(--blue)}
+  .cards{grid-template-columns:1fr}
+  .split{grid-template-columns:1fr}
+  .flow__row,.flow__linkrow{grid-template-columns:1fr}
+  .flow__link{justify-self:start;margin-left:20px}
+  .hero{padding-top:44px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *{transition:none!important;animation:none!important}
+}
+@media print{
+  .topbar,.rail,.copy,.toggle{display:none}
+  body{background:#fff;font-size:11px}
+  .shell{grid-template-columns:1fr;padding-bottom:0}
+  pre{background:#F4F6F8;color:#111A24;border:1px solid #D3DAE0}
+  .tok-com{color:#6B7C8C}.tok-str{color:#0D7A66}.tok-key{color:#2438C8}.tok-num{color:#8F6300}
+  .sec{page-break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar__in">
+    <span class="topbar__id">urn:fedit:doc:<b>data-model-guide</b></span>
+    <span>v1 · 2026-09-18</span>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="eyebrow">FEDIT 레퍼런스</div>
+  <h1>데이터 모델링 — 속성 종류별 작성법</h1>
+  <div class="thesis">
+    <span class="node">속성 카탈로그</span><span class="arrow">──▶</span>
+    <span class="node">데이터 모델에 속성 추가</span><span class="arrow">──▶</span>
+    <span class="topic">Type · Value Type 지정</span><span class="arrow">──▶</span>
+    <span class="node">Save</span><span class="arrow">──▶</span>
+    <span class="node">Ready</span>
+  </div>
+  <p class="hero__note">일반 값(Property), 시계열 관측값(observedAt), 관계(Relationship), 위치(GeoProperty)를 데이터 모델에 정의하는 방법과, 그 정의가 Translator 코드·브로커 조회에 어떻게 이어지는지 정리한 문서입니다.</p>
+</header>
+
+<div class="shell">
+
+  <nav class="rail" id="rail">
+    <div class="rail__title">Index</div>
+    <a class="top" href="#s1"><span class="n">01</span>기본 흐름</a>
+    <a href="#s1-1">속성 종류 3가지</a>
+    <a class="top" href="#s2"><span class="n">02</span>시계열(관측) 속성</a>
+    <a href="#s2-1">화면에서 만들기</a>
+    <a href="#s2-2">저장되는 모델 JSON</a>
+    <a href="#s2-3">Translator · 조회</a>
+    <a class="top" href="#s3"><span class="n">03</span>관계(Relationship) 속성</a>
+    <a href="#s3-1">화면에서 만들기</a>
+    <a href="#s3-2">저장되는 모델 JSON</a>
+    <a href="#s3-3">Translator · 조회</a>
+    <a class="top" href="#s4"><span class="n">04</span>위치(GeoProperty) 속성</a>
+    <a class="top" href="#s5"><span class="n">05</span>체크리스트</a>
+  </nav>
+
+  <main class="main">
+
+  <!-- ================= 01 ================= -->
+  <section class="sec" id="s1">
+    <div class="sec__head">
+      <div class="sec__num">01</div>
+      <h2>기본 흐름</h2>
+    </div>
+    <p>속성은 <strong>속성 관리</strong>에서 카탈로그(이름·값 타입·설명)로 먼저 등록하고, <strong>데이터 모델링</strong>에서 모델에 골라 넣습니다. 속성이 일반 값인지, 관계인지, 위치인지(<em>Type</em>)는 카탈로그가 아니라 <strong>모델 안에서</strong> 정합니다. 같은 속성이라도 모델마다 다른 Type으로 쓸 수 있습니다.</p>
+
+    <ol class="check">
+      <li><strong>속성 관리 → New</strong> : ID, Value Type(String · Double · …), Title, Description 등록. 시계열용 <code>observedAt</code>, 단위 <code>unitCode</code>는 이미 등록되어 있어 새로 만들 필요가 없습니다.</li>
+      <li><strong>데이터 모델링 → New</strong> : Type(모델 이름), Title, Description 입력.</li>
+      <li><strong>Edit → Add attribute</strong> : 카탈로그에서 속성을 골라 추가. 트리에서 속성을 클릭하면 오른쪽 패널에서 <em>Type / Value Type / Enum / model Type</em>을 편집.</li>
+      <li><strong>Save</strong> 후 검증하고, 수집을 시작할 준비가 되면 <strong>Ready</strong>. Ready 이후에는 Version up 전까지 수정할 수 없습니다.</li>
+    </ol>
+
+    <h3 id="s1-1">속성 종류 3가지</h3>
+    <div class="cards">
+      <div class="card">
+        <div class="card__tag">Property</div>
+        <h4>일반 값</h4>
+        <p>온도, 이름, 상태처럼 값을 그대로 담는 속성. 하위에 <code>observedAt</code>을 붙이면 <strong>시계열(관측)</strong> 속성이 됩니다.</p>
+      </div>
+      <div class="card">
+        <div class="card__tag">Relationship</div>
+        <h4>관계</h4>
+        <p>다른 엔티티를 가리키는 속성. 값은 대상 엔티티의 URN이며, 패널의 <em>model Type</em>에서 대상 모델을 고릅니다. 예: <code>hasTwin</code></p>
+      </div>
+      <div class="card">
+        <div class="card__tag">GeoProperty</div>
+        <h4>위치</h4>
+        <p>GeoJSON 좌표를 담는 속성. Type을 GeoProperty로 바꾸면 Format이 <code>GeoJSON</code>, Value Type이 <code>POINT</code> 등 도형 타입으로 바뀝니다. 예: <code>location</code></p>
+      </div>
+    </div>
+    <div class="note note--blue">
+      패널의 <strong>Type</strong> 셀렉트는 Edit 모드에서만 열립니다. Type을 바꾸면 Value Type · Format · model Type이 그 종류의 기본값으로 초기화되므로, 바꾼 뒤 값을 다시 확인하세요.
+    </div>
+  </section>
+
+  <!-- ================= 02 ================= -->
+  <section class="sec" id="s2">
+    <div class="sec__head">
+      <div class="sec__num">02</div>
+      <h2>시계열(관측) 속성</h2>
+    </div>
+    <p>센서값처럼 <strong>시간마다 새 값이 들어오는 속성</strong>은 하위 속성 <code>observedAt</code>을 붙여 표시합니다. 이렇게 정의된 속성은 저장 시 모델의 <code>observation</code> 목록에 자동으로 오르고, 모델은 동적 모델(<code>isDynamic: true</code>)이 되어 엔티티 조회에서 시간 조건·이력 조회가 가능해집니다.</p>
+
+    <h3 id="s2-1">화면에서 만들기</h3>
+    <ol class="check">
+      <li>Edit 모드에서 <strong>Add attribute</strong>로 값 속성(예: <code>temp</code>, Double)을 추가합니다.</li>
+      <li>트리에서 <code>temp</code> 행을 선택하면 오른쪽에 나타나는 <strong>Add child</strong> 버튼을 누릅니다.</li>
+      <li>목록에서 <code>observedAt</code>을 선택합니다. (<code>observedAt</code> · <code>unitCode</code>는 하위 속성으로만 추가할 수 있습니다.)</li>
+      <li>트리에 <code>temp &gt; observedAt</code>이 생기면 <strong>Save</strong>. 관측값 속성마다 1–3을 반복합니다.</li>
+    </ol>
+    <div class="note">
+      <code>observedAt</code>은 모델 최상위가 아니라 <strong>각 관측 속성의 하위</strong>에 둡니다. 최상위에 두면 관측 시각이 특정 속성과 묶이지 않아 시계열로 인식되지 않습니다.
+    </div>
+
+    <h3 id="s2-2">저장되는 모델 JSON</h3>
+    <div class="codeblock" data-lang="json">
+      <div class="codeblock__bar"><span>attributes.temp</span><button class="copy">복사</button></div>
+<pre><code>{
+  "temp": {
+    "type": "Property",
+    "valueType": "Double",
+    "childAttributeNames": { "observedAt": "ngsi-ld:observedAt" },
+    "childAttributes": {
+      "observedAt": { "type": "Property", "valueType": "String", "format": "DateTime" }
+    }
+  }
+}
+// 저장 후 서버가 계산 → "observation": ["temp"], "isDynamic": true</code></pre>
+    </div>
+
+    <h3 id="s2-3">Translator · 조회</h3>
+    <p>Translator에서는 값 속성에 <code>observedAt</code> 메타데이터를 함께 넣습니다. 노코드 매핑에서는 <em>observedAt</em> 옵션(현재 시각 / 원천 필드)을 고르면 아래 코드가 생성됩니다.</p>
+    <div class="codeblock" data-lang="java">
+      <div class="codeblock__bar"><span>translate() 발췌</span><button class="copy">복사</button></div>
+<pre><code>LinkedHashMap&lt;String, String&gt; observedAtMdNames = new LinkedHashMap&lt;&gt;();
+observedAtMdNames.put("observedAt", "e8ight:observedAt");
+List&lt;Attribute&gt; observedAtMd = new ArrayList&lt;&gt;();
+observedAtMd.add(new Attribute("observedAt", null, ZonedDateTime.now(ZoneOffset.UTC), null, null));
+
+attrs.add(new Attribute("temp", "Property", item.getDouble("temp"), observedAtMdNames, observedAtMd));</code></pre>
+    </div>
+    <div class="codeblock" data-lang="bash">
+      <div class="codeblock__bar"><span>curl · 시간 조건 조회 (주소는 예시)</span><button class="copy">복사</button></div>
+<pre><code>curl 'http://ndxpro-server:54011/ndxpro/v1/broker/entities/iot/temporal?type=PohangAtmosphere&amp;timeproperty=observedAt&amp;timerel=after&amp;time=2026-09-17T00:00:00Z&amp;limit=50'</code></pre>
+    </div>
+  </section>
+
+  <!-- ================= 03 ================= -->
+  <section class="sec" id="s3">
+    <div class="sec__head">
+      <div class="sec__num">03</div>
+      <h2>관계(Relationship) 속성</h2>
+    </div>
+    <p>다른 엔티티를 참조하는 속성입니다. 값은 대상 엔티티의 URN(<code>urn:ngsi-ld:{Type}:{id}</code>)이고, 모델에는 <strong>어떤 모델을 가리킬 수 있는지</strong>(<code>modelType</code>)를 기록합니다. 연합 트윈의 <code>hasTwin</code>이 대표적인 예입니다.</p>
+
+    <h3 id="s3-1">화면에서 만들기</h3>
+    <ol class="check">
+      <li>Edit 모드에서 <strong>Add attribute</strong>로 관계 이름의 속성(예: <code>hasTwin</code>, <code>refBuilding</code>)을 추가합니다. 카탈로그에 없으면 속성 관리에서 Value Type <code>String</code>으로 먼저 등록합니다.</li>
+      <li>트리에서 그 속성을 클릭하고 패널의 <strong>Type</strong>을 <code>Relationship</code>으로 바꿉니다. Value Type은 <code>String</code>으로 고정됩니다.</li>
+      <li><strong>model Type</strong> 선택기에서 대상 모델을 검색해 고릅니다(여러 개 가능). 선택하면 <code>urn:ngsi-ld:{Type}:</code> 형식으로 저장되고, 배지를 누르면 해당 모델 페이지로 이동합니다.</li>
+      <li><strong>Save</strong>.</li>
+    </ol>
+    <div class="note">
+      단일 트윈 통합으로 만든 연합 모델은 <code>hasTwin</code>이 이미 Relationship + 연결 단일 모델로 채워져 있으므로 이 절차가 필요 없습니다.
+    </div>
+
+    <h3 id="s3-2">저장되는 모델 JSON</h3>
+    <div class="codeblock" data-lang="json">
+      <div class="codeblock__bar"><span>attributes.hasTwin</span><button class="copy">복사</button></div>
+<pre><code>{
+  "hasTwin": {
+    "type": "Relationship",
+    "valueType": "String",
+    "modelType": ["urn:ngsi-ld:KR1011170001:", "urn:ngsi-ld:KR1011180001:"]
+  }
+}</code></pre>
+    </div>
+
+    <h3 id="s3-3">Translator · 조회</h3>
+    <p>Translator에서는 kind를 <code>"Relationship"</code>으로 주고 값에 대상 URN을 만듭니다. 노코드 매핑에서는 속성 종류를 Relationship으로 두고 <em>대상 URN prefix</em>를 입력하면 됩니다. 관계 속성에는 observedAt 메타데이터를 붙이지 않습니다.</p>
+    <div class="codeblock" data-lang="java">
+      <div class="codeblock__bar"><span>translate() 발췌</span><button class="copy">복사</button></div>
+<pre><code>attrs.add(new Attribute("hasTwin", "Relationship",
+    "urn:ngsi-ld:KR1011170001:" + item.getString("childId"), null, null));</code></pre>
+    </div>
+    <div class="codeblock" data-lang="json">
+      <div class="codeblock__bar"><span>브로커 조회 결과</span><button class="copy">복사</button></div>
+<pre><code>"hasTwin": {
+  "type": "Relationship",
+  "object": ["urn:ngsi-ld:KR1011170001:KR-101117-0001", "urn:ngsi-ld:KR1011180001:KR-101118-0001"]
+}</code></pre>
+    </div>
+  </section>
+
+  <!-- ================= 04 ================= -->
+  <section class="sec" id="s4">
+    <div class="sec__head">
+      <div class="sec__num">04</div>
+      <h2>위치(GeoProperty) 속성</h2>
+    </div>
+    <ol class="check">
+      <li><strong>Add attribute</strong>로 <code>location</code>을 추가합니다. 카탈로그의 <code>location</code>은 GeoJSON용으로 등록되어 있어 Type이 바로 GeoProperty로 들어옵니다.</li>
+      <li>다른 이름을 쓰려면 패널에서 <strong>Type</strong>을 <code>GeoProperty</code>로 바꿉니다. Format은 <code>GeoJSON</code>, Value Type은 도형 종류(<code>POINT</code> · <code>POLYGON</code> · <code>LINE_STRING</code> 등)에서 고릅니다.</li>
+      <li><strong>Save</strong>.</li>
+    </ol>
+    <div class="split">
+      <div class="codeblock" data-lang="json">
+        <div class="codeblock__bar"><span>attributes.location</span><button class="copy">복사</button></div>
+<pre><code>{
+  "location": {
+    "type": "GeoProperty",
+    "valueType": "POINT",
+    "format": "GeoJSON"
+  }
+}</code></pre>
+      </div>
+      <div class="codeblock" data-lang="java">
+        <div class="codeblock__bar"><span>translate() 발췌</span><button class="copy">복사</button></div>
+<pre><code>JSONObject point = new JSONObject()
+    .put("type", "Point")
+    .put("coordinates", new JSONArray()
+        .put(item.getDouble("lon"))
+        .put(item.getDouble("lat")));
+attrs.add(new Attribute("location", "GeoProperty", point, null, null));</code></pre>
+      </div>
+    </div>
+    <div class="note">
+      GeoJSON 좌표 순서는 <strong>[경도, 위도]</strong>입니다. 위도·경도를 따로 담는 일반 속성(<code>LATITUDE</code>, <code>LONGITUDE</code>)과 혼동하지 마세요.
+    </div>
+  </section>
+
+  <!-- ================= 05 ================= -->
+  <section class="sec" id="s5">
+    <div class="sec__head">
+      <div class="sec__num">05</div>
+      <h2>체크리스트</h2>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>증상</th><th>확인할 것</th></tr></thead>
+        <tbody>
+          <tr><td>엔티티 조회에서 시간 조건·이력 탭이 안 보임</td><td>관측 속성 하위에 <code>observedAt</code>이 있는지, 저장 후 모델 <code>observation</code>에 이름이 올라왔는지</td></tr>
+          <tr><td>관계 속성 값이 문자열로만 보임</td><td>모델에서 Type이 <code>Relationship</code>인지, Translator kind가 <code>"Relationship"</code>인지</td></tr>
+          <tr><td>model Type 배지를 눌러도 이동하지 않음</td><td>대상 모델이 삭제되었거나 이름이 바뀐 경우 — 선택기에서 다시 고름</td></tr>
+          <tr><td>위치가 지도에 안 찍힘</td><td>Type <code>GeoProperty</code> + Format <code>GeoJSON</code>인지, 좌표 순서가 [경도, 위도]인지</td></tr>
+          <tr><td>Type 셀렉트가 열리지 않음</td><td>Edit 모드인지, Ready 상태면 Version up 후 편집</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<footer class="foot">
+  <span>FEDIT · Data Model Reference</span>
+  <span>Property · Relationship · GeoProperty</span>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ---------- syntax highlighting ---------- */
+  function esc(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  var PATTERNS = {
+    java: /(\/\/[^\n]*)|("(?:\\.|[^"\\])*")|(@\w+)|(\b(?:package|import|public|private|protected|static|final|class|extends|implements|new|return|void|int|boolean|double|long|null|true|false|for|if|else|this)\b)|(\b\d+(?:\.\d+)?\b)/g,
+    json: /("(?:\\.|[^"\\])*"\s*:)|("(?:\\.|[^"\\])*")|(\b(?:true|false|null)\b)|(\b-?\d+(?:\.\d+)?\b)/g,
+    bash: /(#[^\n]*)|('(?:[^'])*')|(\B-{1,2}[A-Za-z][\w-]*)|(\bcurl\b)/g,
+    http: /(\b(?:GET|POST|PATCH|DELETE|PUT)\b)|(\{[^}]*\})/g,
+    text: null
+  };
+
+  var CLASSES = {
+    java: ['tok-com','tok-str','tok-ann','tok-key','tok-num'],
+    json: ['tok-key','tok-str','tok-num','tok-num'],
+    bash: ['tok-com','tok-str','tok-key','tok-key'],
+    http: ['tok-key','tok-num']
+  };
+
+  function highlight(code, lang){
+    var re = PATTERNS[lang];
+    if(!re) return esc(code);
+    var cls = CLASSES[lang], out = '', last = 0, m;
+    re.lastIndex = 0;
+    while((m = re.exec(code)) !== null){
+      var gi = 0;
+      for(var i = 1; i < m.length; i++){ if(m[i] !== undefined){ gi = i - 1; break; } }
+      out += esc(code.slice(last, m.index));
+      out += '<span class="' + cls[gi] + '">' + esc(m[0]) + '</span>';
+      last = m.index + m[0].length;
+      if(m.index === re.lastIndex) re.lastIndex++;
+    }
+    return out + esc(code.slice(last));
+  }
+
+  document.querySelectorAll('.codeblock').forEach(function(block){
+    var lang = block.getAttribute('data-lang') || 'text';
+    var codeEl = block.querySelector('code');
+    if(!codeEl) return;
+    var raw = codeEl.textContent;
+    codeEl.setAttribute('data-raw', raw);
+    codeEl.innerHTML = highlight(raw, lang);
+
+    var btn = block.querySelector('.copy');
+    if(!btn) return;
+    btn.addEventListener('click', function(){
+      var text = codeEl.getAttribute('data-raw');
+      var done = function(){
+        btn.textContent = '복사됨';
+        btn.classList.add('done');
+        setTimeout(function(){ btn.textContent = '복사'; btn.classList.remove('done'); }, 1400);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, fallback);
+      } else { fallback(); }
+      function fallback(){
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } catch(e){ btn.textContent = '실패'; }
+        document.body.removeChild(ta);
+      }
+    });
+  });
+
+  /* ---------- scrollspy ---------- */
+  var links = Array.prototype.slice.call(document.querySelectorAll('#rail a'));
+  var targets = links.map(function(a){ return document.querySelector(a.getAttribute('href')); }).filter(Boolean);
+
+  if('IntersectionObserver' in window && targets.length){
+    var visible = new Set();
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting) visible.add(e.target.id); else visible.delete(e.target.id);
+      });
+      var current = null;
+      for(var i = 0; i < targets.length; i++){
+        if(visible.has(targets[i].id)){ current = targets[i].id; break; }
+      }
+      links.forEach(function(a){
+        a.classList.toggle('on', current !== null && a.getAttribute('href') === '#' + current);
+      });
+    }, { rootMargin: '-88px 0px -70% 0px', threshold: 0 });
+    targets.forEach(function(t){ io.observe(t); });
+  }
+})();
+</script>
+</body>
+</html>

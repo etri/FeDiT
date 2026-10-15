@@ -21,12 +21,14 @@ import {
 import { useModelLoadingTime } from '@/app/(app)/viewer/_hooks/useModelLoadingTime';
 import { StatusOverlay } from '@/components/common/StatusOverlay';
 import { EmbeddedApp } from '@/components/embedded/EmbeddedApp';
+import { useRuntimeConfig } from '@/components/providers/RuntimeConfigProvider';
 
 export function ViewerContent() {
-  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID);
-
   const searchParams = useSearchParams();
-  const tourId = searchParams.get('tour_id') || selectedModel;
+  const { viewerAppUrl } = useRuntimeConfig();
+  const [selectedModel, setSelectedModel] = useState(
+    searchParams.get('tour_id') ?? DEFAULT_MODEL_ID,
+  );
 
   const {
     isModelLoaded,
@@ -69,9 +71,10 @@ export function ViewerContent() {
             </Select>
           </div>
 
-          <div className="min-h-[60svh] flex-1 lg:min-h-0">
+          <div className="h-[60svh] lg:h-auto lg:min-h-0 lg:flex-1">
             <EmbeddedApp
               appId="viewer"
+              url={viewerAppUrl || undefined}
               title="iframe testing"
               params={{ tour_id: selectedModel }}
               onLoad={handleModelLoadComplete}
@@ -81,7 +84,10 @@ export function ViewerContent() {
         </div>
 
         <div className="flex w-full shrink-0 flex-col gap-4 overflow-y-auto lg:w-[360px] xl:w-[540px]">
-          <ModelInformation is3DModelLoaded={isModelLoaded} tourId={tourId} />
+          <ModelInformation
+            is3DModelLoaded={isModelLoaded}
+            tourId={selectedModel}
+          />
           <TimeDisplay
             label="⏱️ 로딩 시작 시간"
             dateTime={startDateTime}

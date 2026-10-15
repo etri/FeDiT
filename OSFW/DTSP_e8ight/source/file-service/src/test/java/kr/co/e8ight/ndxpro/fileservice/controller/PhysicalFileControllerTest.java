@@ -1,5 +1,7 @@
 package kr.co.e8ight.ndxpro.fileservice.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.file.Paths;
 import kr.co.e8ight.ndxpro.common.exception.error.ErrorCode;
 import kr.co.e8ight.ndxpro.fileservice.config.GlobalExceptionHandler;
 import kr.co.e8ight.ndxpro.fileservice.config.exceptions.FileErrorCode;
@@ -7,6 +9,8 @@ import kr.co.e8ight.ndxpro.fileservice.config.exceptions.FileException;
 import kr.co.e8ight.ndxpro.fileservice.domain.FileStatus;
 import kr.co.e8ight.ndxpro.fileservice.domain.LogicalFile;
 import kr.co.e8ight.ndxpro.fileservice.domain.PhysicalFile;
+import kr.co.e8ight.ndxpro.fileservice.domain.dto.FileUploadResponseDto;
+import kr.co.e8ight.ndxpro.fileservice.domain.dto.LogicalFileRegisterDto;
 import kr.co.e8ight.ndxpro.fileservice.domain.dto.PhysicalFileResponseDto;
 import kr.co.e8ight.ndxpro.fileservice.domain.dto.LogicalFileListResponseDto;
 import kr.co.e8ight.ndxpro.fileservice.domain.dto.LogicalFileResponseDto;
@@ -18,6 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpMethod;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
@@ -58,35 +64,48 @@ class PhysicalFileControllerTest {
 
     private MockMultipartFile multipartFile;
     private String checksum;
+    private Resource resource;
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     public void setup() throws IOException {
         File file = new File("src/test/resources/test.txt");
         checksum = DigestUtils.md5DigestAsHex(new FileInputStream(file));
         multipartFile = new MockMultipartFile("file", file.getName(), "text/html; charset=utf-8", new FileInputStream(file));
+        resource = new UrlResource(Paths.get(file.getPath()).toUri());
     }
 
     @Nested
     class PhysicalFileUploadMVCTest {
         @Test
         void success() throws Exception {
-            LogicalFileResponseDto responseDto = LogicalFileResponseDto.builder()
+            FileUploadResponseDto responseDto = FileUploadResponseDto.builder()
                     .id(1L)
                     .ufId("ufId")
                     .owner("tester")
-                    .isDeleted(false)
                     .originalName(multipartFile.getOriginalFilename())
                     .extension(StringUtils.getFilenameExtension(multipartFile.getOriginalFilename()))
                     .build();
+            PhysicalFile physicalFile = new PhysicalFile(
+                    1L,
+                    multipartFile.getSize(),
+                    checksum,
+                    "./data/0x00/0x00/0x00/0x00",
+                    FileStatus.READY,
+                    false,
+                    0,
+                    null
+            );
 
             String documentName = "test";
-            given(fileService.uploadFile(any(MultipartFile.class), eq(checksum), eq(documentName)))
-                    .willReturn(responseDto);
+            given(fileService.uploadFile(any(MultipartFile.class), eq(checksum)))
+                    .willReturn(physicalFile);
+            given(fileService.registerLogicalFile(any(PhysicalFile.class)))
+              .willReturn(responseDto);
 
             mockMvc.perform(multipart(HttpMethod.POST, "/ndxpro/v1/file-service/files")
                             .file(multipartFile)
-                            .param("checksum", checksum)
-                            .param("document_name", documentName))
+                            .param("checksum", checksum))
                     .andDo(print())
                     //then
                     .andExpect(status().isCreated())
@@ -99,42 +118,14 @@ class PhysicalFileControllerTest {
         }
 
         @Test
-        void failCausedByWithoutDocumentName() throws Exception {
-            mockMvc.perform(multipart(HttpMethod.POST, "/ndxpro/v1/file-service/files")
-                            .file(multipartFile)
-                            .param("checksum", checksum))
-                    .andDo(print())
-                    //then
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("code").exists());
-        }
-
-        @Test
-        void failCausedByExistUniqueFileId() throws Exception {
-            String documentName = "test";
-            given(fileService.uploadFile(any(MultipartFile.class), eq(checksum), eq(documentName)))
-                    .willThrow(new FileException(ErrorCode.ALREADY_EXISTS, "File with the same UFID already exists."));
-
-            mockMvc.perform(multipart(HttpMethod.POST, "/ndxpro/v1/file-service/files")
-                            .file(multipartFile)
-                            .param("checksum", checksum)
-                            .param("document_name", documentName))
-                    .andDo(print())
-                    //then
-                    .andExpect(status().isConflict())
-                    .andExpect(jsonPath("code").exists());
-        }
-
-        @Test
         void failCausedByFileIoError() throws Exception {
             String documentName = "test";
-            given(fileService.uploadFile(any(MultipartFile.class), eq(checksum), eq(documentName)))
+            given(fileService.uploadFile(any(MultipartFile.class), eq(checksum)))
                     .willThrow(new FileException(FileErrorCode.FILE_IO_ERROR, "exceeded max file upload try count."));
 
             mockMvc.perform(multipart(HttpMethod.POST, "/ndxpro/v1/file-service/files")
                             .file(multipartFile)
-                            .param("checksum", checksum)
-                            .param("document_name", documentName))
+                            .param("checksum", checksum))
                     .andDo(print())
                     //then
                     .andExpect(status().is5xxServerError())
@@ -200,14 +191,12 @@ class PhysicalFileControllerTest {
             list.add(responseDto);
             LogicalFileListResponseDto listResponseDto = new LogicalFileListResponseDto(list);
 
-            String documentName = "test";
-            given(fileService.getLogicalFile(multipartFile.getOriginalFilename(), checksum, documentName))
+            given(fileService.getLogicalFile(multipartFile.getOriginalFilename(), checksum))
                     .willReturn(listResponseDto);
 
             mockMvc.perform(get("/ndxpro/v1/file-service/logical-files")
                             .param("filename", multipartFile.getOriginalFilename())
-                            .param("checksum", checksum)
-                            .param("document_name", documentName))
+                            .param("checksum", checksum))
                     .andDo(print())
                     //then
                     .andExpect(status().isOk())
@@ -222,7 +211,7 @@ class PhysicalFileControllerTest {
         @Test
         void successWithoutQueryParameters() throws Exception {
             LogicalFileListResponseDto listResponseDto = new LogicalFileListResponseDto(List.of());
-            given(fileService.getLogicalFile(null, null, null))
+            given(fileService.getLogicalFile(null, null))
                     .willReturn(listResponseDto);
 
             mockMvc.perform(get("/ndxpro/v1/file-service/logical-files"))
@@ -237,6 +226,10 @@ class PhysicalFileControllerTest {
     class LogicalPhysicalFileRegistrationTest {
         @Test
         void success() throws Exception {
+            LogicalFileRegisterDto registerDto = LogicalFileRegisterDto.builder()
+                    .filename(multipartFile.getOriginalFilename())
+                    .checksum(checksum)
+                    .build();
             LogicalFileResponseDto responseDto = LogicalFileResponseDto.builder()
                     .id(1L)
                     .ufId("ufId")
@@ -246,14 +239,12 @@ class PhysicalFileControllerTest {
                     .extension(StringUtils.getFilenameExtension(multipartFile.getOriginalFilename()))
                     .build();
 
-            String documentName = "test";
-            given(fileService.registerLogicalFile(multipartFile.getOriginalFilename(), checksum, documentName))
+            given(fileService.registerLogicalFile(any(LogicalFileRegisterDto.class)))
                     .willReturn(responseDto);
 
             mockMvc.perform(post("/ndxpro/v1/file-service/logical-files")
-                            .param("filename", multipartFile.getOriginalFilename())
-                            .param("checksum", checksum)
-                            .param("document_name", documentName))
+                .content(objectMapper.writeValueAsBytes(registerDto))
+                .contentType("application/json"))
                     .andDo(print())
                     //then
                     .andExpect(status().isCreated())
@@ -267,25 +258,30 @@ class PhysicalFileControllerTest {
 
         @Test
         void failCausedByMissingArguments() throws Exception {
+            LogicalFileRegisterDto registerDto = LogicalFileRegisterDto.builder()
+              .build();
+
             mockMvc.perform(post("/ndxpro/v1/file-service/logical-files")
-                            .param("filename", multipartFile.getOriginalFilename())
-                            .param("checksum", checksum))
+                .content(objectMapper.writeValueAsBytes(registerDto))
+                .contentType("application/json"))
                     .andDo(print())
                     //then
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("code").exists());
+                    .andExpect(status().isBadRequest());
         }
 
         @Test
         void failCausedByExistUniqueFileId() throws Exception {
-            String documentName = "test";
-            given(fileService.registerLogicalFile(multipartFile.getOriginalFilename(), checksum, documentName))
+            LogicalFileRegisterDto registerDto = LogicalFileRegisterDto.builder()
+              .filename(multipartFile.getOriginalFilename())
+              .checksum(checksum)
+              .build();
+
+            given(fileService.registerLogicalFile(any(LogicalFileRegisterDto.class)))
                     .willThrow(new FileException(ErrorCode.ALREADY_EXISTS, "logical file(ufId:" + "ufId" + ") is already exists."));
 
             mockMvc.perform(post("/ndxpro/v1/file-service/logical-files")
-                            .param("filename", multipartFile.getOriginalFilename())
-                            .param("checksum", checksum)
-                            .param("document_name", documentName))
+                .content(objectMapper.writeValueAsBytes(registerDto))
+                .contentType("application/json"))
                     .andDo(print())
                     //then
                     .andExpect(status().isConflict())
@@ -294,14 +290,17 @@ class PhysicalFileControllerTest {
 
         @Test
         void failCausedByNotFoundPhysicalFile() throws Exception {
-            String documentName = "test";
-            given(fileService.registerLogicalFile(multipartFile.getOriginalFilename(), checksum, documentName))
+            LogicalFileRegisterDto registerDto = LogicalFileRegisterDto.builder()
+              .filename(multipartFile.getOriginalFilename())
+              .checksum(checksum)
+              .build();
+
+            given(fileService.registerLogicalFile(any(LogicalFileRegisterDto.class)))
                     .willThrow(new FileException(ErrorCode.RESOURCE_NOT_FOUND, "file not found."));
 
             mockMvc.perform(post("/ndxpro/v1/file-service/logical-files")
-                            .param("filename", multipartFile.getOriginalFilename())
-                            .param("checksum", checksum)
-                            .param("document_name", documentName))
+                .content(objectMapper.writeValueAsBytes(registerDto))
+                .contentType("application/json"))
                     .andDo(print())
                     //then
                     .andExpect(status().isNotFound())
@@ -310,14 +309,16 @@ class PhysicalFileControllerTest {
 
         @Test
         void failCausedByWaitingFileUploadThreadIsInterrupted() throws Exception {
-            String documentName = "test";
-            given(fileService.registerLogicalFile(multipartFile.getOriginalFilename(), checksum, documentName))
+            LogicalFileRegisterDto registerDto = LogicalFileRegisterDto.builder()
+              .filename(multipartFile.getOriginalFilename())
+              .checksum(checksum)
+              .build();
+            given(fileService.registerLogicalFile(any(LogicalFileRegisterDto.class)))
                     .willThrow(new FileException(ErrorCode.INTERNAL_SERVER_ERROR, "file upload waiting thread interrupt."));
 
             mockMvc.perform(post("/ndxpro/v1/file-service/logical-files")
-                            .param("filename", multipartFile.getOriginalFilename())
-                            .param("checksum", checksum)
-                            .param("document_name", documentName))
+                .content(objectMapper.writeValueAsBytes(registerDto))
+                .contentType("application/json"))
                     .andDo(print())
                     //then
                     .andExpect(status().isInternalServerError())
@@ -329,7 +330,6 @@ class PhysicalFileControllerTest {
     class PhysicalFileDownloadTest {
         @Test
         void success() throws Exception {
-            String documentName = "test";
             String ufId = "ufId";
             String path = "./data/0x00/0x00/0x00/0x00/" + UUID.randomUUID();
             LogicalFile logicalFile = new LogicalFile(
@@ -339,7 +339,6 @@ class PhysicalFileControllerTest {
                     StringUtils.getFilenameExtension(multipartFile.getOriginalFilename()),
                     "tester",
                     false,
-                    documentName,
                     new PhysicalFile(
                             1L,
                             multipartFile.getSize(),
@@ -352,7 +351,7 @@ class PhysicalFileControllerTest {
             );
 
             given(fileService.getLogicalFileWithUfIdAndNotDeleted(ufId)).willReturn(logicalFile);
-            given(fileIoService.getByteArrayFromFilePath(path)).willReturn(multipartFile.getBytes());
+            given(fileIoService.getFileResourceFromFilePath(path)).willReturn(resource);
             given(mimeTypeDetector.getMimeTypeFromLogicalFile(any(LogicalFile.class))).willReturn("text/plain");
 
             mockMvc.perform(get("/ndxpro/v1/file-service/files/" + ufId))
@@ -363,7 +362,7 @@ class PhysicalFileControllerTest {
                     .andExpect(header().exists("Content-Disposition"))
                     .andExpect(header().longValue("Content-Length",multipartFile.getSize()));
 
-            verify(fileIoService).getByteArrayFromFilePath(path);
+            verify(fileIoService).getFileResourceFromFilePath(path);
         }
 
         @Test
@@ -381,7 +380,7 @@ class PhysicalFileControllerTest {
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("code").exists());
 
-            verify(fileIoService, never()).getByteArrayFromFilePath(path);
+            verify(fileIoService, never()).getFileResourceFromFilePath(path);
         }
 
         @Test
@@ -396,7 +395,6 @@ class PhysicalFileControllerTest {
                     StringUtils.getFilenameExtension(multipartFile.getOriginalFilename()),
                     "tester",
                     false,
-                    documentName,
                     new PhysicalFile(
                             1L,
                             multipartFile.getSize(),
@@ -409,7 +407,7 @@ class PhysicalFileControllerTest {
             );
 
             given(fileService.getLogicalFileWithUfIdAndNotDeleted(ufId)).willReturn(logicalFile);
-            given(fileIoService.getByteArrayFromFilePath(path)).willThrow(
+            given(fileIoService.getFileResourceFromFilePath(path)).willThrow(
                     new FileException(ErrorCode.INTERNAL_SERVER_ERROR, "read file error. "));
             given(mimeTypeDetector.getMimeTypeFromLogicalFile(any(LogicalFile.class))).willReturn("text/plain");
 
@@ -419,7 +417,7 @@ class PhysicalFileControllerTest {
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("code").exists());
 
-            verify(fileIoService).getByteArrayFromFilePath(path);
+            verify(fileIoService).getFileResourceFromFilePath(path);
         }
     }
 

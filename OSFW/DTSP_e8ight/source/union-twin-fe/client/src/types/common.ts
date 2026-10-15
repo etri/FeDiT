@@ -20,3 +20,8 @@ export interface PaginationParams {
   word?: string;
   isReady?: boolean;
 }
+
+export interface LogResponse {
+  log: string;
+  endLineNum: number;
+}

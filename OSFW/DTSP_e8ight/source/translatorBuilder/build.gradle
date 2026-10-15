@@ -11,11 +11,11 @@ sourceCompatibility = '11'
 
 repositories {
     maven {
-        url 'http://172.16.28.217:9081/repository/maven-releases/'
+        url = (project.findProperty('nexusUrl') ?: System.getenv('NEXUS_URL'))
         allowInsecureProtocol = true
         credentials {
-            username = "admin"
-            password = "ndxpro123!"
+            username = (project.findProperty('nexusUsername') ?: System.getenv('NEXUS_USERNAME') ?: '')
+            password = (project.findProperty('nexusPassword') ?: System.getenv('NEXUS_PASSWORD') ?: '')
         }
     }
     mavenCentral()
@@ -45,52 +45,37 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
-tasks.jibDockerBuild.doFirst {
-    copy {
-        from("translatorSource/")
-        into("src/main/jib/translatorSource/")
-    }
-    copy {
-        from("translatorLib/")
-        into("src/main/jib/root/.gradle/caches/modules-2/")
-    }
+// 컨테이너 안에서 translatorSource를 오프라인 빌드할 때 쓰는 Gradle 의존성 캐시(modules-2).
+// 저장소에 jar를 커밋하지 않고, 이미지 빌드 시점에 translatorSource 의존성을 받아 만든다.
+def translatorGradleHome = file("$buildDir/translatorGradleHome")
+
+tasks.register('prepareTranslatorLib', Exec) {
+    workingDir 'translatorSource'
+    commandLine './gradlew', 'build', '--no-build-cache', '--gradle-user-home', translatorGradleHome.absolutePath
 }
 
-tasks.jibDockerBuild.doLast() {
-    delete("src/main/jib/translatorSource/")
-    delete("src/main/jib/root/.gradle/caches/modules-2/")
-}
-
-tasks.jibBuildTar.doFirst {
-    copy {
-        from("translatorSource/")
-        into("src/main/jib/translatorSource/")
+['jibDockerBuild', 'jibBuildTar', 'jib'].each { name ->
+    tasks.named(name) {
+        dependsOn 'prepareTranslatorLib'
+        doFirst {
+            copy {
+                from("translatorSource/") {
+                    exclude 'build/**', '.gradle/**'
+                }
+                into("src/main/jib/translatorSource/")
+            }
+            copy {
+                from("$translatorGradleHome/caches/modules-2/") {
+                    exclude '*.lock', 'gc.properties'
+                }
+                into("src/main/jib/root/.gradle/caches/modules-2/")
+            }
+        }
+        doLast {
+            delete("src/main/jib/translatorSource/")
+            delete("src/main/jib/root/.gradle/caches/modules-2/")
+        }
     }
-    copy {
-        from("translatorLib/")
-        into("src/main/jib/root/.gradle/caches/modules-2/")
-    }
-}
-
-tasks.jibBuildTar.doLast() {
-    delete("src/main/jib/translatorSource/")
-    delete("src/main/jib/root/.gradle/caches/modules-2/")
-}
-
-tasks.jib.doFirst {
-    copy {
-        from("translatorSource/")
-        into("src/main/jib/translatorSource/")
-    }
-    copy {
-        from("translatorLib/")
-        into("src/main/jib/root/.gradle/caches/modules-2/")
-    }
-}
-
-tasks.jib.doLast() {
-    delete("src/main/jib/translatorSource/")
-    delete("src/main/jib/root/.gradle/caches/modules-2/")
 }
 
 jib {
@@ -98,11 +83,11 @@ jib {
         image = "openjdk:11.0.14"
     }
     to {
-        image = "172.16.28.217:12000/ndxpro-translatorbuilder"
+        image = "${(project.findProperty('dockerRegistry') ?: System.getenv('DOCKER_REGISTRY'))}/ndxpro-translatorbuilder"
         tags = ["v1.1.1"]
         auth {
-            username = "admin"
-            password = "ndxpro123!"
+            username = (project.findProperty('nexusUsername') ?: System.getenv('NEXUS_USERNAME') ?: '')
+            password = (project.findProperty('nexusPassword') ?: System.getenv('NEXUS_PASSWORD') ?: '')
         }
         container {
             mainClass ="kr.co.e8ight.ndxpro.translatorbuilder.TranslatorBuilderApplication"

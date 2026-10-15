@@ -26,7 +26,7 @@ Library/framework APIs (React, Next.js, TanStack Query, Zustand, react-hook-form
 
 ## `packages/ui` is a vendored fork
 
-It is a copy of `@e8ight/ui` taken from `platform/e8ight-fe-monorepo` at version `0.2.6`, kept here as a workspace package so the client resolves it without the internal registry. Upstream still ships releases and this copy will drift — see the root `README.md`.
+It is a copy of `@e8ight/ui` taken from `platform/e8ight-fe-monorepo` at version `0.2.9`, kept here as a workspace package so the client resolves it without the internal registry. Upstream still ships releases and this copy will drift — see the root `README.md`.
 
 **Never edit files under `packages/ui/`.** Wrap primitives in `client/src/components/ui/` instead — house style §4. Nothing is ever published from this repo.
 
@@ -68,5 +68,4 @@ Run from root, or from inside `client/` or `server/`. From root, target one work
 ## Non-negotiable
 
 1. Run `pnpm check` before declaring a task complete.
-2. Never commit. Never create or mark PRs ready.
-3. Unsure → stop, ask — see `.claude/rules/house-style.md` §1.
+2. Unsure → stop, ask — see `.claude/rules/house-style.md` §1.

@@ -13,6 +13,7 @@ import {
 } from '@e8ight/ui/components/ui/dialog';
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldLabel,
   FieldSet,
@@ -30,12 +31,19 @@ import { Spinner } from '@e8ight/ui/components/ui/spinner';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
+import { BookOpen, Wand2 } from 'lucide-react';
 
 import {
   translatorQueries,
   useCreateTranslatorMutation,
 } from '@/apis/translator';
 import CodeEditorPopup from '@/app/(app)/service/agents/_components/agentDetail/translator/CodeEditorPopup';
+import { openNoCodeMappingDialog } from '@/app/(app)/service/agents/_components/agentDetail/translator/NoCodeMappingDialog';
+import { openTranslatorGuideDialog } from '@/app/(app)/service/agents/_components/agentDetail/translator/TranslatorGuideDialog';
+import {
+  DEFAULT_TOPIC,
+  DEFAULT_TRANSLATED_TOPIC,
+} from '@/app/(app)/service/agents/_constants/kafkaAgent';
 import {
   translatorCreateSchema,
   type TranslatorCreateFormValues,
@@ -48,6 +56,7 @@ import type { ApiError } from '@/types/error';
 interface CreateFormPopupProps {
   open: boolean;
   agentId: number;
+  agentTopic: string;
   modelInfoList: AgentModel[];
   closeCreateFormPopup: () => void;
 }
@@ -55,6 +64,7 @@ interface CreateFormPopupProps {
 function CreateFormPopup({
   open,
   agentId,
+  agentTopic,
   modelInfoList,
   closeCreateFormPopup,
 }: CreateFormPopupProps) {
@@ -71,7 +81,8 @@ function CreateFormPopup({
     defaultValues: {
       name: '',
       modelType: modelInfoList[0]?.modelType ?? '',
-      sourceTopic: '',
+      sourceTopic: agentTopic || DEFAULT_TOPIC,
+      targetTopic: DEFAULT_TRANSLATED_TOPIC,
       translateCode: '',
     },
   });
@@ -112,6 +123,25 @@ function CreateFormPopup({
     }
   };
 
+  const openNoCodeMapping = async () => {
+    const name = getValues('name');
+    if (name === '') {
+      translateNameInputRef.current?.focus();
+      toast.warning('Please set the translator Name first.');
+      return;
+    }
+    const code = await openNoCodeMappingDialog({
+      className: name,
+      modelType: getValues('modelType'),
+      translateCode: getValues('translateCode'),
+    });
+    if (code) {
+      setValue('translateCode', code);
+      setSuccessCompile(null);
+      toast.success('코드를 생성했습니다. 에디터에서 Compile로 확인해주세요.');
+    }
+  };
+
   const submitNewTranslator = handleSubmit(
     async (data) => {
       const context = modelInfoList.find(
@@ -130,6 +160,7 @@ function CreateFormPopup({
         translateCode: data.translateCode,
         isCustomTopic: true,
         sourceTopic: data.sourceTopic,
+        targetTopic: data.targetTopic === '' ? undefined : data.targetTopic,
       };
 
       if (successCompile === true) {
@@ -161,7 +192,18 @@ function CreateFormPopup({
     <Dialog open={open} onOpenChange={(v) => !v && closeCreateFormPopup()}>
       <DialogContent className="flex max-h-[85svh] flex-col sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Add New Translator</DialogTitle>
+          <div className="flex items-center justify-between gap-2 pr-6">
+            <DialogTitle>Add New Translator</DialogTitle>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void openTranslatorGuideDialog()}
+            >
+              <BookOpen />
+              작성 가이드
+            </Button>
+          </div>
           <DialogDescription>
             Set the translator metadata and compile the translate code before
             saving.
@@ -204,10 +246,20 @@ function CreateFormPopup({
             />
           </Field>
 
-          <Field data-invalid={!!errors.sourceTopic}>
+          <Field>
             <FieldLabel>Topic of data to be translated</FieldLabel>
-            <Input type="text" {...register('sourceTopic')} />
-            <FieldError errors={[errors.sourceTopic]} />
+            <Input type="text" readOnly {...register('sourceTopic')} />
+            <FieldDescription>
+              Agent 목적지 Topic과 자동으로 연결됩니다.
+            </FieldDescription>
+          </Field>
+
+          <Field>
+            <FieldLabel>Topic to publish the translated data to</FieldLabel>
+            <Input type="text" readOnly {...register('targetTopic')} />
+            <FieldDescription>
+              브로커가 구독하는 고정 토픽입니다.
+            </FieldDescription>
           </Field>
 
           <Field>
@@ -215,6 +267,14 @@ function CreateFormPopup({
             <div className="flex items-center gap-2">
               <Button type="button" onClick={openCodeEditor}>
                 Open Editor
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void openNoCodeMapping()}
+              >
+                <Wand2 />
+                노코드 매핑
               </Button>
               {successCompile === true && (
                 <strong className="text-primary text-sm">Compiled</strong>
@@ -253,8 +313,12 @@ function CreateFormPopup({
         <CodeEditorPopup
           open={codeEditorToggle}
           translateCode={watchedTranslateCode}
-          onChangeCode={(value) => setValue('translateCode', value)}
+          onChangeCode={(value) => {
+            setValue('translateCode', value);
+            setSuccessCompile(null);
+          }}
           translateName={watchedName}
+          modelType={watch('modelType')}
           closeCodeEditor={() => setCodeEditorToggle(false)}
           onSuccessCompile={() => setSuccessCompile(true)}
           onFailCompile={() => setSuccessCompile(false)}

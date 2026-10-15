@@ -10,7 +10,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Entity
 @Table(name = "logical_file", schema = "file_service",
-        indexes = @Index(name = "file_ufId_idx", columnList = "ufId"))
+        indexes = @Index(name = "file_ufId_idx", columnList = "ufId"),
+        uniqueConstraints = @UniqueConstraint(name = "uk_logical_file_uf_id", columnNames = "ufId"))
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor

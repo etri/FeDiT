@@ -55,9 +55,13 @@ function EditableList({
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setInputState(e.target.value)
             }
-            onKeyUp={(e: React.KeyboardEvent<HTMLInputElement>) =>
-              e.key === 'Enter' && addItem()
-            }
+            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+              if (e.key !== 'Enter' || e.nativeEvent.isComposing) {
+                return;
+              }
+              e.preventDefault();
+              addItem();
+            }}
             placeholder="Type and press Enter to add"
           />
           <InputGroupButton variant="outline" size="icon-sm" onClick={addItem}>
@@ -68,8 +72,12 @@ function EditableList({
       {listBoxItems.length > 0 && (
         <div className="flex flex-wrap gap-1.5 pt-1">
           {listBoxItems.map((item) => (
-            <Badge key={item} variant="secondary" className="gap-1">
-              <span className="max-w-40 truncate">{item}</span>
+            <Badge
+              key={item}
+              variant="secondary"
+              className="max-w-full gap-1 whitespace-normal"
+            >
+              <span className="min-w-0 text-left wrap-anywhere">{item}</span>
               {!isUnable && (
                 <Button
                   type="button"

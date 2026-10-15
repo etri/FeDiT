@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 
 import { useRouter } from 'next/navigation';
 
-import { useSwitchEntityTab } from '@/app/(app)/service/entities/_hooks/useActiveEntityTab';
 import { useEntityParams } from '@/app/(app)/service/entities/_hooks/useEntityParams';
 import useEntityTabList from '@/app/(app)/service/entities/_hooks/useEntityTabList';
+import { useSwitchEntityTab } from '@/app/(app)/service/entities/_hooks/useSwitchEntityTab';
 import {
   entityHistoryPath,
   entityPath,

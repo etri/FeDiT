@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react';
+import { useId, useState } from 'react';
 
 import { Button } from '@e8ight/ui/components/ui/button';
 import { Calendar } from '@e8ight/ui/components/ui/calendar';
@@ -13,7 +13,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@e8ight/ui/components/ui/popover';
-import { cn } from '@e8ight/ui/utils/cn';
+import { cn } from 'cn';
 import { CalendarIcon, Clock2Icon, XIcon } from 'lucide-react';
 
 import { convertDateTimeLocalFormat } from '@/lib/date';
@@ -89,9 +89,9 @@ function EntityDateTimePicker({
   const [open, setOpen] = useState(false);
   const timeInputId = useId();
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const selectedDate = useMemo(() => parseDateTimeValue(value), [value]);
-  const timeValue = useMemo(() => getTimeValue(value), [value]);
-  const displayValue = useMemo(() => formatDisplayValue(value), [value]);
+  const selectedDate = parseDateTimeValue(value);
+  const timeValue = getTimeValue(value);
+  const displayValue = formatDisplayValue(value);
 
   const updateFromDate = (date: Date | undefined) => {
     if (!date) {

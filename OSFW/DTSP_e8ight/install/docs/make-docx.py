@@ -147,7 +147,7 @@ table(
     ],
     widths=[4.2, 6.4, 4.6],
 )
-note("계정 admin / 비밀번호 ndxpro123! / 서비스 토큰은 .env 의 [2] 구역에 이미 채워져 있다. 그대로 설치한 뒤 필요하면 바꾼다.")
+note(".env 의 [2] 구역 비밀번호(CHANGE_ME)와 JWT_SECRET 을 설치 전에 반드시 채운다. NDXPRO_TOKEN 은 설치 후 data-auth 에서 발급받아 넣는다.")
 
 h1("2. 초기화")
 
@@ -190,7 +190,7 @@ step("컨테이너 상태 및 엔드포인트 점검")
 cmd("cd ../fdt-service-backend", "./scripts/health.sh")
 
 step("웹 접속")
-cmd("브라우저에서 PUBLIC_URL/signin 접속", "계정: admin@e8ight.co.kr / ndxpro123!")
+cmd("브라우저에서 PUBLIC_URL/signin 접속", "계정: admin@e8ight.co.kr / .env 의 ADMIN_SEED_PASSWORD 값")
 
 
 # ---------------- 4 ----------------

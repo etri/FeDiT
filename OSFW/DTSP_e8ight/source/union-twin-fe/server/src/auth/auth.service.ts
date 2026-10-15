@@ -130,23 +130,25 @@ export class AuthService {
 
   async refresh(refreshToken: string) {
     const tokenHash = hashToken(refreshToken);
-    const storedToken = await this.refreshTokenRepository.findOne({
-      where: { tokenHash },
-    });
 
-    if (
-      !storedToken ||
-      storedToken.isRevoked ||
-      storedToken.expiresAt < new Date()
-    ) {
+    const { raw } = await this.refreshTokenRepository
+      .createQueryBuilder()
+      .update(RefreshToken)
+      .set({ isRevoked: true })
+      .where('"tokenHash" = :tokenHash', { tokenHash })
+      .andWhere('"isRevoked" = false')
+      .andWhere('"expiresAt" > now()')
+      .returning('*')
+      .execute();
+
+    const storedToken: RefreshToken | undefined = (raw as RefreshToken[])[0];
+
+    if (!storedToken) {
       throw new UnauthorizedException({
         errorCode: 'INVALID_REFRESH_TOKEN',
         message: 'Invalid or expired refresh token',
       });
     }
-
-    storedToken.isRevoked = true;
-    await this.refreshTokenRepository.save(storedToken);
 
     const user = await this.usersRepository.findOne({
       where: { id: storedToken.userId },
@@ -184,9 +186,7 @@ export class AuthService {
     if (!user) throw new UnauthorizedException();
 
     Object.assign(user, dto);
-    await this.usersRepository.save(user);
-
-    return this.getProfile(userId);
+    return this.usersRepository.save(user);
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto) {

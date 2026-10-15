@@ -264,11 +264,18 @@ function ModelManagerBody({ onClose }: ModelManagerBodyProps) {
                       role="listitem"
                       className="gap-3 px-4"
                     >
-                      <Badge variant="secondary" className="shrink-0">
-                        {model.modelType}
+                      <Badge
+                        variant="secondary"
+                        className="max-w-[40%] min-w-0"
+                        title={model.modelType}
+                      >
+                        <span className="truncate">{model.modelType}</span>
                       </Badge>
                       <ItemContent className="min-w-0">
-                        <ItemDescription className="truncate text-xs">
+                        <ItemDescription
+                          className="truncate text-xs"
+                          title={model.context}
+                        >
                           {model.context}
                         </ItemDescription>
                       </ItemContent>

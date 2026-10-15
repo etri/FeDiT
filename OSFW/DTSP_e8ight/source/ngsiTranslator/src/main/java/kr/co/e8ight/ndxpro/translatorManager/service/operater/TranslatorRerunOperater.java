@@ -69,6 +69,7 @@ public class TranslatorRerunOperater extends Operater {
                 "-Dtranslator.logDir=" + logDir,
                 "-Dtranslator.id=" + translator.getId(),
                 "-Dtranslator.agentId=" + translator.getAgentId(),
+                "-Dtranslator.filterByAgent=" + translator.isAgentFilterEnabled(),
                 "-Dtranslator.transferObservedAt=" + translator.getTransferObservedAt(),
                 "-Dtranslator.observedAtScenarioId=" + translator.getObservedAtTopicScenarioId(),
                 "-Dtranslator.observedAtScenarioType=" + translator.getObservedAtTopicScenarioType(),

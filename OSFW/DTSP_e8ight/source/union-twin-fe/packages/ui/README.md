@@ -93,7 +93,7 @@ pnpm --filter @e8ight/ui build
 ## 이 사본에 대해
 
 **이 레포에서는 아무것도 게시하지 않습니다.** 이건 `platform/e8ight-fe-monorepo`의
-`@e8ight/ui` `0.2.6`을 그대로 복사해 온 포크입니다. 업스트림 릴리스는 모노레포에서만
+`@e8ight/ui` `0.2.9`를 그대로 복사해 온 포크입니다. 업스트림 릴리스는 모노레포에서만
 일어나고, 여기서 고친 것은 업스트림으로 가지 않습니다.
 
 포크를 되돌리려면 `client/package.json`의 `"@e8ight/ui": "workspace:*"`를 실제 버전으로

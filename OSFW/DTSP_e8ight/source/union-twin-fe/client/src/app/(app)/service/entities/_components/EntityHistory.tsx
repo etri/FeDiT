@@ -3,18 +3,18 @@ import { useEffect, useMemo, useRef } from 'react';
 import { toast } from '@e8ight/ui/components/ui/sonner';
 import { Spinner } from '@e8ight/ui/components/ui/spinner';
 import { useDebounce, useInfiniteScroll } from '@e8ight/ui/hooks';
-import { cn } from '@e8ight/ui/utils/cn';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import axios from 'axios';
+import { cn } from 'cn';
 import { useRouter } from 'next/navigation';
 
 import { entityQueries } from '@/apis/entity';
 import EntityHistoryContent from '@/app/(app)/service/entities/_components/entityHistory/EntityHistoryContent';
 import EntityHistoryHeader from '@/app/(app)/service/entities/_components/entityHistory/EntityHistoryHeader';
 import EntitySearchForm from '@/app/(app)/service/entities/_components/searchForm/EntitySearchForm';
-import { useSwitchEntityTab } from '@/app/(app)/service/entities/_hooks/useActiveEntityTab';
 import { useEntityParams } from '@/app/(app)/service/entities/_hooks/useEntityParams';
 import { useEntityTableViewport } from '@/app/(app)/service/entities/_hooks/useEntityTableViewport';
+import { useSwitchEntityTab } from '@/app/(app)/service/entities/_hooks/useSwitchEntityTab';
 import { useEntityTabStore } from '@/app/(app)/service/entities/_stores/useEntityTabStore';
 import { qQueryGenerator } from '@/app/(app)/service/entities/_utils/generator';
 import { entityHistoryPath } from '@/app/(app)/service/entities/_utils/paths';
@@ -257,7 +257,7 @@ function EntityHistory({
       {searchCriteriaInfoList.length > 0 && (
         <section
           key={`${contextId ?? ''}-${modelId ?? ''}-${targetEntityId}`}
-          className="border-border/70 shrink-0 border-b pb-3"
+          className="border-border/70 max-h-[45%] min-h-0 overflow-y-auto border-b pb-3"
         >
           <EntitySearchForm
             timePropertyList={timePropertyList}

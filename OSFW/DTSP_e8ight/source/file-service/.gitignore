@@ -36,3 +36,18 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### 로컬 전용 설정·비밀정보 (저장소에 올리지 않음) ###
+application-local.yml
+application-local.yaml
+gradle.properties
+.env
+.env.*
+!.env.example
+
+### OS·IDE·실행 산출물 ###
+.DS_Store
+logFile/
+logs/
+*.log
+h2db/*.db

@@ -127,6 +127,36 @@ public abstract class Agent {
         this.lastSinkSignalDatetime = LocalDateTime.now();
     }
 
+    /**
+     * signal 이 이 시간(ms) 이상 오지 않으면 HANG 으로 판정한다.
+     * 폴링 주기가 있는 agent 는 주기 동안 signal 이 없는 게 정상이므로 주기만큼 기준을 늘린다.
+     */
+    public long getSignalThresholdMillis(long baseThresholdMillis) {
+        Long pollingIntervalMillis = pollingIntervalMillis();
+        return pollingIntervalMillis == null ? baseThresholdMillis : pollingIntervalMillis + baseThresholdMillis;
+    }
+
+    /**
+     * signal 사이에 의도적으로 쉬는 시간(ms). 없으면 null.
+     */
+    protected Long pollingIntervalMillis() {
+        return null;
+    }
+
+    /**
+     * HttpSource 의 CONN_TERM(초) 을 ms 로 변환한다. 값이 없거나 잘못되면 HttpSource 기본값 60초를 쓴다.
+     */
+    protected static long connTermToMillis(String connTerm) {
+        long seconds = 60;
+        try {
+            if ( connTerm != null && !connTerm.isBlank() ) {
+                seconds = Long.parseLong(connTerm.trim());
+            }
+        } catch (NumberFormatException ignored) {
+        }
+        return seconds * 1000L;
+    }
+
     public void delete() {
         this.status = AgentStatus.DELETED;
     }

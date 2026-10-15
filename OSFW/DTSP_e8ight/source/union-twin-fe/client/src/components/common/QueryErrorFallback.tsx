@@ -7,9 +7,9 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@e8ight/ui/components/ui/empty';
-import { cn } from '@e8ight/ui/utils/cn';
 import { useErrorBoundaryFallbackProps } from '@suspensive/react';
 import { useQueryErrorResetBoundary } from '@tanstack/react-query';
+import { cn } from 'cn';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface QueryErrorFallbackProps {

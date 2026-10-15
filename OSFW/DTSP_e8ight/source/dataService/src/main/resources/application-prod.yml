@@ -22,3 +22,11 @@ databroker:
 logging:
   logstash:
     url: ${LOGSTASH_URL}
+
+internal-api:
+  token: ${INTERNAL_API_TOKEN:}
+
+# JSON-LD context 서버 주소
+ndxpro:
+  context:
+    server-url: ${CONTEXT_SERVER_URL:http://localhost:3005}

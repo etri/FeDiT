@@ -14,7 +14,7 @@ spring:
     url: jdbc:h2:mem:test;MODE=PostgreSQL;INIT=CREATE SCHEMA IF NOT EXISTS AGENT_MANAGER
 
 agent-manager:
-  kafka-url: 172.16.28.217:9092
+  kafka-url: localhost:9092
   inspector:
     inspect-delay: 10000
     threshold: 60000

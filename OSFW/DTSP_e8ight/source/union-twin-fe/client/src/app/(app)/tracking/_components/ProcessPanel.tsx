@@ -46,7 +46,7 @@ function ProcessPanel({
         </div>
 
         <CollapsibleContent suppressHydrationWarning>
-          <div className="flex flex-col gap-4 border-t px-4 py-4">
+          <div className="@container/field-group flex flex-col gap-4 border-t px-4 py-4">
             {isDataTracking && (
               <DataTrackingFields
                 process={process}

@@ -5,11 +5,11 @@ import { modelQueries } from '@/apis/model/model.queries';
 import EntityAttributeInspector from '@/app/(app)/service/entities/_components/EntityAttributeInspector';
 import EntityAttributeNavigator from '@/app/(app)/service/entities/_components/EntityAttributeNavigator';
 import InfoContainer from '@/app/(app)/service/entities/_components/InfoContainer';
-import { useActiveEntityTab } from '@/app/(app)/service/entities/_hooks/useActiveEntityTab';
 import { useEntityAttributeTree } from '@/app/(app)/service/entities/_hooks/useEntityAttributeTree';
 import { useEntityDetail } from '@/app/(app)/service/entities/_hooks/useEntityDetail';
 import { useEntityParams } from '@/app/(app)/service/entities/_hooks/useEntityParams';
 import { useOpenRelatedEntity } from '@/app/(app)/service/entities/_hooks/useOpenRelatedEntity';
+import { useEntityTabStore } from '@/app/(app)/service/entities/_stores/useEntityTabStore';
 
 import type { EntityTabType } from '@/app/(app)/service/entities/_types/entity';
 
@@ -18,7 +18,7 @@ interface AttributeInfoProps {
 }
 
 function AttributeInfo({ appendEntityTabList }: AttributeInfoProps) {
-  const activeEntityTab = useActiveEntityTab();
+  const activeEntityTab = useEntityTabStore((s) => s.activeTab);
 
   const { dynamicDetail, staticDetail } = useEntityDetail({
     observedTimeInfoProperty:

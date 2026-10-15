@@ -39,8 +39,8 @@ public class EntityController {
                                                           @RequestParam(defaultValue = "50") int limit,
                                                           @RequestParam(defaultValue = "DESC") String sort,
                                                           @RequestParam(defaultValue = "modDate") String sortproperty,
-                                                          @RequestHeader(value = HttpHeaders.LINK, required = false) @Schema(example = "<http://172.16.28.222:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
-        log.info("getEntities request type={}, q={}, offset={}, limit={}, sort={}, sortproperty={}, Link={}", type, q, offset, limit, sort, sortproperty, link);
+                                                          @RequestHeader(value = HttpHeaders.LINK, required = false) @Schema(example = "<http://context-server:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
+        log.info("getEntities type={}, q={}, offset={}, limit={}, sort={}, sortproperty={}, Link={}", type, q, offset, limit, sort, sortproperty, link);
         return entityService.getEntities(offset, limit, sort, sortproperty, type, q, link);
     }
 
@@ -52,7 +52,7 @@ public class EntityController {
     )
     @GetMapping("/entities/{entityId}")
     public Object getEntity(@PathVariable @Schema(example = "urn:e8ight:Link:1") String entityId,
-                                          @RequestHeader(value = HttpHeaders.LINK, required = false) @Schema(example = "<http://172.16.28.222:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
+                                          @RequestHeader(value = HttpHeaders.LINK, required = false) @Schema(example = "<http://context-server:53005/e8ight-context-v1.0.1.jsonld>;") String link) {
         log.info("getEntity request entityId={}, Link={}", entityId, link);
         return entityService.getEntity(entityId, link);
     }

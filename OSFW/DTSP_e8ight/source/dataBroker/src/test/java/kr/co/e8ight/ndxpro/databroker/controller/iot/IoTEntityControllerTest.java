@@ -6,6 +6,8 @@ import kr.co.e8ight.ndxpro.databroker.dto.EntityDto;
 import kr.co.e8ight.ndxpro.databroker.dto.EntityProviderDto;
 import kr.co.e8ight.ndxpro.databroker.dto.iot.IoTEntityDto;
 import kr.co.e8ight.ndxpro.databroker.dto.iot.IoTObservedAtDto;
+import kr.co.e8ight.ndxpro.databroker.domain.iot.IoTEntity;
+import kr.co.e8ight.ndxpro.databroker.service.EntityService;
 import kr.co.e8ight.ndxpro.databroker.service.iot.IoTEntityHistoryService;
 import kr.co.e8ight.ndxpro.databroker.service.iot.IoTEntityService;
 import kr.co.e8ight.ndxpro.databroker.util.HttpHeadersUtil;
@@ -22,6 +24,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
@@ -37,7 +40,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @EnableWebMvc
@@ -52,6 +57,9 @@ public class IoTEntityControllerTest {
 
     @MockBean
     private IoTEntityHistoryService ioTEntityHistoryService;
+
+    @MockBean
+    private EntityService entityService;
 
     @Autowired
     private MockMvc mockMvc;
@@ -88,7 +96,7 @@ public class IoTEntityControllerTest {
         String id = "urn:e8ight:SimulationVehicle:1010";
         String type = "SimulationVehicle";
         String q = "lane==1";
-        String context = "<http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld>;";
+        String context = "<http://context-server:3005/e8ight-context-v1.0.1.jsonld>;";
         String sort = "ASC";
         String sortproperty = "location.observedAt";
 
@@ -129,7 +137,7 @@ public class IoTEntityControllerTest {
         String id = "urn:e8ight:SimulationVehicle:1010";
         String type = "SimulationVehicle";
         String q = "lane==1";
-        String context = "<http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld>;";
+        String context = "<http://context-server:3005/e8ight-context-v1.0.1.jsonld>;";
         String sort = "ASC";
         String sortproperty = "location.observedAt";
         String servicePath = "UOS";
@@ -172,7 +180,7 @@ public class IoTEntityControllerTest {
     void getIoTEntity() throws Exception {
         // given
         String id = "urn:e8ight:SimulationVehicle:1010";
-        String context = "<http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld>;";
+        String context = "<http://context-server:3005/e8ight-context-v1.0.1.jsonld>;";
 
         // when
         doReturn(testEntityDto)
@@ -201,7 +209,7 @@ public class IoTEntityControllerTest {
         String time = "2023-03-14T10:00:59.285";
         String timeproperty = "speed.observedAt";
         String q = "scenarioId==1;scenarioType==RTSC";
-        String context = "<http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld>;";
+        String context = "<http://context-server:3005/e8ight-context-v1.0.1.jsonld>;";
 
         // when
         List<EntityDto> entityDtoList = new ArrayList<>();
@@ -289,7 +297,7 @@ public class IoTEntityControllerTest {
         String q = "vehicleType==car";
         String sort = "ASC";
         String sortproperty = "location.observedAt";
-        String context = "<http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld>;";
+        String context = "<http://context-server:3005/e8ight-context-v1.0.1.jsonld>;";
 
         String historyId = "640fc7bd564f7778f58f1a9f";
         String observedAt = "2023-03-14T10:00:59.285";
@@ -351,5 +359,25 @@ public class IoTEntityControllerTest {
 
         IoTEntityDto ioTEntityDto = objectMapper.readValue(content, IoTEntityDto.class);
         assertEquals(ioTEntityDto.getHistoryId(), historyId);
+    }
+
+    @Test
+    @DisplayName("시계열 Entity 저장 테스트")
+    void saveIoTEntity() throws Exception {
+        // given
+        IoTEntity ioTEntity = objectMapper.readValue(testEntityString, IoTEntity.class);
+
+        // when
+        doReturn(ioTEntity)
+                .when(entityService).mapEntityDtoToIoTEntity(any());
+        doReturn(ioTEntity)
+                .when(ioTEntityService).createIoTEntity(any());
+
+        // then
+        mockMvc.perform(post(BASE_URL + "/entities/iot")
+                        .content(testEntityDtoString)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+        verify(ioTEntityService).createIoTEntity(ioTEntity);
     }
 }

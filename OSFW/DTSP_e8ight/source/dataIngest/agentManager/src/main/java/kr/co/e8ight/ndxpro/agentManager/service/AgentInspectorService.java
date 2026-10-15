@@ -41,11 +41,13 @@ public class AgentInspectorService {
 
         runningAgentList.stream()
                 .filter(agent -> agent.getType().isSignalable())
-                .filter(agent -> agent.getLastSourceSignalDatetime().isBefore(LocalDateTime.now().minus(threshold, ChronoUnit.MILLIS)) ||
-                        agent.getLastSinkSignalDatetime().isBefore(LocalDateTime.now().minus(threshold, ChronoUnit.MILLIS)))
+                .filter(agent -> agent.getLastSourceSignalDatetime().isBefore(signalDeadline(agent)) ||
+                        agent.getLastSinkSignalDatetime().isBefore(signalDeadline(agent)))
                 .forEach(agent -> {
                     if ( isAlive(agent.getId()) ) {
-                        log.error("agent" + agent.getId() + "(" + agent.getPid() + ") status is hang. Check agent log.");
+                        log.error("agent" + agent.getId() + "(" + agent.getPid() + ") status is hang. lastSourceSignal="
+                                + agent.getLastSourceSignalDatetime() + ", lastSinkSignal=" + agent.getLastSinkSignalDatetime()
+                                + ", threshold=" + agent.getSignalThresholdMillis(threshold) + "ms. Check agent log.");
                         agent.setStatus(AgentStatus.HANG);
                         agentRepository.save(agent);
                     } else {
@@ -66,12 +68,19 @@ public class AgentInspectorService {
         List<Agent> hangAgentList = agentRepository.findAllByStatus(AgentStatus.HANG);
         hangAgentList.stream()
                 .filter(agent -> agent.getType().isSignalable())
-                .filter(agent -> agent.getLastSourceSignalDatetime().isAfter(LocalDateTime.now().minus(threshold, ChronoUnit.MILLIS)) &&
-                        agent.getLastSinkSignalDatetime().isAfter(LocalDateTime.now().minus(threshold, ChronoUnit.MILLIS)))
+                .filter(agent -> agent.getLastSourceSignalDatetime().isAfter(signalDeadline(agent)) &&
+                        agent.getLastSinkSignalDatetime().isAfter(signalDeadline(agent)))
                 .forEach(agent -> {
                     agent.setStatus(AgentStatus.RUN);
                     agentRepository.save(agent);
                 });
+    }
+
+    /**
+     * 이 시각 이전의 signal 은 만료된 것으로 본다. 폴링 주기가 긴 agent 는 그만큼 기준이 늘어난다.
+     */
+    private LocalDateTime signalDeadline(Agent agent) {
+        return LocalDateTime.now().minus(agent.getSignalThresholdMillis(threshold), ChronoUnit.MILLIS);
     }
 
     private void markDied(Agent agent) {

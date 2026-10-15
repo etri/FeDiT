@@ -1,6 +1,6 @@
 import { Badge } from '@e8ight/ui/components/ui/badge';
 import { Button } from '@e8ight/ui/components/ui/button';
-import { cn } from '@e8ight/ui/utils/cn';
+import { cn } from 'cn';
 import { ChevronDown, ChevronUp, CircleStop, Play } from 'lucide-react';
 
 import { usePatchTranslatorControlMutation } from '@/apis/translator';

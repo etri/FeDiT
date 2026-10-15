@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import { Skeleton } from '@e8ight/ui/components/ui/skeleton';
-import { cn } from '@e8ight/ui/utils/cn';
+import { cn } from 'cn';
 import { ImageOff } from 'lucide-react';
 
 type Status = 'loading' | 'loaded' | 'error';

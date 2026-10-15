@@ -9,7 +9,7 @@ import {
 } from '@e8ight/ui/components/ui/resizable';
 import { useIsMobile } from '@e8ight/ui/hooks';
 import { ErrorBoundary, Suspense } from '@suspensive/react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
 import { openAddAttributeSchemaDialog } from '@/app/(app)/service/attributes/_components/AddAttributeSchemaDialog';
 import AttributeAside from '@/app/(app)/service/attributes/_components/AttributeAside';
@@ -20,6 +20,7 @@ import { QueryErrorFallback } from '@/components/common/QueryErrorFallback';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const { attrId } = useParams<{ attrId?: string }>();
   const isMobile = useIsMobile();
 
   const handleOpenNewAttribute = async () => {
@@ -34,9 +35,9 @@ export default function Layout({ children }: { children: ReactNode }) {
       className="bg-background h-full min-h-0 w-full"
     >
       <ResizablePanel
-        defaultSize={20}
-        minSize={15}
-        maxSize={30}
+        defaultSize={isMobile ? 45 : 20}
+        minSize={isMobile ? 35 : 15}
+        maxSize={isMobile ? 60 : 30}
         className="flex min-h-0 flex-col"
       >
         <ErrorBoundary fallback={<QueryErrorFallback />}>
@@ -51,8 +52,11 @@ export default function Layout({ children }: { children: ReactNode }) {
         </ErrorBoundary>
       </ResizablePanel>
       <ResizableHandle />
-      <ResizablePanel defaultSize={80} className="flex min-h-0 flex-col">
-        <ErrorBoundary fallback={<QueryErrorFallback />}>
+      <ResizablePanel
+        defaultSize={isMobile ? 55 : 80}
+        className="flex min-h-0 flex-col"
+      >
+        <ErrorBoundary resetKeys={[attrId]} fallback={<QueryErrorFallback />}>
           <Suspense fallback={<AttributeDetailSkeleton />}>{children}</Suspense>
         </ErrorBoundary>
       </ResizablePanel>

@@ -21,7 +21,7 @@ token:
   refresh_expiration_time: 1209600000 #2주 (1000 * 60 * 60 * 24 * 14)
 #  access_expiration_time: 60000 #1시간 (1000 * 60 * 60)
 #  refresh_expiration_time: 300000 #5분 (1000 * 60 * 60 * 24 * 14)
-  secret: ZThpZ2h0LW5keHByby1wbGF0Zm9ybS1kZXZlbG9wbWVudC10ZWFtLXN1Y2Nlc3MtcHJvamVjdC1kZXY=
+  secret: ${JWT_SECRET}
   #HS512 알고리즘을 사용할 것이기 때문에 512bit, 즉 64byte 이상의 secret key를 사용해야 한다.
 
 eureka:

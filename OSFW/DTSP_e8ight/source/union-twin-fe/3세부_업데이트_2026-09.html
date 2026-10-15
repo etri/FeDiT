@@ -1,0 +1,191 @@
+<title>3세부 이에이트 업데이트 2026.09</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper: #f4f6f8; --panel: #ffffff; --ink: #16202a; --ink-2: #4a5663; --ink-3: #7b8793;
+    --line: #dbe1e7; --accent: #1f6f8b; --accent-soft: #e3eff4; --accent-ink: #0f4a5e;
+    --warn: #a8650b; --warn-soft: #fbefd9; --muted-soft: #eef1f4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #11161b; --panel: #192027; --ink: #e7ecf1; --ink-2: #b3bdc7; --ink-3: #7e8a96;
+      --line: #2a333c; --accent: #6db7d1; --accent-soft: #1b3440; --accent-ink: #bfe1ec;
+      --warn: #e6b464; --warn-soft: #3a2d13; --muted-soft: #222b34;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #11161b; --panel: #192027; --ink: #e7ecf1; --ink-2: #b3bdc7; --ink-3: #7e8a96;
+    --line: #2a333c; --accent: #6db7d1; --accent-soft: #1b3440; --accent-ink: #bfe1ec;
+    --warn: #e6b464; --warn-soft: #3a2d13; --muted-soft: #222b34;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: "IBM Plex Sans KR", "Pretendard", "Apple SD Gothic Neo", sans-serif; font-size: 15px; line-height: 1.65; padding-block: 44px 80px; padding-inline: 20px; }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  .eyebrow { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 8px; }
+  h1 { font-size: 30px; line-height: 1.25; margin: 0 0 10px; text-wrap: balance; }
+  .meta { color: var(--ink-3); font-size: 13px; margin: 0; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 26px 0 0; }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+  .kpi b { display: block; font-size: 24px; line-height: 1.1; color: var(--accent-ink); font-variant-numeric: tabular-nums; }
+  .kpi span { font-size: 12px; color: var(--ink-2); }
+  h2 { font-size: 18px; margin: 44px 0 4px; }
+  h2 .num { font-family: "IBM Plex Mono", ui-monospace, monospace; color: var(--accent); font-size: 13px; margin-right: 8px; letter-spacing: .05em; }
+  .lead { color: var(--ink-2); font-size: 14px; margin: 0 0 14px; max-width: 70ch; }
+  .flow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin: 14px 0 18px; }
+  .step { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 10px 8px; position: relative; }
+  .step .who { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+  .step .what { font-size: 13px; font-weight: 600; margin: 2px 0 2px; line-height: 1.35; }
+  .step .how { font-size: 11.5px; color: var(--ink-3); line-height: 1.4; }
+  .step.new { border-color: var(--accent); background: var(--accent-soft); }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-top: 1px solid var(--line); font-size: 14px; }
+  thead th { border-top: 0; background: var(--accent-soft); color: var(--ink-2); font-size: 12px; letter-spacing: .04em; font-weight: 600; }
+  td.k { font-weight: 600; white-space: nowrap; width: 20%; }
+  td.before { color: var(--ink-3); }
+  code { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12.5px; background: var(--muted-soft); padding: 1px 5px; border-radius: 4px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 14px; }
+  .card ul { margin: 0; padding-left: 18px; }
+  .card li { font-size: 14px; color: var(--ink-2); margin: 4px 0; }
+  .card li b { color: var(--ink); font-weight: 600; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); margin-left: 6px; vertical-align: 1px; }
+  .todo { background: var(--warn-soft); border: 1px solid var(--warn); border-radius: 8px; padding: 12px 16px; color: var(--ink-2); font-size: 14px; }
+  .todo b { color: var(--warn); }
+  .todo ul { margin: 6px 0 0; padding-left: 18px; }
+  footer { margin-top: 44px; color: var(--ink-3); font-size: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
+  @media (max-width: 720px) { .kpis { grid-template-columns: repeat(2, 1fr); } .flow { grid-template-columns: repeat(2, 1fr); } .grid2 { grid-template-columns: 1fr; } h1 { font-size: 24px; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">연합 디지털 트윈 과제 · 3세부 이에이트</p>
+    <h1>3세부 업데이트 — 2세부 연동 및 FEDIT 개선</h1>
+    <p class="meta">기간 2026-08-19 ~ 09-15 (지난 발표 이후) · 대상 FEDIT 연합트윈 프레임워크 (client · BFF · NDXPRO 연동)</p>
+    <div class="kpis">
+      <div class="kpi"><b>35</b><span>커밋 (client 33 · server 3, 머지 제외)</span></div>
+      <div class="kpi"><b>4</b><span>연동 upstream (DTMETA · NDXPRO · VIEWER · FDT SYNC)</span></div>
+      <div class="kpi"><b>3</b><span>2세부 연동 흐름 개편 단계 (등록 → 모델 → Ready)</span></div>
+      <div class="kpi"><b>6</b><span>개선 화면 (통합 · 모델링 · 수집 설정 · 수집 현황 · 엔티티 · 로그)</span></div>
+    </div>
+  </header>
+
+  <h2><span class="num">01</span>한눈에 보기</h2>
+  <div class="card">
+    <ul>
+      <li><b>2세부(KETI 메타데이터) 연동을 KETI 규격에 맞춰 재정렬</b> — 연합 객체를 먼저 등록해 발급받은 객체 ID로 데이터 모델을 자동 생성하고, Ready 시점에 schemaInformation·dataAccessURL을 메타데이터에 되돌려 씁니다. KETI 측에서 ngsi-ld 데이터 조회까지 확인.</li>
+      <li><b>Translator 작성 진입 장벽 완화</b> — 작성 가이드, 노코드 매핑(여러 엔티티), 예상 출력 미리보기로 Java 코드를 직접 쓰지 않아도 등록 가능. 생성 코드는 NDXPRO 컴파일 통과.</li>
+      <li><b>운영 가시성</b> — Agent/Translator 런타임 로그, 수집 실패 로그(날짜·KST), 통계 워크벤치 개편.</li>
+      <li><b>안정성</b> — 인증/처리율 제한/데이터 손실 결함 감사 수정, 독립 레포·CI 정리, UI 라이브러리 재동기화.</li>
+    </ul>
+  </div>
+
+  <h2><span class="num">02</span>2세부(KETI 메타데이터) 연동 — 단일 트윈 통합</h2>
+  <p class="lead">단일 디지털 트윈 객체 여러 개를 하나의 연합 객체·연합 모델로 묶는 흐름. 강조된 단계가 이번에 바뀐 부분입니다.</p>
+  <div class="flow">
+    <div class="step"><div class="who">2세부 · DTMETA</div><div class="what">단일 객체 담기</div><div class="how">메타데이터 검색 화면에서 장바구니로 (schemaInformation 포함)</div></div>
+    <div class="step new"><div class="who">2세부 · DTMETA</div><div class="what">연합 객체 선등록</div><div class="how">PUT digitalTwins/{FDT} → 객체 ID(dtoid) 발급</div></div>
+    <div class="step new"><div class="who">3세부 · NDXPRO</div><div class="what">데이터 모델 자동 생성</div><div class="how">Type = dtoid 대시 제거, 필수 속성 12 + 단일 객체 속성 flatten + hasTwin</div></div>
+    <div class="step new"><div class="who">2세부 · DTMETA</div><div class="what">Ready 시 되돌려 쓰기</div><div class="how">schemaInformation(접두어 없음) + dataAccessURL</div></div>
+    <div class="step"><div class="who">3세부 · NDXPRO</div><div class="what">수집 · 변환</div><div class="how">Agent → Translator → 브로커</div></div>
+    <div class="step"><div class="who">2세부 → 3세부</div><div class="what">엔티티 조회</div><div class="how">dataAccessURL로 NGSI-LD 조회 (KETI 확인 완료)</div></div>
+  </div>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>항목</th><th>이전</th><th>현재</th></tr></thead>
+    <tbody>
+      <tr><td class="k">등록 순서</td><td class="before">모델 생성 → 연합 객체 등록</td><td>연합 객체 등록 → <b>발급된 dtoid</b> → 모델 생성. 모델 단계 실패 시 같은 객체로 재생성(고아 객체 방지)</td></tr>
+      <tr><td class="k">연합 모델 Type</td><td class="before">사용자 입력 (예: <code>UnionTwinModel</code>)</td><td>dtoid 대시 제거 자동 부여 (<code>KR-104111-0113</code> → <code>KR1041110113</code>)</td></tr>
+      <tr><td class="k">단일 모델 Type</td><td class="before">객체 name 영숫자화 (한글명 불가)</td><td>단일 객체 ID 대시 제거 (<code>KR1041110023</code>) — 한글명 객체도 생성</td></tr>
+      <tr><td class="k">연합 모델 속성</td><td class="before"><code>hasTwin</code>만</td><td>KETI 필수 속성 12개 + 선택 속성 flatten + <code>hasTwin</code></td></tr>
+      <tr><td class="k">속성명 규칙</td><td class="before">겹치면 <code>{Type}_{속성}</code> 접두어</td><td>접두어 없이 속성명만, 중복 없음 (KETI 요청)</td></tr>
+      <tr><td class="k">Ready 시 동기화</td><td class="before">자식 모델 재병합 → 키 전부에 접두어 붙는 결함</td><td>연합 모델 속성 기준으로 정리, <code>dataAccessURL</code>(<code>…/entities/urn:ngsi-ld:{Type}:{dtoid}</code>) 함께 등록, 연합 객체 자동 매칭</td></tr>
+      <tr><td class="k">분류 코드</td><td class="before">수동</td><td>소스 객체 ID에서 국가·1차·2차 분류 코드 추출, attributeNames 네임스페이스 부여</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2><span class="num">03</span>FEDIT 서비스 디스크립션 도구 개선</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>데이터 모델링</h3>
+      <ul>
+        <li>Relationship <b>model Type을 모델 목록에서 검색·선택</b>(URN 자동), 배지 클릭 시 해당 모델로 이동</li>
+        <li>Ready 모델 <b>버전업 후 재편집</b>, Ready 모델 삭제 허용(경고 분리), Ready 시 컨텍스트 자동 재등록</li>
+        <li>속성 패널 model Type 전체 이름 표시, 버전업 API 명세 불일치(400) 수정</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>수집 설정 (Agent · Translator)</h3>
+      <ul>
+        <li><b>노코드 매핑</b> — 원천 JSON 샘플 + 모델 속성으로 Translator 코드 생성, 여러 엔티티 정의, 코드↔폼 동기화, NDXPRO 컴파일 통과 <span class="tag">신규</span></li>
+        <li><b>출력 미리보기</b> — 현재 코드 기준 예상 NGSI-LD 엔티티 계산 · <b>작성 가이드</b> 모달(HTML 다운로드) <span class="tag">신규</span></li>
+        <li>Agent/Translator <b>런타임 로그 뷰</b>(레벨·검색·설정 덤프 접기), translator 수정 저장·target topic, 기본 토픽 <code>fdt_topic</code>/<code>ngsild_topic</code> 통일</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>수집 현황 (통계)</h3>
+      <ul>
+        <li>통계 <b>라이브 워크벤치</b> 개편, 미사용 통계 API 3종 연동·지표 보강</li>
+        <li>수집 실패 로그: 최신순·KST 고정 표시·<b>날짜 선택</b>, translator 화면에서 fail log 탭</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>엔티티 조회 · 공통 UX</h3>
+      <ul>
+        <li>트리에서 속성이 모델로 표시되던 문제, 엔티티 목록 <code>/iot</code> 경로 제거</li>
+        <li>오버플로/말줄임 전면 정비, 통계 카드 레이아웃 붕괴 수정</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="num">04</span>안정성 · 플랫폼 (BFF 서버 포함)</h2>
+  <div class="card">
+    <ul>
+      <li><b>전 도메인 버그 감사</b> — 인증 토큰 갱신/쿠키 처리, 요청 처리율 제한(identity throttler), 입력 바이트 길이 검증, 비밀번호 규칙, 작성자 삭제 시 공지 보존(마이그레이션) 등 데이터 손실·인증 결함 수정</li>
+      <li><b>독립 레포 분리</b>(모노레포 → union-twin), Dockerfile 통합·Jenkins 정리, 공용 UI 라이브러리 <code>@e8ight/ui 0.2.9</code> 재동기화</li>
+      <li>미사용 코드 제거 및 로직 단순화 (client/server 전역)</li>
+    </ul>
+  </div>
+
+  <h2><span class="num">05</span>NDXPRO 백엔드 (3세부 수집·브로커)</h2>
+  <p class="lead">이번 기간 프론트가 새로 연동한 NDXPRO API. 백엔드 자체 변경 내역은 아래 항목에 추가해 주세요.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>API</th><th>프론트 활용</th></tr></thead>
+    <tbody>
+      <tr><td><code>ingest/logs</code> · <code>translator/logs</code></td><td>Agent/Translator 런타임 로그 뷰</td></tr>
+      <tr><td><code>broker/statistics/fail</code> 외 통계 3종</td><td>수집 실패 로그, 통계 워크벤치 지표</td></tr>
+      <tr><td><code>translator/translators/compile</code> · <code>sample</code></td><td>노코드 생성 코드 컴파일 검증, 코드 템플릿</td></tr>
+      <tr><td><code>manager/data-models</code> (검색·상세)</td><td>model Type 선택기, 노코드 매핑 모델 속성 불러오기, 연합 모델 자동 생성</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="todo" style="margin-top:12px">
+    <b>입력 필요</b> — 이 기간 NDXPRO 서버 측 변경(수집·브로커·인증 등)이 있으면 여기에 추가.
+  </div>
+
+  <h2><span class="num">06</span>다음 단계</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>2세부와 협의 중</h3>
+      <ul>
+        <li>기존 등록 객체(<code>KR1010100005</code>)는 버전업 → Ready 재수행으로 새 키 규칙 반영</li>
+        <li>dataAccessURL은 Ready 시 등록되며 수집 시작 전엔 조회 불가(404)일 수 있음 — 등록 시점 합의</li>
+        <li>모델 수정(Save) 시 메타데이터 동시 갱신 여부</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>백엔드 요청</h3>
+      <ul>
+        <li>Translator <b>dry-run API</b>(코드 + 원천 JSON → 엔티티) — 현재는 프론트 시뮬레이션으로 대체</li>
+        <li>런타임 로그 라인 페이징(현재 마지막 100줄), 실패 로그 5,000건 초과 페이징</li>
+        <li>에이전트에 남은 삭제 모델 참조 정리</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>이에이트 3세부 · FEDIT union-twin · 커밋 <code>0ffb2a6</code> → <code>320ce2b</code> (2026-08-19 ~ 09-15)</footer>
+</div>

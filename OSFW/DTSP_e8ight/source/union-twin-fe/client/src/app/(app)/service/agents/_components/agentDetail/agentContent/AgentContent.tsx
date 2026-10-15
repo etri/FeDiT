@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 
 import { Spinner } from '@e8ight/ui/components/ui/spinner';
 import { ErrorBoundary } from '@suspensive/react';
@@ -23,6 +23,9 @@ function AgentContentInner({ agentName }: { agentName: string }) {
       setAgentMode: s.setAgentMode,
     })),
   );
+  const agentMode = useAgentStore((s) => s.agentMode);
+  const agentModeRef = useRef(agentMode);
+  agentModeRef.current = agentMode;
   const searchParams = useSearchParams();
   const tab = searchParams.get('tab') ?? 'agent-info';
 
@@ -31,7 +34,7 @@ function AgentContentInner({ agentName }: { agentName: string }) {
   });
 
   useEffect(() => {
-    if (data) {
+    if (data && agentModeRef.current !== 'edit') {
       setAgentMode('read');
       setAgent(data);
       setAgentModel(data.models);
@@ -39,7 +42,11 @@ function AgentContentInner({ agentName }: { agentName: string }) {
   }, [data, setAgentMode, setAgent, setAgentModel]);
 
   return tab === 'translator' ? (
-    <Translator agentId={data.id} modelInfoList={data.models} />
+    <Translator
+      agentId={data.id}
+      agentTopic={data.topic}
+      modelInfoList={data.models}
+    />
   ) : (
     <AgentInfo />
   );

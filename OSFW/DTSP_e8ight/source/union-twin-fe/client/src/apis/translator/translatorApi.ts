@@ -6,10 +6,13 @@ import type {
   TranslatorCompileResponse,
   TranslatorControlRequest,
   TranslatorCreateRequest,
+  TranslatorUpdateRequest,
   TranslatorsRequestParams,
+  TranslatorTestRequest,
+  TranslatorTestResponse,
   TranslatorType,
 } from '@/apis/translator/translator.types';
-import type { PaginatedResponse } from '@/types/common';
+import type { LogResponse, PaginatedResponse } from '@/types/common';
 
 export const postTranslatorCompile = async (
   payload: TranslatorCompileRequest,
@@ -41,6 +44,17 @@ export const getTranslators = async (
   return data;
 };
 
+export const updateTranslator = async (
+  translatorId: number,
+  payload: TranslatorUpdateRequest,
+): Promise<TranslatorType> => {
+  const { data } = await ndxproClient.put(
+    `${NDXPRO_API}/translator/translators/${translatorId}`,
+    payload,
+  );
+  return data;
+};
+
 export const patchTranslatorControl = async (
   translatorId: number,
   payload: TranslatorControlRequest,
@@ -55,6 +69,25 @@ export const patchTranslatorControl = async (
 export const deleteTranslator = async (translatorId: number) => {
   const { data } = await ndxproClient.delete(
     `${NDXPRO_API}/translator/translators/${translatorId}`,
+  );
+  return data;
+};
+
+export const postTranslatorTest = async (
+  translatorId: number,
+  payload: TranslatorTestRequest,
+): Promise<TranslatorTestResponse> => {
+  const { data } = await ndxproClient.post(
+    `${NDXPRO_API}/translator/translators-test/${translatorId}`,
+    payload,
+  );
+  return data;
+};
+
+export const getTranslatorLogs = async (translatorId: number) => {
+  const { data } = await ndxproClient.get<LogResponse>(
+    `${NDXPRO_API}/translator/logs`,
+    { params: { translatorId } },
   );
   return data;
 };

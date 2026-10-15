@@ -75,7 +75,7 @@ public class AttributeService {
         return ResponseMessage.ATTRIBUTE_CREATE_SUCCESS;
     }
 
-    public PagingResult<List<String>> readAllAttributeId(Integer curPage, Integer size,
+    public PagingResult<List<AttributeResponseDto>> readAllAttributeId(Integer curPage, Integer size,
             String word) {
 
         int pageSize = size != null ? size : DEFAULT_PAGE_SIZE;

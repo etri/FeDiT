@@ -52,8 +52,8 @@ paths:
                   type: HTTP
                   models:
                     - modelType: Vehicle
-                      context: http://172.16.28.220:3005/e8ight-context-v1.01.jsonld
-                  urlAddress: http://1.233.183.202:51002
+                      context: http://context-server:3005/e8ight-context-v1.01.jsonld
+                  urlAddress: http://data-source-server:51002
                   connTerm: "10"
                   method: GET
                   isCustomTopic: false
@@ -64,8 +64,8 @@ paths:
                   type: KAFKA
                   models:
                     - modelType: Vehicle
-                      context: http://172.16.28.220:3005/e8ight-context-v1.01.jsonld
-                  urlAddress: 220.124.222.84:9092
+                      context: http://context-server:3005/e8ight-context-v1.01.jsonld
+                  urlAddress: kafka-server:9092
                   sourceTopic: FDO_F-KR-109941-0020
                   isCustomTopic: true
                   topic: fdt_topic
@@ -279,7 +279,7 @@ paths:
               kafka:
                 summary: KAFKA agent conf
                 value:
-                  confFileContents: "# Define the agent name\nmyAgent.sources = source1\nmyAgent.channels = ch_kafka\n\n# Define source\nmyAgent.sources.source1.type = org.apache.flume.source.kafka.KafkaSource\nmyAgent.sources.source1.channels = ch_kafka\nmyAgent.sources.source1.kafka.bootstrap.servers = 220.124.222.84:9092\nmyAgent.sources.source1.kafka.topics = FDO_F-KR-109941-0020\n\nmyAgent.sources.source1.kafka.consumer.group.id = fdt-consumer-group\nmyAgent.sources.source1.kafka.consumer.auto.offset.reset = latest\n\n\n# Define channel\nmyAgent.channels.ch_kafka.type = org.apache.flume.channel.kafka.KafkaChannel\nmyAgent.channels.ch_kafka.kafka.bootstrap.servers = pipeline-kafka-1:19092\nmyAgent.channels.ch_kafka.kafka.topic = fdt_topic\nmyAgent.channels.ch_kafka.parseAsFlumeEvent = false\n"
+                  confFileContents: "# Define the agent name\nmyAgent.sources = source1\nmyAgent.channels = ch_kafka\n\n# Define source\nmyAgent.sources.source1.type = org.apache.flume.source.kafka.KafkaSource\nmyAgent.sources.source1.channels = ch_kafka\nmyAgent.sources.source1.kafka.bootstrap.servers = kafka-server:9092\nmyAgent.sources.source1.kafka.topics = FDO_F-KR-109941-0020\n\nmyAgent.sources.source1.kafka.consumer.group.id = fdt-consumer-group\nmyAgent.sources.source1.kafka.consumer.auto.offset.reset = latest\n\n\n# Define channel\nmyAgent.channels.ch_kafka.type = org.apache.flume.channel.kafka.KafkaChannel\nmyAgent.channels.ch_kafka.kafka.bootstrap.servers = pipeline-kafka-1:19092\nmyAgent.channels.ch_kafka.kafka.topic = fdt_topic\nmyAgent.channels.ch_kafka.parseAsFlumeEvent = false\n"
       responses:
         '200':
           description: 수정 성공. `confFileContents` 에 저장된 내용이 그대로 반환됩니다.
@@ -475,7 +475,7 @@ components:
           example: Vehicle
         context:
           type: string
-          example: http://172.16.28.220:3005/e8ight-context-v1.01.jsonld
+          example: http://context-server:3005/e8ight-context-v1.01.jsonld
 
     JsonField:
       type: object
@@ -514,7 +514,7 @@ components:
           description: |
             - `HTTP`/`HTTPS` : 데이터를 수집할 URL
             - `KAFKA` : 수집 대상 Kafka 의 bootstrap servers
-          example: http://1.233.183.202:51002
+          example: http://data-source-server:51002
         connTerm:
           type: string
           description: 수집 주기(초). **HTTP/HTTPS 필수**, KAFKA 는 사용하지 않음

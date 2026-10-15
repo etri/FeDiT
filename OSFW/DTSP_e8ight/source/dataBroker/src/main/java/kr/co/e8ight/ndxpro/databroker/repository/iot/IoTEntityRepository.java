@@ -10,4 +10,6 @@ public interface IoTEntityRepository extends MongoRepository<IoTEntity, EntityId
     IoTEntity findByIdId(String entityId);
 
     IoTEntity findByIdIdAndContext(String entityId, String context);
+
+    IoTEntity findFirstByIdId(String entityId);
 }

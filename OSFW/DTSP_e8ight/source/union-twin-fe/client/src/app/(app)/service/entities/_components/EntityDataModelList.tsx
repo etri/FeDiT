@@ -1,11 +1,13 @@
 import { Button } from '@e8ight/ui/components/ui/button';
-import { cn } from '@e8ight/ui/utils/cn';
 import { useSuspenseQuery } from '@tanstack/react-query';
+import { cn } from 'cn';
 import { Database } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { contextQueries } from '@/apis/context';
 import { useEntityParams } from '@/app/(app)/service/entities/_hooks/useEntityParams';
+
+const NGSI_LD_MODEL_IRI_PREFIX = 'https://uri.etsi.org/ngsi-ld/';
 
 interface IProps1 {
   contextId: string;
@@ -16,9 +18,12 @@ function EntityDataModelList({ contextId }: IProps1) {
     contextQueries.info(contextId),
   );
 
-  const dataModelList = Object.keys(contextInfo).filter((dataModel) =>
-    dataModel[0].match(/[A-Z]/),
-  );
+  const dataModelList = Object.entries(contextInfo)
+    .filter(
+      ([name, iri]) =>
+        /^[A-Z]/.test(name) && iri.startsWith(NGSI_LD_MODEL_IRI_PREFIX),
+    )
+    .map(([name]) => name);
 
   return (
     <ul className="mt-1 ml-3 min-w-0 space-y-1 border-l pl-3">

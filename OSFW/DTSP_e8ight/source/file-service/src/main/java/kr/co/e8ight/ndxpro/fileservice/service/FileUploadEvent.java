@@ -14,7 +14,7 @@ public class FileUploadEvent implements Subject<PhysicalFile> {
     private Map<Long, List<Observer<PhysicalFile>>> observers = new HashMap<>();
 
     @Override
-    public Observer<PhysicalFile> registerObserver(Observer<PhysicalFile> observer) {
+    public synchronized Observer<PhysicalFile> registerObserver(Observer<PhysicalFile> observer) {
         List<Observer<PhysicalFile>> observerList;
         if ( observers.containsKey(observer.getTarget()) ) {
             observerList = observers.get(observer.getTarget());
@@ -27,14 +27,18 @@ public class FileUploadEvent implements Subject<PhysicalFile> {
     }
 
     @Override
-    public void removeObserver(Observer<PhysicalFile> observer) {
+    public synchronized void removeObserver(Observer<PhysicalFile> observer) {
         List<Observer<PhysicalFile>> observerList = observers.get(observer.getTarget());
         observerList.remove(observer);
     }
 
     @Override
-    public void notify(PhysicalFile value) {
-        for (Observer<PhysicalFile> observer : observers.get(value.getId())) {
+    public synchronized void notify(PhysicalFile value) {
+        List<Observer<PhysicalFile>> observerList = observers.get(value.getId());
+        if ( observerList == null ) {
+            return;
+        }
+        for (Observer<PhysicalFile> observer : observerList) {
             observer.update(value);
         }
         observers.remove(value.getId());

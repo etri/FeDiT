@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { formatDateParts } from '@/app/(app)/viewer/_utils/date';
+import { useRuntimeConfig } from '@/components/providers/RuntimeConfigProvider';
 import { getEmbeddedApp } from '@/lib/iframe/registry';
 
 interface UseModelLoadingTimeResult {
@@ -17,6 +18,7 @@ interface UseModelLoadingTimeResult {
 export function useModelLoadingTime(
   selectedModel: string,
 ): UseModelLoadingTimeResult {
+  const { viewerAppUrl } = useRuntimeConfig();
   const [isModelLoaded, setIsModelLoaded] = useState(false);
   const [startTime, setStartTime] = useState<Date>(() => new Date());
   const [endTime, setEndTime] = useState<Date | null>(null);
@@ -25,7 +27,7 @@ export function useModelLoadingTime(
   );
 
   useEffect(() => {
-    const { origin } = getEmbeddedApp('viewer');
+    const { origin } = getEmbeddedApp('viewer', viewerAppUrl || undefined);
     if (!origin) return;
 
     function handleMessage(event: MessageEvent) {
@@ -41,7 +43,7 @@ export function useModelLoadingTime(
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [selectedModel, startTime]);
+  }, [selectedModel, startTime, viewerAppUrl]);
 
   function handleModelLoadComplete() {
     setIsModelLoaded(true);

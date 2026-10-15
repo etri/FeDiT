@@ -8,8 +8,6 @@ import {
 
 export enum BoardType {
   NOTICE = 'NOTICE',
-  FAQ = 'FAQ',
-  FREE = 'FREE',
 }
 
 @Entity('boards')
@@ -25,12 +23,6 @@ export class Board {
 
   @Column({ type: 'enum', enum: BoardType, default: BoardType.NOTICE })
   type: BoardType;
-
-  @Column({ default: true })
-  isActive: boolean;
-
-  @Column({ default: 0 })
-  sortOrder: number;
 
   @CreateDateColumn()
   createdAt: Date;

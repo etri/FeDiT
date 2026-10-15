@@ -12,8 +12,9 @@ import {
 import { toast } from '@e8ight/ui/components/ui/sonner';
 import { Spinner } from '@e8ight/ui/components/ui/spinner';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useRouter } from 'next/navigation';
 
-import { useChangeMyPasswordMutation } from '@/apis/auth';
+import { useChangeMyPasswordMutation, useLogoutMutation } from '@/apis/auth';
 import { PasswordStrengthMeter } from '@/app/(app)/account/_components/PasswordStrengthMeter';
 import {
   passwordSchema,
@@ -24,6 +25,8 @@ import { getAuthErrorMessage } from '@/lib/auth-errors';
 
 export function PasswordForm() {
   const changePassword = useChangeMyPasswordMutation();
+  const logoutMutation = useLogoutMutation();
+  const router = useRouter();
 
   const {
     register,
@@ -50,9 +53,11 @@ export function PasswordForm() {
         newPassword: values.newPassword,
       },
       {
-        onSuccess: () => {
-          toast.success('비밀번호가 변경되었습니다');
+        onSuccess: async () => {
+          toast.success('비밀번호가 변경되었습니다. 다시 로그인해주세요');
           reset();
+          await logoutMutation.mutateAsync().catch(() => {});
+          router.replace('/signin');
         },
         onError: (error) => toast.error(getAuthErrorMessage(error)),
       },

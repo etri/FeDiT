@@ -86,7 +86,7 @@ public class IoTEntityHistoryServiceTest {
                 .q("lane==1")
                 .offset(defaultPageable.getPageNumber())
                 .limit(defaultPageable.getPageSize())
-                .link("http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld")
+                .link("http://context-server:3005/e8ight-context-v1.0.1.jsonld")
                 .build();
 
         IoTEntityHistory ioTEntityHistory = IoTEntityHistory.builder()

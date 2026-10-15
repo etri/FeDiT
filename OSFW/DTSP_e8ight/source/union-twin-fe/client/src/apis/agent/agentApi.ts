@@ -9,6 +9,7 @@ import type {
   CreateAgentPayload,
   CreateAttributeSourcePayload,
 } from '@/apis/agent/agent.types';
+import type { LogResponse } from '@/types/common';
 
 export const getAgentList = async (payload: AgentListParams) => {
   const { data } = await ndxproClient.get(`${NDXPRO_API}/ingest/agents`, {
@@ -21,6 +22,14 @@ export const getAgentDetail = async (agentName: string) => {
   const { data } = await ndxproClient.get(`${NDXPRO_API}/ingest/agent`, {
     params: { name: agentName },
   });
+  return data;
+};
+
+export const getAgentLogs = async (agentId: number) => {
+  const { data } = await ndxproClient.get<LogResponse>(
+    `${NDXPRO_API}/ingest/logs`,
+    { params: { agentId } },
+  );
   return data;
 };
 

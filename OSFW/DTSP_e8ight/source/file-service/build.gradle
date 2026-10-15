@@ -20,11 +20,11 @@ configurations {
 
 repositories {
     maven {
-        url 'http://172.16.28.217:9081/repository/maven-releases/'
+        url = (project.findProperty('nexusUrl') ?: System.getenv('NEXUS_URL'))
         allowInsecureProtocol = true
         credentials {
-            username = "admin"
-            password = "ndxpro123!"
+            username = (project.findProperty('nexusUsername') ?: System.getenv('NEXUS_USERNAME') ?: '')
+            password = (project.findProperty('nexusPassword') ?: System.getenv('NEXUS_PASSWORD') ?: '')
         }
     }
     mavenCentral()
@@ -38,6 +38,9 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    //spring validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     //ndxpro common
     implementation 'kr.co.e8ight.ndxpro:ndxpro_common:0.1.0'
@@ -60,23 +63,25 @@ dependencies {
 
 jib {
     from {
-        image = "openjdk:21-jdk-slim"
+        image = "eclipse-temurin:21-jre-alpine"
     }
     to {
-        image = "172.16.28.217:12000/ndxpro-file-service"
-        tags = ["v1.2"]
+        image = "${(project.findProperty('dockerRegistry') ?: System.getenv('DOCKER_REGISTRY'))}/ndxpro-file-service"
+        tags = ["v1.5"]
         auth {
-            username = "admin"
-            password = "ndxpro123!"
+            username = (project.findProperty('nexusUsername') ?: System.getenv('NEXUS_USERNAME') ?: '')
+            password = (project.findProperty('nexusPassword') ?: System.getenv('NEXUS_PASSWORD') ?: '')
         }
     }
     container {
+        // 실행 계정(uid/gid)은 이미지에 박지 않고 배포 환경의 securityContext에서 지정한다.
+        // 파일 퍼미션은 FileIoService가 직접 맞추므로 umask에 의존하지 않는다.
         jvmFlags = List.of(
                 "-Dcom.sun.management.jmxremote=true",
                 "-Dcom.sun.management.jmxremote.port=8081",
                 "-Dcom.sun.management.jmxremote.authenticate=false",
                 "-Dcom.sun.management.jmxremote.ssl=false",
-                "-Djava.rmi.server.hostname=172.16.28.223",
+                "-Djava.rmi.server.hostname=${(project.findProperty('jmxHost') ?: System.getenv('JMX_HOST') ?: 'localhost')}".toString(),
                 "-Dcom.sun.management.jmxremote.rmi.port=8081",
                 "-Dcom.sun.management.jmxremote.local.only=false"
         )

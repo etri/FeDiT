@@ -20,7 +20,7 @@ import {
 import { Item, ItemGroup, ItemTitle } from '@e8ight/ui/components/ui/item';
 import { ScrollArea } from '@e8ight/ui/components/ui/scroll-area';
 import { Separator } from '@e8ight/ui/components/ui/separator';
-import { cn } from '@e8ight/ui/utils/cn';
+import { cn } from 'cn';
 import { Braces, Check, PackageOpen } from 'lucide-react';
 import Link from 'next/link';
 import { overlay } from 'overlay-kit';
@@ -89,8 +89,7 @@ function SchemaListBody({
       <ItemGroup className="gap-0 p-2">
         {items.map((item) => {
           const isApplied = appliedSchemaIds.has(item.id);
-          const isRegistered =
-            !!item.digitalTwinId && registeredSourceIds.has(item.digitalTwinId);
+          const isRegistered = registeredSourceIds.has(item.id);
           const propCount = item.schema?.properties
             ? Object.keys(item.schema.properties).length
             : 0;
@@ -105,7 +104,7 @@ function SchemaListBody({
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <ItemTitle className="text-foreground truncate text-sm font-bold">
+                  <ItemTitle className="text-foreground min-w-0 truncate text-sm font-bold">
                     {item.name || item.title || 'Untitled'}
                   </ItemTitle>
                   {isApplied && (
@@ -117,7 +116,10 @@ function SchemaListBody({
                     </Badge>
                   )}
                 </div>
-                <p className="text-muted-foreground text-xs">
+                <p
+                  className="text-muted-foreground truncate text-xs"
+                  title={item.digitalTwinId || 'No ID'}
+                >
                   {propCount} Properties · {item.digitalTwinId || 'No ID'}
                 </p>
               </div>
@@ -151,7 +153,7 @@ function SchemaJsonDialogBody({ item }: { item: UnionSchemaItem }) {
     <DialogContent className="flex max-h-[85svh] flex-col sm:max-w-2xl">
       <DialogHeader>
         <DialogTitle>{item.name || item.title || 'Schema'}</DialogTitle>
-        <DialogDescription>
+        <DialogDescription className="wrap-anywhere">
           {item.digitalTwinId ? `${item.digitalTwinId} · ${item.id}` : item.id}
         </DialogDescription>
       </DialogHeader>

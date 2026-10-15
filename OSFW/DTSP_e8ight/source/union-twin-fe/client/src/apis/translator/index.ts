@@ -3,9 +3,8 @@ export * from '@/apis/translator/translator.mutations';
 export type {
   TranslatorCompileRequest,
   TranslatorCompileResponse,
-  TranslatorControlRequest,
   TranslatorCreateRequest,
-  TranslatorStatus,
+  TranslatorTestResponse,
   TranslatorType,
-  TranslatorsRequestParams,
+  TranslatorUpdateRequest,
 } from '@/apis/translator/translator.types';

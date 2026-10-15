@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 
 import { Badge } from '@e8ight/ui/components/ui/badge';
 import { Button } from '@e8ight/ui/components/ui/button';
@@ -27,7 +27,7 @@ import {
 } from '@e8ight/ui/components/ui/pagination';
 import { ScrollArea } from '@e8ight/ui/components/ui/scroll-area';
 import { Separator } from '@e8ight/ui/components/ui/separator';
-import { cn } from '@e8ight/ui/utils/cn';
+import { cn } from 'cn';
 import {
   ChevronsLeft,
   ChevronsRight,
@@ -74,6 +74,7 @@ interface NavigationAsideProps {
   description?: string;
   newAction?: NavigationAsideAction;
   secondaryNewAction?: NavigationAsideAction;
+  extraActions?: NavigationAsideAction[];
   pagination?: UsePaginationResult;
 }
 
@@ -261,6 +262,7 @@ export function NavigationAside({
   description,
   newAction,
   secondaryNewAction,
+  extraActions = [],
   pagination,
 }: NavigationAsideProps) {
   const hasSearch = searchValue !== undefined && onSearchChange !== undefined;
@@ -289,7 +291,7 @@ export function NavigationAside({
   };
 
   const renderNewActions = () => {
-    if (!newAction && !secondaryNewAction) {
+    if (!newAction && !secondaryNewAction && extraActions.length === 0) {
       return null;
     }
 
@@ -297,6 +299,9 @@ export function NavigationAside({
       <div className="flex shrink-0 items-center gap-1.5">
         {newAction ? renderAsideAction(newAction) : null}
         {secondaryNewAction ? renderAsideAction(secondaryNewAction) : null}
+        {extraActions.map((action) => (
+          <Fragment key={action.title}>{renderAsideAction(action)}</Fragment>
+        ))}
       </div>
     );
   };
@@ -323,7 +328,7 @@ export function NavigationAside({
   };
 
   return (
-    <aside className="bg-background border-border flex h-full min-h-0 flex-col border-r">
+    <aside className="bg-background border-border flex h-full min-h-0 flex-col overflow-y-auto border-r">
       <div className="flex min-h-0 flex-1 flex-col px-4 py-5">
         <div className="shrink-0">
           <div className="flex items-center justify-between gap-3">
@@ -363,7 +368,7 @@ export function NavigationAside({
           ) : null}
           <Separator className="mt-4" />
         </div>
-        <div className="min-h-0 flex-1 pt-3">
+        <div className="min-h-40 flex-1 pt-3">
           <ScrollArea className="h-full w-full pr-1 [&>[data-slot=scroll-area-viewport]>div]:!block">
             {renderContent()}
           </ScrollArea>

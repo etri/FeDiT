@@ -66,6 +66,7 @@ export const useModel = (options?: {
 
   const update = async (
     values: DataModelFormValues,
+    required?: string[],
   ): Promise<ModelSubmitResult> => {
     const validation = validateAttributes(attributes);
     if (!validation.ok) {
@@ -75,6 +76,7 @@ export const useModel = (options?: {
     const obj = {
       ...values,
       ...attributesToObject(attributes),
+      ...(required && { required }),
     } as DataModelRequestPayload;
 
     try {

@@ -29,12 +29,12 @@ export class Notice {
   @Column()
   boardId: string;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'authorId' })
-  author: User;
+  author: User | null;
 
-  @Column()
-  authorId: string;
+  @Column({ type: 'uuid', nullable: true })
+  authorId: string | null;
 
   @Column({ default: false })
   isPinned: boolean;

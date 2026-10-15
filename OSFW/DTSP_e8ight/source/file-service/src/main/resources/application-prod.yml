@@ -32,24 +32,25 @@ spring:
       hibernate:
         default_batch_fetch_size: 1000
   datasource:
-    password: ndxpro123!
+    password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: '20'
-    username: ndxpro
+    username: ${POSTGRES_USER}
     url: ${DATASOURCE_URL}
   servlet:
     multipart:
-      maxFileSize: 24GB
-      maxRequestSize: 24GB
+      maxFileSize: 1GB
+      maxRequestSize: 1GB
 
 file-service:
   dir: /data
+  copy-dir: /data/tmp
   queue:
     size: 25769803776
   max-fail-count: 3
   writer:
-    interval: 1000
+    interval: 50
     count: ${WRITER_COUNT}
 
 springdoc:

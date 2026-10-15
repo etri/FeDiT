@@ -126,12 +126,18 @@ function DataModelMemberDialogBody({
           </Button>
         </DialogClose>
         <Button
-          className="min-w-0 truncate"
+          className="min-w-0 shrink"
           onClick={handleSubmit(onSubmit, () =>
             toast.error('Please check the form fields.'),
           )}
         >
-          {owner ? `Add child to ${owner}` : 'Add object member'}
+          {owner ? (
+            <span className="truncate" title={owner}>
+              Add child to {owner}
+            </span>
+          ) : (
+            'Add object member'
+          )}
         </Button>
       </DialogFooter>
     </DialogContent>

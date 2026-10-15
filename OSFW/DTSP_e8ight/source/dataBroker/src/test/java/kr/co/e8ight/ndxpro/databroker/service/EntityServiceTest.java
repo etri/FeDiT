@@ -3,7 +3,9 @@ package kr.co.e8ight.ndxpro.databroker.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.co.e8ight.ndxpro.databroker.config.TestConfiguration;
+import kr.co.e8ight.ndxpro.databroker.domain.Attribute;
 import kr.co.e8ight.ndxpro.databroker.domain.Entity;
+import kr.co.e8ight.ndxpro.databroker.domain.iot.IoTEntity;
 import kr.co.e8ight.ndxpro.databroker.domain.datamanager.AttributeResponseDto;
 import kr.co.e8ight.ndxpro.databroker.dto.EntityDto;
 import kr.co.e8ight.ndxpro.databroker.dto.EntityProviderDto;
@@ -32,6 +34,8 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.ArgumentMatchers.any;
 
 @ExtendWith(MockitoExtension.class)
@@ -88,7 +92,7 @@ public class EntityServiceTest {
                 .q("lane==1")
                 .offset(defaultPageable.getPageNumber())
                 .limit(defaultPageable.getPageSize())
-                .link("http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld")
+                .link("http://context-server:3005/e8ight-context-v1.0.1.jsonld")
                 .sort(SortTypeCode.ASC)
                 .sortproperty("location.observedAt")
                 .build();
@@ -128,7 +132,7 @@ public class EntityServiceTest {
                 .q("lane==1")
                 .offset(defaultPageable.getPageNumber())
                 .limit(defaultPageable.getPageSize())
-                .link("http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld")
+                .link("http://context-server:3005/e8ight-context-v1.0.1.jsonld")
                 .sort(SortTypeCode.ASC)
                 .sortproperty("location.observedAt")
                 .build();
@@ -165,7 +169,7 @@ public class EntityServiceTest {
     public void getEntity() {
         // given
         String entityId = "urn:e8ight:SimulationVehicle:1010";
-        String context = "http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld";
+        String context = "http://context-server:3005/e8ight-context-v1.0.1.jsonld";
 
         // when
         doReturn(testEntity)
@@ -174,6 +178,22 @@ public class EntityServiceTest {
         // then
         EntityDto entityDto = entityService.getEntity(entityId, context);
         assertEquals(entityDto.getId(), entityId);
+    }
+
+    @Test
+    @DisplayName("Entity 단건 조회 테스트 (context 없이 id 만으로 조회)")
+    public void getEntityWithoutContext() {
+        // given
+        String entityId = "urn:e8ight:SimulationVehicle:1010";
+
+        // when
+        doReturn(testEntity)
+                .when(entityRepository).findFirstByIdId(entityId);
+
+        // then
+        EntityDto entityDto = entityService.getEntity(entityId, null);
+        assertEquals(entityDto.getId(), entityId);
+        verify(entityRepository, never()).findByIdIdAndContext(any(), any());
     }
 
     @Test
@@ -190,5 +210,30 @@ public class EntityServiceTest {
         // then
         Entity entity = entityService.saveEntity(testEntityDto);
         assertEquals(entity.getId().getId(), testEntityDto.getId());
+    }
+
+    @Test
+    @DisplayName("시계열 Entity 매핑 시 observedAt 을 타임존 포함 문자열 그대로 유지")
+    public void mapEntityDtoToIoTEntity() throws JsonProcessingException {
+        // given
+        String observedAt = "2026-10-02T13:50:00.123+09:00";
+        EntityDto entityDto = objectMapper.readValue("{" +
+                "\"id\": \"urn:ngsi-ld:PohangRainfall:50F8A5FFFE0EF545\"," +
+                "\"type\": \"PohangRainfall\"," +
+                "\"@context\": \"http://context-server:53005/fdt-twin-context-main-v1.0.1.jsonld\"," +
+                "\"rainfall\": {\"type\": \"Property\", \"value\": 8.8, \"observedAt\": \"" + observedAt + "\"}" +
+                "}", EntityDto.class);
+        entityService.mapAttributeDto(entityDto);
+
+        // when
+        IoTEntity ioTEntity = entityService.mapEntityDtoToIoTEntity(entityDto);
+
+        // then
+        assertEquals("urn:ngsi-ld:PohangRainfall:50F8A5FFFE0EF545", ioTEntity.getId().getId());
+        Attribute rainfall = ioTEntity.getAttrs().get(0);
+        assertEquals("rainfall", rainfall.getName());
+        assertEquals(8.8, rainfall.getValue());
+        assertEquals("observedAt", rainfall.getMd().get(0).getName());
+        assertEquals(observedAt, rainfall.getMd().get(0).getValue());
     }
 }

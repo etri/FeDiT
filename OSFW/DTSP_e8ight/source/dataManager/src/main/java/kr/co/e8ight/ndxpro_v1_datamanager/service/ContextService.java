@@ -482,6 +482,30 @@ public class ContextService {
         contextRepository.save(contextInfo);
         return ResponseMessage.CONTEXT_UPDATE_SUCCESS;
     }
+
+    /**
+     * 데이터 모델 삭제 전에 해당 모델이 등록된 모든 context에서 모델과 속성 매핑을 제거한다.
+     */
+    public void removeDataModelFromAllContexts(DataModel dataModel) throws IOException, ParseException {
+        String modelType = dataModel.getType();
+
+        for (Context context : contextRepository.findAll()) {
+            Object value = context.getValue();
+            if (!(value instanceof LinkedHashMap)) {
+                continue;
+            }
+
+            LinkedHashMap<String, Object> contextInnerMap = (LinkedHashMap<String, Object>) value;
+            boolean removed = contextInnerMap.keySet().removeIf(key ->
+                    key.equals(modelType) || key.startsWith(modelType + ":"));
+
+            if (removed) {
+                uploadContextFile(context.getUrl(), contextInnerMap);
+                contextRepository.save(context);
+            }
+        }
+    }
+
     public void uploadContextFile(String contextUrl,LinkedHashMap<String, Object> contextInnerMap)
             throws IOException, ParseException {
         LinkedHashMap<String, Object> stringObjectLinkedHashMap = attributeDeduplication(contextInnerMap);
@@ -663,6 +687,5 @@ public class ContextService {
 
 
 }
-
 
 

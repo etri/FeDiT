@@ -40,7 +40,11 @@ export function SubjectsField({ value, onChange, error }: SubjectsFieldProps) {
       {value.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {value.map((subject) => (
-            <Badge key={subject} variant="secondary" className="gap-1 py-1">
+            <Badge
+              key={subject}
+              variant="secondary"
+              className="max-w-full gap-1 py-1 wrap-anywhere whitespace-normal"
+            >
               {subject}
               <button
                 type="button"

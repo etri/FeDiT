@@ -1,9 +1,14 @@
-import { Field, FieldLabel } from '@e8ight/ui/components/ui/field';
+import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+} from '@e8ight/ui/components/ui/field';
 import { Input } from '@e8ight/ui/components/ui/input';
 import { useShallow } from 'zustand/react/shallow';
 
 import AgentConfigSection from '@/app/(app)/service/agents/_components/agentDetail/agentContent/AgentConfigSection';
 import AgentKafkaSection from '@/app/(app)/service/agents/_components/agentDetail/agentContent/AgentKafkaSection';
+import { AgentQueryParamsEditor } from '@/app/(app)/service/agents/_components/agentDetail/agentContent/AgentQueryParamsEditor';
 import { useAgentStore } from '@/app/(app)/service/agents/_stores/useAgentStore';
 
 function AgentRightTable() {
@@ -46,17 +51,34 @@ function AgentRightTable() {
           />
         </Field>
         <Field>
-          <FieldLabel>{isKafka ? 'Source Topic' : 'Connect Term'}</FieldLabel>
+          <FieldLabel>
+            {isKafka ? 'Source Topic' : 'Connect Term (초)'}
+          </FieldLabel>
           <Input
-            placeholder="Enter connect term"
+            placeholder={isKafka ? 'Enter source topic' : '예: 60'}
             value={isKafka ? agent.sourceTopic : agent.connTerm}
             readOnly={!isEditable}
             onChange={(e) =>
               setAgent((prev) => ({ ...prev, connTerm: e.target.value }))
             }
           />
+          {!isKafka && (
+            <FieldDescription>
+              폴링 주기입니다. 초 단위로 입력하며 60이면 1분마다, 3600이면
+              1시간마다 URL을 호출합니다.
+            </FieldDescription>
+          )}
         </Field>
       </div>
+
+      {!isKafka && isEditable && (
+        <AgentQueryParamsEditor
+          url={agent.urlAddress}
+          onUrlChange={(urlAddress) =>
+            setAgent((prev) => ({ ...prev, urlAddress }))
+          }
+        />
+      )}
 
       <AgentConfigSection />
     </div>

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.co.e8ight.ndxpro.common.exception.error.ErrorCode;
 import kr.co.e8ight.ndxpro.databroker.domain.*;
 import kr.co.e8ight.ndxpro.databroker.domain.datamanager.AttributeResponseDto;
+import kr.co.e8ight.ndxpro.databroker.domain.iot.IoTEntity;
 import kr.co.e8ight.ndxpro.databroker.dto.*;
 import kr.co.e8ight.ndxpro.databroker.exception.DataBrokerException;
 import kr.co.e8ight.ndxpro.databroker.repository.EntityRepository;
@@ -70,11 +71,19 @@ public class EntityService {
     }
 
     public EntityDto getEntity(String entityId, String context) {
-        Entity entity = entityRepository.findByIdIdAndContext(entityId, context);
-        if(entity == null)
-            throw new DataBrokerException(ErrorCode.RESOURCE_NOT_FOUND, "Not Found Entity. entityId = " + entityId + ", context = " + context);
+        Entity entity = findEntity(entityId, context);
 
         return mapEntityToEntityDto(entity);
+    }
+
+    // context(Link 헤더)가 없으면 entityId 만으로 조회
+    public Entity findEntity(String entityId, String context) {
+        Entity entity = ValidateUtil.isEmptyData(context)
+                ? entityRepository.findFirstByIdId(entityId)
+                : entityRepository.findByIdIdAndContext(entityId, context);
+        if(entity == null)
+            throw new DataBrokerException(ErrorCode.RESOURCE_NOT_FOUND, "Not Found Entity. entityId = " + entityId + ", context = " + context);
+        return entity;
     }
 
     public Page<EntityDto> getEntities(QueryDto queryDto) {
@@ -248,9 +257,7 @@ public class EntityService {
     }
 
     public EntityProviderDto getEntityWithProvider(String entityId, String context) {
-        Entity entity = entityRepository.findByIdIdAndContext(entityId, context);
-        if(entity == null)
-            throw new DataBrokerException(ErrorCode.RESOURCE_NOT_FOUND, "Not Found Entity. entityId = " + entityId + ", context = " + context);
+        Entity entity = findEntity(entityId, context);
         EntityDto entityDto = mapEntityToEntityDto(entity);
         return EntityProviderDto.builder()
                 .provider(entity.getId().getServicePath())
@@ -646,6 +653,32 @@ public class EntityService {
         }
     }
 
+    public LinkedHashMap<String, Object> mapAttributeDto(LinkedHashMap<String, Object> model) {
+        if(ValidateUtil.isEmptyData(model))
+            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Fail to parse Entity or Attribute.");
+        for (String key : model.keySet()) {
+            if (!hasCoreContextDataModel(key)) {
+                LinkedHashMap<String, Object> attribute = (LinkedHashMap<String, Object>) model.get(key);
+                String type = (String) attribute.get(TYPE.getCode());
+                if (type.equals(PROPERTY.getCode())) {
+                    PropertyDto propertyDto = objectMapper.convertValue(model.get(key), PropertyDto.class);
+                    mapAttributeDto(propertyDto);
+                    model.replace(key, propertyDto);
+                } else if (type.equals(GEO_PROPERTY.getCode())) {
+                    GeoPropertyDto geoPropertyDto = objectMapper.convertValue(model.get(key), GeoPropertyDto.class);
+                    geoPropertyDto.mapGeoJson();
+                    mapAttributeDto(geoPropertyDto);
+                    model.replace(key, geoPropertyDto);
+                } else if (type.equals(RELATIONSHIP.getCode())) {
+                    RelationshipDto relationshipDto = objectMapper.convertValue(model.get(key), RelationshipDto.class);
+                    mapAttributeDto(relationshipDto);
+                    model.replace(key, relationshipDto);
+                }
+            }
+        }
+        return model;
+    }
+
     public Entity saveEntity(EntityDto entityDto) {
         Entity entity = mapEntityDtoToEntity(entityDto);
         return saveEntity(entity);
@@ -658,6 +691,22 @@ public class EntityService {
     }
 
     public Entity mapEntityDtoToEntity(EntityDto entityDto) {
+        return mapEntityDtoToEntity(entityDto, false);
+    }
+
+    // 시계열 Entity 는 Kafka 수집 데이터와 동일하게 observedAt 을 타임존 포함 문자열 그대로 저장
+    public IoTEntity mapEntityDtoToIoTEntity(EntityDto entityDto) {
+        Entity entity = mapEntityDtoToEntity(entityDto, true);
+
+        IoTEntity ioTEntity = new IoTEntity();
+        ioTEntity.setId(entity.getId());
+        ioTEntity.setContext(entity.getContext());
+        ioTEntity.setAttrNames(entity.getAttrNames());
+        ioTEntity.setAttrs(entity.getAttrs());
+        return ioTEntity;
+    }
+
+    private Entity mapEntityDtoToEntity(EntityDto entityDto, boolean keepObservedAtString) {
 
         EntityId entityId = EntityId.builder()
                 .id(entityDto.getId())
@@ -695,7 +744,9 @@ public class EntityService {
                         } else if (attributeKey.equals(OBSERVED_AT.getCode())) {
                             childAttribute = Attribute.builder()
                                     .name(attributeKey)
-                                    .value(Timestamp.valueOf(LocalDateTime.parse(String.valueOf(attributeDto.get(attributeKey)))))
+                                    .value(keepObservedAtString
+                                            ? String.valueOf(attributeDto.get(attributeKey))
+                                            : Timestamp.valueOf(LocalDateTime.parse(String.valueOf(attributeDto.get(attributeKey)))))
                                     .build();
                         } else {
                             LinkedHashMap<String, Object> childAttributeMap = (LinkedHashMap<String, Object>) attributeDto.get(attributeKey);

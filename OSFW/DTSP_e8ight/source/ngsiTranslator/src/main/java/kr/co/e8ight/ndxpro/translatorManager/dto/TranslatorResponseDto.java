@@ -58,6 +58,9 @@ public class TranslatorResponseDto {
     @Schema(description = "ObservedAt topic scenario type")
     private String observedAtTopicScenarioType;
 
+    @Schema(description = "kafka source topic 사용자 설정 여부. 이 값이 저장되기 전 translator 는 null")
+    private Boolean isCustomTopic;
+
     @Schema(description = "검증 완료 여부")
     private Boolean isReady;
 
@@ -79,6 +82,7 @@ public class TranslatorResponseDto {
                 .lastSignalDatetime(translator.getLastSignalDatetime())
                 .sourceTopic(translator.getSourceTopic())
                 .targetTopic(translator.getTargetTopic())
+                .isCustomTopic(translator.getIsCustomTopic())
                 .transferObservedAt(translator.getTransferObservedAt())
                 .observedAtTopicScenarioId(translator.getObservedAtTopicScenarioId())
                 .observedAtTopicScenarioType(translator.getObservedAtTopicScenarioType())

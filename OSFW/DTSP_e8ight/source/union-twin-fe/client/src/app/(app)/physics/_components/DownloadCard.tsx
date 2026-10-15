@@ -33,11 +33,13 @@ export function DownloadCard() {
           total?: number;
           loaded: number;
         }) => {
-          const total = progressEvent.total || 1;
+          if (!progressEvent.total) {
+            return;
+          }
           const currentProgress = Math.round(
-            (progressEvent.loaded * 100) / total,
+            (progressEvent.loaded * 100) / progressEvent.total,
           );
-          setProgress(Math.round(30 + currentProgress * 0.7));
+          setProgress(Math.min(100, Math.round(30 + currentProgress * 0.7)));
         },
       });
 

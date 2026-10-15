@@ -3,6 +3,7 @@ import {
   searchFederatedTwins,
 } from '@/apis/dtmeta/dtmetaApi';
 import { getModel } from '@/apis/model/modelApi';
+import { entityAccessUrl } from '@/app/(app)/service/models/_utils/federatedTwinId';
 
 import type { DataModelGetResponse } from '@/apis/model';
 
@@ -23,7 +24,7 @@ export interface FederatedTwinSyncTarget {
 }
 
 function toModelId(urn: string) {
-  return urn.replace(/^urn:ngsi-ld:/, '').replace(/:$/, '');
+  return urn.replace(/^(?:urn:)?ngsi-ld:/, '').replace(/:$/, '');
 }
 
 function relatedModelIds(model: DataModelGetResponse) {
@@ -36,47 +37,36 @@ function relatedModelIds(model: DataModelGetResponse) {
   );
 }
 
+function dataAttributeEntries(model: DataModelGetResponse) {
+  return Object.entries(model.attributes).filter(
+    ([, attribute]) => attribute.type !== 'Relationship',
+  );
+}
+
 function buildProperties(
   models: DataModelGetResponse[],
   existing: Record<string, unknown>,
 ) {
-  const entries = models.flatMap((model) =>
-    Object.entries(model.attributes)
-      .filter(([, attribute]) => attribute.type !== 'Relationship')
-      .map(([name, attribute]) => ({
-        name,
-        source: model.title || model.type,
-        title: model.attributeNames[name] ?? name,
+  const properties: Record<string, unknown> = {};
+  models.forEach((model) => {
+    dataAttributeEntries(model).forEach(([name, attribute]) => {
+      if (name in properties) return;
+      const previous = existing[name] as
+        { provider?: string; title?: string } | undefined;
+      properties[name] = {
         type: JSON_SCHEMA_TYPE[attribute.valueType] ?? 'string',
-      })),
-  );
-
-  const names = entries.map((entry) => entry.name);
-  const duplicated = new Set(
-    names.filter((name, index) => names.indexOf(name) !== index),
-  );
-
-  return Object.fromEntries(
-    entries.map((entry) => {
-      const name = duplicated.has(entry.name)
-        ? `${entry.source}_${entry.name}`
-        : entry.name;
-      const previous = existing[name] as { provider?: string } | undefined;
-      return [
-        name,
-        {
-          type: entry.type,
-          title: entry.title,
-          provider: previous?.provider ?? '',
-        },
-      ];
-    }),
-  );
+        title: previous?.title ?? name,
+        provider: previous?.provider ?? '',
+      };
+    });
+  });
+  return properties;
 }
 
 export async function syncFederatedTwinSchema(
   model: DataModelGetResponse,
   { federatedTwinId, dtoid }: FederatedTwinSyncTarget,
+  brokerUrl: string,
 ) {
   const { responseData } = await searchFederatedTwins(federatedTwinId);
   const object = responseData
@@ -88,11 +78,14 @@ export async function syncFederatedTwinSchema(
     throw new Error(`Federated object ${dtoid} no longer exists.`);
   }
 
-  const childModels = await Promise.all(
-    relatedModelIds(model).map((urn) =>
-      getModel({ dataModelId: toModelId(urn) }),
-    ),
-  );
+  const childModels =
+    dataAttributeEntries(model).length > 0
+      ? []
+      : await Promise.all(
+          relatedModelIds(model).map((urn) =>
+            getModel({ dataModelId: toModelId(urn) }),
+          ),
+        );
   const properties = buildProperties(
     [model, ...childModels],
     object.digitalTwinObjectData?.schemaInformation?.properties ?? {},
@@ -111,6 +104,7 @@ export async function syncFederatedTwinSchema(
         digitalTwinObjectData: {
           ...object.digitalTwinObjectData,
           schemaInformation: { type: 'object', properties },
+          dataAccessURL: entityAccessUrl(brokerUrl, model.type, dtoid),
         },
       },
     ],

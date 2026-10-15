@@ -18,15 +18,27 @@ import { TranslatorList } from '@/app/(app)/service/agents/_components/agentDeta
 
 import type { AgentModel } from '@/apis/agent';
 
+// ponytail: 에이전트당 translator가 많지 않아 한 페이지로 받는다. 늘어나면 페이징 추가.
+const TRANSLATOR_PAGE_SIZE = 1000;
+
 interface TranslatorProps {
   agentId: number;
+  agentTopic: string;
   modelInfoList: AgentModel[];
 }
 
-export function Translator({ agentId, modelInfoList }: TranslatorProps) {
+export function Translator({
+  agentId,
+  agentTopic,
+  modelInfoList,
+}: TranslatorProps) {
   const [createFormToggle, setCreateFormToggle] = useState(false);
   const { data } = useSuspenseQuery({
-    ...translatorQueries.list({ agentId }),
+    ...translatorQueries.list({
+      agentId,
+      curPage: 0,
+      size: TRANSLATOR_PAGE_SIZE,
+    }),
   });
   const translators = data.data;
 
@@ -67,7 +79,10 @@ export function Translator({ agentId, modelInfoList }: TranslatorProps) {
         </Empty>
       ) : (
         <ScrollArea className="min-h-0 flex-1">
-          <TranslatorList translators={translators} />
+          <TranslatorList
+            translators={translators}
+            modelInfoList={modelInfoList}
+          />
         </ScrollArea>
       )}
 
@@ -75,6 +90,7 @@ export function Translator({ agentId, modelInfoList }: TranslatorProps) {
         <CreateFormPopup
           open={createFormToggle}
           agentId={agentId}
+          agentTopic={agentTopic}
           modelInfoList={modelInfoList}
           closeCreateFormPopup={() => setCreateFormToggle(false)}
         />

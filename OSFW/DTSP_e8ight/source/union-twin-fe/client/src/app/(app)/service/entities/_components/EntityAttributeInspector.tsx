@@ -158,7 +158,7 @@ function ValueRow({
   if (isRelationshipMultiTarget) {
     return (
       <div className="space-y-2 rounded-md border px-3 py-2">
-        <div className="text-muted-foreground font-bold tracking-[0.07em] uppercase">
+        <div className="text-muted-foreground font-bold tracking-[0.07em] break-all uppercase">
           {label}
         </div>
         <RelationshipTargetArrayList
@@ -173,7 +173,7 @@ function ValueRow({
 
   return (
     <div className="space-y-2 rounded-md border px-3 py-2">
-      <div className="text-muted-foreground font-bold tracking-[0.07em] uppercase">
+      <div className="text-muted-foreground font-bold tracking-[0.07em] break-all uppercase">
         {label}
       </div>
       {displayValue.kind === 'primitive' ? (
@@ -284,7 +284,7 @@ function EntityAttributeInspector({ selection, onOpenEntity }: IProps) {
         </ToggleGroup>
       </CardHeader>
       <CardContent className="border-border flex min-h-0 flex-1 flex-col border-t p-0">
-        <ScrollArea className="min-h-0 flex-1">
+        <ScrollArea className="min-h-0 flex-1 [&>[data-slot=scroll-area-viewport]>div]:block!">
           <div className="space-y-2 p-2">
             {viewMode === 'raw' ? (
               <pre className="bg-muted/40 overflow-x-auto rounded-md p-3 text-xs leading-5 break-all whitespace-pre-wrap">

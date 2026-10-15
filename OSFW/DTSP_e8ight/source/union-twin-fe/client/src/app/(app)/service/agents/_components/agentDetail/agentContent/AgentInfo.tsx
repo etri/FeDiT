@@ -12,10 +12,11 @@ import { ScrollArea } from '@e8ight/ui/components/ui/scroll-area';
 import { toast } from '@e8ight/ui/components/ui/sonner';
 import { Spinner } from '@e8ight/ui/components/ui/spinner';
 import { useIsMobile } from '@e8ight/ui/hooks';
-import { CircleStop, Info, Play, RotateCw } from 'lucide-react';
+import { CircleStop, Info, Play, RotateCw, ScrollText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import {
+  agentQueries,
   useDeleteAgentMutation,
   usePatchAgentOperationMutation,
   usePutAgentMutation,
@@ -23,18 +24,25 @@ import {
 import AgentInfoTable from '@/app/(app)/service/agents/_components/agentDetail/agentContent/AgentInfoTable';
 import AgentModelInfoTable from '@/app/(app)/service/agents/_components/agentDetail/agentContent/AgentModelInfoTable';
 import AgentRightTable from '@/app/(app)/service/agents/_components/agentDetail/agentContent/AgentRightTable';
-import { agentSchema } from '@/app/(app)/service/agents/_schemas/agent.schema';
+import { openLogDialog } from '@/app/(app)/service/agents/_components/LogDialog';
+import { DEFAULT_TOPIC } from '@/app/(app)/service/agents/_constants/kafkaAgent';
+import {
+  agentSchema,
+  formatAgentIssues,
+} from '@/app/(app)/service/agents/_schemas/agent.schema';
 import { useAgentStore } from '@/app/(app)/service/agents/_stores/useAgentStore';
 
-import type { AgentModel, AgentOperation } from '@/apis/agent';
+import type { Agent, AgentModel, AgentOperation } from '@/apis/agent';
 
 function AgentInfo() {
   const agent = useAgentStore((state) => state.agent);
+  const setAgent = useAgentStore((state) => state.setAgent);
   const agentModels = useAgentStore((state) => state.agentModel);
   const agentMode = useAgentStore((state) => state.agentMode);
   const setAgentMode = useAgentStore((state) => state.setAgentMode);
   const setAgentModel = useAgentStore((state) => state.setAgentModel);
 
+  const [backupAgent, setBackupAgent] = useState<Agent | null>(null);
   const [backupModels, setBackupModels] = useState<AgentModel[] | null>(null);
   const isMobile = useIsMobile();
 
@@ -61,23 +69,36 @@ function AgentInfo() {
   }
 
   const handleEditMode = () => {
+    setBackupAgent(agent);
     setBackupModels([...agentModels]);
+    setAgent((prev) => ({
+      ...prev,
+      isCustomTopic: true,
+      topic: DEFAULT_TOPIC,
+    }));
     setAgentMode('edit');
   };
 
+  const exitEditMode = () => {
+    setBackupAgent(null);
+    setBackupModels(null);
+    setAgentMode('read');
+  };
+
   const handleCancelEdit = () => {
+    if (backupAgent) {
+      setAgent(backupAgent);
+    }
     if (backupModels) {
       setAgentModel(backupModels);
-      setBackupModels(null);
     }
-    setAgentMode('read');
+    exitEditMode();
   };
 
   const handleSave = async () => {
     const result = agentSchema.safeParse(agent);
     if (!result.success) {
-      const messages = result.error.issues.map((i) => i.message).join(', ');
-      toast.error(`Validation failed: ${messages}`);
+      toast.error(`Validation failed: ${formatAgentIssues(result.error)}`);
       return;
     }
     if (agent.isCustomConfig) {
@@ -95,11 +116,11 @@ function AgentInfo() {
       await putAgentMutation.mutateAsync({
         agentId: agent.id,
         agentName: agent.name,
-        payload: { ...agent, models: agentModels },
+        payload: { ...agent, isCustomTopic: true, models: agentModels },
         regenerateConfig: agent.isCustomConfig,
       });
       toast.success('Successfully updated.');
-      handleCancelEdit();
+      exitEditMode();
     } catch {
       toast.error('Failed to update agent.');
     }
@@ -207,6 +228,21 @@ function AgentInfo() {
               >
                 <RotateCw className="size-3.5" />
                 Restart
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                onClick={() =>
+                  void openLogDialog({
+                    title: `${agent.name} Logs`,
+                    modelTypes: agentModels.map((model) => model.modelType),
+                    options: agentQueries.logs(agent.id),
+                  })
+                }
+              >
+                <ScrollText className="size-3.5" />
+                Logs
               </Button>
             </>
           )}

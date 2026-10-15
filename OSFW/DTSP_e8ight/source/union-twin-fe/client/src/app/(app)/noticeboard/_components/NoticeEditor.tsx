@@ -17,6 +17,7 @@ import {
 } from '@/apis/notices';
 import { NoticeContentEditor } from '@/app/(app)/noticeboard/_components/NoticeContentEditor';
 import {
+  NOTICE_CONTENT_MAX_LENGTH,
   NOTICE_TITLE_MAX_LENGTH,
   noticeFormSchema,
 } from '@/app/(app)/noticeboard/_schemas/notice.schema';
@@ -157,7 +158,7 @@ export function NoticeEditor({ notice }: NoticeEditorProps) {
               내용
             </FieldLabel>
             <span className="text-muted-foreground text-xs tabular-nums">
-              {contentValue.length}자
+              {contentValue.length} / {NOTICE_CONTENT_MAX_LENGTH}
             </span>
           </div>
           <Controller

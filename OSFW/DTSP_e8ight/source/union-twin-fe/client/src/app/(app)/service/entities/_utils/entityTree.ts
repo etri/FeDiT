@@ -34,7 +34,7 @@ export function generateTreeListJson(attributeObj: NGSILDType) {
       target,
       type: objectValue.type,
       parent,
-      children: generateChildren(target, depth, objectValue),
+      children: generateChildren(`${parent}/${target}`, depth, objectValue),
     };
 
     if (Object.keys(jsonForTreeList).includes(depth.toString())) {

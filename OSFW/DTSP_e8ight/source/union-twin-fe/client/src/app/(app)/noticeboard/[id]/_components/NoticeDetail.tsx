@@ -79,7 +79,10 @@ export default function NoticeDetail({ id }: { id: string }) {
               <time dateTime={publishedAt} title={publishedAt}>
                 {formatAbsoluteDate(publishedAt)}
               </time>
-              <span className="text-muted-foreground/60">
+              <span
+                className="text-muted-foreground/60"
+                suppressHydrationWarning
+              >
                 ({formatRelativeDate(publishedAt)})
               </span>
             </span>

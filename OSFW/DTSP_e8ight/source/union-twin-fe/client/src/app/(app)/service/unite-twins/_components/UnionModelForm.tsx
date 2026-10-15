@@ -59,7 +59,6 @@ const FEDERATED_TWIN_PLACEHOLDER = {
 
 const FIELD_ORDER = [
   'federatedTwinId',
-  'type',
   'title',
   'subjects',
   'description',
@@ -180,7 +179,7 @@ export function UnionModelForm({
                         key={federatedTwin.dtid}
                         value={federatedTwin.dtid}
                       >
-                        <span className="inline-flex items-center gap-2">
+                        <span className="inline-flex flex-wrap items-center gap-2 wrap-anywhere">
                           {federatedTwin.name} ({federatedTwin.dtid})
                           {!!federatedTwin.federatedDigitalTwinObjects
                             ?.length && (
@@ -197,17 +196,13 @@ export function UnionModelForm({
                   <FieldError>{errors.federatedTwinId.message}</FieldError>
                 )}
               </Field>
-              <Field data-invalid={!!errors.type}>
-                <FieldLabel>Type *</FieldLabel>
-                <Input placeholder="UnionTwinModel" {...register('type')} />
-                {errors.type ? (
-                  <FieldError>{errors.type.message}</FieldError>
-                ) : (
-                  <FieldDescription>
-                    데이터 모델 식별자. 영문 대문자로 시작하며 생성 후 변경할 수
-                    없습니다
-                  </FieldDescription>
-                )}
+              <Field>
+                <FieldLabel>Type</FieldLabel>
+                <Input disabled placeholder="생성 시 자동 부여" />
+                <FieldDescription>
+                  연합 객체 등록 후 받은 객체 ID(KR-XXXXXX-XXXX)에서
+                  &quot;-&quot;를 뺀 값이 데이터 모델 Type이 됩니다
+                </FieldDescription>
               </Field>
               <Field data-invalid={!!errors.title}>
                 <FieldLabel>Title *</FieldLabel>
@@ -233,10 +228,6 @@ export function UnionModelForm({
                   <FieldError>{errors.description.message}</FieldError>
                 )}
               </Field>
-              <Field>
-                <FieldLabel>Created By</FieldLabel>
-                <Input placeholder="작성자" {...register('createdBy')} />
-              </Field>
             </FieldSet>
           </div>
 
@@ -258,8 +249,8 @@ export function UnionModelForm({
 
             {duplicateNames.size > 0 && (
               <p className="text-muted-foreground text-xs">
-                이름이 겹치는 속성은 등록 시 출처 이름이 앞에 붙습니다:{' '}
-                {[...duplicateNames].join(', ')}
+                이름이 겹치는 속성은 하나로 합쳐져 등록됩니다 (먼저 추가한
+                객체의 값 기준): {[...duplicateNames].join(', ')}
               </p>
             )}
 

@@ -69,7 +69,7 @@ pnpm check   # lint + prettier + type-check
 - 사내 Nexus 레지스트리에서 받아오지 않아도 되므로 `.npmrc`가 필요 없다. 이 레포에는
   의도적으로 `.npmrc`를 두지 않았다.
 
-**이건 포크다.** 떼어낼 당시 업스트림은 `0.2.6`이었고, 모노레포에는 이 패키지를 쓰는 앱이
+**이건 포크다.** 마지막으로 업스트림과 맞춘 시점은 `0.2.9`이고, 모노레포에는 이 패키지를 쓰는 앱이
 6개(그리고 `packages/sdk`) 더 있다. 앞으로 양쪽은 갈라진다 — 업스트림 수정이 여기로
 자동으로 오지 않고, 여기서 고친 것도 업스트림으로 가지 않는다.
 
@@ -97,7 +97,7 @@ pnpm check   # lint + prettier + type-check
 - **제주는 CI 대상이 아니다** — 수동 빌드·push·pull이다. 명령은
   [`server/README.md`](server/README.md)의 배포 절에 있다.
 
-Jenkins job: <http://172.16.28.217:8282/job/union-twin/>. GitLab 쪽 Settings → Integrations →
+Jenkins job: <http://ndxpro-server:8282/job/union-twin/>. GitLab 쪽 Settings → Integrations →
 Jenkins 가 push 이벤트를 이 job 으로 보낸다. 모노레포 job 은 더 이상 union-twin 을 빌드하지 않는다.
 
 ---
@@ -108,9 +108,9 @@ Jenkins 가 push 이벤트를 이 job 으로 보낸다. 모노레포 job 은 더
 
 | 항목                                                                                            | 위치                                                              |
 | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 내부 레지스트리 호스트 `172.16.28.217:12000`, `210.217.93.129:52000` 노출                        | `docker-compose.yml`, `docker-compose-jeju.yml`, `server/README.md`, `Jenkinsfile` |
+| ~~내부 레지스트리 호스트 노출~~ → 해결: 레지스트리 주소는 `DOCKER_REGISTRY`(compose `.env`, Jenkins 전역 환경변수)로 주입 | `docker-compose.yml`, `docker-compose-jeju.yml`, `Jenkinsfile` |
 | 사내 배포 서버 경로 (`223-server`, `/mnt/sda1/home/e8ight/...`) 노출                             | `Jenkinsfile`                                                     |
 | 관리자 계정 이메일 `admin@e8ight.co.kr` 하드코딩                                                 | `server/src/users/seeds/admin.seed.ts`, `server/.env.sample`      |
-| 상위 서비스 엔드포인트 노출 — NDXPRO(`220.124.222.90`), 뷰어, DTMeta(`dtmeta.fedit.or.kr`), FDT sync(`220.124.222.84`) | `client/.env.example`                                             |
+| ~~상위 서비스 엔드포인트 IP 노출~~ → 해결: 모든 주소는 배포 `.env`로 주입 (`client/.env.example` 은 자리표시자만) | `client/.env.example`, `src/lib/iframe/registry.ts` |
 | `@e8ight/ui` 라이선스가 proprietary                                                              | `packages/ui/LICENSE`                                             |
 | 루트 라이선스가 e8ight proprietary — 실제 오픈소스 라이선스로 교체 필요                          | `LICENSE`                                                         |

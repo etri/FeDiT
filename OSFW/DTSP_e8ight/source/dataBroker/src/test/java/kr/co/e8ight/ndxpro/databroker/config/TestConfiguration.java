@@ -125,13 +125,13 @@ public class TestConfiguration {
             "          ]\n" +
             "        }\n" +
             "      ],\n" +
-            "      \"@context\": \"http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld\"\n" +
+            "      \"@context\": \"http://context-server:3005/e8ight-context-v1.0.1.jsonld\"\n" +
             "    }";
 
     public static final String testEntityDtoString = "{\n" +
             "        \"id\": \"urn:e8ight:SimulationVehicle:1010\",\n" +
             "        \"type\": \"SimulationVehicle\",\n" +
-            "        \"@context\": \"http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld\",\n" +
+            "        \"@context\": \"http://context-server:3005/e8ight-context-v1.0.1.jsonld\",\n" +
             "        \"vehicleType\": {\n" +
             "            \"type\": \"Property\",\n" +
             "            \"value\": \"car\"\n" +
@@ -202,7 +202,7 @@ public class TestConfiguration {
             "\"entity\" : {"+
             "        \"id\": \"urn:e8ight:SimulationVehicle:1010\",\n" +
             "        \"type\": \"SimulationVehicle\",\n" +
-            "        \"@context\": \"http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld\",\n" +
+            "        \"@context\": \"http://context-server:3005/e8ight-context-v1.0.1.jsonld\",\n" +
             "        \"vehicleType\": {\n" +
             "            \"type\": \"Property\",\n" +
             "            \"value\": \"car\"\n" +
@@ -276,7 +276,7 @@ public class TestConfiguration {
             "        \"entity\": {\n" +
             "            \"id\": \"urn:e8ight:SimulationVehicle:1010\",\n" +
             "            \"type\": \"SimulationVehicle\",\n" +
-            "            \"@context\": \"http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld\",\n" +
+            "            \"@context\": \"http://context-server:3005/e8ight-context-v1.0.1.jsonld\",\n" +
             "            \"vehicleType\": {\n" +
             "                \"type\": \"Property\",\n" +
             "                \"value\": \"car\"\n" +

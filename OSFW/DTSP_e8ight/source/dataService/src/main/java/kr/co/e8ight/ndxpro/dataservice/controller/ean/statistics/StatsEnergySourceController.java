@@ -14,6 +14,7 @@ import kr.co.e8ight.ndxpro.dataservice.dto.ean.statistics.building.EnergyPurpose
 import kr.co.e8ight.ndxpro.dataservice.dto.ean.statistics.building.EnergySourceDailyUsageDto;
 import kr.co.e8ight.ndxpro.dataservice.dto.ean.statistics.building.EnergySourceMonthlyUsageDto;
 import kr.co.e8ight.ndxpro.dataservice.dto.error.ErrorCodeDto;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,6 +26,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/ndxpro/v1/enrg-src-stats")
 public class StatsEnergySourceController {
+
+    @Value("${ndxpro.context.server-url:http://localhost:3005}")
+    private String contextServerUrl;
 
     @Operation(summary = "에너지원 총 사용 현황 (일별/월별)",
             description = "건물 현황 -> 좌측 중단 메뉴에서 출력되는 에너지원 총 사용 현황 (일별/월별)")
@@ -51,7 +55,7 @@ public class StatsEnergySourceController {
                 .id("urn:ngsi-ld:EnergySourceTotalUsageDto:Usage1")
                 .type("EnergySourceTotalUsageDto")
                 .customData(customData)
-                .context("http://172.16.28.222:53005/e8ight-context-v1.0.1.jsonld")
+                .context(contextServerUrl + "/e8ight-context-v1.0.1.jsonld")
                 .build();
         return new ResponseEntity<>(ngsiLdResponseDto, HttpStatus.OK);
     }

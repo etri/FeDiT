@@ -70,17 +70,27 @@ export class NoticesService implements OnModuleInit {
   }
 
   findAllAdmin(query: NoticeQueryDto) {
-    return this.findNotices({ ...query, status: query.status ?? 'all' });
+    return this.findNotices(
+      { ...query, status: query.status ?? 'all' },
+      { includeEmail: true },
+    );
   }
 
-  private noticeWithAuthorQb() {
+  private noticeWithAuthorQb(includeEmail = false) {
     return this.noticesRepository
       .createQueryBuilder('notice')
       .leftJoin('notice.author', 'author')
-      .addSelect(['author.id', 'author.name', 'author.email']);
+      .addSelect(
+        includeEmail
+          ? ['author.id', 'author.name', 'author.email']
+          : ['author.id', 'author.name'],
+      );
   }
 
-  private async findNotices(query: NoticeQueryDto) {
+  private async findNotices(
+    query: NoticeQueryDto,
+    options: { includeEmail?: boolean } = {},
+  ) {
     const {
       page,
       size,
@@ -89,7 +99,7 @@ export class NoticesService implements OnModuleInit {
       sortOrder = 'DESC',
     } = query;
 
-    const qb = this.noticeWithAuthorQb();
+    const qb = this.noticeWithAuthorQb(options.includeEmail);
 
     switch (status) {
       case 'published':
@@ -119,17 +129,14 @@ export class NoticesService implements OnModuleInit {
       .getOne();
     if (!notice) throw new NotFoundException('Notice not found');
 
-    await this.noticesRepository.query(
-      'UPDATE notices SET "viewCount" = "viewCount" + 1 WHERE id = $1',
-      [id],
-    );
+    await this.noticesRepository.increment({ id }, 'viewCount', 1);
     notice.viewCount += 1;
 
     return notice;
   }
 
   async findOneAdmin(id: string) {
-    const notice = await this.noticeWithAuthorQb()
+    const notice = await this.noticeWithAuthorQb(true)
       .where('notice.id = :id', { id })
       .getOne();
     if (!notice) throw new NotFoundException('Notice not found');

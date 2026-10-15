@@ -24,9 +24,11 @@ import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { AlertCircle, X } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 
+import { useReenrollContextModelMutation } from '@/apis/context';
 import { dtmetaKeys } from '@/apis/dtmeta';
 import {
   modelQueries,
+  usePostModelVersionUpMutation,
   usePutModelReadyMutation,
   useDeleteModelMutation,
 } from '@/apis/model';
@@ -43,6 +45,7 @@ import {
 import { useDataModelStore } from '@/app/(app)/service/models/_stores/useDataModelStore';
 import { attributesToArray } from '@/app/(app)/service/models/_utils/dataModelUtils';
 import { syncFederatedTwinSchema } from '@/app/(app)/service/models/_utils/syncFederatedTwinSchema';
+import { useRuntimeConfig } from '@/components/providers/RuntimeConfigProvider';
 
 import type { DataModelAttributeFormatted } from '@/types/dataModel';
 
@@ -69,8 +72,11 @@ function DataModelDetailContent({ modelId }: { modelId: string }) {
   const setModelAttribute = useDataModelStore((s) => s.setModelAttribute);
   const modelAttribute = useDataModelStore((s) => s.modelAttribute);
   const putModelReadyMutation = usePutModelReadyMutation();
+  const versionUpMutation = usePostModelVersionUpMutation();
   const deleteModelMutation = useDeleteModelMutation();
+  const reenrollContextModelMutation = useReenrollContextModelMutation();
   const queryClient = useQueryClient();
+  const { brokerUrl } = useRuntimeConfig();
   const router = useRouter();
   const isMobile = useIsMobile();
 
@@ -117,7 +123,7 @@ function DataModelDetailContent({ modelId }: { modelId: string }) {
   };
 
   const onSubmit = async (values: DataModelFormValues) => {
-    const result = await update(values);
+    const result = await update(values, data.required);
     if (!result.ok) {
       setErrorMessage(result.message);
     }
@@ -127,7 +133,9 @@ function DataModelDetailContent({ modelId }: { modelId: string }) {
   const handleDelete = async () => {
     const confirmed = await openConfirmDialog({
       title: 'Delete Data Model',
-      message: 'Are you sure you want to delete this data model?',
+      message: data.isReady
+        ? '준비 완료된 데이터 모델입니다. 이미 수집된 데이터가 있을 수 있습니다. 삭제하시겠습니까?'
+        : '이전 버전이 있다면 그 버전으로 되돌아갑니다. 이 데이터 모델을 삭제하시겠습니까?',
       confirmText: 'Delete',
     });
     if (!confirmed) {
@@ -142,15 +150,51 @@ function DataModelDetailContent({ modelId }: { modelId: string }) {
     }
   };
 
+  const handleVersionUp = async () => {
+    const confirmed = await openConfirmDialog({
+      title: 'Version up Data Model',
+      message:
+        '현재 버전을 스냅샷으로 보관하고 버전을 올립니다. 버전을 올리면 이 데이터 모델을 다시 수정할 수 있습니다. 계속하시겠습니까?',
+      confirmText: 'Version up',
+    });
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await versionUpMutation.mutateAsync({
+        id: data.id,
+        type: data.type,
+        title: data.title,
+        description: data.description,
+        reference: data.reference,
+        attributeNames: data.attributeNames,
+        attributes: data.attributes,
+        required: data.required,
+        isDynamic: data.isDynamic,
+        isReady: false,
+      });
+      toast.success('Version up complete. You can edit this data model now.');
+    } catch (err: unknown) {
+      setErrorMessage(
+        getErrorDetail(err) ??
+          (err instanceof Error ? err.message : 'Failed to version up'),
+      );
+    }
+  };
+
   const handleChangeReady = async () => {
-    const choice = await openFederatedTwinObjectDialog(data.title);
+    const choice = await openFederatedTwinObjectDialog({
+      modelType: data.type,
+      modelTitle: data.title,
+      brokerUrl,
+    });
     if (!choice) {
       return;
     }
     setIsReadying(true);
     try {
       if (choice !== 'none') {
-        const count = await syncFederatedTwinSchema(data, choice);
+        const count = await syncFederatedTwinSchema(data, choice, brokerUrl);
         queryClient.invalidateQueries({ queryKey: dtmetaKeys.all });
         toast.success(
           `Published ${count} properties to schemaInformation of ${choice.dtoid}.`,
@@ -158,6 +202,22 @@ function DataModelDetailContent({ modelId }: { modelId: string }) {
       }
       const res = await putModelReadyMutation.mutateAsync(data.type);
       toast.success(String(res));
+
+      try {
+        const contextUrls = await reenrollContextModelMutation.mutateAsync(
+          data.type,
+        );
+        if (contextUrls.length > 0) {
+          toast.success(
+            `Re-enrolled this model in ${contextUrls.length} context(s).`,
+          );
+        }
+      } catch (err: unknown) {
+        toast.error(
+          getErrorDetail(err) ??
+            'Model is ready, but re-enrolling it in its contexts failed.',
+        );
+      }
     } catch (err: unknown) {
       setErrorMessage(
         getErrorDetail(err) ?? (err instanceof Error ? err.message : ''),
@@ -217,57 +277,72 @@ function DataModelDetailContent({ modelId }: { modelId: string }) {
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>
-        {data.isReady === false && (
-          <div className="flex shrink-0 justify-end gap-2 px-4 py-3">
-            {editMode ? (
-              <>
+        <div className="flex shrink-0 justify-end gap-2 px-4 py-3">
+          {editMode ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleCancel}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" size="sm">
+                Save
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                disabled={deleteModelMutation.isPending}
+                onClick={handleDelete}
+              >
+                {deleteModelMutation.isPending ? (
+                  <Spinner className="size-4" />
+                ) : (
+                  'Delete'
+                )}
+              </Button>
+              {data.isReady ? (
                 <Button
                   type="button"
-                  variant="outline"
                   size="sm"
-                  onClick={handleCancel}
+                  disabled={versionUpMutation.isPending}
+                  onClick={handleVersionUp}
                 >
-                  Cancel
-                </Button>
-                <Button type="submit" size="sm">
-                  Save
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  disabled={deleteModelMutation.isPending}
-                  onClick={handleDelete}
-                >
-                  {deleteModelMutation.isPending ? (
+                  {versionUpMutation.isPending ? (
                     <Spinner className="size-4" />
                   ) : (
-                    'Delete'
+                    'Version up to edit'
                   )}
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={isReadying || putModelReadyMutation.isPending}
-                  onClick={handleChangeReady}
-                >
-                  {isReadying || putModelReadyMutation.isPending ? (
-                    <Spinner className="size-4" />
-                  ) : (
-                    'Change status to Ready'
-                  )}
-                </Button>
-                <Button type="button" size="sm" onClick={handleEdit}>
-                  Edit
-                </Button>
-              </>
-            )}
-          </div>
-        )}
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isReadying || putModelReadyMutation.isPending}
+                    onClick={handleChangeReady}
+                  >
+                    {isReadying || putModelReadyMutation.isPending ? (
+                      <Spinner className="size-4" />
+                    ) : (
+                      'Change status to Ready'
+                    )}
+                  </Button>
+                  <Button type="button" size="sm" onClick={handleEdit}>
+                    Edit
+                  </Button>
+                </>
+              )}
+            </>
+          )}
+        </div>
       </form>
     </FormProvider>
   );

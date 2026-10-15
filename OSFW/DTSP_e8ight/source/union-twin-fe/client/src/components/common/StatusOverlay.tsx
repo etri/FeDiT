@@ -1,5 +1,5 @@
 import { Spinner } from '@e8ight/ui/components/ui/spinner';
-import { cn } from '@e8ight/ui/utils/cn';
+import { cn } from 'cn';
 
 interface StatusOverlayProps {
   isVisible: boolean;

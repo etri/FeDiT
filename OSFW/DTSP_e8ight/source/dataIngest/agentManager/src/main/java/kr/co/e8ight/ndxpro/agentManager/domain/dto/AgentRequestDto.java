@@ -24,12 +24,12 @@ public class AgentRequestDto {
     private AgentType type;
 
     @NotEmpty(message = "Model info Required.")
-    @Schema(description = "Agent가 수집할 데이터의 모델 정보 배열", example = "[{\"modelType\" : \"Vehicle\", \"context\" : \"http://172.16.28.220:3005/e8ight-context-v1.01.jsonld\"}]")
+    @Schema(description = "Agent가 수집할 데이터의 모델 정보 배열", example = "[{\"modelType\" : \"Vehicle\", \"context\" : \"http://context-server:3005/e8ight-context-v1.01.jsonld\"}]")
     private List<DataModelDto> models;
 
     @NotEmpty(message = "URL Required.")
     @Schema(description = "Agent가 데이터를 수집할 주소. HTTP/HTTPS는 수집 URL, KAFKA는 수집 대상 Kafka의 bootstrap servers"
-            ,example = "http://1.233.183.202:51002")
+            ,example = "http://data-source-server:51002")
     private String urlAddress;
 
     @Schema(description = "수집 주기 (seconds). HTTP/HTTPS 필수", example = "1", defaultValue = "60")

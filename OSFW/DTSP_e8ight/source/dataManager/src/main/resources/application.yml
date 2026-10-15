@@ -7,3 +7,19 @@ spring:
 #
   application:
     name: DATAMANAGER-SERVICE
+
+# Swagger UI (springdoc) - 사용 편의 설정
+springdoc:
+  default-produces-media-type: application/json
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method       # 같은 태그 안에서 GET → POST → PUT → DELETE 순 정렬
+    doc-expansion: list             # 태그는 펼치고 API 상세는 접어서 목록만 먼저 보이도록
+    display-request-duration: true  # 실행 후 응답 시간 표시
+    try-it-out-enabled: true        # Try it out 버튼 기본 활성화
+    filter: true                    # 태그/경로 검색창 표시
+
+# JSON-LD context 서버 주소 (기본 context URL, 초기 데이터에 사용)
+ndxpro:
+  context:
+    server-url: ${CONTEXT_SERVER_URL:http://localhost:3005}

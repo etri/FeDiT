@@ -1,2 +1,2 @@
-export const KAFKA_URL_ADDRESS = '220.124.222.84:9092';
-export const KAFKA_TOPIC = 'fdt_topic';
+export const DEFAULT_TOPIC = 'fdt_topic';
+export const DEFAULT_TRANSLATED_TOPIC = 'ngsild_topic';

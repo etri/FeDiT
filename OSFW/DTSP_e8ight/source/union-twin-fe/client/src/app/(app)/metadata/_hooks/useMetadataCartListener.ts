@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 import { toast } from '@e8ight/ui/components/ui/sonner';
 
 import { isAddToCartMessage } from '@/lib/iframe/guards';
-import { getRegisteredOrigins } from '@/lib/iframe/registry';
+import { getEmbeddedApp } from '@/lib/iframe/registry';
 import {
   cartItemLabel,
   useMetadataCartStore,
@@ -31,8 +31,11 @@ export function useMetadataCartListener(): void {
   const lastSeenRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
+    const { origin } = getEmbeddedApp('metadataSearch');
+    if (!origin) return;
+
     function handleMessage(event: MessageEvent) {
-      if (!getRegisteredOrigins().has(event.origin)) return;
+      if (event.origin !== origin) return;
 
       const data = event.data as { type?: unknown } | null | undefined;
       if (data?.type !== 'ADD_TO_CART') return;

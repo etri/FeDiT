@@ -69,11 +69,18 @@ function AgentModelInfoTable() {
               role="listitem"
               className="gap-3 px-4"
             >
-              <Badge variant="secondary" className="shrink-0">
-                {item.modelType}
+              <Badge
+                variant="secondary"
+                className="max-w-[40%] min-w-0"
+                title={item.modelType}
+              >
+                <span className="truncate">{item.modelType}</span>
               </Badge>
               <ItemContent className="min-w-0">
-                <ItemDescription className="truncate text-xs">
+                <ItemDescription
+                  className="truncate text-xs"
+                  title={item.context}
+                >
                   {item.context}
                 </ItemDescription>
               </ItemContent>

@@ -17,29 +17,22 @@ class UFIDBuilderTest {
     public void buildUfIdTest() {
         String checksum = "b6221445c4a347e405231d07ac02d3df";
         String fileName = "file.txt";
-        String documentName = "ndxpro";
 
-        String ufId1 = ufIDBuilder.buildUFID(checksum, fileName, documentName);
-        System.out.println(checksum + " + " + fileName + " + " + documentName);
+        String ufId1 = ufIDBuilder.buildUFID(checksum, fileName);
+        System.out.println(checksum + " + " + fileName);
 
         fileName = "file2.txt";
 
-        String ufId2 = ufIDBuilder.buildUFID(checksum, fileName, documentName);
-        System.out.println(checksum + " + " + fileName + " + " + documentName);
-
-        documentName = "ndxpro2";
-
-        String ufId3 = ufIDBuilder.buildUFID(checksum, fileName, documentName);
-        System.out.println(checksum + " + " + fileName + " + " + documentName);
+        String ufId2 = ufIDBuilder.buildUFID(checksum, fileName);
+        System.out.println(checksum + " + " + fileName);
 
         checksum = checksum + "123";
 
-        String ufId4 = ufIDBuilder.buildUFID(checksum, fileName, documentName);
-        System.out.println(checksum + " + " + fileName + " + " + documentName);
+        String ufId4 = ufIDBuilder.buildUFID(checksum, fileName);
+        System.out.println(checksum + " + " + fileName);
 
         assertThat(ufId1.equals(ufId2)).isFalse();
-        assertThat(ufId2.equals(ufId3)).isFalse();
-        assertThat(ufId1.equals(ufId3)).isFalse();
-        assertThat(ufId3.equals(ufId4)).isFalse();
+        assertThat(ufId2.equals(ufId4)).isFalse();
+        assertThat(ufId1.equals(ufId4)).isFalse();
     }
 }

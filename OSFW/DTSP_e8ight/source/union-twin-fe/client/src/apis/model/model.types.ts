@@ -1,5 +1,5 @@
 export interface IDataModelListItem {
-  dataModelId: string;
+  id: string;
   type: string;
   isReady: boolean;
 }
@@ -35,6 +35,12 @@ export interface DataModelRequestPayload {
   title?: string;
   description?: string;
   reference?: string[];
+  required?: string[];
   attributeNames: Record<string, string>;
   attributes: Record<string, DataModelAttribute>;
+}
+
+export interface DataModelVersionUpPayload extends DataModelRequestPayload {
+  isDynamic?: boolean;
+  isReady?: boolean;
 }

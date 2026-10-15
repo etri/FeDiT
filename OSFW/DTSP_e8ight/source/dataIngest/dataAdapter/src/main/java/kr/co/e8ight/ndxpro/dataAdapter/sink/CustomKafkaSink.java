@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -72,6 +73,9 @@ public class CustomKafkaSink extends AbstractSink implements Configurable, Batch
     private Integer staticPartitionId = null;
     private boolean allowTopicOverride;
     private String topicHeader = null;
+
+    /** translator runner 가 agent 별로 메시지를 거를 때 읽는 kafka 헤더 이름. */
+    public static final String AGENT_ID_HEADER = "ndx-agent-id";
 
     protected Long agentId;
     private Optional<SpecificDatumWriter<AvroFlumeEvent>> writer =
@@ -177,6 +181,10 @@ public class CustomKafkaSink extends AbstractSink implements Configurable, Batch
                         record = new ProducerRecord<String, byte[]>(eventTopic, eventKey,
                                 serializeEvent(event, useAvroEventFormat));
                     }
+                    // 하위 translator 가 같은 토픽을 쓰는 다른 agent 의 메시지를 구분할 수 있도록 수집 agent id 를 남긴다.
+                    if (agentId != null) {
+                        record.headers().add(AGENT_ID_HEADER, String.valueOf(agentId).getBytes(StandardCharsets.UTF_8));
+                    }
                     kafkaFutures.add(producer.send(record, new kr.co.e8ight.ndxpro.dataAdapter.sink.SinkCallback(startTime)));
 
                 } catch (NumberFormatException ex) {
@@ -194,10 +202,8 @@ public class CustomKafkaSink extends AbstractSink implements Configurable, Batch
 
             // publish batch and commit.
             if (processedEvents > 0) {
-                SignalProcessor signalProcessor = SignalProcessor.INSTANCE;
                 for (Future<RecordMetadata> future : kafkaFutures) {
                     future.get();
-                    signalProcessor.sendSignal("sink",agentId);
                 }
                 long endTime = System.nanoTime();
                 counter.addToKafkaEventSendTimer((endTime - batchStartTime) / (1000 * 1000));
@@ -205,6 +211,16 @@ public class CustomKafkaSink extends AbstractSink implements Configurable, Batch
             }
 
             transaction.commit();
+
+            // signal 은 생존 표시용이라 배치당 한 번만 보낸다.
+            // 실패를 예외로 올리면 이미 kafka 로 보낸 배치가 롤백돼 같은 이벤트가 다시 전송되므로 로그만 남긴다.
+            if (processedEvents > 0) {
+                try {
+                    SignalProcessor.INSTANCE.sendSignal("sink", agentId);
+                } catch (Exception e) {
+                    logger.warn("sink signal send fail : {}", e.getMessage());
+                }
+            }
         } catch (Exception ex) {
             String errorMsg = "Failed to publish events";
             logger.error("Failed to publish events", ex);

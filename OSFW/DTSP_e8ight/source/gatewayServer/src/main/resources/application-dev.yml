@@ -2,8 +2,10 @@ spring:
   sleuth:
     sampler:
       probability: 1.0 # 기본값 0.1  샘플링 정의 0~1(100%)
+    enabled: false
   zipkin:
     base-url: ${ZIPKIN_URL} # zipkin 주소
+    enabled: false
   cloud:
     gateway:
       #       cors-configurations:
@@ -116,5 +118,5 @@ logging:
     url: ${LOGSTASH_URL}
 
 token:
-  secret: ZThpZ2h0LW5keHByby1wbGF0Zm9ybS1kZXZlbG9wbWVudC10ZWFtLXN1Y2Nlc3MtcHJvamVjdC1kZXY=
+  secret: ${JWT_SECRET}
 

@@ -11,34 +11,47 @@ logging:
       max-file-size: 100MB
       max-history: 10
 
+eureka:
+  instance:
+    hostname: ${spring.cloud.client.ip-address}
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_URL}
+
 spring:
+  application:
+    name: FILE-SERVICE
   jpa:
     generate-ddl: 'true'
-    database: h2
+    database: postgresql
     hibernate:
-      ddl-auto: create
-    show-sql: true
+      ddl-auto: update
+    properties:
+      hibernate:
+        default_batch_fetch_size: 1000
   datasource:
-    driver-class-name: org.h2.Driver
-    url: jdbc:h2:mem:test;MODE=PostgreSQL;INIT=CREATE SCHEMA IF NOT EXISTS FILE_SERVICE
-    username: ndxpro
-    password:
-  h2:
-    console:
-      enabled: true
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: '20'
+    username: ${POSTGRES_USER}
+    url: ${DATASOURCE_URL}
   servlet:
     multipart:
       maxFileSize: 24GB
       maxRequestSize: 24GB
 
 file-service:
-  dir: ./data
+  dir: /data
+  copy-dir: /data/tmp
   queue:
     size: 25769803776
   max-fail-count: 3
   writer:
-    interval: 1000
-    count: 3
+    interval: 50
+    count: ${WRITER_COUNT}
 
 springdoc:
   swagger-ui:

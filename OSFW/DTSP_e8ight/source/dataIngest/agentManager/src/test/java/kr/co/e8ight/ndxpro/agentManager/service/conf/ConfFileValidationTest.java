@@ -67,13 +67,14 @@ class ConfFileValidationTest {
                     .name("kafkaAgent")
                     .type(AgentType.KAFKA)
                     .models(Collections.singletonList(new DataModelDto()))
-                    .urlAddress("220.124.222.84:9092")
+                    .urlAddress("kafka-server:9092")
                     .sourceTopic("source-topic")
                     .isCustomTopic(true)
                     .topic("fdt_topic")
                     .build();
             agent = KafkaAgent.create(requestDto, "/opt/flume/conf/files/");
             agent.setTopic("fdt_topic");
+            ReflectionTestUtils.setField(agent, "id", 7L);
             validConf = provider.getConfFileContents(agent, requestDto);
         }
 
@@ -85,9 +86,27 @@ class ConfFileValidationTest {
         }
 
         @Test
+        @DisplayName("선언한 source/channel/sink 는 모두 type 정의가 있다")
+        void allDeclaredComponentsDefined() {
+            assertAllDeclaredComponentsDefined(validConf, "kafkaAgent", "sources");
+            assertAllDeclaredComponentsDefined(validConf, "kafkaAgent", "channels");
+            assertAllDeclaredComponentsDefined(validConf, "kafkaAgent", "sinks");
+        }
+
+        @Test
+        @DisplayName("sink 의 AGENT_ID 를 지우면 거부한다")
+        void rejectsMissingAgentId() {
+            String edited = validConf.replace("kafkaAgent.sinks.sink_kafka.AGENT_ID = 7\n", "");
+
+            assertThatThrownBy(() -> provider.validateConfFileContents(agent, edited))
+                    .isInstanceOf(AgentException.class)
+                    .hasMessageContaining("AGENT_ID");
+        }
+
+        @Test
         @DisplayName("자유롭게 편집한 값(consumer group 등)은 허용한다")
         void allowsFreeEdits() {
-            String edited = validConf.replace("fdt-consumer-group", "my-own-group")
+            String edited = validConf.replace("fdt-agent-7", "my-own-group")
                     .replace("latest", "earliest");
 
             assertThatCode(() -> provider.validateConfFileContents(agent, edited))
@@ -105,7 +124,7 @@ class ConfFileValidationTest {
         }
 
         @Test
-        @DisplayName("channel topic 을 DB 값과 다르게 바꾸면 거부한다")
+        @DisplayName("sink topic 을 DB 값과 다르게 바꾸면 거부한다")
         void rejectsChangedTopic() {
             String edited = validConf.replace(".kafka.topic = fdt_topic", ".kafka.topic = other_topic");
 

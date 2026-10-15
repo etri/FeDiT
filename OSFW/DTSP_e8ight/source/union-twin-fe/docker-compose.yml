@@ -1,7 +1,7 @@
 # 223 서버(내부망, HTTP) 배포용.
 services:
   union-twin-fe:
-    image: 172.16.28.217:12000/union-twin-fe:latest
+    image: ${DOCKER_REGISTRY}/union-twin-fe:latest
     restart: always
     depends_on:
       - union-twin-be
@@ -9,21 +9,32 @@ services:
       - UNION_TWIN_BFF_URL=http://union-twin-be:4000
       # 223은 HTTP 운영이라 Secure 쿠키를 끈다 (HTTPS 배포에서는 설정하지 않음 → 기본 true)
       - COOKIE_SECURE=false
-      - NDXPRO_API_URL=http://220.124.222.90:54002
-      - VIEWER_URL=http://220.124.222.90:50038
+      - NDXPRO_API_URL=${NDXPRO_API_URL}
+      - VIEWER_URL=${VIEWER_URL}
       - NDXPRO_TOKEN=${NDXPRO_TOKEN}
       - DTMETA_API_URL=http://dtmeta.fedit.or.kr:16997
       # KETI 발급 PAT(meta_admin). 만료값이 없어 배포 .env로 주입한다.
       - DTMETA_TOKEN=${DTMETA_TOKEN}
       # KETI 동기화 엔진(연합 디지털 브레인). 인증 없음. 수집 토픽 조회용.
-      - FDT_SYNC_API_URL=http://220.124.222.84:1221
+      - FDT_SYNC_API_URL=${FDT_SYNC_API_URL}
+      # KETI 동기화 엔진 Kafka. Agent 가 단일 트윈 토픽을 구독하는 주소.
+      - FDT_SYNC_KAFKA_URL=${FDT_SYNC_KAFKA_URL}
+      # 브로커 공개 조회(dataAccessURL · 엔티티 조회 Swagger) / 데이터 모델 Swagger.
+      # 비우면 NDXPRO_API_URL 호스트에 54011 / 54008 을 붙여 만든다.
+      - NDXPRO_BROKER_URL=${NDXPRO_BROKER_URL}
+      - NDXPRO_MANAGER_URL=${NDXPRO_MANAGER_URL}
+      # 이벤트 트래킹 화면(트래킹 요청 · 요청 목록)
+      - TRACKING_URL=https://tracking.fedit.or.kr
+      # iframe 으로 띄우는 VIZWide3D 뷰어 / 예측 서비스 주소
+      - VIEWER_APP_URL=${VIEWER_APP_URL}
+      - PREDICTOR_URL=${PREDICTOR_URL}
     ports:
       - '50031:3000'
     networks:
       - ndxpro
 
   union-twin-be:
-    image: 172.16.28.217:12000/union-twin-be:latest
+    image: ${DOCKER_REGISTRY}/union-twin-be:latest
     restart: always
     extra_hosts:
       - 'host.docker.internal:host-gateway'

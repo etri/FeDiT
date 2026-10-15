@@ -21,6 +21,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
@@ -41,6 +42,10 @@ public class DbInit {
 
         private static final String path = "/app/resources/InitData/";
 //    private static final String path = "src/main/resources/InitData/";
+
+    // InitData/context.json 의 ${CONTEXT_SERVER_URL} 자리에 들어갈 context 서버 주소
+    @Value("${ndxpro.context.server-url:http://localhost:3005}")
+    private String contextServerUrl;
 
     public DbInit(ContextService contextService, ContextRepository contextRepository,
             AttributeRepository attributeRepository,
@@ -68,7 +73,8 @@ public class DbInit {
         if (jsonArr.size() > 0) {
             for (int i = 0; i < jsonArr.size(); i++) {
                 JSONObject jsonObj = (JSONObject) jsonArr.get(i);
-                context = objectMapper.readValue(jsonObj.toJSONString(), Context.class);
+                context = objectMapper.readValue(
+                        jsonObj.toJSONString().replace("${CONTEXT_SERVER_URL}", contextServerUrl), Context.class);
                 if (contextRepository.findByUrl(context.getUrl()).isEmpty()) {
                     contextRepository.save(context);
                 }

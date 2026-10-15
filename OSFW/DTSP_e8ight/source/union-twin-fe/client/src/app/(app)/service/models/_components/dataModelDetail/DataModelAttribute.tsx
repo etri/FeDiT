@@ -87,7 +87,10 @@ function DataModelAttribute({
   return (
     <Card className="min-w-0 flex-1 gap-0 py-0">
       <div className="bg-muted text-foreground flex w-full min-w-0 items-center justify-between border-b px-2 py-1 text-sm font-bold tracking-[.03em]">
-        <span className="truncate">
+        <span
+          className="truncate"
+          title={`${parentId ? `${parentId} > ` : ''}${id ?? ''}`}
+        >
           {parentId ? `${parentId} > ` : ''}
           {id ?? ''}
         </span>

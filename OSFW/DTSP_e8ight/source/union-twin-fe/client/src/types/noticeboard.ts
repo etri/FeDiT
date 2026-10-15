@@ -3,15 +3,15 @@ export type NoticeStatus = 'published' | 'unpublished' | 'all';
 export interface NoticeAuthor {
   id: string;
   name: string;
-  email: string;
+  email?: string;
 }
 
 export interface Notice {
   id: string;
   title: string;
   content: string;
-  author: NoticeAuthor;
-  authorId: string;
+  author: NoticeAuthor | null;
+  authorId: string | null;
   isPinned: boolean;
   isPublished: boolean;
   viewCount: number;

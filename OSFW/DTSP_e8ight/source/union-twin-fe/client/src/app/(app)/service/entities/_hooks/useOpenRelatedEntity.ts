@@ -2,8 +2,8 @@ import { useCallback } from 'react';
 
 import { useRouter } from 'next/navigation';
 
-import { useSwitchEntityTab } from '@/app/(app)/service/entities/_hooks/useActiveEntityTab';
 import { useEntityParams } from '@/app/(app)/service/entities/_hooks/useEntityParams';
+import { useSwitchEntityTab } from '@/app/(app)/service/entities/_hooks/useSwitchEntityTab';
 import { entityPath } from '@/app/(app)/service/entities/_utils/paths';
 import { INIT_ENTITY_SEARCH_INFO } from '@/app/(app)/service/entities/_utils/searchInfo';
 

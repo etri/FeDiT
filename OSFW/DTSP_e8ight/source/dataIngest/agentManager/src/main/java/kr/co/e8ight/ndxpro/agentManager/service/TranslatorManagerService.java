@@ -21,12 +21,16 @@ public class TranslatorManagerService {
 
     private final RestTemplate restTemplate;
 
+    // 서비스 간 호출용 토큰. 값은 환경변수 INTERNAL_API_TOKEN(또는 로컬 설정)으로 주입한다.
+    @Value("${internal-api.token:}")
+    private String internalApiToken;
+
     @Value("${translator-manager.url}")
     private String translatorManagerUrl;
 
     public boolean existByAgentId(Long agentId) {
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI4IiwiYXV0aCI6IkFETUlOIiwiZXhwIjoxNzA2MzMwMDE1fQ.zIKioGZVchXB2UYQcTyet_FywLhYq4MbodMWyuNSiOMz6ScOKDwHbJELz2VNN5KubgOgRVKVE5sOUcAPFJnqRg");
+        headers.set("Authorization", "Bearer " + internalApiToken);
 
         HttpEntity request = new HttpEntity(headers);
 

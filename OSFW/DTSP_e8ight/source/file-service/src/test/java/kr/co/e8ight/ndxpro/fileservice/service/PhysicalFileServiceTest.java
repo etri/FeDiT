@@ -5,6 +5,7 @@ import kr.co.e8ight.ndxpro.fileservice.config.exceptions.FileException;
 import kr.co.e8ight.ndxpro.fileservice.domain.PhysicalFile;
 import kr.co.e8ight.ndxpro.fileservice.domain.FileStatus;
 import kr.co.e8ight.ndxpro.fileservice.domain.LogicalFile;
+import kr.co.e8ight.ndxpro.fileservice.domain.dto.FileUploadResponseDto;
 import kr.co.e8ight.ndxpro.fileservice.domain.dto.LogicalFileResponseDto;
 import kr.co.e8ight.ndxpro.fileservice.repository.PhysicalFileRepository;
 import kr.co.e8ight.ndxpro.fileservice.repository.LogicalFileRepository;
@@ -63,29 +64,20 @@ class PhysicalFileServiceTest {
     class PhysicalFileUploadTest {
         @Test
         void successWithNewPhysicalFile() {
-            String documentName = "document";
             String ufId = "ufId";
             String path = "./data/0x00/0x00/0x00/0x00/";
             PhysicalFile physicalFile = PhysicalFile.create(multipartFile, checksum);
             CompletableFuture<PhysicalFile> future = new CompletableFuture<>();
             FutureObserver<PhysicalFile> observer = new FutureObserver<>(physicalFile.getId(), future);
-            LogicalFile logicalFile = LogicalFile.create(ufId, multipartFile, documentName, physicalFile);
 
-            given(ufIdBuilder.buildUFID(checksum, multipartFile.getOriginalFilename(), documentName))
-                    .willReturn(ufId);
-            given(logicalFileRepository.findByUfId(ufId))
-                    .willReturn(Optional.empty());
             given(physicalFileRepository.findByChecksum(checksum))
-                    .willReturn(Optional.empty());
+              .willReturn(Optional.empty());
             given(physicalFileRepository.save(any(PhysicalFile.class)))
                     .willReturn(physicalFile);
             given(filePathBuilder.buildPath(physicalFile.getId()))
                     .willReturn(path);
             given(fileUploadEvent.registerObserver(any(Observer.class)))
                     .willReturn(observer);
-            ArgumentCaptor<LogicalFile> captor = ArgumentCaptor.forClass(LogicalFile.class);
-            given(logicalFileRepository.save(captor.capture()))
-                    .willReturn(logicalFile);
 
             observer.getFuture().complete(new PhysicalFile(
                     1L,
@@ -96,16 +88,13 @@ class PhysicalFileServiceTest {
                     false,
                     0,
                     null));
-            LogicalFileResponseDto responseDto = fileService.uploadFile(multipartFile, checksum, documentName);
+            PhysicalFile result = fileService.uploadFile(multipartFile, checksum);
 
-            assertThat(responseDto.getUfId()).isEqualTo(ufId);
-            assertThat(responseDto.getOriginalName()).isEqualTo(multipartFile.getOriginalFilename());
-            assertThat(responseDto.getExtension()).isEqualTo(multipartFile.getOriginalFilename().split("\\.")[1]);
-            assertThat(captor.getValue().getPhysicalFile().getChecksum()).isEqualTo(checksum);
-            assertThat(captor.getValue().getPhysicalFile().getStatus()).isEqualTo(FileStatus.READY);
-            assertThat(captor.getValue().getPhysicalFile().getPath().startsWith(path)).isTrue();
-            assertThat(captor.getValue().getPhysicalFile().getSize()).isEqualTo(multipartFile.getSize());
-            assertThat(captor.getValue().getPhysicalFile().getUploadFailCount()).isEqualTo(0);
+            assertThat(result.getChecksum()).isEqualTo(checksum);
+            assertThat(result.getStatus()).isEqualTo(FileStatus.READY);
+            assertThat(result.getPath().startsWith(path)).isTrue();
+            assertThat(result.getSize()).isEqualTo(multipartFile.getSize());
+            assertThat(result.getUploadFailCount()).isEqualTo(0);
 
             verify(filePathBuilder).buildPath(physicalFile.getId());
             verify(fileWriteQueue).offer(any(PhysicalFile.class));
@@ -114,7 +103,6 @@ class PhysicalFileServiceTest {
 
         @Test
         void successWithExistPhysicalFileIsReady() throws IOException {
-            String documentName = "document";
             String ufId = "ufId";
             String path = "./data/0x00/0x00/0x00/0x00/";
             PhysicalFile physicalFile = new PhysicalFile(
@@ -126,28 +114,18 @@ class PhysicalFileServiceTest {
                     false,
                     0,
                     multipartFile);
-            LogicalFile logicalFile = LogicalFile.create(ufId, multipartFile, documentName, physicalFile);
+            LogicalFile logicalFile = LogicalFile.create(ufId, multipartFile, physicalFile);
 
-            given(ufIdBuilder.buildUFID(checksum, multipartFile.getOriginalFilename(), documentName))
-                    .willReturn(ufId);
-            given(logicalFileRepository.findByUfId(ufId))
-                    .willReturn(Optional.empty());
             given(physicalFileRepository.findByChecksum(checksum))
                     .willReturn(Optional.of(physicalFile));
-            ArgumentCaptor<LogicalFile> captor = ArgumentCaptor.forClass(LogicalFile.class);
-            given(logicalFileRepository.save(captor.capture()))
-                    .willReturn(logicalFile);
 
-            LogicalFileResponseDto responseDto = fileService.uploadFile(multipartFile, checksum, documentName);
+            PhysicalFile responseDto = fileService.uploadFile(multipartFile, checksum);
 
-            assertThat(responseDto.getUfId()).isEqualTo(ufId);
-            assertThat(responseDto.getOriginalName()).isEqualTo(multipartFile.getOriginalFilename());
-            assertThat(responseDto.getExtension()).isEqualTo(multipartFile.getOriginalFilename().split("\\.")[1]);
-            assertThat(captor.getValue().getPhysicalFile().getChecksum()).isEqualTo(checksum);
-            assertThat(captor.getValue().getPhysicalFile().getStatus()).isEqualTo(FileStatus.READY);
-            assertThat(captor.getValue().getPhysicalFile().getPath().startsWith(path)).isTrue();
-            assertThat(captor.getValue().getPhysicalFile().getSize()).isEqualTo(multipartFile.getSize());
-            assertThat(captor.getValue().getPhysicalFile().getUploadFailCount()).isEqualTo(0);
+            assertThat(responseDto.getChecksum()).isEqualTo(checksum);
+            assertThat(responseDto.getStatus()).isEqualTo(FileStatus.READY);
+            assertThat(responseDto.getPath().startsWith(path)).isTrue();
+            assertThat(responseDto.getSize()).isEqualTo(multipartFile.getSize());
+            assertThat(responseDto.getUploadFailCount()).isEqualTo(0);
 
             verify(filePathBuilder, never()).buildPath(physicalFile.getId());
             verify(fileWriteQueue, never()).offer(any(PhysicalFile.class));
@@ -156,7 +134,6 @@ class PhysicalFileServiceTest {
 
         @Test
         void successWithExistPhysicalFileIsWait() throws IOException {
-            String documentName = "document";
             String ufId = "ufId";
             String path = "./data/0x00/0x00/0x00/0x00/" + UUID.randomUUID();
             PhysicalFile physicalFile = new PhysicalFile(
@@ -170,19 +147,11 @@ class PhysicalFileServiceTest {
                     multipartFile);
             CompletableFuture<PhysicalFile> future = new CompletableFuture<>();
             FutureObserver<PhysicalFile> observer = new FutureObserver<>(physicalFile.getId(), future);
-            LogicalFile logicalFile = LogicalFile.create(ufId, multipartFile, documentName, physicalFile);
 
-            given(ufIdBuilder.buildUFID(checksum, multipartFile.getOriginalFilename(), documentName))
-                    .willReturn(ufId);
-            given(logicalFileRepository.findByUfId(ufId))
-                    .willReturn(Optional.empty());
             given(physicalFileRepository.findByChecksum(checksum))
                     .willReturn(Optional.of(physicalFile));
             given(fileUploadEvent.registerObserver(any(Observer.class)))
                     .willReturn(observer);
-            ArgumentCaptor<LogicalFile> captor = ArgumentCaptor.forClass(LogicalFile.class);
-            given(logicalFileRepository.save(captor.capture()))
-                    .willReturn(logicalFile);
 
             observer.getFuture().complete(new PhysicalFile(
                     1L,
@@ -193,16 +162,13 @@ class PhysicalFileServiceTest {
                     false,
                     0,
                     multipartFile));
-            LogicalFileResponseDto responseDto = fileService.uploadFile(multipartFile, checksum, documentName);
+            PhysicalFile responseDto = fileService.uploadFile(multipartFile, checksum);
 
-            assertThat(responseDto.getUfId()).isEqualTo(ufId);
-            assertThat(responseDto.getOriginalName()).isEqualTo(multipartFile.getOriginalFilename());
-            assertThat(responseDto.getExtension()).isEqualTo(multipartFile.getOriginalFilename().split("\\.")[1]);
-            assertThat(captor.getValue().getPhysicalFile().getChecksum()).isEqualTo(checksum);
-            assertThat(captor.getValue().getPhysicalFile().getStatus()).isEqualTo(FileStatus.READY);
-            assertThat(captor.getValue().getPhysicalFile().getPath().startsWith(path)).isTrue();
-            assertThat(captor.getValue().getPhysicalFile().getSize()).isEqualTo(multipartFile.getSize());
-            assertThat(captor.getValue().getPhysicalFile().getUploadFailCount()).isEqualTo(0);
+            assertThat(responseDto.getChecksum()).isEqualTo(checksum);
+            assertThat(responseDto.getStatus()).isEqualTo(FileStatus.READY);
+            assertThat(responseDto.getPath().startsWith(path)).isTrue();
+            assertThat(responseDto.getSize()).isEqualTo(multipartFile.getSize());
+            assertThat(responseDto.getUploadFailCount()).isEqualTo(0);
 
             verify(filePathBuilder, never()).buildPath(physicalFile.getId());
             verify(fileWriteQueue, never()).offer(any(PhysicalFile.class));
@@ -211,7 +177,6 @@ class PhysicalFileServiceTest {
 
         @Test
         void successWithExistPhysicalFileIsFail() throws IOException {
-            String documentName = "document";
             String ufId = "ufId";
             String path = "./data/0x00/0x00/0x00/0x00/" + UUID.randomUUID();
             PhysicalFile physicalFile = new PhysicalFile(
@@ -225,19 +190,11 @@ class PhysicalFileServiceTest {
                     multipartFile);
             CompletableFuture<PhysicalFile> future = new CompletableFuture<>();
             FutureObserver<PhysicalFile> observer = new FutureObserver<>(physicalFile.getId(), future);
-            LogicalFile logicalFile = LogicalFile.create(ufId, multipartFile, documentName, physicalFile);
 
-            given(ufIdBuilder.buildUFID(checksum, multipartFile.getOriginalFilename(), documentName))
-                    .willReturn(ufId);
-            given(logicalFileRepository.findByUfId(ufId))
-                    .willReturn(Optional.empty());
             given(physicalFileRepository.findByChecksum(checksum))
                     .willReturn(Optional.of(physicalFile));
             given(fileUploadEvent.registerObserver(any(Observer.class)))
                     .willReturn(observer);
-            ArgumentCaptor<LogicalFile> captor = ArgumentCaptor.forClass(LogicalFile.class);
-            given(logicalFileRepository.save(captor.capture()))
-                    .willReturn(logicalFile);
 
             observer.getFuture().complete(new PhysicalFile(
                     1L,
@@ -248,16 +205,13 @@ class PhysicalFileServiceTest {
                     false,
                     0,
                     multipartFile));
-            LogicalFileResponseDto responseDto = fileService.uploadFile(multipartFile, checksum, documentName);
+            PhysicalFile responseDto = fileService.uploadFile(multipartFile, checksum);
 
-            assertThat(responseDto.getUfId()).isEqualTo(ufId);
-            assertThat(responseDto.getOriginalName()).isEqualTo(multipartFile.getOriginalFilename());
-            assertThat(responseDto.getExtension()).isEqualTo(multipartFile.getOriginalFilename().split("\\.")[1]);
-            assertThat(captor.getValue().getPhysicalFile().getChecksum()).isEqualTo(checksum);
-            assertThat(captor.getValue().getPhysicalFile().getStatus()).isEqualTo(FileStatus.READY);
-            assertThat(captor.getValue().getPhysicalFile().getPath().startsWith(path)).isTrue();
-            assertThat(captor.getValue().getPhysicalFile().getSize()).isEqualTo(multipartFile.getSize());
-            assertThat(captor.getValue().getPhysicalFile().getUploadFailCount()).isEqualTo(0);
+            assertThat(responseDto.getChecksum()).isEqualTo(checksum);
+            assertThat(responseDto.getStatus()).isEqualTo(FileStatus.READY);
+            assertThat(responseDto.getPath().startsWith(path)).isTrue();
+            assertThat(responseDto.getSize()).isEqualTo(multipartFile.getSize());
+            assertThat(responseDto.getUploadFailCount()).isEqualTo(0);
 
             verify(filePathBuilder, never()).buildPath(physicalFile.getId());
             verify(fileWriteQueue).offer(any(PhysicalFile.class));
@@ -266,8 +220,6 @@ class PhysicalFileServiceTest {
 
         @Test
         void successWithExistPhysicalFileIsDeleted() throws IOException {
-            String documentName = "document";
-            String ufId = "ufId";
             String path = "./data/0x00/0x00/0x00/0x00/";
             PhysicalFile physicalFile = new PhysicalFile(
                     1L,
@@ -278,29 +230,17 @@ class PhysicalFileServiceTest {
                     true,
                     0,
                     multipartFile);
-            LogicalFile logicalFile = LogicalFile.create(ufId, multipartFile, documentName, physicalFile);
-
-            given(ufIdBuilder.buildUFID(checksum, multipartFile.getOriginalFilename(), documentName))
-                    .willReturn(ufId);
-            given(logicalFileRepository.findByUfId(ufId))
-                    .willReturn(Optional.empty());
             given(physicalFileRepository.findByChecksum(checksum))
                     .willReturn(Optional.of(physicalFile));
-            ArgumentCaptor<LogicalFile> captor = ArgumentCaptor.forClass(LogicalFile.class);
-            given(logicalFileRepository.save(captor.capture()))
-                    .willReturn(logicalFile);
 
-            LogicalFileResponseDto responseDto = fileService.uploadFile(multipartFile, checksum, documentName);
+            PhysicalFile responseDto = fileService.uploadFile(multipartFile, checksum);
 
-            assertThat(responseDto.getUfId()).isEqualTo(ufId);
-            assertThat(responseDto.getOriginalName()).isEqualTo(multipartFile.getOriginalFilename());
-            assertThat(responseDto.getExtension()).isEqualTo(multipartFile.getOriginalFilename().split("\\.")[1]);
-            assertThat(captor.getValue().getPhysicalFile().getChecksum()).isEqualTo(checksum);
-            assertThat(captor.getValue().getPhysicalFile().getStatus()).isEqualTo(FileStatus.READY);
-            assertThat(captor.getValue().getPhysicalFile().getPath().startsWith(path)).isTrue();
-            assertThat(captor.getValue().getPhysicalFile().isDeleted()).isFalse();
-            assertThat(captor.getValue().getPhysicalFile().getSize()).isEqualTo(multipartFile.getSize());
-            assertThat(captor.getValue().getPhysicalFile().getUploadFailCount()).isEqualTo(0);
+            assertThat(responseDto.getChecksum()).isEqualTo(checksum);
+            assertThat(responseDto.getStatus()).isEqualTo(FileStatus.READY);
+            assertThat(responseDto.getPath().startsWith(path)).isTrue();
+            assertThat(responseDto.isDeleted()).isFalse();
+            assertThat(responseDto.getSize()).isEqualTo(multipartFile.getSize());
+            assertThat(responseDto.getUploadFailCount()).isEqualTo(0);
 
             verify(filePathBuilder, never()).buildPath(physicalFile.getId());
             verify(fileWriteQueue, never()).offer(any(PhysicalFile.class));
@@ -308,34 +248,15 @@ class PhysicalFileServiceTest {
         }
 
         @Test
-        void failCausedByExistUniqueFileId() {
-            String documentName = "document";
-            String ufId = "ufId";
-
-            given(ufIdBuilder.buildUFID(checksum, multipartFile.getOriginalFilename(), documentName))
-                    .willReturn(ufId);
-            given(logicalFileRepository.findByUfId(ufId))
-                    .willReturn(Optional.of(new LogicalFile()));
-
-            assertThrows(FileException.class,
-                    () -> fileService.uploadFile(multipartFile, checksum, documentName));
-        }
-
-        @Test
         void failCausedByFileIoError() {
-            String documentName = "document";
             String ufId = "ufId";
             String path = "./data/0x00/0x00/0x00/0x00/";
             PhysicalFile physicalFile = PhysicalFile.create(multipartFile, checksum);
             CompletableFuture<PhysicalFile> future = new CompletableFuture<>();
             FutureObserver<PhysicalFile> observer = new FutureObserver<>(physicalFile.getId(), future);
 
-            given(ufIdBuilder.buildUFID(checksum, multipartFile.getOriginalFilename(), documentName))
-                    .willReturn(ufId);
-            given(logicalFileRepository.findByUfId(ufId))
-                    .willReturn(Optional.empty());
             given(physicalFileRepository.findByChecksum(checksum))
-                    .willReturn(Optional.empty());
+              .willReturn(Optional.empty());
             given(physicalFileRepository.save(any(PhysicalFile.class)))
                     .willReturn(physicalFile);
             given(filePathBuilder.buildPath(physicalFile.getId()))
@@ -353,7 +274,7 @@ class PhysicalFileServiceTest {
                     0,
                     null));
             assertThrows(FileException.class,
-                    () -> fileService.uploadFile(multipartFile, checksum, documentName));
+                    () -> fileService.uploadFile(multipartFile, checksum));
 
             verify(filePathBuilder).buildPath(physicalFile.getId());
             verify(fileWriteQueue).offer(any(PhysicalFile.class));
@@ -367,7 +288,6 @@ class PhysicalFileServiceTest {
     class LogicalPhysicalFileRegistrationTest {
         @Test
         void success() {
-            String documentName = "document";
             String ufId = "ufId";
             String path = "./data/0x00/0x00/0x00/0x00/";
             PhysicalFile physicalFile = new PhysicalFile(
@@ -378,19 +298,17 @@ class PhysicalFileServiceTest {
                     FileStatus.READY,
                     false,
                     0,
-                    null);
-            LogicalFile logicalFile = LogicalFile.create(ufId, multipartFile, documentName, physicalFile);
-            given(ufIdBuilder.buildUFID(checksum, multipartFile.getOriginalFilename(), documentName))
+                    multipartFile);
+            LogicalFile logicalFile = LogicalFile.create(ufId, multipartFile, physicalFile);
+            given(ufIdBuilder.buildUFID(checksum, multipartFile.getOriginalFilename()))
                     .willReturn(ufId);
             given(logicalFileRepository.findByUfId(ufId))
                     .willReturn(Optional.empty());
-            given(physicalFileRepository.findByChecksumAndStatusNot(checksum, FileStatus.FAIL))
-                    .willReturn(Optional.of(physicalFile));
             ArgumentCaptor<LogicalFile> captor = ArgumentCaptor.forClass(LogicalFile.class);
             given(logicalFileRepository.save(captor.capture()))
                     .willReturn(logicalFile);
 
-            LogicalFileResponseDto responseDto = fileService.registerLogicalFile(multipartFile.getOriginalFilename(), checksum, documentName);
+            FileUploadResponseDto responseDto = fileService.registerLogicalFile(physicalFile);
 
             assertThat(responseDto.getUfId()).isEqualTo(ufId);
             assertThat(responseDto.getOriginalName()).isEqualTo(multipartFile.getOriginalFilename());
@@ -404,7 +322,6 @@ class PhysicalFileServiceTest {
 
         @Test
         void successWithRestore() {
-            String documentName = "document";
             String ufId = "ufId";
             String path = "./data/0x00/0x00/0x00/0x00/";
             PhysicalFile physicalFile = new PhysicalFile(
@@ -415,19 +332,17 @@ class PhysicalFileServiceTest {
                     FileStatus.READY,
                     true,
                     0,
-                    null);
-            LogicalFile logicalFile = LogicalFile.create(ufId, multipartFile, documentName, physicalFile);
-            given(ufIdBuilder.buildUFID(checksum, multipartFile.getOriginalFilename(), documentName))
+                    multipartFile);
+            LogicalFile logicalFile = LogicalFile.create(ufId, multipartFile, physicalFile);
+            given(ufIdBuilder.buildUFID(checksum, multipartFile.getOriginalFilename()))
                     .willReturn(ufId);
             given(logicalFileRepository.findByUfId(ufId))
                     .willReturn(Optional.empty());
-            given(physicalFileRepository.findByChecksumAndStatusNot(checksum, FileStatus.FAIL))
-                    .willReturn(Optional.of(physicalFile));
             ArgumentCaptor<LogicalFile> captor = ArgumentCaptor.forClass(LogicalFile.class);
             given(logicalFileRepository.save(captor.capture()))
                     .willReturn(logicalFile);
 
-            LogicalFileResponseDto responseDto = fileService.registerLogicalFile(multipartFile.getOriginalFilename(), checksum, documentName);
+            FileUploadResponseDto responseDto = fileService.registerLogicalFile(physicalFile);
 
             assertThat(responseDto.getUfId()).isEqualTo(ufId);
             assertThat(responseDto.getOriginalName()).isEqualTo(multipartFile.getOriginalFilename());
@@ -441,7 +356,6 @@ class PhysicalFileServiceTest {
 
         @Test
         void successWithPhysicalFileIsWait() throws IOException {
-            String documentName = "document";
             String ufId = "ufId";
             String path = "./data/0x00/0x00/0x00/0x00/";
             PhysicalFile physicalFile = new PhysicalFile(
@@ -452,81 +366,26 @@ class PhysicalFileServiceTest {
                     FileStatus.WAIT,
                     false,
                     0,
-                    null);
-            CompletableFuture<PhysicalFile> future = new CompletableFuture<>();
-            FutureObserver<PhysicalFile> observer = new FutureObserver<>(physicalFile.getId(), future);
-            LogicalFile logicalFile = LogicalFile.create(ufId, multipartFile, documentName, physicalFile);
-            given(ufIdBuilder.buildUFID(checksum, multipartFile.getOriginalFilename(), documentName))
+                    multipartFile);
+            LogicalFile logicalFile = LogicalFile.create(ufId, multipartFile, physicalFile);
+            given(ufIdBuilder.buildUFID(checksum, multipartFile.getOriginalFilename()))
                     .willReturn(ufId);
             given(logicalFileRepository.findByUfId(ufId))
                     .willReturn(Optional.empty());
-            given(physicalFileRepository.findByChecksumAndStatusNot(checksum, FileStatus.FAIL))
-                    .willReturn(Optional.of(physicalFile));
-            given(fileUploadEvent.registerObserver(any(Observer.class)))
-                    .willReturn(observer);
             ArgumentCaptor<LogicalFile> captor = ArgumentCaptor.forClass(LogicalFile.class);
             given(logicalFileRepository.save(captor.capture()))
                     .willReturn(logicalFile);
 
-            observer.getFuture().complete(new PhysicalFile(
-                    1L,
-                    multipartFile.getSize(),
-                    checksum,
-                    path + UUID.randomUUID(),
-                    FileStatus.READY,
-                    false,
-                    0,
-                    multipartFile));
-
-            LogicalFileResponseDto responseDto = fileService.registerLogicalFile(multipartFile.getOriginalFilename(), checksum, documentName);
+            FileUploadResponseDto responseDto = fileService.registerLogicalFile(physicalFile);
 
             assertThat(responseDto.getUfId()).isEqualTo(ufId);
             assertThat(responseDto.getOriginalName()).isEqualTo(multipartFile.getOriginalFilename());
             assertThat(responseDto.getExtension()).isEqualTo(multipartFile.getOriginalFilename().split("\\.")[1]);
             assertThat(captor.getValue().getPhysicalFile().getChecksum()).isEqualTo(checksum);
-            assertThat(captor.getValue().getPhysicalFile().getStatus()).isEqualTo(FileStatus.READY);
+            assertThat(captor.getValue().getPhysicalFile().getStatus()).isEqualTo(FileStatus.WAIT);
             assertThat(captor.getValue().getPhysicalFile().getPath().startsWith(path)).isTrue();
             assertThat(captor.getValue().getPhysicalFile().getSize()).isEqualTo(multipartFile.getSize());
             assertThat(captor.getValue().getPhysicalFile().getUploadFailCount()).isEqualTo(0);
-        }
-
-        @Test
-        void failCausedByFileIoError() throws IOException {
-            String documentName = "document";
-            String ufId = "ufId";
-            String path = "./data/0x00/0x00/0x00/0x00/";
-            PhysicalFile physicalFile = new PhysicalFile(
-                    1L,
-                    multipartFile.getSize(),
-                    checksum,
-                    path + multipartFile.getOriginalFilename(),
-                    FileStatus.WAIT,
-                    false,
-                    0,
-                    null);
-            CompletableFuture<PhysicalFile> future = new CompletableFuture<>();
-            FutureObserver<PhysicalFile> observer = new FutureObserver<>(physicalFile.getId(), future);
-            given(ufIdBuilder.buildUFID(checksum, multipartFile.getOriginalFilename(), documentName))
-                    .willReturn(ufId);
-            given(logicalFileRepository.findByUfId(ufId))
-                    .willReturn(Optional.empty());
-            given(physicalFileRepository.findByChecksumAndStatusNot(checksum, FileStatus.FAIL))
-                    .willReturn(Optional.of(physicalFile));
-            given(fileUploadEvent.registerObserver(any(Observer.class)))
-                    .willReturn(observer);
-
-            observer.getFuture().complete(new PhysicalFile(
-                    1L,
-                    multipartFile.getSize(),
-                    checksum,
-                    path + UUID.randomUUID(),
-                    FileStatus.FAIL,
-                    false,
-                    0,
-                    multipartFile));
-
-            assertThrows(FileException.class,
-                    () -> fileService.registerLogicalFile(multipartFile.getOriginalFilename(), checksum, documentName));
         }
     }
 
@@ -534,7 +393,6 @@ class PhysicalFileServiceTest {
     class PhysicalFileDeleteTest {
         @Test
         void success() {
-            String documentName = "document";
             String ufId = "ufId";
             String path = "./data/0x00/0x00/0x00/0x00/";
             PhysicalFile physicalFile = new PhysicalFile(
@@ -546,7 +404,7 @@ class PhysicalFileServiceTest {
                     false,
                     0,
                     null);
-            LogicalFile logicalFile = LogicalFile.create(ufId, multipartFile, documentName, physicalFile);
+            LogicalFile logicalFile = LogicalFile.create(ufId, multipartFile, physicalFile);
             given(logicalFileRepository.findByUfIdAndDeletedFalse(ufId))
                     .willReturn(Optional.of(logicalFile));
             given(logicalFileRepository.existsByDeletedIsFalseAndPhysicalFile(any(PhysicalFile.class)))
@@ -568,7 +426,7 @@ class PhysicalFileServiceTest {
 
         @Test
         void successWithDeletePhysicalFileToo() {
-            String documentName = "document";
+            
             String ufId = "ufId";
             String path = "./data/0x00/0x00/0x00/0x00/";
             PhysicalFile physicalFile = new PhysicalFile(
@@ -580,7 +438,7 @@ class PhysicalFileServiceTest {
                     false,
                     0,
                     null);
-            LogicalFile logicalFile = LogicalFile.create(ufId, multipartFile, documentName, physicalFile);
+            LogicalFile logicalFile = LogicalFile.create(ufId, multipartFile, physicalFile);
             given(logicalFileRepository.findByUfIdAndDeletedFalse(ufId))
                     .willReturn(Optional.of(logicalFile));
             given(logicalFileRepository.existsByDeletedIsFalseAndPhysicalFile(any(PhysicalFile.class)))
@@ -603,7 +461,6 @@ class PhysicalFileServiceTest {
         @Test
         void failCausedByNotFoundUniqueFileId() {
             String ufId = "ufId";
-
             given(logicalFileRepository.findByUfIdAndDeletedFalse(ufId))
                     .willReturn(Optional.empty());
 

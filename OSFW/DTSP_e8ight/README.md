@@ -19,7 +19,7 @@ DTSP_연합/
 
 ```bash
 cd install
-cp .env.example .env && vi .env    # 서버 주소만 고친다
+cp .env.example .env && vi .env    # 서버 주소와 비밀번호·토큰(CHANGE_ME)을 채운다
 
 cd fdt-service-backend
 ./install/0-init.sh                # 이미지 적재

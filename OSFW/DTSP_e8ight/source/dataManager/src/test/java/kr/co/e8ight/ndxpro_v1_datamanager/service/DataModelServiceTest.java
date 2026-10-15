@@ -49,6 +49,8 @@ public class DataModelServiceTest {
     private DataModelRepository dataModelRepository;
     @Mock
     private UnitCodeRepository  unitCodeRepository;
+    @Mock
+    private ContextService contextService;
     @InjectMocks
     private DataModelService dataModelService;
 
@@ -493,41 +495,38 @@ public class DataModelServiceTest {
 
         @DisplayName("데이터모델 삭제 성공")
         @Test
-        void deleteDataModel() throws IOException {
+        void deleteDataModel() throws IOException, ParseException {
 
             //given
 
-            given(dataModelRepository.findByType(dataModel.getType())).willReturn(
+            given(dataModelRepository.findFirstByAndTypeOrderByCreatedAtDesc(dataModel.getType())).willReturn(
                     Optional.of(dataModel));
 
             //when
             String message = dataModelService.deleteDataModel(dataModel.getType());
 
             assertEquals(message, "DATA MODEL DELETE SUCCESS");
+            verify(contextService).removeDataModelFromAllContexts(dataModel);
+            verify(dataModelRepository).deleteById(dataModel.get_id());
 
         }
     }
     @Nested
-    @DisplayName("데이터모델 삭제 실패케이스")
-    class deleteDataModelFail {
-        @DisplayName("데이터모델 준비완료 일때")
+    @DisplayName("준비 완료 데이터모델 삭제")
+    class deleteReadyDataModel {
+        @DisplayName("준비 완료 모델도 context 정리 후 삭제")
         @Test
-        void deleteDataModelFail() throws IOException {
+        void deleteDataModel() throws IOException, ParseException {
 
             dataModel.setIsReady(true);
-            given(dataModelRepository.findByType(dataModel.getType())).willReturn(
+            given(dataModelRepository.findFirstByAndTypeOrderByCreatedAtDesc(dataModel.getType())).willReturn(
                     Optional.of(dataModel));
 
-            //when
-            DataModelException dataModelException = assertThrows(DataModelException.class,
-                    () -> {
-                        dataModelService.deleteDataModel(dataModel.getType());
-                    });
+            String message = dataModelService.deleteDataModel(dataModel.getType());
 
-            String message = dataModelException.getMessage();
-
-            //then
-            assertEquals(message, "You cannot modify a ready model= " + dataModel.getType());
+            assertEquals(message, "DATA MODEL DELETE SUCCESS");
+            verify(contextService).removeDataModelFromAllContexts(dataModel);
+            verify(dataModelRepository).deleteById(dataModel.get_id());
 
 
     }

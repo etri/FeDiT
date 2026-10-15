@@ -1,4 +1,4 @@
-import { cn } from '@e8ight/ui/utils/cn';
+import { cn } from 'cn';
 
 const MIN_LENGTH = 8;
 const STRONG_LENGTH = 12;

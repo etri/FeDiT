@@ -28,10 +28,13 @@ export interface TranslatorCreateRequest {
   context: string;
   isCustomTopic: boolean;
   sourceTopic: string;
+  targetTopic?: string;
   transferObservedAt?: boolean;
   observedAtTopicScenarioId?: number;
   observedAtTopicScenarioType?: string;
 }
+
+export type TranslatorUpdateRequest = TranslatorCreateRequest;
 
 export interface TranslatorCompileRequest {
   name: string;
@@ -44,6 +47,16 @@ export interface TranslatorCompileResponse {
   error: null | string;
   savedFilePath: null | string;
   savedFile: null | string[];
+}
+
+export interface TranslatorTestRequest {
+  sampleJson: string;
+}
+
+export interface TranslatorTestResponse {
+  success: boolean;
+  message: null | string;
+  result: unknown;
 }
 
 export interface TranslatorsRequestParams {

@@ -1,4 +1,4 @@
-import { cn } from '@e8ight/ui/utils/cn';
+import { cn } from 'cn';
 
 import type { NoticeAuthor } from '@/types/noticeboard';
 
@@ -43,11 +43,15 @@ export function NoticeAuthorBadge({
             'text-foreground truncate font-medium',
             NAME_SIZE_CLASS[size],
           )}
+          title={author?.name ?? '익명'}
         >
           {author?.name ?? '익명'}
         </span>
         {showEmail && author?.email ? (
-          <span className="text-muted-foreground truncate text-xs">
+          <span
+            className="text-muted-foreground truncate text-xs"
+            title={author.email}
+          >
             {author.email}
           </span>
         ) : null}

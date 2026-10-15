@@ -42,3 +42,6 @@ auth:
 logging:
   logstash:
     url: ${LOGSTASH_URL}
+
+internal-api:
+  token: ${INTERNAL_API_TOKEN:}

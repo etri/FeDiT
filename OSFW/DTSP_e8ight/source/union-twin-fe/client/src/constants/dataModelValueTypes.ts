@@ -20,3 +20,9 @@ export const GEO_PROPERTY_VALUE_TYPES = [
   'POINT',
   'POLYGON',
 ] as const;
+
+export const ATTRIBUTE_TYPES = [
+  'Property',
+  'Relationship',
+  'GeoProperty',
+] as const;

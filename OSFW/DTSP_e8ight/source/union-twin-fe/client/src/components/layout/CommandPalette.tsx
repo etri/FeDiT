@@ -75,7 +75,7 @@ export function CommandPalette() {
     >
       <Command>
         <CommandInput placeholder="이동할 페이지를 검색하세요..." />
-        <CommandList>
+        <CommandList className="max-h-[min(18rem,50svh)]">
           <CommandEmpty>일치하는 항목이 없습니다.</CommandEmpty>
           {groups.map((group, index) => (
             <Fragment key={group.label}>

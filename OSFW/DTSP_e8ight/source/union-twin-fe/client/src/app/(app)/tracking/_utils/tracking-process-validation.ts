@@ -5,7 +5,7 @@ import type {
 
 type TrackingFieldErrors = Record<string, boolean>;
 
-export const isValid = (value: unknown): boolean => {
+const isValid = (value: unknown): boolean => {
   if (value === null || value === undefined) {
     return false;
   }

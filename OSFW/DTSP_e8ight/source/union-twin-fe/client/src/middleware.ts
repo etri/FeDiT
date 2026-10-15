@@ -53,7 +53,7 @@ export async function middleware(request: NextRequest) {
 
   if (!accessToken && refreshToken && !onAuthRoute) {
     const refreshed = await refreshAccessToken(refreshToken);
-    if (refreshed) {
+    if (refreshed.status === 'ok') {
       request.cookies.set('accessToken', refreshed.accessToken);
       request.cookies.set('refreshToken', refreshed.refreshToken);
       const response = NextResponse.next({ request });
@@ -67,10 +67,10 @@ export async function middleware(request: NextRequest) {
       });
       return response;
     }
-    const response = NextResponse.redirect(new URL('/signin', request.url));
-    response.cookies.delete('accessToken');
-    response.cookies.delete('refreshToken');
-    return response;
+    if (refreshed.status === 'unavailable') {
+      return NextResponse.next();
+    }
+    return NextResponse.redirect(new URL('/signin', request.url));
   }
 
   if (!accessToken && !onAuthRoute) {

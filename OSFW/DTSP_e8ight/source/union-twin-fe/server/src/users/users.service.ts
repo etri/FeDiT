@@ -9,21 +9,12 @@ import { Repository } from 'typeorm';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UsersQueryDto, UsersSortKey } from './dto/users-query.dto';
+import { UsersQueryDto } from './dto/users-query.dto';
 import { User } from './entities/user.entity';
 import { BCRYPT_SALT_ROUNDS } from '../common/constants';
 import { isUniqueViolation } from '../common/utils/database';
 import { paginate } from '../common/utils/pagination';
 import { Role } from '../roles/entities/role.entity';
-
-const SORTABLE_COLUMNS: Record<Exclude<UsersSortKey, 'role'>, string> = {
-  name: 'user.name',
-  email: 'user.email',
-  organization: 'user.organization',
-  phoneNumber: 'user.phoneNumber',
-  isActive: 'user.isActive',
-  createdAt: 'user.createdAt',
-};
 
 @Injectable()
 export class UsersService {
@@ -60,11 +51,7 @@ export class UsersService {
       qb.andWhere('user.deletionRequestedAt IS NOT NULL');
     }
 
-    if (sortBy === 'role') {
-      qb.orderBy('role.name', sortOrder as 'ASC' | 'DESC');
-    } else {
-      qb.orderBy(SORTABLE_COLUMNS[sortBy], sortOrder as 'ASC' | 'DESC');
-    }
+    qb.orderBy(sortBy === 'role' ? 'role.name' : `user.${sortBy}`, sortOrder);
 
     const [data, total] = await qb.getManyAndCount();
 

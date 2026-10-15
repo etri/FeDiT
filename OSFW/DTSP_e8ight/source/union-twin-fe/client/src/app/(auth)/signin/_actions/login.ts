@@ -33,7 +33,9 @@ export async function loginAction(
   const json = await res.json().catch(() => null);
 
   if (!res.ok) {
-    const errorCode = json?.error?.errorCode ?? 'INVALID_CREDENTIALS';
+    const errorCode =
+      json?.error?.errorCode ??
+      (res.status === 429 ? 'TOO_MANY_ATTEMPTS' : 'UNKNOWN_ERROR');
     return { ok: false, errorCode };
   }
 

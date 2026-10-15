@@ -40,7 +40,7 @@ import {
   SidebarRail,
   useSidebar,
 } from '@e8ight/ui/components/ui/sidebar';
-import { cn } from '@e8ight/ui/utils/cn';
+import { cn } from 'cn';
 import {
   Boxes,
   ChevronRight,
@@ -411,14 +411,19 @@ function UserMenu({ user }: { user: UserProfile }) {
             )}
           >
             <div className="flex min-w-0 items-center gap-2">
-              <span className="truncate text-sm font-medium">{user.name}</span>
+              <span className="truncate text-sm font-medium" title={user.name}>
+                {user.name}
+              </span>
               {isAdmin ? (
                 <Badge variant="default" className="h-5 shrink-0 px-1.5">
                   관리자
                 </Badge>
               ) : null}
             </div>
-            <span className="text-sidebar-foreground/60 truncate text-xs">
+            <span
+              className="text-sidebar-foreground/60 truncate text-xs"
+              title={user.email}
+            >
               {user.email}
             </span>
           </div>

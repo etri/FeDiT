@@ -85,7 +85,7 @@ public class EntityControllerTest {
         String id = "urn:e8ight:SimulationVehicle:1010";
         String type = "SimulationVehicle";
         String q = "lane==1";
-        String context = "<http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld>;";
+        String context = "<http://context-server:3005/e8ight-context-v1.0.1.jsonld>;";
         String sort = "ASC";
         String sortproperty = "location.observedAt";
 
@@ -126,7 +126,7 @@ public class EntityControllerTest {
         String id = "urn:e8ight:SimulationVehicle:1010";
         String type = "SimulationVehicle";
         String q = "lane==1";
-        String context = "<http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld>;";
+        String context = "<http://context-server:3005/e8ight-context-v1.0.1.jsonld>;";
         String sort = "ASC";
         String sortproperty = "location.observedAt";
         String servicePath = "UOS";
@@ -169,7 +169,7 @@ public class EntityControllerTest {
     void getEntity() throws Exception {
         // given
         String id = "urn:e8ight:SimulationVehicle:1010";
-        String context = "<http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld>;";
+        String context = "<http://context-server:3005/e8ight-context-v1.0.1.jsonld>;";
 
         // when
         EntityDto entityDto = new EntityDto();

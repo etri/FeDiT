@@ -32,13 +32,13 @@ import {
 import { toast } from '@e8ight/ui/components/ui/sonner';
 import { Spinner } from '@e8ight/ui/components/ui/spinner';
 import { useDebounce, useInfiniteScroll } from '@e8ight/ui/hooks';
-import { cn } from '@e8ight/ui/utils/cn';
 import { ErrorBoundary, Suspense } from '@suspensive/react';
 import {
   useQueryClient,
   useSuspenseInfiniteQuery,
   useSuspenseQuery,
 } from '@tanstack/react-query';
+import { cn } from 'cn';
 import { overlay } from 'overlay-kit';
 
 import { attributeQueries } from '@/apis/attribute';
@@ -174,7 +174,9 @@ function AttributeCatalogList({
                   tabIndex={-1}
                   className="pointer-events-none shrink-0"
                 />
-                <span className="min-w-0 flex-1 truncate">{attribute.id}</span>
+                <span className="min-w-0 flex-1 truncate" title={attribute.id}>
+                  {attribute.id}
+                </span>
                 {attribute.attributeType && (
                   <Badge
                     variant="outline"
@@ -367,9 +369,19 @@ function DataModelAttributePopupContent({
               Close
             </Button>
           </DialogClose>
-          <Button onClick={handleAdd} disabled={!canAdd || isAdding}>
+          <Button
+            className="min-w-0 shrink"
+            onClick={handleAdd}
+            disabled={!canAdd || isAdding}
+          >
             {isAdding && <Spinner className="size-4" />}
-            {owner ? `Add to ${owner}` : 'Add Attributes'}
+            {owner ? (
+              <span className="truncate" title={owner}>
+                Add to {owner}
+              </span>
+            ) : (
+              'Add Attributes'
+            )}
           </Button>
         </div>
       </DialogFooter>

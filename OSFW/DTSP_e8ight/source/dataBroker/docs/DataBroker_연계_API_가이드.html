@@ -1,0 +1,1172 @@
+<title>DataService 연계 API 가이드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+
+<style>
+:root{
+  --ground:#F6F8F9;
+  --surface:#FFFFFF;
+  --surface-2:#EFF3F5;
+  --ink:#0F2129;
+  --ink-2:#3D5560;
+  --ink-3:#6B818B;
+  --line:#DBE3E7;
+  --line-strong:#C3D0D6;
+  --accent:#0E6C7C;
+  --accent-ink:#0B5763;
+  --accent-soft:#E0EEF0;
+  --warn:#8A5A0B;
+  --warn-soft:#FAF0DC;
+  --warn-line:#E8D5AC;
+  --danger:#9E362E;
+  --danger-soft:#FAEAE7;
+  --danger-line:#EDCFC9;
+  --code-bg:#0F2129;
+  --code-ink:#DCE7EB;
+  --code-str:#8FD3C6;
+  --code-key:#79C0D6;
+  --code-num:#E3B778;
+  --code-com:#6D8892;
+  --shadow:0 1px 2px rgba(15,33,41,.05), 0 8px 24px -18px rgba(15,33,41,.35);
+  --sans:"IBM Plex Sans KR", system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0B1418; --surface:#111D22; --surface-2:#16242A;
+    --ink:#E2ECEF; --ink-2:#AEC1C9; --ink-3:#84999F;
+    --line:#22343B; --line-strong:#31474F;
+    --accent:#54C3D0; --accent-ink:#7FD6E0; --accent-soft:#12333A;
+    --warn:#DFAE63; --warn-soft:#2B2418; --warn-line:#4A3C22;
+    --danger:#E29187; --danger-soft:#2E1C19; --danger-line:#4C2A25;
+    --code-bg:#081114; --code-ink:#D3E1E6;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -18px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0B1418; --surface:#111D22; --surface-2:#16242A;
+  --ink:#E2ECEF; --ink-2:#AEC1C9; --ink-3:#84999F;
+  --line:#22343B; --line-strong:#31474F;
+  --accent:#54C3D0; --accent-ink:#7FD6E0; --accent-soft:#12333A;
+  --warn:#DFAE63; --warn-soft:#2B2418; --warn-line:#4A3C22;
+  --danger:#E29187; --danger-soft:#2E1C19; --danger-line:#4C2A25;
+  --code-bg:#081114; --code-ink:#D3E1E6;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -18px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--ground);color:var(--ink);
+  font-family:var(--sans);font-size:15px;line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent-ink);text-decoration:none;border-bottom:1px solid color-mix(in srgb, var(--accent) 35%, transparent)}
+a:hover{border-bottom-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+
+.masthead{border-bottom:1px solid var(--line);background:var(--surface)}
+.masthead__inner{max-width:1200px;margin:0 auto;padding:34px 28px 26px}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:0 0 14px;
+}
+.eyebrow span{color:var(--accent)}
+h1{font-size:clamp(26px,3.4vw,38px);line-height:1.24;font-weight:700;letter-spacing:-.015em;margin:0;text-wrap:balance}
+.masthead__sub{margin:12px 0 0;max-width:64ch;color:var(--ink-2);font-size:15.5px}
+.metabar{display:flex;flex-wrap:wrap;gap:10px 28px;margin-top:22px;padding-top:20px;border-top:1px solid var(--line)}
+.meta{display:flex;flex-direction:column;gap:2px}
+.meta dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+.meta dd{margin:0;font-family:var(--mono);font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums}
+
+.config{
+  margin-top:22px;padding:16px;
+  background:var(--accent-soft);border:1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  border-radius:3px;display:grid;gap:12px;
+}
+.config__row{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;align-items:center}
+.config label{
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--accent-ink);font-weight:500;
+}
+.config input{
+  width:100%;min-width:0;font-family:var(--mono);font-size:13px;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line-strong);border-radius:2px;padding:7px 10px;
+}
+.config input::placeholder{color:var(--ink-3)}
+.config__help{margin:0;font-size:12.5px;color:var(--ink-2)}
+
+.shell{
+  max-width:1200px;margin:0 auto;padding:0 28px 96px;
+  display:grid;grid-template-columns:214px minmax(0,1fr);gap:52px;align-items:start;
+}
+.rail{position:sticky;top:0;padding:34px 0;max-height:100vh;overflow-y:auto}
+.rail summary{display:none}
+.rail__title{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:0 0 12px}
+.rail ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px}
+.rail a{
+  display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:baseline;
+  padding:5px 8px;border:0;border-radius:2px;font-size:13.5px;color:var(--ink-2);line-height:1.45;
+}
+.rail a .num{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.rail a:hover{background:var(--surface-2);color:var(--ink)}
+.rail a[aria-current="true"]{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.rail a[aria-current="true"] .num{color:var(--accent)}
+
+article{padding:34px 0 0;min-width:0}
+section{padding-top:14px;margin-bottom:56px;scroll-margin-top:20px}
+h2{
+  display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:baseline;
+  font-size:22px;font-weight:700;letter-spacing:-.01em;margin:0 0 8px;
+  padding-bottom:12px;border-bottom:2px solid var(--ink);text-wrap:balance;
+}
+h2 .num{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--accent)}
+h3{font-size:16.5px;font-weight:600;margin:34px 0 10px;letter-spacing:-.005em;text-wrap:balance}
+h4{font-size:14px;font-weight:600;margin:22px 0 8px;color:var(--ink-2)}
+p{margin:0 0 14px;max-width:70ch}
+ul,ol.plain{margin:0 0 16px;padding-left:20px;max-width:70ch}
+li{margin-bottom:5px}
+code{
+  font-family:var(--mono);font-size:.87em;background:var(--surface-2);
+  border:1px solid var(--line);padding:1px 5px;border-radius:2px;white-space:nowrap;
+}
+.lead{font-size:15.5px;color:var(--ink-2);max-width:70ch}
+
+.keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px;margin:22px 0 28px}
+.key{background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:16px 18px;box-shadow:var(--shadow)}
+.key__tag{
+  display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--accent-ink);background:var(--accent-soft);
+  padding:3px 7px;border-radius:2px;margin-bottom:10px;
+}
+.key p{margin:0;font-size:13.5px;line-height:1.62;color:var(--ink-2)}
+.key strong{color:var(--ink);font-weight:600}
+
+.tablewrap{overflow-x:auto;margin:0 0 20px;border:1px solid var(--line);border-radius:3px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:520px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.6}
+thead th{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:500;background:var(--surface-2);white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:color-mix(in srgb, var(--accent-soft) 45%, transparent)}
+td code{white-space:nowrap}
+.t-num{font-variant-numeric:tabular-nums}
+.t-mono{font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+.t-wrap{white-space:normal;word-break:break-all}
+.req{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent)}
+.opt{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+
+.chip{
+  display:inline-block;font-family:var(--mono);font-size:11.5px;font-weight:500;
+  background:var(--surface-2);border:1px solid var(--line-strong);
+  padding:2px 7px;border-radius:2px;white-space:nowrap;
+}
+.chip--id{background:var(--accent-soft);border-color:color-mix(in srgb, var(--accent) 28%, transparent);color:var(--accent-ink)}
+.m{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.08em;padding:2px 6px;border-radius:2px;white-space:nowrap}
+.m--get{background:var(--accent-soft);color:var(--accent-ink)}
+.m--post{background:var(--warn-soft);color:var(--warn)}
+
+.note{
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  background:var(--surface);padding:14px 18px;border-radius:0 3px 3px 0;margin:0 0 20px;
+}
+.note--warn{border-color:var(--warn-line);border-left-color:var(--warn);background:var(--warn-soft)}
+.note--danger{border-color:var(--danger-line);border-left-color:var(--danger);background:var(--danger-soft)}
+.note__label{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--accent-ink);margin:0 0 6px;font-weight:500;
+}
+.note--warn .note__label{color:var(--warn)}
+.note--danger .note__label{color:var(--danger)}
+.note p:last-child,.note ul:last-child,.note ol:last-child{margin-bottom:0}
+.note p,.note li{font-size:13.5px}
+
+figure.code{margin:0 0 20px;border-radius:3px;overflow:hidden;border:1px solid var(--line);background:var(--code-bg)}
+figure.code figcaption{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:6px 10px 6px 14px;background:color-mix(in srgb, var(--code-bg) 82%, #FFF);
+  border-bottom:1px solid color-mix(in srgb, var(--code-ink) 14%, transparent);
+}
+figure.code .lang{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:color-mix(in srgb, var(--code-ink) 62%, transparent);
+}
+button.copy{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
+  color:color-mix(in srgb, var(--code-ink) 72%, transparent);
+  background:transparent;border:1px solid color-mix(in srgb, var(--code-ink) 22%, transparent);
+  border-radius:2px;padding:3px 9px;cursor:pointer;transition:color .15s,border-color .15s;
+}
+button.copy:hover{color:var(--code-ink);border-color:color-mix(in srgb, var(--code-ink) 45%, transparent)}
+button.copy[data-done="1"]{color:var(--code-str);border-color:color-mix(in srgb, var(--code-str) 45%, transparent)}
+figure.code pre{margin:0;padding:14px 16px;overflow-x:auto}
+figure.code code{
+  display:block;background:none;border:0;padding:0;white-space:pre;
+  font-family:var(--mono);font-size:12.5px;line-height:1.72;color:var(--code-ink);
+}
+.hl-s{color:var(--code-str)}
+.hl-k{color:var(--code-key)}
+.hl-n{color:var(--code-num)}
+.hl-c{color:var(--code-com);font-style:italic}
+.hl-f{color:var(--code-num)}
+
+.eplist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:3px;overflow:hidden;background:var(--surface);margin-bottom:20px}
+.ep{display:grid;grid-template-columns:34px 52px 1fr;gap:12px;align-items:baseline;padding:10px 14px;border-bottom:1px solid var(--line)}
+.ep:last-child{border-bottom:0}
+.ep:hover{background:color-mix(in srgb, var(--accent-soft) 45%, transparent)}
+.ep__n{font-family:var(--mono);font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.ep__path{font-family:var(--mono);font-size:12.5px;overflow-x:auto;white-space:nowrap;padding-bottom:2px}
+.ep__desc{grid-column:3;font-size:12.5px;color:var(--ink-3);margin-top:-2px;white-space:normal}
+
+.check{list-style:none;padding:0;margin:0 0 20px;max-width:74ch;display:flex;flex-direction:column;gap:2px}
+.check li{
+  display:grid;grid-template-columns:20px 1fr;gap:12px;align-items:start;
+  padding:9px 12px;background:var(--surface);border:1px solid var(--line);border-radius:3px;
+  font-size:13.5px;margin:0;
+}
+.check li::before{
+  content:"";width:14px;height:14px;margin-top:4px;
+  border:1.5px solid var(--line-strong);border-radius:2px;background:var(--ground);
+}
+.check li:hover::before{border-color:var(--accent)}
+
+.flow{display:grid;gap:14px;margin:0 0 24px}
+.flowgroup{border:1px solid var(--line);border-radius:3px;background:var(--surface);overflow:hidden}
+.flowgroup__head{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);padding:8px 14px;background:var(--surface-2);border-bottom:1px solid var(--line)}
+.step{display:grid;grid-template-columns:24px 1fr;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.step:last-child{border-bottom:0}
+.step__n{font-family:var(--mono);font-size:11px;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);border-radius:2px;height:21px;display:grid;place-items:center}
+.step__ep{font-family:var(--mono);font-size:12px;overflow-x:auto;white-space:nowrap;margin-bottom:5px;padding-bottom:2px}
+.step__ret{font-size:12.5px;color:var(--ink-2);line-height:1.55}
+.step__ret b{color:var(--ink);font-weight:600}
+
+footer{
+  max-width:1200px;margin:0 auto;padding:26px 28px 40px;border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:11.5px;color:var(--ink-3);
+  display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between;
+}
+
+@media (max-width:900px){
+  .shell{grid-template-columns:minmax(0,1fr);gap:0;padding:0 20px 72px}
+  .masthead__inner{padding:28px 20px 22px}
+  .config__row{grid-template-columns:minmax(0,1fr);gap:6px}
+  .rail{position:static;max-height:none;padding:24px 0 0;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .rail summary{
+    display:block;cursor:pointer;font-family:var(--mono);font-size:11px;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);padding:6px 0 12px;
+  }
+  .rail__title{display:none}
+  footer{padding:24px 20px 36px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <p class="eyebrow">NDXPRO <span>·</span> DataService <span>·</span> /ndxpro/v1/service</p>
+    <h1>DataService 연계 API 가이드</h1>
+    <p class="masthead__sub">
+      Federated Digital Twin ID / Object ID 등의 설정값이 Entity(<code>entityId</code>) 및
+      Context(<code>Link</code>) 파라미터의 어디에 매핑되는지와, 실제 연계 테스트에 바로 쓸 수 있는
+      호출 예시 · JSON 샘플을 정리했습니다.
+    </p>
+
+    <dl class="metabar">
+      <div class="meta"><dt>Host</dt><dd>ndxpro-server:54002</dd></div>
+      <div class="meta"><dt>Base Path</dt><dd>/ndxpro/v1/service</dd></div>
+      <div class="meta"><dt>인증</dt><dd>Bearer Token (필수)</dd></div>
+      <div class="meta"><dt>제공 API</dt><dd>조회 6종 (GET 전용)</dd></div>
+      <div class="meta"><dt>대상 데이터모델</dt><dd>LatestPohangAtmMarModel</dd></div>
+    </dl>
+
+    <div class="config">
+      <div class="config__row">
+        <label for="hostinput">Host</label>
+        <input id="hostinput" type="text" spellcheck="false" placeholder="ndxpro-server:54002">
+      </div>
+      <div class="config__row">
+        <label for="tokeninput">Access Token</label>
+        <input id="tokeninput" type="text" spellcheck="false" placeholder="eyJhbGciOiJIUzUxMiJ9…">
+      </div>
+      <p class="config__help">두 값은 이 문서의 모든 예시 코드에 즉시 반영됩니다. 기본값은 현재 발급된 연계용 값이며, 브라우저에만 저장됩니다.</p>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <details class="rail" id="rail" open>
+    <summary>목차</summary>
+    <nav aria-label="문서 목차">
+      <p class="rail__title">Contents</p>
+      <ol>
+        <li><a href="#s0"><span class="num">00</span><span>설정값 매핑 요약</span></a></li>
+        <li><a href="#s1"><span class="num">01</span><span>공통 규격 · 인증</span></a></li>
+        <li><a href="#s2"><span class="num">02</span><span>API 목록 · 조회 흐름</span></a></li>
+        <li><a href="#s3"><span class="num">03</span><span>API 상세</span></a></li>
+        <li><a href="#s4"><span class="num">04</span><span>데이터 등록</span></a></li>
+        <li><a href="#s5"><span class="num">05</span><span>연계 테스트 체크리스트</span></a></li>
+        <li><a href="#s6"><span class="num">06</span><span>주요 오류</span></a></li>
+      </ol>
+    </nav>
+  </details>
+
+  <article>
+
+    <!-- ============ 0 ============ -->
+    <section id="s0">
+      <h2><span class="num">00</span><span>설정값 매핑 요약</span></h2>
+      <p class="lead">현재 적재되어 있는 문서 구조는 다음과 같습니다. 이 문서의 각 필드가 API 파라미터의 어디에 대응하는지가 이번 문의의 핵심입니다.</p>
+
+      <figure class="code" data-lang="json">
+        <figcaption><span class="lang">저장 문서 (MongoDB)</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>{
+  "_id": {
+    "id": "urn:ngsi-ld:LatestPohangAtmMarModel:KR-104111-0111",
+    "type": "LatestPohangAtmMarModel",
+    "servicePath": "UOS"
+  },
+  "@context": "http://context-server:53005/fdt-twin-context-main-v1.0.1.jsonld",
+  "attrNames": { "federatedDigitalObjectId": "e8ight:federatedDigitalObjectId", ... },
+  "attrs": [ { "name": "federatedDigitalObjectId", "type": "Property", "value": "KR-104111-0111", ... }, ... ]
+}</code></pre>
+      </figure>
+
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>설정값</th><th>저장 위치</th><th>API 상의 위치</th><th>예시 값</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Federated Digital Object ID</strong></td>
+              <td><code>attrs[name=federatedDigitalObjectId].value</code> 및 <code>_id.id</code>의 마지막 세그먼트</td>
+              <td><code>entityId</code>의 마지막 세그먼트, 또는 <code>q=federatedDigitalObjectId==…</code></td>
+              <td><span class="chip chip--id">KR-104111-0111</span></td>
+            </tr>
+            <tr>
+              <td><strong>Federated Digital Twin ID</strong></td>
+              <td><code>attrs[name=federatedDigitalTwinId].value</code></td>
+              <td><strong>q 파라미터로 조회</strong><br><code>q=federatedDigitalTwinId==KR-01-M70130-20260001</code></td>
+              <td><span class="chip chip--id">KR-01-M70130-20260001</span></td>
+            </tr>
+            <tr>
+              <td><strong>Entity ID</strong></td>
+              <td><code>_id.id</code></td>
+              <td>Path Variable <code>{entityId}</code>, 이력 조회의 <code>?entityId=</code></td>
+              <td><span class="t-mono">urn:ngsi-ld:LatestPohangAtmMarModel:KR-104111-0111</span></td>
+            </tr>
+            <tr>
+              <td><strong>Data Model Type</strong></td>
+              <td><code>_id.type</code></td>
+              <td><code>?type=</code> — <strong>목록 조회 시 필수</strong></td>
+              <td><span class="chip">LatestPohangAtmMarModel</span></td>
+            </tr>
+            <tr>
+              <td><strong>Context</strong></td>
+              <td><code>@context</code></td>
+              <td>HTTP Header <code>Link</code></td>
+              <td><span class="t-mono">http://context-server:53005/fdt-twin-context-main-v1.0.1.jsonld</span></td>
+            </tr>
+            <tr>
+              <td><strong>수집처 (Provider)</strong></td>
+              <td><code>_id.servicePath</code></td>
+              <td>요청 <code>q=_id.servicePath==UOS</code> / 응답 <code>provider</code> (항상 포함)</td>
+              <td><span class="chip">UOS</span></td>
+            </tr>
+            <tr>
+              <td><strong>관측시각 (observedAt)</strong></td>
+              <td><code>attrs[].md[name=observedAt].value</code></td>
+              <td><code>timeproperty={속성명}.observedAt</code>, <code>time</code>, <code>endTime</code></td>
+              <td><span class="chip">pm10.observedAt</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>반드시 지켜야 할 5가지</h3>
+      <div class="keys">
+        <div class="key">
+          <span class="key__tag">Entity ID 조립</span>
+          <p><strong>entityId = urn:ngsi-ld:{Type}:{FederatedDigitalObjectId}</strong> 규칙으로 생성됩니다. 콜론으로 구분된 4개 세그먼트 형식이어야 하며, 앞 3개는 데이터관리자에 등록된 데이터모델 ID와 일치해야 합니다.</p>
+        </div>
+        <div class="key">
+          <span class="key__tag">Twin ID는 속성</span>
+          <p><strong>Federated Digital Twin ID는 Entity ID에 포함되지 않습니다.</strong> 속성(Property)으로 저장되어 있으므로 <code>q</code> 파라미터로 조회해야 합니다.</p>
+        </div>
+        <div class="key">
+          <span class="key__tag">Link 완전일치</span>
+          <p><strong>Link 헤더의 URL은 저장된 <code>@context</code> 문자열과 100% 동일</strong>해야 합니다. 문자열 비교로 조회하므로 http/https, 포트, 버전이 한 글자라도 다르면 조회되지 않습니다.</p>
+        </div>
+        <div class="key">
+          <span class="key__tag">Bearer 토큰 필수</span>
+          <p>모든 요청에 <strong><code>Authorization: Bearer {토큰}</code></strong> 헤더가 필요합니다. 누락 시 <code>401 Unauthorized</code>가 반환됩니다.</p>
+        </div>
+        <div class="key">
+          <span class="key__tag">2단계 조회</span>
+          <p><strong>목록 조회는 값을 반환하지 않고 ID 목록만</strong> 반환합니다. 실제 측정값은 그 ID로 단건 조회를 한 번 더 호출해야 합니다. (2.2절)</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 1 ============ -->
+    <section id="s1">
+      <h2><span class="num">01</span><span>공통 규격 · 인증</span></h2>
+
+      <h3>1.1 Base URL</h3>
+      <figure class="code" data-lang="text">
+        <figcaption><span class="lang">endpoint</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>http://{DATABROKER_HOST}:{PORT}/ndxpro/v1/service</code></pre>
+      </figure>
+      <ul>
+        <li>제공 API는 <strong>조회(GET) 6종</strong>입니다. 등록 · 수정 · 삭제 API는 제공하지 않습니다. (4장 참조)</li>
+        <li>응답 Content-Type 은 <code>application/json</code> 입니다.</li>
+      </ul>
+      <div class="note">
+        <p class="note__label">연계 구조</p>
+        <p><code>외부 시스템</code> → <strong>DataService (<code>/ndxpro/v1/service</code>, 54002)</strong> → <code>DataBroker (/ndxpro/v1/broker)</code> → <code>MongoDB</code></p>
+        <p>DataService는 DataBroker의 수집처(provider) 포함 조회 API를 호출하여, 정제된 형태로 응답합니다. 따라서 <strong>모든 응답에 <code>provider</code>(수집처)가 포함</strong>됩니다.</p>
+      </div>
+
+      <h3>1.2 인증 (Authorization) — 모든 API 공통 필수</h3>
+      <figure class="code" data-lang="http">
+        <figcaption><span class="lang">HTTP Header</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>Authorization: Bearer {ACCESS_TOKEN}</code></pre>
+      </figure>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>항목</th><th>값</th></tr></thead>
+          <tbody>
+            <tr><td>토큰 종류</td><td class="t-mono">JWT (HS512)</td></tr>
+            <tr><td>계정</td><td class="t-mono">e8ightAdmin2 (권한 ADMIN)</td></tr>
+            <tr><td>발급일</td><td class="t-mono t-num">2026-08-11</td></tr>
+            <tr><td>만료일</td><td class="t-mono t-num">2076-07-29 (장기 발급)</td></tr>
+            <tr><td>전달 위치</td><td>HTTP Header <code>Authorization: Bearer {토큰}</code></td></tr>
+            <tr><td>토큰 파일</td><td class="t-mono">docs/access-token.txt</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>셸에서 사용하실 경우 아래처럼 환경변수로 두면 편리합니다.</p>
+      <figure class="code" data-lang="bash">
+        <figcaption><span class="lang">bash</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>export DS_URL="http://{DATABROKER_HOST}:{PORT}/ndxpro/v1/service"
+export DS_TOKEN="$(cat access-token.txt)"
+
+curl --location "$DS_URL/entities/iot/urn:ngsi-ld:LatestPohangAtmMarModel:KR-104111-0111" \
+--header "Link: &lt;http://context-server:53005/fdt-twin-context-main-v1.0.1.jsonld&gt;" \
+--header "Authorization: Bearer $DS_TOKEN"</code></pre>
+      </figure>
+
+      <div class="note note--warn">
+        <p class="note__label">보안 유의</p>
+        <p>이 토큰은 <strong>ADMIN 권한 자격증명</strong>이며 유효기간이 깁니다. 형상관리(Git) 커밋 및 외부 노출에 주의해 주세요. 저장소의 <code>docs/access-token.txt</code> 는 <code>.gitignore</code> 에 등록되어 있습니다.</p>
+      </div>
+
+      <h3>1.3 Link 헤더 — Context 지정 방법</h3>
+      <p>NGSI-LD 규격에 따라 <code>@context</code>는 HTTP <code>Link</code> 헤더로 전달합니다.</p>
+      <figure class="code" data-lang="http">
+        <figcaption><span class="lang">HTTP Header</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>Link: &lt;http://context-server:53005/fdt-twin-context-main-v1.0.1.jsonld&gt;; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"</code></pre>
+      </figure>
+      <ul>
+        <li><code>&lt; &gt;</code> 안의 URI만 추출하여 사용합니다. <code>rel</code>, <code>type</code> 파라미터는 생략 가능하지만 규격상 포함을 권장합니다.</li>
+        <li>추출된 URI는 문서의 <code>@context</code> 필드와 <strong>정확히 일치(equals)</strong> 해야 조회됩니다.</li>
+      </ul>
+      <div class="note note--danger">
+        <p class="note__label">주의 — 조회 실패의 가장 흔한 원인</p>
+        <p><strong>단건 조회</strong>(<code>/entities/iot/{entityId}</code>, <code>/entities/{entityId}</code>)는 내부적으로 <code>entityId</code> + <code>@context</code> 두 조건을 AND로 조회합니다. Link 헤더를 생략하면 조회되지 않으므로 <strong>필수</strong>입니다.</p>
+        <p><strong>목록 · 이력 조회</strong>에서는 선택이며, 생략 시 context 조건 없이 전체를 대상으로 조회합니다. 단, 응답 바디의 <code>context</code> 필드는 <code>null</code> 로 반환됩니다.</p>
+      </div>
+
+      <h3>1.4 Entity ID 명명 규칙</h3>
+      <figure class="code" data-lang="text">
+        <figcaption><span class="lang">structure</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>urn:{namespace}:{DataModelType}:{개별 식별자}
+
+urn : ngsi-ld : LatestPohangAtmMarModel : KR-104111-0111
+ │       │                │                      │
+ 고정   네임스페이스     데이터모델 Type     Federated Digital Object ID</code></pre>
+      </figure>
+      <ul>
+        <li>콜론(<code>:</code>)으로 구분된 <strong>4개 세그먼트</strong>여야 하며, 첫 세그먼트는 반드시 <code>urn</code> 입니다.</li>
+        <li>앞 3개 세그먼트(<code>urn:ngsi-ld:LatestPohangAtmMarModel:</code>)는 데이터관리자(DataManager)에 등록된 <strong>데이터모델 ID</strong>와 일치해야 합니다.</li>
+        <li>마지막 세그먼트에 <strong>Federated Digital Object ID</strong>를 그대로 사용합니다.</li>
+      </ul>
+
+      <h3>1.5 URL 인코딩</h3>
+      <p>Query String 에 들어가는 값은 아래 문자를 인코딩해 주세요.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>문자</th><th>인코딩</th><th>사용처</th></tr></thead>
+          <tbody>
+            <tr><td><code>:</code></td><td class="t-mono">%3A</td><td><code>entityId</code>, <code>time</code>, <code>endTime</code></td></tr>
+            <tr><td><code>=</code></td><td class="t-mono">%3D</td><td><code>q</code> 의 <code>==</code> → <code>%3D%3D</code></td></tr>
+            <tr><td><code>;</code></td><td class="t-mono">%3B</td><td><code>q</code> 의 AND 구분자</td></tr>
+            <tr><td><code>&gt;</code> / <code>&lt;</code></td><td class="t-mono">%3E / %3C</td><td><code>q</code> 의 <code>&gt;=</code>, <code>&lt;=</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>1.6 조회 파라미터에 쓰는 속성명</h3>
+      <p>저장 문서에는 <code>attrNames</code>(축약명 → Context URI 매핑)와 <code>attrs</code>(실제 값)가 나뉘어 저장되지만, <strong>API 요청 · 응답에서는 항상 축약명(short name)</strong>을 사용합니다.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>저장 형태</th><th>API에서 사용하는 값</th></tr></thead>
+          <tbody>
+            <tr><td><code>"attrNames": { "pm10": "e8ight:pm10" }</code></td><td><span class="chip chip--id">pm10</span></td></tr>
+            <tr><td><code>"attrs": [{ "name": "pm10", "value": 32.2 }]</code></td><td><code>q=pm10&gt;=30</code>, <code>sortproperty=pm10</code></td></tr>
+            <tr><td><code>"md": [{ "name": "observedAt", … }]</code></td><td><code>timeproperty=pm10.observedAt</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note note--warn">
+        <p class="note__label">자주 발생하는 실수</p>
+        <p><code>e8ight:</code> 접두어가 붙은 Context URI는 내부 저장용입니다. <strong>요청 파라미터에는 절대 넣지 않습니다.</strong></p>
+      </div>
+
+      <h3>1.7 q (필터) 문법</h3>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>연산자</th><th>의미</th><th>지원 Value Type</th></tr></thead>
+          <tbody>
+            <tr><td><code>==</code></td><td>일치</td><td>String, DateTime String, Boolean, Integer, Double</td></tr>
+            <tr><td><code>~=</code></td><td>부분일치 (정규식, 대소문자 무시)</td><td>String</td></tr>
+            <tr><td><code>&gt;=</code></td><td>이상</td><td>DateTime String, Integer, Double</td></tr>
+            <tr><td><code>&lt;=</code></td><td>이하</td><td>DateTime String, Integer, Double</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li>여러 조건은 세미콜론(<code>;</code>)으로 연결하며 <strong>AND</strong> 조건입니다. → <code>q=pm10&gt;=30;temp&lt;=30</code></li>
+        <li>key에는 속성명(<code>pm10</code>) 또는 <code>속성명.하위속성명</code>(<code>pm10.observedAt</code>)을 사용합니다.</li>
+      </ul>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>API</th><th>Entity ID 키</th><th>수집처 키</th></tr></thead>
+          <tbody>
+            <tr><td>목록 조회 (<code>/entities</code>, <code>/entities/iot</code>)</td><td class="t-mono">_id.id</td><td class="t-mono">_id.servicePath</td></tr>
+            <tr><td>이력 조회 (<code>/entities/iot/history</code>)</td><td class="opt">—</td><td class="t-mono">entity._id.servicePath</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>1.8 페이징 · 정렬</h3>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>파라미터</th><th>기본값</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td class="t-mono">offset</td><td class="t-mono t-num">0</td><td><strong>페이지 번호</strong>(0부터). 건수 오프셋이 아님에 유의</td></tr>
+            <tr><td class="t-mono">limit</td><td class="t-mono t-num">50</td><td>페이지당 건수</td></tr>
+            <tr><td class="t-mono">sort</td><td class="t-mono">DESC</td><td><code>ASC</code> / <code>DESC</code></td></tr>
+            <tr><td class="t-mono">sortproperty</td><td class="t-mono">목록 modDate<br>이력 entity.modDate</td><td>정렬 기준 속성명 (<code>pm10</code>, <code>pm10.observedAt</code> 등)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">
+        <p class="note__label">총 건수</p>
+        <p><code>totalPage</code>, <code>totalData</code> 는 <strong>응답 바디에 항상 포함</strong>됩니다. 별도 <code>options</code> 파라미터는 필요 없습니다.</p>
+      </div>
+
+      <h3>1.9 일시(DateTime) 포맷</h3>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>구분</th><th>포맷</th><th>예시</th></tr></thead>
+          <tbody>
+            <tr><td>조회 파라미터 <code>time</code>, <code>endTime</code></td><td class="t-mono">yyyy-MM-dd'T'HH:mm:ss.SSS <strong>(오프셋 없음, UTC)</strong></td><td class="t-mono">2026-08-28T00:00:00.000</td></tr>
+            <tr><td>응답의 <code>observedAt</code></td><td class="t-mono">UTC 오프셋 포함</td><td class="t-mono">2026-08-28T00:08:38.000+00:00</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note note--warn">
+        <p class="note__label">주의</p>
+        <p>요청 시 <code>+09:00</code>, <code>Z</code> 등의 오프셋을 붙이면 파싱 오류가 발생합니다. <strong>UTC 기준의 오프셋 없는 문자열</strong>로 보내주세요. 응답은 반대로 <code>+00:00</code>이 붙어 반환됩니다.</p>
+      </div>
+    </section>
+
+    <!-- ============ 2 ============ -->
+    <section id="s2">
+      <h2><span class="num">02</span><span>API 목록 · 조회 흐름</span></h2>
+
+      <h3>2.1 제공 API (조회 6종)</h3>
+      <div class="eplist">
+        <div class="ep"><span class="ep__n">01</span><span class="m m--get">GET</span><span class="ep__path">/ndxpro/v1/service/entities/iot</span><span class="ep__desc">IoT Entity 목록 조회 (ID 목록) · 필수 <code>type</code></span></div>
+        <div class="ep"><span class="ep__n">02</span><span class="m m--get">GET</span><span class="ep__path">/ndxpro/v1/service/entities/iot/{entityId}</span><span class="ep__desc">IoT Entity 단건 조회 (전체 속성값) · 필수 <code>entityId</code>, <code>Link</code></span></div>
+        <div class="ep"><span class="ep__n">03</span><span class="m m--get">GET</span><span class="ep__path">/ndxpro/v1/service/entities/iot/history</span><span class="ep__desc">이력 목록 조회 (이력 ID 목록) · 필수 <code>entityId</code>, <code>timeproperty</code></span></div>
+        <div class="ep"><span class="ep__n">04</span><span class="m m--get">GET</span><span class="ep__path">/ndxpro/v1/service/entities/iot/history/{historyId}</span><span class="ep__desc">이력 단건 조회 (전체 속성값) · 필수 <code>historyId</code>, <code>timeproperty</code></span></div>
+        <div class="ep"><span class="ep__n">05</span><span class="m m--get">GET</span><span class="ep__path">/ndxpro/v1/service/entities</span><span class="ep__desc">(일반) Entity 목록 조회 (ID 목록) · 필수 <code>type</code></span></div>
+        <div class="ep"><span class="ep__n">06</span><span class="m m--get">GET</span><span class="ep__path">/ndxpro/v1/service/entities/{entityId}</span><span class="ep__desc">(일반) Entity 단건 조회 (전체 속성값) · 필수 <code>entityId</code>, <code>Link</code></span></div>
+      </div>
+
+      <div class="note">
+        <p class="note__label">/entities 와 /entities/iot 의 차이</p>
+        <ul>
+          <li><code>/entities/iot/**</code> : IoT 수집 파이프라인으로 적재된 <strong>최신값 및 이력</strong> 대상</li>
+          <li><code>/entities/**</code> : 범용 Entity 컬렉션 대상 (IoT 데이터도 복제 저장되므로 대부분 동일한 결과, 단 <strong>이력 조회 불가</strong>)</li>
+          <li>예시로 주신 <code>LatestPohangAtmMarModel</code> 데이터는 <strong><code>/entities/iot</code> 계열 사용을 권장</strong>합니다.</li>
+        </ul>
+      </div>
+
+      <h3>2.2 조회 흐름 — 2단계 구조</h3>
+      <p>목록 조회 API는 <strong>속성값을 반환하지 않고 ID와 수집처만</strong> 반환합니다. 실제 측정값은 반환된 ID로 단건 조회를 한 번 더 호출해야 합니다.</p>
+
+      <div class="flow">
+        <div class="flowgroup">
+          <p class="flowgroup__head">최신값 조회</p>
+          <div class="step">
+            <span class="step__n">1</span>
+            <div>
+              <div class="step__ep">GET /entities/iot?type=LatestPohangAtmMarModel&amp;q=federatedDigitalTwinId==…</div>
+              <div class="step__ret">→ <code>{ entities: [ { provider, entityId } ] }</code> &nbsp;·&nbsp; <b>ID 목록만</b></div>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step__n">2</span>
+            <div>
+              <div class="step__ep">GET /entities/iot/{entityId} &nbsp;+ Link 헤더</div>
+              <div class="step__ret">→ <code>{ provider, entity: { pm10, pm25, … } }</code> &nbsp;·&nbsp; <b>전체 속성값</b></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flowgroup">
+          <p class="flowgroup__head">이력 조회</p>
+          <div class="step">
+            <span class="step__n">1</span>
+            <div>
+              <div class="step__ep">GET /entities/iot/history?entityId=…&amp;timeproperty=pm10.observedAt&amp;timerel=between&amp;time=…&amp;endTime=…</div>
+              <div class="step__ret">→ <code>{ entityHistoryList: [ { historyId, entityId, observedAt, provider } ] }</code> &nbsp;·&nbsp; <b>이력 ID 목록만</b></div>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step__n">2</span>
+            <div>
+              <div class="step__ep">GET /entities/iot/history/{historyId}?timeproperty=pm10.observedAt</div>
+              <div class="step__ret">→ <code>{ historyId, observedAt, provider, entity: { pm10, … } }</code> &nbsp;·&nbsp; <b>전체 속성값</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note">
+        <p class="note__label">지름길</p>
+        <p>이미 Entity ID를 알고 계신 경우(= Federated Digital Object ID로 조립 가능한 경우)에는 ①단계를 건너뛰고 곧바로 ②단계 단건 조회를 호출하시면 됩니다.</p>
+      </div>
+    </section>
+
+    <!-- ============ 3 ============ -->
+    <section id="s3">
+      <h2><span class="num">03</span><span>API 상세 및 호출 예시</span></h2>
+      <p class="lead">아래 모든 예시는 그대로 복사하여 실행 가능한 형태입니다. (Postman 의 <code>Raw text</code> 붙여넣기 지원)</p>
+
+      <h3>3.0 참고 — 검증된 호출 예시</h3>
+      <p>실제 동작이 확인된 이력 목록 조회 호출 형태입니다. 이 형식을 그대로 따라 주시면 됩니다.</p>
+      <figure class="code" data-lang="bash">
+        <figcaption><span class="lang">bash — 동작 확인됨</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>curl --location 'http://{DATABROKER_HOST}:{PORT}/ndxpro/v1/service/entities/iot/history?entityId=urn%3Angsi-ld%3ATodos3%3A1&amp;limit=16&amp;timeproperty=completed.observedAt&amp;sortproperty=completed.observedAt&amp;time=2026-06-25T14%3A24%3A00.0&amp;endTime=2026-08-25T14%3A24%3A00.0&amp;timerel=between&amp;offset=0' \
+--header 'Authorization: Bearer {ACCESS_TOKEN}'</code></pre>
+      </figure>
+
+      <h3>3.1 [01] IoT Entity 목록 조회 — Federated Digital Twin ID 기준</h3>
+      <p>Twin ID는 Entity ID에 포함되지 않으므로 <code>q</code> 파라미터로 조회합니다. <code>type</code> 은 <strong>필수</strong> 파라미터입니다.</p>
+
+      <h4>Twin ID로 해당 트윈에 속한 모든 Object 조회</h4>
+      <figure class="code" data-lang="bash">
+        <figcaption><span class="lang">bash</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>curl --location 'http://{DATABROKER_HOST}:{PORT}/ndxpro/v1/service/entities/iot?type=LatestPohangAtmMarModel&amp;q=federatedDigitalTwinId%3D%3DKR-01-M70130-20260001&amp;offset=0&amp;limit=50' \
+--header 'Link: &lt;http://context-server:53005/fdt-twin-context-main-v1.0.1.jsonld&gt;; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"' \
+--header 'Authorization: Bearer {ACCESS_TOKEN}'</code></pre>
+      </figure>
+
+      <h4>Object ID로 조회 (속성 기준)</h4>
+      <figure class="code" data-lang="bash">
+        <figcaption><span class="lang">bash</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>curl --location 'http://{DATABROKER_HOST}:{PORT}/ndxpro/v1/service/entities/iot?type=LatestPohangAtmMarModel&amp;q=federatedDigitalObjectId%3D%3DKR-104111-0111' \
+--header 'Authorization: Bearer {ACCESS_TOKEN}'</code></pre>
+      </figure>
+
+      <h4>Twin ID + Object ID 복합 조회 (<code>;</code> = AND → <code>%3B</code>)</h4>
+      <figure class="code" data-lang="bash">
+        <figcaption><span class="lang">bash</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>curl --location 'http://{DATABROKER_HOST}:{PORT}/ndxpro/v1/service/entities/iot?type=LatestPohangAtmMarModel&amp;q=federatedDigitalTwinId%3D%3DKR-01-M70130-20260001%3BfederatedDigitalObjectId%3D%3DKR-104111-0111' \
+--header 'Authorization: Bearer {ACCESS_TOKEN}'</code></pre>
+      </figure>
+
+      <h4>수집처 + 측정값 조건 조회 (<code>pm10&gt;=30</code> → <code>pm10%3E%3D30</code>)</h4>
+      <figure class="code" data-lang="bash">
+        <figcaption><span class="lang">bash</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>curl --location 'http://{DATABROKER_HOST}:{PORT}/ndxpro/v1/service/entities/iot?type=LatestPohangAtmMarModel&amp;q=_id.servicePath%3D%3DUOS%3Bpm10%3E%3D30&amp;sortproperty=pm10.observedAt&amp;sort=DESC&amp;offset=0&amp;limit=50' \
+--header 'Authorization: Bearer {ACCESS_TOKEN}'</code></pre>
+      </figure>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>파라미터</th><th>위치</th><th>필수</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td class="t-mono">type</td><td>Query</td><td><span class="req">필수</span></td><td>데이터모델 Type — <code>LatestPohangAtmMarModel</code></td></tr>
+            <tr><td class="t-mono">q</td><td>Query</td><td><span class="opt">선택</span></td><td>속성 필터 (1.7절 참조)</td></tr>
+            <tr><td class="t-mono">offset</td><td>Query</td><td><span class="opt">선택</span></td><td>페이지 번호 (기본 0)</td></tr>
+            <tr><td class="t-mono">limit</td><td>Query</td><td><span class="opt">선택</span></td><td>페이지 크기 (기본 50)</td></tr>
+            <tr><td class="t-mono">sort</td><td>Query</td><td><span class="opt">선택</span></td><td><code>ASC</code>/<code>DESC</code> (기본 DESC)</td></tr>
+            <tr><td class="t-mono">sortproperty</td><td>Query</td><td><span class="opt">선택</span></td><td>정렬 속성 (기본 <code>modDate</code>)</td></tr>
+            <tr><td class="t-mono">Link</td><td>Header</td><td><span class="opt">선택</span></td><td>Context URL. 지정 시 해당 context 데이터만 조회</td></tr>
+            <tr><td class="t-mono">Authorization</td><td>Header</td><td><span class="req">필수</span></td><td><code>Bearer {토큰}</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Response 200 — ID와 수집처만 반환됩니다</h4>
+      <figure class="code" data-lang="json">
+        <figcaption><span class="lang">json</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>{
+  "context": "http://context-server:53005/fdt-twin-context-main-v1.0.1.jsonld",
+  "model": "LatestPohangAtmMarModel",
+  "totalPage": 1,
+  "totalData": 1,
+  "entities": [
+    {
+      "provider": "UOS",
+      "entityId": "urn:ngsi-ld:LatestPohangAtmMarModel:KR-104111-0111"
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>응답 필드</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td class="t-mono">context</td><td>요청 시 보낸 <code>Link</code> 헤더에서 추출한 Context URL (미지정 시 <code>null</code>)</td></tr>
+            <tr><td class="t-mono">model</td><td>요청한 데이터모델 Type</td></tr>
+            <tr><td class="t-mono">totalPage</td><td>전체 페이지 수</td></tr>
+            <tr><td class="t-mono">totalData</td><td>전체 건수</td></tr>
+            <tr><td class="t-mono">entities[].provider</td><td>수집처 (<code>_id.servicePath</code>)</td></tr>
+            <tr><td class="t-mono">entities[].entityId</td><td>Entity ID (<code>_id.id</code>) → 3.2 단건 조회에 사용</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>3.2 [02] IoT Entity 단건 조회 — 전체 속성값</h3>
+      <p><strong>Federated Digital Object ID → Entity ID 변환</strong> 후 호출합니다. <code>Link</code> 헤더가 필수입니다.</p>
+
+      <h4>Request</h4>
+      <figure class="code" data-lang="bash">
+        <figcaption><span class="lang">bash</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>curl --location 'http://{DATABROKER_HOST}:{PORT}/ndxpro/v1/service/entities/iot/urn:ngsi-ld:LatestPohangAtmMarModel:KR-104111-0111' \
+--header 'Link: &lt;http://context-server:53005/fdt-twin-context-main-v1.0.1.jsonld&gt;; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"' \
+--header 'Authorization: Bearer {ACCESS_TOKEN}'</code></pre>
+      </figure>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>파라미터</th><th>위치</th><th>필수</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td class="t-mono">entityId</td><td>Path</td><td><span class="req">필수</span></td><td><code>urn:ngsi-ld:{Type}:{FederatedDigitalObjectId}</code></td></tr>
+            <tr><td class="t-mono">Link</td><td>Header</td><td><span class="req">필수</span></td><td>데이터의 <code>@context</code> URL (미지정 시 조회되지 않음)</td></tr>
+            <tr><td class="t-mono">Authorization</td><td>Header</td><td><span class="req">필수</span></td><td><code>Bearer {토큰}</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Response 200 — 수집처(provider)와 전체 속성값(entity)</h4>
+      <figure class="code" data-lang="json">
+        <figcaption><span class="lang">json</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>{
+  "provider": "UOS",
+  "entity": {
+    "id": "urn:ngsi-ld:LatestPohangAtmMarModel:KR-104111-0111",
+    "type": "LatestPohangAtmMarModel",
+    "@context": "http://context-server:53005/fdt-twin-context-main-v1.0.1.jsonld",
+    "federatedDigitalObjectId": {
+      "type": "Property",
+      "value": "KR-104111-0111",
+      "observedAt": "2026-08-28T00:10:01.528+00:00"
+    },
+    "federatedDigitalTwinId": {
+      "type": "Property",
+      "value": "KR-01-M70130-20260001",
+      "observedAt": "2026-08-28T00:10:01.528+00:00"
+    },
+    "atmLogDateTime": { "type": "Property", "value": "2026-08-28 09:08:38", "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "atmDevId":       { "type": "Property", "value": 24,      "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "pm10":           { "type": "Property", "value": 32.2,    "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "pm25":           { "type": "Property", "value": 18.4,    "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "so2":            { "type": "Property", "value": 0.042,   "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "no2":            { "type": "Property", "value": 0.005,   "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "o3":             { "type": "Property", "value": 0.032,   "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "co":             { "type": "Property", "value": 0.397,   "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "voc":            { "type": "Property", "value": 11.715,  "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "h2s":            { "type": "Property", "value": 0.003,   "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "nh3":            { "type": "Property", "value": 0.005,   "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "ou":             { "type": "Property", "value": 3,       "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "hcho":           { "type": "Property", "value": 0.001,   "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "co2":            { "type": "Property", "value": 0.0433,  "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "temp":           { "type": "Property", "value": 27.6,    "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "humi":           { "type": "Property", "value": 85.8,    "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "winsp":          { "type": "Property", "value": 0.853,   "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "windir":         { "type": "Property", "value": 8.8,     "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "atmBatt":        { "type": "Property", "value": 12.3,    "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "marLogDateTime": { "type": "Property", "value": "2026-08-28 09:04:27", "observedAt": "2026-08-28T00:04:27.000+00:00" },
+    "marDevId":       { "type": "Property", "value": 5,       "observedAt": "2026-08-28T00:04:27.000+00:00" },
+    "marTimestamp":   { "type": "Property", "value": "2026-08-28 09:04:27", "observedAt": "2026-08-28T00:04:27.000+00:00" },
+    "temper":         { "type": "Property", "value": 24.77,    "observedAt": "2026-08-28T00:04:27.000+00:00" },
+    "doxygen":        { "type": "Property", "value": 6.43,     "observedAt": "2026-08-28T00:04:27.000+00:00" },
+    "ec":             { "type": "Property", "value": 44767.71, "observedAt": "2026-08-28T00:04:27.000+00:00" },
+    "salinity":       { "type": "Property", "value": 30.28,    "observedAt": "2026-08-28T00:04:27.000+00:00" },
+    "tds":            { "type": "Property", "value": 30134.73, "observedAt": "2026-08-28T00:04:27.000+00:00" },
+    "ph":             { "type": "Property", "value": 8.17,     "observedAt": "2026-08-28T00:04:27.000+00:00" },
+    "orp":            { "type": "Property", "value": 137.94,   "observedAt": "2026-08-28T00:04:27.000+00:00" },
+    "marBatt":        { "type": "Property", "value": 91.0,     "observedAt": "2026-08-28T00:04:27.000+00:00" },
+    "flowVelocity":   { "type": "Property", "value": 12.55,    "observedAt": "2026-08-28T00:04:27.000+00:00" },
+    "gpsLati":        { "type": "Property", "value": 0.0,      "observedAt": "2026-08-28T00:04:27.000+00:00" },
+    "gpsLongi":       { "type": "Property", "value": 0.0,      "observedAt": "2026-08-28T00:04:27.000+00:00" },
+    "waterDepth":     { "type": "Property", "value": 0.0,      "observedAt": "2026-08-28T00:04:27.000+00:00" }
+  }
+}</code></pre>
+      </figure>
+
+      <div class="note">
+        <p class="note__label">저장 구조 → 응답 변환 규칙</p>
+        <ul>
+          <li><code>_id.id</code> → <code>entity.id</code>, <code>_id.type</code> → <code>entity.type</code>, <code>_id.servicePath</code> → <code>provider</code></li>
+          <li><code>attrs[]</code>의 각 원소 → <code>{name}: { "type": …, "value": … }</code></li>
+          <li><code>md[]</code>의 <code>observedAt</code> / <code>unitCode</code> → 속성 객체 내부로 평탄화(flatten)</li>
+          <li><code>attrNames</code>, <code>mdNames</code>, <code>creDate</code>, <code>modDate</code>는 응답에 포함되지 않습니다.</li>
+        </ul>
+      </div>
+
+      <h3>3.3 [03] IoT Entity 이력 목록 조회</h3>
+      <p>특정 Entity의 <strong>과거 수집 이력 ID 목록</strong>을 관측시각 기준으로 조회합니다.</p>
+      <figure class="code" data-lang="bash">
+        <figcaption><span class="lang">bash</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>curl --location 'http://{DATABROKER_HOST}:{PORT}/ndxpro/v1/service/entities/iot/history?entityId=urn%3Angsi-ld%3ALatestPohangAtmMarModel%3AKR-104111-0111&amp;timeproperty=pm10.observedAt&amp;timerel=between&amp;time=2026-08-28T00%3A00%3A00.000&amp;endTime=2026-08-28T23%3A59%3A59.999&amp;sort=DESC&amp;sortproperty=entity.modDate&amp;offset=0&amp;limit=100' \
+--header 'Link: &lt;http://context-server:53005/fdt-twin-context-main-v1.0.1.jsonld&gt;' \
+--header 'Authorization: Bearer {ACCESS_TOKEN}'</code></pre>
+      </figure>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>파라미터</th><th>위치</th><th>필수</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td class="t-mono">entityId</td><td>Query</td><td><span class="req">필수</span></td><td>조회 대상 Entity ID (URL 인코딩 권장)</td></tr>
+            <tr><td class="t-mono">timeproperty</td><td>Query</td><td><span class="req">필수</span></td><td><code>{속성명}.observedAt</code> 형식 (예: <code>pm10.observedAt</code>, <code>marTimestamp.observedAt</code>)</td></tr>
+            <tr><td class="t-mono">timerel</td><td>Query</td><td><span class="opt">선택</span></td><td><code>before</code> / <code>after</code> / <code>between</code></td></tr>
+            <tr><td class="t-mono">time</td><td>Query</td><td><span class="req">조건부</span></td><td><code>timerel</code> 지정 시 필수. <code>yyyy-MM-ddTHH:mm:ss.SSS</code> (UTC, 오프셋 없음)</td></tr>
+            <tr><td class="t-mono">endTime</td><td>Query</td><td><span class="req">조건부</span></td><td><code>timerel=between</code> 인 경우 필수</td></tr>
+            <tr><td class="t-mono">q</td><td>Query</td><td><span class="opt">선택</span></td><td>추가 속성 필터 (수집처는 <code>entity._id.servicePath</code>)</td></tr>
+            <tr><td class="t-mono">offset / limit / sort</td><td>Query</td><td><span class="opt">선택</span></td><td>1.8절 참조</td></tr>
+            <tr><td class="t-mono">sortproperty</td><td>Query</td><td><span class="opt">선택</span></td><td>기본값 <code>entity.modDate</code></td></tr>
+            <tr><td class="t-mono">Link</td><td>Header</td><td><span class="opt">선택</span></td><td>Context URL</td></tr>
+            <tr><td class="t-mono">Authorization</td><td>Header</td><td><span class="req">필수</span></td><td><code>Bearer {토큰}</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Response 200 — 이력 ID 목록만 반환됩니다</h4>
+      <figure class="code" data-lang="json">
+        <figcaption><span class="lang">json</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>{
+  "context": "http://context-server:53005/fdt-twin-context-main-v1.0.1.jsonld",
+  "timeproperty": "pm10.observedAt",
+  "totalPage": 3,
+  "totalData": 241,
+  "entityHistoryList": [
+    {
+      "historyId": "66cf1a2b7c1d4e5f6a7b8c9d",
+      "entityId": "urn:ngsi-ld:LatestPohangAtmMarModel:KR-104111-0111",
+      "observedAt": "2026-08-28T00:08:38.000+00:00",
+      "provider": "UOS"
+    },
+    {
+      "historyId": "66cf19f07c1d4e5f6a7b8c9c",
+      "entityId": "urn:ngsi-ld:LatestPohangAtmMarModel:KR-104111-0111",
+      "observedAt": "2026-08-28T00:07:38.000+00:00",
+      "provider": "UOS"
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <h3>3.4 [04] IoT Entity 이력 단건 조회 — 전체 속성값</h3>
+      <p>3.3에서 받은 <code>historyId</code> 로 해당 시점의 전체 속성값을 조회합니다. <strong>목록 조회와 동일한 <code>timeproperty</code></strong> 를 넣어야 합니다.</p>
+      <figure class="code" data-lang="bash">
+        <figcaption><span class="lang">bash</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>curl --location 'http://{DATABROKER_HOST}:{PORT}/ndxpro/v1/service/entities/iot/history/66cf1a2b7c1d4e5f6a7b8c9d?timeproperty=pm10.observedAt' \
+--header 'Authorization: Bearer {ACCESS_TOKEN}'</code></pre>
+      </figure>
+      <figure class="code" data-lang="json">
+        <figcaption><span class="lang">json — response</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>{
+  "historyId": "66cf1a2b7c1d4e5f6a7b8c9d",
+  "timeproperty": "pm10.observedAt",
+  "observedAt": "2026-08-28T00:08:38.000+00:00",
+  "provider": "UOS",
+  "entity": {
+    "id": "urn:ngsi-ld:LatestPohangAtmMarModel:KR-104111-0111",
+    "type": "LatestPohangAtmMarModel",
+    "@context": "http://context-server:53005/fdt-twin-context-main-v1.0.1.jsonld",
+    "federatedDigitalTwinId":   { "type": "Property", "value": "KR-01-M70130-20260001", "observedAt": "2026-08-28T00:10:01.528+00:00" },
+    "federatedDigitalObjectId": { "type": "Property", "value": "KR-104111-0111",        "observedAt": "2026-08-28T00:10:01.528+00:00" },
+    "pm10":   { "type": "Property", "value": 32.2,  "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "pm25":   { "type": "Property", "value": 18.4,  "observedAt": "2026-08-28T00:08:38.000+00:00" },
+    "temper": { "type": "Property", "value": 24.77, "observedAt": "2026-08-28T00:04:27.000+00:00" },
+    "...": "... (3.2와 동일한 전체 속성)"
+  }
+}</code></pre>
+      </figure>
+
+      <h3>3.5 [05][06] (일반) Entity 조회</h3>
+      <p>IoT 이력이 필요 없는 경우 사용합니다. 요청 · 응답 형식은 3.1 / 3.2와 동일하며 경로에서 <code>/iot</code> 만 빠집니다.</p>
+      <figure class="code" data-lang="bash">
+        <figcaption><span class="lang">bash — 목록 (ID 목록만 반환)</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>curl --location 'http://{DATABROKER_HOST}:{PORT}/ndxpro/v1/service/entities?type=LatestPohangAtmMarModel&amp;q=federatedDigitalTwinId%3D%3DKR-01-M70130-20260001' \
+--header 'Authorization: Bearer {ACCESS_TOKEN}'</code></pre>
+      </figure>
+      <figure class="code" data-lang="bash">
+        <figcaption><span class="lang">bash — 단건 (전체 속성값)</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>curl --location 'http://{DATABROKER_HOST}:{PORT}/ndxpro/v1/service/entities/urn:ngsi-ld:LatestPohangAtmMarModel:KR-104111-0111' \
+--header 'Link: &lt;http://context-server:53005/fdt-twin-context-main-v1.0.1.jsonld&gt;' \
+--header 'Authorization: Bearer {ACCESS_TOKEN}'</code></pre>
+      </figure>
+    </section>
+
+    <!-- ============ 4 ============ -->
+    <section id="s4">
+      <h2><span class="num">04</span><span>데이터 등록 (연계 송신)</span></h2>
+      <div class="note note--warn">
+        <p class="note__label">DataService는 조회 전용입니다</p>
+        <p><code>/ndxpro/v1/service</code> 는 <strong>등록 · 수정 · 삭제 API를 제공하지 않습니다.</strong> 데이터 송신이 필요한 경우 아래 두 경로 중 하나를 사용하며, 별도 협의가 필요합니다.</p>
+      </div>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>경로</th><th>방식</th><th>비고</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Kafka 토픽</strong> (<code>ngsild.topic</code>)</td><td>실시간 IoT 수집</td><td>현재 포항 대기·해양 데이터가 사용하는 경로. 수신 시 최신값 · 이력 · 범용 컬렉션에 동시 적재</td></tr>
+            <tr><td><strong>DataBroker 직접 호출</strong></td><td><code>POST /ndxpro/v1/broker/entities</code> (또는 <code>/entities/provider</code>)</td><td>내부망 전용. 외부 공개되지 않음</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>참고로 DataBroker 등록 시의 페이로드 형식은 다음과 같습니다. 조회 응답의 <code>entity</code> 객체와 동일한 NGSI-LD 형태이며, <strong><code>observedAt</code> 에 오프셋이 없는 점</strong>이 다릅니다.</p>
+      <figure class="code" data-lang="json">
+        <figcaption><span class="lang">json — DataBroker 등록 payload</span><button class="copy" type="button">복사</button></figcaption>
+        <pre><code>{
+  "id": "urn:ngsi-ld:LatestPohangAtmMarModel:KR-104111-0111",
+  "type": "LatestPohangAtmMarModel",
+  "federatedDigitalObjectId": { "type": "Property", "value": "KR-104111-0111",        "observedAt": "2026-08-28T00:10:01.528" },
+  "federatedDigitalTwinId":   { "type": "Property", "value": "KR-01-M70130-20260001", "observedAt": "2026-08-28T00:10:01.528" },
+  "atmLogDateTime": { "type": "Property", "value": "2026-08-28 09:08:38", "observedAt": "2026-08-28T00:08:38.000" },
+  "atmDevId":       { "type": "Property", "value": 24,     "observedAt": "2026-08-28T00:08:38.000" },
+  "pm10":           { "type": "Property", "value": 32.2,   "observedAt": "2026-08-28T00:08:38.000" },
+  "pm25":           { "type": "Property", "value": 18.4,   "observedAt": "2026-08-28T00:08:38.000" },
+  "so2":            { "type": "Property", "value": 0.042,  "observedAt": "2026-08-28T00:08:38.000" },
+  "no2":            { "type": "Property", "value": 0.005,  "observedAt": "2026-08-28T00:08:38.000" },
+  "o3":             { "type": "Property", "value": 0.032,  "observedAt": "2026-08-28T00:08:38.000" },
+  "co":             { "type": "Property", "value": 0.397,  "observedAt": "2026-08-28T00:08:38.000" },
+  "voc":            { "type": "Property", "value": 11.715, "observedAt": "2026-08-28T00:08:38.000" },
+  "h2s":            { "type": "Property", "value": 0.003,  "observedAt": "2026-08-28T00:08:38.000" },
+  "nh3":            { "type": "Property", "value": 0.005,  "observedAt": "2026-08-28T00:08:38.000" },
+  "ou":             { "type": "Property", "value": 3,      "observedAt": "2026-08-28T00:08:38.000" },
+  "hcho":           { "type": "Property", "value": 0.001,  "observedAt": "2026-08-28T00:08:38.000" },
+  "co2":            { "type": "Property", "value": 0.0433, "observedAt": "2026-08-28T00:08:38.000" },
+  "temp":           { "type": "Property", "value": 27.6,   "observedAt": "2026-08-28T00:08:38.000" },
+  "humi":           { "type": "Property", "value": 85.8,   "observedAt": "2026-08-28T00:08:38.000" },
+  "winsp":          { "type": "Property", "value": 0.853,  "observedAt": "2026-08-28T00:08:38.000" },
+  "windir":         { "type": "Property", "value": 8.8,    "observedAt": "2026-08-28T00:08:38.000" },
+  "atmBatt":        { "type": "Property", "value": 12.3,   "observedAt": "2026-08-28T00:08:38.000" },
+  "marLogDateTime": { "type": "Property", "value": "2026-08-28 09:04:27", "observedAt": "2026-08-28T00:04:27.000" },
+  "marDevId":       { "type": "Property", "value": 5,      "observedAt": "2026-08-28T00:04:27.000" },
+  "marTimestamp":   { "type": "Property", "value": "2026-08-28 09:04:27", "observedAt": "2026-08-28T00:04:27.000" },
+  "temper":         { "type": "Property", "value": 24.77,    "observedAt": "2026-08-28T00:04:27.000" },
+  "doxygen":        { "type": "Property", "value": 6.43,     "observedAt": "2026-08-28T00:04:27.000" },
+  "ec":             { "type": "Property", "value": 44767.71, "observedAt": "2026-08-28T00:04:27.000" },
+  "salinity":       { "type": "Property", "value": 30.28,    "observedAt": "2026-08-28T00:04:27.000" },
+  "tds":            { "type": "Property", "value": 30134.73, "observedAt": "2026-08-28T00:04:27.000" },
+  "ph":             { "type": "Property", "value": 8.17,     "observedAt": "2026-08-28T00:04:27.000" },
+  "orp":            { "type": "Property", "value": 137.94,   "observedAt": "2026-08-28T00:04:27.000" },
+  "marBatt":        { "type": "Property", "value": 91.0,     "observedAt": "2026-08-28T00:04:27.000" },
+  "flowVelocity":   { "type": "Property", "value": 12.55,    "observedAt": "2026-08-28T00:04:27.000" },
+  "gpsLati":        { "type": "Property", "value": 0.0,      "observedAt": "2026-08-28T00:04:27.000" },
+  "gpsLongi":       { "type": "Property", "value": 0.0,      "observedAt": "2026-08-28T00:04:27.000" },
+  "waterDepth":     { "type": "Property", "value": 0.0,      "observedAt": "2026-08-28T00:04:27.000" },
+  "@context": "http://context-server:53005/fdt-twin-context-main-v1.0.1.jsonld"
+}</code></pre>
+      </figure>
+
+      <div class="note">
+        <p class="note__label">등록 시 서버 처리 흐름</p>
+        <ol class="plain">
+          <li><code>@context</code> URL을 실제로 HTTP GET 하여 용어 사전을 조회합니다. → <strong>서버에서 접근 가능한 URL이어야 합니다.</strong></li>
+          <li>각 속성명(<code>pm10</code> 등)을 Context에서 찾아 <code>attrNames</code>(<code>e8ight:pm10</code>)로 변환하여 저장합니다.</li>
+          <li><code>urn:ngsi-ld:LatestPohangAtmMarModel:</code> 로 데이터관리자(DataManager)에 등록된 데이터모델을 조회해 Type · 필수 속성 · 속성 valueType 유효성을 검증합니다.</li>
+          <li>동일 <code>id</code> + <code>@context</code> 문서가 있으면 갱신, 없으면 신규 삽입합니다.</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============ 5 ============ -->
+    <section id="s5">
+      <h2><span class="num">05</span><span>연계 테스트 체크리스트</span></h2>
+      <ul class="check">
+        <li><span>모든 요청에 <code>Authorization: Bearer {토큰}</code> 헤더를 넣었는가?</span></li>
+        <li><span>Base URL이 <code>http://ndxpro-server:54002/ndxpro/v1/service</code> 인가?</span></li>
+        <li><span>목록 조회 시 <code>type</code> 파라미터를 넣었는가? (<strong>필수</strong>)</span></li>
+        <li><span>목록 조회 응답에 값이 없는 것은 정상이며, <strong>단건 조회를 한 번 더 호출</strong>해야 함을 반영했는가?</span></li>
+        <li><span><code>entityId</code>가 <code>urn:ngsi-ld:{Type}:{FederatedDigitalObjectId}</code> 4세그먼트 형식인가?</span></li>
+        <li><span>단건 조회에 <code>Link</code> 헤더를 포함했는가? (<strong>필수</strong>)</span></li>
+        <li><span><code>Link</code> 헤더의 URL이 데이터의 <code>@context</code> 문자열과 <strong>완전히 동일</strong>한가? (http/https, 포트, 파일명, 버전)</span></li>
+        <li><span>Query String의 <code>:</code> <code>;</code> <code>=</code> <code>&gt;</code> 를 URL 인코딩했는가?</span></li>
+        <li><span><code>q</code> · <code>sortproperty</code> · <code>timeproperty</code>에 <strong>축약 속성명</strong>(<code>pm10</code>)을 사용했는가? (<code>e8ight:pm10</code> 아님)</span></li>
+        <li><span><code>time</code>, <code>endTime</code> 값이 <strong>UTC 기준 · 오프셋 없는</strong> <code>yyyy-MM-ddTHH:mm:ss.SSS</code> 형식인가?</span></li>
+        <li><span><code>offset</code>이 건수가 아닌 <strong>페이지 번호</strong>임을 반영했는가?</span></li>
+        <li><span>이력 조회 시 <code>timeproperty</code>를 <code>{속성명}.observedAt</code>으로 지정했는가?</span></li>
+        <li><span>이력 단건 조회 시 목록 조회와 <strong>동일한 <code>timeproperty</code></strong> 를 넣었는가?</span></li>
+      </ul>
+    </section>
+
+    <!-- ============ 6 ============ -->
+    <section id="s6">
+      <h2><span class="num">06</span><span>주요 오류</span></h2>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>상황</th><th>응답</th><th>원인</th></tr></thead>
+          <tbody>
+            <tr><td>인증 실패</td><td class="t-mono">401 Unauthorized</td><td><code>Authorization</code> 헤더 누락, <code>Bearer </code> 접두어 누락, 토큰 만료 · 오타</td></tr>
+            <tr><td>권한 없음</td><td class="t-mono">403 Forbidden</td><td>해당 API 호출 권한이 없는 토큰</td></tr>
+            <tr><td>필수 파라미터 누락</td><td class="t-mono">400 Bad Request</td><td><code>type</code>, <code>entityId</code>, <code>timeproperty</code> 누락</td></tr>
+            <tr><td>해당 Entity 없음</td><td class="t-mono">RESOURCE_NOT_FOUND</td><td>entityId 오타, 또는 <strong>Link(@context) 불일치</strong></td></tr>
+            <tr><td><code>q</code> 형식 오류</td><td class="t-mono">BAD_REQUEST_DATA / INVALID_REQUEST</td><td>지원하지 않는 연산자, key 깊이 3단계 이상, 인코딩 누락</td></tr>
+            <tr><td><code>timerel</code> 오류</td><td class="t-mono">INVALID_REQUEST</td><td><code>before</code>/<code>after</code>/<code>between</code> 외의 값, <code>between</code>인데 <code>endTime</code> 누락</td></tr>
+            <tr><td>날짜 파싱 실패</td><td class="t-mono">INVALID_REQUEST</td><td>오프셋(<code>+09:00</code>, <code>Z</code>) 포함, 밀리초 누락</td></tr>
+            <tr><td>Context 조회 실패</td><td class="t-mono">INVALID_REQUEST</td><td><code>@context</code> URL 접근 불가</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </article>
+</div>
+
+<footer>
+  <span>NDXPRO DataService · ndxpro-server:54002/ndxpro/v1/service</span>
+  <span>작성 2026-08-28 · (주)이에이트</span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var HOST_PH = "{DATABROKER_HOST}:{PORT}";
+  var TOKEN_PH = "{ACCESS_TOKEN}";
+  var HOST_DEFAULT = "ndxpro-server:54002";
+  var TOKEN_DEFAULT = "<ACCESS_TOKEN>";
+  var HOST_KEY = "databroker-guide-host";
+  var TOKEN_KEY = "databroker-guide-token";
+
+  function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+  function hlJSON(t){
+    return esc(t).replace(
+      /("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false|null)\b|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
+      function(m, str, colon, lit, num){
+        if(str !== undefined) return colon ? '<span class="hl-k">'+str+'</span>'+colon : '<span class="hl-s">'+str+'</span>';
+        if(lit !== undefined) return '<span class="hl-n">'+lit+'</span>';
+        return '<span class="hl-n">'+num+'</span>';
+      }
+    );
+  }
+
+  function hlBash(t){
+    return esc(t).replace(
+      /(#[^\n]*)|('(?:[^'\\]|\\.)*')|("(?:[^"\\]|\\.)*")|(^|\s)(--?[A-Za-z][\w-]*)/g,
+      function(m, com, sq, dq, pre, flag){
+        if(com !== undefined) return '<span class="hl-c">'+com+'</span>';
+        if(sq !== undefined) return '<span class="hl-s">'+sq+'</span>';
+        if(dq !== undefined) return '<span class="hl-s">'+dq+'</span>';
+        return pre + '<span class="hl-f">'+flag+'</span>';
+      }
+    );
+  }
+
+  var blocks = [];
+  document.querySelectorAll("figure.code").forEach(function(fig){
+    var code = fig.querySelector("code");
+    if(!code) return;
+    blocks.push({ fig: fig, code: code, raw: code.textContent, lang: fig.getAttribute("data-lang") || "text" });
+  });
+
+  var hostInput = document.getElementById("hostinput");
+  var tokenInput = document.getElementById("tokeninput");
+
+  function render(){
+    var host = hostInput.value.trim() || HOST_DEFAULT;
+    var token = tokenInput.value.trim() || TOKEN_DEFAULT;
+    blocks.forEach(function(b){
+      var text = b.raw.split(HOST_PH).join(host).split(TOKEN_PH).join(token);
+      b.current = text;
+      if(b.lang === "json") b.code.innerHTML = hlJSON(text);
+      else if(b.lang === "bash") b.code.innerHTML = hlBash(text);
+      else b.code.textContent = text;
+    });
+  }
+
+  function load(key, fallback){
+    try { return window.localStorage.getItem(key) || fallback; } catch(e){ return fallback; }
+  }
+  function save(key, value){
+    try { window.localStorage.setItem(key, value); } catch(e){}
+  }
+
+  hostInput.value = load(HOST_KEY, HOST_DEFAULT);
+  tokenInput.value = load(TOKEN_KEY, TOKEN_DEFAULT);
+  render();
+
+  hostInput.addEventListener("input", function(){ render(); save(HOST_KEY, hostInput.value); });
+  tokenInput.addEventListener("input", function(){ render(); save(TOKEN_KEY, tokenInput.value); });
+
+  document.querySelectorAll("button.copy").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var fig = btn.closest("figure.code");
+      var block = blocks.find(function(b){ return b.fig === fig; });
+      if(!block) return;
+      var text = block.current || block.raw;
+      var done = function(){
+        btn.textContent = "복사됨";
+        btn.setAttribute("data-done","1");
+        window.setTimeout(function(){ btn.textContent = "복사"; btn.removeAttribute("data-done"); }, 1600);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, function(){});
+      } else {
+        var ta = document.createElement("textarea");
+        ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand("copy"); done(); } catch(e){}
+        document.body.removeChild(ta);
+      }
+    });
+  });
+
+  var links = Array.prototype.slice.call(document.querySelectorAll(".rail a"));
+  var map = {};
+  links.forEach(function(a){ map[a.getAttribute("href").slice(1)] = a; });
+  var observer = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        links.forEach(function(a){ a.removeAttribute("aria-current"); });
+        var a = map[entry.target.id];
+        if(a) a.setAttribute("aria-current","true");
+      }
+    });
+  }, { rootMargin: "-10% 0px -70% 0px", threshold: 0 });
+  document.querySelectorAll("section[id]").forEach(function(s){ observer.observe(s); });
+
+  if(window.matchMedia("(max-width: 900px)").matches){
+    var rail = document.getElementById("rail");
+    if(rail) rail.open = false;
+  }
+})();
+</script>

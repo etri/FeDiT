@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FEDIT 수집 설정 가이드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDEFF2;
+  --panel:#FFFFFF;
+  --ink:#111A24;
+  --ink-2:#46586A;
+  --ink-3:#7C8B99;
+  --rule:#D3DAE0;
+  --rule-2:#E3E8EC;
+  --blue:#2438C8;
+  --teal:#0D7A66;
+  --amber:#8F6300;
+  --code-bg:#0E1720;
+  --code-fg:#C6D4E1;
+  --code-com:#5D7286;
+  --code-str:#7FD1B9;
+  --code-key:#8FA8FF;
+  --code-num:#E0B341;
+
+  --display:'Space Grotesk','IBM Plex Sans KR',system-ui,sans-serif;
+  --body:'IBM Plex Sans KR','Space Grotesk',system-ui,sans-serif;
+  --mono:'IBM Plex Mono','SFMono-Regular',Menlo,monospace;
+
+  --shell:1180px;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:90px}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--body);
+  font-weight:400;
+  font-size:15px;
+  line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- top bar ---------- */
+.topbar{
+  border-bottom:1px solid var(--rule);
+  background:var(--paper);
+  position:sticky;top:0;z-index:40;
+  backdrop-filter:saturate(1.2) blur(6px);
+}
+.topbar__in{
+  max-width:var(--shell);margin:0 auto;padding:9px 28px;
+  display:flex;justify-content:space-between;align-items:center;gap:16px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-3);
+}
+.topbar__id{color:var(--ink-2)}
+.topbar__id b{color:var(--blue);font-weight:500}
+
+/* ---------- hero ---------- */
+.hero{max-width:var(--shell);margin:0 auto;padding:64px 28px 40px}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);
+  display:flex;align-items:center;gap:12px;margin-bottom:22px;
+}
+.eyebrow::after{content:"";flex:1;height:1px;background:var(--rule)}
+.hero h1{
+  font-family:var(--display);font-weight:700;
+  font-size:clamp(2.1rem,5.2vw,3.5rem);
+  line-height:1.06;letter-spacing:-.02em;margin:0 0 26px;max-width:16ch;
+}
+.thesis{
+  font-family:var(--mono);font-size:clamp(11px,1.35vw,14px);
+  color:var(--ink-2);display:flex;flex-wrap:wrap;align-items:center;
+  gap:6px 10px;padding:16px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+}
+.thesis .node{color:var(--ink);font-weight:500}
+.thesis .arrow{color:var(--blue)}
+.thesis .topic{color:var(--teal)}
+.hero__note{margin-top:18px;color:var(--ink-2);max-width:62ch}
+
+/* ---------- layout ---------- */
+.shell{max-width:var(--shell);margin:0 auto;padding:0 28px 90px;display:grid;grid-template-columns:212px 1fr;gap:56px;align-items:start}
+.rail{position:sticky;top:78px;padding-top:8px}
+.rail__title{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px}
+.rail a{
+  display:block;text-decoration:none;color:var(--ink-2);
+  padding:5px 0 5px 13px;border-left:2px solid var(--rule-2);
+  font-size:13.5px;transition:color .18s,border-color .18s;
+}
+.rail a:hover{color:var(--ink)}
+.rail a.top{font-family:var(--display);font-weight:600;color:var(--ink);margin-top:16px}
+.rail a.top:first-of-type{margin-top:0}
+.rail a.on{color:var(--blue);border-left-color:var(--blue)}
+.rail a .n{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-right:7px}
+.rail a.on .n{color:var(--blue)}
+
+.main{min-width:0}
+
+/* ---------- sections ---------- */
+.sec{padding-top:16px;margin-bottom:76px}
+.sec__head{display:flex;gap:20px;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:30px}
+.sec__num{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--blue);letter-spacing:.1em;padding-top:6px}
+.sec__head h2{font-family:var(--display);font-weight:700;font-size:clamp(1.5rem,3vw,2rem);letter-spacing:-.015em;margin:0}
+
+h3{font-family:var(--display);font-weight:600;font-size:1.12rem;letter-spacing:-.01em;margin:42px 0 12px}
+h4{font-family:var(--display);font-weight:600;font-size:.94rem;margin:26px 0 8px;color:var(--ink-2)}
+p{margin:0 0 14px;max-width:72ch}
+.lead{color:var(--ink-2)}
+
+/* ---------- cards ---------- */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:20px 0 8px}
+.card{background:var(--panel);border:1px solid var(--rule);padding:18px 18px 20px}
+.card__tag{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--blue);text-transform:uppercase}
+.card h4{margin:8px 0 6px;color:var(--ink);font-size:1rem}
+.card p{font-size:13.5px;color:var(--ink-2);margin:0}
+
+/* ---------- code ---------- */
+.codeblock{position:relative;margin:16px 0 22px}
+.codeblock__bar{
+  display:flex;justify-content:space-between;align-items:center;
+  background:#182430;border:1px solid #182430;border-bottom:none;
+  padding:7px 14px;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:#8098AD;
+}
+.copy{
+  background:none;border:1px solid #33465A;color:#9FB4C7;
+  font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  padding:3px 9px;cursor:pointer;transition:.18s;
+}
+.copy:hover{background:#24333F;color:#fff}
+.copy.done{border-color:var(--code-str);color:var(--code-str)}
+pre{
+  margin:0;background:var(--code-bg);color:var(--code-fg);
+  padding:16px 18px;overflow-x:auto;font-family:var(--mono);
+  font-size:12.6px;line-height:1.68;tab-size:4;
+}
+code{font-family:var(--mono)}
+.tok-com{color:var(--code-com);font-style:italic}
+.tok-str{color:var(--code-str)}
+.tok-key{color:var(--code-key)}
+.tok-num{color:var(--code-num)}
+.tok-ann{color:#D89BE0}
+
+p code,li code,td code,th code{
+  background:#DCE2E8;color:var(--ink);padding:1px 5px;font-size:12.4px;border-radius:2px;
+}
+
+.split{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.split .codeblock{margin:0}
+
+/* ---------- tables ---------- */
+.tablewrap{overflow-x:auto;margin:16px 0 22px;border:1px solid var(--rule);background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:520px}
+th{
+  text-align:left;font-family:var(--mono);font-weight:500;font-size:10.5px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);
+  padding:10px 14px;border-bottom:1px solid var(--rule);white-space:nowrap;
+}
+td{padding:10px 14px;border-bottom:1px solid var(--rule-2);vertical-align:top;color:var(--ink-2)}
+tbody tr:last-child td{border-bottom:none}
+td:first-child{color:var(--ink);font-weight:500}
+td.mono,th.mono{font-family:var(--mono);font-size:12.4px}
+
+/* ---------- callout ---------- */
+.note{border-left:3px solid var(--amber);background:#F6F2E8;padding:14px 18px;margin:20px 0;font-size:14px;color:var(--ink-2)}
+.note strong{color:var(--ink)}
+.note--blue{border-left-color:var(--blue);background:#E9ECFA}
+
+/* ---------- signature: URN encoder ---------- */
+.encoder{border:1px solid var(--ink);background:var(--panel);margin:22px 0 26px}
+.encoder__head{
+  display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:12px 18px;border-bottom:1px solid var(--rule);
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
+}
+.encoder__body{padding:20px 18px}
+.enc-input{
+  width:100%;font-family:var(--mono);font-size:13px;color:var(--ink);
+  background:#F4F6F8;border:1px solid var(--rule);padding:10px 12px;
+}
+.enc-input:focus{outline:2px solid var(--blue);outline-offset:1px;background:#fff}
+.seg{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:20px 0 4px}
+.seg__part{
+  font-family:var(--mono);font-size:13px;background:#E7EBEF;color:var(--ink);
+  padding:6px 10px;border:1px solid var(--rule);
+}
+.seg__sep{
+  font-family:var(--mono);font-size:13px;font-weight:600;
+  padding:6px 9px;border:1px solid transparent;
+  background:#F6EEDC;color:var(--amber);
+  transition:background .22s,color .22s,transform .22s;
+}
+.encoder.is-encoded .seg__sep{background:#E4E8FA;color:var(--blue);transform:translateY(-1px)}
+.enc-out{
+  margin-top:16px;padding-top:14px;border-top:1px dashed var(--rule);
+  display:grid;grid-template-columns:82px 1fr;gap:6px 14px;align-items:start;
+}
+.enc-out dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);padding-top:3px}
+.enc-out dd{margin:0;font-family:var(--mono);font-size:12.6px;color:var(--ink);word-break:break-all}
+.enc-out dd.url{color:var(--blue)}
+.toggle{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  background:var(--ink);color:#fff;border:none;padding:6px 13px;cursor:pointer;transition:.18s;
+}
+.toggle:hover{background:var(--blue)}
+
+/* ---------- pipeline schematic ---------- */
+.flow{border:1px solid var(--rule);background:var(--panel);padding:30px 24px;margin:22px 0 26px}
+.flow__row{display:grid;grid-template-columns:150px 1fr;gap:22px;align-items:center}
+.flow__stage{
+  font-family:var(--display);font-weight:600;font-size:15px;
+  border:1px solid var(--ink);padding:11px 14px;background:var(--panel);text-align:center;
+}
+.flow__stage.is-broker{background:var(--ink);color:#fff}
+.flow__side{font-size:13px;color:var(--ink-2)}
+.flow__side .topic{
+  font-family:var(--mono);font-size:12px;color:var(--teal);
+  border:1px dashed var(--teal);padding:2px 8px;display:inline-block;
+}
+.flow__link{
+  grid-column:1;justify-self:center;width:1px;height:30px;background:var(--rule);
+  position:relative;
+}
+.flow__link::after{
+  content:"";position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  border-left:4px solid transparent;border-right:4px solid transparent;border-top:6px solid var(--blue);
+}
+.flow__linkrow{display:grid;grid-template-columns:150px 1fr;gap:22px;align-items:center}
+.flow__linknote{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+
+/* ---------- checklist ---------- */
+.check{list-style:none;padding:0;margin:16px 0 22px;counter-reset:ck}
+.check li{
+  counter-increment:ck;position:relative;padding:9px 0 9px 40px;
+  border-bottom:1px solid var(--rule-2);color:var(--ink-2);font-size:14px;
+}
+.check li::before{
+  content:counter(ck,decimal-leading-zero);position:absolute;left:0;top:9px;
+  font-family:var(--mono);font-size:11px;color:var(--blue);letter-spacing:.06em;
+}
+.check li:last-child{border-bottom:none}
+
+ul.plain{padding-left:18px;margin:12px 0 20px;color:var(--ink-2)}
+ul.plain li{margin-bottom:6px}
+
+/* ---------- footer ---------- */
+.foot{border-top:1px solid var(--rule);max-width:var(--shell);margin:0 auto;padding:26px 28px 60px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-3);
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+a{color:var(--blue)}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+@media (max-width:980px){
+  .shell{grid-template-columns:1fr;gap:0}
+  .rail{position:static;display:flex;flex-wrap:wrap;gap:4px 10px;border-bottom:1px solid var(--rule);padding-bottom:16px;margin-bottom:34px}
+  .rail__title{width:100%;margin-bottom:8px}
+  .rail a{border-left:none;border-top:2px solid var(--rule-2);padding:6px 0 0}
+  .rail a.on{border-left:none;border-top-color:var(--blue)}
+  .cards{grid-template-columns:1fr}
+  .split{grid-template-columns:1fr}
+  .flow__row,.flow__linkrow{grid-template-columns:1fr}
+  .flow__link{justify-self:start;margin-left:20px}
+  .hero{padding-top:44px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *{transition:none!important;animation:none!important}
+}
+@media print{
+  .topbar,.rail,.copy,.toggle{display:none}
+  body{background:#fff;font-size:11px}
+  .shell{grid-template-columns:1fr;padding-bottom:0}
+  pre{background:#F4F6F8;color:#111A24;border:1px solid #D3DAE0}
+  .tok-com{color:#6B7C8C}.tok-str{color:#0D7A66}.tok-key{color:#2438C8}.tok-num{color:#8F6300}
+  .sec{page-break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar__in">
+    <span class="topbar__id">urn:fedit:doc:<b>ingest-flow-guide</b></span>
+    <span>v2 · 2026-08-25</span>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="eyebrow">FEDIT 레퍼런스</div>
+  <h1>수집 데이터 흐름</h1>
+  <div class="thesis">
+    <span class="node">원천 JSON</span><span class="arrow">──▶</span>
+    <span class="node">Agent</span><span class="arrow">──▶</span>
+    <span class="topic">fdt_topic</span><span class="arrow">──▶</span>
+    <span class="node">Translator</span><span class="arrow">──▶</span>
+    <span class="topic">ngsild_topic</span><span class="arrow">──▶</span>
+    <span class="node">Broker</span>
+  </div>
+  <p class="hero__note">원천 데이터가 Agent · Translator를 거쳐 NGSI-LD 엔티티로 브로커에 저장되기까지의 흐름과 설정 규칙을 정리한 참고 문서입니다. 코드 블록은 우측 상단 버튼으로 복사할 수 있습니다.</p>
+</header>
+
+<div class="shell">
+
+  <nav class="rail" id="rail">
+    <div class="rail__title">Index</div>
+    <a class="top" href="#s3"><span class="n">01</span>데이터 흐름</a>
+    <a href="#s3-1">단계별 역할</a>
+    <a href="#s3-2">토픽 연결 규칙</a>
+    <a href="#s3-3">작업 순서</a>
+  </nav>
+
+  <main class="main">
+
+  <!-- ================= 01 ================= -->
+
+  <!-- ================= 02 ================= -->
+
+  <!-- ================= 03 ================= -->
+  <section class="sec" id="s3">
+    <div class="sec__head">
+      <div class="sec__num">01</div>
+      <h2>데이터 흐름 경로</h2>
+    </div>
+
+    <div class="flow">
+      <div class="flow__row">
+        <div class="flow__stage">원천 시스템</div>
+        <div class="flow__side">REST API, Kafka 등 실제 데이터 소스</div>
+      </div>
+      <div class="flow__linkrow"><div class="flow__link"></div><div class="flow__linknote">HTTP 폴링 / Kafka 구독</div></div>
+
+      <div class="flow__row">
+        <div class="flow__stage">Agent</div>
+        <div class="flow__side">원본 JSON 그대로 발행 → <span class="topic">fdt_topic</span></div>
+      </div>
+      <div class="flow__linkrow"><div class="flow__link"></div><div class="flow__linknote">Agent Target Topic = Translator Source Topic</div></div>
+
+      <div class="flow__row">
+        <div class="flow__stage">Translator</div>
+        <div class="flow__side"><code>translate()</code>에서 NGSI-LD 엔티티로 변환 → <span class="topic">ngsild_topic</span></div>
+      </div>
+      <div class="flow__linkrow"><div class="flow__link"></div><div class="flow__linknote">브로커가 구독하는 고정 토픽</div></div>
+
+      <div class="flow__row">
+        <div class="flow__stage is-broker">NGSI-LD 브로커</div>
+        <div class="flow__side">엔티티 저장 및 조회 API 제공</div>
+      </div>
+    </div>
+
+    <h3 id="s3-1">단계별 역할</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>단계</th><th>하는 일</th><th>설정 포인트</th></tr></thead>
+        <tbody>
+          <tr><td>원천 시스템</td><td>실제 데이터 소스 (REST API, Kafka 등)</td><td>엔드포인트 / 인증</td></tr>
+          <tr><td>Agent</td><td>원천 데이터를 수집해 원본 JSON 그대로 발행</td><td>수집 방식(폴링 주기 등), <strong>Target Topic</strong></td></tr>
+          <tr><td>Agent Target Topic</td><td>원본 JSON 버퍼 (<code>fdt_topic</code>)</td><td>Translator의 Source Topic과 <strong>동일해야 함</strong></td></tr>
+          <tr><td>Translator</td><td>원본 JSON → NGSI-LD Entity 변환</td><td>Source Topic, 모델 type, 변환 코드</td></tr>
+          <tr><td>Translator Target Topic</td><td>NGSI-LD 엔티티 버퍼 (<code>ngsild_topic</code>)</td><td>기본값 고정, 브로커가 구독</td></tr>
+          <tr><td>NGSI-LD 브로커</td><td>엔티티 저장 및 조회 API 제공</td><td>조회 URL, Link 헤더</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="s3-2">토픽 연결 규칙</h3>
+    <div class="codeblock" data-lang="text">
+      <div class="codeblock__bar"><span>rule</span><button class="copy">복사</button></div>
+<pre><code>Agent.targetTopic      == Translator.sourceTopic   ← 반드시 일치 (직접 지정)
+Translator.targetTopic == ngsild_topic             ← 고정 기본값, 변경 금지</code></pre>
+    </div>
+    <div class="note">
+      이 두 줄이 어긋나면 <strong>코드가 정상이어도</strong> 브로커에 엔티티가 들어오지 않습니다.
+    </div>
+
+    <h3 id="s3-3">전체 작업 순서</h3>
+    <ol class="check">
+      <li>원천 데이터를 확인합니다 (샘플 JSON 확보).</li>
+      <li>데이터 모델링을 진행합니다 (type, attribute, valueType 정의).</li>
+      <li>Translator 코드를 작성합니다 (원천 + 모델 + 샘플 코드 → AI 요청).</li>
+      <li>Agent를 등록합니다 (Target Topic = <code>fdt_topic</code>).</li>
+      <li>Translator를 등록합니다 (Source Topic = <code>fdt_topic</code>, Target Topic = <code>ngsild_topic</code>).</li>
+      <li>브로커에서 엔티티를 조회해 검증합니다.</li>
+    </ol>
+  </section>
+
+  </main>
+</div>
+
+<footer class="foot">
+  <span>FEDIT · Ingest Flow Reference</span>
+  <span>fdt_topic → ngsild_topic</span>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ---------- syntax highlighting ---------- */
+  function esc(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  var PATTERNS = {
+    java: /(\/\/[^\n]*)|("(?:\\.|[^"\\])*")|(@\w+)|(\b(?:package|import|public|private|protected|static|final|class|extends|implements|new|return|void|int|boolean|double|long|null|true|false|for|if|else|this)\b)|(\b\d+(?:\.\d+)?\b)/g,
+    json: /("(?:\\.|[^"\\])*"\s*:)|("(?:\\.|[^"\\])*")|(\b(?:true|false|null)\b)|(\b-?\d+(?:\.\d+)?\b)/g,
+    bash: /(#[^\n]*)|('(?:[^'])*')|(\B-{1,2}[A-Za-z][\w-]*)|(\bcurl\b)/g,
+    http: /(\b(?:GET|POST|PATCH|DELETE|PUT)\b)|(\{[^}]*\})/g,
+    text: null
+  };
+
+  var CLASSES = {
+    java: ['tok-com','tok-str','tok-ann','tok-key','tok-num'],
+    json: ['tok-key','tok-str','tok-num','tok-num'],
+    bash: ['tok-com','tok-str','tok-key','tok-key'],
+    http: ['tok-key','tok-num']
+  };
+
+  function highlight(code, lang){
+    var re = PATTERNS[lang];
+    if(!re) return esc(code);
+    var cls = CLASSES[lang], out = '', last = 0, m;
+    re.lastIndex = 0;
+    while((m = re.exec(code)) !== null){
+      var gi = 0;
+      for(var i = 1; i < m.length; i++){ if(m[i] !== undefined){ gi = i - 1; break; } }
+      out += esc(code.slice(last, m.index));
+      out += '<span class="' + cls[gi] + '">' + esc(m[0]) + '</span>';
+      last = m.index + m[0].length;
+      if(m.index === re.lastIndex) re.lastIndex++;
+    }
+    return out + esc(code.slice(last));
+  }
+
+  document.querySelectorAll('.codeblock').forEach(function(block){
+    var lang = block.getAttribute('data-lang') || 'text';
+    var codeEl = block.querySelector('code');
+    if(!codeEl) return;
+    var raw = codeEl.textContent;
+    codeEl.setAttribute('data-raw', raw);
+    codeEl.innerHTML = highlight(raw, lang);
+
+    var btn = block.querySelector('.copy');
+    if(!btn) return;
+    btn.addEventListener('click', function(){
+      var text = codeEl.getAttribute('data-raw');
+      var done = function(){
+        btn.textContent = '복사됨';
+        btn.classList.add('done');
+        setTimeout(function(){ btn.textContent = '복사'; btn.classList.remove('done'); }, 1400);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, fallback);
+      } else { fallback(); }
+      function fallback(){
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } catch(e){ btn.textContent = '실패'; }
+        document.body.removeChild(ta);
+      }
+    });
+  });
+
+  /* ---------- URN encoder ---------- */
+  var encoder = document.getElementById('encoder');
+  var input   = document.getElementById('urnInput');
+  var segRow  = document.getElementById('segRow');
+  var encOut  = document.getElementById('encOut');
+  var urlOut  = document.getElementById('urlOut');
+  var toggle  = document.getElementById('encToggle');
+  var BASE    = 'http://ndxpro-server:54011/ndxpro/v1/broker/entities/';
+
+  function renderEncoder(){
+    var urn = input.value.trim();
+    var encoded = encodeURIComponent(urn);
+    var isEnc = encoder.classList.contains('is-encoded');
+
+    segRow.innerHTML = '';
+    urn.split(':').forEach(function(part, i){
+      if(i > 0){
+        var sep = document.createElement('span');
+        sep.className = 'seg__sep';
+        sep.textContent = isEnc ? '%3A' : ':';
+        segRow.appendChild(sep);
+      }
+      if(part === '') return;
+      var chip = document.createElement('span');
+      chip.className = 'seg__part';
+      chip.textContent = part;
+      segRow.appendChild(chip);
+    });
+
+    encOut.textContent = encoded || '—';
+    urlOut.textContent = BASE + encoded;
+  }
+
+  toggle.addEventListener('click', function(){
+    var on = encoder.classList.toggle('is-encoded');
+    toggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+    toggle.textContent = on ? '원본 보기' : '인코딩 적용';
+    renderEncoder();
+  });
+  input.addEventListener('input', renderEncoder);
+  renderEncoder();
+
+  /* ---------- scrollspy ---------- */
+  var links = Array.prototype.slice.call(document.querySelectorAll('#rail a'));
+  var targets = links.map(function(a){ return document.querySelector(a.getAttribute('href')); }).filter(Boolean);
+
+  if('IntersectionObserver' in window && targets.length){
+    var visible = new Set();
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting) visible.add(e.target.id); else visible.delete(e.target.id);
+      });
+      var current = null;
+      for(var i = 0; i < targets.length; i++){
+        if(visible.has(targets[i].id)){ current = targets[i].id; break; }
+      }
+      links.forEach(function(a){
+        a.classList.toggle('on', current !== null && a.getAttribute('href') === '#' + current);
+      });
+    }, { rootMargin: '-88px 0px -70% 0px', threshold: 0 });
+    targets.forEach(function(t){ io.observe(t); });
+  }
+})();
+</script>
+</body>
+</html>

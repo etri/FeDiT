@@ -31,11 +31,16 @@ function InfoContainer({ title, path, children }: IProps) {
                     {idx > 0 && <BreadcrumbSeparator className="mx-1" />}
                     <BreadcrumbItem className="text-muted-foreground min-w-0 text-xs">
                       {idx === path.length - 1 ? (
-                        <BreadcrumbPage className="max-w-[260px] truncate text-xs font-medium">
+                        <BreadcrumbPage
+                          title={item}
+                          className="max-w-[260px] truncate text-xs font-medium"
+                        >
                           {item}
                         </BreadcrumbPage>
                       ) : (
-                        <span className="max-w-[220px] truncate">{item}</span>
+                        <span title={item} className="max-w-[220px] truncate">
+                          {item}
+                        </span>
                       )}
                     </BreadcrumbItem>
                   </span>

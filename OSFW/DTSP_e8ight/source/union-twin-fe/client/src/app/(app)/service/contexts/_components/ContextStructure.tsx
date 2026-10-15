@@ -51,8 +51,13 @@ interface ContextStructureInnerProps {
   onCancelCreate?: () => void;
 }
 
+const NGSI_LD_MODEL_IRI_PREFIX = 'https://uri.etsi.org/ngsi-ld/';
+
 const makeVersionedContextId = (contextId: string) => {
-  const index = contextId.indexOf('.jsonld');
+  const index = contextId.lastIndexOf('.jsonld');
+  if (index === -1) {
+    return contextId;
+  }
   return `${contextId.slice(0, index)}-v1.0.1${contextId.slice(index)}`;
 };
 
@@ -233,13 +238,14 @@ function ContextStructureInner({
       return;
     }
 
-    const keys = detailData['@context']
-      ? Object.keys(detailData['@context'])
-      : [];
+    const contextEntries = detailData['@context'] ?? {};
     const models: ContextModel[] = [];
     const attrs: ContextModel[] = [];
-    keys.forEach((item) => {
-      const type = item.match(/^[A-Z]/) ? 'Model' : 'attr';
+    Object.entries(contextEntries).forEach(([item, iri]) => {
+      const type =
+        /^[A-Z]/.test(item) && iri.startsWith(NGSI_LD_MODEL_IRI_PREFIX)
+          ? 'Model'
+          : 'attr';
       (type === 'Model' ? models : attrs).push({ type, title: item });
     });
     const merged = [...models, ...attrs];

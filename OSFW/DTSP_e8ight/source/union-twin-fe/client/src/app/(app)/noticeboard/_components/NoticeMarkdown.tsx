@@ -1,7 +1,7 @@
 'use client';
 
-import { cn } from '@e8ight/ui/utils/cn';
 import MDEditor from '@uiw/react-md-editor';
+import { cn } from 'cn';
 
 import { NoticeImage } from '@/app/(app)/noticeboard/_components/NoticeImage';
 

@@ -5,10 +5,12 @@ import { useDeferredValue, useEffect, useState } from 'react';
 import { useDebounce } from '@e8ight/ui/hooks';
 import { ErrorBoundary, Suspense } from '@suspensive/react';
 import { useSuspenseQuery } from '@tanstack/react-query';
+import { BookOpen } from 'lucide-react';
 import { useParams } from 'next/navigation';
 
 import { agentQueries } from '@/apis/agent';
 import { AgentAsideSkeleton } from '@/app/(app)/service/agents/_components/agentAside/AgentAsideSkeleton';
+import { openIngestFlowGuideDialog } from '@/app/(app)/service/agents/_components/IngestFlowGuideDialog';
 import {
   AGENT_STATUS_CLASS,
   AGENT_STATUS_VARIANT,
@@ -82,6 +84,12 @@ function AgentAsideList({
         label: 'New',
         title: 'Add new agent',
         onClick: onOpenNewAgent,
+      }}
+      secondaryNewAction={{
+        title: '수집 설정 가이드',
+        ariaLabel: '수집 설정 가이드 열기',
+        icon: <BookOpen className="size-4" />,
+        onClick: () => void openIngestFlowGuideDialog(),
       }}
       pagination={pagination}
     />

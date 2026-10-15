@@ -30,40 +30,13 @@ jib {
         image = "openjdk:11.0.14-jre-slim"
     }
     to {
-        image = "172.16.28.217:12000/ndxpro-eurekaserver"
+        image = "${(project.findProperty('dockerRegistry') ?: System.getenv('DOCKER_REGISTRY'))}/ndxpro-eurekaserver"
         tags = ["v1.1"]
         auth {
-            username = "admin"
-            password = "ndxpro123!"
+            username = (project.findProperty('nexusUsername') ?: System.getenv('NEXUS_USERNAME') ?: '')
+            password = (project.findProperty('nexusPassword') ?: System.getenv('NEXUS_PASSWORD') ?: '')
         }
     }
     setAllowInsecureRegistries(true)
 }
 
-//
-//jib {
-//    from {
-//        image = "openjdk:11.0.14-jre-slim"
-//        platforms {
-//            platform {
-//                architecture = 'arm64'
-//                os = 'linux'
-//            }
-//        }
-//
-//    }
-//    to {
-//        image = "172.16.28.217:12000/ndxpro-eurekaserver"
-//        tags = ["latest"]
-//        auth {
-//            username = "admin"
-//            password = "ndxpro123!"
-//        }
-//        container {
-//            mainClass ="kr.co.e8ight.eurekaserver.EurekaServerApplication"
-//            ports = ["8761"]
-//            environment = ["TZ" : "Asia/Seoul"]
-//        }
-//    }
-//    setAllowInsecureRegistries(true)
-//}

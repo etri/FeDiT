@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from 'react';
 
 import { Badge } from '@e8ight/ui/components/ui/badge';
 import { Button } from '@e8ight/ui/components/ui/button';
-import { cn } from '@e8ight/ui/utils/cn';
+import { cn } from 'cn';
 import { Box, ChevronDown, ChevronRight, Plus, X } from 'lucide-react';
 
 import { useDataModelStore } from '@/app/(app)/service/models/_stores/useDataModelStore';
@@ -170,7 +170,9 @@ function DataModelTreeItem<
         type="button"
         onClick={() => setModelSelected([owner, id])}
       >
-        <span className="truncate">{id}</span>
+        <span className="truncate" title={id}>
+          {id}
+        </span>
         {renderLabel}
       </Button>
       {renderTreeItemController}

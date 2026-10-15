@@ -9,6 +9,8 @@ import {
 import { useStore } from 'zustand';
 import { createStore } from 'zustand/vanilla';
 
+import { DEFAULT_TOPIC } from '@/app/(app)/service/agents/_constants/kafkaAgent';
+
 import type { AgentModel, Agent } from '@/apis/agent';
 
 type AgentMode = 'read' | 'add' | 'edit';
@@ -33,14 +35,14 @@ function createInitialAgent(): Agent {
     name: '',
     models: [],
     status: '',
-    topic: '',
+    topic: DEFAULT_TOPIC,
     type: 'HTTP',
     method: 'GET',
     lastSinkSignalReceivedAt: '',
     lastSourceSignalReceivedAt: '',
     pid: 0,
     confFileContents: '',
-    isCustomTopic: false,
+    isCustomTopic: true,
     isCustomConfig: false,
     urlAddress: '',
     connTerm: '',

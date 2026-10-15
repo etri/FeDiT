@@ -1,2 +1,6 @@
 export * from '@/apis/statistics/statistics.queries';
-export type { StatisticsRecord } from '@/apis/statistics/statisticsApi';
+export type {
+  FailEntityRecord,
+  StatisticsRecord,
+  StatisticsTotals,
+} from '@/apis/statistics/statisticsApi';

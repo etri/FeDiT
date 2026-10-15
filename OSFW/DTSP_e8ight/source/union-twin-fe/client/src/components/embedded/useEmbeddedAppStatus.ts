@@ -2,14 +2,17 @@
 
 import { useEffect, useState } from 'react';
 
-type EmbeddedAppStatus = 'loading' | 'loaded' | 'error';
+type EmbeddedAppStatus =
+  'checking' | 'loading' | 'loaded' | 'error' | 'blocked';
 
 export function useEmbeddedAppStatus(src: string, onLoad?: () => void) {
-  const [status, setStatus] = useState<EmbeddedAppStatus>('loading');
+  const [status, setStatus] = useState<EmbeddedAppStatus>('checking');
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    setStatus('loading');
+    const isMixedContent =
+      window.location.protocol === 'https:' && src.startsWith('http://');
+    setStatus(isMixedContent ? 'blocked' : 'loading');
   }, [src, reloadKey]);
 
   function handleLoad() {

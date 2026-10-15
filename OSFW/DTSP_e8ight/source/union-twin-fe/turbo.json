@@ -18,7 +18,13 @@
     "VIEWER_URL",
     "DTMETA_API_URL",
     "DTMETA_TOKEN",
-    "FDT_SYNC_API_URL"
+    "FDT_SYNC_API_URL",
+    "TRACKING_URL",
+    "NDXPRO_BROKER_URL",
+    "NDXPRO_MANAGER_URL",
+    "FDT_SYNC_KAFKA_URL",
+    "VIEWER_APP_URL",
+    "PREDICTOR_URL"
   ],
   "concurrency": "12",
   "tasks": {

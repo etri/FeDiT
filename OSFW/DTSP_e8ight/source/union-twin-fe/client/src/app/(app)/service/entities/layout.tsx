@@ -9,10 +9,12 @@ import {
 } from '@e8ight/ui/components/ui/resizable';
 import { useIsMobile } from '@e8ight/ui/hooks';
 import { ErrorBoundary, Suspense } from '@suspensive/react';
+import { BookOpen, FileCode } from 'lucide-react';
 
 import TreeHistoryProvider from '@/app/(app)/service/entities/_components/contexts/TreeHistoryProvider';
 import EntityContextList from '@/app/(app)/service/entities/_components/EntityContextList';
 import { EntityContextListSkeleton } from '@/app/(app)/service/entities/_components/EntityContextListSkeleton';
+import { openEntityQueryGuideDialog } from '@/app/(app)/service/entities/_components/EntityQueryGuideDialog';
 import EntitySelector from '@/app/(app)/service/entities/_components/EntitySelector';
 import { EntityTableSkeleton } from '@/app/(app)/service/entities/_components/EntityTableSkeleton';
 import { useEntityParams } from '@/app/(app)/service/entities/_hooks/useEntityParams';
@@ -20,6 +22,7 @@ import useEntityTabList from '@/app/(app)/service/entities/_hooks/useEntityTabLi
 import { useSyncEntityRouteWithTabs } from '@/app/(app)/service/entities/_hooks/useSyncEntityRouteWithTabs';
 import { NavigationAside } from '@/components/common/NavigationAside';
 import { QueryErrorFallback } from '@/components/common/QueryErrorFallback';
+import { useRuntimeConfig } from '@/components/providers/RuntimeConfigProvider';
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
@@ -34,6 +37,7 @@ function EntityWorkspace({ children }: { children: ReactNode }) {
   useSyncEntityRouteWithTabs();
   const { contextId, modelId } = useEntityParams();
   const isMobile = useIsMobile();
+  const { brokerUrl } = useRuntimeConfig();
 
   const shouldShowBrowserPanel = Boolean(contextId) && Boolean(modelId);
 
@@ -43,12 +47,32 @@ function EntityWorkspace({ children }: { children: ReactNode }) {
       className="bg-background h-full min-h-0 w-full"
     >
       <ResizablePanel
-        defaultSize={18}
-        minSize={12}
-        maxSize={28}
+        defaultSize={isMobile ? 34 : 18}
+        minSize={isMobile ? 25 : 12}
+        maxSize={isMobile ? 50 : 28}
         className="flex min-h-0 min-w-0 flex-col"
       >
-        <NavigationAside title="Entity">
+        <NavigationAside
+          title="Entity"
+          newAction={{
+            label: '조회 가이드',
+            title: '엔티티 조회 가이드',
+            ariaLabel: '엔티티 조회 가이드 열기',
+            icon: <BookOpen className="size-4" />,
+            onClick: () => void openEntityQueryGuideDialog(),
+          }}
+          secondaryNewAction={{
+            title: '엔티티 조회 API 문서 (Swagger, 새 탭)',
+            ariaLabel: '엔티티 조회 API 문서 새 탭에서 열기',
+            icon: <FileCode className="size-4" />,
+            onClick: () =>
+              window.open(
+                `${brokerUrl}/swagger-ui/index.html`,
+                '_blank',
+                'noopener,noreferrer',
+              ),
+          }}
+        >
           <ErrorBoundary fallback={<QueryErrorFallback />}>
             <Suspense clientOnly fallback={<EntityContextListSkeleton />}>
               <EntityContextList />
@@ -60,9 +84,9 @@ function EntityWorkspace({ children }: { children: ReactNode }) {
       {shouldShowBrowserPanel ? (
         <>
           <ResizablePanel
-            defaultSize={30}
-            minSize={18}
-            maxSize={40}
+            defaultSize={isMobile ? 33 : 30}
+            minSize={isMobile ? 25 : 18}
+            maxSize={isMobile ? 45 : 40}
             className="flex min-h-0 min-w-0 flex-col"
           >
             <ErrorBoundary
@@ -78,7 +102,7 @@ function EntityWorkspace({ children }: { children: ReactNode }) {
           </ResizablePanel>
           <ResizableHandle />
           <ResizablePanel
-            defaultSize={52}
+            defaultSize={isMobile ? 33 : 52}
             minSize={25}
             className="flex min-h-0 min-w-0 flex-col overflow-hidden"
           >
@@ -87,7 +111,7 @@ function EntityWorkspace({ children }: { children: ReactNode }) {
         </>
       ) : (
         <ResizablePanel
-          defaultSize={82}
+          defaultSize={isMobile ? 66 : 82}
           minSize={30}
           className="flex min-h-0 min-w-0 flex-col"
         >

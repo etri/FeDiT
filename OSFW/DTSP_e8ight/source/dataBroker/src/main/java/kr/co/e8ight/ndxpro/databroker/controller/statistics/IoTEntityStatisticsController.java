@@ -2,7 +2,9 @@ package kr.co.e8ight.ndxpro.databroker.controller.statistics;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.co.e8ight.ndxpro.common.exception.error.ErrorCode;
+import kr.co.e8ight.ndxpro.databroker.config.SwaggerConfiguration;
 import kr.co.e8ight.ndxpro.databroker.dto.iot.IoTEntityValidationDto;
 import kr.co.e8ight.ndxpro.databroker.dto.statistics.IoTEntityDataModelListDto;
 import kr.co.e8ight.ndxpro.databroker.dto.statistics.IoTEntityStatisticsListDto;
@@ -31,6 +33,7 @@ import java.util.stream.Stream;
 @Slf4j
 @RestController
 @RequestMapping("/ndxpro/v1/broker")
+@Tag(name = SwaggerConfiguration.TAG_TIME_SERIES_STATISTICS)
 public class IoTEntityStatisticsController {
 
     private final IoTEntityStatisticsService ioTEntityStatisticsService;
@@ -40,7 +43,7 @@ public class IoTEntityStatisticsController {
     }
 
     @Operation(
-            summary = "IoT Entity 수집 성공/실패 건 갯수 조회",
+            summary = "시계열 Entity 수집 성공/실패 건 갯수 조회",
             method = "GET"
     )
     @GetMapping("/statistics")
@@ -55,7 +58,7 @@ public class IoTEntityStatisticsController {
     }
 
     @Operation(
-            summary = "일자 별 IoT Entity 수집 성공/실패 건 갯수 조회",
+            summary = "일자 별 시계열 Entity 수집 성공/실패 건 갯수 조회",
             method = "GET"
     )
     @GetMapping("/statistics/date-range")
@@ -76,7 +79,7 @@ public class IoTEntityStatisticsController {
     }
 
     @Operation(
-            summary = "모델 별 IoT Entity 수집 성공/실패 건 갯수 조회",
+            summary = "모델 별 시계열 Entity 수집 성공/실패 건 갯수 조회",
             method = "GET"
     )
     @GetMapping("/statistics/model-type")
@@ -89,7 +92,7 @@ public class IoTEntityStatisticsController {
     }
 
     @Operation(
-            summary = "수집처 별 IoT Entity 수집 성공/실패 건 갯수 조회",
+            summary = "수집처 별 시계열 Entity 수집 성공/실패 건 갯수 조회",
             method = "GET"
     )
     @GetMapping("/statistics/provider")
@@ -132,7 +135,7 @@ public class IoTEntityStatisticsController {
     }
 
     @Operation(
-            summary = "IoT Entity 수집 실패 건 상세 조회",
+            summary = "시계열 Entity 수집 실패 건 상세 조회",
             method = "GET"
     )
     @GetMapping("/statistics/fail")

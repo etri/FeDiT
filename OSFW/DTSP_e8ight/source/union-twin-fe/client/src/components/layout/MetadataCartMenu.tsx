@@ -97,10 +97,16 @@ export function MetadataCartMenu() {
                 className="hover:bg-accent gap-2 px-2 py-1.5"
               >
                 <ItemContent className="min-w-0 gap-0">
-                  <ItemTitle className="font-normal">
+                  <ItemTitle
+                    className="font-normal"
+                    title={cartItemLabel(item)}
+                  >
                     {cartItemLabel(item)}
                   </ItemTitle>
-                  <ItemDescription className="line-clamp-1 text-xs">
+                  <ItemDescription
+                    className="line-clamp-1 text-xs"
+                    title={item.dtoid}
+                  >
                     {item.dtoid}
                   </ItemDescription>
                 </ItemContent>

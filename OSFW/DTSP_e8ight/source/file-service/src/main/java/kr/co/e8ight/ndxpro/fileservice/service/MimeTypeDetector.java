@@ -15,7 +15,10 @@ public class MimeTypeDetector {
     private final Tika tika = new Tika();
 
     public String getMimeTypeFromLogicalFile(LogicalFile logicalFile) {
-        File file = new File(logicalFile.getPhysicalFile().getPath());
+        return getMimeTypeFromFile(new File(logicalFile.getPhysicalFile().getPath()));
+    }
+
+    public String getMimeTypeFromFile(File file) {
         try {
             return tika.detect(file);
         } catch (IOException e) {

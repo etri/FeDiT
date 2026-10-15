@@ -5,9 +5,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@e8ight/ui/components/ui/collapsible';
-import { cn } from '@e8ight/ui/utils/cn';
 import { ErrorBoundary, Suspense } from '@suspensive/react';
 import { useSuspenseQuery } from '@tanstack/react-query';
+import { cn } from 'cn';
 import { ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 

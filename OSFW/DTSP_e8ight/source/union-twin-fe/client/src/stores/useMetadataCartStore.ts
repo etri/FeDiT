@@ -18,7 +18,6 @@ interface MetadataCartState {
   items: MetadataCartItem[];
   addItem: (item: MetadataCartItem) => boolean;
   removeItem: (dtoid: string) => void;
-  clear: () => void;
 }
 
 export const useMetadataCartStore = create<MetadataCartState>()(
@@ -34,7 +33,6 @@ export const useMetadataCartStore = create<MetadataCartState>()(
         set((state) => ({
           items: state.items.filter((i) => i.dtoid !== dtoid),
         })),
-      clear: () => set({ items: [] }),
     }),
     {
       name: 'metadata-cart-storage',

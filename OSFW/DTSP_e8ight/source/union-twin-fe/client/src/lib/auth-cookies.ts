@@ -73,7 +73,7 @@ export async function requireSessionCookies(): Promise<NextResponse | null> {
   const refreshToken = await getRefreshToken();
   if (refreshToken) {
     const refreshed = await refreshAccessToken(refreshToken);
-    if (refreshed) {
+    if (refreshed.status === 'ok') {
       await setAuthCookies(refreshed.accessToken, refreshed.refreshToken);
       return null;
     }
@@ -85,7 +85,14 @@ export async function requireSessionCookies(): Promise<NextResponse | null> {
   );
 }
 
-export async function refreshAccessToken(refreshToken: string) {
+export type RefreshResult =
+  | { status: 'ok'; accessToken: string; refreshToken: string }
+  | { status: 'invalid' }
+  | { status: 'unavailable' };
+
+export async function refreshAccessToken(
+  refreshToken: string,
+): Promise<RefreshResult> {
   try {
     const res = await fetch(bffUrl('/auth/refresh'), {
       method: 'POST',
@@ -94,16 +101,18 @@ export async function refreshAccessToken(refreshToken: string) {
       cache: 'no-store',
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
-    if (!res.ok) return null;
+    if (res.status === 401 || res.status === 403) return { status: 'invalid' };
+    if (!res.ok) return { status: 'unavailable' };
     const json = (await res.json()) as {
       accessToken: string;
       refreshToken: string;
     };
     return {
+      status: 'ok',
       accessToken: json.accessToken,
       refreshToken: json.refreshToken,
     };
   } catch {
-    return null;
+    return { status: 'unavailable' };
   }
 }

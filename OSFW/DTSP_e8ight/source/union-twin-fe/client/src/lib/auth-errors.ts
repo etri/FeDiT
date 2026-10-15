@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const ERROR_MESSAGES: Record<string, string> = {
   INVALID_CREDENTIALS: '이메일 또는 비밀번호가 올바르지 않습니다',
+  TOO_MANY_ATTEMPTS: '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요',
   ACCOUNT_DEACTIVATED: '비활성화된 계정입니다. 관리자에게 문의하세요',
   ACCOUNT_DELETION_REQUESTED:
     '탈퇴 요청이 접수된 계정입니다. 철회를 원하시면 관리자에게 문의하세요',

@@ -292,7 +292,7 @@ cd fdt-service-backend && ./scripts/health.sh
 | 확인 항목 | 방법 | 기대 결과 |
 |---|---|---|
 | 웹 화면 | 브라우저에서 `${PUBLIC_URL}` | `/signin` 으로 리다이렉트 |
-| 로그인 | `${PUBLIC_URL}/signin` 에서 `admin@e8ight.co.kr` / `ndxpro123!` | 대시보드 진입 (진입 후 비밀번호 즉시 변경) |
+| 로그인 | `${PUBLIC_URL}/signin` 에서 `admin@e8ight.co.kr` / `.env` 의 `ADMIN_SEED_PASSWORD` 값 | 대시보드 진입 |
 | @context | `curl ${FDT_CONTEXT}` | JSON-LD 본문 |
 | 게이트웨이 | `curl http://${HOST}:54002/actuator/health` | `{"status":"UP"}` |
 | Kafka | `http://${HOST}:59500` | 브로커 1대, 토픽 목록 |
@@ -464,7 +464,7 @@ cd ../fdt-service-frontend
 ### 7.3 설치 서버에서 (묶음을 새로 받았을 때)
 
 ```bash
-cp .env.example .env && vi .env       # 주소만 고친다
+cp .env.example .env && vi .env       # 주소와 비밀번호·토큰(CHANGE_ME)을 채운다
 cd fdt-service-backend
 ./install/0-init.sh                   # 묶음 적재 + 이미지 점검
 ./install/1-db.sh

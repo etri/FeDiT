@@ -1,0 +1,7 @@
+spring:
+  cache:
+    # 캐시된 DataModel/Attribute/Context 가 수정 후에도 남지 않도록 저장 시점 기준 5분 후 만료
+    redis:
+      time-to-live: 5m
+    caffeine:
+      spec: expireAfterWrite=5m

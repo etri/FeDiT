@@ -1,5 +1,5 @@
 import { TableHead } from '@e8ight/ui/components/ui/table';
-import { cn } from '@e8ight/ui/utils/cn';
+import { cn } from 'cn';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 
 import type { SortOrder } from '@/app/(app)/admin/_types/admin';

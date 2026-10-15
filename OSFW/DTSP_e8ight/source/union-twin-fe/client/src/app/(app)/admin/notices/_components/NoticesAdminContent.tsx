@@ -33,8 +33,8 @@ import {
   TableRow,
 } from '@e8ight/ui/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@e8ight/ui/components/ui/tabs';
-import { cn } from '@e8ight/ui/utils/cn';
 import { useSuspenseQuery } from '@tanstack/react-query';
+import { cn } from 'cn';
 import {
   Eye,
   Globe,
@@ -128,11 +128,12 @@ export default function NoticesAdminContent() {
   const meta = noticesData.meta;
   const emptyMsg = EMPTY_MESSAGES[status];
 
-  const filtered = keyword
-    ? notices.filter((n) =>
-        n.title.toLowerCase().includes(keyword.toLowerCase()),
-      )
-    : notices;
+  const rows = notices
+    .map((notice, index) => ({ notice, index }))
+    .filter(
+      ({ notice }) =>
+        !keyword || notice.title.toLowerCase().includes(keyword.toLowerCase()),
+    );
 
   return (
     <Tabs
@@ -209,7 +210,7 @@ export default function NoticesAdminContent() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-60">
                     <Empty>
@@ -226,7 +227,7 @@ export default function NoticesAdminContent() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((notice, index) => (
+                rows.map(({ notice, index }) => (
                   <TableRow
                     key={notice.id}
                     className={cn(

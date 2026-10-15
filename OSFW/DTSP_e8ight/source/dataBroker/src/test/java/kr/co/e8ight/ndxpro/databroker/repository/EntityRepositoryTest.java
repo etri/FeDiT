@@ -43,7 +43,7 @@ public class EntityRepositoryTest {
     public void findByIdIdAndContext() {
         // given
         String entityId = "urn:e8ight:SimulationVehicle:1010";
-        String context = "http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld";
+        String context = "http://context-server:3005/e8ight-context-v1.0.1.jsonld";
 
         // when
         Entity entity = entityRepository.findByIdIdAndContext(entityId, context);

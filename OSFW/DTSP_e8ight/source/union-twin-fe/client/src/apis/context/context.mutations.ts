@@ -5,10 +5,14 @@ import {
   addContextModelData,
   createContextData,
   deleteContextData,
+  getContextData,
+  getContextDetailData,
   subContextModelData,
 } from '@/apis/context/contextApi';
 
 import type { CreateContextPayload } from '@/types/context';
+
+const NGSI_LD_MODEL_IRI_PREFIX = 'https://uri.etsi.org/ngsi-ld/';
 
 export function useCreateContextWithModelsMutation() {
   const queryClient = useQueryClient();
@@ -59,6 +63,42 @@ export function useDeleteContextMutation() {
 
   return useMutation({
     mutationFn: (contextUrl: string) => deleteContextData(contextUrl),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: contextKeys.all });
+    },
+  });
+}
+
+export function useReenrollContextModelMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (modelType: string) => {
+      const contextUrls = await getContextData();
+      const details = await Promise.all(
+        contextUrls.map(async (contextUrl) => ({
+          contextUrl,
+          detail: await getContextDetailData(contextUrl),
+        })),
+      );
+
+      const enrolledUrls = details
+        .filter(({ detail }) =>
+          Boolean(
+            detail['@context']?.[modelType]?.startsWith(
+              NGSI_LD_MODEL_IRI_PREFIX,
+            ),
+          ),
+        )
+        .map(({ contextUrl }) => contextUrl);
+
+      for (const contextUrl of enrolledUrls) {
+        await subContextModelData(contextUrl, [modelType]);
+        await addContextModelData(contextUrl, [modelType]);
+      }
+
+      return enrolledUrls;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: contextKeys.all });
     },

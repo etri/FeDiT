@@ -76,15 +76,40 @@ public class IoTEntityService {
         try {
             entityValidationService.validateEntity(entity);
         } catch (Exception e) {
-            log.error("Entity Validation Fail. entityId = {}", entity.getId().getId());
+            // DataBrokerException 이 아닌 예외(NPE 등)는 메시지가 비어 있을 수 있으므로 예외 타입과 발생 위치를 남긴다.
+            String cause = e instanceof DataBrokerException && !ValidateUtil.isEmptyData(e.getMessage())
+                    ? e.getMessage()
+                    : EntityValidationService.describeException(e);
+            if (e instanceof DataBrokerException)
+                log.error("Entity Validation Fail. entityId = {}, cause = {}", entity.getId().getId(), cause);
+            else
+                log.error("Entity Validation Fail. entityId = {}, cause = {}", entity.getId().getId(), cause, e);
             ioTEntityValidationRepository.insert(IoTEntityValidation.builder()
                             .result("fail")
-                            .cause(e.getMessage())
+                            .cause(cause)
                             .entity(entity)
                             .build());
             return null;
         }
 
+        return saveValidatedIoTEntity(entity);
+    }
+
+    // REST 로 시계열 Entity 저장. Kafka 수집과 달리 유효성 검사 실패 시 예외를 그대로 던짐
+    public IoTEntity createIoTEntity(IoTEntity entity) {
+        entityValidationService.validateEntity(entity);
+
+        boolean hasObservedAt = entity.getAttrs().stream()
+                .filter(attribute -> !ValidateUtil.isEmptyData(attribute.getMd()))
+                .flatMap(attribute -> attribute.getMd().stream())
+                .anyMatch(childAttribute -> OBSERVED_AT.getCode().equals(childAttribute.getName()));
+        if (!hasObservedAt)
+            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "observedAt is required for time series entity. entityId = " + entity.getId().getId());
+
+        return saveValidatedIoTEntity(entity);
+    }
+
+    private IoTEntity saveValidatedIoTEntity(IoTEntity entity) {
         IoTEntity responseEntity;
         IoTEntityHistory iotEntityHistory = new IoTEntityHistory();
         IoTEntity existEntity = ioTEntityRepository.findByIdId(entity.getId().getId());
@@ -103,6 +128,7 @@ public class IoTEntityService {
         }
         String observedAt = "";
         for (var attribute : iotEntityHistory.getEntity().getAttrs()) {
+            if (attribute.getMd() == null) continue;
             for (var childAttribute : attribute.getMd()) {
                 if (childAttribute.getName().equals("observedAt")) {
                     observedAt = childAttribute.getValue().toString();
@@ -124,11 +150,19 @@ public class IoTEntityService {
     }
 
     public EntityDto getIoTEntity(String entityId, String context) {
-        IoTEntity entity = ioTEntityRepository.findByIdIdAndContext(entityId, context);
-        if(entity == null)
-            throw new DataBrokerException(ErrorCode.RESOURCE_NOT_FOUND, "Not Found Entity. entityId = " + entityId + ", context = " + context);
+        IoTEntity entity = findIoTEntity(entityId, context);
 
         return mapEntityToEntityDto(entity);
+    }
+
+    // context(Link 헤더)가 없으면 entityId 만으로 조회
+    public IoTEntity findIoTEntity(String entityId, String context) {
+        IoTEntity entity = ValidateUtil.isEmptyData(context)
+                ? ioTEntityRepository.findFirstByIdId(entityId)
+                : ioTEntityRepository.findByIdIdAndContext(entityId, context);
+        if(entity == null)
+            throw new DataBrokerException(ErrorCode.RESOURCE_NOT_FOUND, "Not Found Entity. entityId = " + entityId + ", context = " + context);
+        return entity;
     }
 
     public Page<EntityDto> getIoTEntities(QueryDto queryDto) {
@@ -188,9 +222,7 @@ public class IoTEntityService {
     }
 
     public EntityProviderDto getIoTEntityWithProvider(String entityId, String context) {
-        IoTEntity entity = ioTEntityRepository.findByIdIdAndContext(entityId, context);
-        if(entity == null)
-            throw new DataBrokerException(ErrorCode.RESOURCE_NOT_FOUND, "Not Found Entity. entityId = " + entityId + ", context = " + context);
+        IoTEntity entity = findIoTEntity(entityId, context);
         EntityDto entityDto = mapEntityToEntityDto(entity);
         return EntityProviderDto.builder()
                 .provider(entity.getId().getServicePath())

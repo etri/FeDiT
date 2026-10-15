@@ -99,7 +99,10 @@ export function ContextStructureCard({
                       <Database className="text-muted-foreground size-4 shrink-0" />
                     </ItemMedia>
                     <ItemContent className="min-w-0">
-                      <ItemTitle className="w-full min-w-0 truncate font-normal">
+                      <ItemTitle
+                        className="w-full min-w-0 truncate font-normal"
+                        title={data.title}
+                      >
                         {data.title}
                       </ItemTitle>
                     </ItemContent>
@@ -134,7 +137,10 @@ export function ContextStructureCard({
                     <Box className="size-4 shrink-0" />
                   </ItemMedia>
                   <ItemContent className="min-w-0">
-                    <ItemTitle className="w-full min-w-0 truncate font-normal">
+                    <ItemTitle
+                      className="w-full min-w-0 truncate font-normal"
+                      title={data.title}
+                    >
                       {data.title}
                     </ItemTitle>
                   </ItemContent>

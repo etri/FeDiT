@@ -1,4 +1,4 @@
-import { cn } from '@e8ight/ui/utils/cn';
+import { cn } from 'cn';
 
 const STEPS = [
   { step: 1, text: '메타데이터에서 통합할 단일 트윈을 담습니다' },

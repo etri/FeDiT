@@ -1,11 +1,13 @@
 import { z } from 'zod';
 
+import { newPasswordField } from '@/constants/password';
+
 export const ORG_NONE_VALUE = '__NONE__';
 export const ORG_OTHER_VALUE = '__OTHER__';
 
 export const createUserSchema = z.object({
   email: z.string().email('올바른 이메일을 입력해주세요'),
-  password: z.string().min(8, '비밀번호는 8자 이상이어야 합니다'),
+  password: newPasswordField,
   name: z.string().min(1, '이름을 입력해주세요'),
   organization: z.string().optional(),
   customOrganization: z.string().optional(),

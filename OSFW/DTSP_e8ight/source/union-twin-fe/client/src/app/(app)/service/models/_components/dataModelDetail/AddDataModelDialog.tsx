@@ -104,8 +104,15 @@ function AddDataModelDialogBody({
   const setEditMode = useDataModelStore((s) => s.setEditMode);
 
   useEffect(() => {
+    const previous = useDataModelStore.getState();
+    const restored = {
+      modelAttribute: previous.modelAttribute,
+      modelSelected: previous.modelSelected,
+      editMode: previous.editMode,
+    };
     resetDataModel();
     setEditMode(true);
+    return () => useDataModelStore.setState(restored);
   }, [resetDataModel, setEditMode]);
 
   const [errorMessage, setErrorMessage] = useState('');

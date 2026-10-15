@@ -1,6 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 
 import {
+  getTranslatorLogs,
   getTranslatorSample,
   getTranslators,
 } from '@/apis/translator/translatorApi';
@@ -12,6 +13,8 @@ export const translatorKeys = {
   lists: () => [...translatorKeys.all, 'list'] as const,
   list: (params: TranslatorsRequestParams) =>
     [...translatorKeys.lists(), params] as const,
+  logs: (translatorId: number) =>
+    [...translatorKeys.all, 'logs', translatorId] as const,
   samples: () => [...translatorKeys.all, 'sample'] as const,
   sample: (translatorName: string) =>
     [...translatorKeys.samples(), translatorName] as const,
@@ -23,6 +26,12 @@ export const translatorQueries = {
       queryKey: translatorKeys.list(params),
       queryFn: () => getTranslators(params),
       enabled: Boolean(params.agentId),
+    }),
+
+  logs: (translatorId: number) =>
+    queryOptions({
+      queryKey: translatorKeys.logs(translatorId),
+      queryFn: () => getTranslatorLogs(translatorId),
     }),
 
   sample: (translatorName: string) =>

@@ -27,7 +27,6 @@ import {
 import { toast } from '@e8ight/ui/components/ui/sonner';
 import { Spinner } from '@e8ight/ui/components/ui/spinner';
 import { useDebounce, useInfiniteScroll } from '@e8ight/ui/hooks';
-import { cn } from '@e8ight/ui/utils/cn';
 import { ErrorBoundary, Suspense } from '@suspensive/react';
 import {
   useQuery,
@@ -35,6 +34,7 @@ import {
   useSuspenseQuery,
 } from '@tanstack/react-query';
 import axios from 'axios';
+import { cn } from 'cn';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { overlay } from 'overlay-kit';
 
@@ -159,7 +159,7 @@ function AddAttributeSchemaDialogBody({
         await updateMutation.mutateAsync({
           id: trimmedSchemaId,
           attributes: selectedAttributeIds,
-          isReadOnly: schemaDetail ? schemaDetail.isReadOnly : false,
+          isReadOnly: schemaDetail?.isReadOnly ?? false,
         });
         toast.success(`Schema '${trimmedSchemaId}' updated.`);
       }
@@ -179,7 +179,11 @@ function AddAttributeSchemaDialogBody({
     !isExistingSchema &&
     trimmedSchemaId !== '' &&
     !trimmedSchemaId.endsWith('.json');
-  const canSubmit = trimmedSchemaId !== '' && !needsJsonSuffix && !isPending;
+  const canSubmit =
+    trimmedSchemaId !== '' &&
+    !needsJsonSuffix &&
+    !isPending &&
+    (!isExistingSchema || schemaDetail?.id === trimmedSchemaId);
 
   return (
     <DialogContent className="flex max-h-[85svh] flex-col sm:max-w-md">
@@ -213,6 +217,7 @@ function AddAttributeSchemaDialogBody({
                     'min-w-0 flex-1 truncate text-left',
                     !schemaId && 'text-muted-foreground',
                   )}
+                  title={trimmedSchemaId || undefined}
                 >
                   {trimmedSchemaId || 'Select existing or type new…'}
                 </span>
@@ -249,7 +254,9 @@ function AddAttributeSchemaDialogBody({
                               : 'opacity-0',
                           )}
                         />
-                        <span className="truncate">{id}</span>
+                        <span className="min-w-0 flex-1 truncate" title={id}>
+                          {id}
+                        </span>
                       </CommandItem>
                     ))}
                   </CommandGroup>
@@ -309,7 +316,10 @@ function AddAttributeSchemaDialogBody({
                             isSelected ? 'opacity-100' : 'opacity-0',
                           )}
                         />
-                        <span className="min-w-0 flex-1 truncate">
+                        <span
+                          className="min-w-0 flex-1 truncate"
+                          title={item.id}
+                        >
                           {item.id}
                         </span>
                         <span className="text-muted-foreground text-xs">

@@ -4,6 +4,8 @@ export type EmbeddedAppId =
   | 'viewer'
   | 'demo'
   | 'docsJeju'
+  | 'docsDataModel'
+  | 'docsEntity'
   | 'docsVizwide'
   | 'metadataSearch'
   | 'metadataRegistration'
@@ -12,7 +14,9 @@ export type EmbeddedAppId =
   | 'verification'
   | 'serviceLogic'
   | 'predictor'
-  | 'simulation';
+  | 'simulation'
+  | 'dataTracking'
+  | 'dataTrackingList';
 
 export interface EmbeddedAppConfig {
   url: string;

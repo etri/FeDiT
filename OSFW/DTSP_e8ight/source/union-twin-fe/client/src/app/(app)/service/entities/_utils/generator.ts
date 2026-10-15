@@ -22,12 +22,6 @@ export const qQueryGenerator = (
   } else if (['Integer', 'Double'].includes(valueType)) {
     const [greaterValue, lessValue] = value.split(':=:');
 
-    if (greaterValue && lessValue && +greaterValue > +lessValue) {
-      throw new Error(
-        `The greaterValue (left) of ${criteria} must be smaller than the lessValue (right).`,
-      );
-    }
-
     if (greaterValue) {
       qQuery += `${criteria}>=${greaterValue};`;
     }

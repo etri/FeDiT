@@ -4,6 +4,7 @@ import { NDXPRO_API } from '@/apis/config';
 import type {
   DataModelGetResponse,
   DataModelRequestPayload,
+  DataModelVersionUpPayload,
 } from '@/apis/model/model.types';
 import type { PaginationParams } from '@/types/common';
 
@@ -56,6 +57,16 @@ export const putModel = async (attrJsonData: DataModelRequestPayload) => {
 export const deleteModel = async (dataModelId: string) => {
   const { data } = await ndxproClient.delete(
     `${NDXPRO_API}/manager/data-models/${dataModelId}`,
+  );
+  return data;
+};
+
+export const postModelVersionUp = async (
+  payload: DataModelVersionUpPayload,
+) => {
+  const { data } = await ndxproClient.post(
+    `${NDXPRO_API}/manager/data-models/version`,
+    payload,
   );
   return data;
 };

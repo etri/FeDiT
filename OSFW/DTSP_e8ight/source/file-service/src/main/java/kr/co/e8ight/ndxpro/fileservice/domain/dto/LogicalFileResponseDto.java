@@ -17,12 +17,12 @@ public class LogicalFileResponseDto {
 
     public static LogicalFileResponseDto from(LogicalFile logicalFile) {
         return LogicalFileResponseDto.builder()
-                .id(logicalFile.getId())
-                .ufId(logicalFile.getUfId())
-                .originalName(logicalFile.getOriginalName())
-                .extension(logicalFile.getExtension())
-                .owner(logicalFile.getOwner())
-                .isDeleted(logicalFile.isDeleted())
-                .build();
+            .id(logicalFile.getId())
+            .ufId(logicalFile.getUfId())
+            .originalName(logicalFile.getOriginalName())
+            .extension(logicalFile.getExtension())
+            .owner(logicalFile.getOwner())
+            .isDeleted(logicalFile.isDeleted())
+            .build();
     }
 }

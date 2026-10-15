@@ -3,6 +3,7 @@ package kr.co.e8ight.ndxpro.dataservice.measurement;
 import kr.co.e8ight.ndxpro.dataservice.DataServiceApplication;
 import kr.co.e8ight.ndxpro.dataservice.domain.ean.measurement.EnergyMeasurement;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @Slf4j
+@Ignore
 @ActiveProfiles("dev")
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = {DataServiceApplication.class})

@@ -6,10 +6,13 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '5'))
     }
     environment {
-        NEXUS_REPO = '172.16.28.217:12000'
+        // Docker 레지스트리 주소는 Jenkins 전역 환경변수 DOCKER_REGISTRY 로 관리한다.
+        NEXUS_REPO = "${env.DOCKER_REGISTRY}"
         DEPLOY_SERVER = '223-server'
         // 모노레포 시절 경로를 그대로 쓴다 — 바꾸면 223 에 옛 스택이 그대로 남는다.
         DEPLOY_DIR = '/mnt/sda1/home/e8ight/frontend/monorepo/union-twin'
+        // Nexus docker 레지스트리(12000) 로그인 자격증명 — jwkim(Username/Password, System-Global). hyundai-project-fe 와 같은 것.
+        NEXUS_DOCKER_CREDENTIALS_ID = 'jwkim-e8ight'
     }
     stages {
         stage('Verify') {
@@ -51,10 +54,17 @@ def buildImage(String image, String pkg) {
     def tag = "${env.NEXUS_REPO}/${image}:latest"
     echo "[union-twin] Docker 빌드: ${image}"
     // 컨텍스트는 레포 루트다 — Dockerfile 이 turbo prune 을 루트 기준으로 수행한다.
-    sh """set -e
-        DOCKER_BUILDKIT=1 docker build --platform linux/amd64 --target '${image}' --build-arg PKG='${pkg}' -t '${tag}' .
-        docker push '${tag}'
-        docker rmi '${tag}' || true"""
+    sh "DOCKER_BUILDKIT=1 docker build --platform linux/amd64 --target '${image}' --build-arg PKG='${pkg}' -t '${tag}' ."
+    // 에이전트 공용 ~/.docker/config.json 의 Nexus 로그인은 언제든 사라진다("no basic auth credentials", 2026-10-06).
+    // 이미지마다 전용 설정 디렉터리에 push 직전 로그인한다 — parallel 두 갈래가 같은 config.json 을 두고 다투지 않게.
+    withEnv(["DOCKER_CONFIG=${pwd(tmp: true)}/docker-${image}"]) {
+        withCredentials([usernamePassword(credentialsId: env.NEXUS_DOCKER_CREDENTIALS_ID,
+                                          usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
+            sh 'printf %s "$REG_PASS" | docker login -u "$REG_USER" --password-stdin "$NEXUS_REPO"'
+        }
+        retry(2) { sh "docker push '${tag}'" }
+    }
+    sh "docker rmi '${tag}' || true"
 }
 
 def deploy() {

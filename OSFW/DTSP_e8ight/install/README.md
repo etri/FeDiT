@@ -38,7 +38,7 @@ q연합트윈/
 
 ```bash
 cp .env.example .env
-vi .env                       # 주소만 고친다 (아래 참고)
+vi .env                       # 주소와 비밀번호·토큰을 채운다 (아래 참고)
 
 cd fdt-service-backend
 ./install/0-init.sh           # 네트워크·디렉터리 생성 + 이미지 준비
@@ -53,14 +53,15 @@ cd ../fdt-service-backend
 ./scripts/health.sh           # 설치 확인
 ```
 
-접속: `.env` 의 `PUBLIC_URL` + `/signin` → `admin@e8ight.co.kr` / `ndxpro123!`
+접속: `.env` 의 `PUBLIC_URL` + `/signin` → `admin@e8ight.co.kr` / `.env` 의 `ADMIN_SEED_PASSWORD` 값
 
 ---
 
 ## 고쳐야 하는 부분
 
-`.env` 는 두 구역으로 나뉜다. **[1] 주소만 고치고 [2] 는 그대로 둔다.**
-계정·비밀번호·토큰·포트는 기존 운영 환경과 같은 값이 이미 채워져 있다.
+`.env` 에서 **[1] 주소를 고치고, [2] 계정 비밀번호·토큰을 채운다.** 나머지(포트·태그 등)는 그대로 둔다.
+비밀번호는 `CHANGE_ME` 로 되어 있으니 설치 전에 반드시 바꾼다. `JWT_SECRET` 은 64바이트 이상 임의 값,
+`NDXPRO_TOKEN` 은 설치 후 data-auth 에서 발급받아 넣고, `DTMETA_TOKEN` 은 DTMeta(KETI) 발급 값을 넣는다(안 쓰면 비워 둔다).
 
 | 변수 | 무엇 | 예시 |
 |---|---|---|

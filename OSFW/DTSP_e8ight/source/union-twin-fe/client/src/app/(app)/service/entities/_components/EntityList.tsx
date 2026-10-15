@@ -25,18 +25,19 @@ import {
   TableRow,
 } from '@e8ight/ui/components/ui/table';
 import { useDebounce, useInfiniteScroll } from '@e8ight/ui/hooks';
-import { cn } from '@e8ight/ui/utils/cn';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { RotateCcw } from 'lucide-react';
+import { cn } from 'cn';
+import { Database, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { entityQueries } from '@/apis/entity';
+import { openEntityCreateDialog } from '@/app/(app)/service/entities/_components/EntityCreateDialog';
 import { EntityTableSkeleton } from '@/app/(app)/service/entities/_components/EntityTableSkeleton';
 import EntitySearchForm from '@/app/(app)/service/entities/_components/searchForm/EntitySearchForm';
-import { useSwitchEntityTab } from '@/app/(app)/service/entities/_hooks/useActiveEntityTab';
 import { useEntityParams } from '@/app/(app)/service/entities/_hooks/useEntityParams';
 import { useEntityTableViewport } from '@/app/(app)/service/entities/_hooks/useEntityTableViewport';
+import { useSwitchEntityTab } from '@/app/(app)/service/entities/_hooks/useSwitchEntityTab';
 import { useEntityTabStore } from '@/app/(app)/service/entities/_stores/useEntityTabStore';
 import { qQueryGenerator } from '@/app/(app)/service/entities/_utils/generator';
 import { entityPath } from '@/app/(app)/service/entities/_utils/paths';
@@ -189,34 +190,57 @@ function EntityList({ modelInfo, appendEntityTabList }: IProps) {
             <BreadcrumbItem>Entity</BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem className="min-w-0">
-              <BreadcrumbPage className="max-w-[240px] truncate text-xs">
+              <BreadcrumbPage
+                title={modelId}
+                className="max-w-[240px] truncate text-xs"
+              >
                 {modelId}
               </BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
         <div className="mt-1 flex items-center justify-between gap-3">
-          <h1 className="text-foreground truncate text-lg font-bold">
+          <h1
+            title={modelId}
+            className="text-foreground truncate text-lg font-bold"
+          >
             {modelId}
           </h1>
-          {searchCriteriaInfoList.length > 0 && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground h-auto shrink-0 px-1.5 py-1"
-              onClick={resetSearchInfoForStatic}
-            >
-              <RotateCcw className="size-3.5" />
-              Reset
-            </Button>
-          )}
+          <div className="flex shrink-0 items-center gap-1">
+            {searchCriteriaInfoList.length > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground h-auto px-1.5 py-1"
+                onClick={resetSearchInfoForStatic}
+              >
+                <RotateCcw className="size-3.5" />
+                Reset
+              </Button>
+            )}
+            {contextId && modelId && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-auto px-2 py-1"
+                title="엔티티 직접 입력 (실제 데이터 반영)"
+                onClick={() =>
+                  void openEntityCreateDialog({ contextId, modelId })
+                }
+              >
+                <Database className="size-3.5" />
+                직접 입력
+              </Button>
+            )}
+          </div>
         </div>
       </div>
       {searchCriteriaInfoList.length > 0 && (
         <section
           key={`${contextId ?? ''}-${modelId ?? ''}`}
-          className="border-border/70 shrink-0 border-b pb-3"
+          className="border-border/70 max-h-[45%] min-h-0 overflow-y-auto border-b pb-3"
         >
           <EntitySearchForm
             searchCriteriaInfoList={searchCriteriaInfoList}

@@ -64,26 +64,49 @@ public class EntityValidationService {
         // entity attribute value 유효성 검사
         if(!ValidateUtil.isEmptyData(dataModelAttributes)) {
             for (Attribute attribute : entityAttributes) {
-                if (dataModelAttributes.containsKey(attribute.getName())) {
-                    LinkedHashMap<String, Object> dataModelAttribute = (LinkedHashMap<String, Object>) dataModelAttributes.get(attribute.getName());
-                    String type = (String) dataModelAttribute.get(TYPE.getCode());
-                    String valueType = (String) dataModelAttribute.get("valueType");
-                    validateAttributeValue(attribute, dataModelAttribute, type, valueType);
-
-                    List<Attribute> entityChildAttributes = attribute.getMd();
-                    if (!ValidateUtil.isEmptyData(entityChildAttributes)) {
-                        // child attribute value 유효성 검사
-                        LinkedHashMap<String, Object> dataModelChildAttributes = (LinkedHashMap<String, Object>) dataModelAttribute.get("childAttributes");
-                        validateChildAttributeValue(entityChildAttributes, dataModelChildAttributes, attribute.getName());
-
-                        // child attribute mdNames 유효성 검사
-                        validateAttributeNames(attribute.getMdNames(), attribute.getMd(), (Map<String, String>) dataModelAttribute.get("childAttributeNames"));
-                    }
-                } else {
-                    throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid attribute. attribute=" + attribute.getName());
+                if (!dataModelAttributes.containsKey(attribute.getName()))
+                    throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Attribute is not defined in DataModel. attribute=" + attribute.getName()
+                            + ", DataModel attributes=" + dataModelAttributes.keySet());
+                // 실패 로그에서 어떤 attribute 에서 실패했는지 알 수 있도록 attribute 이름을 메시지에 붙인다.
+                try {
+                    validateEntityAttribute(attribute, (LinkedHashMap<String, Object>) dataModelAttributes.get(attribute.getName()));
+                } catch (DataBrokerException e) {
+                    throw new DataBrokerException(e.getErrorCode(), "[attribute=" + attribute.getName() + "] " + e.getMessage());
+                } catch (RuntimeException e) {
+                    log.error("Unexpected error while validating attribute. entityId={}, attribute={}", entityId, attribute.getName(), e);
+                    throw new DataBrokerException(ErrorCode.INTERNAL_SERVER_ERROR, "[attribute=" + attribute.getName() + "] "
+                            + "Unexpected validation error. " + describeException(e));
                 }
             }
         }
+    }
+
+    private void validateEntityAttribute(Attribute attribute, LinkedHashMap<String, Object> dataModelAttribute) {
+        String type = (String) dataModelAttribute.get(TYPE.getCode());
+        String valueType = (String) dataModelAttribute.get("valueType");
+        validateAttributeValue(attribute, dataModelAttribute, type, valueType);
+
+        List<Attribute> entityChildAttributes = attribute.getMd();
+        if (!ValidateUtil.isEmptyData(entityChildAttributes)) {
+            // child attribute value 유효성 검사
+            LinkedHashMap<String, Object> dataModelChildAttributes = (LinkedHashMap<String, Object>) dataModelAttribute.get("childAttributes");
+            validateChildAttributeValue(entityChildAttributes, dataModelChildAttributes, attribute.getName());
+
+            // child attribute mdNames 유효성 검사
+            validateAttributeNames(attribute.getMdNames(), attribute.getMd(), (Map<String, String>) dataModelAttribute.get("childAttributeNames"));
+        }
+    }
+
+    // 메시지가 없는 예외(NullPointerException 등)도 원인을 알 수 있도록 예외 타입과 발생 위치를 함께 남긴다.
+    public static String describeException(Throwable e) {
+        StringBuilder sb = new StringBuilder(e.getClass().getSimpleName());
+        if (e.getMessage() != null && !e.getMessage().isBlank())
+            sb.append(": ").append(e.getMessage());
+        StackTraceElement[] stackTrace = e.getStackTrace();
+        if (stackTrace.length > 0)
+            sb.append(" (at ").append(stackTrace[0].getClassName().substring(stackTrace[0].getClassName().lastIndexOf('.') + 1))
+                    .append('.').append(stackTrace[0].getMethodName()).append(':').append(stackTrace[0].getLineNumber()).append(')');
+        return sb.toString();
     }
 
     public String getDataModelId(String entityId) {
@@ -98,14 +121,14 @@ public class EntityValidationService {
         String[] splitParsedDataModelId = parsedDataModelId.split(":");
         if(splitParsedDataModelId.length != 3
                 || !splitParsedDataModelId[0].equals("urn"))
-            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid Entity Id.");
+            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid Entity Id. Expected format=urn:{namespace}:{dataModel}:{id}, entityId=" + entityId);
     }
 
     // entity datamodel id 유효성 검사
     public void validateDataModelId(String entityId, String dataModelId) {
         String parsedDataModelId = getDataModelId(entityId);
         if(!parsedDataModelId.equals(dataModelId))
-            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid Entity Id.");
+            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid Entity Id. DataModel id mismatch. expected=" + dataModelId + ", actual=" + parsedDataModelId);
     }
 
     // entity type 유효성 검사
@@ -113,13 +136,13 @@ public class EntityValidationService {
         if(entityType == null || entityType.equals(""))
             throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid Entity type value.");
         if(!entityType.equals(dataModelType))
-            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid Entity Type.");
+            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid Entity Type. expected=" + dataModelType + ", actual=" + entityType);
     }
 
     // entity context 유효성 검사
     public void validateEntityContext(String entityContext, String dataModelContext) {
         if(!entityContext.equals(dataModelContext))
-            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid Entity Context.");
+            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid Entity Context. expected=" + dataModelContext + ", actual=" + entityContext);
     }
 
     // entity required attribute 유효성 검사
@@ -132,7 +155,8 @@ public class EntityValidationService {
                 entityAttributes.stream()
                         .filter(entityAttribute -> entityAttribute.getName().equals(requiredAttribute))
                         .findAny()
-                        .orElseThrow(() -> new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Entity has not Required Attribute. Required attribute : " + requiredAttribute));
+                        .orElseThrow(() -> new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Entity has not Required Attribute. Required attribute : " + requiredAttribute
+                                + ", received attributes=" + entityAttributes.stream().map(Attribute::getName).collect(Collectors.toList())));
             }
         }
     }
@@ -156,9 +180,9 @@ public class EntityValidationService {
 
     // entity attribute type 유효성 검사
     public void validateEntityAttributeType(Attribute entityAttribute, String dataModelAttributeType) {
-        if(entityAttribute.getType().equals(dataModelAttributeType))
+        if(Objects.equals(entityAttribute.getType(), dataModelAttributeType))
             return;
-        throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid Entity Attribute Type. DataModel Attribute Type is " + dataModelAttributeType);
+        throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid Entity Attribute Type. expected=" + dataModelAttributeType + ", actual=" + entityAttribute.getType());
     }
 
     // entity attribute value 유효성 검사
@@ -181,7 +205,8 @@ public class EntityValidationService {
     public void validatePropertyValue(Attribute entityAttribute, LinkedHashMap<String, Object> dataModelAttribute, String dataModelAttributeValueType) {
         LinkedHashMap<String, Object> valid = (LinkedHashMap<String, Object>) dataModelAttribute.get("valid");
         List<String> validEnum = (List<String>) dataModelAttribute.get("enum");
-        LinkedHashMap<String, Object> format = (LinkedHashMap<String, Object>) dataModelAttribute.get("format");
+        // format 은 DataManager 에서 String("DateTime" 등) 으로 내려오므로 Map 으로 캐스팅하면 ClassCastException 발생
+        Object format = dataModelAttribute.get("format");
 
         Object value = entityAttribute.getValue();
         if(value == null)
@@ -194,10 +219,10 @@ public class EntityValidationService {
 
                     if (!ValidateUtil.isEmptyData(validEnum)) {
                         if (!validEnum.contains(String.valueOf(value)))
-                            break;
+                            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Entity Attribute Value is not in enum. allowed=" + validEnum + ", Invalid value : " + value);
                     }
                     if (!ValidateUtil.isEmptyData(format)) {
-                        if(format.equals("DateTime")) {
+                        if("DateTime".equals(String.valueOf(format))) {
                             validateDateTimeValue(String.valueOf(value));
                             return;
                         }
@@ -248,14 +273,17 @@ public class EntityValidationService {
         }
         throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Entity Property Attribute Value is Invalid." +
                 " DataModel valueType: " + dataModelAttributeValueType + "," +
-                " Invalid value: " + value);
+                " Invalid value: " + value + " (" + value.getClass().getSimpleName() + ")");
     }
 
     // entity geo property attribute value 유효성 검사
     public void validateGeoPropertyValue(Attribute entityAttribute, String dataModelAttributeValueType) {
+        if(entityAttribute.getValue() == null)
+            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Entity GeoProperty Attribute Value is null.");
         GeoJsonImpl value = objectMapper.convertValue(entityAttribute.getValue(), GeoJsonImpl.class);
-        if(!value.getType().equals((GeoJsonObjectType.valueOf(dataModelAttributeValueType)).getTypeName()))
-            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Entity GeoProperty Attribute Value is Invalid");
+        String expectedType = GeoJsonObjectType.valueOf(dataModelAttributeValueType).getTypeName();
+        if(!expectedType.equals(value.getType()))
+            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Entity GeoProperty Attribute Value is Invalid. expected type=" + expectedType + ", actual type=" + value.getType());
     }
 
     // entity relationship attribute value 유효성 검사
@@ -270,20 +298,22 @@ public class EntityValidationService {
                 validateRelationshipDataModelType(entityId, modelTypeList);
             });
         } else {
-            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Entity Relationship Attribute Value is Invalid");
+            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Entity Relationship Attribute Value is Invalid. Value must be entity id String or Array of String. Invalid value : " + value);
         }
     }
 
     public void validateRelationshipDataModelType(String entityId, List<String> modelTypeList){
         validateEntityId(entityId);
         if(!ValidateUtil.isEmptyData(modelTypeList)) {
+            String parsedDataModelId = getDataModelId(entityId);
             for (String modelType : modelTypeList) {
-                String parsedDataModelId = getDataModelId(entityId);
-                String dataModelId = "urn:" + modelType + ":";
+                // modelType 은 데이터모델 id 전체(urn:ngsi-ld:Model:) 로 저장된다.
+                // 구형 모델의 접두사 없는 형식(ngsi-ld:Model)도 함께 허용한다.
+                String dataModelId = modelType.startsWith("urn:") ? modelType : "urn:" + modelType + ":";
                 if (parsedDataModelId.equals(dataModelId))
                     return;
             }
-            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Entity Relationship Attribute Value is Invalid");
+            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Entity Relationship Attribute Value is Invalid. Referenced DataModel is not allowed. allowed modelType=" + modelTypeList + ", Invalid value : " + entityId);
         }
     }
 
@@ -338,7 +368,7 @@ public class EntityValidationService {
             String formattedValue = doubleFormat.format(doubleValue);
             if(!value.equals(formattedValue))
                 throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Entity Attribute Value is Invalid." +
-                        "Format : " + valid.get("format") + ", Invalid value : " + value);
+                        " Format : " + valid.get("format") + ", Invalid value : " + value);
         }
     }
 
@@ -348,7 +378,7 @@ public class EntityValidationService {
             return true;
         } catch (Exception e) {
             throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Entity Attribute Value is Invalid." +
-                    " Check ISO 8601 Local Date Time Format." +  " Invalid value : " + value);
+                    " Check ISO 8601 Date Time Format(" + DataBrokerDateFormat.DATE_TIME_FORMAT_WITH_TIME_ZONE + ")." +  " Invalid value : " + value);
         }
     }
 
@@ -439,16 +469,17 @@ public class EntityValidationService {
     }
 
     public void validateChildAttributeValue(List<Attribute> entityChildAttributes, LinkedHashMap<String, Object> dataModelChildAttributes, String parentAttributeName) {
+        List<String> entityChildAttributesNames = entityChildAttributes.stream().map(attribute -> attribute.getName()).collect(Collectors.toList());
         if(ValidateUtil.isEmptyData(dataModelChildAttributes)){
-            log.error("Invalid child attribute. Parent attribute={}", dataModelChildAttributes);
-            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid child attribute. Parent attribute=" + parentAttributeName);
+            log.error("Invalid child attribute. DataModel has no childAttributes. Parent attribute={}, received child attributes={}", parentAttributeName, entityChildAttributesNames);
+            throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid child attribute. Parent attribute=" + parentAttributeName
+                    + ". DataModel defines no childAttributes for this attribute, but received child attributes=" + entityChildAttributesNames);
         }
 
-
-        List<String> entityChildAttributesNames = entityChildAttributes.stream().map(attribute -> attribute.getName()).collect(Collectors.toList());
         for(String childAttributeName : dataModelChildAttributes.keySet()) {
             if(!entityChildAttributesNames.contains(childAttributeName))
-                throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid child attribute. Parent attribute=" + parentAttributeName + ". Required child attribute=" + childAttributeName);
+                throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid child attribute. Parent attribute=" + parentAttributeName + ". Required child attribute=" + childAttributeName
+                        + ", received child attributes=" + entityChildAttributesNames);
         }
 
         for(Attribute entityChildAttribute : entityChildAttributes) {
@@ -458,7 +489,8 @@ public class EntityValidationService {
 
             LinkedHashMap<String, Object> dataModelChildAttribute = (LinkedHashMap<String, Object>) dataModelChildAttributes.get(entityChildAttributeName);
             if(ValidateUtil.isEmptyData(dataModelChildAttribute))
-                throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid child attribute. Parent attribute=" + parentAttributeName + ". child attribute=" + entityChildAttributeName);
+                throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid child attribute. Parent attribute=" + parentAttributeName + ". child attribute=" + entityChildAttributeName
+                        + " is not defined in DataModel. DataModel child attributes=" + dataModelChildAttributes.keySet());
 
             Object value = entityChildAttribute.getValue();
             if (entityChildAttributeName.equals("unitCode")) {
@@ -469,14 +501,18 @@ public class EntityValidationService {
                     if (!ValidateUtil.isEmptyData(valid))
                         validateStringValue(String.valueOf(value), valid);
                 } else {
-                    throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid unitCode=" + value);
+                    throw new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "Invalid unitCode=" + value + ". allowed=" + enumList);
                 }
             } else if (entityChildAttributeName.equals("observedAt")) {
                 validateDateTimeValue(String.valueOf(value));
             } else {
                 String type = (String) dataModelChildAttribute.get(TYPE.getCode());
                 String valueType = (String) dataModelChildAttribute.get("valueType");
-                validateAttributeValue(entityChildAttribute, dataModelChildAttribute, type, valueType);
+                try {
+                    validateAttributeValue(entityChildAttribute, dataModelChildAttribute, type, valueType);
+                } catch (DataBrokerException e) {
+                    throw new DataBrokerException(e.getErrorCode(), "[child attribute=" + entityChildAttributeName + "] " + e.getMessage());
+                }
             }
         }
     }

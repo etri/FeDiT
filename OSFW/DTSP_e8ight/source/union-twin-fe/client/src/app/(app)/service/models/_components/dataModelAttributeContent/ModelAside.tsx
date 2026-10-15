@@ -2,11 +2,13 @@ import { useDeferredValue, useEffect, useState } from 'react';
 
 import { useDebounce } from '@e8ight/ui/hooks';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { Box } from 'lucide-react';
+import { BookOpen, Box, FileCode } from 'lucide-react';
 import { useParams } from 'next/navigation';
 
 import { modelQueries } from '@/apis/model';
+import { openDataModelGuideDialog } from '@/app/(app)/service/models/_components/DataModelGuideDialog';
 import { NavigationAside } from '@/components/common/NavigationAside';
+import { useRuntimeConfig } from '@/components/providers/RuntimeConfigProvider';
 import { usePagination } from '@/hooks/usePagination';
 
 import type { IDataModelListItem } from '@/apis/model/model.types';
@@ -25,6 +27,7 @@ function ModelAside({ onOpenNewDataModel }: ModelAsideProps) {
 
   const [totalPages, setTotalPages] = useState(0);
   const pagination = usePagination(totalPages, debouncedWord);
+  const { managerUrl } = useRuntimeConfig();
   const { page } = pagination;
 
   const deferredPage = useDeferredValue(page);
@@ -70,6 +73,25 @@ function ModelAside({ onOpenNewDataModel }: ModelAsideProps) {
         title: 'New model',
         onClick: onOpenNewDataModel,
       }}
+      secondaryNewAction={{
+        title: '데이터 모델링 가이드',
+        ariaLabel: '데이터 모델링 가이드 열기',
+        icon: <BookOpen className="size-4" />,
+        onClick: () => void openDataModelGuideDialog(),
+      }}
+      extraActions={[
+        {
+          title: '데이터 모델 API 문서 (Swagger, 새 탭)',
+          ariaLabel: '데이터 모델 API 문서 새 탭에서 열기',
+          icon: <FileCode className="size-4" />,
+          onClick: () =>
+            window.open(
+              `${managerUrl}/swagger-ui.html`,
+              '_blank',
+              'noopener,noreferrer',
+            ),
+        },
+      ]}
       pagination={pagination}
     />
   );

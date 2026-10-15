@@ -5,12 +5,5 @@ export {
   useChangeMyPasswordMutation,
   useRequestAccountDeletionMutation,
 } from '@/apis/auth/auth.mutations';
-export { authQueries, authKeys } from '@/apis/auth/auth.queries';
-export type {
-  ChangeMyPasswordPayload,
-  RegisterPayload,
-  RequestAccountDeletionPayload,
-  RoleName,
-  UpdateMyProfilePayload,
-  UserProfile,
-} from '@/apis/auth/auth.types';
+export { authQueries } from '@/apis/auth/auth.queries';
+export type { UserProfile } from '@/apis/auth/auth.types';

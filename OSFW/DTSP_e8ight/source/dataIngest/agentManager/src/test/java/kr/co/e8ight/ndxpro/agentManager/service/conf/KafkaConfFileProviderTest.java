@@ -21,7 +21,7 @@ class KafkaConfFileProviderTest {
     @BeforeEach
     void setUp() {
         provider = new KafkaConfFileProvider();
-        ReflectionTestUtils.setField(provider, "kafkaUrl", "220.124.222.90:19092");
+        ReflectionTestUtils.setField(provider, "kafkaUrl", "kafka-server:19092");
     }
 
     private AgentRequestDto requestDto() {
@@ -29,7 +29,7 @@ class KafkaConfFileProviderTest {
                 .name("FDO_F-KR-109941-0020")
                 .type(AgentType.KAFKA)
                 .models(Collections.singletonList(new DataModelDto()))
-                .urlAddress("220.124.222.84:9092")
+                .urlAddress("kafka-server:9092")
                 .sourceTopic("FDO_F-KR-109941-0020")
                 .isCustomTopic(true)
                 .topic("fdt_topic")
@@ -42,6 +42,7 @@ class KafkaConfFileProviderTest {
         AgentRequestDto requestDto = requestDto();
         KafkaAgent agent = KafkaAgent.create(requestDto, "/opt/flume/conf/files/");
         agent.setTopic("fdt_topic");
+        ReflectionTestUtils.setField(agent, "id", 7L);
 
         String contents = provider.getConfFileContents(agent, requestDto);
 
@@ -49,22 +50,31 @@ class KafkaConfFileProviderTest {
                 "# Define the agent name\n"
                 + "FDO_F-KR-109941-0020.sources = source1\n"
                 + "FDO_F-KR-109941-0020.channels = ch_kafka\n"
+                + "FDO_F-KR-109941-0020.sinks = sink_kafka\n"
                 + "\n"
                 + "# Define source\n"
                 + "FDO_F-KR-109941-0020.sources.source1.type = org.apache.flume.source.kafka.KafkaSource\n"
                 + "FDO_F-KR-109941-0020.sources.source1.channels = ch_kafka\n"
-                + "FDO_F-KR-109941-0020.sources.source1.kafka.bootstrap.servers = 220.124.222.84:9092\n"
+                + "FDO_F-KR-109941-0020.sources.source1.kafka.bootstrap.servers = kafka-server:9092\n"
                 + "FDO_F-KR-109941-0020.sources.source1.kafka.topics = FDO_F-KR-109941-0020\n"
                 + "\n"
-                + "FDO_F-KR-109941-0020.sources.source1.kafka.consumer.group.id = fdt-consumer-group\n"
+                + "FDO_F-KR-109941-0020.sources.source1.kafka.consumer.group.id = fdt-agent-7\n"
                 + "FDO_F-KR-109941-0020.sources.source1.kafka.consumer.auto.offset.reset = latest\n"
                 + "\n"
                 + "\n"
                 + "# Define channel\n"
-                + "FDO_F-KR-109941-0020.channels.ch_kafka.type = org.apache.flume.channel.kafka.KafkaChannel\n"
-                + "FDO_F-KR-109941-0020.channels.ch_kafka.kafka.bootstrap.servers = 220.124.222.90:19092\n"
-                + "FDO_F-KR-109941-0020.channels.ch_kafka.kafka.topic = fdt_topic\n"
-                + "FDO_F-KR-109941-0020.channels.ch_kafka.parseAsFlumeEvent = false\n";
+                + "FDO_F-KR-109941-0020.channels.ch_kafka.type = memory\n"
+                + "FDO_F-KR-109941-0020.channels.ch_kafka.transactionCapacity = 1000\n"
+                + "FDO_F-KR-109941-0020.channels.ch_kafka.capacity = 10000\n"
+                + "\n"
+                + "# Define sink\n"
+                + "FDO_F-KR-109941-0020.sinks.sink_kafka.type = kr.co.e8ight.ndxpro.dataAdapter.sink.SignalableKafkaSink\n"
+                + "FDO_F-KR-109941-0020.sinks.sink_kafka.channel = ch_kafka\n"
+                + "FDO_F-KR-109941-0020.sinks.sink_kafka.kafka.bootstrap.servers = kafka-server:19092\n"
+                + "FDO_F-KR-109941-0020.sinks.sink_kafka.kafka.producer.max.request.size = 10485880\n"
+                + "FDO_F-KR-109941-0020.sinks.sink_kafka.kafka.topic = fdt_topic\n"
+                + "FDO_F-KR-109941-0020.sinks.sink_kafka.allowTopicOverride = false\n"
+                + "FDO_F-KR-109941-0020.sinks.sink_kafka.AGENT_ID = 7\n";
 
         assertThat(contents).isEqualTo(expected);
     }
@@ -75,7 +85,7 @@ class KafkaConfFileProviderTest {
         AgentRequestDto requestDto = AgentRequestDto.builder()
                 .name("agent")
                 .type(AgentType.KAFKA)
-                .urlAddress("220.124.222.84:9092")
+                .urlAddress("kafka-server:9092")
                 .isCustomTopic(false)
                 .build();
 

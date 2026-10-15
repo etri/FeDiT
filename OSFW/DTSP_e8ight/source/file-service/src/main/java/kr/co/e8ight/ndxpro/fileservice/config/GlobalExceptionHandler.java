@@ -6,10 +6,12 @@ import kr.co.e8ight.ndxpro.common.exception.HttpException;
 import kr.co.e8ight.ndxpro.common.exception.error.ErrorCode;
 import kr.co.e8ight.ndxpro.common.exception.error.ErrorResult;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 @Slf4j
@@ -45,5 +47,17 @@ public class GlobalExceptionHandler {
         ErrorResult errorResult = new ErrorResult(baseException);
         log.error(errorResult.toString(), e);
         return ResponseEntity.status(baseException.errorCode.getStatus()).body(errorResult);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResult> handleMaxUploadSizeException(MaxUploadSizeExceededException e) {
+        ErrorResult errorResult = new ErrorResult(
+          "http://uri.e8ight/ngsi-ld/erros/InvalidRequest",
+          "Payload Too Large",
+          "Payload Too Large",
+          1413
+        );
+        log.error(errorResult.toString(), e);
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(errorResult);
     }
 }

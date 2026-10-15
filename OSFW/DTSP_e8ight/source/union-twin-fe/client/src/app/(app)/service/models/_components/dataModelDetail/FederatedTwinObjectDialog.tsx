@@ -24,8 +24,12 @@ import { useQuery } from '@tanstack/react-query';
 import { overlay } from 'overlay-kit';
 
 import { dtmetaQueries } from '@/apis/dtmeta';
+import {
+  entityAccessUrl,
+  modelTypeToDtoid,
+} from '@/app/(app)/service/models/_utils/federatedTwinId';
 
-import type { FederatedTwin } from '@/apis/dtmeta';
+import type { FederatedDigitalTwinObject, FederatedTwin } from '@/apis/dtmeta';
 import type { FederatedTwinSyncTarget } from '@/app/(app)/service/models/_utils/syncFederatedTwinSchema';
 
 const NO_OBJECT = 'none';
@@ -45,24 +49,39 @@ function toChoice(value: string): FederatedTwinObjectChoice {
   return { federatedTwinId, dtoid };
 }
 
-function findByName(twins: FederatedTwin[], modelTitle: string) {
-  for (const twin of twins) {
-    const matched = (twin.federatedDigitalTwinObjects ?? []).find(
-      (object) => object.dtoid && object.name === modelTitle,
-    );
-    if (matched?.dtoid) {
-      return toValue(twin.dtid, matched.dtoid);
+function findDefault(
+  twins: FederatedTwin[],
+  modelType: string,
+  modelTitle: string,
+) {
+  const expectedDtoid = modelTypeToDtoid(modelType);
+  const matchers = [
+    (object: FederatedDigitalTwinObject) => object.dtoid === expectedDtoid,
+    (object: FederatedDigitalTwinObject) => object.name === modelTitle,
+  ];
+  for (const matcher of matchers) {
+    for (const twin of twins) {
+      const matched = (twin.federatedDigitalTwinObjects ?? []).find(
+        (object) => object.dtoid && matcher(object),
+      );
+      if (matched?.dtoid) {
+        return toValue(twin.dtid, matched.dtoid);
+      }
     }
   }
   return NO_OBJECT;
 }
 
 function FederatedTwinObjectDialogBody({
+  modelType,
   modelTitle,
+  brokerUrl,
   onConfirm,
   onCancel,
 }: {
+  modelType: string;
   modelTitle: string;
+  brokerUrl: string;
   onConfirm: (choice: FederatedTwinObjectChoice) => void;
   onCancel: () => void;
 }) {
@@ -70,7 +89,8 @@ function FederatedTwinObjectDialogBody({
   const [selected, setSelected] = useState<string>();
 
   const twins = data?.responseData ?? [];
-  const value = selected ?? findByName(twins, modelTitle);
+  const value = selected ?? findDefault(twins, modelType, modelTitle);
+  const choice = toChoice(value);
 
   return (
     <>
@@ -104,7 +124,10 @@ function FederatedTwinObjectDialogBody({
                         value={toValue(twin.dtid, object.dtoid)}
                       >
                         {object.name}
-                        <span className="text-muted-foreground text-xs">
+                        <span
+                          className="text-muted-foreground min-w-0 truncate text-xs"
+                          title={object.dtoid}
+                        >
                           {object.dtoid}
                         </span>
                       </SelectItem>
@@ -115,6 +138,16 @@ function FederatedTwinObjectDialogBody({
           </SelectContent>
         </Select>
       )}
+      {choice !== NO_OBJECT && (
+        <p className="text-muted-foreground text-xs wrap-anywhere">
+          dataAccessURL은{' '}
+          <code className="font-mono">
+            {entityAccessUrl(brokerUrl, modelType, choice.dtoid)}
+          </code>
+          로 등록되며(토큰·헤더 없이 조회 가능), 이 모델로 수집이 시작된 뒤부터
+          조회됩니다.
+        </p>
+      )}
       <DialogFooter>
         <DialogClose asChild>
           <Button type="button" variant="outline" onClick={onCancel}>
@@ -124,7 +157,7 @@ function FederatedTwinObjectDialogBody({
         <Button
           type="button"
           disabled={isPending}
-          onClick={() => onConfirm(toChoice(value))}
+          onClick={() => onConfirm(choice)}
         >
           Confirm
         </Button>
@@ -133,7 +166,15 @@ function FederatedTwinObjectDialogBody({
   );
 }
 
-export function openFederatedTwinObjectDialog(modelTitle: string) {
+export function openFederatedTwinObjectDialog({
+  modelType,
+  modelTitle,
+  brokerUrl,
+}: {
+  modelType: string;
+  modelTitle: string;
+  brokerUrl: string;
+}) {
   return overlay.openAsync<FederatedTwinObjectChoice | undefined>(
     ({ isOpen, close }) => (
       <Dialog open={isOpen} onOpenChange={(open) => !open && close(undefined)}>
@@ -146,7 +187,9 @@ export function openFederatedTwinObjectDialog(modelTitle: string) {
             </DialogDescription>
           </DialogHeader>
           <FederatedTwinObjectDialogBody
+            modelType={modelType}
             modelTitle={modelTitle}
+            brokerUrl={brokerUrl}
             onConfirm={close}
             onCancel={() => close(undefined)}
           />

@@ -315,12 +315,12 @@ src/
 
 | 환경                           | 빌드/배포                                             | 레지스트리             | compose 파일              |
 | ------------------------------ | ----------------------------------------------------- | ---------------------- | ------------------------- |
-| **223 (내부망)**               | Jenkins CI가 `main` 푸시 시 자동 빌드 → 223 자동 배포 | `172.16.28.217:12000`  | `docker-compose.yml`      |
-| **제주 (service.fedit.or.kr)** | **CI 대상 아님 — 수동 빌드/푸시/풀**                  | `210.217.93.129:52000` | `docker-compose-jeju.yml` |
+| **223 (내부망)**               | Jenkins CI가 `main` 푸시 시 자동 빌드 → 223 자동 배포 | `docker-registry:12000`  | `docker-compose.yml`      |
+| **제주 (service.fedit.or.kr)** | **CI 대상 아님 — 수동 빌드/푸시/풀**                  | `docker-registry:52000` | `docker-compose-jeju.yml` |
 
-> **왜 수동인가:** Jenkins CI는 이미지를 **내부망 레지스트리(`172.16.28.217:12000`)에만** push하고
+> **왜 수동인가:** Jenkins CI는 이미지를 **내부망 레지스트리(`docker-registry:12000`)에만** push하고
 > **223 서버에만** 배포한다(레포 루트 `Jenkinsfile` 의 `NEXUS_REPO`·`DEPLOY_SERVER`). 제주는 다른
-> 네트워크의 별도 레지스트리(`210.217.93.129:52000`)를 쓰므로 CI가 전혀 건드리지 않는다 — 제주에
+> 네트워크의 별도 레지스트리(`docker-registry:52000`)를 쓰므로 CI가 전혀 건드리지 않는다 — 제주에
 > 대해서는 빌드·push도, 배포(CD)도 하지 않는다. 따라서 `main`에 머지해도 제주 이미지는 갱신되지
 > 않고, 아래처럼 직접 빌드·push·pull 해야 한다.
 
@@ -328,8 +328,8 @@ src/
 # 레포 루트에서 (Dockerfile이 turbo prune을 루트 기준으로 수행)
 docker build --platform linux/amd64 \
   --target union-twin-be --build-arg PKG=@workspace/union-twin-be \
-  -t 210.217.93.129:52000/union-twin-be:latest .
-docker push 210.217.93.129:52000/union-twin-be:latest
+  -t docker-registry:52000/union-twin-be:latest .
+docker push docker-registry:52000/union-twin-be:latest
 
 # 제주 서버에서
 docker compose -f docker-compose-jeju.yml pull union-twin-be

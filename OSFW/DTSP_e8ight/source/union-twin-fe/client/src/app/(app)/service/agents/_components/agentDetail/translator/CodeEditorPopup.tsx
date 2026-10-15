@@ -15,8 +15,11 @@ import { toast } from '@e8ight/ui/components/ui/sonner';
 import { Spinner } from '@e8ight/ui/components/ui/spinner';
 import { Textarea } from '@e8ight/ui/components/ui/textarea';
 import Editor from '@monaco-editor/react';
+import { Eye } from 'lucide-react';
 
 import { useCompileTranslatorMutation } from '@/apis/translator';
+import { openTranslationPreviewDialog } from '@/app/(app)/service/agents/_components/agentDetail/translator/TranslationPreviewDialog';
+import { parseTranslatorCode } from '@/app/(app)/service/agents/_utils/translatorSpec';
 
 import type {
   TranslatorCompileRequest,
@@ -49,6 +52,7 @@ interface CodeEditorPopupProps {
   translateCode: string;
   onChangeCode: (value: string) => void;
   translateName: string;
+  modelType: string;
   closeCodeEditor: () => void;
   onSuccessCompile: () => void;
   onFailCompile: () => void;
@@ -59,6 +63,7 @@ function CodeEditorPopup({
   translateCode,
   onChangeCode,
   translateName,
+  modelType,
   closeCodeEditor,
   onSuccessCompile,
   onFailCompile,
@@ -96,6 +101,11 @@ function CodeEditorPopup({
       );
       console.error(error);
     }
+  };
+
+  const openPreview = () => {
+    const { spec, warnings } = parseTranslatorCode(translateCode, modelType);
+    void openTranslationPreviewDialog({ spec, warnings });
   };
 
   return (
@@ -137,6 +147,15 @@ function CodeEditorPopup({
           </div>
         </div>
         <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            className="sm:mr-auto"
+            onClick={openPreview}
+          >
+            <Eye />
+            출력 미리보기
+          </Button>
           <DialogClose asChild>
             <Button type="button" variant="outline" onClick={closeCodeEditor}>
               Close

@@ -19,11 +19,11 @@ sourceCompatibility = '11'
 repositories {
     mavenCentral()
     maven {
-        url 'http://172.16.28.217:9081/repository/maven-releases/'
+        url = (project.findProperty('nexusUrl') ?: System.getenv('NEXUS_URL'))
         allowInsecureProtocol = true
         credentials {
-            username = "admin"
-            password = "ndxpro123!"
+            username = (project.findProperty('nexusUsername') ?: System.getenv('NEXUS_USERNAME') ?: '')
+            password = (project.findProperty('nexusPassword') ?: System.getenv('NEXUS_PASSWORD') ?: '')
         }
     }
 }
@@ -68,18 +68,18 @@ tasks.named('test') {
 
 jib {
     from{
-        image = "172.16.28.217:12000/ndxpro-dataadapter:v1.1"
+        image = "${(project.findProperty('dockerRegistry') ?: System.getenv('DOCKER_REGISTRY'))}/ndxpro-dataadapter:v1.1"
         auth {
-            username = "admin"
-            password = "ndxpro123!"
+            username = (project.findProperty('nexusUsername') ?: System.getenv('NEXUS_USERNAME') ?: '')
+            password = (project.findProperty('nexusPassword') ?: System.getenv('NEXUS_PASSWORD') ?: '')
         }
     }
     to {
-        image = "172.16.28.217:12000/ndxpro-dataingest"
+        image = "${(project.findProperty('dockerRegistry') ?: System.getenv('DOCKER_REGISTRY'))}/ndxpro-dataingest"
         tags = ["v1.1"]
         auth {
-            username = "admin"
-            password = "ndxpro123!"
+            username = (project.findProperty('nexusUsername') ?: System.getenv('NEXUS_USERNAME') ?: '')
+            password = (project.findProperty('nexusPassword') ?: System.getenv('NEXUS_PASSWORD') ?: '')
         }
     }
 

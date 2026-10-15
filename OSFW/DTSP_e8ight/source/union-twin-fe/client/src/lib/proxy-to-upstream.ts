@@ -48,13 +48,21 @@ export async function proxyToUpstream(
     );
   }
 
+  const body = hasBody ? await request.arrayBuffer() : undefined;
+  if (body && body.byteLength > MAX_PROXY_BODY_BYTES) {
+    return NextResponse.json(
+      { error: { statusCode: 413, message: 'Payload too large' } },
+      { status: 413 },
+    );
+  }
+
   const url = `${base}/${path.join('/')}${request.nextUrl.search}`;
 
   try {
     const upstream = await fetch(url, {
       method: request.method,
       headers,
-      body: hasBody ? await request.arrayBuffer() : undefined,
+      body,
       cache: 'no-store',
       redirect: 'manual',
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),

@@ -15,12 +15,11 @@ repositories {
 
 repositories {
     maven {
-//        url 'http://1.233.183.202:59081/repository/maven-releases/'
-        url 'http://172.16.28.217:9081/repository/maven-releases/'
+        url = (project.findProperty('nexusUrl') ?: System.getenv('NEXUS_URL'))
         allowInsecureProtocol = true
         credentials {
-            username = "admin"
-            password = "ndxpro123!"
+            username = (project.findProperty('nexusUsername') ?: System.getenv('NEXUS_USERNAME') ?: '')
+            password = (project.findProperty('nexusPassword') ?: System.getenv('NEXUS_PASSWORD') ?: '')
         }
     }
 }
@@ -65,11 +64,11 @@ jib {
         image = "openjdk:11.0.14-jre-slim"
     }
     to {
-        image = "172.16.28.217:12000/ndxpro-gatewayserver"
+        image = "${(project.findProperty('dockerRegistry') ?: System.getenv('DOCKER_REGISTRY'))}/ndxpro-gatewayserver"
         tags = ["v1.1"]
         auth {
-            username = "admin"
-            password = "ndxpro123!"
+            username = (project.findProperty('nexusUsername') ?: System.getenv('NEXUS_USERNAME') ?: '')
+            password = (project.findProperty('nexusPassword') ?: System.getenv('NEXUS_PASSWORD') ?: '')
         }
     }
     setAllowInsecureRegistries(true)

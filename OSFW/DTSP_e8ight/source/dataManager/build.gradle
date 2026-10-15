@@ -17,11 +17,11 @@ repositories {
 
 repositories {
     maven {
-        url 'http://172.16.28.217:9081/repository/maven-releases/'
+        url = (project.findProperty('nexusUrl') ?: System.getenv('NEXUS_URL'))
         allowInsecureProtocol = true
         credentials {
-            username = "admin"
-            password = "ndxpro123!"
+            username = (project.findProperty('nexusUsername') ?: System.getenv('NEXUS_USERNAME') ?: '')
+            password = (project.findProperty('nexusPassword') ?: System.getenv('NEXUS_PASSWORD') ?: '')
         }
     }
 }
@@ -79,13 +79,12 @@ jib {
 //        }
     }
     to {
-//        image = "172.16.28.217:12000/ndxpro-datamanager"
-        image = "172.16.28.217:12000/ndxpro-datamanager"
+        image = "${(project.findProperty('dockerRegistry') ?: System.getenv('DOCKER_REGISTRY'))}/ndxpro-datamanager"
 //        tags = ["v1.2"]
         tags = ["v1.1"]
         auth {
-            username = "admin"
-            password = "ndxpro123!"
+            username = (project.findProperty('nexusUsername') ?: System.getenv('NEXUS_USERNAME') ?: '')
+            password = (project.findProperty('nexusPassword') ?: System.getenv('NEXUS_PASSWORD') ?: '')
         }
                 container {
             mainClass ="kr.co.e8ight.ndxpro_v1_datamanager.NdxProV1DataManagerApplication"
@@ -95,29 +94,3 @@ jib {
     setAllowInsecureRegistries(true)
 }
 
-//jib {
-//    from {
-//        image = "openjdk:11.0.14-jre-slim"
-//        platforms {
-//            platform {
-//                architecture = 'arm64'
-//                os = 'linux'
-//            }
-//        }
-//
-//    }
-//    to {
-//        image = "172.16.28.217:12000/ndxpro-datamanager-v1"
-//        tags = ["latest"]
-//        auth {
-//            username = "admin"
-//            password = "ndxpro123!"
-//        }
-//        container {
-//            mainClass ="kr.co.e8ight.ndxpro_v1_datamanager.NdxProV1DataManagerApplication"
-//            ports = ["9091"]
-//            environment = ["TZ" : "Asia/Seoul"]
-//        }
-//    }
-//    setAllowInsecureRegistries(true)
-//}

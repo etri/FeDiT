@@ -11,7 +11,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,28 +52,37 @@ public class FileWriterManager {
         @Override
         public void run() {
             while ( true ) {
-                if ( fileWriteQueue.isEmpty() ) {
-                    sleep(pollInterval);
-                    continue;
-                }
-
-                PhysicalFile physicalFile = fileWriteQueue.poll();
-
                 try {
-                    fileIoService.writeFile(physicalFile.getPath(), physicalFile.getMultipartFile());
-                    saveUploadHistory(physicalFile, "SUCCESS");
-                    notifyWriteResult(physicalFile, FileStatus.READY);
-                } catch (IOException e) {
-                    log.error(ExceptionUtils.getStackTrace(e));
-                    physicalFile.plusUploadFailCount();
-                    saveUploadHistory(physicalFile, "FAIL", e.getMessage());
-
-                    if ( physicalFile.getUploadFailCount() < maxFailCount ) {
-                        fileWriteQueue.offer(physicalFile);
-                    } else {
-                        physicalFile.initUploadFailCount();
-                        notifyWriteResult(physicalFile, FileStatus.FAIL);
+                    if ( fileWriteQueue.isEmpty() ) {
+                        sleep(pollInterval);
+                        continue;
                     }
+
+                    PhysicalFile physicalFile = fileWriteQueue.poll();
+
+                    if ( physicalFile == null ) {
+                        continue;
+                    }
+
+                    try {
+                        fileIoService.writeFile(physicalFile.getPath(), physicalFile.getMultipartFile());
+                        saveUploadHistory(physicalFile, "SUCCESS");
+                        notifyWriteResult(physicalFile, FileStatus.READY);
+                    } catch (Exception e) {
+                        log.error(ExceptionUtils.getStackTrace(e));
+                        physicalFile.plusUploadFailCount();
+                        saveUploadHistory(physicalFile, "FAIL", e.getMessage());
+
+                        if ( physicalFile.getUploadFailCount() < maxFailCount ) {
+                            fileWriteQueue.offer(physicalFile);
+                        } else {
+                            physicalFile.initUploadFailCount();
+                            notifyWriteResult(physicalFile, FileStatus.FAIL);
+                        }
+                    }
+                } catch (Throwable t) {
+                    // 어떤 예외가 발생해도 Writer 스레드는 죽지 않고 다음 작업을 계속 처리한다.
+                    log.error("unexpected error in Writer thread; thread survives.", t);
                 }
             }
         }

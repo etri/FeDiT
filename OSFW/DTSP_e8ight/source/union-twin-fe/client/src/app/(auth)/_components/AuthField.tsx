@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react';
 
-import { cn } from '@e8ight/ui/utils/cn';
+import { cn } from 'cn';
 
 import type { LucideIcon } from 'lucide-react';
 

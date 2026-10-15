@@ -37,7 +37,19 @@ export class UsersController {
 
   @Patch(':id')
   @Roles(Role.ADMIN)
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateUserDto) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateUserDto,
+    @CurrentUser('id') currentUserId: string,
+  ) {
+    if (
+      id === currentUserId &&
+      (dto.roleId !== undefined || dto.isActive === false)
+    ) {
+      throw new ForbiddenException(
+        'Cannot change your own role or deactivate your own account',
+      );
+    }
     return this.usersService.update(id, dto);
   }
 

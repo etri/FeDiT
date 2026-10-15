@@ -91,6 +91,16 @@ public class TranslatorController {
         return ResponseEntity.ok(translatorService.operate(translatorId, requestdto.getOperation(), token));
     }
 
+    @PostMapping("/translators/{translatorId}/rebuild")
+    @Operation(summary = "Translator jar 재빌드 (코드 변경 없이 최신 runner 로 다시 빌드, 정지 상태에서만 가능)")
+    public ResponseEntity<TranslatorResponseDto> rebuildTranslator(
+            @Parameter(description = "Translator ID", example = "1", required = true) @PathVariable("translatorId") Long translatorId,
+            @RequestHeader("Authorization") String token) {
+        log.info("Rebuild Translator ID: {}", translatorId);
+
+        return ResponseEntity.ok(translatorService.rebuild(translatorId, token));
+    }
+
     @PostMapping("/translators-test/{translatorId}")
     @Operation(summary = "Translator 검증")
     public ResponseEntity<TranslatorCheckResponseDto> checkTranslator(

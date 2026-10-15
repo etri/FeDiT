@@ -11,7 +11,7 @@ import {
   CollapsibleTrigger,
 } from '@e8ight/ui/components/ui/collapsible';
 import { ScrollArea } from '@e8ight/ui/components/ui/scroll-area';
-import { cn } from '@e8ight/ui/utils/cn';
+import { cn } from 'cn';
 import {
   Box,
   ChevronsDownUp,
@@ -65,7 +65,7 @@ function EntityAttributeNavigatorItem({
   path,
   onSelect,
 }: EntityAttributeNavigatorItemProps) {
-  const childAttributes = getChildAttributes(treeJson, depth, item.target);
+  const childAttributes = getChildAttributes(treeJson, depth, treePath);
   const hasChildren = childAttributes.length > 0;
   const [open, setOpen] = useTreeToggle(depth === 0, treePath);
 

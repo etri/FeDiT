@@ -31,16 +31,16 @@ export default function Layout({ children }: { children: ReactNode }) {
       className="bg-background h-full min-h-0 w-full"
     >
       <ResizablePanel
-        defaultSize={20}
-        minSize={15}
-        maxSize={30}
+        defaultSize={isMobile ? 45 : 20}
+        minSize={isMobile ? 35 : 15}
+        maxSize={isMobile ? 60 : 30}
         className="flex min-h-0 min-w-0 flex-col"
       >
         <AgentAside onOpenNewAgent={handleOpenNewAgent} />
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel
-        defaultSize={80}
+        defaultSize={isMobile ? 55 : 80}
         className="flex min-h-0 min-w-0 flex-col"
       >
         {children}

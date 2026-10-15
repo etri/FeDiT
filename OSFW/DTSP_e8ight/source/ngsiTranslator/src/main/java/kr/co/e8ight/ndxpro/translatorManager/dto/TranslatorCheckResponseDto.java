@@ -1,5 +1,6 @@
 package kr.co.e8ight.ndxpro.translatorManager.dto;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -17,6 +18,9 @@ public class TranslatorCheckResponseDto {
 
     @Schema(description = "Translator 검증 출력 메시지")
     String message;
+
+    @Schema(description = "Translator 변환 결과 (runner 출력 원본)")
+    JsonNode result;
 }
 
 

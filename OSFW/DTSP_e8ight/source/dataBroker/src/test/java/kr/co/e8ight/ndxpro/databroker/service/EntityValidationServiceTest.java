@@ -25,6 +25,7 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.any;
 import static org.assertj.core.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
 public class EntityValidationServiceTest {
@@ -261,6 +262,41 @@ public class EntityValidationServiceTest {
         } catch (DataBrokerException e) {
             fail("Validation Fail. " + e.getMessage());
         }
+    }
+
+    @Test
+    @DisplayName("Property DateTime format 속성 value 테스트 (format=DateTime, ClassCastException 회귀)")
+    public void validatePropertyDateTimeFormatValue() {
+
+        // given
+        // DataManager 는 format 을 String 으로 내려줌 (federatedAt / createdAt / modifiedAt 등)
+        LinkedHashMap<String, Object> dataModelAttribute = new LinkedHashMap<>();
+        dataModelAttribute.put("type", "Property");
+        dataModelAttribute.put("valueType", "String");
+        dataModelAttribute.put("format", "DateTime");
+
+        Attribute validAttribute = Attribute.builder()
+                .name("federatedAt")
+                .type("Property")
+                .value("2026-09-04T09:10:06.123Z")
+                .build();
+
+        Attribute invalidAttribute = Attribute.builder()
+                .name("federatedAt")
+                .type("Property")
+                .value("hello")
+                .build();
+
+        // when
+
+        // then
+        try {
+            entityValidService.validatePropertyValue(validAttribute, dataModelAttribute, "String");
+        } catch (DataBrokerException e) {
+            fail("Validation Fail. " + e.getMessage());
+        }
+        assertThrows(DataBrokerException.class,
+                () -> entityValidService.validatePropertyValue(invalidAttribute, dataModelAttribute, "String"));
     }
 
     @Test
@@ -710,7 +746,7 @@ public class EntityValidationServiceTest {
                 "\"description\": \"링크 정보\"," +
                 "\"valueType\": \"String\"," +
                 "\"modelType\": [" +
-                "   \"ngsi-ld:Link\"" +
+                "   \"urn:ngsi-ld:Link:\"" +
                 "]" +
                 "}";
         LinkedHashMap<String, Object> dataModelAttribute;

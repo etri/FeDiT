@@ -32,6 +32,10 @@ public class EntityService {
 
     private final ObjectMapper objectMapper;
 
+    // 서비스 간 호출용 토큰. 값은 환경변수 INTERNAL_API_TOKEN(또는 로컬 설정)으로 주입한다.
+    @Value("${internal-api.token:}")
+    private String internalApiToken;
+
     @Value("${databroker.url}")
     private String dataBrokerURL;
 
@@ -56,7 +60,7 @@ public class EntityService {
         headerMap.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
         headerMap.set(HttpHeaders.ACCEPT, MediaType.ALL_VALUE);
         headerMap.set(HttpHeaders.LINK, context);
-        headerMap.set("Authorization", "Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI4IiwiYXV0aCI6IkFETUlOIiwiZXhwIjoxNzA2MzMwMDE1fQ.zIKioGZVchXB2UYQcTyet_FywLhYq4MbodMWyuNSiOMz6ScOKDwHbJELz2VNN5KubgOgRVKVE5sOUcAPFJnqRg");
+        headerMap.set("Authorization", "Bearer " + internalApiToken);
 
         RequestEntity<Void> requestEntity;
         try {
@@ -87,7 +91,7 @@ public class EntityService {
         headerMap.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
         headerMap.set(HttpHeaders.ACCEPT, MediaType.ALL_VALUE);
         headerMap.set(HttpHeaders.LINK, context);
-        headerMap.set("Authorization", "Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI4IiwiYXV0aCI6IkFETUlOIiwiZXhwIjoxNzA2MzMwMDE1fQ.zIKioGZVchXB2UYQcTyet_FywLhYq4MbodMWyuNSiOMz6ScOKDwHbJELz2VNN5KubgOgRVKVE5sOUcAPFJnqRg");
+        headerMap.set("Authorization", "Bearer " + internalApiToken);
 
         String requestURL = null;
         try {

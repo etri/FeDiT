@@ -244,8 +244,8 @@ vi .env</code></pre>
     </tbody>
   </table></div>
   <div class="note tip">
-    <span class="lab">기본값</span>
-    <p>계정 <code>admin</code> / 비밀번호 <code>ndxpro123!</code> / 서비스 토큰은 <code>.env</code> 의 [2] 구역에 이미 채워져 있다. 그대로 설치해 정상 동작을 확인한 뒤 필요하면 바꾼다.</p>
+    <span class="lab">필수</span>
+    <p><code>.env</code> 의 [2] 구역 비밀번호(<code>CHANGE_ME</code>)와 <code>JWT_SECRET</code> 을 설치 전에 반드시 채운다. <code>NDXPRO_TOKEN</code> 은 설치 후 data-auth 에서 발급받아 넣는다.</p>
   </div>
 </section>
 
@@ -279,7 +279,7 @@ cd ../fdt-service-frontend
   <h2><span class="num">04</span>확인</h2>
   <pre><code>cd fdt-service-backend
 ./scripts/health.sh</code></pre>
-  <p>브라우저에서 <code>PUBLIC_URL</code> 접속 → <code>/signin</code> 으로 이동한다. 계정은 <code>admin@e8ight.co.kr</code> / <code>ndxpro123!</code>.</p>
+  <p>브라우저에서 <code>PUBLIC_URL</code> 접속 → <code>/signin</code> 으로 이동한다. 계정은 <code>admin@e8ight.co.kr</code> / <code>.env</code> 의 <code>ADMIN_SEED_PASSWORD</code> 값.</p>
 </section>
 
 <section id="s5">

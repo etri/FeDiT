@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { newPasswordField } from '@/constants/password';
+
 export const loginSchema = z.object({
   email: z.string().email('올바른 이메일을 입력해주세요'),
   password: z.string().min(8, '비밀번호는 8자 이상이어야 합니다'),
@@ -9,7 +11,7 @@ export const registerSchema = z
   .object({
     name: z.string().min(1, '이름을 입력해주세요'),
     email: z.string().email('올바른 이메일을 입력해주세요'),
-    password: z.string().min(8, '비밀번호는 8자 이상이어야 합니다'),
+    password: newPasswordField,
     confirmPassword: z.string(),
     phoneNumber: z.string().optional(),
   })

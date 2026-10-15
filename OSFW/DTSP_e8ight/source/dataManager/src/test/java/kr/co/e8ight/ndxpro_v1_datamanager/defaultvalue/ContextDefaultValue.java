@@ -16,7 +16,7 @@ public class ContextDefaultValue {
             + "\n";
 
     public static final String context2 ="{\n"
-            + "  \"url\":\"http://172.16.28.220:3005/e8ight-context.jsonld\",\n"
+            + "  \"url\":\"http://context-server:3005/e8ight-context.jsonld\",\n"
             + "  \"version\" : \"v2\",\n"
             + "  \"@context\": {\n"
             + "        \"e8ight\": \"https://e8ight-data-models/\",\n"

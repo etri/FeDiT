@@ -10,6 +10,9 @@ export const PG_UNIQUE_VIOLATION = '23505';
 
 export const BCRYPT_SALT_ROUNDS = 12;
 
+// bcrypt silently truncates beyond 72 bytes.
+export const MAX_PASSWORD_BYTES = 72;
+
 export const DEFAULT_PAGE = 1;
 export const MAX_PAGE = 10_000;
 export const DEFAULT_SIZE = 10;

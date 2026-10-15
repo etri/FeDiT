@@ -10,7 +10,6 @@ import {
   FieldDescription,
   FieldTitle,
 } from '@e8ight/ui/components/ui/field';
-import { Spinner } from '@e8ight/ui/components/ui/spinner';
 
 import InputRenderer from '@/app/(app)/tracking/_components/InputRenderer';
 import TrackingProcessAccordion from '@/app/(app)/tracking/_components/TrackingProcessAccordion';
@@ -19,7 +18,6 @@ import {
   createBlankTrackingProcess,
   createInitialTrackingForm,
 } from '@/app/(app)/tracking/_utils/tracking-process-defaults';
-import { createTrackingCommandPayload } from '@/app/(app)/tracking/_utils/tracking-process-payload';
 import { collectTrackingFormErrors } from '@/app/(app)/tracking/_utils/tracking-process-validation';
 
 import type {
@@ -30,7 +28,6 @@ import type {
 function TrackingForm() {
   const [formData, setFormData] = useState<FormData>(createInitialTrackingForm);
   const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const rootFields = [
     {
@@ -77,17 +74,7 @@ function TrackingForm() {
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const errors = collectTrackingFormErrors(formData);
-    setFieldErrors(errors);
-
-    if (Object.keys(errors).length > 0) {
-      return;
-    }
-
-    setIsSubmitting(true);
-    createTrackingCommandPayload(formData);
-
-    setTimeout(() => setIsSubmitting(false), 2000);
+    setFieldErrors(collectTrackingFormErrors(formData));
   };
 
   return (
@@ -95,7 +82,7 @@ function TrackingForm() {
       onSubmit={handleSubmit}
       className="border-border bg-muted/40 mb-4 flex w-full max-w-4xl flex-col gap-5 rounded-xl border p-4 md:p-5"
     >
-      <div className="bg-card flex flex-col gap-4 rounded-lg border p-4 md:p-5">
+      <div className="bg-card @container/field-group flex flex-col gap-4 rounded-lg border p-4 md:p-5">
         {rootFields.map(({ field, value, config }) => (
           <Field key={field} orientation="responsive" className="gap-4">
             <FieldContent
@@ -140,13 +127,12 @@ function TrackingForm() {
         onRemoveProcess={removeProcess}
       />
 
-      <div className="flex w-full flex-col items-end">
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          className="mt-4 w-[200px]"
-        >
-          {isSubmitting ? <Spinner className="size-4" /> : 'Submit'}
+      <div className="flex w-full flex-col items-end gap-2">
+        <p className="text-muted-foreground text-xs">
+          추적 명령 전송 API가 아직 연결되지 않았습니다.
+        </p>
+        <Button type="submit" disabled className="mt-1 w-[200px]">
+          Submit
         </Button>
       </div>
     </form>

@@ -178,12 +178,12 @@ function AttributeForm({
     defaultValues: defaults,
   });
 
-  const { data: usingModels = [] } = useQuery({
+  const { data: usingModels } = useQuery({
     ...attributeQueries.usingModels(attrId),
     enabled: !isNew && Boolean(attrId),
   });
 
-  const isInUse = usingModels.length > 0;
+  const isInUse = usingModels === undefined || usingModels.length > 0;
   const isCustom = type === 'e8ight';
   const isFieldLocked = !isEditMode || !isCustom;
   const isPending =
@@ -371,7 +371,10 @@ function AttributeForm({
   return (
     <div className="flex h-full w-full flex-col">
       <div className="flex shrink-0 items-center gap-2 px-4 pt-4">
-        <h2 className="text-foreground min-w-0 truncate text-lg font-bold">
+        <h2
+          className="text-foreground min-w-0 truncate text-lg font-bold"
+          title={attrId}
+        >
           {attrId}
         </h2>
         {type && <Badge variant="secondary">{type}</Badge>}

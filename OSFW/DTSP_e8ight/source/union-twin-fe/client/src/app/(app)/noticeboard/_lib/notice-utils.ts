@@ -52,6 +52,7 @@ export function formatRelativeDate(iso: string): string {
 }
 
 const ABSOLUTE_FORMATTER = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'Asia/Seoul',
   year: 'numeric',
   month: 'long',
   day: 'numeric',

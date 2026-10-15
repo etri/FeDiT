@@ -20,7 +20,7 @@ RUN mkdir -p /opt/flume/plugins.d/agent/lib \
 
 # mv dataAdapter library
 COPY ./dataAdapter/build/libs/dataAdapter.jar /opt/flume/plugins.d/agent/lib/dataAdapter.jar
-COPY ./dataAdapter/src/main/agent/lib /opt/flume/plugins.d/agent/libext
+COPY ./dataAdapter/build/agentLib /opt/flume/plugins.d/agent/libext
 
 # mv flume agent settings
 COPY ./dataAdapter/src/main/agent/adaptorWO.conf /opt/flume/conf

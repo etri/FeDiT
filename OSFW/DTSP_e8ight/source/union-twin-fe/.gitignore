@@ -72,3 +72,8 @@ vite.config.d.ts
 
 # Claude superpowers 작업 문서는 레포에 넣지 않는다
 docs/superpowers/
+
+### OS·IDE·AI 도구 로컬 설정 ###
+.DS_Store
+.vscode/
+.claude/

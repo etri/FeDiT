@@ -9,6 +9,7 @@ import kr.co.e8ight.ndxpro.databroker.dto.EntityDto;
 import kr.co.e8ight.ndxpro.databroker.dto.EntityProviderDto;
 import kr.co.e8ight.ndxpro.databroker.dto.QueryDto;
 import kr.co.e8ight.ndxpro.databroker.dto.iot.IoTObservedAtDto;
+import kr.co.e8ight.ndxpro.databroker.repository.EntityRepository;
 import kr.co.e8ight.ndxpro.databroker.repository.iot.IoTEntityHistoryRepository;
 import kr.co.e8ight.ndxpro.databroker.repository.iot.IoTEntityRepository;
 import kr.co.e8ight.ndxpro.databroker.repository.iot.IoTEntityValidationRepository;
@@ -17,6 +18,8 @@ import kr.co.e8ight.ndxpro.databroker.service.AttributeCacheService;
 import kr.co.e8ight.ndxpro.databroker.service.EntityValidationService;
 import kr.co.e8ight.ndxpro.databroker.util.DataBrokerDateFormat;
 import kr.co.e8ight.ndxpro.databroker.util.SortTypeCode;
+import kr.co.e8ight.ndxpro.common.exception.error.ErrorCode;
+import kr.co.e8ight.ndxpro.databroker.exception.DataBrokerException;
 import org.bson.Document;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,11 +38,16 @@ import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 public class IoTEntityServiceTest {
@@ -49,6 +57,9 @@ public class IoTEntityServiceTest {
 
     @Mock
     private IoTEntityHistoryRepository ioTEntityHistoryRepository;
+
+    @Mock
+    private EntityRepository entityRepository;
 
     @Mock
     private IoTObservedAtRepository ioTObservedAtRepository;
@@ -96,7 +107,7 @@ public class IoTEntityServiceTest {
                 .q("lane==1")
                 .offset(defaultPageable.getPageNumber())
                 .limit(defaultPageable.getPageSize())
-                .link("http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld")
+                .link("http://context-server:3005/e8ight-context-v1.0.1.jsonld")
                 .sort(SortTypeCode.ASC)
                 .sortproperty("location.observedAt")
                 .build();
@@ -144,7 +155,7 @@ public class IoTEntityServiceTest {
                 .q("lane==1")
                 .offset(defaultPageable.getPageNumber())
                 .limit(defaultPageable.getPageSize())
-                .link("http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld")
+                .link("http://context-server:3005/e8ight-context-v1.0.1.jsonld")
                 .sort(SortTypeCode.ASC)
                 .sortproperty("location.observedAt")
                 .build();
@@ -188,7 +199,7 @@ public class IoTEntityServiceTest {
     public void getIoTEntity() {
         // given
         String entityId = "urn:e8ight:SimulationVehicle:1010";
-        String context = "http://172.16.28.218:3005/e8ight-context-v1.0.1.jsonld";
+        String context = "http://context-server:3005/e8ight-context-v1.0.1.jsonld";
 
         // when
         doReturn(testIoTEntity)
@@ -197,6 +208,22 @@ public class IoTEntityServiceTest {
         // then
         EntityDto entityDto = ioTEntityService.getIoTEntity(entityId, context);
         assertEquals(entityDto.getId(), entityId);
+    }
+
+    @Test
+    @DisplayName("IoT Entity 단건 조회 테스트 (context 없이 id 만으로 조회)")
+    public void getIoTEntityWithoutContext() {
+        // given
+        String entityId = "urn:e8ight:SimulationVehicle:1010";
+
+        // when
+        doReturn(testIoTEntity)
+                .when(ioTEntityRepository).findFirstByIdId(entityId);
+
+        // then
+        EntityDto entityDto = ioTEntityService.getIoTEntity(entityId, null);
+        assertEquals(entityDto.getId(), entityId);
+        verify(ioTEntityRepository, never()).findByIdIdAndContext(any(), any());
     }
 
     @Test
@@ -220,6 +247,52 @@ public class IoTEntityServiceTest {
         // then
         IoTEntity entity = ioTEntityService.saveIoTEntity(testIoTEntity);
         assertEquals(entity.getId().getId(), testIoTEntity.getId().getId());
+    }
+
+    @Test
+    @DisplayName("REST 시계열 Entity 저장 테스트")
+    public void createIoTEntity() {
+        // given
+        doReturn(null)
+                .when(ioTEntityRepository).findByIdId(any());
+        doReturn(testIoTEntity)
+                .when(ioTEntityRepository).insert(any(IoTEntity.class));
+        doReturn(Optional.empty())
+                .when(ioTEntityHistoryRepository).findFirstHistoryEntityData(any(), eq("observedAt"), eq("2023-03-14T01:00:59.285+00:00"));
+
+        // when
+        IoTEntity entity = ioTEntityService.createIoTEntity(testIoTEntity);
+
+        // then
+        assertEquals(entity.getId().getId(), testIoTEntity.getId().getId());
+        verify(ioTEntityHistoryRepository).insert(any(IoTEntityHistory.class));
+    }
+
+    @Test
+    @DisplayName("REST 시계열 Entity 저장 - 유효성 검사 실패 시 예외 및 미저장")
+    public void createIoTEntityWithInvalidEntity() {
+        // given
+        doThrow(new DataBrokerException(ErrorCode.BAD_REQUEST_DATA, "invalid"))
+                .when(entityValidationService).validateEntity(any());
+
+        // when, then
+        assertThrows(DataBrokerException.class, () -> ioTEntityService.createIoTEntity(testIoTEntity));
+        verify(ioTEntityRepository, never()).insert(any(IoTEntity.class));
+        verify(ioTEntityValidationRepository, never()).insert(any(IoTEntityValidation.class));
+    }
+
+    @Test
+    @DisplayName("REST 시계열 Entity 저장 - observedAt 없으면 예외")
+    public void createIoTEntityWithoutObservedAt() {
+        // given
+        testIoTEntity.getAttrs().forEach(attribute -> {
+            if (attribute.getMd() != null)
+                attribute.getMd().removeIf(childAttribute -> "observedAt".equals(childAttribute.getName()));
+        });
+
+        // when, then
+        assertThrows(DataBrokerException.class, () -> ioTEntityService.createIoTEntity(testIoTEntity));
+        verify(ioTEntityRepository, never()).insert(any(IoTEntity.class));
     }
 
     @Test

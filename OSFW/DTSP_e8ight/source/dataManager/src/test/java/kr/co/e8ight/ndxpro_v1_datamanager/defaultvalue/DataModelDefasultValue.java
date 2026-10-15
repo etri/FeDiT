@@ -107,7 +107,7 @@
 //            + "    \"reference\": [\n"
 //            + "        \"https://geojson.org/schema/Geometry.json\"\n"
 //            + "    ],\n"
-//            + "    \"@context\": \"http://172.16.28.35:3005/e8ight-context.jsonld\"\n"
+//            + "    \"@context\": \"http://context-server:3005/e8ight-context.jsonld\"\n"
 //            + "    }";
 //
 //
@@ -215,7 +215,7 @@
 //            + "    \"reference\": [\n"
 //            + "        \"https://geojson.org/schema/Geometry.json\"\n"
 //            + "    ],\n"
-//            + "    \"@context\": \"http://172.16.28.35:3005/e8ight-context.jsonld\"\n"
+//            + "    \"@context\": \"http://context-server:3005/e8ight-context.jsonld\"\n"
 //            + "    }";
 //
 //    public static final String WrongAttribute = "{\n"
@@ -339,7 +339,7 @@
 //            + "    \"reference\": [\n"
 //            + "        \"https://geojson.org/schema/Geometry.json\"\n"
 //            + "    ],\n"
-//            + "    \"@context\": \"http://172.16.28.35:3005/e8ight-context.jsonld\"\n"
+//            + "    \"@context\": \"http://context-server:3005/e8ight-context.jsonld\"\n"
 //            + "    }";
 //
 //
@@ -448,7 +448,7 @@
 //            + "    \"reference\": [\n"
 //            + "        \"https://geojson.org/schema/Geometry.json\"\n"
 //            + "    ],\n"
-//            + "    \"@context\": \"http://172.16.28.35:3005/e8ight-context.jsonld\"\n"
+//            + "    \"@context\": \"http://context-server:3005/e8ight-context.jsonld\"\n"
 //            + "    }";
 //
 //

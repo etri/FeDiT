@@ -12,6 +12,7 @@ import {
   GitBranch,
   GitFork,
   Layers,
+  List,
   Megaphone,
   Search,
   Settings2,
@@ -84,7 +85,14 @@ const analyticsNavigation: NavigationItem[] = [
   { title: '예측기', icon: TrendingUp, href: '/predictor' },
   { title: '물리 시뮬레이션', icon: Box, href: '/physics' },
   { title: '이산/연속 시뮬레이션', icon: TrendingUpDown, href: '/simulation' },
-  { title: '이벤트 트래킹', icon: Activity, href: '/tracking' },
+  {
+    title: '이벤트 트래킹',
+    icon: Activity,
+    items: [
+      { title: '트래킹 요청', icon: Activity, href: '/tracking/request' },
+      { title: '트래킹 요청 목록', icon: List, href: '/tracking/list' },
+    ],
+  },
   { title: '시각화 뷰어', icon: Eye, href: '/viewer?tour_id=03' },
 ];
 
@@ -92,7 +100,11 @@ const developerNavigation: NavigationItem[] = [
   {
     title: 'API 문서',
     icon: FileCode,
-    items: [{ title: '제주시 공기질 API', href: '/docs/jeju' }],
+    items: [
+      { title: '데이터 모델 API', href: '/docs/data-model' },
+      { title: '데이터 조회 API', href: '/docs/entity' },
+      { title: '제주시 공기질 API', href: '/docs/jeju' },
+    ],
   },
   { title: 'GitHub', icon: GitFork, href: '/github' },
   { title: '3D 뷰어 데모', icon: Boxes, href: '/demo' },

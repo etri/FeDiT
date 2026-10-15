@@ -3,7 +3,6 @@ import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 import {
   getEntities,
   getEntityDetail,
-  getIotEntities,
   getIotEntityDetail,
   getIotEntityHistory,
 } from '@/apis/entity/entityApi';
@@ -24,6 +23,7 @@ export const entityKeys = {
     contextId: string,
     modelId: string,
     isDynamic: boolean,
+    pageLimit: number,
     searchInfo: EntitySearchInfoType,
   ) =>
     [
@@ -32,13 +32,23 @@ export const entityKeys = {
       contextId,
       modelId,
       isDynamic,
+      pageLimit,
       searchInfo,
     ] as const,
   history: (
     contextId: string,
     entityId: string,
+    pageLimit: number,
     searchInfo: EntitySearchInfoType,
-  ) => [...entityKeys.all, 'history', contextId, entityId, searchInfo] as const,
+  ) =>
+    [
+      ...entityKeys.all,
+      'history',
+      contextId,
+      entityId,
+      pageLimit,
+      searchInfo,
+    ] as const,
   detail: (contextId: string, entityId: string) =>
     [...entityKeys.all, 'detail', contextId, entityId] as const,
   historyDetail: (historyId: string, timeproperty: string) =>
@@ -59,6 +69,7 @@ export const entityQueries = {
         variables.contextId,
         variables.modelId,
         variables.isDynamic,
+        variables.pageLimit,
         variables.searchInfo,
       ),
       enabled: Boolean(variables.requestConfig),
@@ -76,17 +87,10 @@ export const entityQueries = {
           },
         };
 
-        return variables.isDynamic
-          ? getIotEntities(nextConfig)
-          : getEntities(nextConfig);
+        return getEntities(nextConfig);
       },
-      getNextPageParam: (lastPage, _allPages, lastPageParam) => {
-        if (lastPage.entities.length < variables.pageLimit) {
-          return undefined;
-        }
-
-        return lastPageParam + lastPage.entities.length;
-      },
+      getNextPageParam: (lastPage, _allPages, lastPageParam) =>
+        lastPageParam + 1 < lastPage.totalPage ? lastPageParam + 1 : undefined,
     }),
 
   history: (variables: {
@@ -100,6 +104,7 @@ export const entityQueries = {
       queryKey: entityKeys.history(
         variables.contextId,
         variables.entityId,
+        variables.pageLimit,
         variables.searchInfo,
       ),
       enabled: Boolean(variables.requestConfig),
@@ -119,13 +124,8 @@ export const entityQueries = {
 
         return getIotEntityHistory(nextConfig);
       },
-      getNextPageParam: (lastPage, _allPages, lastPageParam) => {
-        if (lastPage.entityHistoryList.length < variables.pageLimit) {
-          return undefined;
-        }
-
-        return lastPageParam + lastPage.entityHistoryList.length;
-      },
+      getNextPageParam: (lastPage, _allPages, lastPageParam) =>
+        lastPageParam + 1 < lastPage.totalPage ? lastPageParam + 1 : undefined,
     }),
 
   detailByMode: (variables: {

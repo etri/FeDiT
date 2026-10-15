@@ -2,7 +2,10 @@ import { toast } from '@e8ight/ui/components/ui/sonner';
 import { useShallow } from 'zustand/react/shallow';
 
 import { usePostAgentMutation } from '@/apis/agent';
-import { agentSchema } from '@/app/(app)/service/agents/_schemas/agent.schema';
+import {
+  agentSchema,
+  formatAgentIssues,
+} from '@/app/(app)/service/agents/_schemas/agent.schema';
 import { useAgentStore } from '@/app/(app)/service/agents/_stores/useAgentStore';
 
 export function useSubmitNewAgent() {
@@ -14,8 +17,7 @@ export function useSubmitNewAgent() {
   async function submit(onSuccess: () => void) {
     const parsed = agentSchema.safeParse(agent);
     if (!parsed.success) {
-      const messages = parsed.error.issues.map((i) => i.message).join(', ');
-      toast.error(`Validation failed: ${messages}`);
+      toast.error(`Validation failed: ${formatAgentIssues(parsed.error)}`);
       return;
     }
 
@@ -23,8 +25,8 @@ export function useSubmitNewAgent() {
       name: agent.name,
       type: agent.type,
       urlAddress: agent.urlAddress,
-      isCustomTopic: agent.isCustomTopic,
-      topic: agent.isCustomTopic ? agent.topic : undefined,
+      isCustomTopic: true,
+      topic: agent.topic,
       models: agentModel,
       ...(agent.type === 'KAFKA'
         ? { sourceTopic: agent.sourceTopic }

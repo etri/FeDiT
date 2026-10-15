@@ -8,4 +8,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface EntityRepository extends MongoRepository<Entity, EntityId> {
     Entity findByIdIdAndContext(String entityId, String context);
+
+    Entity findFirstByIdId(String entityId);
 }

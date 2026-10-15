@@ -17,8 +17,10 @@ export type ValueType =
   | 'POINT'
   | 'POLYGON';
 
+export type AttributeType = 'Property' | 'GeoProperty' | 'Relationship';
+
 export interface DataModelAttribute {
-  type?: 'Property' | 'GeoProperty' | 'Relationship' | string;
+  type?: AttributeType | string;
   valueType?: ValueType;
   description?: string;
   valid?: {

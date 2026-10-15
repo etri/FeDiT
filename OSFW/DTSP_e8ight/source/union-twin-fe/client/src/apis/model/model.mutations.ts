@@ -4,6 +4,7 @@ import { modelKeys } from '@/apis/model/model.queries';
 import {
   deleteModel,
   postModelData,
+  postModelVersionUp,
   putIsReady,
   putModel,
 } from '@/apis/model/modelApi';
@@ -35,6 +36,17 @@ export function useDeleteModelMutation() {
 
   return useMutation({
     mutationFn: deleteModel,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: modelKeys.all });
+    },
+  });
+}
+
+export function usePostModelVersionUpMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: postModelVersionUp,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: modelKeys.all });
     },

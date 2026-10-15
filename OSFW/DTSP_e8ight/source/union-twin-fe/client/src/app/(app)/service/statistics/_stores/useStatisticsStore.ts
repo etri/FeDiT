@@ -1,15 +1,8 @@
 import { create } from 'zustand';
 
-import lang from '@/app/(app)/service/statistics/_constants/lang.json';
 import { getDate } from '@/app/(app)/service/statistics/_utils';
 
-export const TabList = [
-  { tabName: lang.en.dataModelStatistics, tabPath: 'DataModelStatistics' },
-  {
-    tabName: lang.en.dataModelSourceStatistics,
-    tabPath: 'DataModelSourceStatistics',
-  },
-];
+export type StatisticsDimension = 'models' | 'providers';
 
 interface ISelectedItem {
   dataModel: string;
@@ -18,33 +11,26 @@ interface ISelectedItem {
 
 interface StatisticsState {
   currentDate: string;
-  currentTab: string;
+  dimension: StatisticsDimension;
   selectedItems: ISelectedItem;
-  clickable: boolean;
   setCurrentDate: (currentDate: string) => void;
-  setCurrentTab: (currentTab: string) => void;
+  setDimension: (dimension: StatisticsDimension) => void;
   setSelectedItems: (selectedItems: ISelectedItem) => void;
-  setClickable: (value: boolean) => void;
-}
-
-const initialSelectedItems: ISelectedItem = {
-  dataModel: '',
-  provider: '',
-};
-
-function createInitialStatisticsState() {
-  return {
-    currentDate: getDate(new Date(), 0),
-    currentTab: TabList[0].tabPath,
-    selectedItems: { ...initialSelectedItems },
-    clickable: true,
-  };
 }
 
 export const useStatisticsStore = create<StatisticsState>((set) => ({
-  ...createInitialStatisticsState(),
-  setCurrentDate: (currentDate) => set({ currentDate }),
-  setCurrentTab: (currentTab) => set({ currentTab }),
+  currentDate: getDate(new Date(), 0),
+  dimension: 'models',
+  selectedItems: { dataModel: '', provider: '' },
+  setCurrentDate: (currentDate) =>
+    set({ currentDate, selectedItems: { dataModel: '', provider: '' } }),
+  setDimension: (dimension) =>
+    set((state) => ({
+      dimension,
+      selectedItems:
+        dimension === 'models'
+          ? { ...state.selectedItems, provider: '' }
+          : state.selectedItems,
+    })),
   setSelectedItems: (selectedItems) => set({ selectedItems }),
-  setClickable: (value) => set({ clickable: value }),
 }));

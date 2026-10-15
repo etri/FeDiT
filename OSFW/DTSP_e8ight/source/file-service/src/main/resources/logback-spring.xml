@@ -48,15 +48,43 @@
         </encoder>
     </appender>
 
-<!--    <springProfile name="dev">-->
-<!--    </springProfile>-->
-<!--    <springProfile name="prod">-->
-<!--    </springProfile>-->
-    <logger name="kr.co.e8ight.ndxpro.fileservice" level="DEBUG" additivity="false">
-        <appender-ref ref="CONSOLE"/>
-    </logger>
-    <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
-    </root>
+    <springProfile name="prod">
+        <logger name="kr.co.e8ight.ndxpro.fileservice" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="INFO_DEFAULT_FILE_APPENDER"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="INFO_DEFAULT_FILE_APPENDER"/>
+        </root>
+    </springProfile>
+    <springProfile name="stg">
+        <logger name="kr.co.e8ight.ndxpro.fileservice" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="INFO_DEFAULT_FILE_APPENDER"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="INFO_DEFAULT_FILE_APPENDER"/>
+        </root>
+    </springProfile>
+    <springProfile name="dev">
+        <logger name="kr.co.e8ight.ndxpro.fileservice" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="INFO_DEFAULT_FILE_APPENDER"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="INFO_DEFAULT_FILE_APPENDER"/>
+        </root>
+    </springProfile>
+    <springProfile name="local">
+        <logger name="kr.co.e8ight.ndxpro.fileservice" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
 
 </configuration>

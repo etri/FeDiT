@@ -9,8 +9,8 @@ import {
   EmptyTitle,
 } from '@e8ight/ui/components/ui/empty';
 import { Skeleton } from '@e8ight/ui/components/ui/skeleton';
-import { cn } from '@e8ight/ui/utils/cn';
 import { useSuspenseQuery } from '@tanstack/react-query';
+import { cn } from 'cn';
 import { Megaphone, SearchX } from 'lucide-react';
 
 import { noticeQueries } from '@/apis/notices';
@@ -100,7 +100,7 @@ export default function NoticesList() {
         )}
       </div>
 
-      {meta.totalPages > 0 && results.length > 0 && (
+      {meta.totalPages > 0 && (
         <PaginationFooter
           meta={meta}
           page={page}

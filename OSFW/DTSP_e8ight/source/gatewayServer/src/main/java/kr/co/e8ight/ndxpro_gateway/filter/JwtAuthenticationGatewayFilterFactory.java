@@ -53,7 +53,8 @@ public class JwtAuthenticationGatewayFilterFactory extends AbstractGatewayFilter
 
             if (request.getPath().value().equals("/ndxpro/v1/auth/login") ||
                     request.getPath().value().equals("/ndxpro/v1/auth/signup") ||
-                    request.getPath().value().equals("/ndxpro/v1/auth/reAccessToken")
+                    request.getPath().value().equals("/ndxpro/v1/auth/reAccessToken") ||
+                    request.getPath().value().equals("/ndxpro/v1/ingest/translator/stopAgent")
             ) {
                 return chain.filter(exchange).then(Mono.fromRunnable(() -> {
                     if (config.isPostLogger()) {
