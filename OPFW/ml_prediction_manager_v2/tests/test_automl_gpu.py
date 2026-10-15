@@ -16,6 +16,10 @@ class GPUTrainingTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             self.request(models=['rf', 'mlp', 'lgbm'], gpu_per_trial=1)
 
+    def test_empty_model_selection_is_rejected(self):
+        with self.assertRaises(ValidationError):
+            self.request(models=[])
+
     def test_single_device_training_does_not_reserve_multiple_gpus(self):
         with self.assertRaises(ValidationError):
             self.request(models=['xgb'], gpu_per_trial=2)
@@ -29,6 +33,14 @@ class GPUTrainingTests(unittest.TestCase):
     def test_tabnet_cpu_request_stays_on_cpu_even_when_gpu_exists(self):
         model = _build_model('tabnet', 'regression', {}, use_gpu=False)
         self.assertEqual(str(model.device), 'cpu')
+
+    def test_invalid_resource_profile_defaults_are_rejected(self):
+        for name, value in [('AUTOML_BATCH_SIZE', '0'),
+                            ('AUTOML_MAX_CONCURRENT_TRIALS', '0'),
+                            ('AUTOML_GPU_MEMORY_FRACTION', '1.5')]:
+            with self.subTest(name=name), patch.dict(os.environ, {name: value}):
+                with self.assertRaises(ValidationError):
+                    self.request()
 
     def test_tabnet_gpu_request_fails_when_cuda_is_missing(self):
         with patch('torch.cuda.is_available', return_value=False):

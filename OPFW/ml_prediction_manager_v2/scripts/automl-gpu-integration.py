@@ -34,12 +34,15 @@ def main():
             port = listener.getsockname()[1]
         uri = f'http://127.0.0.1:{port}'
         with (work / 'mlflow.log').open('w', encoding='utf-8') as log:
+            # This probe needs tracking/artifacts only. MLflow's unrelated
+            # async evaluation job workers otherwise consume scarce WSL RAM.
+            server_env = dict(os.environ, MLFLOW_SERVER_ENABLE_JOB_EXECUTION='false')
             server = subprocess.Popen([
                 sys.executable, '-m', 'mlflow', 'server', '--host', '127.0.0.1',
                 '--port', str(port), '--workers', '1',
                 '--backend-store-uri', 'sqlite:///' + (work / 'tracking.db').as_posix(),
                 '--artifacts-destination', (work / 'artifacts').as_uri(),
-            ], stdout=log, stderr=subprocess.STDOUT, cwd=work,
+            ], stdout=log, stderr=subprocess.STDOUT, cwd=work, env=server_env,
                 creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
             print(f'MLFLOW_TEST_SERVER pid={server.pid} url={uri}', flush=True)
             try:
