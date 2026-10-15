@@ -125,7 +125,7 @@ fi
 : "${RAY_IMAGE_TAG:=ray-mlflow:2.54.1}"
 : "${NIFI_IMAGE_TAG:=prediction-manager-nifi-python:1.28.1-pm2}"
 : "${LABEL_STUDIO_IMAGE_TAG:=label-studio:1.18.0}"
-: "${RAY_BASE_IMAGE:=rayproject/ray:2.54.1-py312-gpu}"
+: "${RAY_BASE_IMAGE:=rayproject/ray:2.54.1-py312}"
 : "${RAY_XGBOOST_PACKAGE:=xgboost}"
 : "${INSTALL_MONITORING:=true}"
 : "${INSTALL_LABEL_STUDIO:=true}"
@@ -3357,6 +3357,8 @@ build_and_push_images() {
   local ray_image="${REGISTRY_HOST}/${RAY_IMAGE_TAG}"
   local nifi_image="${REGISTRY_HOST}/${NIFI_IMAGE_TAG}"
   local label_image="${REGISTRY_HOST}/${LABEL_STUDIO_IMAGE_TAG}"
+  local install_gpu_ml=false
+  gpu_stack_enabled && install_gpu_ml=true
   docker buildx version
   retry_command 3 15 "Prediction Manager image build" \
     docker buildx build --load --pull --build-arg "INSTALL_PROFILE=${INSTALL_PROFILE}" \
@@ -3368,6 +3370,7 @@ build_and_push_images() {
     retry_command 3 15 "Ray image build" docker buildx build --load --pull \
       --build-arg "RAY_BASE_IMAGE=${RAY_BASE_IMAGE}" \
       --build-arg "XGBOOST_PACKAGE=${RAY_XGBOOST_PACKAGE}" \
+      --build-arg "INSTALL_GPU_ML=${install_gpu_ml}" \
       -t "$ray_image" "${PROJECT_ROOT}/docker/ray-mlflow"
     retry_command 3 15 "NiFi image build" docker buildx build --load --pull -t "$nifi_image" \
       "${PREDICTION_MANAGER_ROOT}/docker/nifi-python"
@@ -3598,11 +3601,15 @@ PM_TENANT_RAY_AUTOSCALER_LIMIT_MEMORY=${ray_autoscaler_limit_memory}
 PM_TENANT_RAY_GPU_WORKER_ENABLED=${ray_gpu_worker_enabled}
 PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS=${PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS}
 PM_TENANT_RAY_GPU_WORKER_REQUEST_CPU=250m
-PM_TENANT_RAY_GPU_WORKER_REQUEST_MEMORY=1Gi
+PM_TENANT_RAY_GPU_WORKER_REQUEST_MEMORY=${PM_TENANT_RAY_GPU_WORKER_REQUEST_MEMORY:-1Gi}
 PM_TENANT_RAY_GPU_WORKER_REQUEST_GPU=1
-PM_TENANT_RAY_GPU_WORKER_LIMIT_CPU=1
-PM_TENANT_RAY_GPU_WORKER_LIMIT_MEMORY=3Gi
+PM_TENANT_RAY_GPU_WORKER_LIMIT_CPU=${PM_TENANT_RAY_GPU_WORKER_LIMIT_CPU:-1}
+PM_TENANT_RAY_GPU_WORKER_LIMIT_MEMORY=${PM_TENANT_RAY_GPU_WORKER_LIMIT_MEMORY:-3Gi}
 PM_TENANT_RAY_GPU_WORKER_LIMIT_GPU=1
+AUTOML_MAX_CONCURRENT_PER_NS=${AUTOML_MAX_CONCURRENT_PER_NS:-1}
+AUTOML_MAX_CONCURRENT_TRIALS=${AUTOML_MAX_CONCURRENT_TRIALS:-1}
+AUTOML_BATCH_SIZE=${AUTOML_BATCH_SIZE:-256}
+AUTOML_GPU_MEMORY_FRACTION=${AUTOML_GPU_MEMORY_FRACTION:-0.8}
 PM_TENANT_NIFI_IMAGE=${REGISTRY_HOST}/${NIFI_IMAGE_TAG}
 PM_TENANT_NIFI_RUN_AS_USER=1000
 PM_TENANT_NIFI_RUN_AS_GROUP=1000

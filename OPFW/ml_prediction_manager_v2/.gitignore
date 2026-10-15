@@ -45,3 +45,4 @@ tests/internal/evidence/
 
 # Rendered Kubernetes manifests
 k8s/deployment.yaml
+scripts/k8s/deployment.yaml

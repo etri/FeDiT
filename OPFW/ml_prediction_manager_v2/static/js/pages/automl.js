@@ -102,7 +102,7 @@ function _validateAutoMLRequest(body) {
         _validateAutoMLRange(body.timeout_minutes, '제한 시간(분)', 1, 720),
         _validateAutoMLRange(body.test_size, '테스트 비율', 0.05, 0.5),
         _validateAutoMLRange(body.cpu_per_trial, 'Trial당 CPU', 0.1, 16),
-        _validateAutoMLRange(body.gpu_per_trial, 'Trial당 GPU', 0, 4),
+        _validateAutoMLRange(body.gpu_per_trial, 'Trial당 GPU', 0, 1),
         _validateAutoMLRange(body.memory_per_trial_gb, 'Trial당 메모리(GB)', 0.5, 128),
         _validateAutoMLRange(body.top_n, '저장 모델 수', 1, 10),
     ].filter(Boolean);
@@ -261,7 +261,7 @@ async function renderAutoML() {
             <div class="automl-modal">
                 <h3>새 AutoML Job</h3>
                 <div style="background:#fef3c7; border:1px solid #fcd34d; padding:8px 12px; border-radius:6px; font-size:12px; margin-bottom:12px; color:#78350f;">
-                    <b>사용자 Ray 클러스터</b> · 여러 Job을 동시에 제출하면 리소스(CPU/메모리/GPU)가 부족해 Trial이 <b>대기(PENDING)</b> 상태로 머무를 수 있습니다. GPU는 TabNet처럼 GPU 학습 경로가 있는 모델에만 사용됩니다.
+                    <b>사용자 Ray 클러스터</b> · 여러 Job을 동시에 제출하면 리소스(CPU/메모리/GPU)가 부족해 Trial이 <b>대기(PENDING)</b> 상태로 머무를 수 있습니다. GPU는 XGBoost·TabNet 학습에 사용됩니다.
                 </div>
                 <div class="automl-form">
                     <label>실험 이름 *</label>
@@ -324,8 +324,8 @@ async function renderAutoML() {
                         </div>
                         <div>
                             <label style="margin-top:2px;">GPU</label>
-                            <input id="automl-gpu" type="number" value="0" min="0" max="4" step="0.25" />
-                            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">RF/XGB/LGBM/MLP는 현재 CPU로 실행</div>
+                            <input id="automl-gpu" type="number" value="0" min="0" max="1" step="0.25" />
+                            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">GPU 학습: XGBoost·TabNet. RF/LGBM/MLP는 CPU. 분할 GPU는 VRAM을 격리하지 않습니다.</div>
                         </div>
                         <div>
                             <label style="margin-top:2px;">메모리 (GB)</label>

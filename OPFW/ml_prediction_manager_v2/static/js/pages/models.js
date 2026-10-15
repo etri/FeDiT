@@ -2312,7 +2312,7 @@ function openFeedbackRetrainModal(name, versionInfo) {
                                 <input id="frt-cpu" class="mu-input" type="number" min="0.1" max="16" step="0.1" value="1" />
                             </label>
                             <label class="rt-field">Trial GPU
-                                <input id="frt-gpu" class="mu-input" type="number" min="0" max="4" step="0.25" value="0" />
+                                <input id="frt-gpu" class="mu-input" type="number" min="0" max="1" step="0.25" value="0" />
                             </label>
                             <label class="rt-field rt-field-full">Trial Memory(GB)
                                 <input id="frt-memory" class="mu-input" type="number" min="0.5" max="128" step="0.5" value="2" />
@@ -2501,7 +2501,7 @@ function openRetrainModal(name, versionInfo) {
                                 <input id="rt-cpu" class="mu-input" type="number" min="0.1" max="16" step="0.1" value="1" />
                             </label>
                             <label class="rt-field">Trial GPU
-                                <input id="rt-gpu" class="mu-input" type="number" min="0" max="4" step="0.25" value="0" />
+                                <input id="rt-gpu" class="mu-input" type="number" min="0" max="1" step="0.25" value="0" />
                             </label>
                             <label class="rt-field rt-field-full">Trial Memory(GB)
                                 <input id="rt-memory" class="mu-input" type="number" min="0.5" max="128" step="0.5" value="2" />
