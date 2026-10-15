@@ -56,8 +56,11 @@ GPU worker 이미지 태그는 `ray-mlflow:2.54.1-gpu-cu118`로 분리하여 기
 ```
 
 WSL은 기존 약 8GiB 제한을 유지한다. 이 환경에서는 전체 Kubeflow를 새로 설치하지
-않고 Windows 사용자 가상환경으로 실제 CUDA 학습을 먼저 검증한다. WSL 패키지
-다운로드는 현재 DNS 조회 실패가 확인되어 개발 경로로 사용하지 않는다.
+않고 Windows 사용자 가상환경으로 실제 CUDA 학습을 먼저 검증했다. 최초 WSL
+점검에서는 DNS/HTTPS 실패가 있었으나, 같은 날 추가 점검에서 DNS와 HTTPS가
+정상 응답했고 pip wheel 다운로드와 Docker manifest 조회도 성공했다. 추가 점검
+중 네트워크 설정이나 방화벽을 변경하지 않았으므로 복구 원인은 확정하지 않는다.
+WSL 통신을 지속적인 차단 상태로 간주하지 않으며 Linux 검증에 다시 사용할 수 있다.
 Windows Python 3.11과 배포 이미지 Python 3.12의 차이가 있으므로 로컬 학습 성공을
 Linux Kubernetes 배포 성공으로 간주하지 않는다.
 Windows 설정 스크립트는 Python 프로세스에 UTF-8을 적용한다. 전체 AutoML 점검

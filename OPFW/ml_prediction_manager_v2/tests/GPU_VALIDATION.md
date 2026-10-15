@@ -43,3 +43,14 @@ Kubernetes/Kubeflow 전체 배포, KServe 추론 런타임 준비, 실제 대용
 다중 사용자 부하, 10.254.254.x subnet의 전체 서비스 수용량.
 서버의 `/data` 사용자 쓰기 권한, Docker 접근, NVIDIA runtime, Kubernetes 사전
 구성은 아직 준비되지 않았다. 서버 배포 완료나 전체 플랫폼 운영 안정성을 의미하지 않는다.
+
+## WSL 외부 통신 추가 점검
+
+같은 날 일반 사용자 `user`로 재점검했다. 네트워크 설정/방화벽 변경이나 WSL
+재시작 없이 PyPI/PyTorch/GitHub/Docker Registry DNS가 모두 응답했다.
+PyPI와 PyTorch HTTPS는 200, private GitHub URL은 미인증 404,
+Docker Registry `/v2/`는 정상 인증 요구 응답 401을 받았다.
+`pip download --no-deps packaging==25.0`으로 실제 wheel을 내려받았고,
+`docker manifest inspect docker.io/library/python:3.12-slim`도 성공했다.
+현재 통신은 정상이며 이전 장애의 원인은 확정하지 않았다. 이 점검은 Linux
+GPU 이미지 빌드나 전체 Kubernetes 검증을 대신하지 않는다.
