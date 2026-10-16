@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.DtEvtTracking.common.mapper.TrackingTaskProcessingInfoMapper">
+  	
+  	<select id="getTaskProcessingCount" parameterType="map" resultType="int">
+  		SELECT count(task_processing_id) cnt
+  		FROM tracking_task_processing_info
+		WHERE 1=1
+			<if test="taskProcessingId != null">
+				and task_processing_id = #{taskProcessingId}
+			</if>
+			<if test="trackingProcessId != null">
+				and tracking_process_id = #{trackingProcessId}
+			</if>
+			<if test="request_tracking_id != null">
+				and request_tracking_id = #{request_tracking_id}
+			</if>
+			<if test="taskProcessingStatus != null">
+				and task_processing_status = #{taskProcessingStatus}
+			</if>
+  	</select>
+
+	<select id="getTaskProcessingList" parameterType="Map" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingTaskProcessingInfo">
+  		SELECT task_processing_id,
+		    tracking_process_id,
+		    request_tracking_id,
+		   	task_processing_start_time,
+		    task_processing_result_msg,
+		    task_processing_status,
+		   	task_processing_end_time
+		FROM tracking_task_processing_info
+		WHERE 1=1
+			<if test="taskProcessingId != null">
+				and task_processing_id = #{taskProcessingId}
+			</if>
+			<if test="trackingProcessId != null">
+				and tracking_process_id = #{trackingProcessId}
+			</if>
+			<if test="requestTrackingId != null">
+				and request_tracking_id = #{requestTrackingId}
+			</if>
+			<if test="taskProcessingStatus != null">
+				and task_processing_status = #{taskProcessingStatus}
+			</if>
+			order by task_processing_id desc
+  	</select>
+  	
+  	<select id="getTaskProcessingInfo" parameterType="Map" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingTaskProcessingInfo">
+  		SELECT task_processing_id,
+		    tracking_process_id,
+		    request_tracking_id,
+		   	task_processing_start_time,
+		    task_processing_result_msg,
+		    task_processing_status,
+		   	task_processing_end_time
+		FROM tracking_task_processing_info
+		WHERE 1=1
+			<if test="taskProcessingId != null">
+				and task_processing_id = #{taskProcessingId}
+			</if>
+			<if test="trackingProcessId != null">
+				and tracking_process_id = #{trackingProcessId}
+			</if>
+			<if test="requestTrackingId != null">
+				and request_tracking_id = #{requestTrackingId}
+			</if>
+			<if test="taskProcessingStatus != null">
+				and task_processing_status = #{taskProcessingStatus}
+			</if>
+  	</select>
+  	
+  	<insert id="insertTaskProcessing" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingTaskProcessingInfo"
+		useGeneratedKeys="true" keyColumn="task_processing_id" keyProperty="taskProcessingId">
+		INSERT INTO tracking_task_processing_info
+		(
+			tracking_process_id,
+			request_tracking_id,
+			task_processing_start_time,
+			task_processing_status
+		)
+		VALUES
+		(
+			#{trackingProcessId},
+			#{requestTrackingId},
+			NOW(3),
+			#{taskProcessingStatus}
+		)
+	</insert>
+  	
+  	<update id="updateTaskProcessing" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingTaskProcessingInfo">
+  		UPDATE tracking_task_processing_info
+			SET
+			<if test="taskProcessingId != null">
+				task_processing_id = #{taskProcessingId},
+			</if>
+			<if test="trackingProcessId != null">
+				tracking_process_id = #{trackingProcessId},
+			</if>
+			<if test="requestTrackingId != null">
+				request_tracking_id = #{requestTrackingId},
+			</if>
+			<if test="taskProcessingStartTime != null">
+				task_processing_start_time = #{taskProcessingStartTime},
+			</if>
+			<if	test="taskProcessingResultMsg != null">
+				task_processing_result_msg = #{taskProcessingResultMsg},
+			</if>
+			<if test="taskProcessingStatus != null">
+				task_processing_status = #{taskProcessingStatus},
+			</if>
+				task_processing_end_time = NOW(3)
+			
+		WHERE 
+			task_processing_id = #{taskProcessingId}
+		 	AND tracking_process_id = #{trackingProcessId}
+		 	AND request_tracking_id = #{requestTrackingId}
+  	</update>
+  	
+  	<delete id="deleteTaskProcessing" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingTaskProcessingInfo">
+  		DELETE FROM tracking_task_processing_info
+  		WHERE 
+  			task_processing_id = #{taskProcessingId}
+  	</delete>
+
+</mapper>

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.DtEvtTracking.common.mapper.TrackingDectorProcInfoMapper">
+
+   	<select id="getTrackingDectorProcInfo" parameterType="Map" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingDetectorProcInfo" >		
+		SELECT 
+			detector_proc_id,
+			tracking_process_id,
+			request_tracking_id,
+			detected_status,
+			event_occued_status,
+			detect_record_start_id,
+			detect_record_end_id,
+			tracking_start_date,
+			tracking_end_date,
+			tracking_result_value
+		FROM tracking_detector_proc_info
+		WHERE 1=1
+		<if test="requestTrackingId != null">
+			 AND request_tracking_id = #{requestTrackingId}
+		</if> 
+		<if test="trackingProcessId != null">
+			 AND tracking_process_id = #{trackingProcessId}
+		</if> 
+		<if test="detectorProcId != null">
+			 AND detector_proc_id = #{detectorProcId}
+		</if>
+		<if test="orderByDesc != null">
+			 order by detector_proc_id desc
+		</if>
+		<if test="limitOne != null">
+			 limit 0, 1
+		</if>
+  	</select>  	
+  	
+  	<insert id="insertTrackingDectorProc" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingDetectorProcInfo"
+  		useGeneratedKeys="true" keyColumn="detector_proc_id" keyProperty="detectorProcId">
+   		INSERT INTO tracking_detector_proc_info
+			(
+				tracking_process_id,
+				request_tracking_id,
+				detected_status,
+				detect_record_start_id,
+				detect_record_end_id,
+				tracking_start_date
+		   )
+			VALUES
+		   (
+			    #{trackingProcessId},
+			    #{requestTrackingId},
+			    #{detectedStatus},
+			    #{detectRecordStartId},
+			    #{detectRecordEndId},
+			    NOW(3)
+		   )
+  	</insert>
+  	
+  	<update id="updateTrackingDectorProc" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingDetectorProcInfo">
+	  	UPDATE tracking_detector_proc_info
+		SET
+			<if test="detectorProcId != null">
+				detector_proc_id = #{detectorProcId},
+			</if>
+			<if test="trackingProcessId != null">
+				tracking_process_id = #{trackingProcessId},
+			</if>
+			<if test="requestTrackingId != null">
+				request_tracking_id = #{requestTrackingId},
+			</if>
+			<if test="detectedStatus != null">
+				detected_status = #{detectedStatus},
+			</if>			
+			<if test="detectRecordStartId != null">
+				detect_record_start_id = #{detectRecordStartId},
+			</if>
+			<if test="detectRecordEndId != null">
+				detect_record_end_id = #{detectRecordEndId},
+			</if>
+			<if test="trackingStartDate != null">
+				tracking_start_date = NOW(3),
+			</if>
+			<if test="trackingEndDate != null">
+				tracking_end_date = NOW(3),
+			</if>
+			<if test="eventOccuredStatus != null">
+				event_occued_status = #{eventOccuredStatus},
+			</if>
+			<if test="trackingResultValue != null">
+				tracking_result_value = #{trackingResultValue},
+			</if>
+			update_date = NOW(3)
+		WHERE 
+			detector_proc_id = #{detectorProcId}
+  	</update>
+  	
+  	<update id="updateTrackingDectorProcByParam" parameterType="HashMap">
+	  	UPDATE tracking_detector_proc_info
+		SET
+			<if test="detectorProcId != null">
+				detector_proc_id = #{detectorProcId},
+			</if>
+			<if test="trackingProcessId != null">
+				tracking_process_id = #{trackingProcessId},
+			</if>
+			<if test="requestTrackingId != null">
+				request_tracking_id = #{requestTrackingId},
+			</if>
+			<if test="detectedStatus != null">
+				detected_status = #{detectedStatus},
+			</if>			
+			<if test="detectRecordStartId != null">
+				detect_record_start_id = #{detectRecordStartId},
+			</if>
+			<if test="detectRecordEndId != null">
+				detect_record_end_id = #{detectRecordEndId},
+			</if>
+			<if test="trackingStartDate != null">
+				tracking_start_date = NOW(3),
+			</if>
+			<if test="trackingEndDate != null">
+				tracking_end_date = NOW(3),
+			</if>
+			<if test="eventOccuredStatus != null">
+				event_occued_status = #{eventOccuredStatus},
+			</if>
+			<if test="trackingResultValue != null">
+				tracking_result_value = #{trackingResultValue},
+			</if>
+			update_date = NOW(3)
+		WHERE 
+			detector_proc_id = #{detectorProcId}
+  	</update>
+
+	<delete id="deleteTrackingDectorProc" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingDetectorProcInfo">
+		DELETE FROM tracking_detector_proc_info
+		WHERE 
+			detector_proc_id = #{detectorProcId}
+	</delete>
+
+</mapper>

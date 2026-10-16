@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.DtEvtTracking.common.mapper.TrackingStatusTransmissionInfoMapper">
+
+	<insert id="insertStatusTransmission" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingStatusTransmissionInfo"
+		useGeneratedKeys="true" keyColumn="status_transmission_id" keyProperty="statusTransmissionId">
+		INSERT INTO tracking_status_transmission_info
+		(
+			request_tracking_id,
+			tracking_process_id,
+			msg_status,
+			last_observed_at,
+			no_data_refs,
+			checked_time,
+			transmission_time,
+			transmission_status,
+			transmission_url,
+			transmission_param,
+			transmission_resp_code,
+			transmission_resp_msg
+		)
+		VALUES
+		(
+			#{requestTrackingId},
+			#{trackingProcessId},
+			#{msgStatus},
+			#{lastObservedAt},
+			#{noDataRefs},
+			#{checkedTime},
+			NOW(3),
+			#{transmissionStatus},
+			#{transmissionUrl},
+			#{transmissionParam},
+			#{transmissionRespCode},
+			#{transmissionRespMsg}
+		)
+	</insert>
+
+	<sql id="statusTransmissionWhere">
+		WHERE 1=1
+		<if test="requestTrackingId != null and requestTrackingId != ''">
+			AND request_tracking_id = #{requestTrackingId}
+		</if>
+		<if test="trackingProcessId != null and trackingProcessId != ''">
+			AND tracking_process_id = #{trackingProcessId}
+		</if>
+		<if test="msgStatus != null and msgStatus != ''">
+			AND msg_status = #{msgStatus}
+		</if>
+		<if test="transmissionStatus != null and transmissionStatus != ''">
+			AND transmission_status = #{transmissionStatus}
+		</if>
+		<if test="fromTime != null and fromTime != ''">
+			<![CDATA[ AND transmission_time >= #{fromTime} ]]>
+		</if>
+		<if test="toTime != null and toTime != ''">
+			<![CDATA[ AND transmission_time <= #{toTime} ]]>
+		</if>
+	</sql>
+
+	<select id="getStatusTransmissionList" parameterType="map"
+		resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingStatusTransmissionInfo">
+		SELECT status_transmission_id,
+			request_tracking_id,
+			tracking_process_id,
+			msg_status,
+			last_observed_at,
+			no_data_refs,
+			DATE_FORMAT(checked_time, '%Y-%m-%d %H:%i:%s') checked_time,
+			DATE_FORMAT(transmission_time, '%Y-%m-%d %H:%i:%s.%f') transmission_time,
+			transmission_status,
+			transmission_url,
+			transmission_param,
+			transmission_resp_code,
+			transmission_resp_msg
+		FROM tracking_status_transmission_info
+		<include refid="statusTransmissionWhere"/>
+		ORDER BY status_transmission_id DESC
+		<if test="start != null">
+			LIMIT #{start}, #{end}
+		</if>
+	</select>
+
+	<select id="getStatusTransmissionByRequest" parameterType="map" resultType="map">
+		SELECT
+		   st.status_transmission_id                                AS statusTransmissionId,
+		   st.request_tracking_id                                   AS requestTrackingId,
+		   st.tracking_process_id                                   AS trackingProcessId,
+		   tp.trckPrcIdtifier                                       AS trckPrcIdtifier,
+		   tp.tracking_process_identifier                           AS trackingProcessIdentifier,
+		   tp.tracking_process_type                                 AS trackingProcessType,
+		   st.msg_status                                            AS msgStatus,
+		   st.last_observed_at                                      AS lastObservedAt,
+		   st.no_data_refs                                          AS noDataRefs,
+		   DATE_FORMAT(st.checked_time, '%Y-%m-%d %H:%i:%s')        AS checkedTime,
+		   DATE_FORMAT(st.transmission_time, '%Y-%m-%d %H:%i:%s')   AS transmissionTime,
+		   st.transmission_status                                   AS transmissionStatus,
+		   st.transmission_url                                      AS transmissionUrl,
+		   st.transmission_param                                    AS transmissionParam,
+		   st.transmission_resp_code                                AS transmissionRespCode,
+		   st.transmission_resp_msg                                 AS transmissionRespMsg
+		FROM tracking_status_transmission_info st
+		LEFT JOIN tracking_process_info tp
+		   ON st.tracking_process_id = tp.tracking_process_id
+		WHERE st.request_tracking_id = #{requestTrackingId}
+		ORDER BY st.status_transmission_id DESC
+	</select>
+
+	<select id="getStatusTransmissionCnt" parameterType="map" resultType="Integer">
+		SELECT COUNT(*) cnt
+		FROM tracking_status_transmission_info
+		<include refid="statusTransmissionWhere"/>
+	</select>
+
+	<delete id="deleteClosedStatusTransmission" parameterType="map">
+		DELETE s FROM tracking_status_transmission_info s
+		 INNER JOIN data_event_tracking_request_info q
+		    ON q.request_tracking_id = s.request_tracking_id
+		 WHERE q.req_trck_cmd_status IN
+		<foreach collection="closedStatusList" item="item" separator="," open="(" close=")">
+			#{item}
+		</foreach>
+		   AND q.req_status_change_time &lt; DATE_SUB(NOW(), INTERVAL #{retentionDays} DAY)
+	</delete>
+</mapper>

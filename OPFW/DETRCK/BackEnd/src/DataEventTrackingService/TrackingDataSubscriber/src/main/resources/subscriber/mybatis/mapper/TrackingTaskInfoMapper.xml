@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.DtEvtTracking.trackDataSub.mapper.TrackingTaskInfoMapper">
+  	
+	 <select id="getTrackingTaskInfo" parameterType="map" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingProcessInfo">
+			 SELECT 
+			 	tracking_process_id,
+		  		request_tracking_id,
+		  		tracking_process_identifier,
+		  		tracking_process_type,
+		  		federated_twin_id,
+		  		federated_digital_object_id,
+		  		digital_twin_id,
+		  		digital_object_id,
+		  		tracking_command,
+		  		tracking_kafka_group,
+		  		tracking_kafka_topic,
+		  		data_filter_type,
+		  		event_occurred_count,
+		  		event_condition,
+		  		event_delay,
+		  		event_end_date,
+		  		A.context_url,
+		  		A.entity_id,
+		  		A.ngsi_type,
+		  		A.timeproperty,
+		  		A.last_observed_at,
+		  		A.data_link_type,
+		  		tracking_status,
+		  		create_time,
+		  		tracking_status_change_time
+			FROM
+			    tracking_process_info A
+			WHERE 1=1					 
+	  			 AND request_tracking_id = #{requestTrackingId}
+	  		 order by A.tracking_process_id desc
+	  	</select>
+	  	
+	  	<select id="getTrackCmdTaskInfoList" parameterType="map" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingProcessInfo">
+			 SELECT 
+			    tracking_process_id,
+		  		request_tracking_id,
+		  		tracking_process_identifier,
+		  		tracking_process_type,
+		  		federated_twin_id,
+		  		federated_digital_object_id,
+		  		digital_twin_id,
+		  		digital_object_id,
+		  		tracking_command,
+		  		tracking_kafka_group,
+		  		tracking_kafka_topic,
+		  		buffer_size,
+		  		data_filter_type,
+		  		event_occurred_count,
+		  		event_condition,
+		  		event_delay,
+		  		event_end_date,
+		  		A.context_url,
+		  		A.entity_id,
+		  		A.ngsi_type,
+		  		A.timeproperty,
+		  		A.last_observed_at,
+		  		A.data_link_type,
+		  		tracking_status,
+		  		create_time,
+		  		tracking_status_change_time
+			FROM
+			    tracking_process_info A
+			WHERE 1=1					 
+	  			 AND request_tracking_id = #{requestTrackingId}
+	  		</select>
+
+ 			<select id="getTrackTaskInfo" parameterType="Map" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingProcessInfo">
+			 SELECT 
+			    tracking_process_id,
+		  		request_tracking_id,
+		  		tracking_process_identifier,
+		  		tracking_process_type,
+		  		federated_twin_id,
+		  		federated_digital_object_id,
+		  		digital_twin_id,
+		  		digital_object_id,
+		  		tracking_command,
+		  		tracking_kafka_group,
+		  		tracking_kafka_topic,
+		  		buffer_size,
+		  		data_filter_type,
+		  		event_occurred_count,
+		  		event_condition,
+		  		event_delay,
+		  		event_end_date,
+		  		A.context_url,
+		  		A.entity_id,
+		  		A.ngsi_type,
+		  		A.timeproperty,
+		  		A.last_observed_at,
+		  		A.data_link_type,
+		  		tracking_status,
+		  		create_time,
+		  		tracking_status_change_time
+			FROM
+			    tracking_process_info A
+			WHERE 1=1					 
+	  			 AND request_tracking_id = #{requestTrackingId}
+	  			 AND tracking_process_id = #{trackingProcessId}
+	  		</select>
+
+  		  <select id="getDTResponseRecord" parameterType="Map" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingResponseRecord" >
+				SELECT 
+					MAX(tracking_response_id)  tracking_response_id
+					<if test='dtFltTp != null and dtFltTp == "DF01"'>
+				    ,MIN(receive_val + 0) totalReceiveVal
+					</if>
+					<if test='dtFltTp != null and dtFltTp == "DF02"'>
+				    ,MAX(receive_val + 0) totalReceiveVal
+					</if>
+					<if test='dtFltTp != null and dtFltTp == "DF03"'>
+				    ,avg(receive_val) totalReceiveVal
+					</if>
+					<if test='dtFltTp != null and dtFltTp == "DF04"'>
+				    ,sum(receive_val) totalReceiveVal
+					</if>
+					<if test='dtFltTp != null and dtFltTp == "DF05"'>
+				    ,std(receive_val) totalReceiveVal
+					</if>
+				FROM
+				    tracking_response_record
+				WHERE 1=1
+				<if test="detectRecordStartId != null">
+					<![CDATA[ 
+					 and tracking_response_id >= #{detectRecordStartId} and tracking_response_id <= #{detectRecordEndId}
+					 ]]>
+				</if> 
+				
+				<if test="resRecordId > 0">
+					<![CDATA[ 
+					 and tracking_response_id >= #{resRecordId}
+					 ]]>
+				</if> 
+				<if test="trackingProcessId != null">
+					 and tracking_process_id = #{trackingProcessId}
+				</if> 
+				<if test="requestTrackingId != null">
+					 and request_tracking_id = #{requestTrackingId}
+				</if> 
+				<if test="orderById != null">
+					order by tracking_response_id desc
+				</if>
+				<if test="bufferSize > 0">
+					limit 0, #{bufferSize}
+				</if>
+     	  	</select>
+
+     	  	<select id="getDTResponseRecordEventDelay" parameterType="Map" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingResponseRecord" >
+				SELECT
+				<choose>
+					<when test='dtFltTp != null and dtFltTp == "DF01"'>
+						MIN(receive_val + 0) totalReceiveVal
+					</when>
+					<when test='dtFltTp != null and dtFltTp == "DF02"'>
+						MAX(receive_val + 0) totalReceiveVal
+					</when>
+					<when test='dtFltTp != null and dtFltTp == "DF03"'>
+						avg(receive_val) totalReceiveVal
+					</when>
+					<when test='dtFltTp != null and dtFltTp == "DF04"'>
+						sum(receive_val) totalReceiveVal
+					</when>
+					<when test='dtFltTp != null and dtFltTp == "DF05"'>
+						std(receive_val) totalReceiveVal
+					</when>
+					<otherwise>
+						NULL totalReceiveVal
+					</otherwise>
+				</choose>
+				FROM
+				(
+				 	SELECT receive_val
+				 	FROM tracking_response_record
+				 	WHERE 1=1
+					<if test="detectRecordStartId != null">
+						<![CDATA[ 
+						 and tracking_response_id >= #{detectRecordStartId} and tracking_response_id <= #{detectRecordEndId}
+						 ]]>
+					</if> 
+					<if test="resRecordId > 0">
+						<![CDATA[ 
+						 and tracking_response_id >= #{resRecordId}
+						 ]]> 
+					</if> 
+					<if test="trackingProcessId != null">
+						 and tracking_process_id = #{trackingProcessId}
+					</if> 
+					<if test="requestTrackingId != null">
+						 and request_tracking_id = #{requestTrackingId}
+					</if> 
+					<if test="orderById != null">
+						order by tracking_response_id desc
+					</if>
+					<if test="bufferSize > 0">
+						limit 0, #{bufferSize}
+					</if>
+				) A
+     	  	</select>
+
+	  		<insert id="insertResultValue" parameterType="Map">
+	  		INSERT INTO tracking_response_data
+				(
+					tracking_process_identifier,
+					result_value
+				)
+					VALUES
+				(				
+					#{trackingProcessIdentifier},
+					#{resultValue}
+			   )
+			   ON DUPLICATE KEY UPDATE 
+	           result_value = #{resultValue} 
+	  		</insert>
+
+  			<select id="getTrackingResData" parameterType="Map" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingResponseDataInfo" >
+			SELECT 
+				tracking_process_identifier,
+				result_value
+			FROM
+			    tracking_response_data
+			WHERE 1=1
+			<if test="trackingProcessIdentifier != null">
+				 and tracking_process_identifier = #{trackingProcessIdentifier}
+			</if> 
+     	  	</select>
+
+	  		<update id="updateResultValue" parameterType="Map">
+	  		UPDATE tracking_response_data
+				SET
+				tracking_process_identifier = #{trackingProcessIdentifier},
+				result_value = #{resultValue}
+				WHERE 
+					tracking_process_identifier = #{trackingProcessIdentifier}
+	  		</update>
+	  		
+	  	<insert id="insertTrackingProcChangeHisMultiList" parameterType="HashMap">
+	  		insert into tracking_process_status_change_record
+			(tracking_process_id, request_tracking_id, change_status, status_update_time, status_result_msg)
+			SELECT tracking_process_id,  request_tracking_id, tracking_status, NOW(3), #{statusResultMsg} status_result_msg
+			FROM tracking_process_info
+			WHERE 1=1
+				<if test="tracingStatus != null">
+		  			and tracking_status = #{trackingStatus}
+		  		</if>	
+				<choose>
+					<when test="procSeqList != null">
+						and tracking_process_id in 
+						<foreach collection="procSeqList" item="item" index="index" separator="," open="(" close=")">
+							#{item}
+						</foreach>
+					</when>
+					<otherwise>
+						and tracking_process_id = #{trackingProcessId} 
+					</otherwise>
+				</choose> 
+	  	</insert>	
+</mapper>

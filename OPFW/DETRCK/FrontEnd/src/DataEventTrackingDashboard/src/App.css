@@ -1,0 +1,53 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+@import 'tailwindcss';
+
+@plugin "daisyui" {
+    themes: light --default;
+}
+
+@theme {
+    --color-main: #0288b5;
+    --color-main-hover: #026e93;
+    --color-main-soft: #e6f4f9;
+
+    --color-fg: #0a0a0a;
+    --color-muted: #737373;
+    --color-subtle: #f5f5f5;
+    --color-line: #e5e5e5;
+
+    --color-warn: #fbc031;
+    --color-danger: #e7000b;
+    --color-danger-hover: #c60009;
+
+    --radius-control: 10px;
+    --radius-card: 14px;
+
+    --font-sans:
+        'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+        system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+:root {
+    --sky: var(--color-main-soft);
+    --gray: var(--color-muted);
+    --lightblue: var(--color-line);
+    --blue: var(--color-main);
+}
+
+body {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--color-fg);
+    background-color: #ffffff;
+}
+
+.dt-scope button,
+.dt-scope input,
+.dt-scope select,
+.dt-scope textarea {
+    transition:
+        background-color 0.1s ease,
+        border-color 0.1s ease,
+        color 0.1s ease,
+        box-shadow 0.1s ease;
+}
