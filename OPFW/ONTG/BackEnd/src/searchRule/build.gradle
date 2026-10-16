@@ -54,16 +54,12 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    // WebSocket
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.springframework.boot:spring-boot-starter-reactor-netty'
 
-	// ontology auto generator
 	implementation 'org.apache.jena:apache-jena-libs:5.0.0'
 
-	// Kafka
 	implementation 'org.springframework.boot:spring-boot-starter-kafka'
-	// (선택) 모니터링(Actuator + Prometheus)
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
