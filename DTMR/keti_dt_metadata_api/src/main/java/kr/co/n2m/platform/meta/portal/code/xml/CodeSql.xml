@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.n2m.platform.meta.portal.code.mapper.CodeMapper">
+
+    <sql id="limitPage">
+        <if test="isPaging">    
+        OFFSET #{startIndex} LIMIT #{pageListSize}
+        </if>
+        <if test="!isPaging">    
+        OFFSET 0 LIMIT #{limitListSize}
+        </if>       
+    </sql>
+
+	<sql id="whereByCode">        
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(mtcdGrpId)">
+          AND  cd1.mtcd_grp_id        = #{mtcdGrpId}
+        </if>
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(mtcd)">
+          AND  cd1.mtcd				  = #{mtcd}
+        </if>
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(mtcdNm)">
+          AND  cd1.mtcd_nm			  ILIKE CONCAT('%', #{mtcdNm}, '%')
+        </if>                               
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(mtcdUseYn)">
+          AND  cd1.mtcd_use_yn        = #{mtcdUseYn}
+        </if>               
+	</sql>
+	
+	<sql id="orderByCode">
+ 		ORDER BY cd1.mtcd_sort_odrg ASC 
+	</sql>
+
+	<select id="selectCodeCount" resultType="int">
+		SELECT /* SQL_ID: CodeMapper.selectCodeCount */
+			COUNT(*) FROM dtmeta.tb_portal_code cd1
+		WHERE  1=1
+		<include refid="whereByCode"/>
+	</select>
+	
+	<select id="selectCodeList" resultType="codeVo">
+		SELECT /* SQL_ID: CodeMapper.selectCodeList */
+			  cd1.mtcd_grp_id	
+			, cd1.mtcd	
+			, cd1.mtcd_nm	
+			, cd1.mtcd_use_yn	
+			, cd1.mtcd_sort_odrg	
+			, cd1.mtcd_desc	
+			, cd1.up_mtcd	
+			, cd1.mtcd_regr_id	
+			, cd1.mtcd_regr_nm	
+			, to_char(cd1.mtcd_reg_dt, #{sqlDateFormat})  AS mtcd_reg_dt
+			, cd1.mtcd_amdr_id	
+			, cd1.mtcd_amdr_nm	
+			, to_char(cd1.mtcd_amd_dt, #{sqlDateFormat})  AS mtcd_amd_dt
+		FROM dtmeta.tb_portal_code cd1
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd2 on cd1.up_mtcd = cd2.mtcd
+		WHERE  1=1
+		  <include refid="whereByCode"/>
+		  <include refid="orderByCode"/>
+		  <include refid="limitPage"/>
+	</select>
+	
+	<select id="selectCode" resultType="codeVo">
+		SELECT  /* SQL_ID: CodeMapper.selectCode */
+			  mtcd_grp_id	
+			, mtcd	
+			, mtcd_nm	
+			, mtcd_use_yn	
+			, mtcd_sort_odrg	
+			, mtcd_desc	
+			, up_mtcd	
+			, mtcd_regr_id	
+			, mtcd_regr_nm	
+			, to_char(cd1.mtcd_reg_dt, #{sqlDateFormat})  AS mtcd_reg_dt
+			, mtcd_amdr_id	
+			, mtcd_amdr_nm	
+			, to_char(cd1.mtcd_amd_dt, #{sqlDateFormat})  AS mtcd_amd_dt
+		FROM dtmeta.tb_portal_code cd1
+		WHERE mtcd_grp_id = #{mtcdGrpId}
+		AND mtcd = #{mtcd}
+	</select>
+	
+	<insert id="insertCode" parameterType="codeVo">
+		INSERT /* SQL_ID: CodeMapper.insertCode */
+		       INTO dtmeta.tb_portal_code
+			 ( mtcd_grp_id	
+			 , mtcd	
+			 , mtcd_nm	
+			 , mtcd_use_yn	
+			 , mtcd_sort_odrg	
+			 , mtcd_desc	
+			 , up_mtcd	
+			 , mtcd_regr_id	
+			 , mtcd_regr_nm	
+			 , mtcd_reg_dt		 
+			 , mtcd_amdr_id
+             , mtcd_amdr_nm
+             , mtcd_amd_dt
+			 ) VALUES 
+			 ( #{mtcdGrpId}
+			 , #{mtcd}
+			 , #{mtcdNm}
+			 , #{mtcdUseYn}
+			 , #{mtcdSortOdrg}
+			 , #{mtcdDesc}
+			 , #{upMtcd}
+			 , #{mtcdRegrId}
+			 , #{mtcdRegrNm}
+			 , current_timestamp 
+			 , #{mtcdAmdrId}
+			 , #{mtcdAmdrNm}
+			 , current_timestamp
+			 )		
+	</insert>
+	
+	<update id="updateCode" parameterType="codeVo">
+		UPDATE /* SQL_ID: CodeMapper.updateCode */
+               dtmeta.tb_portal_code
+		   SET mtcd_nm 			= #{mtcdNm}
+             , mtcd_use_yn 		= #{mtcdUseYn}
+             , mtcd_sort_odrg 	= #{mtcdSortOdrg}			 
+			 , mtcd_desc 		= #{mtcdDesc}
+			 , up_mtcd 			= #{upMtcd}
+             , mtcd_amdr_id 	= #{mtcdAmdrId}
+             , mtcd_amdr_nm 	= #{mtcdAmdrNm}
+             , mtcd_amd_dt 		= current_timestamp
+		 WHERE mtcd_grp_id 	    = #{mtcdGrpId}
+		   AND mtcd 		    = #{mtcd}		
+	</update>
+	
+	<select id="selectCodeById" parameterType="codeVo" resultType="boolean">
+		SELECT EXISTS (
+			SELECT 1
+			FROM dtmeta.tb_portal_code
+			WHERE mtcd = #{mtcd}
+			AND mtcd_grp_id = #{mtcdGrpId}
+		)	
+	</select>
+
+</mapper>
+

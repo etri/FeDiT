@@ -1,0 +1,509 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.n2m.platform.meta.resource.metadata.mapper.MetadataSetMapper">
+
+    <sql id="limitPage">
+        <if test="isPaging">    
+        OFFSET #{startIndex} LIMIT #{pageListSize}
+        </if>
+        <if test="!isPaging">    
+        OFFSET 0 LIMIT #{limitListSize}
+        </if>        
+    </sql>
+
+    <sql id="whereByMetadataSet">
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(medataSetId)">
+            AND t1.medata_set_id            = #{medataSetId} 
+        </if>    
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(srchText)">
+            AND (
+                   t1.medata_set_nm         ILIKE CONCAT('%', #{srchText}, '%')
+                OR t1.medata_set_logic_nm   ILIKE CONCAT('%', #{srchText}, '%')
+            )		
+		</if>
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(modelId)">
+            AND t1.model_id                 = #{modelId} 
+        </if>
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(srchModelNm)">
+            AND t2.model_nm                 ILIKE CONCAT('%', #{srchModelNm}, '%')
+        </if>           		
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(medataSetSttusMtcd)">
+            AND t1.medata_set_sttus_mtcd    = #{medataSetSttusMtcd}
+        </if>
+        <if test='!"Y".equals(includeDisuseYn)'>
+            AND t1.medata_set_sttus_mtcd   != 'disuse'
+        </if>
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(medataSetRegrId)">
+            AND t1.medata_set_regr_id       = #{medataSetRegrId}
+        </if>
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(srchStartDd)">
+            <![CDATA[  
+            AND t1.medata_set_amd_dt        >= TO_TIMESTAMP(#{srchStartDd} || ' 00:00:00', 'YYYY-MM-DD HH24:MI:SS')
+            ]]>
+        </if>
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(srchEndDd)">
+            <![CDATA[ 
+            AND t1.medata_set_amd_dt        <  TO_TIMESTAMP(#{srchEndDd} || ' 00:00:00', 'YYYY-MM-DD HH24:MI:SS') + INTERVAL '1 day' 
+            ]]>
+        </if>
+        
+        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(typeModelId)">
+            AND t2.type_model_id            = #{typeModelId} 
+        </if>
+	</sql>
+
+    <sql id="whereByMetadataSet2">
+         <if test="isDataAllSearch">
+            AND EXISTS (
+                         SELECT medata_set_id
+                           FROM (
+                                SELECT t3.medata_set_id
+                                  FROM dtmeta.tb_meta_data               t3
+                                 INNER JOIN dtmeta.tb_meta_model         t7  ON t3.val_model_id = t7.model_id
+                                  LEFT OUTER JOIN dtmeta.tb_portal_code  c3  ON t7.data_type_mtcd = c3.mtcd AND c3.mtcd_grp_id = 'MCG00013'
+                                 WHERE 1=1
+						        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(medataId)">
+						            AND t3.medata_id                = #{medataId} 
+						        </if>
+						        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(medataSetId)">
+						            AND t3.medata_set_id            = #{medataSetId} 
+						        </if>
+						        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(prptyId)">
+						            AND t3.prpty_id                 = #{prptyId} 
+						        </if>
+						        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(valModelId)">
+						            AND t3.val_model_id             = #{valModelId} 
+						        </if>  
+						        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(medataVal)">
+						            AND t3.medata_val               = #{medataVal} 
+						        </if>
+						        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(srchVal)">
+						            AND t3.medata_val               ILIKE CONCAT('%', #{srchVal}, '%')
+						        </if>
+						        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(langMtcd)">
+						            AND t3.lang_mtcd                = #{langMtcd} 
+						        </if>
+						        <if test='@org.apache.commons.lang3.StringUtils@equals(onlyMetadataSetYn, "Y")'>   
+						            AND c3.mtcd                     IS NOT NULL
+						        </if>        
+						        <if test='@org.apache.commons.lang3.StringUtils@equals(exceptForMetadataSetYn, "Y")'>   
+						            AND c3.mtcd                     IS NULL
+						        </if>
+						        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(keyword)">
+                                INTERSECT  
+	                            SELECT medata_set_id 
+	                              FROM dtmeta.tb_meta_data               t3
+	                             INNER JOIN dtmeta.tb_meta_model         t7  ON t3.val_model_id = t7.model_id
+	                             WHERE t3.medata_val               ILIKE CONCAT('%', #{keyword}, '%')
+	                               AND t7.data_type_mtcd           IN ('keywordsKo', 'keywordsEn')  
+						        </if>
+						        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(ctgryId)">
+                                INTERSECT  
+                                SELECT medata_set_id 
+                                  FROM dtmeta.tb_meta_data               t3
+                                 INNER JOIN dtmeta.tb_meta_model         t7  ON t3.val_model_id = t7.model_id
+                                 INNER JOIN dtmeta.tb_meta_category      a1  ON a1.ctgry_id     = #{ctgryId}
+                                 WHERE ( t3.medata_val = a1.ctgry_id           AND t7.data_type_mtcd = 'categoryId' )
+                                    OR ( t3.medata_val = a1.ctgry_rdf_cncpt_nm AND t7.data_type_mtcd = 'categoryConcept' )
+                                </if>
+                                <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(agntId)">
+                                INTERSECT  
+                                SELECT medata_set_id 
+                                  FROM dtmeta.tb_meta_data               t3
+                                 INNER JOIN dtmeta.tb_meta_model         t7  ON t3.val_model_id = t7.model_id
+                                 WHERE t3.medata_val               = #{agntId} 
+                                   AND t7.type_model_id            = 'Agent'                     
+                                </if>                                
+                                ) t3
+                          WHERE t3.medata_set_id = t1.medata_set_id                     
+               )    
+         </if>     
+    </sql>	
+    
+    <sql id="orderByMetadataSet">
+        <choose>
+            <when test="@org.apache.commons.lang3.StringUtils@equals(sortField, 'medataSetNm')">
+                ORDER BY t1.medata_set_nm         COLLATE "ko-KR-x-icu" /* 한글 정렬 */ <if test="@org.apache.commons.lang3.StringUtils@equals(sortOrder, 'descending')"> DESC </if>
+            </when>        
+            <when test="@org.apache.commons.lang3.StringUtils@equals(sortField, 'medataSetLogicNm')">
+                ORDER BY t1.medata_set_logic_nm   COLLATE "ko-KR-x-icu" /* 한글 정렬 */ <if test="@org.apache.commons.lang3.StringUtils@equals(sortOrder, 'descending')"> DESC </if>
+            </when>
+            <when test="@org.apache.commons.lang3.StringUtils@equals(sortField, 'medataSetAmdDt')">
+                ORDER BY t1.medata_set_amd_dt     <if test="@org.apache.commons.lang3.StringUtils@equals(sortOrder, 'descending')"> DESC </if>
+            </when>            
+            <otherwise>
+                ORDER BY t1.medata_set_amd_dt DESC
+            </otherwise>
+        </choose>
+	</sql>
+    
+    <select id="selectMetadataSetCount" resultType="int">
+		SELECT /* SQL_ID: MetadataSetMapper.selectMetadataSetCount */
+			   COUNT(*) 
+          FROM dtmeta.tb_meta_dataset t1
+          LEFT OUTER JOIN dtmeta.tb_meta_model  t2  ON t1.model_id = t2.model_id
+         WHERE 1=1
+		<include refid="whereByMetadataSet"/>
+		<include refid="whereByMetadataSet2"/>
+	</select>
+
+    <select id="selectMetadataSetList" resultType="camelCaseMap">
+        SELECT /* SQL_ID: MetadataSetMapper.selectMetadataSetList */
+               t1.medata_set_id
+             , t1.medata_set_nm
+             , t1.medata_set_logic_nm   
+             , t1.model_id
+             , t2.model_nm
+             , t2.model_logic_nm     
+             , t2.type_model_id
+             , t4.model_nm        AS type_model_nm            
+             , t4.model_logic_nm  AS type_model_logic_nm                      
+             , t1.medata_set_sttus_mtcd
+             , c1.mtcd_nm         AS medata_set_sttus_mtcd_nm
+             , to_char(t1.medata_set_amd_dt, #{sqlDateFormat})  AS medata_set_amd_dt
+             , t5.keywords_ko
+             , t5.keywords_en
+             , t5.category_id
+             , t8.ctgry_nm  AS category_nm
+             , t5.agent_id
+             , t6.medata_set_nm  AS agent_nm
+          FROM dtmeta.tb_meta_dataset             t1
+          LEFT OUTER JOIN dtmeta.tb_meta_model    t2  ON t1.model_id = t2.model_id
+          LEFT OUTER JOIN dtmeta.tb_meta_model    t4  ON t2.type_model_id = t4.model_id
+          LEFT OUTER JOIN dtmeta.tb_portal_code   c1  ON t1.medata_set_sttus_mtcd = c1.mtcd AND c1.mtcd_grp_id = 'MCG00001'
+          LEFT OUTER JOIN (
+                    SELECT a1.medata_set_id 
+                         , string_agg(DISTINCT CASE WHEN a2.data_type_mtcd = 'keywordsKo' THEN a1.medata_val ELSE NULL END, ',')  AS keywords_ko
+                         , string_agg(DISTINCT CASE WHEN a2.data_type_mtcd = 'keywordsEn' THEN a1.medata_val ELSE NULL END, ',')  AS keywords_en
+                         , MAX(CASE WHEN a2.data_type_mtcd = 'categoryId'        THEN a1.medata_val ELSE NULL END)       AS category_id
+                         , MAX(CASE WHEN a2.data_type_mtcd = 'categoryConcept'   THEN a1.medata_val ELSE NULL END)       AS category_concept
+                         , MAX(CASE WHEN a2.type_model_id  = 'Agent'             THEN a1.medata_val ELSE NULL END)       AS agent_id
+                      FROM dtmeta.tb_meta_data        a1
+                     INNER JOIN dtmeta.tb_meta_model  a2  ON a1.val_model_id = a2.model_id
+                     WHERE ( a2.data_type_mtcd IN ('keywordsKo', 'keywordsEn', 'categoryId', 'categoryConcept')
+                             OR a2.type_model_id = 'Agent'
+                           )  
+                    GROUP BY a1.medata_set_id
+               )                                  t5  ON t5.medata_set_id = t1.medata_set_id  
+          LEFT OUTER JOIN dtmeta.tb_meta_dataset  t6  ON t5.agent_id = t6.medata_set_id
+          LEFT OUTER JOIN dtmeta.tb_meta_category t8  ON t5.category_id = t8.ctgry_id OR t5.category_concept = t8.ctgry_rdf_cncpt_nm
+         WHERE 1=1
+        <include refid="whereByMetadataSet"/>
+        <include refid="whereByMetadataSet2"/>
+        <include refid="orderByMetadataSet"/>
+        <include refid="limitPage"/>
+    </select>	
+	   
+	<select id="selectMetadataSet" parameterType="metadataSetVo" resultType="metadataSetDto">
+		SELECT /* SQL_ID: MetadataSetMapper.selectMetadataSet */
+			   t1.medata_set_id
+             , t1.medata_set_nm
+             , t1.medata_set_logic_nm	
+             , t1.medata_set_desc             		   
+             , t1.model_id
+             , t2.model_nm
+             , t2.model_logic_nm     
+             , t2.type_model_id
+             , t4.model_nm        AS type_model_nm            
+             , t4.model_logic_nm  AS type_model_logic_nm                      
+             , t1.medata_set_sttus_mtcd
+             , c1.mtcd_nm         AS medata_set_sttus_mtcd_nm
+             , t1.medata_set_sttus_why
+             , t1.medata_set_nwst_rvsn
+             , t1.medata_set_regr_id
+             , t1.medata_set_regr_nm
+             , TO_CHAR(t1.medata_set_reg_dt, #{sqlDateFormat})  AS medata_set_reg_dt
+             , t1.medata_set_amdr_id
+             , t1.medata_set_amdr_nm
+             , TO_CHAR(t1.medata_set_amd_dt, #{sqlDateFormat})  AS medata_set_amd_dt
+             , t1.id_schm_cntry_cd
+             , c2.cntry_nm		AS id_schm_cntry_nm
+             , t1.id_schm_type
+             , c3.mtcd_nm		AS id_schm_type_nm
+             , t1.id_schm_cd
+             , t1.id_schm_cd2
+          FROM dtmeta.tb_meta_dataset t1
+          LEFT OUTER JOIN dtmeta.tb_meta_model  t2  ON t1.model_id = t2.model_id
+          LEFT OUTER JOIN dtmeta.tb_meta_model  t4  ON t2.type_model_id = t4.model_id
+          LEFT OUTER JOIN dtmeta.tb_portal_code c1  ON t1.medata_set_sttus_mtcd = c1.mtcd AND c1.mtcd_grp_id = 'MCG00001'
+          LEFT OUTER JOIN dtmeta.tb_portal_countrycode c2  ON t1.id_schm_cntry_cd = c2.cntry_cd
+          LEFT OUTER JOIN dtmeta.tb_portal_code c3  ON t1.id_schm_type = c3.mtcd AND c3.mtcd_grp_id = 'MCG00029'
+		 WHERE t1.medata_set_id   = #{medataSetId}
+	</select>
+	
+	<!-- 작은 크기로 빠르게 명만 조회하기 -->
+    <select id="selectMetadataSetNameById" parameterType="string" resultType="string">
+        SELECT /* SQL_ID: MetadataSetMapper.selectMetadataSetNameById */
+               t1.medata_set_nm
+          FROM dtmeta.tb_meta_dataset t1
+         WHERE t1.medata_set_id   = #{medataSetId}
+    </select>
+	
+	<insert id="insertMetadataSet" parameterType="metadataSetVo">
+		INSERT /* SQL_ID: MetadataSetMapper.insertMetadataSet */
+		       INTO dtmeta.tb_meta_dataset
+			 ( medata_set_id
+             , model_id
+             , medata_set_nm
+             , medata_set_logic_nm
+             , medata_set_desc
+             , medata_set_sttus_mtcd
+             , medata_set_sttus_why
+             , medata_set_nwst_rvsn
+             , medata_set_regr_id
+             , medata_set_regr_nm
+             , medata_set_reg_dt
+             , medata_set_amdr_id
+             , medata_set_amdr_nm
+             , medata_set_amd_dt
+             , id_schm_cntry_cd
+             , id_schm_type
+             , id_schm_cd
+             , id_schm_cd2
+			 ) VALUES 
+			 ( 
+			   #{medataSetId}
+			 , #{modelId}
+			 , #{medataSetNm}
+			 , #{medataSetLogicNm}
+			 , #{medataSetDesc}
+			 , #{medataSetSttusMtcd}
+			 , #{medataSetSttusWhy}
+			 , #{medataSetNwstRvsn}
+			 , #{medataSetRegrId}
+			 , #{medataSetRegrNm}
+			 , current_timestamp
+			 , #{medataSetRegrId}
+			 , #{medataSetRegrNm}
+			 , current_timestamp
+			 , #{idSchmCntryCd}
+			 , #{idSchmType}
+			 , #{idSchmCd}
+			 , #{idSchmCd2}
+			 )
+	</insert>
+	
+    <insert id="insertMetadataSetAutoKey" parameterType="metadataSetVo">
+	    <selectKey keyProperty="medataSetId" keyColumn="medata_set_id" resultType="string" order="BEFORE">
+            <if test='@org.apache.commons.lang3.StringUtils@equals(idSchmSeqGenYn, "Y")'>
+	            <if test='@org.apache.commons.lang3.StringUtils@equals(idSchmYearUseYn, "Y")'>
+					SELECT CONCAT(#{idSchmPrefix}, yyyy, LPAD(CAST(COALESCE(new_val, 1) AS VARCHAR), 4, '0'))
+					  FROM (
+					        SELECT TO_CHAR(CURRENT_DATE, 'YYYY')  AS yyyy
+					             , MAX( SUBSTRING(medata_set_id, OCTET_LENGTH(#{idSchmPrefix} || TO_CHAR(CURRENT_DATE, 'YYYY')) + 1)::int ) + 1  AS new_val
+					          FROM dtmeta.tb_meta_dataset
+					         WHERE medata_set_id LIKE #{idSchmPrefix} || TO_CHAR(CURRENT_DATE, 'YYYY') || '%'
+					           AND POSITION('-' IN substring(medata_set_id, length(#{idSchmPrefix})+1)) = 0
+					       ) key1
+				 </if>
+				 <if test='!@org.apache.commons.lang3.StringUtils@equals(idSchmYearUseYn, "Y")'>
+		            SELECT CONCAT(#{idSchmPrefix}, LPAD(CAST(COALESCE(new_val, 1) AS VARCHAR), 4, '0'))
+		              FROM (
+		                    SELECT MAX( SUBSTRING(medata_set_id, OCTET_LENGTH(#{idSchmPrefix}) + 1)::int ) + 1  AS new_val
+		                      FROM dtmeta.tb_meta_dataset
+		                     WHERE medata_set_id LIKE #{idSchmPrefix} || '%'
+		                       AND POSITION('-' IN substring(medata_set_id, length(#{idSchmPrefix})+1)) = 0
+		                   ) key2
+				 </if>
+            </if>
+            <if test='!@org.apache.commons.lang3.StringUtils@equals(idSchmSeqGenYn, "Y")'>
+                SELECT #{idSchmPrefix}
+            </if>
+	    </selectKey>    
+        INSERT /* SQL_ID: MetadataSetMapper.insertMetadataSet */
+               INTO dtmeta.tb_meta_dataset
+             ( medata_set_id
+             , model_id
+             , medata_set_nm
+             , medata_set_logic_nm
+             , medata_set_desc
+             , medata_set_sttus_mtcd
+             , medata_set_sttus_why
+             , medata_set_nwst_rvsn
+             , medata_set_regr_id
+             , medata_set_regr_nm
+             , medata_set_reg_dt
+             , medata_set_amdr_id
+             , medata_set_amdr_nm
+             , medata_set_amd_dt
+             , id_schm_cntry_cd
+             , id_schm_type
+             , id_schm_cd
+             , id_schm_cd2
+             ) VALUES 
+             ( 
+               #{medataSetId}
+             , #{modelId}
+             , #{medataSetNm}
+             , #{medataSetLogicNm}
+             , #{medataSetDesc}
+             , #{medataSetSttusMtcd}
+             , #{medataSetSttusWhy}
+             , #{medataSetNwstRvsn}
+             , #{medataSetRegrId}
+             , #{medataSetRegrNm}
+             , current_timestamp
+             , #{medataSetRegrId}
+             , #{medataSetRegrNm}
+             , current_timestamp
+             , #{idSchmCntryCd}
+             , #{idSchmType}
+             , #{idSchmCd}
+             , #{idSchmCd2}
+             )
+    </insert>	
+	
+	<update id="updateMetadataSet" parameterType="metadataSetVo">
+		UPDATE /* SQL_ID: MetadataSetMapper.updateMetadataSet */
+               dtmeta.tb_meta_dataset
+		   SET model_id                 = #{modelId}
+		     , medata_set_nm            = #{medataSetNm}
+             , medata_set_logic_nm		= #{medataSetLogicNm}
+             , medata_set_desc          = #{medataSetDesc}
+             , medata_set_amdr_id       = #{medataSetAmdrId}
+             , medata_set_amdr_nm       = #{medataSetAmdrNm}
+             , medata_set_amd_dt        = current_timestamp            
+		 WHERE medata_set_id      = #{medataSetId}
+	</update>
+	
+	<update id="updateMetadataSetStatus" parameterType="metadataSetVo">
+		UPDATE /* SQL_ID: MetadataSetMapper.updateMetadataSetStatus */
+               dtmeta.tb_meta_dataset
+		   SET medata_set_sttus_mtcd    = #{medataSetSttusMtcd}
+		     <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(medataSetSttusWhy)">
+             , medata_set_sttus_why     = #{medataSetSttusWhy}
+             </if>
+             <if test="medataSetNwstRvsn > 0">
+             , medata_set_nwst_rvsn     = #{medataSetNwstRvsn}
+             </if>
+             , medata_set_amdr_id       = #{medataSetAmdrId}
+             , medata_set_amdr_nm       = #{medataSetAmdrNm}
+             , medata_set_amd_dt        = current_timestamp            
+         WHERE medata_set_id      = #{medataSetId}	
+	</update>
+	
+    <update id="updateMetadataSetNwstRvsn" parameterType="metadataSetVo">
+        UPDATE /* SQL_ID: MetadataSetMapper.updateMetadataSetNwstRvsn */
+               dtmeta.tb_meta_dataset
+           SET medata_set_nwst_rvsn     = medata_set_nwst_rvsn + 1
+             , medata_set_amdr_id       = #{medataSetAmdrId}
+             , medata_set_amdr_nm       = #{medataSetAmdrNm}
+             , medata_set_amd_dt        = current_timestamp            
+         WHERE medata_set_id      = #{medataSetId}
+         
+        <selectKey resultType="int" keyProperty="medataSetNwstRvsn" keyColumn="medata_set_nwst_rvsn" order="AFTER">
+            SELECT medata_set_nwst_rvsn  FROM dtmeta.tb_meta_dataset  WHERE medata_set_id = #{medataSetId}
+        </selectKey>         
+    </update>	
+	
+	<delete id="deleteMetadataSet" parameterType="metadataSetVo">
+        DELETE /* SQL_ID: MetadataSetMapper.deleteMetadataSet */
+          FROM dtmeta.tb_meta_dataset
+         WHERE medata_set_id      = #{medataSetId}  
+	</delete>
+	
+    <select id="selectMetadataSetDtwListBySubSetId" resultType="camelCaseMap">
+        /* SQL_ID: MetadataSetMapper.selectMetadataSetDtwListBySubSetId */
+        WITH RECURSIVE hierarchy_vw AS (
+            SELECT t2.medata_set_id                 AS up_set_id
+                 , ARRAY [t2.prpty_id::TEXT]        AS up_prpty_id_path
+                 , ARRAY [t2.medata_set_id::text]   AS up_set_id_path
+                 , ARRAY [t3.model_id::text]        AS up_mode_id_path 
+                 , 0                                AS depth
+                 , FALSE                            AS cycle
+              FROM dtmeta.tb_meta_dataset t1
+              LEFT OUTER JOIN dtmeta.tb_meta_data     t2  ON t1.medata_set_id = t2.medata_val AND t1.medata_set_id != t2.medata_set_id
+              LEFT OUTER JOIN dtmeta.tb_meta_dataset  t3  ON t2.medata_set_id = t3.medata_set_id
+             WHERE t1.medata_set_id      = #{medataSetId}
+                UNION ALL
+            SELECT t2.medata_set_id                 AS up_set_id
+                 , ARRAY_APPEND(h.up_prpty_id_path, t2.prpty_id::text)
+                 , ARRAY_APPEND(h.up_set_id_path  , t2.medata_set_id::text)
+                 , ARRAY_APPEND(h.up_mode_id_path , t3.model_id::text)
+                 , h.DEPTH + 1
+                 , t1.medata_set_id = ANY(h.up_set_id_path)
+              FROM dtmeta.tb_meta_dataset t1
+              LEFT OUTER JOIN dtmeta.tb_meta_data     t2  ON t1.medata_set_id = t2.medata_val AND t1.medata_set_id != t2.medata_set_id
+              LEFT OUTER JOIN dtmeta.tb_meta_dataset  t3  ON t2.medata_set_id = t3.medata_set_id
+             INNER JOIN hierarchy_vw h  ON h.up_set_id = t1.medata_set_id 
+             WHERE NOT CYCLE 
+        )
+        SELECT h.up_set_id_path[h.DEPTH + 1]  AS dtw_id
+             , n1.medata_set_nm               AS dtw_nm
+             , n1.medata_set_sttus_mtcd       AS dtw_sttus_mtcd
+             , c1.mtcd_nm                     AS dtw_sttus_mtcd_nm
+             , h.up_set_id_path[1]            AS up_set_id
+             , n2.medata_set_nm               AS up_set_nm
+             , n4.type_model_id               AS up_type_model_id
+             , n2.model_id                    AS up_model_id
+             , h.up_prpty_id_path[1]          AS up_prpty_id
+             , n3.prpty_nm                    AS up_prpty_nm
+             , n2.medata_set_sttus_mtcd       AS up_set_sttus_mtcd
+             , c2.mtcd_nm                     AS up_set_sttus_mtcd_nm     
+          FROM hierarchy_vw h
+          LEFT OUTER JOIN dtmeta.tb_meta_dataset  n1  ON h.up_set_id_path[h.DEPTH + 1] = n1.medata_set_id 
+          LEFT OUTER JOIN dtmeta.tb_portal_code   c1  ON n1.medata_set_sttus_mtcd = c1.mtcd AND c1.mtcd_grp_id = 'MCG00001'
+          LEFT OUTER JOIN dtmeta.tb_meta_dataset  n2  ON h.up_set_id_path[1] = n2.medata_set_id 
+          LEFT OUTER JOIN dtmeta.tb_portal_code   c2  ON n2.medata_set_sttus_mtcd = c2.mtcd AND c2.mtcd_grp_id = 'MCG00001'
+          LEFT OUTER JOIN dtmeta.tb_meta_property n3  ON h.up_prpty_id_path[1] = n3.prpty_id 
+          LEFT OUTER JOIN dtmeta.tb_meta_model    n4  ON n2.model_id = n4.model_id
+         WHERE h.up_mode_id_path[h.DEPTH + 1]  IN ( SELECT model_id  FROM dtmeta.tb_meta_model WHERE type_model_id =  'DigitalTwin' )
+         ORDER BY n1.medata_set_reg_dt        
+		<include refid="limitPage"/>
+    </select>
+    
+    <!-- TODO custom_fields 에 우선 고정을 해본다.
+    <select id="selectMetadataSetForVectorStore" parameterType="metadataSearchVo" resultType="vectorStoreDto">
+        SELECT /* SQL_ID: MetadataSetMapper.selectMetadataSetForVectorStore */    
+               t1.medata_set_id
+             , t1.medata_set_nm
+             , t1.medata_set_desc                      
+             , t3.model_nm        AS meta_type_model                
+             , t2.model_nm        AS meta_model
+             , t1.medata_set_regr_id
+             , TO_CHAR(t1.medata_set_reg_dt, #{sqlDateFormat})  AS medata_set_reg_dt
+             , TO_CHAR(t1.medata_set_amd_dt, #{sqlDateFormat})  AS medata_set_amd_dt    
+             , (
+                    SELECT jsonb_object_agg(
+                              a2.prpty_nm
+                            , CASE WHEN a3.data_type_mtcd = 'langString' THEN jsonb_build_object('language', a1.lang_mtcd, 'value', a1.medata_val)
+                                   WHEN a3.data_type_mtcd = 'geoJson' THEN dtmeta.ST_AsGeoJson(a1.geodata_val)::jsonb
+                                   WHEN a3.data_type_mtcd in ('json', 'address', 'dataInfo') THEN a1.medata_val::jsonb
+                                   ELSE to_jsonb(a1.medata_val)
+                              END
+                           )
+                      FROM dtmeta.tb_meta_data a1
+                     INNER JOIN dtmeta.tb_meta_property a2  ON a1.prpty_id = a2.prpty_id AND a2.prpty_data_sttus_mtcd = 'use'
+                     INNER JOIN dtmeta.tb_meta_model    a3  ON a1.val_model_id = a3.model_id
+                     WHERE a1.medata_set_id = t1.medata_set_id
+                       AND ( a2.prpty_id = 'owner' OR a2.cnt_prpty_yn = 'Y')
+                ) AS custom_fields
+          FROM dtmeta.tb_meta_dataset t1
+          LEFT OUTER JOIN dtmeta.tb_meta_model  t2  ON t1.model_id = t2.model_id
+          LEFT OUTER JOIN dtmeta.tb_meta_model  t3  ON t2.type_model_id = t3.model_id
+         WHERE t1.medata_set_id   =  #{medataSetId}
+    </select>
+    -->
+	<select id="checkMetadatasetsIdByIdSchms" resultType="boolean">
+		SELECT /* SQL_ID: MetadataSetMapper.checkMetadatasetsIdByIdSchms */
+			EXISTS (
+				SELECT 1
+				FROM dtmeta.tb_meta_dataset t1
+				WHERE
+					t1.model_id = #{modelId}
+					AND (
+					t1.medata_set_id = #{idSchmPrefix}
+						OR (
+						t1.id_schm_cntry_cd = #{idSchmCntryCd}
+							AND t1.id_schm_type = #{idSchmType}
+							AND t1.id_schm_cd = #{idSchmCd}
+							<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(idSchmCd2)">
+							AND t1.id_schm_cd2 = #{idSchmCd2}
+							</if>
+					)
+				)
+			)
+	</select>
+	
+</mapper>
+

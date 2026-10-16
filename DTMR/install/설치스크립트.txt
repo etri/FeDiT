@@ -1,0 +1,1414 @@
+################################################################################
+# 메타데이터 관리 프레임워크 - 설치 스크립트
+# 대상: Ubuntu 22.04 이상 (빈 서버)
+# 상세 설명은 설치가이드.md 참조
+#
+# [이 문서를 여는 두 가지 경우]
+#   1) 문서만 따로 전달받았다면  -> 0 장부터 순서대로 진행한다.
+#                                  0-2 에서 값을 정하고 0-3 에서 소스를 받는다.
+#   2) 이미 소스를 받아 그 안의 문서를 보고 있다면
+#                                -> 0-3(소스 받기)은 이미 한 것이므로
+#                                   0-2 만 실행하되, SRC_DIR 을 소스를 받은
+#                                   실제 경로로 맞춘 뒤 1 장으로 넘어간다.
+#                                   확인 : ls $SRC_DIR/install
+#
+# [서버 사양]
+#            최소            권장
+#   CPU      4 core          8 core
+#   RAM      16 GB           32 GB
+#   디스크    200 GB SSD      500 GB 이상 (데이터 볼륨 분리)
+#
+#   한 서버에 저장소 5종(PostgreSQL/Virtuoso/Neo4j/Elasticsearch/InfluxDB)과
+#   앱 4종이 함께 뜬다. 기본 설정으로 두면 각자 메모리를 크게 잡으므로
+#   운영 서버에서는 아래처럼 힙을 제한한다.
+#     Elasticsearch  ES_JAVA_OPTS=-Xms4g -Xmx4g
+#     Neo4j          server.memory.heap.max_size=2g / pagecache.size=2g
+#     Java API 2종   JAVA_OPTS=-Xmx1g
+#
+#   디스크는 시간이 지날수록 늘어난다. 아래 두 가지를 설치 시 정해둔다.
+#     컨테이너 로그 제한 : docker run 에 --log-opt max-size=100m --log-opt max-file=3
+#     InfluxDB 보존기간  : .env.influxdb2 에 DOCKER_INFLUXDB_INIT_RETENTION=365d
+################################################################################
+
+
+########################################
+# 0. 설치 전 환경 확인
+#    OS 버전, 서버 사양, Docker/PostgreSQL 설치 여부, 포트 점유 상태를 확인한다.
+########################################
+
+# 우분투 버전 확인
+echo "===== OS 버전 ====="
+lsb_release -a
+
+# CPU / 메모리 / 디스크 확인
+echo "===== 서버 사양 ====="
+nproc; free -h; df -h /
+
+# 도커 설치 여부와 버전 확인
+echo "===== 도커 버전 ====="
+docker --version || echo "docker: 없음"
+
+# docker compose v2 사용 가능 여부 확인 (ELK 설치에 필요)
+echo "===== docker compose ====="
+docker compose version || echo "docker compose: 없음"
+
+# 어느 계열 도커인지 확인 (docker.io = 우분투 기본 / docker-ce = 도커 공식)
+echo "===== 도커 패키지 계열 ====="
+dpkg -l | grep -E 'docker.io|docker-engine|docker-ce' || echo "docker 패키지: 없음"
+
+# snap 으로 설치된 도커가 있는지 확인 (apt 로 관리되지 않음)
+echo "===== snap 도커 ====="
+snap list docker || echo "snap docker: 없음"
+
+# PostgreSQL 설치 여부와 버전 확인
+echo "===== PostgreSQL ====="
+psql --version || echo "psql: 없음"
+
+# git 설치 여부 확인 (소스를 받을 때 필요)
+echo "===== git ====="
+git --version || echo "git: 없음"
+
+# curl 설치 여부 확인 (설치 중 상태 확인에 계속 사용한다)
+echo "===== curl ====="
+curl --version | head -1 || echo "curl: 없음"
+
+# git 이나 curl 이 없으면 설치한다
+# sudo apt-get update && sudo apt-get install -y git curl
+
+# 설치에 사용할 포트가 이미 쓰이고 있는지 확인
+echo "===== 포트 점유 ====="
+sudo ss -tlnp | grep -E ':(5432|8890|1111|7474|7687|9200|5601|8086|33000|6998|16997|8084)\b' || echo "점유 없음"
+
+
+########################################
+# 0-1. 클라우드 서버인 경우 추가 확인
+#      클라우드는 서버 안 방화벽과 별개로 인스턴스 바깥의 방화벽이 하나 더 있다.
+#      (AWS 보안그룹 / Azure NSG / NCP ACG)
+#      아래 내용은 클라우드 콘솔에서 설정하며, 서버 안에서는 확인만 한다.
+#
+#      [1] 콘솔에서 열어야 할 인바운드 포트
+#          22                     관리자 IP 만
+#          8084                   웹 (사용자 접근 범위)
+#          33000 / 6998 / 16997   인증·API (브라우저가 직접 호출하므로 외부 개방 필요)
+#          7474 / 8890 / 5601 / 8086   관리 콘솔, 관리자 IP 만
+#          5432                   DB. 인터넷에 열지 않는다. 필요시 관리자 IP 만
+#
+#      [2] pg_hba.conf 에 넣을 대역이 달라진다
+#          같은 VPC 안에서 접속  -> VPC 사설 대역 (예: 10.0.0.0/16, 172.31.0.0/16)
+#          사무실에서 접속       -> 사무실 회선의 공인 IP
+#          192.168 대역은 클라우드에서 거의 쓰이지 않는다
+#
+#      [3] 도커 네트워크 대역이 VPC 대역과 겹치면 안 된다
+#          겹치면 컨테이너에서 같은 대역의 다른 서버로 나가지 못한다 (1-5 에서 확인)
+#
+#      [4] 앱 설정에는 브라우저가 접근하는 주소(공인 IP 또는 도메인)를 넣는다
+#          인증서버 serverip / default_url / redirect_uri 에 사설 IP 를 넣으면
+#          서버끼리는 통신되지만 로그인 리다이렉트가 깨진다 (7장)
+########################################
+
+# 서버 자신의 사설 IP 와 대역 확인 (pg_hba.conf 에 넣을 값)
+ip -4 addr show | grep inet
+
+# 이 서버의 공인 IP 확인 (앱 설정에 넣을 값 / 없으면 사설 전용 서버)
+curl -s ifconfig.me; echo
+
+# VPC 대역과 도커 대역(172.25) 이 겹치는지 확인
+ip route | grep 172.25 || echo "172.25 대역 사용 안 함"
+
+
+########################################
+# 0-2. 설치에 사용할 값 지정
+#      여기서 한 번만 정하면 이후 모든 명령(도커 실행, DB 생성, 앱 실행)이 이 값을 쓴다.
+#      기본값 그대로 설치해도 되고, 바꿀 값만 고쳐서 실행한다.
+#      재접속하면 사라지므로 아래처럼 파일로 만들어 두고 매번 source 한다.
+########################################
+
+# 값 파일 생성 (SERVER_HOST 는 실제 서버 IP 로 바꿀 것)
+cat > ~/dt.env << 'EOF'
+# 설치에 쓰는 모든 데이터와 설정을 모아 둘 기준 디렉터리
+export DT_DIR=$HOME/dtmeta
+
+# 브라우저가 접속하는 주소. 기본은 서버의 첫 번째 IP 를 자동으로 쓴다.
+# 사내망에서 접속하면 그대로 두고, 아래에 해당하면 주석을 풀어 직접 지정한다.
+#   - 공인 IP 나 도메인으로 접속하는 경우 (클라우드 등)
+#   - 서버에 IP 가 여러 개라 다른 IP 로 접속하는 경우
+export SERVER_HOST=$(hostname -I | awk '{print $1}')
+# export SERVER_HOST=203.0.113.10
+
+export WEB_SERVER_URL=http://$SERVER_HOST:8084
+# export WEB_SERVER_URL=https://dtmeta.example.com
+
+# 0-3 에서 받을 소스 경로 (SQL·플러그인·앱 소스가 이 아래에 있다)
+# 소스를 다른 경로에 두었다면 이 값을 그 경로로 바꾼다
+export SRC_DIR=$DT_DIR/FeDiT/DTMR
+
+# 컴포넌트별 계정명
+export DB_USERNAME=meta_manager             # PostgreSQL 메타데이터 DB
+export HUBSECURITY_USERNAME=hubsecurity_manager   # PostgreSQL 인증 DB
+export VIRTUOSO_USERNAME=meta_manager       # Virtuoso (앱 접속)
+export NEO4J_USERNAME=neo4j                 # Neo4j
+export ELASTIC_USERNAME=elastic             # Elasticsearch / Kibana
+export INFLUX_USERNAME=meta_manager         # InfluxDB
+
+# 컴포넌트별 비밀번호 (같은 값을 써도 되고 각각 다르게 해도 된다)
+export DB_PASSWORD='rhksflwk1!'             # PostgreSQL meta_manager / hubsecurity_manager
+export VIRTUOSO_DBA_PASSWORD='rhksflwk1!'   # Virtuoso 관리 콘솔(dba)
+export VIRTUOSO_PASSWORD='rhksflwk1!'       # Virtuoso meta_manager (앱 접속)
+export NEO4J_PASSWORD='rhksflwk1!'          # Neo4j
+export ELASTIC_PASSWORD='rhksflwk1!'        # Elasticsearch / Kibana
+export INFLUX_PASSWORD='rhksflwk1!'         # InfluxDB
+
+# 앱 기동에 필요한 값 (7장·9장에서 발급받아 채운다)
+export SECURITY_SECRET_KEY=''
+export INFLUX_TOKEN=''
+
+# 연합 트윈 연동용 카프카 주소 (연동할 카프카 서버의 주소를 넣는다. 예: 10.0.0.5:9092)
+# 메타데이터 변경 내역을 twin-meta-changelog 토픽으로 보낸다
+# 주소를 아직 못 받았으면 비워 두고 설치한 뒤 나중에 넣어도 된다
+export KAFKA_SERVERS=''
+export KAFKA_USERNAME=''
+export KAFKA_PASSWORD=''
+EOF
+
+# 비밀번호가 들어 있으므로 본인만 읽도록 권한을 제한한다
+chmod 600 ~/dt.env
+
+# 재접속할 때 자동으로 불러오도록 등록
+grep -q 'source ~/dt.env' ~/.bashrc || echo 'source ~/dt.env' >> ~/.bashrc
+
+# 현재 셸에 적용
+source ~/dt.env
+
+# 기준 디렉터리 생성
+mkdir -p $DT_DIR
+
+# 값 확인 - 브라우저에서 이 주소로 접속되는 게 맞는지 반드시 눈으로 확인한다
+echo "DT_DIR          = $DT_DIR"
+echo "SERVER_HOST     = $SERVER_HOST"
+echo "WEB_SERVER_URL  = $WEB_SERVER_URL"
+
+
+########################################
+# 0-3. 소스 받기
+#      설치에 필요한 SQL·플러그인·문서가 소스 저장소에 함께 들어 있다.
+#      저장소가 비공개면 토큰(PAT)이 필요하다. 발급 절차는 이 문서 맨 뒤 부록 참고.
+#      전체를 받지 않고 필요한 폴더만 받는다.
+########################################
+
+# git 설치 여부 확인 (없으면 아래 설치 명령 실행)
+git --version || sudo apt-get install -y git
+
+# 소스 받기 (아이디와 토큰을 물으면 GitHub 아이디 / 발급받은 토큰 입력)
+cd $DT_DIR
+git clone --filter=blob:none --sparse https://github.com/etri/FeDiT.git
+
+# 필요한 폴더만 받도록 지정
+cd $DT_DIR/FeDiT
+git sparse-checkout set DTMR
+
+# 받은 내용 확인 (앱 4종 + install 폴더)
+ls DTMR
+ls DTMR/install
+
+# 0-2 에서 지정한 경로와 실제 위치가 맞는지 확인
+ls $SRC_DIR
+
+
+########################################
+# 1-1. 기존 Docker 처리 방침
+#
+#      이미 도커가 설치된 서버라면 도커를 지우거나 바꾸지 않는다.
+#      기존 이미지/컨테이너/볼륨을 그대로 두고, 부족한 것만 채운다.
+#
+#        docker 없음                        -> 1-2 실행 (설치)
+#        docker 있고 docker compose 됨      -> 1-2, 1-3 건너뛰고 1-4 부터
+#        docker 있고 docker compose 안 됨   -> 1-3 실행 (compose 만 추가)
+#
+#      ELK(5장) 설치에 docker compose v2 가 필요해서 이것만 맞추면 된다.
+########################################
+
+
+########################################
+# 1-2. Docker 설치
+#      도커가 설치되지 않은 서버에서만 실행한다.
+########################################
+
+# 설치 중 서비스 재시작 여부를 묻지 않도록 설정 (묻는 창에서 멈추는 것 방지)
+sudo sed -i "s/^#\$nrconf{restart} = 'i';/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
+
+# 패키지 목록 갱신
+sudo apt-get update
+
+# 도커 저장소 등록에 필요한 도구 설치
+sudo apt-get install -y ca-certificates curl gnupg lsb-release
+
+# 인증키를 넣을 디렉터리 생성
+sudo install -m 0755 -d /etc/apt/keyrings
+
+# 도커 공식 GPG 키를 내려받아 apt 형식으로 저장
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+  sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+# 모든 사용자가 키를 읽을 수 있도록 권한 부여
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+# 도커 공식 저장소를 apt 목록에 추가
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# 추가한 저장소를 반영
+sudo apt-get update
+
+# 도커 엔진과 compose/buildx 플러그인 설치
+sudo NEEDRESTART_MODE=a apt-get install -y docker-ce docker-ce-cli containerd.io \
+  docker-buildx-plugin docker-compose-plugin
+
+# 설치된 버전 확인
+sudo docker --version
+sudo docker compose version
+
+# 컨테이너가 실제로 실행되는지 확인 (Hello from Docker! 출력)
+sudo docker run --rm hello-world
+
+
+########################################
+# 1-3. docker compose 만 추가  [조건부 - 1-2 를 실행했으면 건너뛴다]
+#      도커는 있는데 docker compose 만 안 되는 서버에서 실행한다.
+#      기존 도커는 그대로 두고 compose v2 플러그인 파일만 얹는다.
+#      기존 docker-compose(v1) 도 지우지 않으므로 두 명령 다 사용할 수 있다.
+########################################
+
+# 플러그인을 넣을 디렉터리 생성
+sudo mkdir -p /usr/local/lib/docker/cli-plugins
+
+# 서버 아키텍처에 맞는 compose v2 실행 파일 내려받기
+sudo curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m)" \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+
+# 실행 권한 부여
+sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+# 정상 인식되는지 확인
+docker compose version
+
+
+########################################
+# 1-4. sudo 없이 docker 사용
+########################################
+
+# 현재 사용자를 docker 그룹에 추가
+sudo usermod -aG docker $USER
+
+# 재접속 없이 현재 셸에 바로 적용 (새 터미널부터는 자동 적용)
+newgrp docker
+
+# sudo 없이 되는지 확인
+docker ps
+
+
+########################################
+# 1-5. 공용 도커 네트워크 생성
+#      모든 컨테이너가 이 네트워크에서 컨테이너명으로 통신한다.
+#      대역을 172.25.0.0/16 으로 고정해 게이트웨이를 항상 172.25.0.1 로 맞춘다.
+#      (인증서버 설정의 dbHost 값이 서버마다 달라지지 않게 하기 위함)
+########################################
+
+# 172.25 대역이 이미 쓰이고 있는지 확인 (결과가 나오면 아래 대역을 다른 값으로 변경)
+ip route | grep 172.25 || echo "172.25 대역 사용 안 함"
+
+# keti-dt-net 네트워크 생성
+docker network create --subnet 172.25.0.0/16 --gateway 172.25.0.1 keti-dt-net
+
+# 생성 확인
+docker network ls | grep keti-dt-net
+
+
+########################################
+# 1-6. 게이트웨이 IP 확인
+#      컨테이너에서 호스트 PostgreSQL 로 접속할 때 쓰는 IP. 인증서버 설정에 사용한다.
+########################################
+
+# 172.25.0.1 로 나오는지 확인
+docker network inspect keti-dt-net --format '{{(index .IPAM.Config 0).Gateway}}'
+
+
+########################################
+# 2-1. 기존 PostgreSQL 처리 방침
+#
+#      이미 설치된 PostgreSQL 이 있으면 새로 설치하거나 버전을 바꾸지 않는다.
+#      기존 DB 를 그대로 두고 버전과 PostGIS 사용 가능 여부만 확인한다.
+#
+#        psql 없음            -> 2-2 실행 (설치)
+#        psql 있고 12 이상    -> 2-2 건너뛰고 2-3 부터
+#        psql 있고 12 미만    -> 서버 담당자와 협의 후 결정
+########################################
+
+# 설치 여부와 버전 확인
+psql --version || echo "psql: 없음"
+
+# 설치돼 있다면 PostGIS 를 쓸 수 있는지 확인 (결과가 없으면 postgresql-<버전>-postgis-3 설치 필요)
+sudo -u postgres psql -c "select name, default_version from pg_available_extensions where name = 'postgis';"
+
+
+########################################
+# 2-2. PostgreSQL 16 + PostGIS 설치
+#      DB 는 컨테이너가 아니라 서버에 직접 설치한다.
+#      우분투 기본 저장소에는 14 만 있어서 PostgreSQL 공식 저장소를 추가해 16 을 설치한다.
+########################################
+
+# 저장소 등록에 필요한 도구 설치
+sudo apt-get install -y curl ca-certificates gnupg lsb-release
+
+# 인증키를 넣을 디렉터리 생성
+sudo install -d /usr/share/postgresql-common/pgdg
+
+# PostgreSQL 공식 GPG 키 저장
+curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
+  sudo tee /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+
+# PostgreSQL 공식 저장소를 apt 목록에 추가
+echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | \
+  sudo tee /etc/apt/sources.list.d/pgdg.list
+
+# 추가한 저장소를 반영
+sudo apt-get update
+
+# PostgreSQL 16 과 PostGIS 설치
+sudo NEEDRESTART_MODE=a apt-get install -y postgresql-16 postgresql-contrib postgresql-16-postgis-3
+
+# 설치된 버전 확인 (16.x 이면 정상)
+psql --version
+
+# 서비스 상태 확인
+systemctl is-active postgresql
+
+
+########################################
+# 2-3. 접속 허용 설정
+#      pg_hba.conf 가 접속 허용 목록이다. 여기 없는 IP 는 접속하지 못한다.
+#      형식: 종류  DB  계정  허용IP  인증방식   (/32 = IP 하나, /24 = 대역 전체)
+########################################
+
+# 모든 주소에서 접속을 받도록 변경 (실제 허용 범위는 아래 pg_hba.conf 로 통제)
+sudo sed -i "s/^#\?listen_addresses.*/listen_addresses = '*'/" /etc/postgresql/*/main/postgresql.conf
+
+# 서버 자신(로컬)에서의 접속 허용
+echo "host    all    all    127.0.0.1/32     md5" | sudo tee -a /etc/postgresql/*/main/pg_hba.conf
+
+# 도커 네트워크(keti-dt-net) 안에서의 접속 허용
+echo "host    all    all    172.25.0.0/16    md5" | sudo tee -a /etc/postgresql/*/main/pg_hba.conf
+
+# 내부 사설망에서의 접속 허용 (DBeaver 등 / 서버가 속한 대역이 다르면 그 값으로 변경)
+echo "host    all    all    192.168.0.0/16   md5" | sudo tee -a /etc/postgresql/*/main/pg_hba.conf
+
+# 외부(공인 IP)에서 접속해야 할 때만 아래 주석을 풀고 접속할 공인 IP 로 바꿔 실행
+# echo "host    all    all    접속할공인IP/32   md5" | sudo tee -a /etc/postgresql/*/main/pg_hba.conf
+
+# 설정 적용
+sudo systemctl restart postgresql
+
+# 5432 포트가 열렸는지 확인
+sudo ss -tlnp | grep 5432
+
+# 적용된 허용 목록 확인
+sudo -u postgres psql -c "select type, database, user_name, address, auth_method from pg_hba_file_rules where address is not null;"
+
+
+########################################
+# 2-3-1. 서버 안 방화벽(ufw) 확인
+#
+#      ★ 방화벽은 켜지 않는다. 상태만 확인하고 넘어간다.
+#
+#      클라우드는 보안그룹이, 사내망은 네트워크 장비가 앞단에서 막으므로
+#      서버 안에서 한 겹 더 막을 필요가 없다. 켜면 이후 설치하는 서비스 포트를
+#      하나씩 열어야 화면이 열리고, 22 를 먼저 열지 않으면 SSH 가 끊긴다.
+########################################
+
+# 켜져 있는지 확인 (inactive 면 아무것도 하지 않는다)
+sudo ufw status
+
+# active 인데 끄려면 아래 실행
+# sudo ufw disable
+
+# 방화벽을 켜서 쓸 경우 아래 순서대로 실행한다 (22 를 먼저 열지 않으면 SSH 가 끊긴다)
+# sudo ufw allow 22/tcp
+# sudo ufw allow 8084/tcp
+# sudo ufw allow 33000/tcp
+# sudo ufw allow 6998/tcp
+# sudo ufw allow 16997/tcp
+# sudo ufw allow 7474/tcp
+# sudo ufw allow 8890/tcp
+# sudo ufw allow 5601/tcp
+# sudo ufw allow 8086/tcp
+# sudo ufw enable
+# sudo ufw status
+
+
+########################################
+# 2-4. DB / 계정 생성
+#      dtmeta      : 메타데이터용 (Admin API, Metadata API 공용)
+#      hubsecurity : 인증 서버 전용
+#
+#      아래는 psql 안에서 실행하므로 환경변수가 풀리지 않는다.
+#      비밀번호는 0-2 의 DB_PASSWORD 와 같은 값을 직접 입력한다.
+#      이 계정 정보가 앱의 DB_USERNAME / DB_PASSWORD 와 인증서버 server_conf.json 에 쓰인다.
+########################################
+
+# postgres 계정으로 psql 접속 (프롬프트가 postgres=# 로 바뀐다)
+sudo -u postgres psql
+
+# --- 아래는 psql 안에서 실행 ---------------------------------------------
+
+-- 인증 서버 DB 와 계정 생성
+create database hubsecurity encoding 'utf-8';
+create user hubsecurity_manager password 'rhksflwk1!';
+alter database hubsecurity owner to hubsecurity_manager;
+
+-- 메타데이터 DB 와 계정 생성
+create database dtmeta encoding 'utf-8';
+create user meta_manager password 'rhksflwk1!';
+alter user meta_manager createdb;
+alter database dtmeta owner to meta_manager;
+
+-- dtmeta DB 로 이동
+\c dtmeta
+
+-- 스키마 2개 생성
+create schema common authorization meta_manager;
+create schema dtmeta authorization meta_manager;
+
+-- 공간 데이터 기능(PostGIS) 활성화
+create extension postgis with schema dtmeta;
+
+-- 생성 결과 확인 (DB 2개, 스키마 common/dtmeta/public)
+\l
+\dn
+
+-- psql 종료
+\q
+
+
+########################################
+# 2-5. 테이블 생성 (DDL/DML 실행)
+#      SQL 파일 6종을 서버에 올린 뒤 아래 순서대로 실행한다.
+#      인증 서버가 가장 먼저 기동해야 하므로 인증 DB 부터 넣는다.
+#        ddl_hubsecurity_public.sql      : 인증 서버 테이블
+#        dml_hubsecurity_public_data.sql : 인증 서버 초기 데이터 (없으면 로그인 불가)
+#        ddl_dtmeta_common.sql           : common 스키마 테이블
+#        dml_dtmeta_common_data.sql      : common 스키마 기준 데이터 (사용자/권한/메뉴)
+#        ddl_dtmeta_dtmeta.sql           : dtmeta 스키마 테이블
+#        dml_dtmeta_dtmeta_data.sql      : dtmeta 스키마 기준 데이터
+########################################
+
+# SQL 파일은 0-3 에서 받은 소스의 install/sql 에 들어 있다.
+# 아래 치환 작업이 파일을 수정하므로 원본을 두고 작업본을 복사해 쓴다.
+mkdir -p $DT_DIR/sql
+cp $SRC_DIR/install/sql/*.sql $DT_DIR/sql/
+ls -l $DT_DIR/sql
+
+# 인증 서버 주소 (로그인 화면이 쓰는 앱의 redirect_uri 가 된다)
+export SECURITY_SERVER_URL=http://$SERVER_HOST:33000
+
+# 치환에 쓸 값 확인 (0-2 에서 지정한 값)
+echo "WEB_SERVER_URL      = $WEB_SERVER_URL"
+echo "SECURITY_SERVER_URL = $SECURITY_SERVER_URL"
+
+# 웹서버 주소를 실제 값으로 치환 (DML 실행 전 필수)
+# 웹 앱의 redirect_uri 와 RDF 네임스페이스 주소에 쓰인다
+# 브라우저가 접속하는 주소를 적는다. 외부에서 접속하면 공인 IP 나 도메인을 쓴다
+# 뒤에 경로가 붙으므로 끝에 / 를 넣지 않는다
+sed -i "s|__WEB_SERVER_URL__|$WEB_SERVER_URL|g" $DT_DIR/sql/dml_hubsecurity_public_data.sql
+sed -i "s|__WEB_SERVER_URL__|$WEB_SERVER_URL|g" $DT_DIR/sql/dml_dtmeta_dtmeta_data.sql
+
+# 인증 서버 주소를 실제 값으로 치환
+sed -i "s|__SECURITY_SERVER_URL__|$SECURITY_SERVER_URL|g" $DT_DIR/sql/dml_hubsecurity_public_data.sql
+
+# 치환 결과 확인 (셋 다 0 이어야 한다)
+grep -c "__WEB_SERVER_URL__" $DT_DIR/sql/dml_hubsecurity_public_data.sql
+grep -c "__WEB_SERVER_URL__" $DT_DIR/sql/dml_dtmeta_dtmeta_data.sql
+grep -c "__SECURITY_SERVER_URL__" $DT_DIR/sql/dml_hubsecurity_public_data.sql
+
+# 접속 비밀번호 지정 (아래 psql 실행 동안만 사용)
+export PGPASSWORD="$DB_PASSWORD"
+
+# 인증 서버 DB 테이블 생성과 초기 데이터 입력
+psql -h localhost -U "$HUBSECURITY_USERNAME" -d hubsecurity -f $DT_DIR/sql/ddl_hubsecurity_public.sql
+psql -h localhost -U "$HUBSECURITY_USERNAME" -d hubsecurity -f $DT_DIR/sql/dml_hubsecurity_public_data.sql
+
+# common 스키마 (사용자/권한/메뉴) 먼저 생성하고 데이터 입력
+psql -h localhost -U "$DB_USERNAME" -d dtmeta -f $DT_DIR/sql/ddl_dtmeta_common.sql
+psql -h localhost -U "$DB_USERNAME" -d dtmeta -f $DT_DIR/sql/dml_dtmeta_common_data.sql
+
+# dtmeta 스키마 생성하고 데이터 입력
+psql -h localhost -U "$DB_USERNAME" -d dtmeta -f $DT_DIR/sql/ddl_dtmeta_dtmeta.sql
+psql -h localhost -U "$DB_USERNAME" -d dtmeta -f $DT_DIR/sql/dml_dtmeta_dtmeta_data.sql
+
+# 테이블이 생성됐는지 확인
+psql -h localhost -U "$HUBSECURITY_USERNAME" -d hubsecurity -c "\dt public.*"
+psql -h localhost -U "$DB_USERNAME" -d dtmeta -c "\dt common.*" | head
+psql -h localhost -U "$DB_USERNAME" -d dtmeta -c "\dt dtmeta.*" | head
+
+# 시퀀스 5개가 생성됐는지 확인
+psql -h localhost -U "$DB_USERNAME" -d dtmeta -c "\ds dtmeta.*"
+
+# OAuth 앱이 들어갔는지 확인 (security 는 :33000, metaweb 은 :8084/redirect 로 나와야 한다)
+psql -h localhost -U "$HUBSECURITY_USERNAME" -d hubsecurity -c "select application_id_pk, application_name, redirect_uri from application;"
+
+# 계정이 들어갔는지 확인 (8건. 비밀번호는 모두 rhksflwk1!, 운영 서버에서는 변경한다)
+#   meta_admin / keti_dt / admin / n2m_iot   시스템 관리자 (설치 확인은 meta_admin)
+#   meta_tester1~4                           제공자 / 관리자 / 조회자 / 기본 사용자
+psql -h localhost -U "$HUBSECURITY_USERNAME" -d hubsecurity -c "select user_id_pk, role from users;"
+
+# 비밀번호 환경변수 해제
+unset PGPASSWORD
+
+
+########################################
+# 3-1. Virtuoso 실행
+#      RDF(트리플) 저장소. 이미지를 받아 컨테이너로 띄운다.
+#
+#      DBA_PASSWORD 는 관리 콘솔(Conductor) 접속용 dba 계정 비밀번호다.
+#      Metadata API 가 쓰는 계정은 3-2 에서 만드는 meta_manager 이며,
+#      그 비밀번호가 9장의 환경변수 VIRTUOSO_PASSWORD 값이 된다.
+########################################
+
+# 데이터 디렉터리 생성
+mkdir -p $DT_DIR/virtuoso/database
+
+# 컨테이너 실행 (8890 관리화면, 1111 JDBC)
+docker run -d \
+  --name virtuoso \
+  --network keti-dt-net \
+  --restart unless-stopped \
+  -p 1111:1111 \
+  -p 8890:8890 \
+  -v $DT_DIR/virtuoso/database:/database \
+  -e DBA_PASSWORD="$VIRTUOSO_DBA_PASSWORD" \
+  openlink/virtuoso-opensource-7:7.2.6-r10-g5a27710
+
+# 기동 확인 (Up 상태)
+docker ps | grep virtuoso
+
+# 로그 확인 (Server online at 1111 이 보이면 정상)
+docker logs --tail 20 virtuoso
+
+
+########################################
+# 3-2. Virtuoso 계정 생성
+#      여기서 만드는 meta_manager 계정이 Metadata API 의 접속 계정이다.
+#      계정명은 환경변수 VIRTUOSO_USERNAME, 비밀번호는 VIRTUOSO_PASSWORD 에 대응한다.
+#      기본값(meta_manager / rhksflwk1!)대로 만들면 환경변수를 넘기지 않아도 된다.
+#
+#      [방법 1] 아래 명령으로 만든다. 8890 을 열지 않아도 되고 브라우저도 필요 없다.
+#      [방법 2] 8890 이 열려 있으면 Conductor 화면에서 만들어도 된다 (아래 주석 참고).
+########################################
+
+# 비밀번호에 ! 가 들어가면 bash 가 특수문자로 해석하므로 먼저 꺼둔다
+set +H
+
+# isql 을 짧게 쓰기 위한 함수. vdba 는 관리자로, vusr 은 만든 계정으로 실행한다
+vdba() { docker exec virtuoso isql 1111 dba "$VIRTUOSO_DBA_PASSWORD" exec="$*"; }
+vusr() { docker exec virtuoso isql 1111 "$VIRTUOSO_USERNAME" "$VIRTUOSO_PASSWORD" exec="$*"; }
+
+# 계정 생성과 SPARQL 권한 부여
+vdba "DB.DBA.USER_CREATE('$VIRTUOSO_USERNAME', '$VIRTUOSO_PASSWORD');"
+vdba "DB.DBA.USER_GRANT_ROLE('$VIRTUOSO_USERNAME', 'SPARQL_SELECT', 0);"
+vdba "DB.DBA.USER_GRANT_ROLE('$VIRTUOSO_USERNAME', 'SPARQL_UPDATE', 0);"
+vdba "DB.DBA.USER_GRANT_ROLE('$VIRTUOSO_USERNAME', 'SPARQL_SPONGE', 0);"
+vdba "DB.DBA.USER_GRANT_ROLE('$VIRTUOSO_USERNAME', 'SPARQL_LOAD_SERVICE_DATA', 0);"
+
+# 기본 그룹을 dba 로 지정 (Conductor 의 Primary role : dba 에 해당)
+# 이것을 하지 않으면 조회는 되지만 RDF 쓰기가 거부되어 10장에서 메타데이터 등록이 실패한다
+vdba "DB.DBA.USER_SET_OPTION('$VIRTUOSO_USERNAME', 'PRIMARY_GROUP', 'dba');"
+
+# 계정이 만들어졌는지 확인 (계정명이 나와야 한다)
+vdba "select U_NAME from DB.DBA.SYS_USERS where U_NAME='$VIRTUOSO_USERNAME';"
+
+# 조회 권한 확인 (결과가 나오면 정상)
+vusr "SPARQL select * where { ?s ?p ?o } limit 5;"
+
+# 쓰기 권한 확인 (Done. 이 나와야 한다. 앱이 메타데이터를 등록할 때 쓰는 경로다)
+vusr "SPARQL INSERT DATA { GRAPH <http://test/g> { <http://test/s> <http://test/p> 'v' } };"
+
+# 넣은 값이 조회되는지 확인
+vusr "SPARQL SELECT * WHERE { GRAPH <http://test/g> { ?s ?p ?o } };"
+
+# 확인용 데이터 삭제
+vusr "SPARQL CLEAR GRAPH <http://test/g>;"
+
+
+# [방법 2] Conductor 화면에서 만들 때 (8890 이 열려 있어야 한다)
+#   echo "http://$SERVER_HOST:8890/conductor"
+#
+#   1) dba / VIRTUOSO_DBA_PASSWORD 로 로그인
+#   2) System Admin - User Accounts - Create New Account
+#        Account name  : VIRTUOSO_USERNAME (기본값 meta_manager)
+#        Password      : VIRTUOSO_PASSWORD (기본값 rhksflwk1!)
+#        User type     : SQL/ODBC
+#        Primary role  : dba
+#   3) Account Roles 에 아래 4개 부여
+#        SPARQL_LOAD_SERVICE_DATA / SPARQL_SELECT / SPARQL_SPONGE / SPARQL_UPDATE
+#   4) Default Permissions 전부 체크 후 저장
+#   5) 만든 계정으로 재로그인 -> Linked Data - SPARQL 에서 select * where { ?s ?p ?o }
+#
+#   서버에 브라우저가 없고 8890 도 막혀 있으면 SSH 터널로 접근할 수 있다.
+#     ssh -L 8890:localhost:8890 사용자@서버IP
+#     접속을 유지한 채 내 PC 브라우저에서 http://localhost:8890/conductor
+
+
+########################################
+# 4-1. Neo4j 실행
+#      그래프 DB. Metadata API 가 bolt://neo4j:7687 로 접속하므로
+#      컨테이너명을 neo4j 로 맞춘다.
+#
+#      NEO4J_AUTH 의 계정/비밀번호가 Metadata API 접속 정보가 된다.
+#      각각 9장의 환경변수 NEO4J_USERNAME / NEO4J_PASSWORD 에 대응하며,
+#      기본값(neo4j / rhksflwk1!)대로 만들면 환경변수를 넘기지 않아도 된다.
+########################################
+
+# 데이터/설정/플러그인 디렉터리 생성
+mkdir -p $DT_DIR/neo4j/data $DT_DIR/neo4j/conf $DT_DIR/neo4j/plugins
+
+# n10s(neosemantics) 플러그인 배치
+# RDF 적재에 사용한다 (Metadata API 가 n10s.rdf.import.inline 등을 호출)
+# 0-3 에서 받은 소스의 install/neo4j_plugins/n10s.jar 를 복사한다
+# 컨테이너를 만들기 전에 복사해야 한다. 컨테이너 생성 후에는 이 디렉터리 소유자가
+# 컨테이너 계정(UID 7474)으로 바뀌어 sudo 로 복사하고 소유자를 맞춰야 한다
+#   sudo cp $SRC_DIR/install/neo4j_plugins/n10s.jar $DT_DIR/neo4j/plugins/
+#   sudo chown 7474:7474 $DT_DIR/neo4j/plugins/n10s.jar
+cp $SRC_DIR/install/neo4j_plugins/n10s.jar $DT_DIR/neo4j/plugins/
+ls -l $DT_DIR/neo4j/plugins
+
+# 컨테이너 실행 (7474 브라우저, 7687 bolt)
+# apoc 플러그인은 NEO4J_PLUGINS 로 자동 설치된다 (소스에서 apoc.create.addLabels 사용)
+# n10s 의 HTTP /rdf 엔드포인트를 쓰려면 unmanaged extension 설정이 필요하다
+docker run -d \
+  --name neo4j \
+  --network keti-dt-net \
+  --restart unless-stopped \
+  -p 7474:7474 \
+  -p 7687:7687 \
+  -v $DT_DIR/neo4j/data:/data \
+  -v $DT_DIR/neo4j/conf:/conf \
+  -v $DT_DIR/neo4j/plugins:/plugins \
+  -e NEO4J_PLUGINS='["apoc"]' \
+  -e NEO4J_AUTH="$NEO4J_USERNAME/$NEO4J_PASSWORD" \
+  -e NEO4J_server_unmanaged__extension__classes=n10s.endpoint=/rdf \
+  neo4j:2026.03.1
+
+# 기동 확인 (Started 가 보이면 완료, 1~2분 걸린다)
+docker ps | grep neo4j
+docker logs --tail 20 neo4j
+
+
+########################################
+# 4-2. Neo4j 접속 확인
+#      브라우저에서 http://$SERVER_HOST:7474/browser 접속 (예: http://203.0.113.10:7474/browser)
+#      0-2 의 NEO4J_USERNAME / NEO4J_PASSWORD (기본값 neo4j / rhksflwk1!) 로 로그인
+########################################
+
+# 접속할 주소 출력
+echo "http://$SERVER_HOST:7474/browser"
+
+# cypher-shell 을 짧게 쓰기 위한 함수
+# JVM 이 출력하는 WARNING 줄은 걸러내고, 실제 오류는 그대로 보이게 한다
+cy() { docker exec neo4j cypher-shell -u "$NEO4J_USERNAME" -p "$NEO4J_PASSWORD" --format plain "$@" 2>&1 | grep -v '^WARNING'; }
+
+# apoc 플러그인이 올라왔는지 확인 (함수 목록이 나오면 정상)
+cy "SHOW PROCEDURES YIELD name WHERE name STARTS WITH 'apoc.create' RETURN name LIMIT 5;"
+
+# n10s 플러그인이 올라왔는지 확인 (함수 목록이 나오면 정상)
+cy "SHOW PROCEDURES YIELD name WHERE name STARTS WITH 'n10s' RETURN name LIMIT 5;"
+
+# 중복 방지용 제약조건 생성 (3개)
+# 라벨/속성명은 소스에 쓰인 그대로다. medataResource, medataSetId 의 철자도 소스 기준이다.
+cy "CREATE CONSTRAINT resource_uri_unique IF NOT EXISTS FOR (n:Resource) REQUIRE n.uri IS UNIQUE;"
+cy "CREATE CONSTRAINT medata_resource_datasetid_unique IF NOT EXISTS FOR (n:medataResource) REQUIRE n.medataSetId IS UNIQUE;"
+cy "CREATE CONSTRAINT concept_keyword_value_unique IF NOT EXISTS FOR (k:ConceptKeyword) REQUIRE k.value IS UNIQUE;"
+
+# 생성된 제약조건 확인 (위 3개 이름이 그대로 나와야 한다)
+cy "SHOW CONSTRAINTS YIELD name, labelsOrTypes, properties;"
+
+# n10s 그래프 설정 초기화 (설치 시 1회)
+# Resource.uri 제약이 있어야 동작하므로 위 제약조건 생성 뒤에 실행한다
+# 설정값 목록(handleVocabUris 등)이 출력되면 성공이다
+cy "CALL n10s.graphconfig.init();"
+
+# 설정 확인
+cy "CALL n10s.graphconfig.show();"
+
+
+########################################
+# 5-1. docker-elk 내려받기
+#      Elasticsearch / Kibana 를 docker compose 로 띄우는 공개 저장소를 사용한다.
+#      Metadata API 는 컨테이너명 elasticsearch 로 접속하므로 서비스명을 바꾸지 않는다.
+########################################
+
+# 저장소 내려받기
+cd $DT_DIR
+git clone https://github.com/deviantony/docker-elk.git
+cd $DT_DIR/docker-elk
+
+
+########################################
+# 5-2. 버전과 비밀번호 지정
+#      .env 의 값을 0-2 에서 정한 값으로 맞춘다.
+########################################
+
+# docker-elk 폴더에서 실행한다
+cd $DT_DIR/docker-elk
+
+# 스택 버전 고정 (검증한 버전)
+sed -i "s/^ELASTIC_VERSION=.*/ELASTIC_VERSION=9.3.2/" .env
+
+# 계정 비밀번호 3종을 같은 값으로 지정
+sed -i "s/^ELASTIC_PASSWORD=.*/ELASTIC_PASSWORD=$ELASTIC_PASSWORD/" .env
+sed -i "s/^LOGSTASH_INTERNAL_PASSWORD=.*/LOGSTASH_INTERNAL_PASSWORD=$ELASTIC_PASSWORD/" .env
+sed -i "s/^KIBANA_SYSTEM_PASSWORD=.*/KIBANA_SYSTEM_PASSWORD=$ELASTIC_PASSWORD/" .env
+
+# 반영 확인
+cat .env
+
+
+########################################
+# 5-3. keti-dt-net 네트워크 연결
+#      Metadata API 컨테이너가 elasticsearch 라는 이름으로 찾을 수 있어야 한다.
+#      docker-compose.yml 을 편집해 각 서비스에 네트워크를 추가하고
+#      파일 맨 아래 networks 에 external 선언을 넣는다.
+########################################
+
+# docker-elk 폴더에서 실행한다
+cd $DT_DIR/docker-elk
+
+# vi docker-compose.yml
+#
+#   각 서비스(elasticsearch / logstash / kibana) 의 networks 항목을 아래처럼 바꾼다.
+#   기본값 elk 를 지우고 keti-dt-net 만 남긴다. 세 컨테이너와 API 가 같은 망을 쓴다.
+#     networks:
+#       - keti-dt-net
+#
+#   파일 맨 아래 networks 블록도 아래처럼 바꾼다.
+#     networks:
+#       keti-dt-net:
+#         external: true
+vi docker-compose.yml
+
+# 편집 결과 확인 (keti-dt-net 이 4곳 정도 보이면 정상)
+grep -n "keti-dt-net" docker-compose.yml
+
+
+########################################
+# 5-4. 한글 형태소 분석기(nori) 추가
+#      메타데이터 한글 검색에 사용한다. 이미지에 플러그인을 넣어 다시 빌드한다.
+########################################
+
+# docker-elk 폴더에서 실행한다
+cd $DT_DIR/docker-elk
+
+# elasticsearch/Dockerfile 마지막 줄에 플러그인 설치 명령 추가
+echo 'RUN elasticsearch-plugin install --batch analysis-nori' >> elasticsearch/Dockerfile
+
+# 추가 확인
+tail -3 elasticsearch/Dockerfile
+
+# 이미지 다시 빌드
+docker compose build elasticsearch
+
+
+########################################
+# 5-5. 최초 1회 setup 실행 후 기동
+#      setup 은 내장 계정들의 비밀번호를 .env 값으로 설정한다. 처음 한 번만 실행한다.
+########################################
+
+# docker-elk 폴더에서 실행한다
+cd $DT_DIR/docker-elk
+
+# 계정 초기화 (완료되면 컨테이너가 종료된다)
+docker compose --profile=setup up setup
+
+# 전체 기동 (elasticsearch / kibana / logstash)
+docker compose up -d
+
+# 기동 확인
+docker compose ps
+
+
+########################################
+# 5-6. 접속 확인
+########################################
+
+# 접속할 주소 출력
+echo "http://$SERVER_HOST:5601"
+
+# Elasticsearch 응답 확인 (버전 정보가 나오면 정상)
+curl -s -u "$ELASTIC_USERNAME:$ELASTIC_PASSWORD" http://localhost:9200 | head -20
+
+# nori 플러그인이 설치됐는지 확인
+curl -s -u "$ELASTIC_USERNAME:$ELASTIC_PASSWORD" http://localhost:9200/_cat/plugins?v
+
+# 컨테이너명으로 접속되는지 확인 (Metadata API 가 이 경로로 붙는다)
+# compose 가 서비스명을 네트워크 별칭으로 등록하므로 elasticsearch 로 찾아진다
+docker exec docker-elk-kibana-1 \
+  curl -s -u "$ELASTIC_USERNAME:$ELASTIC_PASSWORD" http://elasticsearch:9200
+
+
+########################################
+# 5-7. 인덱스 생성
+#      Metadata API 는 문서만 넣고 인덱스를 만들지 않으므로 여기서 미리 만든다.
+#      이름은 앱 설정의 elastic.index-name 과 같아야 한다 (기본값 dtmeta).
+########################################
+
+# dtmeta 인덱스 생성
+curl -s -X PUT -u "$ELASTIC_USERNAME:$ELASTIC_PASSWORD" http://localhost:9200/dtmeta
+
+# 인덱스 목록 확인 (dtmeta 가 보이면 정상)
+curl -s -u "$ELASTIC_USERNAME:$ELASTIC_PASSWORD" http://localhost:9200/_cat/indices?v
+
+# 키바나 Dev Tools 에서 같은 작업을 할 수도 있다
+#   PUT /dtmeta
+#   GET _nodes/plugins
+#   GET _cat/indices?v
+
+# dtmeta_vector, dtmeta_edges 인덱스는 여기서 만들지 않는다.
+# 벡터 검색 기능을 쓸 때만 필요하며, 별도 설치하는 벡터 서버가 매핑과 함께 생성한다.
+# 매핑 없이 미리 만들어두면 나중에 타입이 맞지 않아 다시 만들어야 한다.
+
+
+########################################
+# 6-1. InfluxDB2 실행
+#      메타데이터의 시계열 데이터를 저장한다.
+#      Metadata API 는 컨테이너명 influxdb2 로 접속하므로 이름을 맞춘다.
+#
+#      DOCKER_INFLUXDB_INIT_* 값은 최초 1회 컨테이너를 만들 때만 적용된다.
+#      계정/비밀번호는 9장의 환경변수 INFLUX_USERNAME / INFLUX_PASSWORD 에 대응한다.
+########################################
+
+# 데이터/설정 디렉터리 생성
+mkdir -p $DT_DIR/influxdb2/data $DT_DIR/influxdb2/config
+
+# 관리자 토큰 생성 (앱 설정의 INFLUX_TOKEN 값이 된다)
+export INFLUX_TOKEN=$(openssl rand -base64 32)
+echo "INFLUX_TOKEN = $INFLUX_TOKEN"
+
+# 생성한 토큰을 값 파일에 반영 (재접속 후에도 쓰도록)
+sed -i "s|^export INFLUX_TOKEN=.*|export INFLUX_TOKEN='$INFLUX_TOKEN'|" ~/dt.env
+grep INFLUX_TOKEN ~/dt.env
+
+# 초기 설정 파일 생성
+cat > $DT_DIR/influxdb2/.env.influxdb2 << EOF
+DOCKER_INFLUXDB_INIT_MODE=setup
+DOCKER_INFLUXDB_INIT_USERNAME=$INFLUX_USERNAME
+DOCKER_INFLUXDB_INIT_PASSWORD=$INFLUX_PASSWORD
+DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=$INFLUX_TOKEN
+DOCKER_INFLUXDB_INIT_ORG=dtmeta
+DOCKER_INFLUXDB_INIT_BUCKET=metadata
+EOF
+
+# 컨테이너 실행
+docker run -d \
+  --name influxdb2 \
+  --network keti-dt-net \
+  --restart unless-stopped \
+  -p 8086:8086 \
+  -v $DT_DIR/influxdb2/data:/var/lib/influxdb2 \
+  -v $DT_DIR/influxdb2/config:/etc/influxdb2 \
+  --env-file $DT_DIR/influxdb2/.env.influxdb2 \
+  influxdb:2.8.0
+
+# 기동 확인
+docker ps | grep influxdb2
+docker logs --tail 20 influxdb2
+
+
+########################################
+# 6-2. 접속 확인
+#      브라우저에서 http://$SERVER_HOST:8086 접속 (예: http://203.0.113.10:8086)
+#      0-2 의 INFLUX_USERNAME / INFLUX_PASSWORD (기본값 meta_manager / rhksflwk1!) 로 로그인
+########################################
+
+# 접속할 주소 출력
+echo "http://$SERVER_HOST:8086"
+
+# 상태 확인 (ready 가 나오면 정상)
+curl -s http://localhost:8086/health
+
+# 조직과 버킷이 생성됐는지 확인 (dtmeta / metadata)
+docker exec influxdb2 influx org list -t "$INFLUX_TOKEN"
+docker exec influxdb2 influx bucket list -t "$INFLUX_TOKEN" -o dtmeta
+
+
+################################################################################
+# 앱 배포 공통
+#
+#   기동 순서: 인증서버(7) -> Admin API(8) -> Metadata API(9) -> Web(10)
+#   이 순서를 지켜야 로그인이 된다.
+#
+#   4개 앱 모두 소스에서 바로 이미지를 빌드한다. 서버에 JDK/Maven/Node 를
+#   따로 설치할 필요가 없다.
+#
+#   설정값 주입 방식
+#     인증서버 / Admin API / Metadata API : 실행 시 --env-file 로 주입
+#     Web                                 : 빌드 시 --build-arg 로 주입
+#     (Vue 는 값을 빌드 시점에 코드에 넣기 때문에 실행 시 바꿀 수 없다)
+#
+#   각 앱 폴더의 .env.example 에 설정할 수 있는 값이 정리돼 있다.
+#   값을 지정하지 않으면 소스의 기본값(이 문서 기준)이 그대로 쓰인다.
+#
+#   .env 를 고쳤으면 docker restart 가 아니라 컨테이너를 다시 만들어야 한다.
+#   --env-file 은 컨테이너를 만들 때 한 번만 읽는다.
+#     docker rm -f <컨테이너명> 후 docker run 을 다시 실행
+#     docker exec <컨테이너명> printenv <변수명> 으로 반영 확인
+#
+#   값은 ~/dt.env 부터 고치고 앱 .env 를 다시 만든다.
+#   ~/dt.env 가 비어 있으면 앱 .env 도 빈 값으로 덮어써진다.
+################################################################################
+
+
+########################################
+# 7-1. 인증 서버 이미지 빌드
+#      웹 로그인의 전제이므로 가장 먼저 기동한다.
+########################################
+
+# 소스 폴더로 이동
+cd $SRC_DIR/keti_dt_security_module
+
+# 이미지 빌드
+docker build -t keti-dt-security-image:latest .
+
+# 빌드 확인
+docker images | grep keti-dt-security-image
+
+
+########################################
+# 7-2. JWT 서명키 생성
+#      로그인 토큰 서명·검증에 쓰는 키다. 서버마다 새로 만든다.
+#      소스에 들어 있는 키를 그대로 쓰면 누구나 같은 키로 토큰을 만들 수 있다.
+#
+#      설치할 때는 이 순서(7 -> 8 -> 9)면 문제없다.
+#      이미 운영 중인 서버에서 키를 바꿀 때는 아래도 함께 해야 한다.
+#        - API 재시작 : docker restart keti-dt-metadata-api keti-dt-platformadmin-api
+#          (API 가 인증 서버에서 받아온 공개키를 캐시하고 있어, 재시작하지 않으면
+#           토큰 검증에 계속 실패해 로그인 화면으로 무한 반복된다)
+#        - 사용자는 다시 로그인 (옛 키로 발급된 토큰은 무효가 된다)
+########################################
+
+# 키를 둘 디렉터리 생성
+mkdir -p $DT_DIR/security/keys
+
+# 일회용 컨테이너로 키를 만들어 호스트에 꺼낸다
+docker run --rm \
+  -v $DT_DIR/security/keys:/out \
+  keti-dt-security-image:latest \
+  sh -c "node keys/initKey.js && cp keys/private.pem keys/public.pem /out/"
+
+# 생성 확인 (pem 2개가 있어야 한다)
+ls -l $DT_DIR/security/keys
+
+
+########################################
+# 7-3. 설정 파일 작성
+#      .env.example 을 복사해 값을 채운다. 비워 두면 기본값이 쓰인다.
+########################################
+
+# 설정 파일을 둘 디렉터리 생성
+mkdir -p $DT_DIR/security
+
+# 0-2 에서 정한 값으로 설정 파일 작성
+cat > $DT_DIR/security/.env << EOF
+SERVER_HOST=$SERVER_HOST
+WEB_SERVER_URL=$WEB_SERVER_URL
+DB_HOST=172.25.0.1
+HUBSECURITY_USERNAME=$HUBSECURITY_USERNAME
+HUBSECURITY_PASSWORD=$DB_PASSWORD
+EOF
+
+# 작성 결과 확인
+cat $DT_DIR/security/.env
+
+
+########################################
+# 7-4. 인증 서버 실행
+########################################
+
+# 컨테이너 실행 (33000)
+docker run -d \
+  --name keti-dt-security \
+  --network keti-dt-net \
+  --restart unless-stopped \
+  -p 33000:33000 \
+  --env-file $DT_DIR/security/.env \
+  -v $DT_DIR/security/keys:/usr/src/app/keys \
+  keti-dt-security-image:latest
+
+# 기동 확인
+docker ps | grep keti-dt-security
+docker logs --tail 20 keti-dt-security
+
+
+########################################
+# 7-5. 접속 확인
+#      서버가 응답하는지와 DB 가 붙었는지만 본다.
+#      실제 로그인은 웹까지 올린 뒤 10-4 에서 한다.
+########################################
+
+# 로그인 화면이 응답하는지 확인 (HTTP/1.1 200 OK 가 나오면 정상)
+curl -i http://localhost:33000/login | head -5
+
+# DB 접속이 되는지 로그로 확인 (연결 오류가 없어야 한다)
+docker logs keti-dt-security | tail -30
+
+
+########################################
+# 8-1. Platform Admin API 이미지 빌드
+#      사용자·권한·메뉴·코드 등 공통 기능을 담당한다.
+#
+#      Maven 의존성을 내려받으므로 빌드에 10분 안팎 걸린다.
+########################################
+
+# 소스 폴더로 이동
+cd $SRC_DIR/keti_dt_platform_admin_ms
+
+# 이미지 빌드 (소스에서 바로 빌드하므로 JDK/Maven 설치가 필요 없다)
+docker build -t keti-dt-platformadmin-api:latest .
+
+# 빌드 확인
+docker images | grep keti-dt-platformadmin-api
+
+
+########################################
+# 8-2. 설정 파일 작성
+########################################
+
+# 설정 파일과 첨부파일 디렉터리 생성
+mkdir -p $DT_DIR/admin-api
+
+# 0-2 에서 정한 값으로 설정 파일 작성
+cat > $DT_DIR/admin-api/.env << EOF
+SERVER_HOST=$SERVER_HOST
+DB_HOST=172.25.0.1
+DB_USERNAME=$DB_USERNAME
+DB_PASSWORD=$DB_PASSWORD
+SUPER_ADMIN=meta_admin
+EOF
+
+# 작성 결과 확인
+cat $DT_DIR/admin-api/.env
+
+
+########################################
+# 8-3. Platform Admin API 실행
+#      첨부파일과 로그는 컨테이너 밖에 두어 재시작해도 유지되게 한다.
+########################################
+
+# 첨부파일·로그 디렉터리 생성
+mkdir -p $DT_DIR/attach/dtmeta $DT_DIR/admin-api/logs
+
+# 컨테이너 실행 (6998)
+docker run -d \
+  --name keti-dt-platformadmin-api \
+  --network keti-dt-net \
+  --restart unless-stopped \
+  -p 6998:6998 \
+  --env-file $DT_DIR/admin-api/.env \
+  -v $DT_DIR/attach/dtmeta:/usr/local/application/attach/dtmeta \
+  -v $DT_DIR/admin-api/logs:/app/logs \
+  keti-dt-platformadmin-api:latest
+
+# 기동 확인 (Started ... 가 보이면 완료, 30초 정도 걸린다)
+docker ps | grep keti-dt-platformadmin-api
+docker logs --tail 30 keti-dt-platformadmin-api
+
+
+########################################
+# 8-4. 접속 확인
+#      context-path 는 /admin 이다.
+########################################
+
+# 상태 확인 (UP 이 나오면 정상)
+curl -s http://localhost:6998/admin/actuator/health
+
+# 컨테이너명으로 접속되는지 확인 (Metadata API 가 이 경로로 붙는다)
+docker exec keti-dt-security \
+  wget -qO- http://keti-dt-platformadmin-api:6998/admin/actuator/health
+
+# DB 연결 오류가 없는지 로그로 확인
+docker logs keti-dt-platformadmin-api | grep -iE "error|exception" | head
+
+
+########################################
+# 9-1. Metadata API 이미지 빌드
+#      메타데이터 등록·검색·RDF 변환을 담당한다. 저장소 5종에 모두 접속한다.
+#
+#      8장과 별개로 Maven 의존성을 다시 받으므로 여기서도 같은 시간이 걸린다.
+########################################
+
+# 소스 폴더로 이동
+cd $SRC_DIR/keti_dt_metadata_api
+
+# 이미지 빌드
+docker build -t keti-dt-metadata-api:latest .
+
+# 빌드 확인
+docker images | grep keti-dt-metadata-api
+
+
+########################################
+# 9-2. PAT 서명키 생성
+#      개인 액세스 토큰 서명·검증에 쓰는 값이다. 서버마다 새로 만든다.
+#      32자 미만이면 기동에 실패하므로 아래 명령으로 44자 값을 만든다.
+########################################
+
+# 키 생성
+export SECURITY_SECRET_KEY=$(openssl rand -base64 32)
+echo "SECURITY_SECRET_KEY = $SECURITY_SECRET_KEY"
+
+# 생성한 값을 값 파일에 반영 (재접속 후에도 쓰도록)
+sed -i "s|^export SECURITY_SECRET_KEY=.*|export SECURITY_SECRET_KEY='$SECURITY_SECRET_KEY'|" ~/dt.env
+grep SECURITY_SECRET_KEY ~/dt.env
+
+
+########################################
+# 9-3. 설정 파일 작성
+#      WEB_SERVER_URL 은 2-5 에서 DB 에 넣은 값과 반드시 같아야 한다.
+#      RDF 네임스페이스 주소로 쓰이기 때문이다.
+########################################
+
+# 기본값이 없는 두 값을 먼저 확인한다 (비어 있으면 안 된다)
+echo "SECURITY_SECRET_KEY = [$SECURITY_SECRET_KEY]"
+echo "INFLUX_TOKEN        = [$INFLUX_TOKEN]"
+
+# INFLUX_TOKEN 이 비었으면 6-1 에서 만든 값을 되살린다
+# export INFLUX_TOKEN=$(grep DOCKER_INFLUXDB_INIT_ADMIN_TOKEN $DT_DIR/influxdb2/.env.influxdb2 | cut -d= -f2-)
+# sed -i "s|^export INFLUX_TOKEN=.*|export INFLUX_TOKEN='$INFLUX_TOKEN'|" ~/dt.env
+
+# SECURITY_SECRET_KEY 가 비었으면 9-2 를 다시 실행한다
+
+# 설정 파일 디렉터리 생성
+mkdir -p $DT_DIR/meta-api
+
+# 0-2 에서 정한 값으로 설정 파일 작성
+cat > $DT_DIR/meta-api/.env << EOF
+SECURITY_SECRET_KEY=$SECURITY_SECRET_KEY
+INFLUX_TOKEN=$INFLUX_TOKEN
+WEB_SERVER_URL=$WEB_SERVER_URL
+SERVER_HOST=$SERVER_HOST
+DB_HOST=172.25.0.1
+DB_USERNAME=$DB_USERNAME
+DB_PASSWORD=$DB_PASSWORD
+VIRTUOSO_USERNAME=$VIRTUOSO_USERNAME
+VIRTUOSO_PASSWORD=$VIRTUOSO_PASSWORD
+NEO4J_USERNAME=$NEO4J_USERNAME
+NEO4J_PASSWORD=$NEO4J_PASSWORD
+ELASTIC_USERNAME=$ELASTIC_USERNAME
+ELASTIC_PASSWORD=$ELASTIC_PASSWORD
+INFLUX_USERNAME=$INFLUX_USERNAME
+INFLUX_PASSWORD=$INFLUX_PASSWORD
+KAFKA_SERVERS=${KAFKA_SERVERS:-localhost:9092}
+KAFKA_USERNAME=$KAFKA_USERNAME
+KAFKA_PASSWORD=$KAFKA_PASSWORD
+EOF
+
+# 작성 결과 확인 (SECURITY_SECRET_KEY 와 INFLUX_TOKEN 이 비어 있으면 안 된다)
+cat $DT_DIR/meta-api/.env
+
+# 토큰이 실제로 통하는지 확인 (버킷 목록이 나와야 한다. 401 이면 토큰이 틀린 것)
+docker exec influxdb2 influx bucket list -t "$INFLUX_TOKEN" -o dtmeta
+
+# 카프카는 비워 두고 설치해도 된다. 나중에 연결할 때는 아래 순서로 한다.
+#   sed -i "s|^export KAFKA_SERVERS=.*|export KAFKA_SERVERS='카프카서버:9092'|" ~/dt.env
+#   source ~/dt.env
+#   sed -i "s|^KAFKA_SERVERS=.*|KAFKA_SERVERS=$KAFKA_SERVERS|" $DT_DIR/meta-api/.env
+#   docker rm -f keti-dt-metadata-api   후 9-4 의 docker run 을 다시 실행
+#   docker logs keti-dt-metadata-api | grep -i "sent to partition"
+
+
+########################################
+# 9-4. Metadata API 실행
+########################################
+
+# 로그 디렉터리 생성
+mkdir -p $DT_DIR/meta-api/logs
+
+# 컨테이너 실행 (16997)
+docker run -d \
+  --name keti-dt-metadata-api \
+  --network keti-dt-net \
+  --restart unless-stopped \
+  -p 16997:16997 \
+  --env-file $DT_DIR/meta-api/.env \
+  -v $DT_DIR/meta-api/logs:/app/logs \
+  keti-dt-metadata-api:latest
+
+# 기동 확인 (Started ... 가 보이면 완료, 1분 정도 걸린다)
+docker ps | grep keti-dt-metadata-api
+docker logs --tail 30 keti-dt-metadata-api
+
+
+########################################
+# 9-5. 접속 확인
+#      context-path 는 /meta 다.
+########################################
+
+# 상태 확인 (UP 이 나와야 한다)
+curl -s http://localhost:16997/meta/actuator/health;  echo
+
+# 저장소 연결 오류가 없는지 로그로 확인
+docker logs keti-dt-metadata-api | grep -iE "error|exception|refused" | head -20
+
+# InfluxDB 인증이 되는지 확인 (401 이 나오면 INFLUX_TOKEN 이 틀린 것)
+# 이 값이 틀리면 기동은 되고 로그인도 되지만, 나중에 키워드 등록에서 500 이 난다
+docker logs keti-dt-metadata-api | grep -i "unauthorized" | head -3
+echo "위에 아무것도 안 나오면 정상"
+
+# Elasticsearch 인덱스에 접근되는지 확인 (5-7 에서 만든 dtmeta)
+curl -s -u "$ELASTIC_USERNAME:$ELASTIC_PASSWORD" http://localhost:9200/_cat/indices?v
+
+
+########################################
+# 10-1. Metadata Web 이미지 빌드
+#       Vue 는 값을 빌드 시점에 코드에 넣기 때문에 --build-arg 로 넘긴다.
+#       실행 시 -e 로는 바꿀 수 없고, 주소가 바뀌면 다시 빌드해야 한다.
+#
+#       WEB_SERVER_URL 은 2-5 에서 DB(application.redirect_uri)에 넣은 값과
+#       정확히 같아야 한다. 하나라도 다르면 로그인 후 웹으로 돌아오지 못한다.
+########################################
+
+# 소스 폴더로 이동
+cd $SRC_DIR/keti_dt_metadata_web
+
+# 값 확인 (아래 빌드에 그대로 들어간다)
+echo "SERVER_HOST    = $SERVER_HOST"
+echo "WEB_SERVER_URL = $WEB_SERVER_URL"
+
+# 이미지 빌드 (npm install + Vue 빌드로 10분 안팎 걸린다)
+docker build \
+  --build-arg SERVER_HOST=$SERVER_HOST \
+  --build-arg WEB_SERVER_URL=$WEB_SERVER_URL \
+  -t keti-dt-metadata-web:latest .
+
+# 빌드 확인
+docker images | grep keti-dt-metadata-web
+
+# 지도 기능을 쓰려면 카카오 키를 함께 넘긴다
+# docker build \
+#   --build-arg SERVER_HOST=$SERVER_HOST \
+#   --build-arg WEB_SERVER_URL=$WEB_SERVER_URL \
+#   --build-arg KAKAO_JS_KEY=발급받은키 \
+#   -t keti-dt-metadata-web:latest .
+
+
+########################################
+# 10-2. Metadata Web 실행
+#       nginx 설정은 손댈 것이 없다. API 프록시가 컨테이너명으로 지정돼 있다.
+########################################
+
+# 컨테이너 실행 (8084)
+docker run -d \
+  --name keti-dt-metadata-web \
+  --network keti-dt-net \
+  --restart unless-stopped \
+  -p 8084:8084 \
+  keti-dt-metadata-web:latest
+
+# 기동 확인
+docker ps | grep keti-dt-metadata-web
+docker logs --tail 20 keti-dt-metadata-web
+
+
+########################################
+# 10-3. 전체 기동 확인
+#       앱 4종이 모두 떠 있어야 로그인이 된다.
+########################################
+
+# 컨테이너 목록 (10개가 Up 상태여야 한다. docker-elk-setup-1 은 설정만 하고 종료되므로 Exited 가 정상이다)
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+# 각 앱 상태 확인
+curl -s http://localhost:33000/login  > /dev/null && echo "인증서버 응답 OK"
+curl -s http://localhost:6998/admin/actuator/health;  echo
+curl -s http://localhost:16997/meta/actuator/health;  echo
+curl -s -o /dev/null -w "웹 응답 %{http_code}\n" http://localhost:8084
+
+
+########################################
+# 10-4. 로그인 확인
+#       설치의 마지막 단계다.
+########################################
+
+# 접속할 주소 출력
+echo "$WEB_SERVER_URL"
+
+# 2-5 에서 넣은 계정으로 로그인한다
+#   아이디   meta_admin
+#   비밀번호 rhksflwk1!
+#
+# 브라우저가 https 로 바꿔 접속하면 인증서 경고가 뜬다. 이 시스템은 http 만 쓴다.
+# 주소창에 http:// 를 직접 붙이거나, 크롬 설정에서 "항상 보안 연결 사용" 을 끈다.
+#
+# 로그인 후 메타데이터를 하나 등록하고 키워드까지 저장해 본다.
+# 등록이 성공해야 저장소 5종 연동이 모두 확인된다. 로그인만으로는 확인되지 않는다.
+#
+# [막힐 때]
+#   redirect_uri mismatch      -> DB 의 metaweb 앱 redirect_uri 와 웹 빌드값이 다름
+#   아이디/비밀번호 팝업이 뜸  -> DB 에 security 앱이 없음
+#   로그인 화면 무한 반복      -> 7-2 에서 키를 바꾼 뒤 API 를 재시작하지 않음
+#                                 docker restart keti-dt-metadata-api keti-dt-platformadmin-api
+#   로그인 후 메뉴가 비어 있음 -> common.tb_com_authusermap 에 그 계정 권한이 없음
+#   저장은 되는데 키워드 500   -> INFLUX_TOKEN 이 틀림 (아래로 확인)
+#                                 docker logs keti-dt-metadata-api | grep -i unauthorized
+
+# DB 에 들어 있는 redirect_uri 확인
+export PGPASSWORD="$DB_PASSWORD"
+psql -h localhost -U "$HUBSECURITY_USERNAME" -d hubsecurity \
+  -c "select application_name, redirect_uri from application;"
+
+# 계정별 권한 매핑 확인
+psql -h localhost -U "$DB_USERNAME" -d dtmeta \
+  -c "select aut_oid, user_id from common.tb_com_authusermap;"
+
+unset PGPASSWORD
+
+
+################################################################################
+# 부록. GitHub 토큰(PAT) 발급
+#       소스 저장소가 비공개면 git clone 시 인증이 필요하다.
+#       GitHub 은 비밀번호 인증을 지원하지 않으므로 토큰을 발급해 사용한다.
+#
+#   [발급 절차]
+#     1) GitHub 로그인 - 우측 상단 프로필 - Settings
+#     2) 좌측 맨 아래 Developer settings
+#     3) Personal access tokens - Tokens (classic)
+#     4) Generate new token (classic)
+#     5) Note 에 용도 입력, Expiration 지정
+#        Select scopes 에서 repo 체크 (비공개 저장소 읽기에 필요)
+#     6) Generate token - 표시된 값을 복사
+#        이 화면을 벗어나면 다시 볼 수 없으므로 바로 저장해 둔다
+#
+#   [사용]
+#     clone 시 아이디/비밀번호를 물으면
+#       Username : GitHub 아이디
+#       Password : 발급받은 토큰 (입력해도 화면에 표시되지 않는다)
+#
+#     URL 에 직접 넣어도 된다
+#       git clone https://토큰@github.com/etri/FeDiT.git
+#
+#   [주의]
+#     저장소 접근 권한이 계정에 있어야 한다. 조직 저장소면 초대되어 있어야 하며
+#     웹브라우저에서 저장소가 열리는지 먼저 확인한다.
+#     URL 에 토큰을 넣으면 .git/config 와 셸 기록에 그대로 남는다.
+#     설치 후 아래처럼 정리한다.
+################################################################################
+
+# 아래는 토큰을 URL 에 직접 넣어 clone 한 경우에만 한다.
+# 아이디/비밀번호를 물을 때 입력했거나 인증 없이 받았으면 남는 것이 없으므로 건너뛴다.
+
+# 현재 주소 확인 (@ 앞에 토큰이 보이면 아래를 실행한다)
+cd $DT_DIR/FeDiT
+git remote -v
+
+# 저장소 주소에서 토큰 제거
+# git remote set-url origin https://github.com/etri/FeDiT.git
+# git remote -v
+
+# 셸 기록 정리 (입력한 명령에 토큰이 남아 있다)
+# history -c

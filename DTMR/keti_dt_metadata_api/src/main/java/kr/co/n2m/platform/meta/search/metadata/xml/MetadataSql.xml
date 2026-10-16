@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.n2m.platform.meta.search.metadata.mapper.MetadataSearchMapper">
+
+    <sql id="limitPage">
+        <if test="isPaging">    
+        OFFSET #{startIndex} LIMIT #{pageListSize}
+        </if>
+        <if test="!isPaging">    
+        OFFSET 0 LIMIT #{limitListSize}
+        </if>        
+    </sql>
+    
+    <sql id="withRecursiveForMetadataList">
+    	<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(polygon)">
+		    WITH RECURSIVE medata_set_ids AS (
+			  SELECT 
+			    DISTINCT dt1.medata_set_id, 
+			    dt1.medata_set_id AS root_id, 
+			    1 AS depth
+			  FROM 
+			    dtmeta.tb_meta_data dt1 
+			  WHERE 
+			    dt1.geodata_val IS NOT NULL 
+			    AND dtmeta.ST_Contains(
+			      dtmeta.ST_SetSRID(
+			        dtmeta.ST_GeomFromText(#{polygon}),
+			        4326
+			      ), 
+			      dtmeta.ST_SetSRID(dt1.geodata_val, 4326)
+			    )
+			  UNION ALL 
+			  SELECT 
+			    DISTINCT dt1.medata_set_id, 
+			    ids.root_id, 
+			    ids.depth + 1
+			  FROM 
+			    dtmeta.tb_meta_data dt1 
+			    JOIN medata_set_ids ids ON dt1.medata_val = ids.medata_set_id 
+			  WHERE 
+			    ids.depth <![CDATA[ < ]]> 10
+			    )
+		</if>
+    </sql>
+
+    <sql id="whereByMetadata">
+        <if test='!@org.apache.commons.lang3.StringUtils@equals(includeDisuseYn, "Y")'>
+            AND t1.medata_set_sttus_mtcd   != 'disuse'
+        </if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(typeModelId)">
+            AND t2.type_model_id            = #{typeModelId}
+        </if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(srchText)">
+            AND (
+                   t1.medata_set_nm         ILIKE CONCAT('%', #{srchText}, '%')
+                OR t1.medata_set_logic_nm   ILIKE CONCAT('%', #{srchText}, '%')
+            )		
+		</if>		
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(polygon)">
+        	AND EXISTS (
+					    SELECT 
+					      1
+					    FROM 
+					      medata_set_ids ids
+					    WHERE 
+					      ids.medata_set_id = t1.medata_set_id
+					  )
+        </if>
+        <if test="medataSetIds != null and medataSetIds.size() > 0">
+            AND t3.medata_set_id IN 
+            <foreach item="item" index="index" collection="medataSetIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+	</sql>
+	
+    <sql id="orderByMetadata">
+    	ORDER BY t1.medata_set_nm COLLATE "ko-KR-x-icu"
+	</sql>
+	
+    <select id="selectMetadataCount" resultType="int">
+    	/* SQL_ID: MetadataSearchMapper.selectMetadataCount */
+    	<include refid="withRecursiveForMetadataList"/> 
+		SELECT 
+			   COUNT(DISTINCT t3.medata_set_id) 
+          FROM dtmeta.tb_meta_dataset t1
+          LEFT OUTER JOIN dtmeta.tb_meta_model         t2  ON t1.model_id = t2.model_id
+          LEFT OUTER JOIN dtmeta.tb_meta_model         t4  ON t2.type_model_id = t4.model_id
+         INNER JOIN dtmeta.tb_meta_data                t3  ON t1.medata_set_id = t3.medata_set_id
+          LEFT OUTER JOIN dtmeta.tb_portal_code        c1  ON t1.medata_set_sttus_mtcd = c1.mtcd AND c1.mtcd_grp_id = 'MCG00001'
+         WHERE 1=1
+		<include refid="whereByMetadata"/>
+	</select>
+
+    <select id="selectMetadataList" resultType="camelCaseMap">
+    	/* SQL_ID: MetadataSearchMapper.selectMetadataList */
+    	<include refid="withRecursiveForMetadataList"/> 
+        SELECT
+               DISTINCT t3.medata_set_id
+             , t1.medata_set_nm COLLATE "ko-KR-x-icu"
+             , t1.medata_set_logic_nm
+             , t1.medata_set_sttus_mtcd
+             , c1.mtcd_nm         AS medata_set_sttus_mtcd_nm
+             , t4.model_nm        AS type_model_nm            
+             , t4.model_logic_nm  AS type_model_logic_nm
+             , t2.model_nm
+             , t2.model_logic_nm
+          FROM dtmeta.tb_meta_dataset t1
+          LEFT OUTER JOIN dtmeta.tb_meta_model         t2  ON t1.model_id = t2.model_id
+          LEFT OUTER JOIN dtmeta.tb_meta_model         t4  ON t2.type_model_id = t4.model_id
+         INNER JOIN dtmeta.tb_meta_data                t3  ON t1.medata_set_id = t3.medata_set_id
+          LEFT OUTER JOIN dtmeta.tb_portal_code        c1  ON t1.medata_set_sttus_mtcd = c1.mtcd AND c1.mtcd_grp_id = 'MCG00001'
+         WHERE 1=1     
+        <include refid="whereByMetadata"/>
+        <include refid="orderByMetadata"/>
+        <include refid="limitPage"/>
+    </select>
+    
+    <select id="selectDigitalTwinLowerList" resultType="String">
+	    WITH RECURSIVE medata_hierarchy AS (
+		    SELECT
+		        t1.medata_set_id,
+		        t1.model_id,
+		        t1.medata_set_nm,
+		        t1.medata_set_logic_nm,
+		        t1.medata_set_desc,
+		        t2.type_model_id,
+		        t3.prpty_id,
+		        t3.val_model_id,
+		        t3.medata_val,
+		        1 AS depth
+		    FROM dtmeta.tb_meta_dataset t1
+		    LEFT OUTER JOIN dtmeta.tb_meta_model t2 ON t2.model_id = t1.model_id
+		    LEFT OUTER JOIN dtmeta.tb_meta_data t3 ON t3.medata_set_id = t1.medata_set_id
+		    WHERE t1.medata_set_id = #{digitalTwinId}
+		    UNION ALL
+		    SELECT
+		        t1.medata_set_id,
+		        t1.model_id,
+		        t1.medata_set_nm,
+		        t1.medata_set_logic_nm,
+		        t1.medata_set_desc,
+		        t2.type_model_id,
+		        t3.prpty_id,
+		        t3.val_model_id,
+		        t3.medata_val,
+		        mh.depth + 1
+		    FROM dtmeta.tb_meta_dataset t1
+		    LEFT OUTER JOIN dtmeta.tb_meta_model t2 ON t2.model_id = t1.model_id
+		    LEFT OUTER JOIN dtmeta.tb_meta_data t3 ON t3.medata_set_id = t1.medata_set_id
+		    INNER JOIN medata_hierarchy mh ON t1.medata_set_id = mh.medata_val
+		    WHERE mh.depth <![CDATA[ < ]]> 10
+		)
+		SELECT distinct medata_val 
+		FROM medata_hierarchy
+		WHERE val_model_id = 'idString'
+    </select>
+    
+    <select id="selectGeom" resultType="int">
+    	/* SQL_ID: MetadataSearchMapper.selectGeom */
+		SELECT 
+		    COUNT(*)
+		FROM 
+		    (VALUES (dtmeta.ST_GeomFromText(#{polygon}))) AS geom
+	</select>
+    
+    
+    	
+</mapper>
+

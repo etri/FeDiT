@@ -1,0 +1,152 @@
+#common
+server:
+  port: 6998
+
+### local 프로필 (개발자 PC 실행)
+###  컨테이너명으로는 접근할 수 없으므로 기본값이 localhost 다.
+spring:
+  config:
+    activate:
+      on-profile:
+      - local
+  jpa:
+    properties:
+      hibernate:
+        default_schema: common
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/dtmeta
+    username: ${DB_USERNAME:meta_manager}
+    password: ${DB_PASSWORD:rhksflwk1!}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 4
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+# Platform 관련 설정은 이곳에...
+platform:
+  common:
+    list_max_row_count: 10000
+    file:
+      upload-dir: /usr/local/application/attach/dtmeta
+      upload-url: http://${SERVER_HOST:localhost}:6998/admin/downloadFile/
+
+oauth:
+  public-key: http://${SERVER_HOST:localhost}:33000/security/publickey
+  access-token: http://${SERVER_HOST:localhost}:33000/oauth2.0/token
+authorization:
+  data : true
+  default-auth:
+    use-flag: true
+    list: AUT_META_DEFAULT
+
+super:
+  admin: ${SUPER_ADMIN:meta_admin}
+
+---
+### dev 프로필 (도커 설치 기준)
+###  - 인증서버는 컨테이너명(keti-dt-security)으로 통신한다.
+###  - PostgreSQL 만 컨테이너가 아니므로 도커 게이트웨이 IP(172.25.0.1)로 접속한다.
+###
+###  ${변수:기본값} 은 환경변수가 없으면 기본값을 쓴다. 설치가이드대로 설치했다면
+###  기본값 그대로 동작하며, 값을 바꾼 항목만 환경변수로 넘기면 된다.
+###    SERVER_HOST   첨부파일 다운로드 URL 에 쓰는 서버 주소
+###    SUPER_ADMIN   최고 관리자 계정 ID
+###    DB_HOST / DB_USERNAME / DB_PASSWORD
+#common
+server:
+  port: 6998
+
+spring:
+  config:
+    activate:
+      on-profile:
+      - dev
+  jpa:
+    properties:
+      hibernate:
+        default_schema: common
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:172.25.0.1}:5432/dtmeta
+    username: ${DB_USERNAME:meta_manager}
+    password: ${DB_PASSWORD:rhksflwk1!}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 4
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+# Platform 관련 설정은 이곳에...
+platform:
+  common:
+    list_max_row_count: 10000
+    file:
+      upload-dir: /usr/local/application/attach/dtmeta
+      upload-url: http://${SERVER_HOST:localhost}:6998/admin/downloadFile/
+
+oauth:
+  public-key: http://keti-dt-security:33000/security/publickey
+  access-token: http://keti-dt-security:33000/oauth2.0/token
+authorization:
+  data : true
+  default-auth:
+    use-flag: true
+    list: AUT_META_DEFAULT
+
+super:
+  admin: ${SUPER_ADMIN:meta_admin}
+
+---
+#common
+server:
+  port: 6998
+
+### etri 프로필 (도커 설치, dev 와 동일 구성)
+spring:
+  config:
+    activate:
+      on-profile:
+      - etri
+  jpa:
+    properties:
+      hibernate:
+        default_schema: common
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:172.25.0.1}:5432/dtmeta
+    username: ${DB_USERNAME:meta_manager}
+    password: ${DB_PASSWORD:rhksflwk1!}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 4
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+# Platform 관련 설정은 이곳에...
+platform:
+  common:
+    list_max_row_count: 10000
+    file:
+      upload-dir: /usr/local/application/attach/dtmeta
+      upload-url: http://${SERVER_HOST:localhost}:6998/admin/downloadFile/
+
+oauth:
+  public-key: http://keti-dt-security:33000/security/publickey
+  access-token: http://keti-dt-security:33000/oauth2.0/token
+authorization:
+  data : true
+  default-auth:
+    use-flag: true
+    list: AUT_META_DEFAULT
+
+super:
+  admin: ${SUPER_ADMIN:meta_admin}
+

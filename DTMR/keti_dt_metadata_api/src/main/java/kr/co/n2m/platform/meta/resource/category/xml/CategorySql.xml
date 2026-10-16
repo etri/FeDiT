@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.n2m.platform.meta.resource.category.mapper.CategoryMapper">
+
+    <sql id="limitPage">
+        <if test="isPaging">    
+        OFFSET #{startIndex} LIMIT #{pageListSize}
+        </if>
+        <if test="!isPaging">    
+        OFFSET 0 LIMIT #{limitListSize}
+        </if>
+    </sql>
+    
+    <sql id="whereByCategory">
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(srchStartDd)">
+			<![CDATA[  
+			AND t1.ctgry_amd_dt >= TO_TIMESTAMP(#{srchStartDd} ||  ' 00:00:00', 'YYYY-MM-DD HH24:MI:SS')
+			]]>
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(srchEndDd)">
+			<![CDATA[ 
+			AND t1.ctgry_amd_dt < TO_TIMESTAMP(#{srchEndDd} || ' 00:00:00', 'YYYY-MM-DD HH24:MI:SS') + INTERVAL '1 day' 
+			]]>
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(ctgryNm)">
+			AND t1.ctgry_nm    					    ILIKE CONCAT('%', #{ctgryNm}, '%')
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(ctgryDataSttusMtcd)">
+			AND t1.ctgry_data_sttus_mtcd        	= #{ctgryDataSttusMtcd}
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(upCtgryId)">
+			AND t1.up_ctgry_id    					= #{upCtgryId}
+		</if>		
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(upCtgryNm)">
+		  	AND t2.ctgry_nm	        				ILIKE CONCAT('%', #{upCtgryNm}, '%')		  	
+		</if>		
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(ctgryId)">
+			AND t1.ctgry_id    					    = #{ctgryId}
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(ctgryMappgCd)">
+			AND t1.ctgry_mappg_cd    				= #{ctgryMappgCd}
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(ctgryRdfCncptNm)">
+			AND t1.ctgry_rdf_cncpt_nm				ILIKE CONCAT('%', #{ctgryRdfCncptNm}, '%')
+		</if>
+	</sql>
+    
+    <sql id="orderByCategory">
+        <choose>
+            <when test="@org.apache.commons.lang3.StringUtils@equals(sortField, 'ctgryNm')">
+                ORDER BY t1.ctgry_nm            COLLATE "ko-KR-x-icu" /* 한글 정렬 */ <if test="@org.apache.commons.lang3.StringUtils@equals(sortOrder, 'descending')"> DESC </if>
+            </when>     
+            <when test="@org.apache.commons.lang3.StringUtils@equals(sortField, 'upCtgryNm')">
+                ORDER BY t2.ctgry_nm            COLLATE "ko-KR-x-icu" /* 한글 정렬 */ <if test="@org.apache.commons.lang3.StringUtils@equals(sortOrder, 'descending')"> DESC </if>
+                       , t1.ctgry_nm            COLLATE "ko-KR-x-icu" /* 한글 정렬 */ <if test="@org.apache.commons.lang3.StringUtils@equals(sortOrder, 'descending')"> DESC </if>
+            </when>
+            <when test="@org.apache.commons.lang3.StringUtils@equals(sortField, 'ctgrySortOdrg')">
+                ORDER BY t2.ctgry_sort_odrg     <if test="@org.apache.commons.lang3.StringUtils@equals(sortOrder, 'descending')"> DESC </if>
+                       , t1.ctgry_sort_odrg     <if test="@org.apache.commons.lang3.StringUtils@equals(sortOrder, 'descending')"> DESC </if>
+            </when>                            
+            <otherwise>
+                ORDER BY t2.ctgry_sort_odrg NULLS FIRST, t1.ctgry_sort_odrg
+            </otherwise>
+        </choose>
+	</sql>    
+    
+    <select id="selectCategoryCount" resultType="int">
+		SELECT /* SQL_ID: CategoryMapper.selectCategoryCount */
+			COUNT(*) FROM dtmeta.tb_meta_category t1
+		LEFT OUTER JOIN dtmeta.tb_meta_category t2
+		ON t1.up_ctgry_id = t2.ctgry_id
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd1
+		ON cd1.mtcd = t1.ctgry_data_sttus_mtcd AND cd1.mtcd_grp_id = 'MCG00002'
+		WHERE 1=1		
+		<include refid="whereByCategory"/>
+	</select>
+	
+	<select id="selectCategoryList" resultType="categoryVo">
+		SELECT /* SQL_ID: CategoryMapper.selectCategoryList */ 			
+			  t1.ctgry_id	
+			, t1.up_ctgry_id
+			, t2.ctgry_rdf_cncpt_nm  AS up_ctgry_rdf_cncpt_nm
+			, t1.ctgry_nm
+			, t1.ctgry_rdf_cncpt_nm
+			, t1.ctgry_data_sttus_mtcd
+			, cd1.mtcd_nm AS ctgry_data_sttus_mtcd_nm
+			, t1.ctgry_sort_odrg	
+			, t1.ctgry_desc	
+			, t1.ctgry_eng_nm	
+			, t1.ctgry_eng_desc	
+			, t1.ctgry_mappg_cd	
+			, t1.cntry_cd	
+			, t1.ctgry_type_mtcd	
+			, t1.ctgry_regr_id	
+			, t1.ctgry_regr_nm	
+			, to_char(t1.ctgry_reg_dt, #{sqlDateFormat})  AS ctgry_reg_dt
+			, t1.ctgry_amdr_id	
+			, t1.ctgry_amdr_nm	
+			, to_char(t1.ctgry_amd_dt, #{sqlDateFormat})  AS ctgry_amd_dt
+			, t2.ctgry_nm AS up_ctgry_nm
+		FROM dtmeta.tb_meta_category t1
+		LEFT OUTER JOIN dtmeta.tb_meta_category t2
+		ON t1.up_ctgry_id = t2.ctgry_id
+		LEFT OUTER JOIN dtmeta.tb_portal_code cd1
+		ON cd1.mtcd = t1.ctgry_data_sttus_mtcd AND cd1.mtcd_grp_id = 'MCG00002'					
+		WHERE 1=1
+		<include refid="whereByCategory"/>
+		<include refid="orderByCategory"/>
+		<include refid="limitPage"/>
+	</select> 	
+   	
+   	<select id="selectCategory" parameterType="categoryVo" resultType="categoryVo">
+		SELECT /* SQL_ID: CategoryMapper.selectCategory */ 
+			  ctgry_id	
+			, up_ctgry_id
+			, ctgry_nm
+			, ctgry_rdf_cncpt_nm
+			, ctgry_data_sttus_mtcd	
+			, ctgry_sort_odrg	
+			, ctgry_desc	
+			, ctgry_eng_nm	
+			, ctgry_eng_desc	
+			, ctgry_mappg_cd	
+			, cntry_cd	
+			, ctgry_type_mtcd	
+			, ctgry_regr_id	
+			, ctgry_regr_nm	
+			, to_char(t1.ctgry_reg_dt, #{sqlDateFormat})  AS ctgry_reg_dt
+			, ctgry_amdr_id	
+			, ctgry_amdr_nm	
+			, to_char(t1.ctgry_amd_dt, #{sqlDateFormat})  AS ctgry_amd_dt
+		FROM dtmeta.tb_meta_category t1
+		WHERE t1.ctgry_id = #{ctgryId}		   
+	</select>
+
+	<select id="selectCategoryByConcept" parameterType="categoryVo" resultType="categoryVo">
+		SELECT /* SQL_ID: CategoryMapper.selectCategoryByConcept */
+		ctgry_id
+		, up_ctgry_id
+		, ctgry_nm
+		, ctgry_rdf_cncpt_nm
+		, ctgry_data_sttus_mtcd
+		, ctgry_sort_odrg
+		, ctgry_desc
+		, ctgry_eng_nm
+		, ctgry_eng_desc
+		, ctgry_mappg_cd
+		, cntry_cd
+		, ctgry_type_mtcd
+		, ctgry_regr_id
+		, ctgry_regr_nm
+		, to_char(t1.ctgry_reg_dt, #{sqlDateFormat})  AS ctgry_reg_dt
+		, ctgry_amdr_id
+		, ctgry_amdr_nm
+		, to_char(t1.ctgry_amd_dt, #{sqlDateFormat})  AS ctgry_amd_dt
+		FROM dtmeta.tb_meta_category t1
+		WHERE t1.ctgry_rdf_cncpt_nm = #{ctgryRdfCncptNm}
+	</select>
+
+	<insert id="insertCategoryAutoKey" parameterType="categoryVo">
+	<selectKey keyProperty="ctgryId" keyColumn="ctgry_id" resultType="string" order="BEFORE">
+		SELECT CONCAT('CAT', TO_CHAR(now(), 'YYYYMM'), LPAD(CAST(NEXTVAL('dtmeta.seq_tb_meta_category') AS varchar), 6, '0'))	
+	</selectKey>
+		INSERT /* SQL_ID: CategoryMapper.insertCategoryAutoKey */
+		       INTO dtmeta.tb_meta_category
+			 ( ctgry_id	
+			, up_ctgry_id	
+			, ctgry_nm
+			, ctgry_rdf_cncpt_nm
+			, ctgry_data_sttus_mtcd	
+			, ctgry_sort_odrg	
+			, ctgry_desc	
+			, ctgry_eng_nm	
+			, ctgry_eng_desc	
+			, ctgry_mappg_cd	
+			, cntry_cd	
+			, ctgry_type_mtcd	
+			, ctgry_regr_id	
+			, ctgry_regr_nm	
+			, ctgry_reg_dt	
+			, ctgry_amdr_id	
+			, ctgry_amdr_nm	
+			, ctgry_amd_dt			
+			
+			 ) VALUES 
+			 ( 
+			  #{ctgryId}	
+			, #{upCtgryId}	
+			, #{ctgryNm}
+			, #{ctgryRdfCncptNm}
+			, #{ctgryDataSttusMtcd}
+			, #{ctgrySortOdrg}
+			, #{ctgryDesc}	
+			, #{ctgryEngNm}	
+			, #{ctgryEngDesc}	
+			, #{ctgryMappgCd}	
+			, #{cntryCd}	
+			, #{ctgryTypeMtcd}	
+			, #{ctgryRegrId}	
+			, #{ctgryRegrNm}	
+			, current_timestamp
+			, #{ctgryAmdrId}	
+			, #{ctgryAmdrNm}	
+			, current_timestamp
+			)	
+	</insert>
+	
+	<update id="updateCategory" parameterType="categoryVo">
+		UPDATE /* SQL_ID: CategoryMapper.updateCategory */
+               dtmeta.tb_meta_category
+		   SET up_ctgry_id					= #{upCtgryId}
+             , ctgry_nm						= #{ctgryNm}
+             , ctgry_rdf_cncpt_nm			= #{ctgryRdfCncptNm}
+             , ctgry_data_sttus_mtcd		= #{ctgryDataSttusMtcd}
+             , ctgry_sort_odrg				= #{ctgrySortOdrg}
+             , ctgry_desc					= #{ctgryDesc}
+             , ctgry_eng_nm					= #{ctgryEngNm}
+             , ctgry_eng_desc				= #{ctgryEngDesc}
+             , ctgry_mappg_cd				= #{ctgryMappgCd}
+             , cntry_cd						= #{cntryCd}
+             , ctgry_type_mtcd				= #{ctgryTypeMtcd}
+             , ctgry_amdr_id				= #{ctgryAmdrId}
+             , ctgry_amdr_nm				= #{ctgryAmdrNm}
+             , ctgry_amd_dt					= current_timestamp            
+		 WHERE ctgry_id 	    = #{ctgryId}		
+	</update>
+	
+	<update id="updateCategoryStatus" parameterType="categoryVo">
+		UPDATE /* SQL_ID: AgentMapper.updateCategoryStatus */
+               dtmeta.tb_meta_category
+		   SET medata_set_sttus_mtcd		= #{ctgryDataSttusMtcd}
+             , ctgry_amdr_id				= #{ctgryAmdrId}
+             , ctgry_amdr_nm				= #{ctgryAmdrNm}
+             , ctgry_amd_dt					= current_timestamp            
+		 WHERE ctgry_id 	    = #{ctgryId}		
+	</update>
+   	
+   	<delete id="deleteCategory" parameterType="categoryVo">
+        DELETE /* SQL_ID: CategoryMapper.deleteCategory */
+          FROM dtmeta.tb_meta_category
+         WHERE ctgry_id = #{ctgryId} 		   
+	</delete>
+	
+	<select id="selectMetaDataByCategory" resultType="boolean">
+		SELECT EXISTS ( /* SQL_ID: CategoryMapper.selectMetaDataByCategory */
+			SELECT 1 
+			FROM dtmeta.tb_meta_data
+			WHERE medata_val = #{ctgryId}
+		)		
+	</select>
+	
+	<select id="selectCountryCodeByCntryCd" resultType="boolean">
+		SELECT EXISTS ( /* SQL_ID: CategoryMapper.selectCountryCodeByCntryCd */
+			SELECT 1 
+			FROM dtmeta.tb_portal_countrycode
+			WHERE cntry_cd = #{cntryCd}
+		)		
+	</select>
+	
+	<select id="selectIsUpperCategory" resultType="boolean">
+		SELECT EXISTS ( /* SQL_ID: CategoryMapper.selectIsUpperCategory */
+			SELECT 1 
+			FROM dtmeta.tb_meta_category
+			WHERE up_ctgry_id = #{ctgryId}
+		)		
+	</select>
+
+	<select id="isCtgryRdfCncptNmExist" parameterType="java.lang.String" resultType="boolean">
+		SELECT EXISTS (  /* SQL_ID: CategoryMapper.isCtgryRdfCncptNmExist */
+			SELECT 1
+			FROM dtmeta.tb_meta_category
+			WHERE  ctgry_rdf_cncpt_nm = #{ctgryRdfCncptNm}
+			<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(ctgryId)">
+				AND ctgry_id  != #{ctgryId}
+			</if>
+		)
+	</select>
+
+</mapper>
+
