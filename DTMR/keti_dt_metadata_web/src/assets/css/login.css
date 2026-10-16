@@ -1,0 +1,30 @@
+@charset 'utf-8';
+
+/***** 로그인 *****/
+/* .loginWrap{width:100%; height:100%; background:url("../images/data/img_5124.jpg") no-repeat scroll 0 0; background-size:cover;} */
+.loginWrap{width:100%; height:100%; background:url("../images/login/bg_login.jpg") no-repeat 0 0; background-size:cover;}
+.loginSec{width:100%; height:100%;}
+.loginForm{background:rgba(0, 118, 183, 0.44); padding:0 60px; position:absolute; left:50%; margin-left:-210px; width:300px; border-radius:5px; opacity:0.9; height:100%;}
+
+.loginForm .loginTit{text-align:center; margin-top:15px; margin-bottom:60px;}
+.loginForm .loginTit h1 img{width:125px;}
+.loginForm .loginTit p{font-size:36px; font-weight:400; color:#fff; letter-spacing:-2px; line-height:1; margin-top:60px;}
+.loginForm .loginTit span{display:block; font-size:18px; color:#6ad7ff; letter-spacing:-1.5px; line-height:1; margin-top:10px;}
+.layerBox{width:125px; margin:0 auto; height:250px; background:url(../images/login/bg_login_sub.png) no-repeat 0 0; background-size:100% 100%; }
+.loginForm ul{}
+.loginForm ul li{margin-top:20px;}
+.loginForm ul li:first-child{margin-top:0;}
+.loginForm ul li:first-child + li + li{margin-top:40px;}
+.inputSec{position:relative; height:45px;}
+.inputSec input{border:none; height:30px; line-height:30px; margin-top:13px; border-bottom:1px solid #fff; width:100%; padding:0 5px; outline:0; transition:border-bottom 0.2s linear; box-sizing:border-box; color:#fff;}
+.inputSec label{position:absolute; top:10px; left:5px; line-height:1; font-size:18px; font-weight:400; color:#fff; font-family:sans-serif; transition:top .2s linear, left .2s linear, font-size .2s linear, font-weight .2s linear;}
+.inputSec input:focus{border-bottom:1px solid #d8866e;}
+.inputSec input:focus + label{top:3px; left:3px; font-size:12px; font-weight:600; color:#89d6ec;}
+.inputSec input.active{border-bottom:1px solid #16a3f4;}
+.inputSec input.active + label{top:3px; left:3px; font-size:12px; font-weight:600; color:#89d6ec}
+#btnLoginIng{border:none; width:100%; height:55px; line-height:55px; background:#00a0f3; font-size:16px; font-weight:400; color:#fff; cursor:pointer; border-radius:3px;}
+
+.loginText::-webkit-input-placeholder{color:#fff;}
+.loginText::-moz-placeholder{color:#fff;}
+.loginText:-ms-input-placeholder{color:#fff;}
+.loginText:-moz-placeholder{color:#fff;}
