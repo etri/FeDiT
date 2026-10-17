@@ -14,7 +14,8 @@ from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 from pydantic import BaseModel, Field
 
-from app.auth import get_owner_namespace, get_user_email, get_user_namespace, is_admin
+from app.auth import get_owner_namespace, get_user_email, get_user_namespace, is_admin, require_namespace_access
+from app.resource_policy import require_tenant_namespace
 from app.models.automl_models import AutoMLJobRequest
 from app.models.dataset_models import DatasetCreateRequest
 from app.services import automl_service
@@ -44,18 +45,20 @@ def _record_deploy_history(**kwargs) -> dict | None:
 
 
 def _requested_model_namespace(request: Request) -> str | None:
-    return (
+    namespace = (
         request.query_params.get("namespace")
         or request.query_params.get("ns")
         or request.headers.get("x-pm-namespace")
     )
+    return require_namespace_access(request, namespace) if namespace else None
 
 
 def _check_read_access(name: str, request: Request) -> str | None:
     """읽기 권한: owner namespace only. Admin은 전체."""
     requested_ns = _requested_model_namespace(request)
     if is_admin(request):
-        return requested_ns or registry.get_model_owner_namespace(name)
+        namespace = requested_ns or registry.get_model_owner_namespace(name)
+        return require_tenant_namespace(namespace) if namespace else None
     user_ns = get_owner_namespace(request)
     if requested_ns and requested_ns != user_ns:
         raise HTTPException(status_code=403, detail="자기 namespace 모델만 조회할 수 있습니다")
@@ -69,7 +72,10 @@ def _check_write_access(name: str, request: Request) -> str | None:
     """쓰기/변경 권한: owner namespace 소유자만 (admin은 전체)."""
     requested_ns = _requested_model_namespace(request)
     if is_admin(request):
-        return requested_ns or registry.get_model_owner_namespace(name)
+        namespace = requested_ns or registry.get_model_owner_namespace(name)
+        if not namespace:
+            raise HTTPException(403, "소유 영역이 확인되지 않는 모델은 변경할 수 없습니다.")
+        return require_tenant_namespace(namespace)
     user_ns = get_owner_namespace(request)
     if requested_ns and requested_ns != user_ns:
         raise HTTPException(status_code=403, detail="자기 namespace 모델만 변경할 수 있습니다")
@@ -582,7 +588,7 @@ async def change_lifecycle_status(name: str, version: str, req: LifecycleStatusR
     email = get_user_email(request)
 
     if requested_status == "production":
-        ns = req.target_namespace or owner_ns or get_user_namespace(request)
+        ns = require_namespace_access(request, req.target_namespace or owner_ns or get_user_namespace(request))
         if not is_admin(request) and ns != owner_ns:
             raise HTTPException(status_code=403, detail="운영 배포는 자기 namespace로만 가능합니다")
         previous_version = None
@@ -1147,7 +1153,7 @@ async def undeploy_model(name: str, request: Request, req: UndeployRequest | Non
 async def rollback_model(name: str, request: Request, req: RollbackRequest | None = None):
     owner_ns = _check_write_access(name, request)
     body = req or RollbackRequest()
-    ns = body.target_namespace or owner_ns or get_user_namespace(request)
+    ns = require_namespace_access(request, body.target_namespace or owner_ns or get_user_namespace(request))
     if not is_admin(request) and ns != owner_ns:
         raise HTTPException(status_code=403, detail="롤백 배포는 자기 namespace로만 가능합니다")
     actor = get_user_email(request)
@@ -1233,7 +1239,7 @@ class ProductionTestRequest(BaseModel):
 async def deploy_production(name: str, req: DeployProductionRequest, request: Request):
     """버전을 Production Stage로 변경 + KServe ISVC 생성/교체."""
     owner_ns = _check_write_access(name, request)
-    ns = req.target_namespace or owner_ns or get_user_namespace(request)
+    ns = require_namespace_access(request, req.target_namespace or owner_ns or get_user_namespace(request))
     if not is_admin(request) and ns != owner_ns:
         raise HTTPException(status_code=403, detail="운영 배포는 자기 namespace로만 가능합니다")
     actor = get_user_email(request)
@@ -1326,7 +1332,7 @@ async def production_metrics(
 @router.post("/{name}/production-test")
 async def production_test(name: str, req: ProductionTestRequest, request: Request):
     owner_ns = _check_read_access(name, request)
-    ns = req.target_namespace or owner_ns or get_user_namespace(request)
+    ns = require_namespace_access(request, req.target_namespace or owner_ns or get_user_namespace(request))
     if not is_admin(request) and ns != owner_ns:
         raise HTTPException(status_code=403, detail="자기 namespace의 운영 배포만 테스트할 수 있습니다")
     if not req.payload:

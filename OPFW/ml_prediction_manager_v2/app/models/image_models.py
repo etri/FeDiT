@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ImageBuildRequest(BaseModel):
@@ -9,8 +9,8 @@ class ImageBuildRequest(BaseModel):
     run_commands: list[str] = []
     pip_packages: list[str] = []
     apt_packages: list[str] = []
-    image_name: str
-    image_tag: str = "latest"
+    image_name: str = Field(pattern=r"^[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*$", max_length=128)
+    image_tag: str = Field(default="latest", pattern=r"^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$")
     include_jupyter: bool = True
     dockerfile_override: str | None = None  # 직접 편집한 Dockerfile (있으면 이것이 우선)
 

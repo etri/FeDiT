@@ -15,6 +15,8 @@ import docker
 import httpx
 
 from app.config import settings
+from app.resource_policy import image_owner
+from fastapi import HTTPException
 
 
 SYSTEM_IMAGES = {
@@ -60,8 +62,8 @@ def _classify(repo_name: str) -> dict:
     if repo_name in SYSTEM_IMAGES:
         return {"type": "system", **SYSTEM_IMAGES[repo_name]}
     if "/" in repo_name:
-        namespace = repo_name.split("/", 1)[0]
-        if namespace.startswith("kubeflow-"):
+        namespace = image_owner(repo_name)
+        if namespace:
             return {
                 "type": "user",
                 "category": "사용자",
@@ -72,15 +74,12 @@ def _classify(repo_name: str) -> dict:
         "type": "orphan",
         "category": "미분류",
         "description": "소유자·용도를 자동 식별하지 못한 이미지입니다.",
-        "protected": False,
+        "protected": True,
     }
 
 
 def owner_namespace(repo_name: str) -> str | None:
-    if "/" not in repo_name:
-        return None
-    namespace = repo_name.split("/", 1)[0]
-    return namespace if namespace.startswith("kubeflow-") else None
+    return image_owner(repo_name)
 
 
 def _repository_info(repo: str, tags: list[str]) -> dict:
@@ -148,10 +147,11 @@ async def list_repositories(namespace: str | None = None, include_system: bool =
 
 
 async def list_all_repositories() -> list[dict]:
+    """Application-wide user catalogue; never return platform or unknown images."""
     return [
         _repository_info(repository, tags)
         for repository, tags in sorted((await _catalogue()).items())
-        if tags
+        if tags and image_owner(repository)
     ]
 
 
@@ -159,16 +159,20 @@ async def list_shared_repositories() -> list[dict]:
     return [
         _repository_info(repository, tags)
         for repository, tags in sorted((await _catalogue()).items())
-        if tags and _classify(repository)["type"] in {"system", "user"}
+        if tags and image_owner(repository)
     ]
 
 
 async def get_tags(name: str) -> list[str]:
+    if not image_owner(name):
+        raise HTTPException(403, "사용자 이미지의 태그만 조회할 수 있습니다.")
     return (await _catalogue()).get(name, [])
 
 
 async def delete_image(name: str, tag: str) -> bool:
     """Delete user images; use Docker only when the private Registry is unreachable."""
+    if not image_owner(name):
+        raise HTTPException(403, "플랫폼 또는 소유권이 확인되지 않은 이미지는 삭제할 수 없습니다.")
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             manifest = await client.get(
@@ -186,7 +190,7 @@ async def delete_image(name: str, tag: str) -> bool:
     except httpx.HTTPError:
         try:
             docker.DockerClient(base_url=settings.docker_socket).images.remove(
-                f"{settings.registry_host}/{name}:{tag}", force=False, noprune=False
+                f"{settings.registry_host}/{name}:{tag}", force=False, noprune=True
             )
             return True
         except docker.errors.DockerException:

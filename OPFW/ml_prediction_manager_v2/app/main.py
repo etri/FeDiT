@@ -186,8 +186,6 @@ def _standalone_namespace(request: Request) -> str:
     requested = request.query_params.get("ns", "").strip()
     if not requested:
         return default_namespace
-    if is_admin(request):
-        return requested
     accessible = {
         item.get("namespace")
         for item in get_user_accessible_namespaces(request)

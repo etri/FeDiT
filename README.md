@@ -50,6 +50,7 @@ UI에서 실제 데이터로 AutoML 학습부터 서빙까지의 전체 흐름�
 - [전체 설치 가이드](OPFW/ml_prediction_manager_v2/guide.txt)
 - [설치·서비스 제어 상세 설명](OPFW/ml_prediction_manager_v2/scripts/server-a40/README.md)
 - [실서버 성공 범위와 로컬 검증 기록](OPFW/ml_prediction_manager_v2/scripts/server-a40/VALIDATION.md)
+- [사용자 리소스 관리 경계와 남은 실행 격리·배포 조건](OPFW/ml_prediction_manager_v2/tests/RESOURCE_ISOLATION.md)
 
 ### How to Contribute Your Codes
 [CONTRIBUTING.md](CONTRIBUTING.md)를 참조

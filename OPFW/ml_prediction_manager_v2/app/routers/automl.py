@@ -6,7 +6,7 @@ from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from app.auth import get_user_email, get_user_namespace, is_admin
+from app.auth import get_user_email, get_user_namespace, is_admin, require_namespace_access
 from app.models.automl_models import AutoMLJobRequest
 from app.services import automl_service, tenant_resources
 from app.services import model_repository_service as model_repo
@@ -280,12 +280,16 @@ async def register_model(job_id: str, req: RegisterRequest, request: Request):
 
 @router.post("/jobs/{job_id}/notebook")
 async def create_notebook(job_id: str, req: DeployRequest, request: Request):
+    if req.target_namespace:
+        require_namespace_access(request, req.target_namespace)
     info = automl_service.get(job_id)
     if not info:
         raise HTTPException(status_code=404, detail="job not found")
     ns = get_user_namespace(request)
     if not is_admin(request) and info["namespace"] != ns:
         raise HTTPException(status_code=403, detail="권한이 없습니다")
+    if req.target_namespace and not is_admin(request) and req.target_namespace != ns:
+        raise HTTPException(status_code=403, detail="현재 사용자 영역의 노트북만 선택할 수 있습니다.")
     try:
         return automl_service.create_notebook_file(
             job_id, req.run_id, req.rank, req.model_id, ns,

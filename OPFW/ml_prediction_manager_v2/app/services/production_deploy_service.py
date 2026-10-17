@@ -16,6 +16,7 @@ from kubernetes import client
 
 from app.services import registry_model_service as registry
 from app.services import kubernetes_client, tenant_resources
+from app.resource_policy import require_tenant_namespace
 
 
 def _k8s_clients() -> tuple[Any, Any]:
@@ -539,6 +540,9 @@ async def deploy_production(
     3) Helper Pod으로 모델 파일 교체
     4) InferenceService 생성/교체
     """
+    require_tenant_namespace(target_namespace)
+    if mlflow_namespace:
+        require_tenant_namespace(mlflow_namespace)
     version_info = registry.get_version_info(model_name, version, namespace=mlflow_namespace)
     run_id = version_info.get("run_id")
     if not run_id:
@@ -667,6 +671,7 @@ async def deploy_production(
 
 def undeploy_production(model_name: str, namespace: str) -> dict:
     """해당 모델의 Production ISVC 제거. 모델 파일 PVC도 함께 삭제."""
+    require_tenant_namespace(namespace)
     core_v1, custom = _k8s_clients()
     isvc_name = _safe_name(model_name)
     pvc_name = f"{isvc_name}-pvc"[:60]  # deploy_production 의 pvc 이름 규칙과 일치

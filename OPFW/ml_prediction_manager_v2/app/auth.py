@@ -2,6 +2,7 @@ import os as _os
 
 from fastapi import HTTPException, Request
 from app.services import kubernetes_client
+from app.resource_policy import is_tenant_namespace, require_tenant_namespace
 
 custom_api = kubernetes_client.custom_objects()
 
@@ -70,7 +71,27 @@ def _get_owner_namespace(request: Request) -> str:
 
 def get_owner_namespace(request: Request) -> str:
     """Contributor override를 무시하고 사용자가 소유한 Profile namespace를 반환."""
-    return _get_owner_namespace(request)
+    require_authenticated(request)
+    return require_tenant_namespace(_get_owner_namespace(request))
+
+
+def require_namespace_access(request: Request, namespace: str) -> str:
+    require_authenticated(request)
+    require_tenant_namespace(namespace)
+    if not kubernetes_client.KUBERNETES_AVAILABLE:
+        if namespace == get_owner_namespace(request):
+            return namespace
+        raise HTTPException(403, "클러스터 미연결 모드에서는 기본 사용자 영역만 사용할 수 있습니다.")
+    if is_admin(request):
+        if namespace in get_all_kubeflow_namespaces():
+            return namespace
+    else:
+        for entry in get_user_accessible_namespaces(request):
+            if entry["namespace"] == namespace:
+                if entry.get("role") in {"view", "viewer"} and request.method not in {"GET", "HEAD", "OPTIONS"}:
+                    raise HTTPException(403, "읽기 전용 사용자 영역은 변경할 수 없습니다.")
+                return namespace
+    raise HTTPException(403, "접근할 수 없는 사용자 영역입니다.")
 
 
 def get_user_namespace(request: Request) -> str:
@@ -83,12 +104,8 @@ def get_user_namespace(request: Request) -> str:
     """
     override = request.query_params.get("ns") or request.headers.get("x-pm-namespace")
     if override:
-        if is_admin(request):
-            return override
-        accessible = {a["namespace"] for a in get_user_accessible_namespaces(request)}
-        if override in accessible:
-            return override
-    return _get_owner_namespace(request)
+        return require_namespace_access(request, override)
+    return get_owner_namespace(request)
 
 
 def is_admin(request: Request) -> bool:
@@ -103,7 +120,8 @@ def get_all_kubeflow_namespaces() -> list[str]:
     resp = custom_api.list_cluster_custom_object(
         "kubeflow.org", "v1", "profiles"
     )
-    return [p["metadata"]["name"] for p in resp.get("items", [])]
+    return [p["metadata"]["name"] for p in resp.get("items", [])
+            if is_tenant_namespace(p["metadata"]["name"])]
 
 
 def get_user_accessible_namespaces(request: Request) -> list[dict]:
