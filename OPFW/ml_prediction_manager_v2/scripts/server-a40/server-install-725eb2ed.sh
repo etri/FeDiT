@@ -341,6 +341,17 @@ assert prefetch.count(loop)==1
 prefetch=prefetch.replace(loop, '  mapfile -t images < <(printf \'%s\\n\' "${images[@]}" | sort -u)\n'+loop)
 prefetch=prefetch.replace('    retry_kubernetes_image_pull "$image"', '    if ! crictl inspecti "$image" >/dev/null 2>&1; then\n      retry_kubernetes_image_pull "$image"\n    fi')
 s=s[:prefetch_start]+prefetch+s[prefetch_end:]
+# A controller's ProgressDeadlineExceeded response is immediate, not a whole
+# 60-second watch. Count actual waiting; retain separate image-repair retries.
+wait_start=s.index('wait_rollout_if_exists() {')
+wait_end=s.index('\ndownload_verified_kubernetes_manifest()',wait_start)
+wait=s[wait_start:wait_end]
+wait=wait.replace('local remaining_seconds slice_seconds desired_replicas ready_replicas rollout_output', 'local remaining_seconds slice_seconds desired_replicas ready_replicas rollout_output rollout_started recovery_started recovery_elapsed')
+wait=wait.replace('    while ((remaining_seconds > 0)); do', '    while ((remaining_seconds > 0)); do\n      rollout_started=$SECONDS')
+wait=wait.replace('remaining_seconds=$((remaining_seconds - 5))', 'remaining_seconds=$((remaining_seconds - (SECONDS - rollout_started)))')
+wait=wait.replace('      if recover_image_pull_failures "$namespace"; then', '      recovery_started=$SECONDS\n      if recover_image_pull_failures "$namespace"; then')
+wait=wait.replace('      remaining_seconds=$((remaining_seconds - slice_seconds))', '      recovery_elapsed=$((SECONDS - recovery_started))\n      sleep 1\n      remaining_seconds=$((remaining_seconds - (SECONDS - rollout_started - recovery_elapsed)))')
+s=s[:wait_start]+wait+s[wait_end:]
 s=s.replace('curl -kLsS -o /dev/null', 'curl --retry 3 --retry-all-errors --retry-delay 3 -kLsS -o /dev/null')
 old_modules='    modprobe overlay\n    modprobe br_netfilter'
 assert s.count(old_modules)==1, 'Pinned kernel feature initialization changed'
