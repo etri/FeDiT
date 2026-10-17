@@ -9,7 +9,7 @@ mkdir -p "$HOME/pman-server-725eb2ed"
 exec 9>"$HOME/pman-server-725eb2ed/control.lock"
 flock -n 9 || { echo 'Another server installation or check is running.' >&2; exit 1; }
 original="$here/server-install-725eb2ed.sh"
-printf '%s  %s\n' 775e34e2b4a1d868f8ebc8f68b252922287fa2cc76370cfe49f0f96fe6fa935e "$original" | sha256sum -c -
+printf '%s  %s\n' c88bd9e565c9e892dfa3af235702a82a868681a9b1e1a5f766fcfc3aa3289668 "$original" | sha256sum -c -
 started=$(date +%s)
 if [[ "$mode" == inspect ]]; then exec bash "$original" inspect; fi
 baseline() {
