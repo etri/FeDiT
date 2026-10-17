@@ -1286,10 +1286,17 @@ host_dependencies() {
   fi
 }
 
+ensure_docker_bridge_gateway() {
+  python3 "${SCRIPT_DIR}/../server-a40/ensure-docker-bridge.py"
+}
+
 retry_command() {
   local attempts="$1" delay="$2" description="$3" try command_timeout
   shift 3
   for try in $(seq 1 "$attempts"); do
+    if [[ "${1:-}" == docker && ( "${2:-}" == build || "${2:-}" == buildx ) ]]; then
+      ensure_docker_bridge_gateway
+    fi
     # Docker registry/CDN reads can leave a direct `docker pull` blocked after
     # the socket has stopped making progress.  Keep every pull bounded so a
     # transient reset is recorded and retried instead of stalling the entire
@@ -1542,6 +1549,7 @@ EOF
     record PASS "컨테이너 서비스" "containerd와 kubelet 호환 supervisor 시작"
   fi
 
+  ensure_docker_bridge_gateway
   ensure_local_registry
 
   if bool_true "$VERIFY_DOCKER_GPU"; then

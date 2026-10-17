@@ -31,7 +31,7 @@ def require(result):
 
 def check_pinned_and_generated():
     original = ROOT / 'server-install-725eb2ed.sh'
-    assert hashlib.sha256(original.read_bytes()).hexdigest() == 'f70273999b70ae3e94c4d632c777494f4c7fecefc5749be7e3a93f73bd02f3e3'
+    assert hashlib.sha256(original.read_bytes()).hexdigest() == '8dadd1cf073bbb23bb2f5985d994100bdb062258b47eeb12c968dbebaae5adbd'
     for path in ROOT.glob('*.sh'):
         subprocess.run([BASH, '-n', str(path)], check=True)
     repair = (ROOT / 'resume-keycloak.sh').read_text(encoding='utf-8')
@@ -318,6 +318,51 @@ if kill -0 "$child" 2>/dev/null; then echo 'Forwarder child leaked'; exit 1; fi
     print('PASS Pod replacement reconnect and bounded cleanup of TERM-resistant child')
 
 
+def check_docker_bridge_guard(generated):
+    helper = ROOT / 'ensure-docker-bridge.py'
+    wrapper = (ROOT / 'server-install-725eb2ed.sh').read_text(encoding='utf-8')
+    embedded = wrapper.split("<<'DOCKER_BRIDGE_PY'\n", 1)[1].split('DOCKER_BRIDGE_PY\n', 1)[0]
+    assert embedded == helper.read_text(encoding='utf-8')
+    assert 'ensure_docker_bridge_gateway\n  ensure_local_registry' in generated
+    assert '"${2:-}" == buildx' in generated
+    spec = importlib.util.spec_from_file_location('bridge_guard', helper)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    class Fixture:
+        def __init__(self):
+            self.network = {'Name':'bridge','Driver':'bridge','IPAM':{'Config':[{'Subnet':'10.254.254.192/28','Gateway':'10.254.254.193'}]},'Options':{}}
+            self.addresses = [{'local':'172.17.0.1','prefixlen':16}]
+            self.kind = 'bridge'
+            self.actions = []
+            self.apply = True
+        def run(self, *args):
+            if args[:3] == ('docker','network','inspect'): return json.dumps([self.network])
+            if args[:4] == ('ip','-j','-d','link'): return json.dumps([{'linkinfo':{'info_kind':self.kind}}])
+            if args[:4] == ('ip','-j','-4','address'): return json.dumps([{'addr_info':self.addresses}])
+            assert args == ('ip','address','replace','10.254.254.193/28','dev','docker0'), args
+            self.actions.append(args)
+            if self.apply: self.addresses.append({'local':'10.254.254.193','prefixlen':28})
+            return ''
+    with contextlib.redirect_stdout(io.StringIO()):
+        f=Fixture()
+        assert module.ensure_bridge(f.run) is True
+        assert len(f.actions)==1 and f.addresses[0]=={'local':'172.17.0.1','prefixlen':16}
+        assert module.ensure_bridge(f.run) is False and len(f.actions)==1
+        f=Fixture(); f.network['IPAM']['Config']=[{'Subnet':'172.17.0.0/16','Gateway':'172.17.0.1'}]
+        assert module.ensure_bridge(f.run) is False and not f.actions
+        for change in ('interface','gateway','kind','not_applied'):
+            f=Fixture()
+            if change=='interface': f.network['Options']['com.docker.network.bridge.name']='eth0'
+            if change=='gateway': f.network['IPAM']['Config'][0]['Gateway']='10.254.254.194'
+            if change=='kind': f.kind='veth'
+            if change=='not_applied': f.apply=False
+            try: module.ensure_bridge(f.run)
+            except RuntimeError: pass
+            else: raise AssertionError('Unsafe/ineffective bridge repair accepted: '+change)
+            if change!='not_applied': assert not f.actions
+    print('PASS installer-owned Docker gateway repair, alias preservation, idempotence and foreign-interface denial')
+
+
 def check_service_controls():
     # Replace only root re-exec; execute the real bodies against harmless mocks.
     start = (ROOT / 'fedit-start.sh').read_text(encoding='utf-8')
@@ -336,6 +381,7 @@ systemctl() {
   fi
 }
 mountpoint() { return 0; }
+python3() { echo "python3 $*" >> "$events"; return 0; }
 kubectl() { echo "kubectl $*" >> "$events"; return 0; }
 crictl() {
   echo "crictl $*" >> "$events"
@@ -354,6 +400,7 @@ docker() {
     assert 'systemctl start containerd.service docker.service' in result.stdout
     assert result.stdout.index('docker start pm-verification-registry') < result.stdout.index('systemctl start kubelet.service')
     assert 'docker start fedit-fe' in result.stdout
+    assert result.stdout.index('systemctl start containerd.service docker.service') < result.stdout.index('ensure-docker-bridge.py') < result.stdout.index('docker start pm-verification-registry')
     assert 'systemctl enable' not in result.stdout
     result = shell(stop.replace(reexec, prelude) + '\ncat "$events"\n')
     require(result)
@@ -753,6 +800,7 @@ if __name__ == '__main__':
     check_local_source_reuse()
     check_forward_lifecycle()
     check_service_controls()
+    check_docker_bridge_guard(generated)
     check_registry_recovery(generated)
     check_readonly_source_git()
     check_public_sandbox_readiness()
