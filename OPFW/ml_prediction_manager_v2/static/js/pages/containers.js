@@ -377,7 +377,7 @@ async function renderContainersNew() {
                 </div>
                 <div>
                   <span class="cc-inline-label" style="margin-left:0;">Storage Class</span>
-                  <input class="cc-input cc-mono" id="cc-ws-sc" placeholder="비우면 기본 StorageClass" />
+                  <input class="cc-input cc-mono" id="cc-ws-sc" readonly placeholder="사용자 저장소 자동 선택" />
                 </div>
               </div>
               <div id="cc-ws-existing-fields" style="display:none; margin-top:8px;">
@@ -390,8 +390,6 @@ async function renderContainersNew() {
                 <span class="cc-inline-label" style="margin-left:0;">Access Mode</span>
                 <select class="cc-select" id="cc-ws-am">
                   <option value="ReadWriteOnce">ReadWriteOnce</option>
-                  <option value="ReadWriteMany">ReadWriteMany</option>
-                  <option value="ReadOnlyMany">ReadOnlyMany</option>
                 </select>
               </div>
             </div>
@@ -686,8 +684,6 @@ function _ccRenderDataVolumes() {
             <div class="cc-row-2" style="margin-top:6px;">
               <select class="cc-select" onchange="_cfSetDv(${i},'access_mode',this.value)">
                 <option value="ReadWriteOnce" ${v.access_mode === 'ReadWriteOnce' ? 'selected' : ''}>ReadWriteOnce</option>
-                <option value="ReadWriteMany" ${v.access_mode === 'ReadWriteMany' ? 'selected' : ''}>ReadWriteMany</option>
-                <option value="ReadOnlyMany" ${v.access_mode === 'ReadOnlyMany' ? 'selected' : ''}>ReadOnlyMany</option>
               </select>
               <input class="cc-input cc-mono" placeholder="마운트 경로" value="${esc(v.mount_path)}" oninput="_cfSetDv(${i},'mount_path',this.value)" />
             </div>

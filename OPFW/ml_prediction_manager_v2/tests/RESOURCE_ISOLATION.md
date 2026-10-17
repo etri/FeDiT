@@ -26,8 +26,8 @@ ConfigMap을 변경하고 공유 웹 앱을 재시작했다.
   허용한다. view contributor는 선택한 영역을 변경할 수 없다.
 - Notebook 생성/시작/중지/삭제, PVC 조회, 모델 배포 대상, AutoML Notebook 대상,
   사용자별 MLflow/Ray/NiFi 정리 및 관리 API에도 해당 경계를 적용한다.
-- Notebook workspace PVC는 PM 관리 라벨과 Notebook 소유 라벨이 모두 일치할
-  때만 자동 삭제한다. 예전의 라벨 없는 PVC와 다른 용도의 PVC는 보존한다.
+- 후속 볼륨 보호에서는 Notebook 삭제 시 PVC를 모두 보존하고, 별도 볼륨 API에서
+  소유권과 사용 상태를 확인한 뒤 삭제한다. [VOLUME_SANDBOX.md](VOLUME_SANDBOX.md) 참조.
 - 모니터링의 앱/PVC/Ray/MLflow 등 namespace 대상은 선택한 사용자 영역으로
   제한한다. 노드/GPU의 물리 지표처럼 읽기 전용 호스트 지표까지 제거한 것은 아니다.
 

@@ -100,6 +100,15 @@ GPU 시험 통과를 사용자 실행 로그에서 확인했다. 이후 통합�
 자세한 설명: scripts/server-a40/README.md
 서버 성공 범위와 로컬 검사 기록: scripts/server-a40/VALIDATION.md
 
+사용자 이미지·볼륨 보호 기능은 고정 소스 설치 후 별도 앱 업데이트로 반영한다.
+최신 전체 저장소의 scripts/server-a40 폴더에서 다음을 실행한다.
+
+  bash update-user-sandbox.sh
+
+기존 설치기의 소스 checkout을 직접 수정하지 않는다. clone부터의 전체 절차와
+변경·원복·검증 범위는 tests/VOLUME_SANDBOX.md를 참조한다. 현재 서버에서 실제
+업데이트와 PVC 생성/마운트/삭제가 통과한 결과는 아직 없다.
+
 
 기존 CPU/GPU 일반 설치 안내
 ===========================
