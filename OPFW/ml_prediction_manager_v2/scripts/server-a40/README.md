@@ -6,14 +6,19 @@
 
 ## 설치와 자동 구동 시험
 
-이 디렉터리 전체를 서버로 복사하거나 저장소에서 아래 명령을 실행한다.
+이 디렉터리 전체를 서버로 복사하거나 아래 명령으로 저장소를 받아 실행한다.
 기존 설치와 같은 일반 로그인 계정을 사용한다. 필요할 때 sudo 비밀번호와
 비공개 GitHub 저장소 읽기 인증을 입력한다.
 
 ```bash
+git clone --branch OPFW_development_ETRI_pman --single-branch https://github.com/etri/FeDiT.git
 cd FeDiT/OPFW/ml_prediction_manager_v2/scripts/server-a40
 bash install.sh
 ```
+
+이미 저장소가 있으면 중복 clone하지 않고 해당 브랜치와 로컬 변경 사항을 확인한
+뒤 최신 커밋을 받아 같은 폴더에서 실행한다. 전체 가이드는
+[guide.txt](../../guide.txt)를 참조한다.
 
 `install.sh`는 먼저 검증된 원본 설치기의 SHA-256을 확인하고 실행한다.
 Keycloak 단계에서 실패하고 진단 응답이 정확히 `HTTPS required`인 경우에만
