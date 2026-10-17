@@ -95,7 +95,8 @@ def run():
     assert name == 'pm-user-' + TOKEN and volume['namespace'] == NS
     pvc = track('persistentvolumeclaim', name)
     storage = pvc['spec']['storageClassName']
-    legacy = TOKEN + '-unmanaged'
+    # Even a matching name prefix must not adopt an unlabelled existing PVC.
+    legacy = 'pm-user-' + TOKEN + '-unmanaged'
     create({'apiVersion': 'v1', 'kind': 'PersistentVolumeClaim', 'metadata': {'name': legacy},
             'spec': {'accessModes': ['ReadWriteOnce'], 'storageClassName': storage,
                      'resources': {'requests': {'storage': '1Gi'}}}})
