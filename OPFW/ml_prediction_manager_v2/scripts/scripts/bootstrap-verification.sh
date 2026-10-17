@@ -1935,143 +1935,155 @@ apply_with_retry() {
 }
 
 pull_docker_image_via_registry_api() {
-  # Docker Hub may reset one of the many parallel CloudFront layer requests
-  # even when the registry API and each individual blob are reachable.  Use a
-  # sequential, resumable API download as a bounded fallback, then hand the
-  # normal Docker daemon a standard docker-archive.  This keeps the recovery
-  # independent of daemon download concurrency and is only used after normal
-  # docker pull retries have failed.
-  local source="$1" archive
+  # Persist verified/partial blobs across retries; only remove them after load.
+  local source="$1" archive cache_key cache
   local registry_name="${source%%/*}"
-  if [[ "$registry_name" == *.* || "$registry_name" == *:* ]] && \
-      [[ "$registry_name" != "docker.io" ]]; then
-    echo "Registry API fallback은 Docker Hub 이미지에만 적용됩니다: ${source}" >&2
+  if [[ "$source" == */* && ( "$registry_name" == *.* || "$registry_name" == *:* ) && \
+      "$registry_name" != docker.io ]]; then
+    echo "Registry API fallback supports Docker Hub images only: ${source}" >&2
     return 1
   fi
+  cache_key=$(printf '%s' "$source" | sha256sum)
+  cache_key=${cache_key%% *}
+  [[ "$cache_key" =~ ^[a-f0-9]{64}$ ]] || return 1
+  cache="${DOWNLOADS_DIR}/registry-image-cache/$cache_key"
+  mkdir -p "$cache"
   archive="$(mktemp "${DOWNLOADS_DIR}/docker-registry-image.XXXXXX.tar")"
-  if ! python3 - "$source" "$archive" <<'PY'
+  if ! python3 - "$source" "$archive" "$cache" <<'REGISTRY_DOWNLOAD_PY'
 import hashlib
 import json
 import os
-import shutil
 import sys
 import tarfile
-import tempfile
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 
-source, archive = sys.argv[1:]
+source, archive, work = sys.argv[1:]
 if source.startswith("docker.io/"):
     source = source[len("docker.io/"):]
-if "/" not in source.split(":", 1)[0]:
-    repo = "library/" + source.split(":", 1)[0]
-else:
-    repo = source.split(":", 1)[0]
+repo = source.split(":", 1)[0]
+if "/" not in repo:
+    repo = "library/" + repo
 tag = source.rsplit(":", 1)[1] if ":" in source.rsplit("/", 1)[-1] else "latest"
 registry = "https://registry-1.docker.io"
 scope = urllib.parse.quote(f"repository:{repo}:pull", safe="")
+token_url = f"https://auth.docker.io/token?service=registry.docker.io&scope={scope}"
+auth = {}
+auth_deadline = 0.0
 
 def read_url(url, headers=None, attempts=8):
     last = None
     for attempt in range(attempts):
         try:
-            req = urllib.request.Request(url, headers=headers or {})
-            with urllib.request.urlopen(req, timeout=120) as response:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=headers or {}), timeout=120) as response:
                 return response.read()
         except Exception as exc:
             last = exc
+            if isinstance(exc, urllib.error.HTTPError) and exc.code in (401, 403) and headers and "Authorization" in headers:
+                headers = {**headers, **registry_auth(force=True)}
             if attempt + 1 < attempts:
                 time.sleep(min(5, 1 + attempt))
     raise RuntimeError(f"registry request failed: {url}: {last}")
 
-token = json.loads(read_url(
-    f"https://auth.docker.io/token?service=registry.docker.io&scope={scope}"
-))["token"]
-auth = {"Authorization": f"Bearer {token}"}
+def registry_auth(force=False):
+    global auth_deadline
+    if force or time.monotonic() >= auth_deadline:
+        payload = json.loads(read_url(token_url))
+        auth["Authorization"] = "Bearer " + payload["token"]
+        auth_deadline = time.monotonic() + max(1, int(payload.get("expires_in") or 300) - 30)
+    return dict(auth)
+
 accept = ", ".join([
     "application/vnd.oci.image.index.v1+json",
     "application/vnd.docker.distribution.manifest.list.v2+json",
     "application/vnd.oci.image.manifest.v1+json",
     "application/vnd.docker.distribution.manifest.v2+json",
 ])
-manifest_url = f"{registry}/v2/{repo}/manifests/{tag}"
-index = json.loads(read_url(manifest_url, {**auth, "Accept": accept}))
+index = json.loads(read_url(f"{registry}/v2/{repo}/manifests/{tag}", {**registry_auth(), "Accept": accept}))
 if "manifests" in index:
     candidates = [item for item in index["manifests"]
                   if item.get("platform", {}).get("os") == "linux"
                   and item.get("platform", {}).get("architecture") == "amd64"]
     if not candidates:
         raise RuntimeError("Docker Hub manifest has no linux/amd64 image")
-    digest = candidates[0]["digest"]
-    # Fetch the selected digest explicitly so an arm64 entry can never be
-    # selected when the tag is a multi-platform index.
-    index = json.loads(read_url(f"{registry}/v2/{repo}/manifests/{digest}", {
-        **auth, "Accept": "application/vnd.oci.image.manifest.v1+json"
+    index = json.loads(read_url(f"{registry}/v2/{repo}/manifests/{candidates[0]['digest']}", {
+        **registry_auth(), "Accept": accept
     }))
 
-work = tempfile.mkdtemp(prefix="docker-registry-image-", dir=os.path.dirname(archive))
-try:
-    os.makedirs(os.path.join(work, "blobs", "sha256"))
-    config_digest = index["config"]["digest"]
-    config_name = f"blobs/sha256/{config_digest.split(':', 1)[1]}"
-    config_path = os.path.join(work, config_name)
+os.makedirs(os.path.join(work, "blobs", "sha256"), exist_ok=True)
 
-    def download_blob(digest, path):
-        url = f"{registry}/v2/{repo}/blobs/{digest}"
-        expected = digest.split(":", 1)[1]
-        for attempt in range(12):
-            existing = os.path.getsize(path) if os.path.exists(path) else 0
-            headers = dict(auth)
-            if existing:
-                headers["Range"] = f"bytes={existing}-"
-            try:
-                req = urllib.request.Request(url, headers=headers)
-                with urllib.request.urlopen(req, timeout=120) as response:
-                    if existing and response.status == 200:
-                        existing = 0
-                        open(path, "wb").close()
-                    mode = "ab" if existing else "wb"
-                    with open(path, mode) as output:
-                        while True:
-                            chunk = response.read(8 * 1024 * 1024)
-                            if not chunk:
-                                break
-                            output.write(chunk)
-                digest_hash = hashlib.sha256()
-                with open(path, "rb") as downloaded:
-                    for chunk in iter(lambda: downloaded.read(8 * 1024 * 1024), b""):
-                        digest_hash.update(chunk)
-                digest_hex = digest_hash.hexdigest()
-                if digest_hex == expected:
-                    return
-                raise RuntimeError(f"digest mismatch for {digest}: {digest_hex}")
-            except Exception as exc:
-                if attempt == 11:
-                    raise RuntimeError(f"blob download failed {digest}: {exc}")
-                time.sleep(min(8, 1 + attempt))
+def blob_hash(path):
+    value = hashlib.sha256()
+    with open(path, "rb") as downloaded:
+        for chunk in iter(lambda: downloaded.read(8 * 1024 * 1024), b""):
+            value.update(chunk)
+    return value.hexdigest()
 
-    download_blob(config_digest, config_path)
-    layer_names = []
-    for layer in index["layers"]:
-        name = f"blobs/sha256/{layer['digest'].split(':', 1)[1]}"
-        download_blob(layer["digest"], os.path.join(work, name))
-        layer_names.append(name)
+def download_blob(digest, path, size):
+    algorithm, separator, expected = digest.partition(":")
+    if algorithm != "sha256" or len(expected) != 64 or any(c not in "0123456789abcdef" for c in expected):
+        raise RuntimeError("Invalid Registry blob digest")
+    size = int(size)
+    if size < 0:
+        raise RuntimeError("Invalid Registry blob size")
+    url = f"{registry}/v2/{repo}/blobs/{digest}"
+    for attempt in range(12):
+        existing = os.path.getsize(path) if os.path.exists(path) else 0
+        if os.path.exists(path) and existing >= size:
+            if existing == size and blob_hash(path) == expected:
+                print(f"[PASS] Cached Registry blob verified: {digest[:19]}", flush=True)
+                return
+            open(path, "wb").close()
+            existing = 0
+        headers = registry_auth()
+        if existing:
+            headers["Range"] = f"bytes={existing}-"
+        try:
+            print(f"[INFO] Registry blob {digest[:19]}: {existing}/{size} bytes", flush=True)
+            with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=120) as response:
+                if existing and response.status == 200:
+                    existing = 0
+                    open(path, "wb").close()
+                received = existing
+                last_progress = time.monotonic()
+                with open(path, "ab" if existing else "wb") as output:
+                    while True:
+                        chunk = response.read(8 * 1024 * 1024)
+                        if not chunk:
+                            break
+                        output.write(chunk)
+                        received += len(chunk)
+                        if time.monotonic() - last_progress >= 60:
+                            print(f"[INFO] Registry blob {digest[:19]}: {received}/{size} bytes", flush=True)
+                            last_progress = time.monotonic()
+            if os.path.getsize(path) == size and blob_hash(path) == expected:
+                print(f"[PASS] Registry blob digest verified: {digest[:19]}", flush=True)
+                return
+            raise RuntimeError(f"blob size or digest mismatch: {digest}")
+        except Exception as exc:
+            if isinstance(exc, urllib.error.HTTPError) and exc.code in (401, 403):
+                registry_auth(force=True)
+            print(f"[WARN] Registry blob retry {attempt + 1}: {digest[:19]}: {exc}", flush=True)
+            if attempt == 11:
+                raise RuntimeError(f"blob download failed {digest}: {exc}")
+            time.sleep(min(8, 1 + attempt))
 
-    manifest_name = "manifest.json"
-    with open(os.path.join(work, manifest_name), "w", encoding="utf-8") as output:
-        json.dump([{
-            "Config": config_name,
-            "RepoTags": [source],
-            "Layers": layer_names,
-        }], output)
-    with tarfile.open(archive, "w") as output:
-        for name in [manifest_name, config_name, *layer_names]:
-            output.add(os.path.join(work, name), arcname=name)
-finally:
-    shutil.rmtree(work, ignore_errors=True)
-PY
+config_digest = index["config"]["digest"]
+config_name = f"blobs/sha256/{config_digest.split(':', 1)[1]}"
+download_blob(config_digest, os.path.join(work, config_name), index["config"]["size"])
+layer_names = []
+for layer in index["layers"]:
+    name = f"blobs/sha256/{layer['digest'].split(':', 1)[1]}"
+    download_blob(layer["digest"], os.path.join(work, name), layer["size"])
+    layer_names.append(name)
+with open(os.path.join(work, "manifest.json"), "w", encoding="utf-8") as output:
+    json.dump([{"Config": config_name, "RepoTags": [source], "Layers": layer_names}], output)
+with tarfile.open(archive, "w") as output:
+    for name in ["manifest.json", config_name, *layer_names]:
+        output.add(os.path.join(work, name), arcname=name)
+REGISTRY_DOWNLOAD_PY
   then
     rm -f -- "$archive"
     return 1
@@ -2081,6 +2093,7 @@ PY
     return 1
   fi
   rm -f -- "$archive"
+  rm -rf -- "$cache"
 }
 
 pull_and_mirror_docker_image() {
