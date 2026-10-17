@@ -161,7 +161,7 @@ fi
 # first containerd unpack can legitimately exceed the generic image timeout;
 # use a dedicated bound instead of recording a recoverable timeout as a
 # failed installation step and then copying the same image a second time.
-: "${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:=3600}"
+: "${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:=7200}"
 : "${CONTAINERD_IMAGE_VISIBILITY_TIMEOUT_SECONDS:=180}"
 # One failed CRI download is enough to prefer the Docker fallback.  In the
 # affected CDN condition the next CRI attempt only repeats the same reset,
@@ -1296,9 +1296,9 @@ retry_command() {
     # clean installation forever.  Callers that already pass an explicit
     # `timeout` retain their tighter, image-specific bound.
     if [[ "${1:-}" == docker && "${2:-}" == pull ]]; then
-      command_timeout="${DOCKER_PULL_TIMEOUT_SECONDS:-${IMAGE_PULL_TIMEOUT_SECONDS:-300}}"
-      if [[ "${3:-}" == *seldonio/mlserver* || "${3:-}" == *kserve-mlserver* ]]; then
-        command_timeout="${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:-900}"
+      command_timeout="${DOCKER_PULL_TIMEOUT_SECONDS:-${IMAGE_PULL_TIMEOUT_SECONDS:-1800}}"
+      if [[ "$*" == *seldonio/mlserver* || "$*" == *kserve-mlserver* || "$*" == *ml-pipeline/visualization-server* || "$*" == *ml-pipeline/metadata-writer* ]]; then
+        command_timeout="${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:-7200}"
       fi
       if timeout "${command_timeout}s" "$@"; then
         return 0
@@ -2087,7 +2087,7 @@ pull_and_mirror_docker_image() {
   # normal image timeout; retry_command's large-image default is intended for
   # CRI unpacking, not for an external Docker Hub download that has stopped
   # making progress after a CDN reset.
-  if [[ "$source" == *seldonio/mlserver* || "$source" == *kserve-mlserver* ]]; then
+  if [[ "$source" == *seldonio/mlserver* || "$source" == *kserve-mlserver* || "$source" == *ml-pipeline/visualization-server* || "$source" == *ml-pipeline/metadata-writer* ]]; then
     # This image is known to stall on one Docker Hub blob in this network.
     # Give the direct path one bounded chance, then use the sequential API
     # downloader instead of spending eight long attempts on the same reset.
@@ -2127,7 +2127,7 @@ retry_kubernetes_image_pull() {
   # keeps a clean host installation progressing without publishing a registry
   # port or relying on a machine-specific image cache.
   case "$image" in
-    *kserve-mlserver*|*seldonio/mlserver*)
+    *kserve-mlserver*|*seldonio/mlserver*|*ml-pipeline/visualization-server*|*ml-pipeline/metadata-writer*)
       pull_timeout="$LARGE_IMAGE_PULL_TIMEOUT_SECONDS"
       ;;
   esac

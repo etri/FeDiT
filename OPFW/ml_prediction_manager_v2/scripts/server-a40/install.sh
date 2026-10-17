@@ -9,7 +9,7 @@ mkdir -p "$HOME/pman-server-725eb2ed"
 exec 9>"$HOME/pman-server-725eb2ed/control.lock"
 flock -n 9 || { echo 'Another server installation or check is running.' >&2; exit 1; }
 original="$here/server-install-725eb2ed.sh"
-printf '%s  %s\n' 980253251c852507ae79522be984c0677de5e03a22435c2d97126e9f10d66793 "$original" | sha256sum -c -
+printf '%s  %s\n' fa95e6ef889c92baa840dcd253a368ee548f12790689a93ef6d4a7a8331606a3 "$original" | sha256sum -c -
 if [[ "$mode" == inspect ]]; then exec bash "$original" inspect; fi
 export FEDIT_SOURCE_REPO
 FEDIT_SOURCE_REPO=$(cd -- "$here/../../../.." && pwd)
@@ -23,6 +23,14 @@ finish() {
   rc=$?
   trap - EXIT INT TERM
   set +e
+  exec 1>&3 2>&4
+  closed=false
+  for _ in $(seq 1 100); do
+    if ! kill -0 "$logger" 2>/dev/null; then closed=true; break; fi
+    sleep 0.1
+  done
+  if [[ "$closed" == true ]]; then wait "$logger" || rc=1;
+  else kill "$logger" 2>/dev/null; rc=1; phase=log-cleanup; fi
   # Only these storage-test files are collected; private deployment/configuration
   # backups from update-user-sandbox.sh never enter the handoff archive.
   storage_report=$(sed -n 's/^SANDBOX_TEST_REPORT=//p' "$report/combined.private.log" | tail -1)
@@ -33,14 +41,6 @@ finish() {
       fi
     done
   fi
-  exec 1>&3 2>&4
-  closed=false
-  for _ in $(seq 1 100); do
-    if ! kill -0 "$logger" 2>/dev/null; then closed=true; break; fi
-    sleep 0.1
-  done
-  if [[ "$closed" == true ]]; then wait "$logger" || rc=1;
-  else kill "$logger" 2>/dev/null; rc=1; phase=log-cleanup; fi
   python3 - "$report/combined.private.log" "$report/session.log" <<'PY'
 import pathlib,re,sys
 text=pathlib.Path(sys.argv[1]).read_text(encoding='utf-8',errors='replace')

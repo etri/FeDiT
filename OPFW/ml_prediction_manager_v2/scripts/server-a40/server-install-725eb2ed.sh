@@ -304,7 +304,18 @@ s=s.replace(old_helper,"if 'def _mlflow_pip_requirements(' not in text:")
 s=s.replace('nvidia/cuda:12.4.1-base-ubuntu22.04','nvidia/cuda:11.8.0-base-ubuntu22.04')
 # Keep a progressing clean download alive on slower server connections.
 s=s.replace('${IMAGE_PULL_TIMEOUT_SECONDS:=300}', '${IMAGE_PULL_TIMEOUT_SECONDS:=1800}')
-s=s.replace('${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:=900}', '${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:=3600}')
+s=s.replace('${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:=900}', '${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:=7200}')
+s=s.replace('${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:-900}', '${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:-7200}')
+s=s.replace('${IMAGE_PULL_TIMEOUT_SECONDS:-300}', '${IMAGE_PULL_TIMEOUT_SECONDS:-1800}')
+for expression in ('${3:-}', '$source'):
+    old=f'[[ "{expression}" == *seldonio/mlserver* || "{expression}" == *kserve-mlserver* ]]'
+    argument='$*' if expression=='${3:-}' else expression
+    new=f'[[ "{argument}" == *seldonio/mlserver* || "{argument}" == *kserve-mlserver* || "{argument}" == *ml-pipeline/visualization-server* || "{argument}" == *ml-pipeline/metadata-writer* ]]'
+    assert s.count(old)==1, 'Pinned large-image classifier changed'
+    s=s.replace(old,new)
+large_case='*kserve-mlserver*|*seldonio/mlserver*)'
+assert s.count(large_case)==1
+s=s.replace(large_case, '*kserve-mlserver*|*seldonio/mlserver*|*ml-pipeline/visualization-server*|*ml-pipeline/metadata-writer*)')
 alias_anchor='  local mirror_suffix mirror_image\n'
 assert s.count(alias_anchor)==1, 'Pinned image fallback function changed'
 s=s.replace(alias_anchor, alias_anchor+'''  # CRI resolves canonical Docker references; a short ctr alias is not enough.
@@ -575,7 +586,7 @@ ENV
     echo 'AUTO_DETECT_SOURCE_PATHS=false'
     echo 'CHECK_MIN_CPU_CORES=false'
     echo 'IMAGE_PULL_TIMEOUT_SECONDS=1800'
-    echo 'LARGE_IMAGE_PULL_TIMEOUT_SECONDS=3600'
+    echo 'LARGE_IMAGE_PULL_TIMEOUT_SECONDS=7200'
     printf 'PREDICTION_MANAGER_ROOT=%q\n' "$BUILD_TREE/OPFW/ml_prediction_manager_v2"
     printf 'PREDICTION_MANAGER_FRONTEND_ROOT=%q\n' "$BUILD_TREE/OPFW/ml_prediction_manager_v2_frontend"
   } >> "$CONFIG"
