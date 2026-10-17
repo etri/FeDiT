@@ -293,6 +293,34 @@ old_helper="if '_mlflow_pip_requirements()' not in text:"
 assert s.count(old_helper)==1, 'Pinned MLflow helper patch changed'
 s=s.replace(old_helper,"if 'def _mlflow_pip_requirements(' not in text:")
 s=s.replace('nvidia/cuda:12.4.1-base-ubuntu22.04','nvidia/cuda:11.8.0-base-ubuntu22.04')
+# Keep a progressing clean download alive on slower server connections.
+s=s.replace('${IMAGE_PULL_TIMEOUT_SECONDS:=300}', '${IMAGE_PULL_TIMEOUT_SECONDS:=1800}')
+s=s.replace('${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:=900}', '${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:=3600}')
+alias_anchor='  local mirror_suffix mirror_image\n'
+assert s.count(alias_anchor)==1, 'Pinned image fallback function changed'
+s=s.replace(alias_anchor, alias_anchor+'''  # CRI resolves canonical Docker references; a short ctr alias is not enough.
+  local first_component="${image%%/*}"
+  if [[ "$image" != */* ]]; then
+    image="docker.io/library/$image"
+  elif [[ "$first_component" != *.* && "$first_component" != *:* && "$first_component" != localhost ]]; then
+    image="docker.io/$image"
+  fi
+  if [[ "$image" == index.docker.io/* ]]; then image="docker.io/${image#index.docker.io/}"; fi
+  if [[ "$image" == docker.io/* && "${image#docker.io/}" != */* ]]; then
+    image="docker.io/library/${image#docker.io/}"
+  fi
+''')
+prefetch_anchor='  prime_knative_control_plane_images "$kubeflow_bootstrap_manifest"\n'
+assert s.count(prefetch_anchor)==1, 'Pinned Kubeflow image ordering changed'
+s=s.replace(prefetch_anchor, prefetch_anchor+'  prime_manifest_images "${GENERATED_DIR}/kubeflow.yaml" "Kubeflow full workload"\n')
+prefetch_start=s.index('prime_manifest_images() {')
+prefetch_end=s.index('\nwait_namespace_workloads()', prefetch_start)
+prefetch=s[prefetch_start:prefetch_end]
+loop='  for image in "${images[@]:-}"; do'
+assert prefetch.count(loop)==1
+prefetch=prefetch.replace(loop, '  mapfile -t images < <(printf \'%s\\n\' "${images[@]}" | sort -u)\n'+loop)
+prefetch=prefetch.replace('    retry_kubernetes_image_pull "$image"', '    if ! crictl inspecti "$image" >/dev/null 2>&1; then\n      retry_kubernetes_image_pull "$image"\n    fi')
+s=s[:prefetch_start]+prefetch+s[prefetch_end:]
 s=s.replace('curl -kLsS -o /dev/null', 'curl --retry 3 --retry-all-errors --retry-delay 3 -kLsS -o /dev/null')
 old_modules='    modprobe overlay\n    modprobe br_netfilter'
 assert s.count(old_modules)==1, 'Pinned kernel feature initialization changed'
