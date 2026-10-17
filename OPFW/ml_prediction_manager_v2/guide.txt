@@ -1,6 +1,110 @@
 FeDiT 예측매니저 호스트 설치 가이드
 =====================================
 
+목표 A40 서버 최신 설치 방법 (2026-10-17)
+----------------------------------------
+
+목표 A40 서버에는 이 절의 명령을 사용한다. 아래쪽 기존 CPU/GPU 일반 설치
+안내의 01/02 단계, 압축파일 덮어쓰기, 실행 권한 변경을 추가로 수행하지 않는다.
+
+1) 준비 조건
+
+- Ubuntu 22.04 LTS x86_64, sudo 권한을 가진 일반 로그인 사용자
+- 정상 동작하는 기존 NVIDIA 드라이버: nvidia-smi로 확인
+- 루트(/)와 다른 파일시스템으로 실제 마운트된, 쓰기 가능한 /data
+- 인터넷 연결, git, 비공개 etri/FeDiT 저장소 읽기 권한
+- 새 설치 시 실행 중인 다른 Docker 컨테이너나 기존 Kubernetes 클러스터가 없어야 함
+
+확인된 목표 서버는 CPU 4개, RAM 31GiB, A40 46068MiB, 드라이버 535.309.01이다.
+설치에 필요한 sudo 비밀번호와 GitHub 인증은 요청될 때 입력한다.
+드라이버를 자동 설치/갱신하거나 서버를 자동 재부팅하지 않는다.
+
+2) 다운로드 후 설치 및 자동 구동 시험
+
+일반 사용자 홈 등 원하는 작업 폴더에서 다음을 실행한다.
+FeDiT 폴더가 이미 있으면 중복 clone하지 말고, 해당 저장소의 브랜치와 변경
+사항을 확인한 뒤 최신 커밋을 받아 아래 scripts/server-a40 폴더로 이동한다.
+
+  git clone --branch OPFW_development_ETRI_pman --single-branch https://github.com/etri/FeDiT.git
+  cd FeDiT/OPFW/ml_prediction_manager_v2/scripts/server-a40
+  bash install.sh
+
+설치, 서비스 상태 확인, Kubernetes GPU 실행, CPU/GPU 학습 및 모델 저장/
+재로드 시험을 순서대로 수행한다. 설치 도중 터미널 연결은 유지한다.
+기존 설치를 재개할 때도 같은 계정으로 같은 폴더에서 bash install.sh를 실행한다.
+
+Keycloak 단계에서 정확히 HTTPS required 오류가 확인되면 로컬 포트 포워딩
+보정을 적용해 자동 재개한다. 그 외 오류를 임의로 성공 처리하지 않는다.
+Keycloak의 HTTPS 정책을 끄지 않으며 Pod 교체 시 임시 연결을 다시 맺는다.
+이 경로에서는 Docker/containerd/kubelet/PVC/빌드 등의 큰 데이터를 /data에
+저장한다. 아래 기존 안내의 루트 여유 200GiB 조건을 적용하지 않으며, 용량
+권장값만으로 차단하지 않는다. 실제 쓰기 실패와 잘못된 마운트는 오류다.
+GPU worker는 최대 1개, 테넌트별 동시 학습과 시행은 각각 1개로 설정한다.
+
+실제 빌드 소스는 성공한 725eb2edeec1b756b45abb809cdc4dc971a890bf 커밋으로
+고정한다. clone한 최신 커밋의 소스 전체를 빌드한다는 의미는 아니다.
+
+3) 완료 확인 및 결과 전달
+
+최종 성공 기준은 마지막 결과의 아래 세 항목이다.
+
+  EXIT=0
+  STAGE=complete
+  PLATFORM_AND_KUBERNETES_GPU_SMOKE_PASS
+
+Keycloak 자동 재개 전의 실패 보고서와 재개 후 최종 보고서가 각각 남을 수
+있으므로 마지막 실행 결과를 확인한다. COPY BACK TO CODEX부터 END까지,
+보정 실행 시 KEYCLOAK_RESUME_EXIT 줄도 함께 전달한다.
+비밀번호, 토큰, Secret 및 설정 파일 전체를 채팅에 보내지 않는다.
+
+기본 결과 위치:
+  ~/pman-server-725eb2ed/results/
+  ~/prediction-manager-work/.prediction-manager/gpu/results/
+
+실제 사용자 데이터로 화면에서 작업 생성 → AutoML 학습 → 서빙까지의 전체
+흐름, 외부 PC 접속, 부하 시험과 재부팅 복구는 별도 확인 항목이다.
+
+4) 설치 후 서비스 시작 / 중지
+
+scripts/server-a40 폴더에서 실행한다. 두 파일만 별도로 복사해 사용해도 된다.
+
+  bash fedit-start.sh
+  bash fedit-stop.sh
+
+시작 스크립트는 실행 서비스와 Registry/FeDiT Docker 컨테이너를 시작하고,
+Kubernetes API 및 노드 Ready를 기다린 뒤 Pod 상태를 표시한다.
+중지 스크립트는 접근용 서비스, kubelet, Kubernetes 컨테이너, 서버의 모든
+Docker 컨테이너와 실행 서비스를 중지한다. 공용 Docker 서버에서는 주의한다.
+데이터와 설치 설정은 삭제하지 않으며 부팅 시 활성화 설정도 바꾸지 않는다.
+
+재부팅 후 자동 시작을 원하면 다음을 한 번 실행한다.
+
+  sudo systemctl enable containerd.service docker.service kubelet.service prediction-manager-access.service
+
+prediction-manager-verification-resume.service는 활성화하지 않는다.
+설치 없이 상태만 수집하거나 구동 시험만 다시 실행하려면:
+
+  bash install.sh inspect
+  bash install.sh test
+
+목표 서버 접속 주소:
+  http://220.124.222.82:18000/fedit/predictor-creator-tool
+  http://220.124.222.82:18000/prediction-manager/docs
+
+5) 검증 범위
+
+목표 A40 서버에서는 원본 설치기와 Keycloak v2 보정 조합으로 설치 및 자동
+GPU 시험 통과를 사용자 실행 로그에서 확인했다. 이후 통합한 단일 진입점,
+종료 대기 보정, 서비스 시작/중지 변경은 로컬 검사를 통과했으며, 새 클린
+서버에서 이 최신 묶음 전체를 다시 설치한 결과는 아직 없다.
+자세한 설명: scripts/server-a40/README.md
+서버 성공 범위와 로컬 검사 기록: scripts/server-a40/VALIDATION.md
+
+
+기존 CPU/GPU 일반 설치 안내
+===========================
+아래 내용은 기존 설치 경로의 참고 자료다. 목표 A40 서버는 위 최신 절을 따른다.
+
 문서 범위와 검증 상태
 ---------------------
 - Ubuntu 22.04 LTS x86_64 호스트에서 일반 sudo 사용자로 설치하는 방법이다.
@@ -12,7 +116,7 @@ FeDiT 예측매니저 호스트 설치 가이드
   충족해야 한다. 화면만 열리는 상태는 기능 시험 성공이 아니다.
 - NVIDIA 드라이버는 이 설치 과정에서 설치, 업데이트 또는 재설치하지 않는다.
 
-최종 검증 상태(2026-08-19):
+기존 CPU 경로 검증 상태(2026-08-19):
 
 - CPU 클린 설치와 브라우저 기반 전체 기능 흐름을 완료했다.
 - CPU 최종 브라우저 세션은 메뉴 15/15, Dataset Catalog, Data Collection/NiFi,
