@@ -9,7 +9,7 @@ git_repo() { git -c safe.directory="$repo" -C "$repo" "$@"; }
 relative=OPFW/ml_prediction_manager_v2
 export KUBECONFIG=/etc/kubernetes/admin.conf
 mountpoint -q /data || { echo '[FAIL] /data is not mounted'; exit 1; }
-for tool in docker kubectl python3 git tar flock curl; do command -v "$tool" >/dev/null || { echo "[FAIL] Missing $tool"; exit 1; }; done
+for tool in docker kubectl python3 git tar flock; do command -v "$tool" >/dev/null || { echo "[FAIL] Missing $tool"; exit 1; }; done
 mkdir -p /data/fedit-sandbox-updates
 exec 8>/data/fedit-sandbox-updates/update.lock
 flock -n 8 || { echo '[FAIL] Another sandbox update is running'; exit 1; }
@@ -117,18 +117,7 @@ docker exec fedit-fe nginx -t
 docker exec fedit-fe nginx -s reload
 echo '===== Checking the public sandbox route and system-namespace denial ====='
 url=${FEDIT_SANDBOX_CHECK_URL:-http://127.0.0.1:18000}
-curl --noproxy '*' -fsS --retry 10 --retry-all-errors --retry-delay 2 --connect-timeout 5 --max-time 20 \
-  "$url/volumes/api" -o "$work/volumes.json"
-python3 - "$work/volumes.json" <<'PY'
-import json,sys
-data=json.load(open(sys.argv[1]))
-assert data['namespace'].startswith('kubeflow-') and isinstance(data['volumes'],list)
-assert all(v['namespace']==data['namespace'] and v['name'].startswith('pm-user-') for v in data['volumes'])
-print('USER_VOLUME_SCOPE_PASS')
-PY
-code=$(curl --noproxy '*' -sS --connect-timeout 5 --max-time 20 \
-  "$url/volumes/api?ns=kubeflow" -o "$work/platform-denial.json" -w '%{http_code}')
-[[ "$code" == 403 ]] || { echo "[FAIL] Expected platform scope HTTP 403, got $code"; exit 1; }
-curl --noproxy '*' -fsS --connect-timeout 5 --max-time 20 "$url/volumes/sandbox.js" -o /dev/null
+python3 "$here/check-user-sandbox-route.py" "$url" "$work" \
+  "$repo/$relative/static/js/volumes-sandbox.js"
 echo '[PASS] User image/volume application policy deployed; Nginx now routes volumes through the PM API.'
 echo 'Run verify-user-sandbox.sh for the real PVC lifecycle checks (install.sh runs it automatically).'
