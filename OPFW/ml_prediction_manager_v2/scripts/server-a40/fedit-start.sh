@@ -6,6 +6,7 @@ trap 'rc=$?; echo "[FAIL] Service start failed (exit=$rc, line=$LINENO)." >&2; e
 mountpoint -q /data || { echo '[FAIL] /data is not mounted. Mount the data disk before starting.' >&2; exit 1; }
 echo '===== Starting container runtimes and Kubernetes ====='
 systemctl start containerd.service docker.service
+python3 "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ensure-docker-bridge.py"
 # docker stop preserves a manual stop, especially with unless-stopped.
 # Starting the daemon alone does not restore the frontend stopped by fedit-stop.
 registry=${FEDIT_REGISTRY_CONTAINER:-pm-verification-registry}
