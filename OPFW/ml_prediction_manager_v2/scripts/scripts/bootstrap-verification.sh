@@ -3229,6 +3229,9 @@ install_monitoring_stack() {
       --set serviceMonitor.enabled=true \
       --set 'arguments[0]=-f' \
       --set 'arguments[1]=/etc/dcgm-exporter/default-counters.csv'
+    helm get manifest dcgm-exporter --namespace monitoring > "${GENERATED_DIR}/dcgm-exporter.yaml"
+    IMAGE_PULL_TIMEOUT_SECONDS="$LARGE_IMAGE_PULL_TIMEOUT_SECONDS" \
+      prime_manifest_images "${GENERATED_DIR}/dcgm-exporter.yaml" "DCGM Exporter"
     wait_rollout_if_exists monitoring daemonset dcgm-exporter 900s
   else
     record SKIP "DCGM Exporter" "CPU 전용 구성"
