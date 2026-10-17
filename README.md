@@ -24,18 +24,20 @@ cd FeDiT/OPFW/ml_prediction_manager_v2/scripts/server-a40
 bash install.sh
 ```
 
-최신 사용자 이미지·볼륨 보호를 반영하려면 기본 설치 완료 후 같은 폴더에서
-`bash update-user-sandbox.sh`를 실행한다. 기존 서버도 이 업데이트 명령을 사용하며
-플랫폼 전체를 재설치할 필요는 없다. 자세한 조건은 아래 사용자 볼륨 문서를 참조한다.
+위 `install.sh`는 기본 플랫폼 설치 후 최신 사용자 이미지·볼륨 보호 기능을 자동 적용하고
+실제 PVC 생성·마운트·읽기·쓰기·삭제 및 삭제 차단 시험까지 실행한다.
+기존 서버에서 앱만 갱신하려면 `bash update-user-sandbox.sh` 후
+`bash verify-user-sandbox.sh`를 실행한다. 자세한 조건은 아래 사용자 볼륨 문서를 참조한다.
 
 저장소가 이미 있으면 중복 clone하지 않고 해당 브랜치의 최신 버전을 받은 뒤
 같은 `scripts/server-a40` 폴더에서 실행한다. 설치·재개, 서비스 점검,
 Kubernetes GPU 실행, CPU/GPU 학습 및 모델 저장·재로드 시험을 자동 수행한다.
 확인된 Keycloak HTTPS 오류에만 로컬 연결 보정으로 자동 재개한다.
-실제 빌드 소스는 설치에 성공한 `725eb2ed` 커밋으로 고정한다.
+플랫폼 기본 설치는 성공한 `725eb2ed`를 사용하고, 앱·볼륨 화면은 현재 checkout의 커밋으로 갱신한다.
 
 최종 성공 기준은 `EXIT=0`, `STAGE=complete`,
-`PLATFORM_AND_KUBERNETES_GPU_SMOKE_PASS`다.
+`PLATFORM_AND_KUBERNETES_GPU_SMOKE_PASS`, `USER_SANDBOX_LIFECYCLE_PASS`,
+마지막 `FEDIT_INSTALL_AND_SANDBOX_PASS`다.
 설치 후 같은 폴더에서 서비스를 제어한다.
 
 ```bash

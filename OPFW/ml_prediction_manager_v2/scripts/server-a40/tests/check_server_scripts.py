@@ -149,6 +149,8 @@ echo "[FAIL] ${FAIL_STAGE:-PostgreSQL/Keycloak/OIDC}" > "$base/results/test/sess
 exit "${ORIGINAL_EXIT:-22}"
 ''', encoding='utf-8')
         (bundle / 'resume-keycloak.sh').write_text('echo RECOVERY_CALLED\n', encoding='utf-8')
+        (bundle / 'update-user-sandbox.sh').write_text('echo UPDATE_CALLED\nexit "${UPDATE_EXIT:-0}"\n', encoding='utf-8')
+        (bundle / 'verify-user-sandbox.sh').write_text('echo VERIFY_CALLED\nexit "${VERIFY_EXIT:-0}"\n', encoding='utf-8')
         mocks = temp / 'mocks'
         mocks.mkdir()
         (mocks / 'sha256sum').write_text('#!/usr/bin/env bash\ncat >/dev/null\nexit 0\n', encoding='utf-8')
@@ -162,6 +164,9 @@ exit "${ORIGINAL_EXIT:-22}"
             ({'FAIL_STAGE': 'Other stage'}, 'install', False, 22),
             ({'MOCK_ERROR': 'different error'}, 'install', False, 22),
             ({}, 'test', False, 22),
+            ({'ORIGINAL_EXIT': '0', 'UPDATE_EXIT': '7'}, 'install', False, 7),
+            ({'ORIGINAL_EXIT': '0', 'VERIFY_EXIT': '8'}, 'install', False, 8),
+            ({'ORIGINAL_EXIT': '0'}, 'test', False, 0),
         ]):
             home = temp / f'home{index}'
             home.mkdir()
@@ -174,6 +179,9 @@ exit "${ORIGINAL_EXIT:-22}"
             result = shell('mockbin="$MOCK_BIN"\nif command -v cygpath >/dev/null; then mockbin=$(cygpath -u "$mockbin"); fi\nexport PATH="$mockbin:$PATH"\nbash "$MOCK_ENTRY" "$MOCK_MODE"\n', env=env)
             assert result.returncode == expected, result.stdout + result.stderr
             assert ('RECOVERY_CALLED' in result.stdout) == recovered, result.stdout + result.stderr
+            assert ('UPDATE_CALLED' in result.stdout) == (mode == 'install' and (recovered or changes.get('ORIGINAL_EXIT') == '0'))
+            if expected == 0:
+                assert 'VERIFY_CALLED' in result.stdout and 'FEDIT_INSTALL_AND_SANDBOX_PASS' in result.stdout
     print('PASS recovery only for the failed Keycloak stage with exact HTTPS rejection; unrelated failures and test mode preserved')
 
 
