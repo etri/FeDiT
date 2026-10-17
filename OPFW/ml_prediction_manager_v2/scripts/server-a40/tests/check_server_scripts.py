@@ -358,7 +358,8 @@ docker() {
     result = shell(stop.replace(reexec, prelude) + '\ncat "$events"\n')
     require(result)
     assert result.stdout.index('systemctl stop kubelet.service') < result.stdout.index('crictl --runtime-endpoint')
-    assert 'docker stop --time 20 test-docker-container' in result.stdout
+    assert 'docker stop --timeout 20 test-docker-container' in result.stdout
+    assert 'crictl --runtime-endpoint unix:///run/containerd/containerd.sock --timeout=90s stop --timeout 20 test-kube-container' in result.stdout
     assert 'systemctl stop docker.socket docker.service containerd.service' in result.stdout
     result = shell(stop.replace(reexec, prelude + '\nFAIL_CONTAINER=1\n'))
     assert result.returncode == 1 and '[FAIL]' in result.stderr
