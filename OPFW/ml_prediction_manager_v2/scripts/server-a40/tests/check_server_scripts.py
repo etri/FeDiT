@@ -23,7 +23,7 @@ def require(result):
 
 def check_pinned_and_generated():
     original = ROOT / 'server-install-725eb2ed.sh'
-    assert hashlib.sha256(original.read_bytes()).hexdigest() == '980253251c852507ae79522be984c0677de5e03a22435c2d97126e9f10d66793'
+    assert hashlib.sha256(original.read_bytes()).hexdigest() == 'fa95e6ef889c92baa840dcd253a368ee548f12790689a93ef6d4a7a8331606a3'
     for path in ROOT.glob('*.sh'):
         subprocess.run([BASH, '-n', str(path)], check=True)
     repair = (ROOT / 'resume-keycloak.sh').read_text(encoding='utf-8')
@@ -47,7 +47,7 @@ def check_pinned_and_generated():
         assert 'KEYCLOAK_PUBLIC_URL="http://127.0.0.1:38081/auth"' in result
         assert result.count("curl --noproxy '*' --retry 60 --retry-all-errors") == 5
         assert '${IMAGE_PULL_TIMEOUT_SECONDS:=1800}' in result
-        assert '${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:=3600}' in result
+        assert '${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:=7200}' in result
         assert result.count('# CRI resolves canonical Docker references; a short ctr alias is not enough.') == 1
         assert result.index('  prime_manifest_images "${GENERATED_DIR}/kubeflow.yaml" "Kubeflow full workload"') < result.index('  apply_with_retry "$kubeflow_bootstrap_manifest"')
     print('PASS pinned checksum, Bash syntax and actual runtime patches')
@@ -62,6 +62,12 @@ trap 'rm -rf -- "$test_dir"' EXIT
 mkdir "$test_dir/bin"
 export PATH="$test_dir/bin:$PATH"
 export FALLBACK_MARK="$test_dir/canonical-tag"
+cat > "$test_dir/bin/timeout" <<'MOCK'
+#!/usr/bin/env bash
+[[ "$1" == "$EXPECTED_LIMIT" ]] || exit 90
+shift
+exec "$@"
+MOCK
 cat > "$test_dir/bin/crictl" <<'MOCK'
 #!/usr/bin/env bash
 if [[ "$1" == pull ]]; then [[ "$2" == 127.0.0.1:5000/fallback/* ]];
@@ -84,7 +90,7 @@ retry_command() { shift 3; "$@"; }
 DOWNLOADS_DIR="$test_dir"
 REGISTRY_HOST=127.0.0.1:5000
 IMAGE_PULL_TIMEOUT_SECONDS=1
-LARGE_IMAGE_PULL_TIMEOUT_SECONDS=1
+LARGE_IMAGE_PULL_TIMEOUT_SECONDS=7
 IMAGE_PULL_CRIO_ATTEMPTS=1
 IMAGE_PULL_RETRY_ATTEMPTS=1
 IMAGE_PULL_RETRY_DELAY_SECONDS=0
@@ -95,10 +101,14 @@ for pair in 'kserve/storage-initializer:v0.13.1|docker.io/kserve/storage-initial
             'library/python:3.10-slim|docker.io/library/python:3.10-slim' \
             'docker.io/python:3.10-slim|docker.io/library/python:3.10-slim' \
             'index.docker.io/library/python:3.10-slim|docker.io/library/python:3.10-slim' \
+            'gcr.io/ml-pipeline/visualization-server:2.3.0|gcr.io/ml-pipeline/visualization-server:2.3.0' \
+            'gcr.io/ml-pipeline/metadata-writer:2.3.0|gcr.io/ml-pipeline/metadata-writer:2.3.0' \
             'quay.io/example/test:v1|quay.io/example/test:v1' \
             'localhost:5000/test:v1|localhost:5000/test:v1'; do
   rm -f "$FALLBACK_MARK"
   export EXPECTED_IMAGE="${pair#*|}"
+  export EXPECTED_LIMIT=1s
+  [[ "$EXPECTED_IMAGE" != *ml-pipeline/* ]] || EXPECTED_LIMIT=7s
   retry_kubernetes_image_pull "${pair%%|*}"
   [[ -f "$FALLBACK_MARK" ]]
 done
@@ -126,6 +136,36 @@ prime_manifest_images /unused example
     print('PASS full manifest prefetch runs before apply, deduplicates and preserves cached images')
 
 
+def check_large_image_limits(generated):
+    function = 'retry_command() {' + generated.split('retry_command() {', 1)[1].split('\n}\n', 1)[0] + '\n}\n'
+    script = r'''set -Eeuo pipefail
+test_dir=$(mktemp -d)
+trap 'rm -rf -- "$test_dir"' EXIT
+mkdir "$test_dir/bin"
+export PATH="$test_dir/bin:$PATH"
+cat > "$test_dir/bin/timeout" <<'MOCK'
+#!/usr/bin/env bash
+[[ "$1" == "$EXPECTED_LIMIT" ]] || exit 90
+shift
+exec "$@"
+MOCK
+printf '#!/usr/bin/env bash\nexit 0\n' > "$test_dir/bin/docker"
+chmod +x "$test_dir/bin/"*
+unset DOCKER_PULL_TIMEOUT_SECONDS
+IMAGE_PULL_TIMEOUT_SECONDS=1
+LARGE_IMAGE_PULL_TIMEOUT_SECONDS=7
+''' + function + r'''
+export EXPECTED_LIMIT=1s
+retry_command 1 0 fixture docker pull python:3.10-slim
+export EXPECTED_LIMIT=7s
+retry_command 1 0 fixture docker pull --platform=linux/amd64 gcr.io/ml-pipeline/visualization-server:2.3.0
+retry_command 1 0 fixture docker pull gcr.io/ml-pipeline/metadata-writer:2.3.0
+retry_command 1 0 fixture docker pull --platform=linux/amd64 seldonio/mlserver:1.6.0
+'''
+    require(shell(script))
+    print('PASS actual Docker retry classifier uses large-image limits even with platform flags')
+
+
 def check_effective_download_limits():
     text = (ROOT / 'server-install-725eb2ed.sh').read_text(encoding='utf-8')
     start = text.index("  {\n    echo 'AUTO_DETECT_SOURCE_PATHS=false'")
@@ -138,7 +178,7 @@ BUILD_TREE="$test_dir/build source"
 printf 'IMAGE_PULL_TIMEOUT_SECONDS=300\nLARGE_IMAGE_PULL_TIMEOUT_SECONDS=900\n' > "$CONFIG"
 ''' + text[start:end] + r'''
 source "$CONFIG"
-[[ "$IMAGE_PULL_TIMEOUT_SECONDS" == 1800 && "$LARGE_IMAGE_PULL_TIMEOUT_SECONDS" == 3600 ]]
+[[ "$IMAGE_PULL_TIMEOUT_SECONDS" == 1800 && "$LARGE_IMAGE_PULL_TIMEOUT_SECONDS" == 7200 ]]
 [[ "$PREDICTION_MANAGER_ROOT" == "$BUILD_TREE/OPFW/ml_prediction_manager_v2" ]]
 '''
     require(shell(script))
@@ -282,12 +322,13 @@ exit "${ORIGINAL_EXIT:-22}"
 ''', encoding='utf-8')
         (bundle / 'resume-keycloak.sh').write_text('echo RECOVERY_CALLED\n', encoding='utf-8')
         (bundle / 'update-user-sandbox.sh').write_text('echo UPDATE_CALLED\nexit "${UPDATE_EXIT:-0}"\n', encoding='utf-8')
-        (bundle / 'verify-user-sandbox.sh').write_text('echo VERIFY_CALLED\nexit "${VERIFY_EXIT:-0}"\n', encoding='utf-8')
+        (bundle / 'verify-user-sandbox.sh').write_text('echo VERIFY_CALLED\n(sleep 0.2; echo SANDBOX_TEST_REPORT=/data/fedit-sandbox-tests/run.FIXTURE) &\nexit "${VERIFY_EXIT:-0}"\n', encoding='utf-8')
         mocks = temp / 'mocks'
         mocks.mkdir()
         (mocks / 'sha256sum').write_text('#!/usr/bin/env bash\ncat >/dev/null\nexit 0\n', encoding='utf-8')
         (mocks / 'flock').write_text('#!/usr/bin/env bash\nexit 0\n', encoding='utf-8')
         (mocks / 'curl').write_text('#!/usr/bin/env bash\nprintf \'{"error_description":"%s"}\\n\' "${MOCK_ERROR:-HTTPS required}"\n', encoding='utf-8')
+        (mocks / 'sudo').write_text('#!/usr/bin/env bash\nshift\nif [[ "$1" == test ]]; then exit 0; fi\necho FIXTURE_SANDBOX_RESULT\n', encoding='utf-8')
         for path in mocks.iterdir():
             path.chmod(0o755)
         for index, (changes, mode, recovered, expected) in enumerate([
@@ -322,6 +363,7 @@ exit "${ORIGINAL_EXIT:-22}"
                 public_log = archive.extractfile('session.log').read().decode('utf-8')
                 assert 'abcdef.0123456789abcdef' not in public_log
                 assert '<REDACTED_BOOTSTRAP_TOKEN>' in public_log
+                assert ('sandbox-RESULT.txt' in archive.getnames()) == ('VERIFY_CALLED' in result.stdout)
             assert 'FEDIT_REPORT_ARCHIVE=' in result.stdout
             assert ('UPDATE_CALLED' in result.stdout) == (mode == 'install' and (recovered or changes.get('ORIGINAL_EXIT') == '0'))
             if expected == 0:
@@ -333,6 +375,7 @@ if __name__ == '__main__':
     generated = check_pinned_and_generated()
     check_image_fallback(generated)
     check_manifest_prefetch(generated)
+    check_large_image_limits(generated)
     check_effective_download_limits()
     check_local_source_reuse()
     check_forward_lifecycle()
