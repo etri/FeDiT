@@ -9,7 +9,7 @@ mkdir -p "$HOME/pman-server-725eb2ed"
 exec 9>"$HOME/pman-server-725eb2ed/control.lock"
 flock -n 9 || { echo 'Another server installation or check is running.' >&2; exit 1; }
 original="$here/server-install-725eb2ed.sh"
-printf '%s  %s\n' fa95e6ef889c92baa840dcd253a368ee548f12790689a93ef6d4a7a8331606a3 "$original" | sha256sum -c -
+printf '%s  %s\n' 0b550e223c6132796be36c2fae855c07923aa7621042672973f6fec8521de521 "$original" | sha256sum -c -
 if [[ "$mode" == inspect ]]; then exec bash "$original" inspect; fi
 export FEDIT_SOURCE_REPO
 FEDIT_SOURCE_REPO=$(cd -- "$here/../../../.." && pwd)
@@ -84,10 +84,12 @@ config="$HOME/pman-server-725eb2ed/server-install.env"
 # Only recover the known Keycloak HTTPS rejection. Other errors stay failures.
 port=$(bash -c 'source "$1"; printf "%s" "${KEYCLOAK_NODE_PORT:-30081}"' _ "$config")
 [[ "$port" =~ ^[0-9]+$ ]] || exit "$rc"
-reply=$(curl --noproxy '*' -sS --connect-timeout 5 --max-time 15 \
+curl --noproxy '*' -sS --retry 10 --retry-all-errors --retry-delay 2 --retry-max-time 120 \
+  --connect-timeout 5 --max-time 15 --output "$report/keycloak-probe.private.json" \
   -X POST "http://127.0.0.1:$port/auth/realms/master/protocol/openid-connect/token" \
   -d client_id=admin-cli -d grant_type=password \
-  -d username=pman-diagnostic-nonexistent -d password=pman-diagnostic-invalid) || exit "$rc"
+  -d username=pman-diagnostic-nonexistent -d password=pman-diagnostic-invalid || exit "$rc"
+reply=$(cat "$report/keycloak-probe.private.json")
 python3 -c 'import json,sys; d=json.loads(sys.argv[1]); sys.exit(0 if d.get("error_description")=="HTTPS required" else 1)' "$reply" || exit "$rc"
 echo '[RECOVERY] Keycloak requires HTTPS on the NodePort route; resuming through local forwarding.'
 bash "$here/resume-keycloak.sh"

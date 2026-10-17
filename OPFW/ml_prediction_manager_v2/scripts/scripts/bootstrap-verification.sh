@@ -1727,11 +1727,12 @@ PY
 
 wait_rollout_if_exists() {
   local namespace="$1" kind="$2" name="$3" timeout="${4:-1200s}"
-  local remaining_seconds slice_seconds desired_replicas ready_replicas rollout_output
+  local remaining_seconds slice_seconds desired_replicas ready_replicas rollout_output rollout_started recovery_started recovery_elapsed
   if kubectl -n "$namespace" get "$kind/$name" >/dev/null 2>&1; then
     remaining_seconds="${timeout%s}"
     [[ "$remaining_seconds" =~ ^[0-9]+$ ]] || remaining_seconds=1200
     while ((remaining_seconds > 0)); do
+      rollout_started=$SECONDS
       slice_seconds=$((remaining_seconds > 60 ? 60 : remaining_seconds))
       if rollout_output="$(kubectl -n "$namespace" rollout status "$kind/$name" \
         --timeout="${slice_seconds}s" 2>&1)"; then
@@ -1748,7 +1749,7 @@ wait_rollout_if_exists() {
             && ((ready_replicas < desired_replicas)); then
             echo "${namespace}/${kind}/${name}: Ready ${ready_replicas}/${desired_replicas} 대기 중..."
             sleep 5
-            remaining_seconds=$((remaining_seconds - 5))
+            remaining_seconds=$((remaining_seconds - (SECONDS - rollout_started)))
             continue
           fi
         fi
@@ -1763,10 +1764,13 @@ wait_rollout_if_exists() {
       else
         [[ -z "$rollout_output" ]] || printf '%s\n' "$rollout_output" >&2
       fi
+      recovery_started=$SECONDS
       if recover_image_pull_failures "$namespace"; then
         echo "[INFO] ${namespace}/${kind}/${name}: image pull 실패 Pod 재시도 후 rollout 재확인"
       fi
-      remaining_seconds=$((remaining_seconds - slice_seconds))
+      recovery_elapsed=$((SECONDS - recovery_started))
+      sleep 1
+      remaining_seconds=$((remaining_seconds - (SECONDS - rollout_started - recovery_elapsed)))
     done
     echo "${namespace}/${kind}/${name} rollout이 ${timeout} 안에 완료되지 않았습니다." >&2
     return 1

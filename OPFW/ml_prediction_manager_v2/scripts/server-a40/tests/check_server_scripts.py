@@ -1,11 +1,14 @@
 """Read-only checks plus mocked lifecycle failures; never contact the server."""
 import hashlib
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import os
 from pathlib import Path
 import shutil
+import socket
 import subprocess
 import sys
 import tarfile
+import threading
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,7 +26,7 @@ def require(result):
 
 def check_pinned_and_generated():
     original = ROOT / 'server-install-725eb2ed.sh'
-    assert hashlib.sha256(original.read_bytes()).hexdigest() == 'fa95e6ef889c92baa840dcd253a368ee548f12790689a93ef6d4a7a8331606a3'
+    assert hashlib.sha256(original.read_bytes()).hexdigest() == '0b550e223c6132796be36c2fae855c07923aa7621042672973f6fec8521de521'
     for path in ROOT.glob('*.sh'):
         subprocess.run([BASH, '-n', str(path)], check=True)
     repair = (ROOT / 'resume-keycloak.sh').read_text(encoding='utf-8')
@@ -164,6 +167,35 @@ retry_command 1 0 fixture docker pull --platform=linux/amd64 seldonio/mlserver:1
 '''
     require(shell(script))
     print('PASS actual Docker retry classifier uses large-image limits even with platform flags')
+
+
+def check_rollout_time_budget(generated):
+    function = 'wait_rollout_if_exists() {' + generated.split('wait_rollout_if_exists() {', 1)[1].split('\ndownload_verified_kubernetes_manifest()', 1)[0]
+    script = r'''set -Eeuo pipefail
+test_dir=$(mktemp -d)
+trap 'rm -rf -- "$test_dir"' EXIT
+echo 0 > "$test_dir/count"
+success_after=3
+kubectl() {
+  if [[ "$*" == *'rollout status'* ]]; then
+    count=$(cat "$test_dir/count")
+    count=$((count+1))
+    echo "$count" > "$test_dir/count"
+    if ((success_after > 0 && count >= success_after)); then echo ready; return 0; fi
+    echo 'error: deployment exceeded its progress deadline' >&2
+    return 1
+  fi
+}
+recover_image_pull_failures() { return 1; }
+''' + function + r'''
+wait_rollout_if_exists example deployment example 4s
+success_after=0
+started=$SECONDS
+if wait_rollout_if_exists example deployment example 2s; then exit 99; fi
+[[ $((SECONDS-started)) -ge 2 ]]
+'''
+    require(shell(script))
+    print('PASS actual rollout wait tolerates immediate controller errors until its real wait budget expires')
 
 
 def check_effective_download_limits():
@@ -314,7 +346,7 @@ def check_install_recovery():
         (bundle / 'server-install-725eb2ed.sh').write_text(r'''#!/usr/bin/env bash
 base="$HOME/pman-server-725eb2ed"
 mkdir -p "$base/results/test"
-echo 'KEYCLOAK_NODE_PORT=30081' > "$base/server-install.env"
+echo "KEYCLOAK_NODE_PORT=${MOCK_PORT:-30081}" > "$base/server-install.env"
 printf 'EXIT=22\nSTAGE=install\n' > "$base/results/test/RESULT.txt"
 echo "[FAIL] ${FAIL_STAGE:-PostgreSQL/Keycloak/OIDC}" > "$base/results/test/session.log"
 echo '--token abcdef.0123456789abcdef'
@@ -327,7 +359,14 @@ exit "${ORIGINAL_EXIT:-22}"
         mocks.mkdir()
         (mocks / 'sha256sum').write_text('#!/usr/bin/env bash\ncat >/dev/null\nexit 0\n', encoding='utf-8')
         (mocks / 'flock').write_text('#!/usr/bin/env bash\nexit 0\n', encoding='utf-8')
-        (mocks / 'curl').write_text('#!/usr/bin/env bash\nprintf \'{"error_description":"%s"}\\n\' "${MOCK_ERROR:-HTTPS required}"\n', encoding='utf-8')
+        (mocks / 'curl').write_text(r'''#!/usr/bin/env bash
+if [[ -n "${MOCK_REAL_CURL:-}" ]]; then exec "$MOCK_REAL_CURL" "$@"; fi
+output=''
+while (($#)); do
+  if [[ "$1" == --output ]]; then output="$2"; shift 2; else shift; fi
+done
+printf '{"error_description":"%s"}\n' "${MOCK_ERROR:-HTTPS required}" > "$output"
+''', encoding='utf-8')
         (mocks / 'sudo').write_text('#!/usr/bin/env bash\nshift\nif [[ "$1" == test ]]; then exit 0; fi\necho FIXTURE_SANDBOX_RESULT\n', encoding='utf-8')
         for path in mocks.iterdir():
             path.chmod(0o755)
@@ -360,6 +399,7 @@ exit "${ORIGINAL_EXIT:-22}"
             assert values['STAGE'] == ('complete' if expected == 0 else 'sandbox-update' if expected == 7 else 'sandbox-validation' if expected == 8 else 'platform')
             with tarfile.open(str(reports[0]) + '.tar.gz') as archive:
                 assert 'combined.private.log' not in archive.getnames()
+                assert 'keycloak-probe.private.json' not in archive.getnames()
                 public_log = archive.extractfile('session.log').read().decode('utf-8')
                 assert 'abcdef.0123456789abcdef' not in public_log
                 assert '<REDACTED_BOOTSTRAP_TOKEN>' in public_log
@@ -368,7 +408,44 @@ exit "${ORIGINAL_EXIT:-22}"
             assert ('UPDATE_CALLED' in result.stdout) == (mode == 'install' and (recovered or changes.get('ORIGINAL_EXIT') == '0'))
             if expected == 0:
                 assert 'VERIFY_CALLED' in result.stdout and 'FEDIT_INSTALL_AND_SANDBOX_PASS' in result.stdout
+        class TransientHandler(BaseHTTPRequestHandler):
+            calls = 0
+
+            def do_POST(self):
+                self.rfile.read(int(self.headers.get('Content-Length', '0')))
+                type(self).calls += 1
+                if self.calls == 1:
+                    self.close_connection = True
+                    self.connection.shutdown(socket.SHUT_RDWR)
+                    return
+                code = 503 if self.calls == 2 else 403
+                body = b'{"temporary":true}' if code == 503 else b'{"error_description":"HTTPS required"}'
+                self.send_response(code)
+                self.send_header('Content-Length', str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *_):
+                pass
+
+        server = ThreadingHTTPServer(('127.0.0.1', 0), TransientHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            home = temp / 'real-http-home'
+            home.mkdir()
+            env = os.environ.copy()
+            env.update(HOME=home.as_posix(), MOCK_PORT=str(server.server_port), MOCK_REAL_CURL=Path(shutil.which('curl')).as_posix(),
+                       MOCK_BIN=mocks.as_posix(), MOCK_ENTRY=(bundle / 'install.sh').as_posix())
+            result = shell('mockbin="$MOCK_BIN"\nif command -v cygpath >/dev/null; then mockbin=$(cygpath -u "$mockbin"); fi\nexport PATH="$mockbin:$PATH"\nbash "$MOCK_ENTRY" install\n', env=env)
+            require(result)
+            assert TransientHandler.calls == 3 and 'RECOVERY_CALLED' in result.stdout, result.stdout + result.stderr
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
     print('PASS recovery only for the failed Keycloak stage with exact HTTPS rejection; unrelated failures and test mode preserved')
+    print('PASS real curl recovery from empty reply and HTTP 503 without concatenating error responses')
 
 
 if __name__ == '__main__':
@@ -376,6 +453,7 @@ if __name__ == '__main__':
     check_image_fallback(generated)
     check_manifest_prefetch(generated)
     check_large_image_limits(generated)
+    check_rollout_time_budget(generated)
     check_effective_download_limits()
     check_local_source_reuse()
     check_forward_lifecycle()
