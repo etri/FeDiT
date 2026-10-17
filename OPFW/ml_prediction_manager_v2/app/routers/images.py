@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
 from app.models.image_models import ImageBuildRequest
 from app.services import registry_service, docker_service
-from app.auth import get_owner_namespace, is_admin
+from app.auth import get_owner_namespace, get_user_namespace
+from app.resource_policy import require_image_owner
 
 import asyncio
 import json
@@ -13,17 +14,13 @@ router = APIRouter()
 
 def _attach_image_permissions(items: list[dict], request: Request) -> list[dict]:
     """목록 응답에 현재 사용자의 삭제 가능 여부를 추가."""
-    admin = is_admin(request)
     owner_ns = get_owner_namespace(request)
     for item in items:
         image_owner_ns = item.get("owner_namespace")
         compatible_types = item.get("compatible_types") or []
         item["can_delete"] = (
             not item.get("protected")
-            and (
-                admin
-                or (item.get("type") == "user" and image_owner_ns == owner_ns)
-            )
+            and item.get("type") == "user" and image_owner_ns == owner_ns
         )
         item["can_use"] = bool(compatible_types)
     return items
@@ -31,20 +28,13 @@ def _attach_image_permissions(items: list[dict], request: Request) -> list[dict]
 
 @router.get("")
 async def list_images(request: Request):
-    if is_admin(request):
-        selected_ns = request.query_params.get("ns") or request.headers.get("x-pm-namespace")
-        admin_ns = get_owner_namespace(request)
-        if selected_ns and selected_ns != admin_ns:
-            items = await registry_service.list_repositories(namespace=selected_ns, include_system=True)
-            return _attach_image_permissions(items, request)
-        items = await registry_service.list_all_repositories()
-        return _attach_image_permissions(items, request)
-    items = await registry_service.list_shared_repositories()
+    items = await registry_service.list_repositories(namespace=get_user_namespace(request))
     return _attach_image_permissions(items, request)
 
 
 @router.get("/{name:path}/tags")
-async def get_tags(name: str):
+async def get_tags(name: str, request: Request):
+    require_image_owner(name, get_user_namespace(request))
     tags = await registry_service.get_tags(name)
     return {"name": name, "tags": tags}
 
@@ -65,7 +55,10 @@ async def build_image(req: ImageBuildRequest, request: Request):
 
 
 @router.get("/build-log/{build_id}")
-async def build_log(build_id: str):
+async def build_log(build_id: str, request: Request):
+    info = docker_service.get_build_status(build_id)
+    if not info or info.get("owner_namespace") != get_owner_namespace(request):
+        raise HTTPException(404, "이미지 빌드 기록을 찾을 수 없습니다.")
     async def event_stream():
         last_idx = 0
         while True:
@@ -90,32 +83,12 @@ async def build_log(build_id: str):
 
 
 @router.delete("/{name:path}")
-async def delete_image(name: str, request: Request, tag: str = "latest", force: bool = False):
+async def delete_image(name: str, request: Request, tag: str = Query(default="latest", pattern=r"^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$"), force: bool = False):
     """이미지 삭제. 시스템 이미지는 삭제 불가. 사용자 이미지는 해당 namespace 소유자만."""
-    cls = registry_service._classify(name)
-    admin = is_admin(request)
-
-    if cls.get("protected"):
-        # 시스템 이미지는 누구도 삭제 불가 (admin 도 X). 시스템 망가지는 위험 차단.
-        # 정말 필요하면 kubectl/docker 로 직접 처리.
-        raise HTTPException(
-            status_code=403,
-            detail=f"시스템 이미지({cls.get('category')})는 삭제할 수 없습니다. 설명: {cls.get('description')}",
-        )
-    else:
-        # 사용자 이미지: 생성자 owner namespace 소유자만 삭제 가능.
-        # contributor/namespace override 로 남의 namespace를 보고 있어도 삭제는 차단한다.
-        user_owner_ns = get_owner_namespace(request)
-        image_owner_ns = registry_service.owner_namespace(name)
-        if not admin and image_owner_ns != user_owner_ns:
-            raise HTTPException(
-                status_code=403,
-                detail="이미지는 생성한 사용자만 삭제할 수 있습니다.",
-            )
+    require_image_owner(name, get_owner_namespace(request))
 
     ok = await registry_service.delete_image(name, tag)
-    if ok:
-        docker_service.unregister_image_from_kubeflow(name, tag)
+    # Notebook options are resolved per tenant; do not mutate/restart the shared JWA.
     return {"deleted": ok, "name": name, "tag": tag}
 
 

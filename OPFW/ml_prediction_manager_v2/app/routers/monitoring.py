@@ -63,10 +63,10 @@ def _unavailable_summary(namespace: str, email: str, admin: bool, is_admin_view:
 
 @router.get("/summary")
 async def summary(request: Request, ns: str | None = None):
-    namespace = ns or get_user_namespace(request)
+    namespace = get_user_namespace(request)
     admin = is_admin(request)
-    is_admin_view = admin and (ns is None or namespace == get_owner_namespace(request))
-    filter_ns = None if is_admin_view else namespace
+    is_admin_view = False
+    filter_ns = namespace
     email = get_user_email(request)
 
     tasks = (
@@ -122,7 +122,7 @@ async def summary(request: Request, ns: str | None = None):
 
 @router.get("/alarms/history")
 async def alarm_history(request: Request, limit: int = Query(default=500, ge=1, le=1000)):
-    filter_ns = None if is_admin(request) else get_user_namespace(request)
+    filter_ns = get_user_namespace(request)
     return await alarm_service.get_history_async(limit=limit, filter_ns=filter_ns)
 
 

@@ -11,6 +11,7 @@ from kubernetes.client.rest import ApiException
 
 from app.auth import ADMIN_EMAILS
 from app.config import settings
+from app.resource_policy import require_tenant_namespace
 from app.services import kubernetes_client
 
 apps_v1 = kubernetes_client.apps_v1()
@@ -1241,6 +1242,7 @@ def _authorization_policy(namespace: str, owner_email: str) -> dict:
 
 
 def ensure_tenant_resources(namespace: str, owner_email: str) -> TenantProvisionResult:
+    require_tenant_namespace(namespace)
     _wait_for_namespace(namespace)
     resources = [
         _label_tenant_namespace(namespace),
@@ -1297,6 +1299,7 @@ def ensure_tenant_resources(namespace: str, owner_email: str) -> TenantProvision
 
 
 def delete_tenant_resources(namespace: str) -> list[str]:
+    require_tenant_namespace(namespace)
     results: list[str] = []
     for group, version, ns, plural, name in [
         ("security.istio.io", "v1", "istio-system", "authorizationpolicies", _policy_name(namespace)),

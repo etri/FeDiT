@@ -5,6 +5,7 @@ from kubernetes import client
 from kubernetes.client.rest import ApiException
 
 from app.auth import is_admin, get_user_email, ADMIN_EMAILS
+from app.resource_policy import require_tenant_namespace
 from app.services import (
     keycloak_service,
     tenant_dashboard_service,
@@ -55,7 +56,7 @@ def _check_admin(request: Request):
 
 
 def _email_to_namespace(email: str) -> str:
-    return "kubeflow-" + email.replace("@", "-").replace(".", "-")
+    return require_tenant_namespace("kubeflow-" + email.replace("@", "-").replace(".", "-"))
 
 
 def _quota_used(namespace: str) -> dict:
@@ -484,6 +485,7 @@ def _profile_owner_email(namespace: str) -> str:
 async def reconcile_tenant_resources(namespace: str, request: Request):
     """기존 사용자 namespace의 MLflow/Ray/NiFi 리소스를 최신 manifest로 재적용."""
     _check_admin(request)
+    require_tenant_namespace(namespace)
     owner_email = _profile_owner_email(namespace)
     try:
         result = tenant_dashboard_service.ensure_tenant_resources(namespace, owner_email)
@@ -501,6 +503,7 @@ async def reconcile_tenant_resources(namespace: str, request: Request):
 async def list_contributors(namespace: str, request: Request):
     """해당 namespace에 대한 contributor(RoleBinding) 목록"""
     _check_admin(request)
+    require_tenant_namespace(namespace)
     result = []
     try:
         bindings = rbac_api.list_namespaced_role_binding(namespace)
@@ -535,6 +538,7 @@ async def list_contributors(namespace: str, request: Request):
 async def add_contributor(namespace: str, req: ContributorRequest, request: Request):
     """KFAM 호환 RoleBinding 생성 (cross-namespace access 부여)"""
     _check_admin(request)
+    require_tenant_namespace(namespace)
 
     if req.role not in ("edit", "view"):
         raise HTTPException(status_code=400, detail="role은 edit 또는 view여야 합니다")
@@ -586,6 +590,7 @@ async def add_contributor(namespace: str, req: ContributorRequest, request: Requ
 @router.delete("/users/{namespace}/contributors/{email}")
 async def remove_contributor(namespace: str, email: str, request: Request):
     _check_admin(request)
+    require_tenant_namespace(namespace)
 
     bindings = rbac_api.list_namespaced_role_binding(namespace)
     deleted = []
@@ -608,6 +613,7 @@ async def remove_contributor(namespace: str, email: str, request: Request):
 async def update_quota(namespace: str, req: QuotaUpdateRequest, request: Request):
     """사용자의 할당량 변경"""
     _check_admin(request)
+    require_tenant_namespace(namespace)
     quota = _validated_quota(req)
     profile = custom_api.get_cluster_custom_object(
         "kubeflow.org", "v1", "profiles", namespace

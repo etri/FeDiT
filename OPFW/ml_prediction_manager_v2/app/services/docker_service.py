@@ -10,6 +10,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.config import settings
 from app.models.image_models import ImageBuildRequest
+from app.resource_policy import image_owner
 
 template_dir = Path(__file__).parent.parent / "templates"
 jinja_env = Environment(
@@ -89,8 +90,11 @@ def render_dockerfile(req: ImageBuildRequest) -> str:
 
 
 async def build_and_push(req: ImageBuildRequest) -> str:
-    build_id = str(uuid.uuid4())[:8]
-    build_logs[build_id] = {"status": "building", "logs": [], "message": ""}
+    owner = image_owner(req.image_name)
+    if not owner:
+        raise ValueError("Only a tenant-owned image can be built")
+    build_id = str(uuid.uuid4())
+    build_logs[build_id] = {"status": "building", "logs": [], "message": "", "owner_namespace": owner}
 
     asyncio.get_event_loop().run_in_executor(None, _do_build, build_id, req)
     return build_id
@@ -131,8 +135,8 @@ def _do_build(build_id: str, req: ImageBuildRequest):
                 build_logs[build_id]["message"] = chunk["error"]
                 return
 
-        # Kubeflow Notebook 이미지 드롭다운에 자동 등록
-        _register_image_to_kubeflow(tag)
+        # The PM Notebook dropdown discovers tenant images dynamically. A user
+        # build must not rewrite a platform ConfigMap or restart the shared JWA.
 
         build_logs[build_id]["status"] = "success"
         build_logs[build_id]["message"] = f"Image {tag} built and pushed successfully"

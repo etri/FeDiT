@@ -1,6 +1,7 @@
 from kubernetes import client
 from app.config import settings
 from app.services import kubernetes_client
+from app.resource_policy import require_tenant_namespace, image_owner
 
 core_v1 = kubernetes_client.core_v1()
 custom_api = kubernetes_client.custom_objects()
@@ -11,7 +12,7 @@ PLURAL = "notebooks"
 
 
 def list_notebooks(namespace: str = None) -> list[dict]:
-    ns = namespace or settings.default_namespace
+    ns = require_tenant_namespace(namespace or settings.default_namespace)
     resp = custom_api.list_namespaced_custom_object(GROUP, VERSION, ns, PLURAL)
     results = []
     for nb in resp.get("items", []):
@@ -75,10 +76,13 @@ def list_notebooks(namespace: str = None) -> list[dict]:
     return results
 
 
-def _ensure_pvc(ns: str, pvc_name: str, size: str, storage_class: str, access_mode: str):
+def _ensure_pvc(ns: str, pvc_name: str, size: str, storage_class: str, access_mode: str, notebook_name: str = ""):
     """PVC 없으면 생성. 있으면 통과."""
     pvc = client.V1PersistentVolumeClaim(
-        metadata=client.V1ObjectMeta(name=pvc_name, namespace=ns),
+        metadata=client.V1ObjectMeta(name=pvc_name, namespace=ns, labels={
+            "app.kubernetes.io/managed-by": "prediction-manager",
+            "prediction-manager.io/notebook": notebook_name,
+        } if notebook_name else {}),
         spec=client.V1PersistentVolumeClaimSpec(
             access_modes=[access_mode],
             storage_class_name=storage_class or None,
@@ -101,29 +105,30 @@ def _is_local_registry_image(name: str) -> bool:
     return any(f"{host}/" in name for host in hosts if host)
 
 
-def _shared_user_images() -> list[str]:
-    """모든 사용자 Registry 이미지를 pod 가 사용 가능한 URL 형식으로.
-
-    이미지 삭제/관리는 생성자 namespace 소유자에게만 허용하지만, 컨테이너
-    생성에서는 다른 사용자의 이미지도 선택 가능하게 공유한다.
-    """
+def _shared_user_images(namespace: str | None = None) -> list[str]:
+    """현재 작업 영역 이미지에만 Notebook 선택권을 부여한다."""
     import httpx
-    from app.config import settings
-    out: list[str] = []
+    from app.services.registry_service import _local_docker_catalogue
+    if not namespace:
+        return []
+    require_tenant_namespace(namespace)
+    catalogue = {}
     try:
         with httpx.Client(timeout=5) as c:
-            cat = c.get(f"{settings.registry_url}/v2/_catalog").json().get("repositories", [])
+            response = c.get(f"{settings.registry_url}/v2/_catalog")
+            response.raise_for_status()
+            cat = response.json().get("repositories", [])
             for repo in cat:
-                owner_ns = repo.split("/", 1)[0] if "/" in repo else ""
-                if not owner_ns.startswith("kubeflow-"):
+                if image_owner(repo) != namespace:
                     continue
-                tags = c.get(f"{settings.registry_url}/v2/{repo}/tags/list").json().get("tags") or []
-                for t in tags:
-                    # Notebook pod 가 끌어올 때는 REGISTRY_HOST 형식으로 사용한다.
-                    out.append(f"{settings.registry_host}/{repo}:{t}")
-    except Exception:  # nosec
-        pass
-    return out
+                tags = c.get(f"{settings.registry_url}/v2/{repo}/tags/list")
+                tags.raise_for_status()
+                catalogue[repo] = tags.json().get("tags") or []
+    except (httpx.HTTPError, ValueError):
+        catalogue = _local_docker_catalogue()
+    return [f"{settings.registry_host}/{repo}:{tag}"
+            for repo, tags in sorted(catalogue.items()) if image_owner(repo) == namespace
+            for tag in tags]
 
 
 def get_spawner_config(user_namespace: str | None = None) -> dict:
@@ -162,7 +167,7 @@ def get_spawner_config(user_namespace: str | None = None) -> dict:
             # Kubeflow 공식 ghcr.io base 이미지만 보존
             cleaned = [o for o in opts if not _is_local_registry_image(o)]
             if key == "image":
-                for u in _shared_user_images():
+                for u in _shared_user_images(user_namespace):
                     if u not in cleaned:
                         cleaned.append(u)
             section["options"] = cleaned
@@ -199,6 +204,7 @@ def get_spawner_config(user_namespace: str | None = None) -> dict:
 
 def list_pod_defaults(namespace: str) -> list[dict]:
     """namespace의 PodDefault 목록."""
+    require_tenant_namespace(namespace)
     try:
         resp = custom_api.list_namespaced_custom_object(
             "kubeflow.org", "v1alpha1", namespace, "poddefaults"
@@ -216,6 +222,7 @@ def list_pod_defaults(namespace: str) -> list[dict]:
 
 def list_pvcs(namespace: str) -> list[dict]:
     """namespace의 PVC 목록 반환 (기존 볼륨 선택용)."""
+    require_tenant_namespace(namespace)
     try:
         resp = core_v1.list_namespaced_persistent_volume_claim(namespace)
     except client.ApiException:
@@ -260,7 +267,7 @@ def create_notebook(
     namespace: str = None,
     creator: str = "user@example.com",
 ) -> dict:
-    ns = namespace or settings.default_namespace
+    ns = require_tenant_namespace(namespace or settings.default_namespace)
     if not 1 <= container_port <= 65535:
         raise ValueError("container_port는 1~65535 사이여야 합니다.")
     data_volumes = data_volumes or []
@@ -275,7 +282,7 @@ def create_notebook(
         if workspace_source == "new":
             ws_pvc_name = workspace_name or f"{name}-workspace"
             _ensure_pvc(ns, ws_pvc_name, workspace_size,
-                        workspace_storage_class, workspace_access_mode)
+                        workspace_storage_class, workspace_access_mode, notebook_name=name)
         else:  # existing
             ws_pvc_name = workspace_name
             if not ws_pvc_name:
@@ -413,16 +420,20 @@ def create_notebook(
 
 
 def delete_notebook(name: str, namespace: str = None):
-    ns = namespace or settings.default_namespace
+    ns = require_tenant_namespace(namespace or settings.default_namespace)
     custom_api.delete_namespaced_custom_object(GROUP, VERSION, ns, PLURAL, name)
     try:
-        core_v1.delete_namespaced_persistent_volume_claim(f"{name}-workspace", ns)
+        pvc = core_v1.read_namespaced_persistent_volume_claim(f"{name}-workspace", ns)
+        labels = pvc.metadata.labels or {}
+        if (labels.get("app.kubernetes.io/managed-by") == "prediction-manager"
+                and labels.get("prediction-manager.io/notebook") == name):
+            core_v1.delete_namespaced_persistent_volume_claim(f"{name}-workspace", ns)
     except client.ApiException:
         pass
 
 
 def stop_notebook(name: str, namespace: str = None):
-    ns = namespace or settings.default_namespace
+    ns = require_tenant_namespace(namespace or settings.default_namespace)
     patch = {
         "metadata": {
             "annotations": {"kubeflow-resource-stopped": "true"}
@@ -432,7 +443,7 @@ def stop_notebook(name: str, namespace: str = None):
 
 
 def start_notebook(name: str, namespace: str = None):
-    ns = namespace or settings.default_namespace
+    ns = require_tenant_namespace(namespace or settings.default_namespace)
     patch = {
         "metadata": {
             "annotations": {"kubeflow-resource-stopped": None}

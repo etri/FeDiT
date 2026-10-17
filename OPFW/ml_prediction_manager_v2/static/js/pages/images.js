@@ -26,7 +26,7 @@ function _bindImageActions() {
 }
 
 async function renderImages() {
-    const images = await API.get('/api/images');
+    const images = (await API.get('/api/images')).filter(img => img.type === 'user');
     baseOptions = await API.get('/api/images/base-options');
     setTimeout(_bindImageActions, 0);
 
@@ -62,8 +62,8 @@ async function renderImages() {
     return `
     <div class="pm-page-header" style="display:flex;justify-content:space-between;align-items:center">
         <div>
-            <div class="pm-page-title">Docker 이미지 관리</div>
-            <div class="pm-page-desc">ML/DL 개발 환경 이미지를 빌드하고 관리합니다</div>
+            <div class="pm-page-title">사용자 이미지 관리</div>
+            <div class="pm-page-desc">현재 사용자 영역의 ML/DL 개발 환경 이미지를 관리합니다. 플랫폼 구성 이미지는 관리 대상에서 제외됩니다.</div>
         </div>
         <button class="pm-btn pm-btn-primary" onclick="showBuildForm()">+ 새 이미지 빌드</button>
     </div>
