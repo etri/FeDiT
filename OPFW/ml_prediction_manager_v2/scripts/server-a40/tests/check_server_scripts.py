@@ -1,5 +1,6 @@
 """Read-only checks plus mocked lifecycle failures; never contact the server."""
 import hashlib
+import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import os
 from pathlib import Path
@@ -10,6 +11,7 @@ import sys
 import tarfile
 import threading
 import tempfile
+import time
 
 ROOT = Path(__file__).resolve().parents[1]
 BASH = shutil.which('bash') if os.name != 'nt' else r'C:/Program Files/Git/bin/bash.exe'
@@ -26,7 +28,7 @@ def require(result):
 
 def check_pinned_and_generated():
     original = ROOT / 'server-install-725eb2ed.sh'
-    assert hashlib.sha256(original.read_bytes()).hexdigest() == '58f8f21c41a19b2040f4545c3f3cf7f1348c2490204a37e6ee56a8dbb57e6dfa'
+    assert hashlib.sha256(original.read_bytes()).hexdigest() == 'f70273999b70ae3e94c4d632c777494f4c7fecefc5749be7e3a93f73bd02f3e3'
     for path in ROOT.glob('*.sh'):
         subprocess.run([BASH, '-n', str(path)], check=True)
     repair = (ROOT / 'resume-keycloak.sh').read_text(encoding='utf-8')
@@ -360,6 +362,132 @@ docker() {
     print('PASS service ordering, unchanged boot settings and container-stop failure reporting')
 
 
+def check_registry_recovery(generated):
+    start = generated.index('pull_docker_image_via_registry_api() {')
+    end = generated.index('\npull_and_mirror_docker_image() {', start)
+    function = generated[start:end]
+    generic = (ROOT.parent / 'scripts/bootstrap-verification.sh').read_text(encoding='utf-8')
+    a = generic.index('pull_docker_image_via_registry_api() {')
+    b = generic.index('\npull_and_mirror_docker_image() {', a)
+    assert function == generic[a:b]
+    code = function.split("<<'REGISTRY_DOWNLOAD_PY'\n", 1)[1].split('\nREGISTRY_DOWNLOAD_PY\n', 1)[0]
+    blobs = [b'{"architecture":"amd64","os":"linux"}', b'first-layer-proof' * 9000, b'next-layer-proof' * 90000]
+    digests = ['sha256:' + hashlib.sha256(body).hexdigest() for body in blobs]
+    manifest = {'schemaVersion': 2, 'config': {'digest': digests[0], 'size': len(blobs[0])},
+                'layers': [{'digest': d, 'size': len(body)} for d, body in zip(digests[1:], blobs[1:])]}
+    state = {'tokens': {}, 'token_count': 0, 'phase': 'fail', 'forced_401': False,
+             'partial': False, 'first_gets': 0, 'resumed': False}
+
+    class Registry(BaseHTTPRequestHandler):
+        def log_message(self, *_):
+            pass
+
+        def send(self, status, body=b'', headers=None):
+            self.send_response(status)
+            self.send_header('Content-Length', str(len(body)))
+            for key, value in (headers or {}).items():
+                self.send_header(key, value)
+            self.end_headers()
+            self.wfile.write(body)
+
+        def do_GET(self):
+            if self.path.startswith('/token?'):
+                state['token_count'] += 1
+                token = 'test-token-' + str(state['token_count'])
+                state['tokens']['Bearer ' + token] = time.monotonic() + 2
+                self.send(200, json.dumps({'token': token, 'expires_in': 2}).encode())
+                return
+            if state['tokens'].get(self.headers.get('Authorization'), 0) <= time.monotonic():
+                self.send(401)
+                return
+            if '/manifests/' in self.path:
+                self.send(200, json.dumps(manifest).encode())
+                return
+            digest = self.path.rsplit('/', 1)[-1]
+            index = digests.index(digest)
+            if index == 1:
+                state['first_gets'] += 1
+                assert not self.headers.get('Range'), 'Corrupt complete blob must restart at zero'
+                time.sleep(2.2)  # Token expires while a valid response is streaming.
+            if index == 2:
+                if not state['forced_401']:
+                    state['forced_401'] = True
+                    self.send(401)
+                    return
+                if state['phase'] == 'fail':
+                    if not state['partial']:
+                        state['partial'] = True
+                        self.send_response(200)
+                        self.send_header('Content-Length', str(len(blobs[index])))
+                        self.end_headers()
+                        self.wfile.write(blobs[index][:len(blobs[index]) // 2])
+                        self.wfile.flush()
+                        self.connection.shutdown(socket.SHUT_RDWR)
+                        self.close_connection = True
+                    else:
+                        self.send(503)
+                    return
+                if self.headers.get('Range'):
+                    offset = int(self.headers['Range'].split('=')[1].split('-')[0])
+                    state['resumed'] = offset == len(blobs[index]) // 2
+                    self.send(206, blobs[index][offset:], {'Content-Range': f'bytes {offset}-{len(blobs[index])-1}/{len(blobs[index])}'})
+                    return
+            self.send(200, blobs[index])
+
+    server = ThreadingHTTPServer(('127.0.0.1', 0), Registry)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with tempfile.TemporaryDirectory() as temp:
+            temp = Path(temp)
+            local = f'http://127.0.0.1:{server.server_port}'
+            code = code.replace('https://registry-1.docker.io', local).replace('https://auth.docker.io/token', local + '/token')
+            code = code.replace('range(12)', 'range(3)').replace('attempt == 11', 'attempt == 2').replace('min(8, 1 + attempt)', '0.01')
+            script = temp / 'download.py'
+            script.write_text(code, encoding='utf-8')
+            cache = temp / 'cache with spaces'
+            archive = temp / 'image.tar'
+            env = os.environ.copy()
+            env.update(NO_PROXY='127.0.0.1', no_proxy='127.0.0.1')
+            def run():
+                return subprocess.run([sys.executable, str(script), 'fixture:latest', str(archive), str(cache)],
+                                      capture_output=True, text=True, encoding='utf-8', timeout=20, env=env)
+            failed = run()
+            assert failed.returncode != 0 and cache.is_dir(), failed.stdout + failed.stderr
+            assert (cache / 'blobs/sha256' / digests[2].split(':')[1]).stat().st_size == len(blobs[2]) // 2
+            state['phase'] = 'pass'
+            require(run())
+            assert state['resumed'] and state['first_gets'] == 1 and state['token_count'] >= 4
+            with tarfile.open(archive) as saved:
+                for digest, body in zip(digests, blobs):
+                    assert saved.extractfile('blobs/sha256/' + digest.split(':')[1]).read() == body
+            bad = cache / 'blobs/sha256' / digests[1].split(':')[1]
+            bad.write_bytes(b'x' * len(blobs[1]))
+            require(run())
+            assert state['first_gets'] == 2 and bad.read_bytes() == blobs[1]
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+    shell_test = r'''set -Eeuo pipefail
+test_dir=$(mktemp -d)
+trap 'rm -rf -- "$test_dir"' EXIT
+DOWNLOADS_DIR="$test_dir/downloads with spaces"
+mkdir -p "$DOWNLOADS_DIR"
+python3() { cat >/dev/null; echo payload > "$4/blob"; echo "$4" > "$test_dir/cache"; }
+docker() { return "${LOAD_EXIT:-0}"; }
+''' + function + r'''
+pull_docker_image_via_registry_api fixture:latest
+[[ ! -e "$(cat "$test_dir/cache")" ]]
+LOAD_EXIT=7
+if pull_docker_image_via_registry_api fixture:latest; then exit 99; fi
+[[ -f "$(cat "$test_dir/cache")/blob" ]]
+for archive in "$DOWNLOADS_DIR"/docker-registry-image.*.tar; do [[ ! -e "$archive" ]]; done
+'''
+    require(shell(shell_test))
+    print('PASS real HTTP token expiry/401 renewal, interrupted blob resume, corrupt cache repair and post-load cache cleanup')
+
+
 def check_sudo_session():
     helper = (ROOT / 'sudo-session.sh').read_text(encoding='utf-8')
     assert '(( EUID != 0 )) || return 0' in helper
@@ -511,5 +639,6 @@ if __name__ == '__main__':
     check_local_source_reuse()
     check_forward_lifecycle()
     check_service_controls()
+    check_registry_recovery(generated)
     check_sudo_session()
     check_install_recovery()
