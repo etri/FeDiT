@@ -1,5 +1,8 @@
 """Read-only checks plus mocked lifecycle failures; never contact the server."""
 import hashlib
+import contextlib
+import importlib.util
+import io
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import os
@@ -488,6 +491,90 @@ for archive in "$DOWNLOADS_DIR"/docker-registry-image.*.tar; do [[ ! -e "$archiv
     print('PASS real HTTP token expiry/401 renewal, interrupted blob resume, corrupt cache repair and post-load cache cleanup')
 
 
+def check_public_sandbox_readiness():
+    path = ROOT / 'check-user-sandbox-route.py'
+    spec = importlib.util.spec_from_file_location('sandbox_route_check', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    namespace = 'kubeflow-user-example-com'
+    correct = {'namespace': namespace, 'can_manage': True,
+               'volumes': [{'namespace': namespace, 'name': 'pm-user-owned'}]}
+    script = b'const sandbox = "committed version";\n'
+    state = {'mode': 'reload', 'api': 0, 'platform': 0, 'js': 0}
+
+    class Route(BaseHTTPRequestHandler):
+        def log_message(self, *_):
+            pass
+
+        def send(self, status, body):
+            self.send_response(status)
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def do_GET(self):
+            old = b'<!doctype html><title>Previous upstream</title>'
+            if self.path == '/volumes/api':
+                state['api'] += 1
+                if state['mode'] == 'html' or (state['mode'] == 'reload' and state['api'] == 2):
+                    self.send(200, old)
+                elif state['mode'] == 'reload' and state['api'] == 1:
+                    self.send(503, b'not ready')
+                elif state['mode'] == 'wrong-scope':
+                    self.send(200, json.dumps({**correct, 'namespace': 'kubeflow'}).encode())
+                else:
+                    self.send(200, json.dumps(correct).encode())
+            elif self.path == '/volumes/api?ns=kubeflow':
+                state['platform'] += 1
+                if state['mode'] == 'reload' and state['platform'] == 1:
+                    self.send(200, old)
+                elif state['mode'] == 'allowed-platform':
+                    self.send(200, b'{"namespace":"kubeflow"}')
+                else:
+                    self.send(403, b'{"detail":"denied"}')
+            elif self.path == '/volumes/sandbox.js':
+                state['js'] += 1
+                if state['mode'] == 'bad-js' or (state['mode'] == 'reload' and state['js'] == 1):
+                    self.send(200, old)
+                else:
+                    self.send(200, script)
+            else:
+                self.send(404, b'')
+
+    server = ThreadingHTTPServer(('127.0.0.1', 0), Route)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with tempfile.TemporaryDirectory() as temp, contextlib.redirect_stdout(io.StringIO()):
+            root = Path(temp)
+            javascript = root / 'committed file with spaces.js'
+            javascript.write_bytes(script)
+            work = root / 'success'
+            work.mkdir()
+            module.check(f'http://127.0.0.1:{server.server_port}', work, javascript, timeout=3, poll=0.01)
+            assert (state['api'], state['platform'], state['js']) == (5, 3, 2), state
+            assert json.loads((work / 'volumes.json').read_text()) == correct
+            for mode, reason in [('html', 'did not become ready'), ('bad-js', 'did not become ready'),
+                                 ('wrong-scope', 'writable user namespace'), ('allowed-platform', 'was not denied')]:
+                state.update(mode=mode, api=0, platform=0, js=0)
+                work = root / mode
+                work.mkdir()
+                try:
+                    module.check(f'http://127.0.0.1:{server.server_port}', work, javascript, timeout=0.25, poll=0.02)
+                except RuntimeError as error:
+                    assert reason in str(error), str(error)
+                else:
+                    raise AssertionError('Invalid public route was accepted: ' + mode)
+                assert not (work / 'volumes.json').exists()
+                if mode in ('wrong-scope', 'allowed-platform'):
+                    assert state['api'] == 1
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+    print('PASS real HTTP reload race: old HTML/503 retries, exact JavaScript, namespace denial and security failures')
+
+
 def check_sudo_session():
     helper = (ROOT / 'sudo-session.sh').read_text(encoding='utf-8')
     assert '(( EUID != 0 )) || return 0' in helper
@@ -640,5 +727,6 @@ if __name__ == '__main__':
     check_forward_lifecycle()
     check_service_controls()
     check_registry_recovery(generated)
+    check_public_sandbox_readiness()
     check_sudo_session()
     check_install_recovery()
