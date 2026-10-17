@@ -26,7 +26,7 @@ def require(result):
 
 def check_pinned_and_generated():
     original = ROOT / 'server-install-725eb2ed.sh'
-    assert hashlib.sha256(original.read_bytes()).hexdigest() == '0b550e223c6132796be36c2fae855c07923aa7621042672973f6fec8521de521'
+    assert hashlib.sha256(original.read_bytes()).hexdigest() == '58f8f21c41a19b2040f4545c3f3cf7f1348c2490204a37e6ee56a8dbb57e6dfa'
     for path in ROOT.glob('*.sh'):
         subprocess.run([BASH, '-n', str(path)], check=True)
     repair = (ROOT / 'resume-keycloak.sh').read_text(encoding='utf-8')
@@ -196,6 +196,29 @@ if wait_rollout_if_exists example deployment example 2s; then exit 99; fi
 '''
     require(shell(script))
     print('PASS actual rollout wait tolerates immediate controller errors until its real wait budget expires')
+
+
+def check_dcgm_prefetch(generated):
+    start = generated.index('    helm get manifest dcgm-exporter --namespace monitoring')
+    wait = '    wait_rollout_if_exists monitoring daemonset dcgm-exporter 900s'
+    end = generated.index(wait, start) + len(wait)
+    assert generated.index('    helm upgrade --install dcgm-exporter ') < start
+    script = r'''set -Eeuo pipefail
+test_dir=$(mktemp -d)
+trap 'rm -rf -- "$test_dir"' EXIT
+GENERATED_DIR="$test_dir/generated with spaces"
+mkdir "$GENERATED_DIR"
+IMAGE_PULL_TIMEOUT_SECONDS=1
+LARGE_IMAGE_PULL_TIMEOUT_SECONDS=7
+helm() { [[ "$*" == 'get manifest dcgm-exporter --namespace monitoring' ]]; echo fixture; }
+prime_manifest_images() {
+  [[ "$IMAGE_PULL_TIMEOUT_SECONDS" == 7 && "$(cat "$1")" == fixture ]]
+  echo ready > "$test_dir/prefetched"
+}
+wait_rollout_if_exists() { [[ -f "$test_dir/prefetched" ]]; }
+''' + generated[start:end] + '\n[[ "$IMAGE_PULL_TIMEOUT_SECONDS" == 1 ]]\n'
+    require(shell(script))
+    print('PASS DCGM release images are prepared with the large-image limit before its startup wait')
 
 
 def check_effective_download_limits():
@@ -454,6 +477,7 @@ if __name__ == '__main__':
     check_manifest_prefetch(generated)
     check_large_image_limits(generated)
     check_rollout_time_budget(generated)
+    check_dcgm_prefetch(generated)
     check_effective_download_limits()
     check_local_source_reuse()
     check_forward_lifecycle()

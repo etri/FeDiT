@@ -352,6 +352,12 @@ wait=wait.replace('remaining_seconds=$((remaining_seconds - 5))', 'remaining_sec
 wait=wait.replace('      if recover_image_pull_failures "$namespace"; then', '      recovery_started=$SECONDS\n      if recover_image_pull_failures "$namespace"; then')
 wait=wait.replace('      remaining_seconds=$((remaining_seconds - slice_seconds))', '      recovery_elapsed=$((SECONDS - recovery_started))\n      sleep 1\n      remaining_seconds=$((remaining_seconds - (SECONDS - rollout_started - recovery_elapsed)))')
 s=s[:wait_start]+wait+s[wait_end:]
+dcgm_wait='    wait_rollout_if_exists monitoring daemonset dcgm-exporter 900s'
+assert s.count(dcgm_wait)==1, 'Pinned DCGM rollout call changed'
+s=s.replace(dcgm_wait, '''    helm get manifest dcgm-exporter --namespace monitoring > "${GENERATED_DIR}/dcgm-exporter.yaml"
+    IMAGE_PULL_TIMEOUT_SECONDS="$LARGE_IMAGE_PULL_TIMEOUT_SECONDS" \\
+      prime_manifest_images "${GENERATED_DIR}/dcgm-exporter.yaml" "DCGM Exporter"
+'''+dcgm_wait)
 s=s.replace('curl -kLsS -o /dev/null', 'curl --retry 3 --retry-all-errors --retry-delay 3 -kLsS -o /dev/null')
 old_modules='    modprobe overlay\n    modprobe br_netfilter'
 assert s.count(old_modules)==1, 'Pinned kernel feature initialization changed'
