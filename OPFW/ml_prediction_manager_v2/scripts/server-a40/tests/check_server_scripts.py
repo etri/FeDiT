@@ -360,12 +360,41 @@ docker() {
     print('PASS service ordering, unchanged boot settings and container-stop failure reporting')
 
 
+def check_sudo_session():
+    helper = (ROOT / 'sudo-session.sh').read_text(encoding='utf-8')
+    assert '(( EUID != 0 )) || return 0' in helper
+    helper = helper.replace('  (( EUID != 0 )) || return 0\n', '')
+    helper = helper.replace('sleep 60 &', 'sleep 0.2 &')
+    helper = helper.replace('sleeper=$!', 'sleeper=$!; echo "$sleeper" > "$test_dir/sleeper"')
+    script = r'''set -Eeuo pipefail
+test_dir=$(mktemp -d)
+trap 'sudo_session_stop; rm -rf -- "$test_dir"' EXIT
+sudo() { printf '%s\n' "$*" >> "$test_dir/auth"; return "${AUTH_EXIT:-0}"; }
+''' + helper + r'''
+sudo_session_start
+keeper=$sudo_session_pid
+sleep 0.7
+sleeper_pid=$(cat "$test_dir/sleeper")
+sudo_session_stop
+! kill -0 "$keeper" 2>/dev/null
+! kill -0 "$sleeper_pid" 2>/dev/null
+[[ $(grep -c -- '^-n -v$' "$test_dir/auth") -ge 2 ]]
+[[ $(head -1 "$test_dir/auth") == -v ]]
+AUTH_EXIT=7
+if sudo_session_start; then exit 99; else [[ $? == 7 ]]; fi
+[[ -z "$sudo_session_pid" ]]
+'''
+    require(shell(script))
+    print('PASS sudo ticket refresh, initial authentication failure and bounded worker/timer cleanup')
+
+
 def check_install_recovery():
     with tempfile.TemporaryDirectory() as temp:
         temp = Path(temp)
         bundle = temp / 'bundle'
         bundle.mkdir()
         (bundle / 'install.sh').write_text((ROOT / 'install.sh').read_text(encoding='utf-8'), encoding='utf-8')
+        (bundle / 'sudo-session.sh').write_text((ROOT / 'sudo-session.sh').read_text(encoding='utf-8'), encoding='utf-8')
         (bundle / 'server-install-725eb2ed.sh').write_text(r'''#!/usr/bin/env bash
 base="$HOME/pman-server-725eb2ed"
 mkdir -p "$base/results/test"
@@ -390,7 +419,7 @@ while (($#)); do
 done
 printf '{"error_description":"%s"}\n' "${MOCK_ERROR:-HTTPS required}" > "$output"
 ''', encoding='utf-8')
-        (mocks / 'sudo').write_text('#!/usr/bin/env bash\nshift\nif [[ "$1" == test ]]; then exit 0; fi\necho FIXTURE_SANDBOX_RESULT\n', encoding='utf-8')
+        (mocks / 'sudo').write_text('#!/usr/bin/env bash\n[[ "$*" != -v && "$*" != "-n -v" ]] || exit 0\nshift\nif [[ "$1" == test ]]; then exit 0; fi\necho FIXTURE_SANDBOX_RESULT\n', encoding='utf-8')
         for path in mocks.iterdir():
             path.chmod(0o755)
         for index, (changes, mode, recovered, expected) in enumerate([
@@ -482,4 +511,5 @@ if __name__ == '__main__':
     check_local_source_reuse()
     check_forward_lifecycle()
     check_service_controls()
+    check_sudo_session()
     check_install_recovery()
