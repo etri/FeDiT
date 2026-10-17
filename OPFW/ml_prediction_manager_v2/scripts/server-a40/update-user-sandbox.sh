@@ -131,4 +131,4 @@ code=$(curl --noproxy '*' -sS --connect-timeout 5 --max-time 20 \
 [[ "$code" == 403 ]] || { echo "[FAIL] Expected platform scope HTTP 403, got $code"; exit 1; }
 curl --noproxy '*' -fsS --connect-timeout 5 --max-time 20 "$url/volumes/sandbox.js" -o /dev/null
 echo '[PASS] User image/volume application policy deployed; Nginx now routes volumes through the PM API.'
-echo 'Browser and real PVC mount/delete lifecycle validation on this server are still required.'
+echo 'Run verify-user-sandbox.sh for the real PVC lifecycle checks (install.sh runs it automatically).'

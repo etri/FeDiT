@@ -1,13 +1,9 @@
 # Ubuntu 22.04 / A40 서버 설치 및 서비스 제어
 
-사용자 이미지·볼륨 보호 기능은 아래 고정 소스 설치 후 별도 앱 업데이트가
-필요하다. 최신 전체 저장소를 받은 폴더에서 `bash update-user-sandbox.sh`를
-실행한다. 자세한 반영 절차와 검증 범위는
-[사용자 볼륨 관리](../../tests/VOLUME_SANDBOX.md)를 참조한다.
-
-고정 소스 커밋 `725eb2edeec1b756b45abb809cdc4dc971a890bf`의 설치와
-목표 A40 서버에서 성공한 보정 절차를 함께 제공한다. 이 디렉터리의 스크립트가
-후속 커밋에 추가되더라도 실제 빌드 소스는 위 커밋으로 고정한다.
+`install.sh`는 검증된 플랫폼 기본 소스 `725eb2ed` 설치와 Keycloak 자동 복구 후,
+현재 checkout 커밋의 이미지·볼륨 보호 기능을 자동 배포한다. 실제 사용자 PVC의
+생성·마운트·읽기·쓰기·삭제와 사용 중/중지된 작업의 삭제 차단을 시험한다.
+시험용 UUID 리소스만 삭제하고 기존 PVC UID가 보존되는지 확인한다.
 
 ## 설치와 자동 구동 시험
 
@@ -29,7 +25,9 @@ bash install.sh
 Keycloak 단계에서 실패하고 진단 응답이 정확히 `HTTPS required`인 경우에만
 로컬 포트 포워딩을 이용해 자동 재개한다. 첫 실행의 실패 보고서와 재개의
 최종 보고서가 각각 남으며, 마지막 실행의 `EXIT=0`, `STAGE=complete`,
-`PLATFORM_AND_KUBERNETES_GPU_SMOKE_PASS`가 성공 기준이다.
+`PLATFORM_AND_KUBERNETES_GPU_SMOKE_PASS`는 기본 플랫폼 성공이다.
+앱 업데이트와 `USER_SANDBOX_LIFECYCLE_PASS`를 거친 마지막
+`FEDIT_INSTALL_AND_SANDBOX_PASS`까지 출력돼야 전체 성공이다.
 그 외 오류는 자동 우회하지 않는다. 기존 설치도 같은 명령으로 재개한다.
 
 보정 파일은 Pod 교체 시 포트 포워딩을 다시 연결하고 인증 요청을 제한된

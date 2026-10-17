@@ -11,8 +11,10 @@ flock -n 9 || { echo 'Another server installation or check is running.' >&2; exi
 original="$here/server-install-725eb2ed.sh"
 printf '%s  %s\n' 78b2c8ba0182320e5b06def1c2ce46ec4c55836858ab5c6d059d38b7b0c6ac3a "$original" | sha256sum -c -
 started=$(date +%s)
-if bash "$original" "$mode"; then exit 0; else rc=$?; fi
-[[ "$mode" == install ]] || exit "$rc"
+if [[ "$mode" == inspect ]]; then exec bash "$original" inspect; fi
+baseline() {
+if bash "$original" "$mode"; then return 0; else rc=$?; fi
+[[ "$mode" == install ]] || return "$rc"
 python3 - "$HOME/pman-server-725eb2ed/results" "$started" <<'PY' || exit "$rc"
 import pathlib, sys
 results = [p for p in pathlib.Path(sys.argv[1]).glob('*/RESULT.txt') if p.stat().st_mtime >= int(sys.argv[2])]
@@ -35,3 +37,10 @@ reply=$(curl --noproxy '*' -sS --connect-timeout 5 --max-time 15 \
 python3 -c 'import json,sys; d=json.loads(sys.argv[1]); sys.exit(0 if d.get("error_description")=="HTTPS required" else 1)' "$reply" || exit "$rc"
 echo '[RECOVERY] Keycloak requires HTTPS on the NodePort route; resuming through local forwarding.'
 bash "$here/resume-keycloak.sh"
+}
+baseline
+if [[ "$mode" == install ]]; then
+  bash "$here/update-user-sandbox.sh"
+fi
+bash "$here/verify-user-sandbox.sh"
+echo 'FEDIT_INSTALL_AND_SANDBOX_PASS'
