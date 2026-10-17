@@ -9,8 +9,10 @@ mkdir -p "$HOME/pman-server-725eb2ed"
 exec 9>"$HOME/pman-server-725eb2ed/control.lock"
 flock -n 9 || { echo 'Another server installation or check is running.' >&2; exit 1; }
 original="$here/server-install-725eb2ed.sh"
-printf '%s  %s\n' c88bd9e565c9e892dfa3af235702a82a868681a9b1e1a5f766fcfc3aa3289668 "$original" | sha256sum -c -
+printf '%s  %s\n' 980253251c852507ae79522be984c0677de5e03a22435c2d97126e9f10d66793 "$original" | sha256sum -c -
 if [[ "$mode" == inspect ]]; then exec bash "$original" inspect; fi
+export FEDIT_SOURCE_REPO
+FEDIT_SOURCE_REPO=$(cd -- "$here/../../../.." && pwd)
 mkdir -p "$HOME/pman-server-725eb2ed/complete-reports"
 report=$(mktemp -d "$HOME/pman-server-725eb2ed/complete-reports/run.XXXXXXXX")
 phase=platform
