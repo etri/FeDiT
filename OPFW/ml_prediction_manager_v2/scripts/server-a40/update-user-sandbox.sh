@@ -5,7 +5,7 @@ if (( EUID != 0 )); then exec sudo bash "$0" "$@"; fi
 umask 077
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 repo=$(cd -- "$here/../../../.." && pwd)
-git_repo() { git -c safe.directory="$repo" -C "$repo" "$@"; }
+git_repo() { GIT_OPTIONAL_LOCKS=0 git -c safe.directory="$repo" -C "$repo" "$@"; }
 relative=OPFW/ml_prediction_manager_v2
 export KUBECONFIG=/etc/kubernetes/admin.conf
 mountpoint -q /data || { echo '[FAIL] /data is not mounted'; exit 1; }
