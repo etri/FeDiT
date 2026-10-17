@@ -323,6 +323,8 @@ def check_docker_bridge_guard(generated):
     wrapper = (ROOT / 'server-install-725eb2ed.sh').read_text(encoding='utf-8')
     embedded = wrapper.split("<<'DOCKER_BRIDGE_PY'\n", 1)[1].split('DOCKER_BRIDGE_PY\n', 1)[0]
     assert embedded == helper.read_text(encoding='utf-8')
+    start = (ROOT / 'fedit-start.sh').read_text(encoding='utf-8')
+    assert start.split("<<'DOCKER_BRIDGE_PY'\n", 1)[1].split('DOCKER_BRIDGE_PY\n', 1)[0] == embedded
     assert 'ensure_docker_bridge_gateway\n  ensure_local_registry' in generated
     assert '"${2:-}" == buildx' in generated
     spec = importlib.util.spec_from_file_location('bridge_guard', helper)
@@ -400,7 +402,7 @@ docker() {
     assert 'systemctl start containerd.service docker.service' in result.stdout
     assert result.stdout.index('docker start pm-verification-registry') < result.stdout.index('systemctl start kubelet.service')
     assert 'docker start fedit-fe' in result.stdout
-    assert result.stdout.index('systemctl start containerd.service docker.service') < result.stdout.index('ensure-docker-bridge.py') < result.stdout.index('docker start pm-verification-registry')
+    assert result.stdout.index('systemctl start containerd.service docker.service') < result.stdout.index('python3 -') < result.stdout.index('docker start pm-verification-registry')
     assert 'systemctl enable' not in result.stdout
     result = shell(stop.replace(reexec, prelude) + '\ncat "$events"\n')
     require(result)
