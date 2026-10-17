@@ -15,7 +15,7 @@ if systemctl is-active --quiet containerd.service; then
   if command -v crictl >/dev/null; then
     if ids=$(crictl --runtime-endpoint "$endpoint" ps -q); then
       while read -r id; do
-        [[ -z "$id" ]] || crictl --runtime-endpoint "$endpoint" stop "$id" || failed=1
+        [[ -z "$id" ]] || crictl --runtime-endpoint "$endpoint" --timeout=90s stop --timeout 20 "$id" || failed=1
       done <<< "$ids"
     else
       failed=1
@@ -29,7 +29,7 @@ echo '===== Stopping ALL Docker containers on this server ====='
 if systemctl is-active --quiet docker.service; then
   if ids=$(docker ps -q); then
     while read -r id; do
-      [[ -z "$id" ]] || docker stop --time 20 "$id" || failed=1
+      [[ -z "$id" ]] || docker stop --timeout 20 "$id" || failed=1
     done <<< "$ids"
   else
     failed=1
