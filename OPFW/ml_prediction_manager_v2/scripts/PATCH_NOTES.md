@@ -1,5 +1,15 @@
 # Prediction Manager verification installer corrections
 
+## A40 server installation and lifecycle scripts (2026-10-17)
+
+- Added [server-a40/README.md](server-a40/README.md) with the unchanged,
+  SHA-256-verified installer used for the successful target A40 deployment.
+- Added a single install/resume entry point for the known Keycloak HTTPS
+  rejection, local forwarding with Pod replacement recovery and bounded shutdown,
+  and standalone service start/stop scripts.
+- Recorded target-server installation/GPU smoke evidence separately from local
+  checks of the subsequent orchestration and shutdown corrections.
+
 ## Simplified entry scripts
 
 - `01-install-required-modules.sh` installs the Ubuntu packages,
