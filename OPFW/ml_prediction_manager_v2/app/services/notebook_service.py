@@ -1,7 +1,8 @@
 from kubernetes import client
+from fastapi import HTTPException
 from app.config import settings
-from app.services import kubernetes_client
-from app.resource_policy import require_tenant_namespace, image_owner
+from app.services import kubernetes_client, volume_service
+from app.resource_policy import require_tenant_namespace, image_owner, validate_user_mount_path
 
 core_v1 = kubernetes_client.core_v1()
 custom_api = kubernetes_client.custom_objects()
@@ -77,25 +78,8 @@ def list_notebooks(namespace: str = None) -> list[dict]:
 
 
 def _ensure_pvc(ns: str, pvc_name: str, size: str, storage_class: str, access_mode: str, notebook_name: str = ""):
-    """PVC 없으면 생성. 있으면 통과."""
-    pvc = client.V1PersistentVolumeClaim(
-        metadata=client.V1ObjectMeta(name=pvc_name, namespace=ns, labels={
-            "app.kubernetes.io/managed-by": "prediction-manager",
-            "prediction-manager.io/notebook": notebook_name,
-        } if notebook_name else {}),
-        spec=client.V1PersistentVolumeClaimSpec(
-            access_modes=[access_mode],
-            storage_class_name=storage_class or None,
-            resources=client.V1VolumeResourceRequirements(
-                requests={"storage": size}
-            ),
-        ),
-    )
-    try:
-        core_v1.create_namespaced_persistent_volume_claim(ns, pvc)
-    except client.ApiException as e:
-        if e.status != 409:
-            raise
+    return volume_service.create_volume(ns, pvc_name, size, storage_class=storage_class,
+                                        access_mode=access_mode, notebook_name=notebook_name, api=core_v1)
 
 
 def _is_local_registry_image(name: str) -> bool:
@@ -222,22 +206,7 @@ def list_pod_defaults(namespace: str) -> list[dict]:
 
 def list_pvcs(namespace: str) -> list[dict]:
     """namespace의 PVC 목록 반환 (기존 볼륨 선택용)."""
-    require_tenant_namespace(namespace)
-    try:
-        resp = core_v1.list_namespaced_persistent_volume_claim(namespace)
-    except client.ApiException:
-        return []
-    return [
-        {
-            "name": p.metadata.name,
-            "size": (p.spec.resources.requests or {}).get("storage", "")
-            if p.spec.resources else "",
-            "access_modes": p.spec.access_modes or [],
-            "storage_class": p.spec.storage_class_name or "",
-            "status": p.status.phase,
-        }
-        for p in resp.items
-    ]
+    return volume_service.list_volumes(namespace)
 
 
 def create_notebook(
@@ -273,6 +242,37 @@ def create_notebook(
     data_volumes = data_volumes or []
     env_vars = env_vars or []
     pod_defaults = pod_defaults or []
+    # Resolve all existing claims before creating anything. Names alone never
+    # grant access to tenant service data or legacy unclassified PVCs.
+    if workspace_source not in {"new", "existing", "none"}:
+        raise ValueError("Invalid workspace source")
+    validate_user_mount_path(workspace_mount_path)
+    if workspace_source == "existing":
+        volume_service.require_volume(ns, workspace_name, api=core_v1)
+    for dv in data_volumes:
+        if dv.get("source", "new") not in {"new", "existing"}:
+            raise ValueError("Invalid data volume source")
+        validate_user_mount_path(dv.get("mount_path") or "/home/jovyan/data")
+        if dv.get("source") == "existing":
+            volume_service.require_volume(ns, dv.get("name", ""), api=core_v1)
+    # Admission-injected PodDefaults must not bypass the explicit PVC picker.
+    for default_name in filter(None, pod_defaults):
+        default = custom_api.get_namespaced_custom_object(
+            "kubeflow.org", "v1alpha1", ns, "poddefaults", default_name)
+        spec = default.get("spec", {})
+        claim_names = set()
+        for volume in spec.get("volumes", []):
+            if "hostPath" in volume:
+                raise HTTPException(403, "호스트 경로를 연결하는 사전 설정은 사용할 수 없습니다.")
+            if "persistentVolumeClaim" in volume:
+                volume_service.require_volume(ns, volume["persistentVolumeClaim"].get("claimName", ""), api=core_v1)
+                claim_names.add(volume.get("name"))
+        for mount in spec.get("volumeMounts", []):
+            if mount.get("name") in claim_names:
+                try:
+                    validate_user_mount_path(mount.get("mountPath", ""))
+                except ValueError as exc:
+                    raise HTTPException(403, str(exc)) from exc
 
     volumes: list[dict] = []
     volume_mounts: list[dict] = []
@@ -281,7 +281,7 @@ def create_notebook(
     if workspace_source != "none":
         if workspace_source == "new":
             ws_pvc_name = workspace_name or f"{name}-workspace"
-            _ensure_pvc(ns, ws_pvc_name, workspace_size,
+            ws_pvc_name = _ensure_pvc(ns, ws_pvc_name, workspace_size,
                         workspace_storage_class, workspace_access_mode, notebook_name=name)
         else:  # existing
             ws_pvc_name = workspace_name
@@ -302,9 +302,9 @@ def create_notebook(
         mount = dv.get("mount_path") or f"/home/jovyan/data{i+1}"
         if src == "new":
             dv_name = dv.get("name") or f"{name}-data{i+1}"
-            _ensure_pvc(ns, dv_name, dv.get("size", "5Gi"),
+            dv_name = _ensure_pvc(ns, dv_name, dv.get("size", "5Gi"),
                         dv.get("storage_class", ""),
-                        dv.get("access_mode", "ReadWriteOnce"))
+                        dv.get("access_mode", "ReadWriteOnce"), notebook_name=name)
         else:
             dv_name = dv.get("name")
             if not dv_name:
@@ -422,14 +422,8 @@ def create_notebook(
 def delete_notebook(name: str, namespace: str = None):
     ns = require_tenant_namespace(namespace or settings.default_namespace)
     custom_api.delete_namespaced_custom_object(GROUP, VERSION, ns, PLURAL, name)
-    try:
-        pvc = core_v1.read_namespaced_persistent_volume_claim(f"{name}-workspace", ns)
-        labels = pvc.metadata.labels or {}
-        if (labels.get("app.kubernetes.io/managed-by") == "prediction-manager"
-                and labels.get("prediction-manager.io/notebook") == name):
-            core_v1.delete_namespaced_persistent_volume_claim(f"{name}-workspace", ns)
-    except client.ApiException:
-        pass
+    # Data volumes outlive notebooks. Delete explicitly through the volume API,
+    # which checks ownership, dormant controllers, live Pods and UID/version.
 
 
 def stop_notebook(name: str, namespace: str = None):

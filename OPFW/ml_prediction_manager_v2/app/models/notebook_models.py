@@ -1,13 +1,18 @@
-from pydantic import BaseModel, Field
+from typing import Literal
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from app.resource_policy import validate_user_mount_path
 
 
 class VolumeSpec(BaseModel):
-    source: str = "new"                  # "new" | "existing"
+    model_config = ConfigDict(extra="forbid")
+    source: Literal["new", "existing"] = "new"
     name: str = ""                       # for existing: PVC name; for new: auto-generated
     size: str = "5Gi"                    # for new
     storage_class: str = ""              # for new, empty = cluster default StorageClass
-    access_mode: str = "ReadWriteOnce"   # for new
+    access_mode: Literal["ReadWriteOnce"] = "ReadWriteOnce"
     mount_path: str
+
+    _check_mount = field_validator("mount_path")(validate_user_mount_path)
 
 
 class EnvVar(BaseModel):
@@ -16,6 +21,7 @@ class EnvVar(BaseModel):
 
 
 class NotebookCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     name: str
 
     # Image section (Kubeflow JWA match)
@@ -36,12 +42,13 @@ class NotebookCreateRequest(BaseModel):
     gpu_vendor: str = "nvidia.com/gpu"    # "nvidia.com/gpu" | "amd.com/gpu" | "habana.ai/gaudi"
 
     # Workspace volume
-    workspace_source: str = "new"
+    workspace_source: Literal["new", "existing", "none"] = "new"
     workspace_name: str = ""
     workspace_size: str = "10Gi"
     workspace_storage_class: str = ""
-    workspace_access_mode: str = "ReadWriteOnce"
+    workspace_access_mode: Literal["ReadWriteOnce"] = "ReadWriteOnce"
     workspace_mount_path: str = "/home/jovyan"
+    _check_workspace_mount = field_validator("workspace_mount_path")(validate_user_mount_path)
 
     # Data volumes
     data_volumes: list[VolumeSpec] = Field(default_factory=list)

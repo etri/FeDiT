@@ -7,7 +7,7 @@ import time as _time
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse as _HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse as _HTMLResponse, JSONResponse, FileResponse
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
 
@@ -30,6 +30,7 @@ from app.routers import (
     tenant_dashboards,
     monitoring,
     data_collection,
+    volumes,
 )
 from app.services import kubernetes_client, monitoring_service
 
@@ -162,12 +163,12 @@ def _standalone_platform_page(
 
 @app.get("/volumes/", include_in_schema=False)
 async def standalone_volumes():
-    return _standalone_platform_page(
-        "Volumes",
-        "Prediction Manager persistent storage and dataset volumes",
-        ["Overview", "Storage", "Access"],
-        "No persistent volumes are currently registered. The page is ready for a Kubernetes-backed volume provider.",
-    )
+    return _HTMLResponse((Path(__file__).resolve().parent.parent / "static" / "volumes.html").read_text(encoding="utf-8"))
+
+
+@app.get("/volumes/sandbox.js", include_in_schema=False)
+async def volume_sandbox_script():
+    return FileResponse(Path(__file__).resolve().parent.parent / "static" / "js" / "volumes-sandbox.js", media_type="application/javascript")
 
 
 @app.get("/tensorboards/", include_in_schema=False)
@@ -338,6 +339,8 @@ async def request_validation_exception_handler(request: Request, exc: RequestVal
     return JSONResponse(status_code=422, content={"detail": detail})
 
 app.include_router(images.router, prefix="/api/images", tags=["images"])
+app.include_router(volumes.router, prefix="/api/volumes", tags=["volumes"])
+app.include_router(volumes.router, prefix="/volumes/api", include_in_schema=False)
 app.include_router(containers.router, prefix="/api/containers", tags=["containers"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])

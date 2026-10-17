@@ -24,6 +24,10 @@ cd FeDiT/OPFW/ml_prediction_manager_v2/scripts/server-a40
 bash install.sh
 ```
 
+최신 사용자 이미지·볼륨 보호를 반영하려면 기본 설치 완료 후 같은 폴더에서
+`bash update-user-sandbox.sh`를 실행한다. 기존 서버도 이 업데이트 명령을 사용하며
+플랫폼 전체를 재설치할 필요는 없다. 자세한 조건은 아래 사용자 볼륨 문서를 참조한다.
+
 저장소가 이미 있으면 중복 clone하지 않고 해당 브랜치의 최신 버전을 받은 뒤
 같은 `scripts/server-a40` 폴더에서 실행한다. 설치·재개, 서비스 점검,
 Kubernetes GPU 실행, CPU/GPU 학습 및 모델 저장·재로드 시험을 자동 수행한다.
@@ -51,6 +55,7 @@ UI에서 실제 데이터로 AutoML 학습부터 서빙까지의 전체 흐름�
 - [설치·서비스 제어 상세 설명](OPFW/ml_prediction_manager_v2/scripts/server-a40/README.md)
 - [실서버 성공 범위와 로컬 검증 기록](OPFW/ml_prediction_manager_v2/scripts/server-a40/VALIDATION.md)
 - [사용자 리소스 관리 경계와 남은 실행 격리·배포 조건](OPFW/ml_prediction_manager_v2/tests/RESOURCE_ISOLATION.md)
+- [사용자 볼륨 보호와 기존 서버 업데이트](OPFW/ml_prediction_manager_v2/tests/VOLUME_SANDBOX.md)
 
 ### How to Contribute Your Codes
 [CONTRIBUTING.md](CONTRIBUTING.md)를 참조

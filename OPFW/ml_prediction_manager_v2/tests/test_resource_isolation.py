@@ -274,13 +274,13 @@ class NamespaceAndVolumeTest(unittest.TestCase):
                 notebook_service.delete_notebook('lab', namespace=A)
                 core.delete_namespaced_persistent_volume_claim.assert_not_called()
 
-    def test_notebook_delete_can_remove_its_owned_workspace(self):
+    def test_notebook_delete_preserves_even_its_owned_workspace(self):
         with patch.object(notebook_service, 'custom_api'), patch.object(notebook_service, 'core_v1') as core:
             core.read_namespaced_persistent_volume_claim.return_value = SimpleNamespace(metadata=SimpleNamespace(labels={
                 'app.kubernetes.io/managed-by': 'prediction-manager', 'prediction-manager.io/notebook': 'lab',
             }))
             notebook_service.delete_notebook('lab', namespace=A)
-            core.delete_namespaced_persistent_volume_claim.assert_called_once_with('lab-workspace', A)
+            core.delete_namespaced_persistent_volume_claim.assert_not_called()
 
 
 if __name__ == '__main__':
