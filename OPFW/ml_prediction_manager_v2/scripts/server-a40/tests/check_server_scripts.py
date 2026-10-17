@@ -5,6 +5,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -245,6 +246,7 @@ mkdir -p "$base/results/test"
 echo 'KEYCLOAK_NODE_PORT=30081' > "$base/server-install.env"
 printf 'EXIT=22\nSTAGE=install\n' > "$base/results/test/RESULT.txt"
 echo "[FAIL] ${FAIL_STAGE:-PostgreSQL/Keycloak/OIDC}" > "$base/results/test/session.log"
+echo '--token abcdef.0123456789abcdef'
 exit "${ORIGINAL_EXIT:-22}"
 ''', encoding='utf-8')
         (bundle / 'resume-keycloak.sh').write_text('echo RECOVERY_CALLED\n', encoding='utf-8')
@@ -278,6 +280,18 @@ exit "${ORIGINAL_EXIT:-22}"
             result = shell('mockbin="$MOCK_BIN"\nif command -v cygpath >/dev/null; then mockbin=$(cygpath -u "$mockbin"); fi\nexport PATH="$mockbin:$PATH"\nbash "$MOCK_ENTRY" "$MOCK_MODE"\n', env=env)
             assert result.returncode == expected, result.stdout + result.stderr
             assert ('RECOVERY_CALLED' in result.stdout) == recovered, result.stdout + result.stderr
+            reports = list((home / 'pman-server-725eb2ed/complete-reports').glob('run.*'))
+            reports = [p for p in reports if p.is_dir()]
+            assert len(reports) == 1
+            values = dict(line.split('=', 1) for line in (reports[0] / 'RESULT.txt').read_text().splitlines())
+            assert int(values['EXIT']) == expected
+            assert values['STAGE'] == ('complete' if expected == 0 else 'sandbox-update' if expected == 7 else 'sandbox-validation' if expected == 8 else 'platform')
+            with tarfile.open(str(reports[0]) + '.tar.gz') as archive:
+                assert 'combined.private.log' not in archive.getnames()
+                public_log = archive.extractfile('session.log').read().decode('utf-8')
+                assert 'abcdef.0123456789abcdef' not in public_log
+                assert '<REDACTED_BOOTSTRAP_TOKEN>' in public_log
+            assert 'FEDIT_REPORT_ARCHIVE=' in result.stdout
             assert ('UPDATE_CALLED' in result.stdout) == (mode == 'install' and (recovered or changes.get('ORIGINAL_EXIT') == '0'))
             if expected == 0:
                 assert 'VERIFY_CALLED' in result.stdout and 'FEDIT_INSTALL_AND_SANDBOX_PASS' in result.stdout

@@ -87,9 +87,12 @@ sudo systemctl enable containerd.service docker.service kubelet.service predicti
 
 ## 결과 전달 및 검증 범위
 
-설치/시험 마지막의 `COPY BACK TO CODEX`부터 `END`까지 전달한다.
-보정 실행이면 `KEYCLOAK_RESUME_EXIT`도 함께 전달한다. 상세 파일 경로는
-`REPORT_ARCHIVE`에 표시된다. 비밀번호, 토큰, 설정/Secret 전체는 전달하지 않는다.
+설치/시험의 맨 마지막 `FEDIT FINAL RESULT` 블록을 전달한다.
+그 블록의 `EXIT=0`, `STAGE=complete`가 전체 설치·앱 갱신·볼륨 시험의 성공 기준이다.
+`FEDIT_REPORT_ARCHIVE`에 표시된 압축파일 하나를 함께 전달하면 된다.
+기본 플랫폼만 끝났을 때 출력되는 중간 `COPY BACK TO CODEX` 블록과 구분한다.
+압축파일에는 전체 실행 로그, 파일 해시, 볼륨 API·마운트 시험 결과를 모은다.
+Kubernetes 부트스트랩 토큰은 가리고 설정/Secret·원복용 private 파일은 포함하지 않는다.
 
 구성 파일과 실행 결과는 실행 계정의 `~/pman-server-725eb2ed/`에 저장된다.
 상세 설치 보고서는 `~/prediction-manager-work/.prediction-manager/gpu/results/`에
@@ -100,7 +103,7 @@ Ubuntu 22.04, CPU 4개, RAM 31GiB, NVIDIA A40 46068MiB, 드라이버 535.309.01 
 성공한 실행은 원본 설치기와 `resume-keycloak-725eb2ed-v2.sh` 보정의 조합이다.
 당시 서비스 종료 대기 문제는 별도로 발생했다.
 
-원본 설치기 SHA-256:
+위 과거 A40 성공 기록의 설치기 SHA-256 (현행 파일의 해시와 구분):
 `78b2c8ba0182320e5b06def1c2ce46ec4c55836858ab5c6d059d38b7b0c6ac3a`.
 
 서버 통과 범위와 후속 변경의 로컬 검증은 [VALIDATION.md](VALIDATION.md)에 구분해

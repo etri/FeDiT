@@ -10,8 +10,60 @@ exec 9>"$HOME/pman-server-725eb2ed/control.lock"
 flock -n 9 || { echo 'Another server installation or check is running.' >&2; exit 1; }
 original="$here/server-install-725eb2ed.sh"
 printf '%s  %s\n' c88bd9e565c9e892dfa3af235702a82a868681a9b1e1a5f766fcfc3aa3289668 "$original" | sha256sum -c -
-started=$(date +%s)
 if [[ "$mode" == inspect ]]; then exec bash "$original" inspect; fi
+mkdir -p "$HOME/pman-server-725eb2ed/complete-reports"
+report=$(mktemp -d "$HOME/pman-server-725eb2ed/complete-reports/run.XXXXXXXX")
+phase=platform
+exec 3>&1 4>&2
+exec > >(tee "$report/combined.private.log") 2>&1
+logger=$!
+finish() {
+  rc=$?
+  trap - EXIT INT TERM
+  set +e
+  # Only these storage-test files are collected; private deployment/configuration
+  # backups from update-user-sandbox.sh never enter the handoff archive.
+  storage_report=$(sed -n 's/^SANDBOX_TEST_REPORT=//p' "$report/combined.private.log" | tail -1)
+  if [[ "$storage_report" =~ ^/data/fedit-sandbox-tests/run\.[A-Za-z0-9]+$ ]]; then
+    for name in RESULT.txt test.log api-results.jsonl volume-read-write.log; do
+      if sudo -n test -f "$storage_report/$name"; then
+        sudo -n cat "$storage_report/$name" > "$report/sandbox-$name"
+      fi
+    done
+  fi
+  exec 1>&3 2>&4
+  closed=false
+  for _ in $(seq 1 100); do
+    if ! kill -0 "$logger" 2>/dev/null; then closed=true; break; fi
+    sleep 0.1
+  done
+  if [[ "$closed" == true ]]; then wait "$logger" || rc=1;
+  else kill "$logger" 2>/dev/null; rc=1; phase=log-cleanup; fi
+  python3 - "$report/combined.private.log" "$report/session.log" <<'PY'
+import pathlib,re,sys
+text=pathlib.Path(sys.argv[1]).read_text(encoding='utf-8',errors='replace')
+text=re.sub(r'(?<=--token )[a-z0-9]{6}\.[a-z0-9]{16}', '<REDACTED_BOOTSTRAP_TOKEN>', text)
+pathlib.Path(sys.argv[2]).write_text(text,encoding='utf-8')
+PY
+  if (( $? != 0 )); then rc=1; phase=report; fi
+  revision=$(git -C "$here/../../../.." rev-parse HEAD 2>/dev/null || echo unknown)
+  printf 'EXIT=%s\nSTAGE=%s\nMODE=%s\nSOURCE_COMMIT=%s\n' "$rc" "$phase" "$mode" "$revision" > "$report/RESULT.txt"
+  sha256sum "$here/"*.sh "$here/"*.py > "$report/SHA256SUMS"
+  files=(RESULT.txt session.log SHA256SUMS)
+  for file in "$report/"sandbox-*; do [[ ! -f "$file" ]] || files+=("${file##*/}"); done
+  if ! tar -czf "$report.tar.gz" -C "$report" "${files[@]}"; then
+    rc=1
+    printf 'EXIT=1\nSTAGE=report\n' > "$report/RESULT.txt"
+  fi
+  echo '===== FEDIT FINAL RESULT ====='
+  cat "$report/RESULT.txt"
+  echo "FEDIT_REPORT_ARCHIVE=$report.tar.gz"
+  exit "$rc"
+}
+trap finish EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+started=$(date +%s)
 baseline() {
 if bash "$original" "$mode"; then return 0; else rc=$?; fi
 [[ "$mode" == install ]] || return "$rc"
@@ -40,7 +92,10 @@ bash "$here/resume-keycloak.sh"
 }
 baseline
 if [[ "$mode" == install ]]; then
+  phase=sandbox-update
   bash "$here/update-user-sandbox.sh"
 fi
+phase=sandbox-validation
 bash "$here/verify-user-sandbox.sh"
+phase=complete
 echo 'FEDIT_INSTALL_AND_SANDBOX_PASS'

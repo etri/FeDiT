@@ -46,18 +46,22 @@ GPU worker는 최대 1개, 테넌트별 동시 학습과 시행은 각각 1개�
 
 3) 완료 확인 및 결과 전달
 
-최종 성공 기준은 마지막 결과의 아래 세 항목이다.
+최종 성공 기준은 맨 마지막 FEDIT FINAL RESULT 블록의 EXIT와 STAGE다.
 
   EXIT=0
   STAGE=complete
   PLATFORM_AND_KUBERNETES_GPU_SMOKE_PASS
+  USER_SANDBOX_LIFECYCLE_PASS
+  FEDIT_INSTALL_AND_SANDBOX_PASS
 
 Keycloak 자동 재개 전의 실패 보고서와 재개 후 최종 보고서가 각각 남을 수
-있으므로 마지막 실행 결과를 확인한다. COPY BACK TO CODEX부터 END까지,
-보정 실행 시 KEYCLOAK_RESUME_EXIT 줄도 함께 전달한다.
+있으므로 중간 COPY BACK TO CODEX 블록만으로 전체 성공을 판단하지 않는다.
+맨 마지막 FEDIT FINAL RESULT 블록과 FEDIT_REPORT_ARCHIVE에 표시된 압축파일
+하나를 전달한다. 전체 로그·파일 해시·볼륨 시험 결과가 포함된다.
 비밀번호, 토큰, Secret 및 설정 파일 전체를 채팅에 보내지 않는다.
 
 기본 결과 위치:
+  ~/pman-server-725eb2ed/complete-reports/
   ~/pman-server-725eb2ed/results/
   ~/prediction-manager-work/.prediction-manager/gpu/results/
 
