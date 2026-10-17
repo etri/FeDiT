@@ -40,12 +40,14 @@ StorageClass, Filesystem 모드. 시스템·다른 사용자·MLflow·NiFi·서�
 
 이 기능과 이전 이미지/namespace 보호는 앱 변경이다. 고정 커밋 설치기를 다시
 실행하는 것만으로 반영되지 않는다. 기존 서비스를 실행한 상태에서 최신 저장소를
-별도 폴더로 clone하고 다음 업데이트 스크립트를 실행한다. 설치기가 관리하는
+별도 폴더로 clone하고 다음 업데이트 스크립트를 실행한다. /data로 연결된
+기존 prediction-manager-work 아래를 사용해 루트 디스크에 소스를 쌓지 않는다.
+설치기가 관리하는
 `~/pman-server-725eb2ed/source`의 detached checkout은 수정하지 않는다.
 
 ```bash
-git clone --branch OPFW_development_ETRI_pman --single-branch https://github.com/etri/FeDiT.git "$HOME/FeDiT-user-sandbox"
-bash "$HOME/FeDiT-user-sandbox/OPFW/ml_prediction_manager_v2/scripts/server-a40/update-user-sandbox.sh"
+git clone --depth 1 --branch OPFW_development_ETRI_pman --single-branch https://github.com/etri/FeDiT.git "$HOME/prediction-manager-work/FeDiT-user-sandbox"
+bash "$HOME/prediction-manager-work/FeDiT-user-sandbox/OPFW/ml_prediction_manager_v2/scripts/server-a40/update-user-sandbox.sh"
 ```
 
 같은 clone 폴더가 이미 있다면 그 폴더에서 브랜치/변경 사항을 확인하고
