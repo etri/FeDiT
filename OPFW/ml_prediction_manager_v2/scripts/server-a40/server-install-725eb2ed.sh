@@ -256,7 +256,16 @@ PY
   done
   STAGE=source
   if [[ ! -d "$REPO/.git" ]]; then
-    git clone --single-branch --branch OPFW_development_ETRI_pman https://github.com/etri/FeDiT.git "$REPO"
+    if [[ -n "${FEDIT_SOURCE_REPO:-}" ]] && git -C "$FEDIT_SOURCE_REPO" cat-file -e "$PIN^{commit}" 2>/dev/null; then
+      echo "[SOURCE] Reusing pinned commit $PIN from $FEDIT_SOURCE_REPO"
+      # Copy Git objects without alternates or hardlinks: later maintenance of
+      # either checkout must not invalidate the pinned installation source.
+      git clone --no-hardlinks --no-checkout "$FEDIT_SOURCE_REPO" "$REPO"
+      git -C "$REPO" remote set-url origin https://github.com/etri/FeDiT.git
+      git -C "$REPO" checkout --detach "$PIN"
+    else
+      git clone --single-branch --branch OPFW_development_ETRI_pman https://github.com/etri/FeDiT.git "$REPO"
+    fi
   fi
   # The dedicated checkout may contain generated files from an earlier installer.
   # Read the immutable commit via git archive instead of discarding those files.

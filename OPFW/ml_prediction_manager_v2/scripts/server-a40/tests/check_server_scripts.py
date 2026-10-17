@@ -23,7 +23,7 @@ def require(result):
 
 def check_pinned_and_generated():
     original = ROOT / 'server-install-725eb2ed.sh'
-    assert hashlib.sha256(original.read_bytes()).hexdigest() == 'c88bd9e565c9e892dfa3af235702a82a868681a9b1e1a5f766fcfc3aa3289668'
+    assert hashlib.sha256(original.read_bytes()).hexdigest() == '980253251c852507ae79522be984c0677de5e03a22435c2d97126e9f10d66793'
     for path in ROOT.glob('*.sh'):
         subprocess.run([BASH, '-n', str(path)], check=True)
     repair = (ROOT / 'resume-keycloak.sh').read_text(encoding='utf-8')
@@ -143,6 +143,37 @@ source "$CONFIG"
 '''
     require(shell(script))
     print('PASS actual config append overrides old 300/900-second settings, including paths with spaces')
+
+
+def check_local_source_reuse():
+    text = (ROOT / 'server-install-725eb2ed.sh').read_text(encoding='utf-8')
+    start = text.index('  if [[ ! -d "$REPO/.git" ]]; then')
+    end = text.index('\n  # The dedicated checkout', start)
+    block = text[start:end]
+    with tempfile.TemporaryDirectory() as temp:
+        temp = Path(temp)
+        source, dest = temp / 'source with spaces', temp / 'copy with spaces'
+        subprocess.run(['git', 'init', '-q', str(source)], check=True)
+        subprocess.run(['git', '-C', str(source), '-c', 'user.name=Fixture', '-c',
+                        'user.email=fixture@example.invalid', 'commit', '-q', '--allow-empty', '-m', 'fixture'], check=True)
+        pin = subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip()
+        subprocess.run(['git', '-C', str(source), '-c', 'user.name=Fixture', '-c',
+                        'user.email=fixture@example.invalid', 'commit', '-q', '--allow-empty', '-m', 'newer source'], check=True)
+        env = os.environ.copy()
+        env.update(CLONE_SOURCE=source.as_posix(), CLONE_DEST=dest.as_posix(), CLONE_PIN=pin)
+        prelude = 'set -Eeuo pipefail\nREPO="$CLONE_DEST"\nFEDIT_SOURCE_REPO="$CLONE_SOURCE"\nPIN="$CLONE_PIN"\n'
+        require(shell(prelude + block, env=env))
+        assert subprocess.check_output(['git', '-C', str(dest), 'rev-parse', 'HEAD'], text=True).strip() == pin
+        assert subprocess.check_output(['git', '-C', str(dest), 'remote', 'get-url', 'origin'], text=True).strip() == 'https://github.com/etri/FeDiT.git'
+        assert not (dest / '.git/objects/info/alternates').exists()
+        obj = next(p for p in (source / '.git/objects').glob('*/*') if p.is_file())
+        assert not os.path.samefile(obj, dest / '.git/objects' / obj.relative_to(source / '.git/objects'))
+        env['CLONE_DEST'] = (temp / 'fallback').as_posix()
+        fallback = 'git() { if [[ "$*" == *"cat-file -e"* ]]; then return 1; fi; echo "FALLBACK:$*"; }\n'
+        result = shell(prelude + fallback + block, env=env)
+        require(result)
+        assert 'FALLBACK:clone --single-branch --branch OPFW_development_ETRI_pman https://github.com/etri/FeDiT.git' in result.stdout
+    print('PASS real local Git source reuse without hardlinks/alternates, with remote fallback for missing commit')
 
 
 def check_forward_lifecycle():
@@ -303,6 +334,7 @@ if __name__ == '__main__':
     check_image_fallback(generated)
     check_manifest_prefetch(generated)
     check_effective_download_limits()
+    check_local_source_reuse()
     check_forward_lifecycle()
     check_service_controls()
     check_install_recovery()
