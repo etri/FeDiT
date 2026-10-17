@@ -3,6 +3,7 @@
 set -Eeuo pipefail
 umask 077
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+source "$here/sudo-session.sh"
 mode=${1:-install}
 case "$mode" in install|inspect|test) ;; *) echo 'Usage: bash install.sh [install|inspect|test]' >&2; exit 2 ;; esac
 mkdir -p "$HOME/pman-server-725eb2ed"
@@ -23,6 +24,7 @@ finish() {
   rc=$?
   trap - EXIT INT TERM
   set +e
+  sudo_session_stop
   exec 1>&3 2>&4
   closed=false
   for _ in $(seq 1 100); do
@@ -65,6 +67,7 @@ PY
 trap finish EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+sudo_session_start
 started=$(date +%s)
 baseline() {
 if bash "$original" "$mode"; then return 0; else rc=$?; fi
