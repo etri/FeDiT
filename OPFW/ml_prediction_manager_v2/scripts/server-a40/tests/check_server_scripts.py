@@ -22,7 +22,7 @@ def require(result):
 
 def check_pinned_and_generated():
     original = ROOT / 'server-install-725eb2ed.sh'
-    assert hashlib.sha256(original.read_bytes()).hexdigest() == '775e34e2b4a1d868f8ebc8f68b252922287fa2cc76370cfe49f0f96fe6fa935e'
+    assert hashlib.sha256(original.read_bytes()).hexdigest() == 'c88bd9e565c9e892dfa3af235702a82a868681a9b1e1a5f766fcfc3aa3289668'
     for path in ROOT.glob('*.sh'):
         subprocess.run([BASH, '-n', str(path)], check=True)
     repair = (ROOT / 'resume-keycloak.sh').read_text(encoding='utf-8')
@@ -123,6 +123,25 @@ prime_manifest_images /unused example
     require(result)
     assert '2개 이미지' in result.stdout
     print('PASS full manifest prefetch runs before apply, deduplicates and preserves cached images')
+
+
+def check_effective_download_limits():
+    text = (ROOT / 'server-install-725eb2ed.sh').read_text(encoding='utf-8')
+    start = text.index("  {\n    echo 'AUTO_DETECT_SOURCE_PATHS=false'")
+    end = text.index('  } >> "$CONFIG"', start) + len('  } >> "$CONFIG"')
+    script = r'''set -Eeuo pipefail
+test_dir=$(mktemp -d)
+trap 'rm -rf -- "$test_dir"' EXIT
+CONFIG="$test_dir/server.env"
+BUILD_TREE="$test_dir/build source"
+printf 'IMAGE_PULL_TIMEOUT_SECONDS=300\nLARGE_IMAGE_PULL_TIMEOUT_SECONDS=900\n' > "$CONFIG"
+''' + text[start:end] + r'''
+source "$CONFIG"
+[[ "$IMAGE_PULL_TIMEOUT_SECONDS" == 1800 && "$LARGE_IMAGE_PULL_TIMEOUT_SECONDS" == 3600 ]]
+[[ "$PREDICTION_MANAGER_ROOT" == "$BUILD_TREE/OPFW/ml_prediction_manager_v2" ]]
+'''
+    require(shell(script))
+    print('PASS actual config append overrides old 300/900-second settings, including paths with spaces')
 
 
 def check_forward_lifecycle():
@@ -269,6 +288,7 @@ if __name__ == '__main__':
     generated = check_pinned_and_generated()
     check_image_fallback(generated)
     check_manifest_prefetch(generated)
+    check_effective_download_limits()
     check_forward_lifecycle()
     check_service_controls()
     check_install_recovery()

@@ -565,6 +565,8 @@ ENV
   {
     echo 'AUTO_DETECT_SOURCE_PATHS=false'
     echo 'CHECK_MIN_CPU_CORES=false'
+    echo 'IMAGE_PULL_TIMEOUT_SECONDS=1800'
+    echo 'LARGE_IMAGE_PULL_TIMEOUT_SECONDS=3600'
     printf 'PREDICTION_MANAGER_ROOT=%q\n' "$BUILD_TREE/OPFW/ml_prediction_manager_v2"
     printf 'PREDICTION_MANAGER_FRONTEND_ROOT=%q\n' "$BUILD_TREE/OPFW/ml_prediction_manager_v2_frontend"
   } >> "$CONFIG"
