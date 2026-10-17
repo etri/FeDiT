@@ -38,6 +38,8 @@ Kubernetes GPU 실행, CPU/GPU 학습 및 모델 저장·재로드 시험을 자
 최종 성공 기준은 `EXIT=0`, `STAGE=complete`,
 `PLATFORM_AND_KUBERNETES_GPU_SMOKE_PASS`, `USER_SANDBOX_LIFECYCLE_PASS`,
 마지막 `FEDIT_INSTALL_AND_SANDBOX_PASS`다.
+마지막 `FEDIT FINAL RESULT`의 `EXIT=0`, `STAGE=complete`를 확인하고,
+`FEDIT_REPORT_ARCHIVE`의 압축파일 하나로 실행 로그와 시험 결과를 전달한다.
 설치 후 같은 폴더에서 서비스를 제어한다.
 
 ```bash
