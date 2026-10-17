@@ -491,6 +491,32 @@ for archive in "$DOWNLOADS_DIR"/docker-registry-image.*.tar; do [[ ! -e "$archiv
     print('PASS real HTTP token expiry/401 renewal, interrupted blob resume, corrupt cache repair and post-load cache cleanup')
 
 
+def check_readonly_source_git():
+    helper = next(line for line in (ROOT / 'update-user-sandbox.sh').read_text(encoding='utf-8').splitlines()
+                  if line.startswith('git_repo()'))
+    with tempfile.TemporaryDirectory() as temp:
+        repo = Path(temp) / 'source with spaces'
+        repo.mkdir()
+        def git(*args, env=None):
+            return subprocess.run(['git', '-C', str(repo), *args], capture_output=True, check=True, env=env)
+        git('init', '-q')
+        file = repo / 'tracked.txt'
+        file.write_text('source remains unchanged\n', encoding='utf-8')
+        git('add', 'tracked.txt')
+        index = repo / '.git/index'
+        before = index.read_bytes()
+        changed_time = file.stat().st_mtime + 5
+        os.utime(file, (changed_time, changed_time))
+        env = os.environ.copy()
+        env['SOURCE_GIT_FIXTURE'] = repo.as_posix()
+        require(shell('set -Eeuo pipefail\nrepo="$SOURCE_GIT_FIXTURE"\n' + helper + '\ngit_repo status --porcelain\n', env=env))
+        assert index.read_bytes() == before, 'Read-only source check rewrote the Git index'
+        env['GIT_OPTIONAL_LOCKS'] = '1'
+        git('status', '--porcelain', env=env)
+        assert index.read_bytes() != before, 'Fixture did not exercise Git index refresh'
+    print('PASS real Git source check leaves the index unchanged when its stat cache needs refresh')
+
+
 def check_public_sandbox_readiness():
     path = ROOT / 'check-user-sandbox-route.py'
     spec = importlib.util.spec_from_file_location('sandbox_route_check', path)
@@ -727,6 +753,7 @@ if __name__ == '__main__':
     check_forward_lifecycle()
     check_service_controls()
     check_registry_recovery(generated)
+    check_readonly_source_git()
     check_public_sandbox_readiness()
     check_sudo_session()
     check_install_recovery()
