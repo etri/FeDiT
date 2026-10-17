@@ -156,12 +156,12 @@ fi
 : "${CPU_SWAP_REQUIRED:=false}"
 : "${IMAGE_PULL_RETRY_ATTEMPTS:=12}"
 : "${IMAGE_PULL_RETRY_DELAY_SECONDS:=15}"
-: "${IMAGE_PULL_TIMEOUT_SECONDS:=300}"
+: "${IMAGE_PULL_TIMEOUT_SECONDS:=1800}"
 # The MLServer runtime is about 11 GiB.  On a clean nested Docker host its
 # first containerd unpack can legitimately exceed the generic image timeout;
 # use a dedicated bound instead of recording a recoverable timeout as a
 # failed installation step and then copying the same image a second time.
-: "${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:=900}"
+: "${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:=3600}"
 : "${CONTAINERD_IMAGE_VISIBILITY_TIMEOUT_SECONDS:=180}"
 # One failed CRI download is enough to prefer the Docker fallback.  In the
 # affected CDN condition the next CRI attempt only repeats the same reset,
@@ -2109,6 +2109,17 @@ retry_kubernetes_image_pull() {
   local image="$1" pull_timeout="$IMAGE_PULL_TIMEOUT_SECONDS" attempt
   local archive containerd_address="/run/containerd/containerd.sock"
   local mirror_suffix mirror_image
+  # CRI resolves canonical Docker references; a short ctr alias is not enough.
+  local first_component="${image%%/*}"
+  if [[ "$image" != */* ]]; then
+    image="docker.io/library/$image"
+  elif [[ "$first_component" != *.* && "$first_component" != *:* && "$first_component" != localhost ]]; then
+    image="docker.io/$image"
+  fi
+  if [[ "$image" == index.docker.io/* ]]; then image="docker.io/${image#index.docker.io/}"; fi
+  if [[ "$image" == docker.io/* && "${image#docker.io/}" != */* ]]; then
+    image="docker.io/library/${image#docker.io/}"
+  fi
   # containerd occasionally receives a reset from a registry CDN even though
   # the Docker daemon on the same host can complete the identical download.
   # Try CRI first because it is the normal Kubernetes path, then use Docker as
@@ -2453,9 +2464,12 @@ for document in yaml.safe_load_all(Path(sys.argv[1]).read_text(encoding="utf-8")
             print(image)
 PY
   )
+  mapfile -t images < <(printf '%s\n' "${images[@]}" | sort -u)
   for image in "${images[@]:-}"; do
     [[ -n "$image" ]] || continue
-    retry_kubernetes_image_pull "$image"
+    if ! crictl inspecti "$image" >/dev/null 2>&1; then
+      retry_kubernetes_image_pull "$image"
+    fi
   done
   record PASS "${description} 이미지 사전 확보" "${#images[@]}개 이미지"
 }
@@ -2936,6 +2950,7 @@ PY
   prime_kserve_controller_images "$kubeflow_bootstrap_manifest"
   prime_kserve_runtime_images
   prime_knative_control_plane_images "$kubeflow_bootstrap_manifest"
+  prime_manifest_images "${GENERATED_DIR}/kubeflow.yaml" "Kubeflow full workload"
   apply_with_retry "$kubeflow_bootstrap_manifest"
   wait_rollout_if_exists kubeflow deployment kserve-controller-manager 900s
   apply_with_retry "${GENERATED_DIR}/kubeflow.yaml"

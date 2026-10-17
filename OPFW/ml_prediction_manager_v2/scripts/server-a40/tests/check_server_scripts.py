@@ -22,7 +22,7 @@ def require(result):
 
 def check_pinned_and_generated():
     original = ROOT / 'server-install-725eb2ed.sh'
-    assert hashlib.sha256(original.read_bytes()).hexdigest() == '78b2c8ba0182320e5b06def1c2ce46ec4c55836858ab5c6d059d38b7b0c6ac3a'
+    assert hashlib.sha256(original.read_bytes()).hexdigest() == '775e34e2b4a1d868f8ebc8f68b252922287fa2cc76370cfe49f0f96fe6fa935e'
     for path in ROOT.glob('*.sh'):
         subprocess.run([BASH, '-n', str(path)], check=True)
     repair = (ROOT / 'resume-keycloak.sh').read_text(encoding='utf-8')
@@ -34,7 +34,10 @@ def check_pinned_and_generated():
         exec(compile(code, 'repair-generator', 'exec'), {})
         subprocess.run([BASH, '-n', str(wrapper)], check=True)
         bootstrap = temp / 'bootstrap.sh'
-        bootstrap.write_text((ROOT.parent / 'scripts/bootstrap-verification.sh').read_text(encoding='utf-8'), encoding='utf-8')
+        # Exercise the immutable baseline that the real wrapper archives.
+        baseline = subprocess.check_output(['git', '-C', str(ROOT.parents[3]), 'show',
+            '725eb2edeec1b756b45abb809cdc4dc971a890bf:OPFW/ml_prediction_manager_v2/scripts/scripts/bootstrap-verification.sh'])
+        bootstrap.write_bytes(baseline)
         patch = wrapper.read_text(encoding='utf-8').split('python3 - "$RUNTIME/scripts/bootstrap-verification.sh" <<\'PY\'\n', 1)[1].split('\nPY\n', 1)[0]
         sys.argv = ['patch', str(bootstrap)]
         exec(compile(patch, 'bootstrap-patch', 'exec'), {})
@@ -42,7 +45,84 @@ def check_pinned_and_generated():
         result = bootstrap.read_text(encoding='utf-8')
         assert 'KEYCLOAK_PUBLIC_URL="http://127.0.0.1:38081/auth"' in result
         assert result.count("curl --noproxy '*' --retry 60 --retry-all-errors") == 5
+        assert '${IMAGE_PULL_TIMEOUT_SECONDS:=1800}' in result
+        assert '${LARGE_IMAGE_PULL_TIMEOUT_SECONDS:=3600}' in result
+        assert result.count('# CRI resolves canonical Docker references; a short ctr alias is not enough.') == 1
+        assert result.index('  prime_manifest_images "${GENERATED_DIR}/kubeflow.yaml" "Kubeflow full workload"') < result.index('  apply_with_retry "$kubeflow_bootstrap_manifest"')
     print('PASS pinned checksum, Bash syntax and actual runtime patches')
+    return result
+
+
+def check_image_fallback(generated):
+    function = 'retry_kubernetes_image_pull() {' + generated.split('retry_kubernetes_image_pull() {', 1)[1].split('\nrecover_image_pull_failures()', 1)[0]
+    script = r'''set -Eeuo pipefail
+test_dir=$(mktemp -d)
+trap 'rm -rf -- "$test_dir"' EXIT
+mkdir "$test_dir/bin"
+export PATH="$test_dir/bin:$PATH"
+export FALLBACK_MARK="$test_dir/canonical-tag"
+cat > "$test_dir/bin/crictl" <<'MOCK'
+#!/usr/bin/env bash
+if [[ "$1" == pull ]]; then [[ "$2" == 127.0.0.1:5000/fallback/* ]];
+else [[ -f "$FALLBACK_MARK" && "$2" == "$EXPECTED_IMAGE" ]]; fi
+MOCK
+cat > "$test_dir/bin/docker" <<'MOCK'
+#!/usr/bin/env bash
+[[ "$1 $2" != 'image save' ]]
+MOCK
+cat > "$test_dir/bin/ctr" <<'MOCK'
+#!/usr/bin/env bash
+if [[ "$*" == *' images tag '* ]]; then
+  [[ "${!#}" == "$EXPECTED_IMAGE" ]] || exit 9
+  touch "$FALLBACK_MARK"
+fi
+MOCK
+chmod +x "$test_dir/bin/"*
+warn() { echo "$*"; }
+retry_command() { shift 3; "$@"; }
+DOWNLOADS_DIR="$test_dir"
+REGISTRY_HOST=127.0.0.1:5000
+IMAGE_PULL_TIMEOUT_SECONDS=1
+LARGE_IMAGE_PULL_TIMEOUT_SECONDS=1
+IMAGE_PULL_CRIO_ATTEMPTS=1
+IMAGE_PULL_RETRY_ATTEMPTS=1
+IMAGE_PULL_RETRY_DELAY_SECONDS=0
+CONTAINERD_IMAGE_VISIBILITY_TIMEOUT_SECONDS=1
+''' + function + r'''
+for pair in 'kserve/storage-initializer:v0.13.1|docker.io/kserve/storage-initializer:v0.13.1' \
+            'python:3.10-slim|docker.io/library/python:3.10-slim' \
+            'library/python:3.10-slim|docker.io/library/python:3.10-slim' \
+            'docker.io/python:3.10-slim|docker.io/library/python:3.10-slim' \
+            'index.docker.io/library/python:3.10-slim|docker.io/library/python:3.10-slim' \
+            'quay.io/example/test:v1|quay.io/example/test:v1' \
+            'localhost:5000/test:v1|localhost:5000/test:v1'; do
+  rm -f "$FALLBACK_MARK"
+  export EXPECTED_IMAGE="${pair#*|}"
+  retry_kubernetes_image_pull "${pair%%|*}"
+  [[ -f "$FALLBACK_MARK" ]]
+done
+'''
+    require(shell(script))
+    print('PASS actual generated CRI fallback: canonical Docker aliases and explicit registries')
+
+
+def check_manifest_prefetch(generated):
+    function = 'prime_manifest_images() {' + generated.split('prime_manifest_images() {', 1)[1].split('\nwait_namespace_workloads()', 1)[0]
+    script = r'''set -Eeuo pipefail
+events=$(mktemp)
+trap 'rm -f "$events"' EXIT
+python3() { cat >/dev/null; printf '%s\n' 'present:v1' 'missing:v1' 'present:v1' 'missing:v1'; }
+crictl() { [[ "$1" == inspecti && "$2" == present:v1 ]]; }
+retry_kubernetes_image_pull() { echo "$1" >> "$events"; }
+record() { echo "$*"; }
+''' + function + r'''
+prime_manifest_images /unused example
+[[ "$(cat "$events")" == missing:v1 ]]
+'''
+    result = shell(script)
+    require(result)
+    assert '2개 이미지' in result.stdout
+    print('PASS full manifest prefetch runs before apply, deduplicates and preserves cached images')
 
 
 def check_forward_lifecycle():
@@ -186,7 +266,9 @@ exit "${ORIGINAL_EXIT:-22}"
 
 
 if __name__ == '__main__':
-    check_pinned_and_generated()
+    generated = check_pinned_and_generated()
+    check_image_fallback(generated)
+    check_manifest_prefetch(generated)
     check_forward_lifecycle()
     check_service_controls()
     check_install_recovery()
