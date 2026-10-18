@@ -4,7 +4,7 @@ set -Eeuo pipefail
 umask 077
 usage() {
   cat <<'HELP'
-Usage: bash fedit-uninstall.sh [--dry-run] [--owner USER]
+Usage: bash pman-uninstall.sh [--dry-run] [--owner USER]
 
 Run as the account that ran install.sh (sudo is requested once).
 --dry-run     Show the removal plan without stopping or changing anything.
@@ -16,7 +16,7 @@ Disables runtime autostart. Before reset, saves a private cold backup of etcd,
 cluster credentials, installation state and configuration. Retains PVC contents,
 Registry data, Docker/containerd images, /data mounts, packages and NVIDIA driver.
 Retained PVC files are NOT automatically attached to a newly installed cluster.
-After uninstall, fedit-start.sh/fedit-restart.sh cannot restore the removed cluster.
+After uninstall, pman-start.sh/pman-restart.sh cannot restore the removed cluster.
 HELP
 }
 dry_run=false
@@ -33,8 +33,8 @@ done
   echo '[FAIL] Run as the installation account, or supply --owner USER.' >&2; exit 2;
 }
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-[[ -r "$here/fedit-stop.sh" ]] || { echo '[FAIL] Missing sibling fedit-stop.sh.' >&2; exit 1; }
-bash -n "$here/fedit-stop.sh"
+[[ -r "$here/pman-stop.sh" ]] || { echo '[FAIL] Missing sibling pman-stop.sh.' >&2; exit 1; }
+bash -n "$here/pman-stop.sh"
 if (( EUID != 0 )); then
   args=(--owner "$owner")
   [[ "$dry_run" != true ]] || args+=(--dry-run)
@@ -126,7 +126,7 @@ uninstall_platform() {
   trap cleanup EXIT
   trap 'exit 130' INT
   trap 'exit 143' TERM
-  bash "$here/fedit-stop.sh"
+  bash "$here/pman-stop.sh"
   phase=backup
   # Both kubelet and all CRI containers are stopped: this is a cold etcd copy.
   paths=()
@@ -194,7 +194,7 @@ if (( statuses[1] != 0 )); then rc=1; printf 'EXIT=1\nSTAGE=log\n' > "$report/RE
 cat "$report/RESULT.txt"
 if (( rc == 0 )); then
   echo '[PASS] Platform uninstalled. PVC files, Registry data and images are retained.'
-  echo 'The old cluster cannot be started with fedit-start.sh; reinstall with bash install.sh.'
+  echo 'The old cluster cannot be started with pman-start.sh; reinstall with bash install.sh.'
   echo 'Retained PVC files need an explicit restore; a new cluster does not attach them automatically.'
 fi
 echo "UNINSTALL_REPORT=$report"

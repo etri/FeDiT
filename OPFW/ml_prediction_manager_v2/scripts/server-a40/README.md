@@ -65,13 +65,13 @@ A40 프로파일은 GPU worker 최대 1개, 테넌트별 동시 학습/시행 �
 ## 서비스 시작 / 중지 / 재시작
 
 설치했던 일반 로그인 계정으로 실행한다. 시작·중지는 두 파일만 별도로 복사해도
-되며, 재시작은 `fedit-restart.sh`까지 세 파일을 같은 폴더에 둔다.
+되며, 재시작은 `pman-restart.sh`까지 세 파일을 같은 폴더에 둔다.
 실행 권한 변경은 필요 없다.
 
 ```bash
-bash fedit-start.sh
-bash fedit-stop.sh
-bash fedit-restart.sh
+bash pman-start.sh
+bash pman-stop.sh
+bash pman-restart.sh
 ```
 
 시작은 containerd, Docker, kubelet, 서비스 접근용 systemd 유닛을 실행하고
@@ -81,8 +81,8 @@ Kubernetes API 및 노드 Ready를 기다린다. 애플리케이션 Pod 전체�
 시작 스크립트가 `pm-verification-registry`와 `fedit-fe`를 직접 시작한다.
 설치기 소유의 Docker bridge에서 IPAM gateway와 실제 주소가 달라졌으면 필요한
 주소만 복원한다. 이 helper도 시작 파일 안에 포함되어 두 파일만 복사해 쓸 수 있다.
-레지스트리 이름을 변경한 설치는 `sudo FEDIT_REGISTRY_CONTAINER=변경한이름 bash fedit-start.sh`로 실행한다.
-재시작은 `FEDIT_REGISTRY_CONTAINER=변경한이름 bash fedit-restart.sh`로 지정할 수 있다.
+레지스트리 이름을 변경한 설치는 `sudo FEDIT_REGISTRY_CONTAINER=변경한이름 bash pman-start.sh`로 실행한다.
+재시작은 `FEDIT_REGISTRY_CONTAINER=변경한이름 bash pman-restart.sh`로 지정할 수 있다.
 
 재시작은 기존 중지를 실행하고 성공해야 시작으로 넘어간다. 필요한 두 파일은
 중지 전에 확인하고, 실패하면 어느 단계인지와 원래 종료 코드를 표시한다.
@@ -105,12 +105,12 @@ sudo systemctl enable containerd.service docker.service kubelet.service predicti
 
 ## 플랫폼 제거 (데이터 보존)
 
-설치했던 계정으로 실행한다. `fedit-uninstall.sh`와 `fedit-stop.sh`가 같은 폴더에
+설치했던 계정으로 실행한다. `pman-uninstall.sh`와 `pman-stop.sh`가 같은 폴더에
 있어야 한다. sudo 인증 외 추가 입력 없이 실행한다. `--dry-run`은 선택 사항이다.
 
 ```bash
-bash fedit-uninstall.sh --dry-run  # 서비스/파일 변경 없이 범위 확인
-bash fedit-uninstall.sh            # 실제 제거
+bash pman-uninstall.sh --dry-run  # 서비스/파일 변경 없이 범위 확인
+bash pman-uninstall.sh            # 실제 제거
 ```
 
 이 서버의 단일 노드 Kubernetes 클러스터 전체가 제거 대상이다. 먼저 기존 중지를
@@ -134,9 +134,9 @@ PVC 파일, Registry 데이터, Docker/containerd 이미지, 설치 패키지와
 복구되지 않는다. 보존된 PVC 파일은 새 클러스터에 자동 연결되지 않으며,
 이전 작업을 복원하려면 별도 복구가 필요하다.
 
-root로 직접 실행하려면 `bash fedit-uninstall.sh --owner 설치계정`을 사용한다.
+root로 직접 실행하려면 `bash pman-uninstall.sh --owner 설치계정`을 사용한다.
 Registry 이름은 `server-install.env`에서 실행 없이 읽으며, 필요하면
-`FEDIT_REGISTRY_CONTAINER=이름 bash fedit-uninstall.sh`로 지정한다.
+`FEDIT_REGISTRY_CONTAINER=이름 bash pman-uninstall.sh`로 지정한다.
 
 완료 기준은 `EXIT=0`, `STAGE=complete`다. 마지막 `UNINSTALL_REPORT` 아래에
 `RESULT.txt`, `uninstall.log`, `cluster-backup.private.tar`, `backup.sha256`이 남는다.

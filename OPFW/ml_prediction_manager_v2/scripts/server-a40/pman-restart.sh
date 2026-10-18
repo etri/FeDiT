@@ -2,14 +2,14 @@
 # Restart the installed platform using the verified stop/start entry points.
 set -Eeuo pipefail
 case "${1:-}" in
-  -h|--help) echo 'Usage: bash fedit-restart.sh'; exit 0 ;;
+  -h|--help) echo 'Usage: bash pman-restart.sh'; exit 0 ;;
   '') ;;
-  *) echo 'Usage: bash fedit-restart.sh' >&2; exit 2 ;;
+  *) echo 'Usage: bash pman-restart.sh' >&2; exit 2 ;;
 esac
 (( $# <= 1 )) || { echo 'Unexpected arguments.' >&2; exit 2; }
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 # Check both dependencies before stopping a working installation.
-for name in fedit-stop.sh fedit-start.sh; do
+for name in pman-stop.sh pman-start.sh; do
   [[ -r "$here/$name" ]] || { echo "[FAIL] Missing sibling script: $here/$name" >&2; exit 1; }
   bash -n "$here/$name"
 done
@@ -34,9 +34,9 @@ trap 'rc=$?; echo "[FAIL] Restart failed in $phase (exit=$rc)." >&2; exit "$rc"'
 trap 'exit 130' INT
 trap 'exit 143' TERM
 echo '===== Restart: stop ====='
-bash "$here/fedit-stop.sh"
+bash "$here/pman-stop.sh"
 phase=start
 echo '===== Restart: start ====='
-bash "$here/fedit-start.sh"
+bash "$here/pman-start.sh"
 echo '[PASS] Platform restarted; Kubernetes node is Ready. Application Pods may still be starting.'
 echo 'For the full application and CPU/GPU check: bash install.sh test'

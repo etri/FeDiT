@@ -43,9 +43,9 @@ Kubernetes GPU 실행, CPU/GPU 학습 및 모델 저장·재로드 시험을 자
 설치 후 같은 폴더에서 서비스를 제어한다.
 
 ```bash
-bash fedit-start.sh   # 전체 시작
-bash fedit-stop.sh    # 전체 중지
-bash fedit-restart.sh # 전체 재시작
+bash pman-start.sh   # 전체 시작
+bash pman-stop.sh    # 전체 중지
+bash pman-restart.sh # 전체 재시작
 ```
 
 중지는 서버의 모든 Docker 컨테이너를 포함한다. 데이터와 부팅 시 활성화
@@ -56,8 +56,8 @@ bash fedit-restart.sh # 전체 재시작
 플랫폼을 제거하려면 설치했던 계정으로 같은 폴더에서 실행한다.
 
 ```bash
-bash fedit-uninstall.sh --dry-run # 선택 사항: 변경 없이 제거 범위 확인
-bash fedit-uninstall.sh           # 단일 노드 클러스터와 서비스 제거
+bash pman-uninstall.sh --dry-run # 선택 사항: 변경 없이 제거 범위 확인
+bash pman-uninstall.sh           # 단일 노드 클러스터와 서비스 제거
 ```
 
 제거는 클러스터 초기화 전에 etcd·설정·인증 정보의 비공개 백업을 남기고,
