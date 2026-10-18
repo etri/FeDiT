@@ -289,6 +289,102 @@ PY
   mkdir -p "$RUNTIME"
   cp -a "$SCRIPTS/." "$RUNTIME/"
   mkdir -p "$RUNTIME/server-a40"
+  cat > "$RUNTIME/server-a40/refresh-stale-tenant-pods.py" <<'TENANT_REFRESH_PY'
+"""Refresh only installer tenant Pods whose effective settings are stale."""
+from decimal import Decimal, InvalidOperation
+import json
+import re
+import shlex
+import subprocess
+
+NAMESPACE = 'kubeflow-user-example-com'
+
+
+def owned_by(pod, parent, kind):
+    uid = parent.get('metadata', {}).get('uid')
+    return bool(uid) and any(
+        owner.get('controller') is True and owner.get('kind') == kind
+        and owner.get('uid') == uid
+        for owner in pod.get('metadata', {}).get('ownerReferences', [])
+    )
+
+
+def stale_pods(statefulset, nifi, raycluster, heads):
+    """A fresh/current Pod must keep its ongoing initialization."""
+    stale = []
+    revision = statefulset.get('status', {}).get('updateRevision')
+    actual = nifi.get('metadata', {}).get('labels', {}).get('controller-revision-hash')
+    if (revision and actual and revision != actual
+            and owned_by(nifi, statefulset, 'StatefulSet')):
+        stale.append(nifi)
+    desired = raycluster.get('spec', {}).get('headGroupSpec', {}).get('rayStartParams', {}).get('num-cpus')
+    if desired is None:
+        return stale
+    try:
+        desired = Decimal(str(desired))
+    except InvalidOperation as exc:
+        raise ValueError('Invalid desired Ray logical CPU setting') from exc
+    if not desired.is_finite() or desired < 0:
+        raise ValueError('Invalid desired Ray logical CPU setting')
+    for pod in heads:
+        if not owned_by(pod, raycluster, 'RayCluster'):
+            continue
+        containers = [c for c in pod.get('spec', {}).get('containers', []) if c.get('name') == 'ray-head']
+        if len(containers) != 1:
+            raise ValueError('Cannot identify the existing Ray head container')
+        container = containers[0]
+        tokens = shlex.split(' '.join(container.get('command', []) + container.get('args', [])))
+        values = []
+        for index, token in enumerate(tokens):
+            if token.startswith('--num-cpus='):
+                values.append(token.split('=', 1)[1])
+            elif token == '--num-cpus' and index + 1 < len(tokens):
+                values.append(tokens[index + 1])
+        if len(values) != 1:
+            raise ValueError('Cannot verify the existing Ray head logical CPU setting')
+        try:
+            actual = Decimal(values[0])
+        except InvalidOperation as exc:
+            raise ValueError('Invalid existing Ray logical CPU setting') from exc
+        if not actual.is_finite() or actual < 0:
+            raise ValueError('Invalid existing Ray logical CPU setting')
+        if actual != desired:
+            stale.append(pod)
+    return stale
+
+
+def kubectl(*args, body=None):
+    result = subprocess.run(
+        ['kubectl', '--request-timeout=30s', *args],
+        input=json.dumps(body) if body is not None else None,
+        text=True, capture_output=True, timeout=45, check=True,
+    )
+    return json.loads(result.stdout or '{}')
+
+
+def refresh():
+    get = lambda kind, name: kubectl('-n', NAMESPACE, 'get', kind, name, '--ignore-not-found', '-o', 'json')
+    statefulset = get('statefulset', 'nifi')
+    nifi = get('pod', 'nifi-0')
+    raycluster = get('raycluster', 'pm-ray')
+    heads = kubectl('-n', NAMESPACE, 'get', 'pods', '-l',
+                    'ray.io/cluster=pm-ray,ray.io/node-type=head', '-o', 'json').get('items', [])
+    plan = stale_pods(statefulset, nifi, raycluster, heads)
+    for pod in plan:
+        meta = pod['metadata']
+        name, uid = meta['name'], meta['uid']
+        if meta.get('namespace') != NAMESPACE or not re.fullmatch(r'[a-z0-9][a-z0-9.-]*', name):
+            raise ValueError('Refusing an unexpected tenant Pod identity')
+        options = {'apiVersion': 'v1', 'kind': 'DeleteOptions', 'preconditions': {'uid': uid}}
+        kubectl('delete', '--raw', f'/api/v1/namespaces/{NAMESPACE}/pods/{name}', '-f', '-', body=options)
+        print(f'[INFO] Refreshing stale tenant Pod {NAMESPACE}/{name}', flush=True)
+    if not plan:
+        print('[PASS] Current tenant Pods retained; no unnecessary initialization restart', flush=True)
+
+
+if __name__ == '__main__':
+    refresh()
+TENANT_REFRESH_PY
   cat > "$RUNTIME/server-a40/ensure-docker-bridge.py" <<'DOCKER_BRIDGE_PY'
 """Restore only this installer's Docker gateway; preserve other addresses/rules."""
 import ipaddress
@@ -779,6 +875,17 @@ s=s.replace('install_kubernetes() {',wsl_swap_helper+'install_kubernetes() {',1)
 kubernetes_stage='run_stage 30-kubernetes "Kubernetes 단일 노드 구성" install_kubernetes'
 assert s.count(kubernetes_stage)==1, 'Pinned Kubernetes stage changed'
 s=s.replace(kubernetes_stage,kubernetes_stage+'\nrun_always "WSL host swap with Kubernetes NoSwap" configure_wsl_host_swap')
+# Keep fresh tenant initialization intact; only an older revision/CPU setting needs a refresh.
+tenant_start=s.index('  # StatefulSet의 Pending 이전 revision Pod는')
+tenant_end=s.index('  wait_rollout_if_exists kubeflow-user-example-com statefulset nifi 1200s',tenant_start)
+old_tenant=s[tenant_start:tenant_end]
+assert 'delete pod nifi-0 --wait=false' in old_tenant and 'delete pod -l ray.io/node-type=head' in old_tenant
+s=s[:tenant_start]+'  if bool_true "$LOW_MEMORY_PROFILE_ACTIVE"; then\n    python3 "${SCRIPT_DIR}/../server-a40/refresh-stale-tenant-pods.py"\n  fi\n'+s[tenant_end:]
+# A 25m CPU share starves Java initialization while the full platform and Ray start.
+# Keep the compact memory envelope and all services; reserve only 75m more CPU.
+nifi_cpu='    nifi_request_cpu=25m\n    nifi_request_memory=256Mi\n    nifi_limit_cpu=500m\n'
+assert s.count(nifi_cpu)==1, 'Pinned compact NiFi CPU settings changed'
+s=s.replace(nifi_cpu,'    nifi_request_cpu=100m\n    nifi_request_memory=256Mi\n    nifi_limit_cpu=1\n')
 p.write_text(s)
 PY
   # The pinned NiFi image uses Debian 11. Its removed security packages remain

@@ -1,6 +1,7 @@
 """Read-only checks plus mocked lifecycle failures; never contact the server."""
 import hashlib
 import contextlib
+import copy
 import importlib.util
 import io
 import json
@@ -31,7 +32,7 @@ def require(result):
 
 def check_pinned_and_generated():
     original = ROOT / 'server-install-725eb2ed.sh'
-    assert hashlib.sha256(original.read_bytes()).hexdigest() == '8dadd1cf073bbb23bb2f5985d994100bdb062258b47eeb12c968dbebaae5adbd'
+    assert hashlib.sha256(original.read_bytes()).hexdigest() == '0f3d34662a544ca936b10613a2ee6597c59f7114ecba5a96f7695d2c439d71e8'
     for path in ROOT.glob('*.sh'):
         subprocess.run([BASH, '-n', str(path)], check=True)
     repair = (ROOT / 'resume-keycloak.sh').read_text(encoding='utf-8')
@@ -791,6 +792,79 @@ printf '{"error_description":"%s"}\n' "${MOCK_ERROR:-HTTPS required}" > "$output
     print('PASS real curl recovery from empty reply and HTTP 503 without concatenating error responses')
 
 
+def check_stale_tenant_refresh(generated):
+    source = (ROOT / 'refresh-stale-tenant-pods.py').read_text(encoding='utf-8')
+    wrapper = (ROOT / 'server-install-725eb2ed.sh').read_text(encoding='utf-8')
+    embedded = wrapper.split("<<'TENANT_REFRESH_PY'\n", 1)[1].split('\nTENANT_REFRESH_PY\n', 1)[0] + '\n'
+    assert embedded == source
+    assert 'python3 "${SCRIPT_DIR}/../server-a40/refresh-stale-tenant-pods.py"' in generated
+    assert 'delete pod nifi-0 --wait=false' not in generated
+    assert 'delete pod -l ray.io/node-type=head --wait=false' not in generated
+    assert '    nifi_request_cpu=100m\n    nifi_request_memory=256Mi\n    nifi_limit_cpu=1\n' in generated
+    module = {}
+    exec(compile(source, 'refresh-stale-tenant-pods.py', 'exec'), module)
+    ns = module['NAMESPACE']
+    sts = {'metadata': {'uid': 'nifi-owner'}, 'status': {'updateRevision': 'current'}}
+    nifi = {'metadata': {'namespace': ns, 'name': 'nifi-0', 'uid': 'nifi-uid',
+        'labels': {'controller-revision-hash': 'current'}, 'ownerReferences': [
+            {'controller': True, 'kind': 'StatefulSet', 'uid': 'nifi-owner'}]},
+        'status': {'phase': 'Pending'}}
+    cluster = {'metadata': {'uid': 'ray-owner'}, 'spec': {'headGroupSpec': {'rayStartParams': {'num-cpus': '1'}}}}
+    ray = {'metadata': {'namespace': ns, 'name': 'pm-ray-head-example', 'uid': 'ray-uid',
+        'ownerReferences': [{'controller': True, 'kind': 'RayCluster', 'uid': 'ray-owner'}]},
+        'spec': {'containers': [{'name': 'ray-head', 'command': ['/bin/bash', '-lc'],
+                               'args': ['ulimit -n 65536; ray start --head --num-cpus="1.0" --block']}]}}
+    plan = module['stale_pods']
+    assert plan(sts, nifi, cluster, [ray]) == []  # A fresh Pending Pod keeps its initialization.
+    nifi['status']['phase'] = 'Running'
+    assert plan(sts, nifi, cluster, [ray]) == []
+    stale_nifi = copy.deepcopy(nifi)
+    stale_nifi['metadata']['labels']['controller-revision-hash'] = 'old'
+    assert plan(sts, stale_nifi, cluster, [ray]) == [stale_nifi]
+    stale_ray = copy.deepcopy(ray)
+    stale_ray['spec']['containers'][0]['args'] = ['ray start --head --num-cpus 2 --block']
+    assert plan(sts, nifi, cluster, [stale_ray]) == [stale_ray]
+    foreign = copy.deepcopy(stale_nifi)
+    foreign['metadata']['ownerReferences'][0]['uid'] = 'replacement-owner'
+    assert plan(sts, foreign, cluster, [ray]) == []
+    assert plan({}, nifi, {}, []) == []
+    deletes = []
+    def fake_kubectl(*args, body=None):
+        if args[0] == 'delete':
+            deletes.append((args, body))
+            return {}
+        kind = args[3]
+        return {'statefulset': sts, 'pod': stale_nifi, 'raycluster': cluster,
+                'pods': {'items': [stale_ray]}}[kind]
+    module['kubectl'] = fake_kubectl
+    with contextlib.redirect_stdout(io.StringIO()):
+        module['refresh']()
+    assert len(deletes) == 2
+    for args, body in deletes:
+        assert args[:2] == ('delete', '--raw') and args[-2:] == ('-f', '-')
+        assert args[2].startswith('/api/v1/namespaces/' + ns + '/pods/')
+        expected = 'nifi-uid' if args[2].endswith('/nifi-0') else 'ray-uid'
+        assert body['preconditions'] == {'uid': expected}
+    bad = copy.deepcopy(ray)
+    bad['spec']['containers'][0]['args'] = ['ray start --head --block']
+    try:
+        plan(sts, stale_nifi, cluster, [bad])
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('An unknown existing head setting must not trigger guessed Pod deletion')
+    stale_ray['spec']['containers'][0]['args'] = bad['spec']['containers'][0]['args']
+    deletes.clear()
+    try:
+        module['refresh']()
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('Unsafe refresh plan was accepted')
+    assert deletes == []  # Validate the complete plan before deleting even the stale NiFi Pod.
+    print('PASS fresh tenant Pods retained; only stale revisions/CPU settings refreshed with UID preconditions')
+
+
 if __name__ == '__main__':
     generated = check_pinned_and_generated()
     check_image_fallback(generated)
@@ -803,6 +877,7 @@ if __name__ == '__main__':
     check_forward_lifecycle()
     check_service_controls()
     check_docker_bridge_guard(generated)
+    check_stale_tenant_refresh(generated)
     check_registry_recovery(generated)
     check_readonly_source_git()
     check_public_sandbox_readiness()
