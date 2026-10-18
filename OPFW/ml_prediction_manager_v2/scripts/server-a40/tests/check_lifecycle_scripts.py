@@ -30,7 +30,7 @@ def without_reexec(text):
 
 
 def check_restart():
-    source = without_reexec((ROOT / 'fedit-restart.sh').read_text(encoding='utf-8'))
+    source = without_reexec((ROOT / 'pman-restart.sh').read_text(encoding='utf-8'))
     output = shell(r'''set -Eeuo pipefail
 test_root=$(mktemp -d)
 trap 'rm -rf -- "$test_root"' EXIT
@@ -46,35 +46,35 @@ cat > "$test_root/bin/flock" <<'MOCK'
 exit "${LOCK_FAIL:-0}"
 MOCK
 printf '#!/usr/bin/env bash\nexit 0\n' > "$test_root/bin/chown"
-cat > "$test_root/scripts/fedit-stop.sh" <<'MOCK'
+cat > "$test_root/scripts/pman-stop.sh" <<'MOCK'
 echo stop >> "$TEST_ROOT/events"
 exit "${STOP_FAIL:-0}"
 MOCK
-cat > "$test_root/scripts/fedit-start.sh" <<'MOCK'
+cat > "$test_root/scripts/pman-start.sh" <<'MOCK'
 echo "start:${FEDIT_REGISTRY_CONTAINER:-missing}" >> "$TEST_ROOT/events"
 exit "${START_FAIL:-0}"
 MOCK
 chmod +x "$test_root/bin/"*
-cat > "$test_root/scripts/fedit-restart.sh" <<'RESTART_SCRIPT'
+cat > "$test_root/scripts/pman-restart.sh" <<'RESTART_SCRIPT'
 ''' + source + r'''
 RESTART_SCRIPT
 export FEDIT_REGISTRY_CONTAINER=custom-registry
-bash "$test_root/scripts/fedit-restart.sh" > "$test_root/log"
+bash "$test_root/scripts/pman-restart.sh" > "$test_root/log"
 [[ "$(cat "$test_root/events")" == $'stop\nstart:custom-registry' ]]
 grep -Fq '[PASS]' "$test_root/log"
 for pair in STOP_FAIL:17 START_FAIL:23 LOCK_FAIL:1; do
   rm -f "$test_root/events"
   variable=${pair%:*}; expected=${pair#*:}
   rc=0
-  env "$variable=$expected" bash "$test_root/scripts/fedit-restart.sh" > "$test_root/log" 2>&1 || rc=$?
+  env "$variable=$expected" bash "$test_root/scripts/pman-restart.sh" > "$test_root/log" 2>&1 || rc=$?
   [[ "$rc" == "$expected" ]]
   ! grep -Fq '[PASS]' "$test_root/log"
   if [[ "$variable" == STOP_FAIL ]]; then [[ "$(cat "$test_root/events")" == stop ]]; fi
   if [[ "$variable" == LOCK_FAIL ]]; then [[ ! -e "$test_root/events" ]]; fi
 done
-rm -f "$test_root/scripts/fedit-start.sh" "$test_root/events"
+rm -f "$test_root/scripts/pman-start.sh" "$test_root/events"
 rc=0
-bash "$test_root/scripts/fedit-restart.sh" > "$test_root/log" 2>&1 || rc=$?
+bash "$test_root/scripts/pman-restart.sh" > "$test_root/log" 2>&1 || rc=$?
 [[ "$rc" == 1 && ! -e "$test_root/events" ]]
 echo 'PASS restart order, custom Registry, stop/start exit codes, lock and dependency preflight'
 ''')
@@ -82,7 +82,7 @@ echo 'PASS restart order, custom Registry, stop/start exit codes, lock and depen
 
 
 def check_uninstall():
-    source = without_reexec((ROOT / 'fedit-uninstall.sh').read_text(encoding='utf-8'))
+    source = without_reexec((ROOT / 'pman-uninstall.sh').read_text(encoding='utf-8'))
     # The real tar/mv/rm/cmp/grep run only on files under the fixture's temp root.
     for prefix in ('/etc/', '/var/lib/', '/opt/', '/data'):
         source = source.replace(prefix, '${TEST_ROOT}' + prefix)
@@ -156,7 +156,7 @@ cat > "$test_root/bin/timeout" <<'MOCK'
 shift 3
 exec "$@"
 MOCK
-cat > "$test_root/scripts/fedit-stop.sh" <<'MOCK'
+cat > "$test_root/scripts/pman-stop.sh" <<'MOCK'
 echo stop >> "$TEST_ROOT/events"
 exit "${STOP_FAIL:-0}"
 MOCK
@@ -168,40 +168,40 @@ cat > "$test_root/bin/tar" <<'MOCK'
 exec "$REAL_TAR" "$@"
 MOCK
 chmod +x "$test_root/bin/"*
-cat > "$test_root/scripts/fedit-uninstall.sh" <<'UNINSTALL_SCRIPT'
+cat > "$test_root/scripts/pman-uninstall.sh" <<'UNINSTALL_SCRIPT'
 ''' + source + r'''
 UNINSTALL_SCRIPT
 '''
     scenarios = {
         'dry-run': r'''
-bash "$test_root/scripts/fedit-uninstall.sh" --dry-run > "$test_root/log"
+bash "$test_root/scripts/pman-uninstall.sh" --dry-run > "$test_root/log"
 [[ ! -f "$test_root/events" && -f "$state/cluster-owned" ]]
 [[ ! -f "$test_root/home/pman-server-725eb2ed/control.lock" ]]
 ''',
         'ownership': r'''
 rm "$state/cluster-owned"
 rc=0
-bash "$test_root/scripts/fedit-uninstall.sh" > "$test_root/log" 2>&1 || rc=$?
+bash "$test_root/scripts/pman-uninstall.sh" > "$test_root/log" 2>&1 || rc=$?
 [[ "$rc" == 1 && ! -f "$test_root/events" ]]
 ''',
         'foreign-cluster': r'''
 echo '--service-cluster-ip-range=192.168.1.0/24' > "$test_root/etc/kubernetes/manifests/kube-apiserver.yaml"
 rc=0
-bash "$test_root/scripts/fedit-uninstall.sh" > "$test_root/log" 2>&1 || rc=$?
+bash "$test_root/scripts/pman-uninstall.sh" > "$test_root/log" 2>&1 || rc=$?
 [[ "$rc" == 1 && ! -f "$test_root/events" ]]
 ''',
         'locked': r'''
 rc=0
-LOCK_FAIL=1 bash "$test_root/scripts/fedit-uninstall.sh" > "$test_root/log" 2>&1 || rc=$?
+LOCK_FAIL=1 bash "$test_root/scripts/pman-uninstall.sh" > "$test_root/log" 2>&1 || rc=$?
 [[ "$rc" == 1 && ! -f "$test_root/events" ]]
 ''',
         'foreign-kubeconfig': r'''
 echo foreign-context > "$test_root/home/.kube/config"
-bash "$test_root/scripts/fedit-uninstall.sh" > "$test_root/log" 2>&1
+bash "$test_root/scripts/pman-uninstall.sh" > "$test_root/log" 2>&1
 [[ $(cat "$test_root/home/.kube/config") == foreign-context ]]
 ''',
         'success': r'''
-bash "$test_root/scripts/fedit-uninstall.sh" > "$test_root/log" 2>&1
+bash "$test_root/scripts/pman-uninstall.sh" > "$test_root/log" 2>&1
 grep -Fxq 'EXIT=0' "$test_root/log"
 grep -Fxq 'STAGE=complete' "$test_root/log"
 [[ ! -d "$state" && ! -e "$test_root/home/.kube/config" ]]
@@ -211,7 +211,7 @@ tar -tf "$report/cluster-backup.private.tar" | grep -Fq 'var/lib/etcd/retained.d
 [[ -f "$report/previous-install-state/cluster-owned" ]]
 sha256sum -c "$report/backup.sha256"
 before=$(wc -l < "$test_root/events")
-bash "$test_root/scripts/fedit-uninstall.sh" > "$test_root/log" 2>&1
+bash "$test_root/scripts/pman-uninstall.sh" > "$test_root/log" 2>&1
 grep -Fq 'already uninstalled' "$test_root/log"
 [[ "$(wc -l < "$test_root/events")" == "$before" ]]
 ''',
@@ -230,7 +230,7 @@ grep -Fq 'already uninstalled' "$test_root/log"
         stop_fail = 17 if phase == 'stop' else 0
         shell(setup + f'export FAIL_PHASE={phase} STOP_FAIL={stop_fail}\nexpected={expected}\n' + r'''
 rc=0
-bash "$test_root/scripts/fedit-uninstall.sh" > "$test_root/log" 2>&1 || rc=$?
+bash "$test_root/scripts/pman-uninstall.sh" > "$test_root/log" 2>&1 || rc=$?
 if [[ "$rc" != "$expected" ]]; then cat "$test_root/log"; exit 1; fi
 ! grep -Fq '[PASS] Platform uninstalled.' "$test_root/log"
 if [[ "$FAIL_PHASE" != cleanup ]]; then [[ -f "$state/cluster-owned" ]]; fi
@@ -243,7 +243,7 @@ fi
 
 
 def check_registry_reader():
-    text = (ROOT / 'fedit-uninstall.sh').read_text(encoding='utf-8')
+    text = (ROOT / 'pman-uninstall.sh').read_text(encoding='utf-8')
     code = text.split("<<'PY'\n", 1)[1].split('\nPY\n', 1)[0]
     with tempfile.TemporaryDirectory() as folder:
         config = Path(folder) / 'install.env'
@@ -267,7 +267,7 @@ def check_registry_reader():
 
 
 if __name__ == '__main__':
-    for path in ROOT.glob('fedit-*.sh'):
+    for path in ROOT.glob('pman-*.sh'):
         subprocess.run([BASH, '-n', str(path)], check=True)
     check_restart()
     check_uninstall()

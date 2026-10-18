@@ -324,7 +324,7 @@ def check_docker_bridge_guard(generated):
     wrapper = (ROOT / 'server-install-725eb2ed.sh').read_text(encoding='utf-8')
     embedded = wrapper.split("<<'DOCKER_BRIDGE_PY'\n", 1)[1].split('DOCKER_BRIDGE_PY\n', 1)[0]
     assert embedded == helper.read_text(encoding='utf-8')
-    start = (ROOT / 'fedit-start.sh').read_text(encoding='utf-8')
+    start = (ROOT / 'pman-start.sh').read_text(encoding='utf-8')
     assert start.split("<<'DOCKER_BRIDGE_PY'\n", 1)[1].split('DOCKER_BRIDGE_PY\n', 1)[0] == embedded
     assert 'ensure_docker_bridge_gateway\n  ensure_local_registry' in generated
     assert '"${2:-}" == buildx' in generated
@@ -368,8 +368,8 @@ def check_docker_bridge_guard(generated):
 
 def check_service_controls():
     # Replace only root re-exec; execute the real bodies against harmless mocks.
-    start = (ROOT / 'fedit-start.sh').read_text(encoding='utf-8')
-    stop = (ROOT / 'fedit-stop.sh').read_text(encoding='utf-8')
+    start = (ROOT / 'pman-start.sh').read_text(encoding='utf-8')
+    stop = (ROOT / 'pman-stop.sh').read_text(encoding='utf-8')
     reexec = 'if (( EUID != 0 )); then exec sudo bash "$0" "$@"; fi'
     assert start.count(reexec) == stop.count(reexec) == 1
     prelude = r'''
