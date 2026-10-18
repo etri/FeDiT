@@ -43,7 +43,10 @@ python -m unittest discover -s tests -p test_container_port.py -v
 API 및 서비스 모의 검사는 실제 클러스터/Docker를 변경하지 않는다.
 로컬에서 리소스 격리 회귀 검사 29개와 기존 Notebook 포트 회귀 검사 3개가
 통과했고, 변경된 Python 코드와 이미지 화면 JavaScript의 문법도 확인했다.
-목표 A40 서버에 이 변경을 배포하거나 브라우저로 확인한 결과는 아직 없다.
+2026-10-18 새 Ubuntu 22.04 WSL2 설치에서 실제 사용자 이미지 등록·목록·태그·삭제,
+공유 이미지 ID의 사용자 태그 삭제 시 플랫폼 태그 보존, 시스템 namespace 차단과
+브라우저 Images·Volumes 화면을 확인했다. 최신 코드의 목표 A40 직접 실행 결과는
+아니다. [실행 환경과 증거](../scripts/server-a40/VALIDATION.md)를 참조한다.
 
 ## 남은 실행 격리와 배포 조건
 
@@ -53,8 +56,8 @@ API 및 서비스 모의 검사는 실제 클러스터/Docker를 변경하지 �
 플랫폼 관리용 권한 분리를 별도로 설계·이관해야 한다. 이 변경이 호스트 권한이나
 외부 Kubeflow 앱 자체의 권한을 모두 분리했다고 해석하지 않는다.
 
-`scripts/server-a40/install.sh`의 성공한 기본 설치 소스는 여전히 `725eb2ed`에
-고정되어 있다. git pull만 하거나 해당 설치기를 재실행해도 이 앱 변경이 기존
-서버에 반영되지 않는다. 변경된 백엔드/정적 파일로 이미지를 갱신하고 배포한 뒤
-목표 서버에서 이미지 목록·차단 응답·Notebook/모델 기능을 재검증해야 한다.
-검증된 설치 파일의 SHA-256을 바꾸지 않기 위해 이번 변경에서는 설치기를 수정하지 않는다.
+`scripts/server-a40/install.sh`는 플랫폼 기본 설치 소스 `725eb2ed` 설치 후 현재
+checkout 커밋의 앱·정적 파일을 자동 배포하고 실제 PVC 시험까지 실행한다.
+기존 서버에서 앱만 갱신하려면 `update-user-sandbox.sh`와 `verify-user-sandbox.sh`를
+사용한다. git pull만으로 실행 중인 앱이 갱신되는 것은 아니다.
+이미지·볼륨 외 Notebook/모델 기능 전체의 실서버 동작까지 검증한 결과는 아니다.

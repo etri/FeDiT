@@ -50,10 +50,11 @@ bash fedit-stop.sh    # 전체 중지
 중지는 서버의 모든 Docker 컨테이너를 포함한다. 데이터와 부팅 시 활성화
 설정은 변경하지 않는다. 시작은 Registry와 FeDiT 컨테이너도 직접 복구한다.
 
-목표 A40 서버에서 원본 설치기와 Keycloak v2 보정 조합의 설치·자동 시험 통과를
-확인했다. 이후 추가한 단일 진입점·종료 보정·서비스 제어 변경은 로컬 검사까지
-완료했으며 새 클린 서버에서 최신 묶음 전체를 재설치한 결과는 아직 없다.
-UI에서 실제 데이터로 AutoML 학습부터 서빙까지의 전체 흐름은 별도 확인한다.
+2026-10-18 공식 Ubuntu 22.04 rootfs로 새 WSL2 환경을 만들고 최신 스크립트의
+전체 설치, 실제 사용자 이미지·PVC 수명주기, 서비스 중지·시작과 재시작 후
+CPU/GPU 학습 시험을 통과했다. 시험 GPU는 RTX 3050 Laptop이며, 최신 코드를
+목표 A40에서 직접 실행한 결과는 아니다. Images·Volumes 화면도 실제 브라우저에서
+확인했다. 전체 AutoML→서빙, 호스트 재부팅과 부하 시험은 별도 항목이다.
 
 - [전체 설치 가이드](OPFW/ml_prediction_manager_v2/guide.txt)
 - [설치·서비스 제어 상세 설명](OPFW/ml_prediction_manager_v2/scripts/server-a40/README.md)

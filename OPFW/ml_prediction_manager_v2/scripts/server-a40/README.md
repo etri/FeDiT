@@ -7,7 +7,8 @@
 
 ## 설치와 자동 구동 시험
 
-이 디렉터리 전체를 서버로 복사하거나 아래 명령으로 저장소를 받아 실행한다.
+저장소 전체를 서버로 복사하거나 아래 명령으로 clone한 뒤 이 디렉터리에서 실행한다.
+설치 후 현재 커밋의 앱을 반영하므로 설치에는 전체 저장소가 필요하다.
 기존 설치와 같은 일반 로그인 계정을 사용한다. 필요할 때 sudo 비밀번호와
 비공개 GitHub 저장소 읽기 인증을 입력한다.
 
@@ -21,7 +22,7 @@ bash install.sh
 뒤 최신 커밋을 받아 같은 폴더에서 실행한다. 전체 가이드는
 [guide.txt](../../guide.txt)를 참조한다.
 
-`install.sh`는 먼저 검증된 원본 설치기의 SHA-256을 확인하고 실행한다.
+`install.sh`는 먼저 함께 배포한 보완 설치기의 SHA-256을 확인하고 실행한다.
 Keycloak 단계에서 실패하고 진단 응답이 정확히 `HTTPS required`인 경우에만
 로컬 포트 포워딩을 이용해 자동 재개한다. 첫 실행의 실패 보고서와 재개의
 최종 보고서가 각각 남으며, 마지막 실행의 `EXIT=0`, `STAGE=complete`,
@@ -75,6 +76,8 @@ Kubernetes API 및 노드 Ready를 기다린다. 애플리케이션 Pod 전체�
 접속까지 보장하는 판정은 아니며, 표시된 Pod READY와 브라우저를 확인한다.
 명시적으로 중지한 Docker 컨테이너는 데몬 재시작만으로 복구되지 않으므로,
 시작 스크립트가 `pm-verification-registry`와 `fedit-fe`를 직접 시작한다.
+설치기 소유의 Docker bridge에서 IPAM gateway와 실제 주소가 달라졌으면 필요한
+주소만 복원한다. 이 helper도 시작 파일 안에 포함되어 두 파일만 복사해 쓸 수 있다.
 레지스트리 이름을 변경한 설치는 `sudo FEDIT_REGISTRY_CONTAINER=변경한이름 bash fedit-start.sh`로 실행한다.
 
 중지는 접근용 유닛과 설치 재개 유닛, kubelet을 먼저 중지하고 Kubernetes
@@ -110,6 +113,9 @@ Ubuntu 22.04, CPU 4개, RAM 31GiB, NVIDIA A40 46068MiB, 드라이버 535.309.01 
 위 과거 A40 성공 기록의 설치기 SHA-256 (현행 파일의 해시와 구분):
 `78b2c8ba0182320e5b06def1c2ce46ec4c55836858ab5c6d059d38b7b0c6ac3a`.
 
-서버 통과 범위와 후속 변경의 로컬 검증은 [VALIDATION.md](VALIDATION.md)에 구분해
-기록한다. 실제 사용자 데이터로 UI 작업 생성 → AutoML 분산 학습 → 서빙,
+최신 묶음도 공식 Ubuntu 22.04 rootfs의 새 WSL2 환경에서 설치부터 구동 시험까지
+통과했다. RTX 3050 Laptop으로 시험했으며, 현재 코드를 목표 A40에서 직접 실행한
+결과는 아니다. 실제 이미지·PVC 보호, 독립 시작/중지 파일, 재시작 후 학습과
+Images·Volumes 화면 확인 결과는 [VALIDATION.md](VALIDATION.md)에 기록한다.
+실제 사용자 데이터로 UI 작업 생성 → AutoML 분산 학습 → 서빙,
 외부 PC 접속, 재부팅 복구, 부하 시험까지 완료했다는 뜻은 아니다.
