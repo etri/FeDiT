@@ -3,7 +3,7 @@ set -Eeuo pipefail
 umask 077
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 original="${FEDIT_INSTALLER_PATH:-$here/server-install-725eb2ed.sh}"
-expected=3519003639a60941d08f9a7f5e6e5865015dfb13e40d0f577cc9165bbafbde77
+expected=8c24984e888eec190d83bc9f1bc35ca37dfc3e2f5018ed3909b01dc46546bbee
 printf '%s  %s\n' "$expected" "$original" | sha256sum -c -
 sudo -v
 run=$(mktemp -d "$HOME/pman-keycloak-resume.XXXXXXXX")

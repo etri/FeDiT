@@ -32,7 +32,7 @@ def require(result):
 
 def check_pinned_and_generated():
     original = ROOT / 'server-install-725eb2ed.sh'
-    assert hashlib.sha256(original.read_bytes()).hexdigest() == '3519003639a60941d08f9a7f5e6e5865015dfb13e40d0f577cc9165bbafbde77'
+    assert hashlib.sha256(original.read_bytes()).hexdigest() == '8c24984e888eec190d83bc9f1bc35ca37dfc3e2f5018ed3909b01dc46546bbee'
     for path in ROOT.glob('*.sh'):
         subprocess.run([BASH, '-n', str(path)], check=True)
     repair = (ROOT / 'resume-keycloak.sh').read_text(encoding='utf-8')
@@ -816,7 +816,7 @@ def check_label_startup_profile(generated):
         # Execute the actual generic resource exclusion: current Label settings
         # must survive the post-tenant tuning, while other deployments still change.
         case = 'case "${namespace}/${resource_name}" in' + profile.split('case "${namespace}/${resource_name}" in', 1)[1].split('esac', 1)[0] + 'esac'
-        script = 'set -Eeuo pipefail\nfor resource_name in deployment.apps/label-studio deployment.apps/ordinary; do\nnamespace=kubeflow\n' + case + '\necho "APPLY:$resource_name"\ndone\n'
+        script = 'set -Eeuo pipefail\nfor resource_name in deployment.apps/label-studio statefulset.apps/pm-postgresql deployment.apps/ordinary; do\nnamespace=kubeflow\n' + case + '\necho "APPLY:$resource_name"\ndone\n'
         result = shell(script)
         require(result)
         assert result.stdout.strip() == 'APPLY:deployment.apps/ordinary'
@@ -832,6 +832,47 @@ def check_label_startup_profile(generated):
         patches = patch.read_text(encoding='utf-8').splitlines()
         assert len(patches) == 1 and patches[0].startswith('kubeflow\tordinary\t')
     print('PASS Label startup probe and dedicated resources survive generic post-tenant tuning without another rollout')
+
+
+def check_postgres_and_proxy_profile(generated):
+    import yaml
+    wrapper = (ROOT / 'server-install-725eb2ed.sh').read_text(encoding='utf-8')
+    patch = wrapper.split("<<'POSTGRES_READINESS_PY'\n", 1)[1].split('\nPOSTGRES_READINESS_PY\n', 1)[0]
+    baseline = subprocess.check_output(['git', '-C', str(ROOT.parents[3]), 'show',
+        '725eb2edeec1b756b45abb809cdc4dc971a890bf:OPFW/ml_prediction_manager_v2/scripts/k8s/verification/postgres-keycloak.yaml.template'])
+    with tempfile.TemporaryDirectory() as temp:
+        path = Path(temp) / 'postgres.yaml.template'
+        path.write_bytes(baseline)
+        expected = list(yaml.safe_load_all(baseline))
+        for doc in expected:
+            if doc.get('kind') == 'StatefulSet' and doc.get('metadata', {}).get('name') == 'pm-postgresql':
+                container = doc['spec']['template']['spec']['containers'][0]
+                container['resources']['requests']['cpu'] = '100m'
+                container['readinessProbe'].update(timeoutSeconds=10, failureThreshold=6)
+        sys.argv = ['patch', str(path)]
+        exec(compile(patch, 'actual-postgres-template-patch', 'exec'), {})
+        assert list(yaml.safe_load_all(path.read_text(encoding='utf-8'))) == expected
+        # The semantic equality above also protects Secret placeholders, SQL,
+        # storage claims, the pg_isready command and all unrelated documents.
+    profile = generated.split('apply_cpu_single_node_resource_profile() {', 1)[1].split('\nrestore_full_kubeflow_workloads()', 1)[0]
+    start = profile.index('        case "${namespace}/${resource_name}" in\n          kubeflow/deployment.apps/kuberay-operator|')
+    case = profile[start:profile.index('esac', start) + len('esac')]
+    setup = '''set -Eeuo pipefail
+kubectl() { printf '%s\\n' "${@: -1}"; }
+for pair in kubeflow:deployment.apps/kuberay-operator kubeflow-user-example-com:deployment.apps/ml-pipeline-ui-artifact kubeflow-user-example-com:deployment.apps/ml-pipeline-visualizationserver kubeflow:deployment.apps/ordinary other-user:deployment.apps/ml-pipeline-ui-artifact; do
+namespace=${pair%%:*}
+resource_name=${pair#*:}
+'''
+    result = shell(setup + case + '\ndone\n')
+    require(result)
+    patches = [json.loads(line) for line in result.stdout.splitlines()]
+    assert len(patches) == 3
+    for item in patches:
+        assert item['spec']['template']['metadata']['annotations'] == {
+            'sidecar.istio.io/proxyCPU': '10m', 'sidecar.istio.io/proxyMemory': '64Mi'}
+        assert item['spec']['strategy'] == {'type': 'RollingUpdate',
+            'rollingUpdate': {'maxSurge': 0, 'maxUnavailable': 1}}
+    print('PASS PostgreSQL readiness/resources preserve credentials and PVCs; exact three proxy templates avoid CPU surge')
 
 
 def check_http_readiness_deadline(generated):
@@ -853,7 +894,7 @@ def check_http_readiness_deadline(generated):
                 self.send_response(status)
                 self.end_headers()
                 self.wfile.write(b'ok')
-            except (BrokenPipeError, ConnectionResetError):
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
                 pass
     server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
     server.daemon_threads = True
@@ -995,6 +1036,7 @@ if __name__ == '__main__':
     check_docker_bridge_guard(generated)
     check_optional_storage_scan()
     check_label_startup_profile(generated)
+    check_postgres_and_proxy_profile(generated)
     check_http_readiness_deadline(generated)
     check_stale_tenant_refresh(generated)
     check_registry_recovery(generated)

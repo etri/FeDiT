@@ -828,6 +828,17 @@ profile=s[profile_start:profile_end]
 profile=profile.replace('--requests=cpu=25m,memory=64Mi','--requests=cpu=10m,memory=64Mi')
 profile=profile.replace('--requests=cpu=250m,memory=256Mi','--requests=cpu=100m,memory=256Mi')
 profile=profile.replace('25m CPU / 64Mi memory','10m CPU / 64Mi memory')
+# These three deployments come from separate charts/tenant provisioners, not
+# the full Kubeflow manifest that already sets the 10m Istio annotation.
+proxy_anchor='        kubectl -n "$namespace" set resources "$resource_name" --all --containers=\'*\' \\\n'
+assert profile.count(proxy_anchor)==1, 'Pinned generic resource update changed'
+proxy_patch='''        case "${namespace}/${resource_name}" in
+          kubeflow/deployment.apps/kuberay-operator|kubeflow-user-example-com/deployment.apps/ml-pipeline-ui-artifact|kubeflow-user-example-com/deployment.apps/ml-pipeline-visualizationserver)
+            kubectl -n "$namespace" patch "$resource_name" --type=merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":0,"maxUnavailable":1}},"template":{"metadata":{"annotations":{"sidecar.istio.io/proxyCPU":"10m","sidecar.istio.io/proxyMemory":"64Mi"}}}}}'
+            ;;
+        esac
+'''
+profile=profile.replace(proxy_anchor,proxy_patch+proxy_anchor)
 s=s[:profile_start]+profile+s[profile_end:]
 # Build the frontend while only the small Kubernetes core is running. Keeping
 # all Kubeflow workloads live during webpack can exhaust memory on this lab.
@@ -880,7 +891,7 @@ s=s.replace(kubernetes_stage,kubernetes_stage+'\nrun_always "WSL host swap with 
 # tuning must not change its Pod template after its successful deployment wait.
 label_case='kubeflow-user-example-com/deployment.apps/pm-mlflow|kubeflow-user-example-com/statefulset.apps/nifi)'
 assert s.count(label_case)==1, 'Pinned tenant resource exclusions changed'
-s=s.replace(label_case,label_case[:-1]+'|kubeflow/deployment.apps/label-studio)')
+s=s.replace(label_case,label_case[:-1]+'|kubeflow/statefulset.apps/pm-postgresql|kubeflow/deployment.apps/label-studio)')
 probe_anchor='    for item in document.get("items", []):\n        containers = []'
 assert s.count(probe_anchor)==1, 'Pinned generic probe updater changed'
 s=s.replace(probe_anchor,'    for item in document.get("items", []):\n        if (item.get("metadata", {}).get("namespace"), item.get("metadata", {}).get("name")) == ("kubeflow", "label-studio"):\n            continue\n        containers = []')
@@ -954,6 +965,21 @@ assert s.count(old)==1, 'Pinned NiFi apt initialization changed'
 new="RUN sed -i 's|http://deb.debian.org/debian-security|https://archive.debian.org/debian-security|g' /etc/apt/sources.list && apt-get -o Acquire::Retries=3 update "
 p.write_text(s.replace(old,new))
 PY
+  # Keep database readiness from flapping solely because a busy small node
+  # cannot spawn pg_isready within Kubernetes' one-second default.
+  python3 - "$RUNTIME/k8s/verification/postgres-keycloak.yaml.template" <<'POSTGRES_READINESS_PY'
+import pathlib,sys,yaml
+p=pathlib.Path(sys.argv[1]); docs=list(yaml.safe_load_all(p.read_text(encoding='utf-8'))); changed=0
+for doc in docs:
+    if not isinstance(doc,dict) or doc.get('kind')!='StatefulSet' or doc.get('metadata',{}).get('name')!='pm-postgresql': continue
+    for container in doc['spec']['template']['spec']['containers']:
+        if container.get('name')!='postgresql': continue
+        container['resources']['requests']['cpu']='100m'
+        container['readinessProbe'].update(timeoutSeconds=10,failureThreshold=6)
+        changed+=1
+assert changed==1, 'Pinned PostgreSQL readiness template changed'
+p.write_text(yaml.safe_dump_all(docs,sort_keys=False),encoding='utf-8')
+POSTGRES_READINESS_PY
   python3 - "$BUILD_TREE/OPFW/ml_prediction_manager_v2/app/services" <<'PY'
 import ast,pathlib,sys
 changed=0
