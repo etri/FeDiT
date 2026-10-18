@@ -876,6 +876,61 @@ s=s.replace('install_kubernetes() {',wsl_swap_helper+'install_kubernetes() {',1)
 kubernetes_stage='run_stage 30-kubernetes "Kubernetes 단일 노드 구성" install_kubernetes'
 assert s.count(kubernetes_stage)==1, 'Pinned Kubernetes stage changed'
 s=s.replace(kubernetes_stage,kubernetes_stage+'\nrun_always "WSL host swap with Kubernetes NoSwap" configure_wsl_host_swap')
+# Label Studio has a dedicated startup/resource profile. Generic post-tenant
+# tuning must not change its Pod template after its successful deployment wait.
+label_case='kubeflow-user-example-com/deployment.apps/pm-mlflow|kubeflow-user-example-com/statefulset.apps/nifi)'
+assert s.count(label_case)==1, 'Pinned tenant resource exclusions changed'
+s=s.replace(label_case,label_case[:-1]+'|kubeflow/deployment.apps/label-studio)')
+probe_anchor='    for item in document.get("items", []):\n        containers = []'
+assert s.count(probe_anchor)==1, 'Pinned generic probe updater changed'
+s=s.replace(probe_anchor,'    for item in document.get("items", []):\n        if (item.get("metadata", {}).get("namespace"), item.get("metadata", {}).get("name")) == ("kubeflow", "label-studio"):\n            continue\n        containers = []')
+label_start=s.index('render_label_studio() {')
+label_end=s.index('\ndeploy_prediction_manager()',label_start)
+label=s[label_start:label_end]
+label_anchor='Path(output).write_text(text, encoding="utf-8")'
+assert label.count(label_anchor)==1, 'Pinned Label Studio renderer changed'
+label_patch='''
+import yaml
+label_docs=list(yaml.safe_load_all(text))
+for label_doc in label_docs:
+    if not isinstance(label_doc,dict) or label_doc.get('kind')!='Deployment' or label_doc.get('metadata',{}).get('name')!='label-studio':
+        continue
+    for label_container in label_doc['spec']['template']['spec']['containers']:
+        if label_container.get('name')!='label-studio': continue
+        if compact.lower() in {'1','true','yes','on'}:
+            label_container['resources']={'requests':{'cpu':'100m','memory':'128Mi'},'limits':{'cpu':'1','memory':'2Gi'}}
+        label_container['startupProbe']={'httpGet':{'path':'/health','port':'http'},'timeoutSeconds':10,'periodSeconds':10,'failureThreshold':90}
+        for label_probe in ('readinessProbe','livenessProbe'):
+            if label_probe in label_container: label_container[label_probe]['timeoutSeconds']=10
+text=yaml.safe_dump_all(label_docs,sort_keys=False)
+'''
+label=label.replace(label_anchor,label_patch+label_anchor)
+s=s[:label_start]+label+s[label_end:]
+http_start=s.index('wait_for_http_endpoint() {')
+http_end=s.index('\nconfigure_host_firewall_ports()',http_start)
+s=s[:http_start]+'''wait_for_http_endpoint() {
+  local url="$1" name="$2" budget="${SERVICE_HTTP_READY_TIMEOUT_SECONDS:-1200}" code remaining request_limit pause deadline
+  [[ "$budget" =~ ^[1-9][0-9]*$ ]] || { echo 'Invalid service HTTP readiness timeout' >&2; return 1; }
+  deadline=$((SECONDS + budget))
+  while (( SECONDS < deadline )); do
+    remaining=$((deadline - SECONDS))
+    request_limit=$remaining
+    (( request_limit <= 10 )) || request_limit=10
+    code="$(curl -sS --connect-timeout 3 --max-time "$request_limit" -o /dev/null -w '%{http_code}' "$url" 2>/dev/null || true)"
+    if [[ "$code" =~ ^2[0-9][0-9]$ ]]; then
+      record PASS "${name} HTTP 준비" "${url} (${code})"
+      return 0
+    fi
+    remaining=$((deadline - SECONDS))
+    (( remaining > 0 )) || break
+    pause=$remaining
+    (( pause <= 2 )) || pause=2
+    sleep "$pause"
+  done
+  echo "${name} HTTP endpoint가 ${budget}초 안에 준비되지 않았습니다: ${url} (last=${code:-000})" >&2
+  return 1
+}
+'''+s[http_end:]
 # Keep fresh tenant initialization intact; only an older revision/CPU setting needs a refresh.
 tenant_start=s.index('  # StatefulSet의 Pending 이전 revision Pod는')
 tenant_end=s.index('  wait_rollout_if_exists kubeflow-user-example-com statefulset nifi 1200s',tenant_start)

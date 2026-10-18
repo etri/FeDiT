@@ -32,7 +32,7 @@ def require(result):
 
 def check_pinned_and_generated():
     original = ROOT / 'server-install-725eb2ed.sh'
-    assert hashlib.sha256(original.read_bytes()).hexdigest() == '456d06fcfe773711afb6f6b3e0176979881a460515c7e0d37bd94451ebefdbda'
+    assert hashlib.sha256(original.read_bytes()).hexdigest() == '3519003639a60941d08f9a7f5e6e5865015dfb13e40d0f577cc9165bbafbde77'
     for path in ROOT.glob('*.sh'):
         subprocess.run([BASH, '-n', str(path)], check=True)
     repair = (ROOT / 'resume-keycloak.sh').read_text(encoding='utf-8')
@@ -792,6 +792,91 @@ printf '{"error_description":"%s"}\n' "${MOCK_ERROR:-HTTPS required}" > "$output
     print('PASS real curl recovery from empty reply and HTTP 503 without concatenating error responses')
 
 
+def check_label_startup_profile(generated):
+    import yaml
+    render = generated.split('render_label_studio() {', 1)[1].split('\ndeploy_prediction_manager()', 1)[0]
+    code = render.split("<<'PY'\n", 1)[1].split('\nPY\n', 1)[0]
+    baseline = subprocess.check_output(['git', '-C', str(ROOT.parents[3]), 'show',
+        '725eb2edeec1b756b45abb809cdc4dc971a890bf:OPFW/ml_prediction_manager_v2/k8s/optional/label-studio.yaml'])
+    profile = generated.split('apply_cpu_single_node_resource_profile() {', 1)[1].split('\nrestore_full_kubeflow_workloads()', 1)[0]
+    with tempfile.TemporaryDirectory() as temp:
+        temp = Path(temp)
+        source, output = temp / 'source.yaml', temp / 'label.yaml'
+        source.write_bytes(baseline)
+        sys.argv = ['render', str(source), str(output), '127.0.0.1:5000/label-studio:1.18.0',
+                    'http://gateway', 'http://public/label-studio', 'admin@example.com', 'true']
+        exec(compile(code, 'actual-label-renderer', 'exec'), {})
+        deployment = next(d for d in yaml.safe_load_all(output.read_text(encoding='utf-8')) if d.get('kind') == 'Deployment')
+        container = deployment['spec']['template']['spec']['containers'][0]
+        assert container['resources'] == {'requests': {'cpu': '100m', 'memory': '128Mi'},
+                                         'limits': {'cpu': '1', 'memory': '2Gi'}}
+        assert container['startupProbe'] == {'httpGet': {'path': '/health', 'port': 'http'},
+            'timeoutSeconds': 10, 'periodSeconds': 10, 'failureThreshold': 90}
+        assert 'livenessProbe' in container and 'readinessProbe' in container
+        # Execute the actual generic resource exclusion: current Label settings
+        # must survive the post-tenant tuning, while other deployments still change.
+        case = 'case "${namespace}/${resource_name}" in' + profile.split('case "${namespace}/${resource_name}" in', 1)[1].split('esac', 1)[0] + 'esac'
+        script = 'set -Eeuo pipefail\nfor resource_name in deployment.apps/label-studio deployment.apps/ordinary; do\nnamespace=kubeflow\n' + case + '\necho "APPLY:$resource_name"\ndone\n'
+        result = shell(script)
+        require(result)
+        assert result.stdout.strip() == 'APPLY:deployment.apps/ordinary'
+        # Execute the actual probe updater against the rendered Label deployment.
+        # Its startup budget must not be overwritten by the generic 12-failure profile.
+        probe_code = profile.split('python3 - "$probe_source_file" "$probe_patch_file" <<\'PY\'\n', 1)[1].split('\nPY\n', 1)[0]
+        other = {'metadata': {'namespace': 'kubeflow', 'name': 'ordinary'},
+                 'spec': {'template': {'spec': {'containers': [{'name': 'app', 'livenessProbe': {'timeoutSeconds': 1}}]}}}}
+        data, patch = temp / 'deployments.json', temp / 'patches.tsv'
+        data.write_text(json.dumps({'items': [deployment, other]}), encoding='utf-8')
+        sys.argv = ['probe', str(data), str(patch)]
+        exec(compile(probe_code, 'actual-probe-updater', 'exec'), {})
+        patches = patch.read_text(encoding='utf-8').splitlines()
+        assert len(patches) == 1 and patches[0].startswith('kubeflow\tordinary\t')
+    print('PASS Label startup probe and dedicated resources survive generic post-tenant tuning without another rollout')
+
+
+def check_http_readiness_deadline(generated):
+    function = 'wait_for_http_endpoint() {' + generated.split('wait_for_http_endpoint() {', 1)[1].split('\nconfigure_host_firewall_ports()', 1)[0]
+    class Handler(BaseHTTPRequestHandler):
+        initial_calls = 0
+        def log_message(self, *args):
+            pass
+        def do_GET(self):
+            if self.path == '/slow':
+                time.sleep(6)
+                status = 200
+            elif self.path == '/initial':
+                Handler.initial_calls += 1
+                status = 503 if Handler.initial_calls <= 2 else 200
+            else:
+                status = 500
+            try:
+                self.send_response(status)
+                self.end_headers()
+                self.wfile.write(b'ok')
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+    server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+    server.daemon_threads = True
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        url = f'http://127.0.0.1:{server.server_port}'
+        setup = 'set -Eeuo pipefail\nrecord() { echo "$*"; }\n' + function
+        result = shell(setup + f'\nSERVICE_HTTP_READY_TIMEOUT_SECONDS=7 wait_for_http_endpoint "{url}/initial" "startup"\n', timeout=12)
+        require(result)
+        assert Handler.initial_calls == 3 and 'PASS startup' in result.stdout
+        for path in ('fail', 'slow'):
+            start = time.monotonic()
+            result = shell(setup + f'\nSERVICE_HTTP_READY_TIMEOUT_SECONDS=2 wait_for_http_endpoint "{url}/{path}" "failure"\n', timeout=7)
+            assert result.returncode != 0 and time.monotonic() - start < 5
+            assert '2초 안에' in result.stderr and '120초' not in result.stderr
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+    print('PASS real HTTP startup recovery and elapsed deadlines, including a blocked response')
+
+
 def check_optional_storage_scan():
     source = (ROOT / 'server-install-725eb2ed.sh').read_text(encoding='utf-8')
     body = source.split('for path in /var/lib/docker /var/lib/containerd /var/lib/kubelet /opt/local-path-provisioner; do\n', 1)[1].split('\ndone\n', 1)[0]
@@ -909,6 +994,8 @@ if __name__ == '__main__':
     check_service_controls()
     check_docker_bridge_guard(generated)
     check_optional_storage_scan()
+    check_label_startup_profile(generated)
+    check_http_readiness_deadline(generated)
     check_stale_tenant_refresh(generated)
     check_registry_recovery(generated)
     check_readonly_source_git()
