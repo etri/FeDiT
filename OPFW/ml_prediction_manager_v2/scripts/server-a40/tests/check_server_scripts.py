@@ -32,7 +32,7 @@ def require(result):
 
 def check_pinned_and_generated():
     original = ROOT / 'server-install-725eb2ed.sh'
-    assert hashlib.sha256(original.read_bytes()).hexdigest() == '0f3d34662a544ca936b10613a2ee6597c59f7114ecba5a96f7695d2c439d71e8'
+    assert hashlib.sha256(original.read_bytes()).hexdigest() == '456d06fcfe773711afb6f6b3e0176979881a460515c7e0d37bd94451ebefdbda'
     for path in ROOT.glob('*.sh'):
         subprocess.run([BASH, '-n', str(path)], check=True)
     repair = (ROOT / 'resume-keycloak.sh').read_text(encoding='utf-8')
@@ -792,6 +792,37 @@ printf '{"error_description":"%s"}\n' "${MOCK_ERROR:-HTTPS required}" > "$output
     print('PASS real curl recovery from empty reply and HTTP 503 without concatenating error responses')
 
 
+def check_optional_storage_scan():
+    source = (ROOT / 'server-install-725eb2ed.sh').read_text(encoding='utf-8')
+    body = source.split('for path in /var/lib/docker /var/lib/containerd /var/lib/kubelet /opt/local-path-provisioner; do\n', 1)[1].split('\ndone\n', 1)[0]
+    assert 'du -shx "$path"' in body and '--kill-after=2s 5s' in body
+    setup = r'''set -Eeuo pipefail
+test_dir=$(mktemp -d)
+trap 'rm -rf -- "$test_dir"' EXIT
+mkdir "$test_dir/bin"
+export PATH="$test_dir/bin:$PATH"
+cat > "$test_dir/bin/sudo" <<'MOCK'
+#!/usr/bin/env bash
+exec "$@"
+MOCK
+cat > "$test_dir/bin/du" <<'MOCK'
+#!/usr/bin/env bash
+[[ "$1" == -shx ]] || exit 90
+trap '' TERM
+while true; do sleep 1; done
+MOCK
+chmod +x "$test_dir/bin/"*
+path="$test_dir/optional-scan"
+'''
+    start = time.monotonic()
+    result = shell(setup + body + '\necho INSTALLATION_CONTINUES\n', timeout=18)
+    require(result)
+    assert time.monotonic() - start < 14
+    assert 'Optional storage-size scan skipped or timed out:' in result.stdout
+    assert 'INSTALLATION_CONTINUES' in result.stdout
+    print('PASS optional storage scan is bounded even when du ignores TERM; installation continues')
+
+
 def check_stale_tenant_refresh(generated):
     source = (ROOT / 'refresh-stale-tenant-pods.py').read_text(encoding='utf-8')
     wrapper = (ROOT / 'server-install-725eb2ed.sh').read_text(encoding='utf-8')
@@ -877,6 +908,7 @@ if __name__ == '__main__':
     check_forward_lifecycle()
     check_service_controls()
     check_docker_bridge_guard(generated)
+    check_optional_storage_scan()
     check_stale_tenant_refresh(generated)
     check_registry_recovery(generated)
     check_readonly_source_git()

@@ -66,7 +66,8 @@ free -h || true
 ip -4 route || true
 command -v nvidia-smi >/dev/null && nvidia-smi || true
 for path in /var/lib/docker /var/lib/containerd /var/lib/kubelet /opt/local-path-provisioner; do
-  sudo du -sh "$path" 2>/dev/null || true
+  sudo timeout --signal=TERM --kill-after=2s 5s du -shx "$path" 2>/dev/null || \
+    echo "[INFO] Optional storage-size scan skipped or timed out: $path (installation continues)"
 done
 sudo systemctl is-active docker containerd kubelet || true
 if command -v docker >/dev/null; then
