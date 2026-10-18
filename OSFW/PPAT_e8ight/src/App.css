@@ -1,0 +1,140 @@
+/* Removed root constraints to allow full width layout */
+
+/* ========================================
+   페이지 전환 시 FOUC 방지 로딩 오버레이
+   ======================================== */
+.page-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 1;
+  transition: opacity 0.3s ease-out;
+}
+
+.page-loading-overlay.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.page-loading-content {
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+/* PrimeReact Menu - 모든 focus outline 완전 제거 */
+.p-menu:focus,
+.p-menu:focus-visible,
+.p-menu .p-menuitem:focus,
+.p-menu .p-menuitem:focus-visible,
+.p-menu .p-menuitem-link:focus,
+.p-menu .p-menuitem-link:focus-visible,
+.p-menu .p-menuitem-link:active,
+.p-menu .p-highlight:focus,
+.p-menu .p-highlight:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Sidebar 내의 Menu 컴포넌트 모든 outline 제거 */
+.sidebar .p-menu:focus,
+.sidebar .p-menu:focus-visible,
+.sidebar .p-menu *:focus,
+.sidebar .p-menu *:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Menu가 포커스를 받을 때 발생할 수 있는 모든 outline 제거 */
+.p-menu,
+.p-menu * {
+  outline: none !important;
+}
+
+.p-menu:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* PrimeReact Button - 모든 focus outline 제거 */
+.p-button:focus,
+.p-button:focus-visible,
+.p-button:active,
+.p-button:active:focus,
+.p-button.p-focus,
+.p-button:enabled:focus {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Icon-only, rounded, 기타 버튼 변형도 포함 */
+.p-button-icon-only:focus,
+.p-button-icon-only:focus-visible,
+.p-button-rounded:focus,
+.p-button-rounded:focus-visible,
+.p-button-outlined:focus,
+.p-button-outlined:focus-visible,
+.p-button-text:focus,
+.p-button-text:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* ButtonGroup 내의 버튼들도 포함 */
+.p-buttonset .p-button:focus,
+.p-buttonset .p-button:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 모든 버튼 관련 요소의 outline 제거 */
+button.p-button:focus,
+button.p-button:focus-visible,
+a.p-button:focus,
+a.p-button:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
