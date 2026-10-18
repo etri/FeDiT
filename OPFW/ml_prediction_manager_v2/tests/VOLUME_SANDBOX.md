@@ -72,9 +72,12 @@ bash "$HOME/prediction-manager-work/FeDiT-user-sandbox/OPFW/ml_prediction_manage
 Notebook 검사 3개와 빌드 호환성/원복 모의 검사 2개, 총 58개를 통과했다.
 볼륨 화면의 namespace URL, 생성 요청, 읽기 전용 동작, 사용 중 오류와 안전한
 텍스트 표시도 Node DOM 모의 검사로 확인했다. 셸·Python·JavaScript
-문법도 검사한다. 대상 서버에서 업데이트나 실제 PVC 생성→마운트→삭제를
-실행한 결과는 아직 없다. API의 소유권 경계와 배포 스크립트의 문법 검사만으로
-실서버 볼륨 격리가 검증됐다고 간주하지 않는다.
+문법도 검사한다. 2026-10-18 새 Ubuntu 22.04 WSL2 설치에서 실제 PVC 생성→Pod
+마운트→읽기/쓰기→사용 중 삭제 차단→0 replicas Deployment 참조 삭제 차단→삭제와
+기존 PVC UID 보존을 설치 직후와 서비스 재시작 후 통과했다. 브라우저의 전용
+볼륨 화면에서도 사용자 시험 PVC 표시와 플랫폼 PVC 제외를 확인했다.
+현재 코드를 목표 A40에서 직접 실행한 결과와는 구분한다.
+세부 환경·소스·증거 해시: [VALIDATION.md](../scripts/server-a40/VALIDATION.md).
 
 이 기능은 앱의 사용자 저장소 경계다. 호스트 Docker 소켓, Kubernetes 권한 전체,
 기존 Kubeflow 앱 내부 접근과 네트워크 정책까지 분리한 완전한 실행 샌드박스는

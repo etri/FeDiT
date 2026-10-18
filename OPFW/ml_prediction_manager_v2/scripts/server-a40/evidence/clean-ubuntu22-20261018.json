@@ -1,0 +1,86 @@
+{
+  "source_commit": "a65490197eea91b3f9fbf20c906c9687f1d93739",
+  "fresh_install_and_post_restart_test_pass": true,
+  "reused_runtime_caches": false,
+  "ubuntu": "22.04.5",
+  "environment": "WSL2 x86_64; 4 CPU; 13 GiB WSL limit; 16 GiB swap; RTX 3050 Laptop 4GB",
+  "reports": [
+    {
+      "archive": "run.nTfbJ3bl.tar.gz",
+      "mode": "install",
+      "sha256": "8350d3f99dd623f4c8def4bf3747084e63e944639a6ff17d190c15017007eaab"
+    },
+    {
+      "archive": "run.U7P8s5Y2.tar.gz",
+      "mode": "test",
+      "sha256": "6842191e6075851a04181b458c218d765af55c8071521873f07aaba4349d16c8"
+    }
+  ],
+  "gpu_tests": [
+    {
+      "archive": "run.nTfbJ3bl.tar.gz",
+      "mode": "install",
+      "cpu_models": 10,
+      "gpu_models": 4,
+      "gpu": "NVIDIA GeForce RTX 3050 4GB Laptop GPU"
+    },
+    {
+      "archive": "run.nTfbJ3bl.tar.gz",
+      "mode": "install",
+      "cpu_models": 10,
+      "gpu_models": 4,
+      "gpu": "NVIDIA GeForce RTX 3050 4GB Laptop GPU"
+    },
+    {
+      "archive": "run.U7P8s5Y2.tar.gz",
+      "mode": "test",
+      "cpu_models": 10,
+      "gpu_models": 4,
+      "gpu": "NVIDIA GeForce RTX 3050 4GB Laptop GPU"
+    },
+    {
+      "archive": "run.U7P8s5Y2.tar.gz",
+      "mode": "test",
+      "cpu_models": 10,
+      "gpu_models": 4,
+      "gpu": "NVIDIA GeForce RTX 3050 4GB Laptop GPU"
+    }
+  ],
+  "volume_lifecycle_and_deletion_guards_pass": true,
+  "user_image_deletion_preserves_platform_images": true,
+  "service_stop_start_pass": true,
+  "standalone_service_scripts_only": true,
+  "actual_gpu_worker_resource_envelope_scheduling_and_cuda_pass": true,
+  "images_and_volumes_browser_visibility_pass": true,
+  "keycloak_real_pod_reconnect_pass": true,
+  "private_configuration_included": false,
+  "lab_data_direct_io_enabled_before_install": true,
+  "monitoring_observation": {
+    "pass": true,
+    "required_metrics": [
+      "DCGM_FI_DEV_GPU_TEMP",
+      "DCGM_FI_DEV_FB_USED"
+    ],
+    "observed_metrics": [
+      "DCGM_FI_DEV_GPU_TEMP",
+      "DCGM_FI_DEV_FB_USED"
+    ],
+    "optional_metrics_not_exposed": [
+      "DCGM_FI_DEV_GPU_UTIL"
+    ],
+    "prometheus_gpu_temperature_query_pass": true
+  },
+  "rootfs_sha256": "1483cc5c1dce13064f774834cbffdff226559fd522a67a381a8ea77d63fb4109",
+  "installer_sha256": "8c24984e888eec190d83bc9f1bc35ca37dfc3e2f5018ed3909b01dc46546bbee",
+  "trial_images_removed": true,
+  "original_host_wsl_configuration_restored": true,
+  "limits": [
+    "Current code was tested on Ubuntu 22.04 WSL2 with RTX 3050 Laptop, not directly on the target A40.",
+    "API resource ownership boundary; host Docker socket and broad Kubernetes credentials are not isolated.",
+    "UI observation covers Images and Volumes only; complete AutoML, Notebook, serving, host reboot and load testing are not included."
+  ],
+  "evidence_archive": {
+    "name": "prediction-manager-ubuntu22-validation-a6549019.zip",
+    "sha256": "1c184c31a8be5c19fce1b0b11ca4fa3c8af253daf38bf796d4bf1481e6f00a27"
+  }
+}
