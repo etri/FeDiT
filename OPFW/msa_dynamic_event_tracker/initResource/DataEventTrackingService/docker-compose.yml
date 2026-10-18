@@ -1,11 +1,11 @@
-version: '3'
+version: '3.5'
 services:
   dataeventtrackingservice:
     container_name: dataeventtrackingservice
     image: msa-detrck
     ports:
-      - "30061:8761"     # Eureka
-      - "30062:8000"     # Gateway
+      - "30061:8761"
+      - "30062:8000"
       - "30063:22419"
       - "30064:22429"
       - "30065:22439"
@@ -73,6 +73,7 @@ services:
 
 networks:
   detrck-network:
+    name: detrck-network
     ipam:
       driver: default
       config:

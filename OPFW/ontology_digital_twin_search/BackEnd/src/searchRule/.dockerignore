@@ -1,0 +1,10 @@
+.gradle
+.idea
+.env
+build/classes
+build/generated
+build/tmp
+src/test
+*.log
+*.iml
+.git

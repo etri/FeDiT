@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="iitp.federatedTwins.DtEvtTracking.common.mapper.TrackingResultDataTransmissionInfoMapper">
+  	
+  	<select id="getResultDataTransmissionList" resultType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingResultDataTransmissionInfo">
+  		SELECT
+  		   transmission_id,
+		   req_ctrl_cmd_id,
+		   transmission_code,
+		   transmission_msg,
+		   transmission_time,
+		   transmission_url,
+		   transmission_param,
+		   transmission_result_data
+		FROM 
+		   event_transmission_result_info
+		   where 1=1 
+		 <if test='transmissionId != null'>
+			 and transmission_id = #{transmissionId}
+		</if>
+		<if test='reqCtrlCmdId != null'>
+			 and req_ctrl_cmd_id = #{reqCtrlCmdId}
+		</if>
+		order by transmission_id desc
+  		</select>
+  	
+  	 <insert id="insertResultDataTransmission" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingResultDataTransmissionInfo">	 
+			INSERT INTO event_transmission_result_info
+			(
+			   req_ctrl_cmd_id,
+			   transmission_code,
+			   transmission_msg,
+			   transmission_time,
+			   transmission_url,
+			   transmission_param,
+			   transmission_result_data,
+			   transmission_resp_ctrl_cmd_code,
+			   transmission_resp_ctrl_cmd_msg,
+			   transmission_resp_ctrl_time
+		   )
+				VALUES
+				(
+				#{reqCtrlCmdId},
+				#{transmissionCode},
+				#{transmissionMsg},
+				NOW(3),
+				#{transmissionUrl},
+				#{transmissionParam},
+				#{transmissionResultData},
+				#{transmissionRespCtrlCmdCode},
+				#{transmissionRespCtrlCmdMsg},
+				NOW(3)
+		   )
+	  </insert>
+	  
+	  <update id="updateResultDataTransmission" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingResultDataTransmissionInfo">
+	  
+	  UPDATE event_transmission_result_info
+		SET
+	    <if test='reqCtrlCmdId != null'>
+		req_ctrl_cmd_id = #{reqCtrlCmdId},
+		</if>	 
+		<if test='transmissionCode != null'>
+		transmission_code = #{transmissionCode},
+		</if>
+		<if test='transmissionMsg != null'>
+		transmission_msg = #{transmissionMsg},
+		</if>
+		<if test='transmissionTime != null'>
+		transmission_time = #{transmissionTime},
+		</if>
+		<if test='transmissionUrl != null'>
+		transmission_url = #{transmissionUrl},
+		</if>
+	    <if test='transmissionParam != null'>
+		transmission_param = #{transmissionParam},
+		</if>
+		<if test='transmissionResultData != null'>
+		transmission_result_data = #{transmissionResultData}
+		</if>
+		WHERE
+		  transmission_id = #{transmissionId}
+		          AND req_ctrl_cmd_id = #{reqCtrlCmdId}
+	  </update>
+	  
+	  <delete id="deleteResultDataTransmission" parameterType="iitp.federatedTwins.DtEvtTracking.common.dto.TrackingResultDataTransmissionInfo">
+	  	DELETE 
+	  	  FROM 
+	  	   event_transmission_result_info
+		 WHERE
+		  transmission_id = #{transmissionId}
+		          AND req_ctrl_cmd_id = #{reqCtrlCmdId}
+	   </delete>
+
+</mapper>

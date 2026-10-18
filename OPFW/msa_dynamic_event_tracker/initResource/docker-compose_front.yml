@@ -1,0 +1,17 @@
+version: '3.5'
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx-detrck
+    ports:
+      - "8088:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
+    networks:
+      - detrck-network
+    restart: unless-stopped
+
+networks:
+  detrck-network:
+    external: true

@@ -1,0 +1,169 @@
+services:
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: stellio-kafka
+    hostname: stellio-kafka
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://stellio-kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@stellio-kafka:29093"
+      KAFKA_LISTENERS: CONTROLLER://stellio-kafka:29093,PLAINTEXT://stellio-kafka:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LOG4J_ROOT_LOGLEVEL: INFO
+      CLUSTER_ID: ZGE2MTQ4NDk4NGU3NDE2Mm
+
+  stellio-postgres:
+    image: stellio/stellio-timescale-postgis:16-2.20.2-3.5
+    container_name: stellio-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASS=${POSTGRES_PASS}
+      - POSTGRES_DBNAME=${POSTGRES_DBNAME}
+      - POSTGRES_MULTIPLE_EXTENSIONS=postgis,timescaledb,pgcrypto
+      - ACCEPT_TIMESCALE_TUNING=TRUE
+    ports:
+      - "5432:5432"
+    volumes:
+      - stellio-postgres-storage:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U {stellioDbId}"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  api-gateway:
+    image: stellio/stellio-api-gateway:${STELLIO_DOCKER_TAG}
+    container_name: stellio-api-gateway
+    environment:
+      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
+    ports:
+      - "8085:8080"
+    depends_on:
+      - search-service
+      - subscription-service
+
+  search-service:
+    image: stellio/stellio-search-service:${STELLIO_DOCKER_TAG}
+    container_name: stellio-search-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
+      - SPRING_R2DBC_URL=r2dbc:pool:postgresql://stellio-postgres/${STELLIO_SEARCH_DB_DATABASE}
+      - SPRING_FLYWAY_URL=jdbc:postgresql://stellio-postgres/${STELLIO_SEARCH_DB_DATABASE}
+      - SPRING_R2DBC_USERNAME=${POSTGRES_USER}
+      - SPRING_R2DBC_PASSWORD=${POSTGRES_PASS}
+      - APPLICATION_AUTHENTICATION_ENABLED=${STELLIO_AUTHENTICATION_ENABLED}
+      - STELLIO_AUTHENTICATION_ALLOW_PUBLIC_PERMISSION=${STELLIO_AUTHENTICATION_ALLOW_PUBLIC_PERMISSION}
+      - APPLICATION_TENANTS_0_ISSUER=${APPLICATION_TENANTS_0_ISSUER}
+      - APPLICATION_TENANTS_0_NAME=${APPLICATION_TENANTS_0_NAME}
+      - APPLICATION_TENANTS_0_DBSCHEMA=${APPLICATION_TENANTS_0_DBSCHEMA}
+      - APPLICATION_PAGINATION_LIMIT-DEFAULT=${APPLICATION_PAGINATION_LIMIT_DEFAULT}
+      - APPLICATION_PAGINATION_LIMIT-MAX=${APPLICATION_PAGINATION_LIMIT_MAX}
+      - APPLICATION_PAGINATION_TEMPORAL-LIMIT=${APPLICATION_PAGINATION_TEMPORAL_LIMIT}
+    ports:
+      - "8083:8083"
+    depends_on:
+      stellio-postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+
+  subscription-service:
+    image: stellio/stellio-subscription-service:${STELLIO_DOCKER_TAG}
+    container_name: stellio-subscription-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
+      - SPRING_R2DBC_URL=r2dbc:pool:postgresql://stellio-postgres/${STELLIO_SUBSCRIPTION_DB_DATABASE}
+      - SPRING_FLYWAY_URL=jdbc:postgresql://stellio-postgres/${STELLIO_SUBSCRIPTION_DB_DATABASE}
+      - SPRING_R2DBC_USERNAME=${POSTGRES_USER}
+      - SPRING_R2DBC_PASSWORD=${POSTGRES_PASS}
+      - APPLICATION_AUTHENTICATION_ENABLED=${STELLIO_AUTHENTICATION_ENABLED}
+      - STELLIO_AUTHENTICATION_ALLOW_PUBLIC_PERMISSION=${STELLIO_AUTHENTICATION_ALLOW_PUBLIC_PERMISSION}
+      - APPLICATION_TENANTS_0_ISSUER=${APPLICATION_TENANTS_0_ISSUER}
+      - APPLICATION_TENANTS_0_NAME=${APPLICATION_TENANTS_0_NAME}
+      - APPLICATION_TENANTS_0_DBSCHEMA=${APPLICATION_TENANTS_0_DBSCHEMA}
+      - SUBSCRIPTION_ENTITY-SERVICE-URL=${SUBSCRIPTION_ENTITY_SERVICE_URL}
+      - SUBSCRIPTION_STELLIO_URL=${SUBSCRIPTION_STELLIO_URL}
+      - APPLICATION_PAGINATION_LIMIT-DEFAULT=${APPLICATION_PAGINATION_LIMIT_DEFAULT}
+      - APPLICATION_PAGINATION_LIMIT-MAX=${APPLICATION_PAGINATION_LIMIT_MAX}
+    ports:
+      - "8084:8084"
+    depends_on:
+      stellio-postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+
+  neo4j:
+    image: neo4j:5.22.0
+    container_name: ontology-neo4j
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: ${NEO4J_AUTH}
+      NEO4J_PLUGINS: '["apoc","n10s"]'
+    volumes:
+      - neo4j-data:/data
+      - neo4j-plugins:/plugins
+      - neo4j-import:/var/lib/neo4j/import
+
+  ontology-converter-postgres:
+    image: postgres:17
+    container_name: ontology-converter-postgres
+    environment:
+      POSTGRES_DB: ${OC_DB}
+      POSTGRES_USER: ${OC_DB_USER}
+      POSTGRES_PASSWORD: ${OC_DB_PASS}
+    ports:
+      - "6543:5432"
+    volumes:
+      - ontology-converter-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U ${OC_DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  ontology-converter:
+    build: .
+    container_name: ontology-converter
+    ports:
+      - "8888:8888"
+    depends_on:
+      neo4j:
+        condition: service_started
+      ontology-converter-postgres:
+        condition: service_healthy
+      api-gateway:
+        condition: service_started
+      kafka:
+        condition: service_started
+    volumes:
+      - ./output:/app/data/output
+      - neo4j-import:/app/data/neo4j-import
+    restart: on-failure
+
+  front-end:
+    build: ./frontend
+    container_name: front-end
+    ports:
+      - "8181:80"
+    depends_on:
+      - neo4j
+    restart: unless-stopped
+
+volumes:
+  stellio-postgres-storage:
+  ontology-converter-pgdata:
+  neo4j-data:
+  neo4j-plugins:
+  neo4j-import:
