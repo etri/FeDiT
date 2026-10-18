@@ -1,0 +1,479 @@
+FeDiT 예측매니저 호스트 설치 가이드
+=====================================
+
+목표 A40 서버 설치 방법 (서비스 제어 갱신: 2026-10-19)
+----------------------------------------
+
+목표 A40 서버에는 이 절의 명령을 사용한다. 아래쪽 기존 CPU/GPU 일반 설치
+안내의 01/02 단계, 압축파일 덮어쓰기, 실행 권한 변경을 추가로 수행하지 않는다.
+
+1) 준비 조건
+
+- Ubuntu 22.04 LTS x86_64, sudo 권한을 가진 일반 로그인 사용자
+- 정상 동작하는 기존 NVIDIA 드라이버: nvidia-smi로 확인
+- 루트(/)와 다른 파일시스템으로 실제 마운트된, 쓰기 가능한 /data
+- 인터넷 연결, git, 비공개 etri/FeDiT 저장소 읽기 권한
+- 새 설치 시 실행 중인 다른 Docker 컨테이너나 기존 Kubernetes 클러스터가 없어야 함
+
+확인된 목표 서버는 CPU 4개, RAM 31GiB, A40 46068MiB, 드라이버 535.309.01이다.
+설치에 필요한 sudo 비밀번호와 GitHub 인증은 요청될 때 입력한다.
+드라이버를 자동 설치/갱신하거나 서버를 자동 재부팅하지 않는다.
+
+2) 다운로드 후 설치 및 자동 구동 시험
+
+일반 사용자 홈 등 원하는 작업 폴더에서 다음을 실행한다.
+FeDiT 폴더가 이미 있으면 중복 clone하지 말고, 해당 저장소의 브랜치와 변경
+사항을 확인한 뒤 최신 커밋을 받아 아래 scripts/server-a40 폴더로 이동한다.
+
+  git clone --branch OPFW_development_ETRI_pman --single-branch https://github.com/etri/FeDiT.git
+  cd FeDiT/OPFW/ml_prediction_manager_v2/scripts/server-a40
+  bash install.sh
+
+설치, 서비스 상태 확인, Kubernetes GPU 실행, CPU/GPU 학습 및 모델 저장/
+재로드 시험을 순서대로 수행한다. 설치 도중 터미널 연결은 유지한다.
+기존 설치를 재개할 때도 같은 계정으로 같은 폴더에서 bash install.sh를 실행한다.
+
+Keycloak 단계에서 정확히 HTTPS required 오류가 확인되면 로컬 포트 포워딩
+보정을 적용해 자동 재개한다. 그 외 오류를 임의로 성공 처리하지 않는다.
+Keycloak의 HTTPS 정책을 끄지 않으며 Pod 교체 시 임시 연결을 다시 맺는다.
+이 경로에서는 Docker/containerd/kubelet/PVC/빌드 등의 큰 데이터를 /data에
+저장한다. 아래 기존 안내의 루트 여유 200GiB 조건을 적용하지 않으며, 용량
+권장값만으로 차단하지 않는다. 실제 쓰기 실패와 잘못된 마운트는 오류다.
+GPU worker는 최대 1개, 테넌트별 동시 학습과 시행은 각각 1개로 설정한다.
+
+플랫폼 기본 빌드는 725eb2edeec1b756b45abb809cdc4dc971a890bf 커밋으로 고정한다.
+그 뒤 현재 checkout 커밋의 앱·정적 파일과 이미지·볼륨 보호 기능을 자동 반영한다.
+전체 플랫폼을 최신 소스 전체로 다시 빌드한다는 의미는 아니다.
+
+3) 완료 확인 및 결과 전달
+
+최종 성공 기준은 맨 마지막 FEDIT FINAL RESULT 블록의 EXIT와 STAGE다.
+
+  EXIT=0
+  STAGE=complete
+  PLATFORM_AND_KUBERNETES_GPU_SMOKE_PASS
+  USER_SANDBOX_LIFECYCLE_PASS
+  FEDIT_INSTALL_AND_SANDBOX_PASS
+
+Keycloak 자동 재개 전의 실패 보고서와 재개 후 최종 보고서가 각각 남을 수
+있으므로 중간 COPY BACK TO CODEX 블록만으로 전체 성공을 판단하지 않는다.
+맨 마지막 FEDIT FINAL RESULT 블록과 FEDIT_REPORT_ARCHIVE에 표시된 압축파일
+하나를 전달한다. 전체 로그·파일 해시·볼륨 시험 결과가 포함된다.
+비밀번호, 토큰, Secret 및 설정 파일 전체를 채팅에 보내지 않는다.
+
+기본 결과 위치:
+  ~/pman-server-725eb2ed/complete-reports/
+  ~/pman-server-725eb2ed/results/
+  ~/prediction-manager-work/.prediction-manager/gpu/results/
+
+실제 사용자 데이터로 화면에서 작업 생성 → AutoML 학습 → 서빙까지의 전체
+흐름, 외부 PC 접속, 부하 시험과 재부팅 복구는 별도 확인 항목이다.
+
+4) 설치 후 서비스 시작 / 중지 / 재시작 / 제거
+
+설치했던 일반 로그인 계정으로 scripts/server-a40 폴더에서 실행한다.
+
+  bash pman-start.sh
+  bash pman-stop.sh
+  bash pman-restart.sh
+
+시작 스크립트는 실행 서비스와 Registry/FeDiT Docker 컨테이너를 시작하고,
+Kubernetes API 및 노드 Ready를 기다린 뒤 Pod 상태를 표시한다.
+중지 스크립트는 접근용 서비스, kubelet, Kubernetes 컨테이너, 서버의 모든
+Docker 컨테이너와 실행 서비스를 중지한다. 공용 Docker 서버에서는 주의한다.
+데이터와 설치 설정은 삭제하지 않으며 부팅 시 활성화 설정도 바꾸지 않는다.
+재시작은 중지가 성공해야 시작으로 넘어가며 각 단계의 실패 코드를 반환한다.
+제어 잠금 파일은 설치 계정이 다음 설치/점검에서도 쓸 수 있는 권한으로 유지한다.
+시작·중지는 두 파일만 별도 복사해도 되고, 재시작은 pman-restart.sh까지
+세 파일을 같은 폴더에 둔다. 시작/재시작의 완료는 API·노드 Ready 기준이다.
+모든 앱과 CPU/GPU 시험은 bash install.sh test로 별도 확인한다.
+
+플랫폼을 제거할 때:
+
+  bash pman-uninstall.sh --dry-run
+  bash pman-uninstall.sh
+
+--dry-run은 선택 사항이며 실제 변경 없이 범위만 표시한다.
+제거 스크립트와 pman-stop.sh는 같은 폴더에 있어야 한다. 서버의 모든
+Kubernetes workload를 포함한 단일 노드 클러스터를 초기화하고,
+FeDiT/Registry 컨테이너와 전용 systemd 서비스를 제거한다. 먼저 전체 서비스를
+중지하므로 이 서버의 다른 Docker 컨테이너도 중지된다. 제거하는 Docker 컨테이너는
+fedit-fe와 설정된 Registry뿐이며 다른 컨테이너는 삭제하지 않는다.
+kubelet/Docker/docker.socket/containerd의 부팅 시 자동 시작은 해제한다.
+
+초기화 전에 etcd·클러스터 설정·인증 정보·설치 상태를 비공개 백업한다.
+PVC 파일·Registry 데이터·이미지·패키지·NVIDIA 드라이버·/data 및 bind 마운트,
+Docker/containerd와 네트워크 설정은 보존한다. 디스크 전체 삭제나 image prune,
+공용 방화벽/iptables 초기화는 수행하지 않는다.
+이전 완료 표시를 옮겨 재설치가 제거된 단계를 건너뛰지 않도록 한다.
+마지막 EXIT=0, STAGE=complete와 UNINSTALL_REPORT 경로를 확인한다.
+이미 제거된 설치에 재실행하면 데이터를 건드리지 않고 종료한다.
+
+제거 후에는 pman-start.sh/pman-restart.sh로 복구되지 않는다.
+같은 설치 계정으로 bash install.sh를 실행해 재설치한다. 보존한 PVC 파일이
+새 클러스터에 자동 연결되는 것은 아니며, 기존 작업 복원에는 별도 복구가 필요하다.
+root 계정에서 직접 제거할 때는 bash pman-uninstall.sh --owner 설치계정으로
+계정을 지정한다. 다른 Registry 이름을 쓰면 설치 설정에서 자동으로 읽으며,
+필요하면 FEDIT_REGISTRY_CONTAINER=이름 bash pman-uninstall.sh로 지정한다.
+
+제거 결과 위치:
+  ~/pman-server-725eb2ed/uninstall.XXXXXXXX/RESULT.txt
+  ~/pman-server-725eb2ed/uninstall.XXXXXXXX/uninstall.log
+비공개 백업 cluster-backup.private.tar와 backup-files.private.txt에는 인증 정보가
+포함되므로 채팅에 보내지 않는다. 오류 전달에는 RESULT.txt와 uninstall.log만 사용한다.
+
+재부팅 후 자동 시작을 원하면 다음을 한 번 실행한다.
+
+  sudo systemctl enable containerd.service docker.service kubelet.service prediction-manager-access.service
+
+prediction-manager-verification-resume.service는 활성화하지 않는다.
+설치 없이 상태만 수집하거나 구동 시험만 다시 실행하려면:
+
+  bash install.sh inspect
+  bash install.sh test
+
+목표 서버 접속 주소:
+  http://220.124.222.82:18000/fedit/predictor-creator-tool
+  http://220.124.222.82:18000/prediction-manager/docs
+
+5) 검증 범위
+
+2026-10-18 공식 Ubuntu 22.04 rootfs로 새 WSL2 환경을 만들고 최신 스크립트의
+전체 설치, 실제 사용자 이미지·PVC 수명주기, 서비스 중지·시작과 재시작 후
+CPU/GPU 학습 시험을 통과했다. 시험 GPU는 RTX 3050 Laptop이며, 최신 코드를
+목표 A40에서 직접 실행한 결과는 아니다. Images·Volumes 화면도 실제 브라우저에서
+확인했다. 전체 AutoML→서빙, 호스트 재부팅과 부하 시험은 별도 항목이다.
+자세한 설명: scripts/server-a40/README.md
+서버 성공 범위와 로컬 검사 기록: scripts/server-a40/VALIDATION.md
+
+재시작·제거 스크립트는 2026-10-19 별도 Ubuntu 22.04의 실제 Docker·Kubernetes와
+시험용 HTTP 서비스에서 실행해 PVC·이미지 보존 및 냉간 etcd 백업 조회를 확인했다.
+이번 제어 시험은 위 전체 설치·학습 시험과 구분하며 자세한 환경·로그는 VALIDATION.md에 기록한다.
+
+install.sh가 플랫폼 설치 후 현재 저장소 커밋의 사용자 이미지·볼륨 보호 기능을
+자동 반영하고 실제 PVC 생성/마운트/읽기/쓰기/삭제 및 삭제 차단을 시험한다.
+최종 FEDIT_INSTALL_AND_SANDBOX_PASS까지 확인한다.
+기존 서버에서 앱만 갱신할 때는 다음 두 명령을 실행한다.
+
+  bash update-user-sandbox.sh
+  bash verify-user-sandbox.sh
+
+로그: /data/fedit-sandbox-updates/*/RESULT.txt,
+/data/fedit-sandbox-tests/*/test.log 및 RESULT.txt.
+기존 PVC는 자동 인수하지 않으며 시험 리소스만 UID를 확인한 뒤 정리한다.
+
+
+
+기존 CPU/GPU 일반 설치 안내
+===========================
+아래 내용은 기존 설치 경로의 참고 자료다. 목표 A40 서버는 위 최신 절을 따른다.
+
+문서 범위와 검증 상태
+---------------------
+- Ubuntu 22.04 LTS x86_64 호스트에서 일반 sudo 사용자로 설치하는 방법이다.
+- Docker 컨테이너에 접속하여 설치하는 방법은 다루지 않는다.
+- 한 호스트에는 CPU 모드 또는 GPU 모드 중 하나만 설치한다.
+- 설치 과정은 메모리 용량을 설치 중단 조건으로 사용하지 않는다.
+- CPU/GPU 설치 및 기능 시험은 반드시 서로 분리된 클린 환경에서 수행한다.
+- 데이터셋 기반 KFP 재학습과 AutoML 원클릭 서빙은 8절의 선행 조건을 먼저
+  충족해야 한다. 화면만 열리는 상태는 기능 시험 성공이 아니다.
+- NVIDIA 드라이버는 이 설치 과정에서 설치, 업데이트 또는 재설치하지 않는다.
+
+기존 CPU 경로 검증 상태(2026-08-19):
+
+- CPU 클린 설치와 브라우저 기반 전체 기능 흐름을 완료했다.
+- CPU 최종 브라우저 세션은 메뉴 15/15, Dataset Catalog, Data Collection/NiFi,
+  Label Studio, Dataset→KFP Pipeline, AutoML 원클릭 서빙·추론·중단을 확인했다.
+- GPU는 CPU와 분리된 환경에서 별도로 설치·검증해야 하며, CPU 결과를 GPU 성공으로
+  간주하지 않는다.
+- 브라우저 증거 도구는 `tests/internal`에 있으며, 녹화 영상·스크린샷·런타임 로그는
+  저장소에 포함하지 않는다. 최종 결과 요약만 커밋한다.
+
+
+1. 설치 전 확인
+----------------
+
+필수 조건:
+
+- Ubuntu 22.04 LTS x86_64
+- CPU 코어 수는 설치 거부 조건으로 검사하지 않는다. 실제 기능 실행에는
+  충분한 CPU 자원을 별도로 확보해야 한다.
+- 루트 파티션 여유 공간 200 GiB 이상
+- 인터넷 연결
+- sudo 권한을 가진 일반 사용자
+
+메모리와 CPU 코어 수는 기록만 하며 설치 거부 조건이 아니다. CPU 모드는 작은 메모리의
+단일 노드에서도 모든 메뉴를 유지하도록 작은 Kubernetes 요청값과 CPU swap
+프로필을 자동 적용한다. 실제 운영에서는 동시에 실행할 작업 수에 맞는 CPU,
+메모리와 디스크 여유 공간을 확보한다. CPU 코어 검사만 해제되며, Kubernetes의
+서비스별 요청값·제한값은 안정적인 스케줄링을 위해 그대로 적용된다.
+CPU swap은 성능 보조 단계로, 커널·파일시스템이 활성화를 거부해도 기본 설정에서는
+경고만 남기고 설치를 계속한다. swap 활성화를 필수로 만들려면 CPU 설정의
+`CPU_SWAP_REQUIRED=true`를 사용한다.
+
+GPU 모드에서는 설치 전에 다음 명령이 정상 동작해야 한다.
+
+  nvidia-smi
+
+GPU 모드는 호스트의 GPU 개수, 모델명, 드라이버 버전과 최소 VRAM을
+`nvidia-smi`에서 읽는다. 최소 VRAM을 12 GiB 단위로 나누어 GPU당
+time-slicing 슬롯을 계산하고, 결과를 1~8 범위로 제한한다. 드라이버가 없거나
+`nvidia-smi`가 실패하면 GPU 모드를 실행하지 않는다.
+
+
+2. FeDiT 다운로드와 코드 배치
+-------------------------------
+
+호스트 터미널에서 다음 명령을 실행한다.
+
+  sudo apt-get update
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl git unzip
+  INSTALL_USER="${SUDO_USER:-$USER}"
+  INSTALL_HOME="$(getent passwd "$INSTALL_USER" | cut -d: -f6)"
+  mkdir -p "$INSTALL_HOME/prediction-manager-work"
+  cd "$INSTALL_HOME/prediction-manager-work"
+  git clone -b OPFW_development_ETRI_pman --single-branch https://github.com/etri/FeDiT.git
+
+이후 절의 명령도 같은 터미널에서 실행한다. 새 터미널을 열었다면 위의
+`INSTALL_USER`, `INSTALL_HOME` 두 줄을 먼저 다시 실행한다. 설치 스크립트는
+sudo로 실행되어도 이 실제 사용자 홈을 판별해 사용하며 `/root`에 사용자 작업
+파일을 만들지 않는다.
+
+Private repository 인증은 Git credential manager, SSH key 또는 Git의 대화형
+인증을 사용한다. 비밀번호나 access token을 명령행, URL, 설정 파일 또는 설치
+로그에 직접 기록하지 않는다.
+
+제공된 코드 압축파일의 최상위 폴더는 `OPFW`이다. 압축을 푼 뒤 그 `OPFW`
+폴더를 다음 FeDiT 저장소의 `OPFW`에 덮어쓴다.
+
+  "$INSTALL_HOME/prediction-manager-work/FeDiT/OPFW"
+
+설치 스크립트 폴더는 다음과 같다.
+
+  "$INSTALL_HOME/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts"
+
+
+3. 사용할 포트
+---------------
+
+외부 또는 브라우저 접속에 사용하는 TCP 포트는 아래 여섯 개뿐이다.
+
+  15000, 15001, 15002, 15003, 18000, 19090
+
+설치기는 UFW 또는 firewalld가 활성화된 경우 위 포트만 자동 허용한다.
+공유기, 사내 방화벽, 클라우드 보안 그룹은 설치기가 바꾸지 않으므로 필요한
+접속 범위에서 같은 포트를 별도로 허용한다.
+
+Kubernetes NodePort, 로컬 이미지 Registry, Prediction Manager 상태 점검 포트는
+호스트 외부에 공개하지 않는다. 18080, 30080, 30081은 사용하지 않는다.
+
+
+4. 실행 권한 부여
+------------------
+
+설치 전에 한 번만 실행한다.
+
+  cd "$INSTALL_HOME/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts"
+  chmod +x ./*.sh ./scripts/*.sh
+
+
+5. CPU 모드 설치
+----------------
+
+CPU 모드는 NVIDIA GPU, NVIDIA 드라이버, NVIDIA Container Toolkit, Device
+Plugin, DCGM Exporter를 사용하거나 설치하지 않는다. Ray는 CPU 작업만
+실행한다.
+
+다음 두 명령을 순서대로 실행한다.
+
+  cd "$INSTALL_HOME/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts"
+  sudo ./01-install-required-modules-cpu.sh
+  sudo ./02-start-prediction-manager-cpu.sh
+
+`01-install-required-modules-cpu.sh`는 Ubuntu 필수 패키지, Docker,
+containerd, Kubernetes 도구, Helm 및 Kustomize를 설치한다. Kubernetes 및
+GPU 모드의 NVIDIA 패키지 서명 키 다운로드는 임시 파일 검증 후 반영하며, 일시적인
+네트워크 실패는 제한적으로 재시도한다. 재시도까지 실패한 경우에만 명확히 실패로
+종료하므로, 같은 `sudo ./01-...` 명령을 다시 실행해 중단 지점부터 복구한다.
+
+`02-start-prediction-manager-cpu.sh`는 Kubernetes와 예측매니저 서비스를
+구성하고 다음을 확인한 뒤 종료한다.
+
+- Kubernetes API
+- Prediction Manager deployment Ready
+- FeDiT 및 Prediction Manager HTTP 진입
+- CPU 전용 모드
+
+완료 후에는 8절의 CPU 기능 전수 점검을 실행하고, 설치 대상 컨테이너 또는
+호스트를 재시작한 뒤 같은 점검을 한 번 더 실행한다. 재시작 뒤에는 FeDiT HTTP
+200, Prediction Manager health API, 모든 Kubernetes Pod Ready 및 여섯 공개
+포트를 함께 확인한다.
+
+
+6. GPU 모드 설치
+----------------
+
+GPU 모드는 기존 NVIDIA 드라이버가 정상이고 `nvidia-smi`가 동작하는
+호스트에서만 사용한다. 설치 스크립트는 드라이버를 바꾸지 않고 NVIDIA
+Container Toolkit, Kubernetes Device Plugin, DCGM Exporter와 GPU
+time-slicing만 구성한다.
+
+다음 두 명령을 순서대로 실행한다.
+
+  cd "$INSTALL_HOME/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/scripts"
+  sudo ./01-install-required-modules.sh
+  sudo ./02-start-prediction-manager.sh
+
+GPU 개수나 모델명을 스크립트 또는 설정 파일에 직접 입력할 필요가 없다.
+다른 PC에서 실행할 때도 실행 시점의 `nvidia-smi` 결과를 사용한다.
+
+완료 후에는 8절의 GPU 기능 전수 점검을 실행한다. 이 점검은 GPU Device Plugin
+할당량, CUDA Driver API, GPU Ray 작업 및 DCGM Prometheus metric을 실제로
+확인한다. GPU가 보이지 않거나 GPU 작업이 CPU로만 실행되면 성공으로 처리하지
+않는다.
+
+
+7. 접속 주소
+-------------
+
+설치 호스트에서 브라우저를 열 때는 `localhost`를 사용한다. 다른 PC에서
+접속할 때는 `localhost` 대신 Ubuntu 호스트의 IP 주소를 사용한다.
+
+  HOST_IP="$(ip -4 route get 1.1.1.1 | awk '{for (i=1; i<=NF; i++) if ($i=="src") {print $(i+1); exit}}')"
+  printf 'HOST_IP=%s\n' "$HOST_IP"
+
+기본 주소:
+
+  FeDiT:              http://HOST_IP:18000/fedit/predictor-creator-tool
+  Prediction Manager: http://HOST_IP:18000/prediction-manager/docs
+  MLflow:             http://HOST_IP:15000
+  NiFi:               http://HOST_IP:15001/nifi/
+  Ray Dashboard:      http://HOST_IP:15002
+  Label Studio:       http://HOST_IP:15003
+  Prometheus:         http://HOST_IP:19090
+
+FeDiT 첫 화면에서 다음 메뉴가 보여야 한다.
+
+- 학습 데이터셋 준비
+- 데이터 수집
+- 저장소
+- NiFi
+- Label Studio
+- Pipeline
+- AutoML
+- Ray
+- MLflow
+- TensorBoard
+- Model Registry
+- KServe
+- MLOps 모니터링
+
+
+8. 서비스별 선행 조건과 2.2.9 기능 전수 점검
+-----------------------
+
+데이터셋 → KFP 재학습:
+
+1. Dataset 메뉴에서 CSV 데이터셋 이름, 학습 유형, target column을 지정한다.
+2. 분류는 target label이 정확히 두 종류여야 하며, 회귀는 target 값이 모두
+   숫자여야 한다.
+3. 버전을 업로드한 뒤 전처리 화면에서 `준비 완료`를 포함해 실행한다.
+4. 생성된 준비 완료 버전에서 `파이프라인 입력 생성` → `Pipeline 실행`을 한다.
+   작업 Pod는 데이터 다운로드 토큰을 사용해 내부 Prediction Manager 서비스에
+   접근한다. Ingress 주소를 직접 입력하거나 인증 헤더를 복사할 필요가 없다.
+5. 설치 스크립트는 KFP 실행기, workflow-controller 및 프런트엔드를 설치 내부의
+   영속 레지스트리에 준비하고 생성된 Kubeflow 구성이 그 이미지를 사용하도록
+   구성한다. 따라서 클린 설치 또는 설치 대상 재시작 뒤의 첫 Pipeline 실행도
+   더 이상 제공되지 않거나 늦게 응답하는 외부 KFP 이미지 때문에 실패하지
+   않아야 한다.
+6. Kubeflow Pipelines Run의 `Succeeded`, MLflow Run과 등록 모델을 확인한 뒤
+   시험용 Run, 데이터셋, 등록 모델을 정리한다.
+
+AutoML 결과 원클릭 서빙:
+
+1. AutoML 메뉴에서 데이터셋 경로와 target column을 설정하여 실제 학습을 완료한다.
+   HTTP(S) 데이터셋은 Prediction Manager와 Ray worker 양쪽에서 접근 가능해야 한다.
+   새로 생성한 클러스터 Service는 endpoint/DNS 반영 중의 일시적 연결 실패를
+   설치 코드가 제한적으로 재시도하며, 재시도 후에도 실패하면 Service endpoint와
+   namespace 간 통신을 확인한다.
+2. 결과 카드에서 모델 artifact와 점수가 확인된 후보를 선택한다.
+3. `서빙`을 눌러 MLflow 모델 등록과 KServe InferenceService 생성을 요청한다.
+	   설치 스크립트는 이 단계에 필요한 MLServer runtime을 설치 전용 loopback
+	   registry에 영구 미러링하고 Kubernetes node에도 미리 내려받는다. 또한
+	   Knative controller가 Pod 내부 loopback에서 이 registry를 다시 조회하지
+	   않도록 로컬 태그 해석을 생략하고 `IfNotPresent` cache 정책을 확인한다.
+	   따라서 최초 서빙과 Docker/Kubernetes 재시작 뒤의 서빙도 외부 이미지 pull
+	   또는 controller의 잘못된 loopback 조회 때문에 별도 실패하거나 장시간
+	   무응답 상태가 되지 않아야 한다. Tenant namespace의 helper Pod는
+	   Prediction Manager namespace PVC를 직접 마운트하지 않고, 인증된 내부 모델
+	   다운로드 경로를 통해 검증된 모델 저장소를 복사한다. 따라서 MLflow 3
+	   LoggedModel URI와 namespace 간 PVC 경계 때문에 서빙이 실패하지 않아야 한다.
+	4. KServe 메뉴에서 방금 배포한 endpoint 이름과 `Ready` 상태를 확인한다. 이
+	   최초 MLServer Revision은 단일 노드에서 이미지 압축 해제와 PVC 마운트에
+	   수 분이 걸릴 수 있으므로 기본 준비 대기 시간은 600초이다. 더 느린 장비는
+	   `KSERVE_PREDICTOR_READY_TIMEOUT_SECONDS` 환경 변수로 늘릴 수 있다(최소 60초).
+	   화면은 선택한 사용자 namespace의 실제 InferenceService 목록을 읽어 표시하며,
+	   고정된 빈 안내 화면을 성공 증거로 사용하지 않는다. 이어서 모델 관리 화면에서
+	   모델 입력 schema에 맞는 실제 추론 요청을 수행해 HTTP 200 결과를 확인한다.
+5. 시험이 끝나면 KServe UI에서 endpoint를 삭제하고, 시험용 AutoML job 및
+   임시 PVC를 정리한다.
+
+위 두 흐름은 각각 Dataset/AutoML 화면만 방문해서는 완료로 보지 않는다. 반드시
+실행 결과와 종료 후 정리 상태까지 확인한다.
+
+설치가 끝난 뒤 다음 명령으로 기능 전수 점검을 실행한다. 장기 작업은 최대
+180초 동안 실제 실행 상태를 확인하며, 그 안에 종료하지 않으면 실행 시작을
+기록한 뒤 시험 리소스를 정리한다.
+
+CPU:
+
+  cd "$INSTALL_HOME/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2"
+  sudo ./scripts/scripts/verify-2.2.9-cpu.sh
+
+GPU:
+
+  cd "$INSTALL_HOME/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2"
+  sudo ./scripts/scripts/verify-2.2.9-gpu.sh
+
+CPU/GPU 점검은 다음 순서를 각 서비스에 적용한다.
+
+  기능 선택 → 설정 → 실제 실행 → 결과 확인 → 시험 리소스 종료
+
+전수 점검 항목은 Dataset, REST 데이터 수집, PVC, NiFi, Label Studio,
+Kubeflow Pipelines, MLflow, Ray, TensorBoard, KServe, AutoML, Prometheus와
+Prediction Manager 모니터링을 포함한다. 설치 직후와 재시작 후에 각각 다시
+실행하여 14개 실제 동작이 모두 PASS인지 확인한다.
+
+브라우저 전수 녹화(내부 시험용):
+
+  cd "$INSTALL_HOME/prediction-manager-work/FeDiT/OPFW/ml_prediction_manager_v2/tests/internal"
+  FEDIT_TEST_MODE=CPU \
+  FEDIT_RECORD_CONTAINER=fedit-clean-ubuntu22-browser-cpu \
+  ./record_profile_browser_functional_lifecycle.sh \
+    "$INSTALL_HOME/prediction-manager-work/browser-evidence/CPU"
+
+이 도구는 FeDiT 내부 서비스는 iframe을 유지하고, 외부 대시보드는 직접 서비스
+페이지로 전환해 화면을 기록한다. Dataset, Data Collection, Label Studio,
+Pipeline, AutoML은 기능 선택 → 설정 → 실제 실행 → 결과 → 종료/정리 화면을
+캡처한다. Swagger, curl, Kubernetes 출력은 브라우저 기능 증거로 사용하지 않는다.
+시험을 반복할 때는 기존 시험 컨테이너와 fixture를 먼저 제거하고 새 클린 환경에서
+실행한다.
+
+
+9. 재실행과 로그 확인
+----------------------
+
+설치가 중단된 경우 같은 모드의 `01` 또는 `02` 명령을 다시 실행한다.
+완료된 단계는 상태 파일을 기준으로 건너뛰고, 중단된 단계부터 이어서 실행한다.
+
+CPU 설치 상태와 결과:
+
+  "$INSTALL_HOME/prediction-manager-work/.prediction-manager/cpu"
+
+GPU 설치 상태와 결과:
+
+  "$INSTALL_HOME/prediction-manager-work/.prediction-manager/gpu"
+
+`01` 스크립트가 즉시 끝난 경우에도 오류라고 단정하지 않는다. 출력의 `[SKIP]`,
+`[PASS]`, `[FAIL]`과 마지막에 표시되는 보고서 경로를 확인한다. `[FAIL]`이
+있으면 해당 로그를 확인한 뒤 같은 명령을 다시 실행한다.

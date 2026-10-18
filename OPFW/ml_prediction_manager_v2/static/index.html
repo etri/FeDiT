@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>예측매니저</title>
+    <link href="static/css/style.css?v=20260626-alarm-redesign" rel="stylesheet">
+    <script>if (new URLSearchParams(window.location.search).get('standalone') === '1') document.documentElement.classList.add('standalone-mode');</script>
+    <style>html.standalone-mode .pm-navbar { display: none !important; }</style>
+</head>
+<body>
+    <nav class="pm-navbar">
+        <div class="pm-brand">
+            <div class="pm-brand-icon">P</div>
+            <div>
+                <div class="pm-brand-title">예측매니저</div>
+                <div class="pm-brand-sub">Prediction Manager</div>
+            </div>
+        </div>
+        <div class="pm-nav">
+            <a href="#/home" data-page="home" class="active">HOME</a>
+            <a href="#/images" data-page="images">IMAGES</a>
+            <a href="#/containers" data-page="containers">CONTAINERS</a>
+        </div>
+    </nav>
+
+    <div class="pm-alarm-overlay" id="pm-alarm-overlay" onclick="if(window._closeAlarmSidebar)window._closeAlarmSidebar()"></div>
+    <aside class="pm-alarm-sidebar" id="pm-alarm-sidebar">
+        <div class="pm-alarm-sidebar-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:15px; font-weight:600; color:#111827;">알람 이력</span>
+            </div>
+            <button class="pm-alarm-close" onclick="if(window._closeAlarmSidebar)window._closeAlarmSidebar()">✕</button>
+        </div>
+        <div class="pm-alarm-sidebar-body" id="pm-alarm-sidebar-body">
+            <div style="padding:40px 0; text-align:center; color:#d1d5db; font-size:14px;">모니터링 페이지에서 확인하세요</div>
+        </div>
+    </aside>
+
+    <div class="pm-content" id="app"></div>
+
+    <script src="static/js/chart.umd.min.js"></script>
+    <script src="static/js/api.js"></script>
+    <script src="static/js/pages/home.js"></script>
+    <script src="static/js/pages/images.js"></script>
+    <script src="static/js/pages/containers.js"></script>
+    <script src="static/js/pages/admin.js"></script>
+    <script src="static/js/pages/datasets.js"></script>
+    <script src="static/js/pages/data_collection.js"></script>
+    <script src="static/js/pages/pipeline_runs.js"></script>
+    <script src="static/js/pages/monitoring-alarm.js?v=20260626-alarm-redesign"></script>
+    <script src="static/js/pages/monitoring.js?v=20260626-alarm-label"></script>
+    <script src="static/js/pages/automl.js"></script>
+    <script src="static/js/pages/models.js?v=20260813-kserve-ready"></script>
+    <script src="static/js/app.js"></script>
+</body>
+</html>

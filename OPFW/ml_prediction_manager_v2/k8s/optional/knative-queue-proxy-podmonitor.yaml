@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: knative-queue-proxy
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    any: true
+  selector:
+    matchExpressions:
+      - key: serving.knative.dev/revision
+        operator: Exists
+  podMetricsEndpoints:
+    # Prometheus v3.10 rejects the queue-proxy http-autometric endpoint in this
+    # environment because it returns application/protobuf that is not parsed as
+    # PrometheusProto. Keep the text-based usermetric endpoint enabled.
+    - port: http-usermetric
+      path: /metrics
+      interval: 15s

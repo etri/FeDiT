@@ -1,0 +1,11 @@
+# Use inside a per-user virtualenv. CUDA 11.8 supports both measured host drivers.
+--extra-index-url https://download.pytorch.org/whl/cu118
+-r requirements.txt
+torch==2.7.1+cu118
+pytorch-tabnet==4.1.0
+xgboost==2.1.4
+scikit-learn>=1.7,<1.8
+ray[tune]==2.54.1
+optuna>=4,<5
+psutil>=5.9
+pandas>=2.2,<3

@@ -1,0 +1,58 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+sortOptions:
+  order: legacy
+  legacySortOptions:
+    orderFirst:
+      - Namespace
+      - ResourceQuota
+      - StorageClass
+      - CustomResourceDefinition
+      - MutatingWebhookConfiguration
+      - ServiceAccount
+      - NetworkPolicy
+      - Role
+      - ClusterRole
+      - RoleBinding
+      - ClusterRoleBinding
+      - ConfigMap
+      - Secret
+      - Service
+      - LimitRange
+      - PersistentVolumeClaim
+      - Deployment
+      - StatefulSet
+      - CronJob
+    orderLast:
+      - ValidatingWebhookConfiguration
+
+# Verification profile for the 4-core/32-GiB single-node target. Katib and the
+# Training Operator are omitted because this project uses Ray for AutoML/HPO.
+resources:
+  - ../common/cert-manager/cert-manager/base
+  - ../common/cert-manager/kubeflow-issuer/base
+  - ../common/istio-1-22/istio-crds/base
+  - ../common/istio-1-22/istio-namespace/base
+  - ../common/istio-1-22/istio-install/overlays/oauth2-proxy
+  - ../common/oauth2-proxy/overlays/m2m-dex-only
+  - ../common/dex/overlays/oauth2-proxy
+  - ../common/knative/knative-serving/overlays/gateways
+  - ../common/istio-1-22/cluster-local-gateway/base
+  - ../common/kubeflow-namespace/base
+  - ../common/networkpolicies/base
+  - ../common/kubeflow-roles/base
+  - ../common/istio-1-22/kubeflow-istio-resources/base
+  - ../apps/pipeline/upstream/env/cert-manager/platform-agnostic-multi-user
+  - ../apps/centraldashboard/overlays/oauth2-proxy
+  - ../apps/admission-webhook/upstream/overlays/cert-manager
+  - ../apps/jupyter/jupyter-web-app/upstream/overlays/istio
+  - ../apps/jupyter/notebook-controller/upstream/overlays/kubeflow
+  - ../apps/profiles/upstream/overlays/kubeflow
+  - ../apps/pvcviewer-controller/upstream/base
+  - ../apps/volumes-web-app/upstream/overlays/istio
+  - ../apps/tensorboard/tensorboard-controller/upstream/overlays/kubeflow
+  - ../apps/tensorboard/tensorboards-web-app/upstream/overlays/istio
+  - ../common/user-namespace/base
+  - ../contrib/kserve/kserve
+  - ../contrib/kserve/models-web-app/overlays/kubeflow

@@ -1,0 +1,21 @@
+{
+  "base_image": "custom",
+  "base_tag": "2.1.0-cuda12.1-cudnn8-runtime",
+  "custom_from": "pman-gpu-validation:20261015",
+  "workdir": "/home/jovyan",
+  "run_commands": [
+    "python -m pip install --no-cache-dir torchvision==0.22.1+cu118 --index-url https://download.pytorch.org/whl/cu118"
+  ],
+  "pip_packages": [
+    "transformers==4.51.3",
+    "huggingface-hub==0.30.2",
+    "safetensors==0.5.3",
+    "psutil>=5.9",
+    "websocket-client>=1.8"
+  ],
+  "apt_packages": [],
+  "image_name": "grounded-sam-jupyter",
+  "image_tag": "local-test",
+  "include_jupyter": true,
+  "dockerfile_override": null
+}

@@ -1,0 +1,217 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prediction-manager
+  namespace: kubeflow
+  labels:
+    app: prediction-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prediction-manager
+  template:
+    metadata:
+      labels:
+        app: prediction-manager
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      serviceAccountName: prediction-manager
+      containers:
+        - name: prediction-manager
+          image: ${REGISTRY_HOST}/${PM_IMAGE_TAG}
+          # The installer rebuilds this tag when sources are updated.  Always
+          # pull from the local registry so a resumed install cannot run an
+          # older cached Prediction Manager image under the same tag.
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: AUTOML_MAX_CONCURRENT_PER_NS
+              value: "${AUTOML_MAX_CONCURRENT_PER_NS}"
+            - name: AUTOML_MAX_CONCURRENT_TRIALS
+              value: "${AUTOML_MAX_CONCURRENT_TRIALS}"
+            - name: AUTOML_BATCH_SIZE
+              value: "${AUTOML_BATCH_SIZE}"
+            - name: AUTOML_GPU_MEMORY_FRACTION
+              value: "${AUTOML_GPU_MEMORY_FRACTION}"
+            - name: REGISTRY_URL
+              value: "${REGISTRY_URL}"
+            - name: REGISTRY_HOST
+              value: "${REGISTRY_HOST}"
+            - name: DEFAULT_NAMESPACE
+              value: "${DEFAULT_NAMESPACE}"
+            - name: KUBEFLOW_URL
+              value: "${KUBEFLOW_URL}"
+            - name: PROMETHEUS_URL
+              value: "${PROMETHEUS_URL}"
+            - name: ALLOW_UNAUTHENTICATED
+              value: "${ALLOW_UNAUTHENTICATED}"
+            - name: DEV_USER_EMAIL
+              value: "${DEV_USER_EMAIL}"
+            - name: MODEL_STORE_ROOT
+              value: "${MODEL_STORE_ROOT}"
+            - name: MODEL_STORE_BACKEND
+              value: "${MODEL_STORE_BACKEND}"
+            - name: DATASET_STORE_ROOT
+              value: "${DATASET_STORE_ROOT}"
+            - name: DATASET_INTERNAL_BASE_URL
+              value: "${DATASET_INTERNAL_BASE_URL}"
+            - name: FEEDBACK_DATASET_INTERNAL_BASE_URL
+              value: "${FEEDBACK_DATASET_INTERNAL_BASE_URL}"
+            - name: LABEL_STUDIO_URL
+              value: "${LABEL_STUDIO_URL}"
+            - name: LABEL_STUDIO_API_TOKEN
+              value: "${LABEL_STUDIO_API_TOKEN}"
+            - name: ADMIN_EMAILS
+              value: "${ADMIN_EMAILS}"
+            # 비우면 cluster default StorageClass를 사용한다.
+            - name: PM_TENANT_STORAGE_CLASS
+              value: "${PM_TENANT_STORAGE_CLASS}"
+            # 필요 시 MLflow/NiFi PVC만 별도 StorageClass로 override한다.
+            - name: PM_TENANT_MLFLOW_STORAGE_CLASS
+              value: "${PM_TENANT_MLFLOW_STORAGE_CLASS}"
+            - name: PM_TENANT_NIFI_STORAGE_CLASS
+              value: "${PM_TENANT_NIFI_STORAGE_CLASS}"
+            # 비우면 spawner_ui_config.yaml key를 가진 jupyter-web-app-config* ConfigMap을 자동 탐색한다.
+            - name: PM_JUPYTER_CONFIGMAP_NAME
+              value: "${PM_JUPYTER_CONFIGMAP_NAME}"
+            - name: PM_JUPYTER_CONFIGMAP_NAMESPACE
+              value: "${PM_JUPYTER_CONFIGMAP_NAMESPACE}"
+            - name: PM_JUPYTER_WEB_APP_DEPLOYMENT
+              value: "${PM_JUPYTER_WEB_APP_DEPLOYMENT}"
+            - name: KEYCLOAK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin
+                  key: url
+            - name: KEYCLOAK_REALM
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin
+                  key: realm
+            - name: KEYCLOAK_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin
+                  key: username
+            - name: KEYCLOAK_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin
+                  key: password
+            - name: PREDICTION_MANAGER_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: prediction-manager-postgres
+                  key: PREDICTION_MANAGER_DATABASE_URL
+            - name: PM_TENANT_IMAGE_REGISTRY
+              value: "${PM_TENANT_IMAGE_REGISTRY}"
+            - name: PM_TENANT_MLFLOW_IMAGE
+              value: "${PM_TENANT_MLFLOW_IMAGE}"
+            - name: PM_TENANT_MLFLOW_REQUEST_CPU
+              value: "${PM_TENANT_MLFLOW_REQUEST_CPU}"
+            - name: PM_TENANT_MLFLOW_REQUEST_MEMORY
+              value: "${PM_TENANT_MLFLOW_REQUEST_MEMORY}"
+            - name: PM_TENANT_MLFLOW_LIMIT_CPU
+              value: "${PM_TENANT_MLFLOW_LIMIT_CPU}"
+            - name: PM_TENANT_MLFLOW_LIMIT_MEMORY
+              value: "${PM_TENANT_MLFLOW_LIMIT_MEMORY}"
+            - name: PM_TENANT_RAY_IMAGE
+              value: "${PM_TENANT_RAY_IMAGE}"
+            - name: PM_TENANT_RAY_CPU_WORKER_ENABLED
+              value: "${PM_TENANT_RAY_CPU_WORKER_ENABLED}"
+            - name: PM_TENANT_RAY_CPU_WORKER_MAX_REPLICAS
+              value: "${PM_TENANT_RAY_CPU_WORKER_MAX_REPLICAS}"
+            - name: PM_TENANT_RAY_CPU_WORKER_REQUEST_CPU
+              value: "${PM_TENANT_RAY_CPU_WORKER_REQUEST_CPU}"
+            - name: PM_TENANT_RAY_CPU_WORKER_REQUEST_MEMORY
+              value: "${PM_TENANT_RAY_CPU_WORKER_REQUEST_MEMORY}"
+            - name: PM_TENANT_RAY_CPU_WORKER_LIMIT_CPU
+              value: "${PM_TENANT_RAY_CPU_WORKER_LIMIT_CPU}"
+            - name: PM_TENANT_RAY_CPU_WORKER_LIMIT_MEMORY
+              value: "${PM_TENANT_RAY_CPU_WORKER_LIMIT_MEMORY}"
+            - name: PM_TENANT_RAY_HEAD_REQUEST_CPU
+              value: "${PM_TENANT_RAY_HEAD_REQUEST_CPU}"
+            - name: PM_TENANT_RAY_HEAD_REQUEST_MEMORY
+              value: "${PM_TENANT_RAY_HEAD_REQUEST_MEMORY}"
+            - name: PM_TENANT_RAY_HEAD_LIMIT_CPU
+              value: "${PM_TENANT_RAY_HEAD_LIMIT_CPU}"
+            - name: PM_TENANT_RAY_HEAD_LIMIT_MEMORY
+              value: "${PM_TENANT_RAY_HEAD_LIMIT_MEMORY}"
+            - name: PM_TENANT_RAY_AUTOSCALER_REQUEST_CPU
+              value: "${PM_TENANT_RAY_AUTOSCALER_REQUEST_CPU}"
+            - name: PM_TENANT_RAY_AUTOSCALER_REQUEST_MEMORY
+              value: "${PM_TENANT_RAY_AUTOSCALER_REQUEST_MEMORY}"
+            - name: PM_TENANT_RAY_AUTOSCALER_LIMIT_CPU
+              value: "${PM_TENANT_RAY_AUTOSCALER_LIMIT_CPU}"
+            - name: PM_TENANT_RAY_AUTOSCALER_LIMIT_MEMORY
+              value: "${PM_TENANT_RAY_AUTOSCALER_LIMIT_MEMORY}"
+            - name: PM_TENANT_RAY_GPU_WORKER_ENABLED
+              value: "${PM_TENANT_RAY_GPU_WORKER_ENABLED}"
+            - name: PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS
+              value: "${PM_TENANT_RAY_GPU_WORKER_MAX_REPLICAS}"
+            - name: PM_TENANT_RAY_GPU_WORKER_REQUEST_CPU
+              value: "${PM_TENANT_RAY_GPU_WORKER_REQUEST_CPU}"
+            - name: PM_TENANT_RAY_GPU_WORKER_REQUEST_MEMORY
+              value: "${PM_TENANT_RAY_GPU_WORKER_REQUEST_MEMORY}"
+            - name: PM_TENANT_RAY_GPU_WORKER_REQUEST_GPU
+              value: "${PM_TENANT_RAY_GPU_WORKER_REQUEST_GPU}"
+            - name: PM_TENANT_RAY_GPU_WORKER_LIMIT_CPU
+              value: "${PM_TENANT_RAY_GPU_WORKER_LIMIT_CPU}"
+            - name: PM_TENANT_RAY_GPU_WORKER_LIMIT_MEMORY
+              value: "${PM_TENANT_RAY_GPU_WORKER_LIMIT_MEMORY}"
+            - name: PM_TENANT_RAY_GPU_WORKER_LIMIT_GPU
+              value: "${PM_TENANT_RAY_GPU_WORKER_LIMIT_GPU}"
+            - name: PM_TENANT_NIFI_IMAGE
+              value: "${PM_TENANT_NIFI_IMAGE}"
+            - name: PM_TENANT_NIFI_RUN_AS_USER
+              value: "${PM_TENANT_NIFI_RUN_AS_USER}"
+            - name: PM_TENANT_NIFI_RUN_AS_GROUP
+              value: "${PM_TENANT_NIFI_RUN_AS_GROUP}"
+            - name: PM_TENANT_NIFI_FS_GROUP
+              value: "${PM_TENANT_NIFI_FS_GROUP}"
+            - name: PM_TENANT_NIFI_REQUEST_CPU
+              value: "${PM_TENANT_NIFI_REQUEST_CPU}"
+            - name: PM_TENANT_NIFI_REQUEST_MEMORY
+              value: "${PM_TENANT_NIFI_REQUEST_MEMORY}"
+            - name: PM_TENANT_NIFI_LIMIT_CPU
+              value: "${PM_TENANT_NIFI_LIMIT_CPU}"
+            - name: PM_TENANT_NIFI_LIMIT_MEMORY
+              value: "${PM_TENANT_NIFI_LIMIT_MEMORY}"
+            - name: PM_TENANT_NIFI_JVM_HEAP_INIT
+              value: "${PM_TENANT_NIFI_JVM_HEAP_INIT}"
+            - name: PM_TENANT_NIFI_JVM_HEAP_MAX
+              value: "${PM_TENANT_NIFI_JVM_HEAP_MAX}"
+            - name: PM_PROVISIONER_IMAGE
+              value: "${PM_PROVISIONER_IMAGE}"
+            - name: DOCKER_SOCKET
+              value: "${DOCKER_SOCKET}"
+            - name: PM_MLFLOW_BACKEND_STORE_URI_TEMPLATE
+              valueFrom:
+                secretKeyRef:
+                  name: prediction-manager-postgres
+                  key: PM_MLFLOW_BACKEND_STORE_URI_TEMPLATE
+            - name: PM_NIFI_INGEST_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: prediction-manager-postgres
+                  key: PM_NIFI_INGEST_SECRET
+          volumeMounts:
+            - name: model-store
+              mountPath: /models
+            - name: dataset-store
+              mountPath: /datasets
+      # Docker socket은 기본 배포에서 mount하지 않는다.
+      # UI 기반 image build/push 기능이 필요하고 node에 Docker daemon이 있는 경우
+      # k8s/optional/docker-socket-patch.yaml을 적용한다.
+      volumes:
+        - name: model-store
+          persistentVolumeClaim:
+            claimName: prediction-manager-model-store
+        - name: dataset-store
+          persistentVolumeClaim:
+            claimName: prediction-manager-dataset-store

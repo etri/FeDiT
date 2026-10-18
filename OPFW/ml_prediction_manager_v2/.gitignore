@@ -1,0 +1,48 @@
+.DS_Store
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+.test-venv/
+env/
+
+# Runtime / local config
+.env
+.env.*
+!.env.example
+*.log
+logs/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Local data / temporary outputs
+tmp/
+*.sqlite
+*.db
+
+# Local installer dry-run/install evidence contains machine-specific paths and
+# may include generated credentials. Keep the curated internal reports under
+# tests/internal instead.
+scripts/verification-install-results/
+
+# Browser recordings and machine-specific evidence are kept outside Git.
+tests/internal/evidence/
+
+# Rendered Kubernetes manifests
+k8s/deployment.yaml
+scripts/k8s/deployment.yaml

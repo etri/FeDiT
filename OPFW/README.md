@@ -51,6 +51,32 @@
   - `src`: 소스 코드
   - `tests`: 테스트 코드
 
+### **`ml_prediction_manager_v2`**
+- **설명**: 머신러닝 예측 매니저의 백엔드, 웹 UI, 배포 설정, 테스트 및 실행 예제 저장 (2026년 제작)
+- **담당 기관**: ETRI
+- **적용기술**: FastAPI, Python 3.12, PostgreSQL, Kubernetes, Kubeflow, Ray, MLflow, KServe
+- **주요 역할**: 데이터 수집, 데이터셋 관리, AutoML 학습, 모델 등록·배포, 모니터링 및 사용자별 실행환경 관리
+- **하위 폴더**:
+  - `app`: FastAPI 백엔드와 핵심 업무 로직
+  - `docker`: Prediction Manager 연계 서비스용 Docker 이미지 구성
+  - `examples`: Kubeflow Pipeline 및 재학습 실행 예제
+  - `k8s`: Kubernetes 배포 Manifest
+  - `scripts`: 설치·배포 설정 생성 스크립트
+  - `static`: Prediction Manager 웹 UI 정적 파일
+  - `tests`: 테스트 코드, 시험계획 및 시험결과 문서
+
+
+### **`ml_prediction_manager_v2_frontend`**
+- **설명**: FeDiT 통합 포털의 웹 프론트엔드 소스코드 저장 (2026년 제작)
+- **담당 기관**: ETRI
+- **적용기술**: React, TypeScript, React Router, Recoil, Axios, Chart.js
+- **주요 역할**: FeDiT 통합 화면, 사용자·관리자 화면, 디지털 트윈 관리 화면 및 Prediction Manager를 포함한 예측기 생성·연동 도구의 진입 화면 제공
+- **하위 폴더**:
+  - `.husky`: Git 커밋 전에 코드 검사 등을 실행하기 위한 Git Hook 설정 파일
+  - `public`: React 애플리케이션의 공개 정적 파일
+  - `src`: FeDiT 프론트엔드의 실제 React·TypeScript 소스코드
+
+
 ### **`ml_prediction_models`**
 - **설명**: 머신러닝 기반 예측 모델 소스코드와 문서 저장
 - **담당 기관**: ETRI

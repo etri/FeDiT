@@ -1,0 +1,170 @@
+{
+  "torch": "2.7.1+cu118",
+  "cuda_runtime": "11.8",
+  "gpu": "NVIDIA A40",
+  "cpu_training": [
+    {
+      "model": "xgb",
+      "task": "regression",
+      "gpu": false,
+      "metrics": {
+        "mse": 4401.211848018963,
+        "rmse": 66.34162982636893,
+        "mae": 53.564282274364075,
+        "r2": 0.7215350892691561
+      }
+    },
+    {
+      "model": "tabnet",
+      "task": "regression",
+      "gpu": false,
+      "metrics": {
+        "mse": 16043.69982305335,
+        "rmse": 126.66372733759792,
+        "mae": 106.33383253723211,
+        "r2": -0.01508575212754848
+      }
+    },
+    {
+      "model": "rf",
+      "task": "regression",
+      "gpu": false,
+      "metrics": {
+        "mse": 4418.391113979838,
+        "rmse": 66.47097948714038,
+        "mae": 54.178818767713004,
+        "r2": 0.7204481561863122
+      }
+    },
+    {
+      "model": "lgbm",
+      "task": "regression",
+      "gpu": false,
+      "metrics": {
+        "mse": 9635.52959616945,
+        "rmse": 98.1607334740804,
+        "mae": 83.49434853992622,
+        "r2": 0.3903595233550391
+      }
+    },
+    {
+      "model": "mlp",
+      "task": "regression",
+      "gpu": false,
+      "metrics": {
+        "mse": 15233.715018410338,
+        "rmse": 123.42493677701576,
+        "mae": 103.16155904441901,
+        "r2": 0.03616203009856278
+      }
+    },
+    {
+      "model": "xgb",
+      "task": "classification",
+      "gpu": false,
+      "metrics": {
+        "accuracy": 0.95,
+        "f1": 0.9506666666666668,
+        "precision": 0.95625,
+        "recall": 0.95,
+        "roc_auc": 0.9615384615384616
+      }
+    },
+    {
+      "model": "tabnet",
+      "task": "classification",
+      "gpu": false,
+      "metrics": {
+        "accuracy": 0.675,
+        "f1": 0.6401129943502825,
+        "precision": 0.6530303030303031,
+        "recall": 0.675,
+        "roc_auc": 0.6785714285714286
+      }
+    },
+    {
+      "model": "rf",
+      "task": "classification",
+      "gpu": false,
+      "metrics": {
+        "accuracy": 0.95,
+        "f1": 0.9506666666666668,
+        "precision": 0.95625,
+        "recall": 0.95,
+        "roc_auc": 0.9642857142857143
+      }
+    },
+    {
+      "model": "lgbm",
+      "task": "classification",
+      "gpu": false,
+      "metrics": {
+        "accuracy": 0.95,
+        "f1": 0.9506666666666668,
+        "precision": 0.95625,
+        "recall": 0.95,
+        "roc_auc": 0.9615384615384616
+      }
+    },
+    {
+      "model": "mlp",
+      "task": "classification",
+      "gpu": false,
+      "metrics": {
+        "accuracy": 0.6,
+        "f1": 0.5929824561403509,
+        "precision": 0.7583333333333333,
+        "recall": 0.6,
+        "roc_auc": 0.6785714285714286
+      }
+    }
+  ],
+  "gpu_training": [
+    {
+      "model": "xgb",
+      "task": "regression",
+      "gpu": true,
+      "metrics": {
+        "mse": 4401.211786342754,
+        "rmse": 66.34162936153102,
+        "mae": 53.56428167831763,
+        "r2": 0.7215350931714132
+      }
+    },
+    {
+      "model": "tabnet",
+      "task": "regression",
+      "gpu": true,
+      "metrics": {
+        "mse": 16043.701823118516,
+        "rmse": 126.66373523277495,
+        "mae": 106.33383252531118,
+        "r2": -0.015085878671779351
+      }
+    },
+    {
+      "model": "xgb",
+      "task": "classification",
+      "gpu": true,
+      "metrics": {
+        "accuracy": 0.95,
+        "f1": 0.9506666666666668,
+        "precision": 0.95625,
+        "recall": 0.95,
+        "roc_auc": 0.9615384615384616
+      }
+    },
+    {
+      "model": "tabnet",
+      "task": "classification",
+      "gpu": true,
+      "metrics": {
+        "accuracy": 0.675,
+        "f1": 0.6401129943502825,
+        "precision": 0.6530303030303031,
+        "recall": 0.675,
+        "roc_auc": 0.6785714285714286
+      }
+    }
+  ]
+}
