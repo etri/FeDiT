@@ -16,6 +16,14 @@ const consumer = kafka.consumer({ groupId: "twin-meta" });
 const HOST_CONNECTOR = "http://localhost:1219";
 const HOST_BRAIN = "http://localhost:1213";
 
+/**
+ * 제어 실행 결과(control-result) 콜백 수신 엔드포인트.
+ * 메타데이터(digitalTwinObjectControl.callbackURL)에 어떤 값이 오더라도
+ * 컨트롤러가 결과를 되돌려줄 주소는 항상 FDT 쪽 이 주소로 고정한다.
+ */
+const CONTROL_RESULT_CALLBACK_URL =
+  "http://220.124.222.84:1221/fedit/v1/federated-twins/control-result";
+
 const initKafka = async () => {
   console.log("start subscribe");
   await consumer.connect();
@@ -54,6 +62,58 @@ function resolveParentTwinTypeForObject(jsonData) {
   // - FederatedDigitalTwin: 연합
   // - SingleDigitalTwin: 단일
   return jsonData?.upSetList?.[0]?.upModelId ?? null;
+}
+
+function isNonEmptyObject(value) {
+  return (
+    Object.prototype.toString.call(value) === "[object Object]" &&
+    Object.keys(value).length > 0
+  );
+}
+
+/**
+ * metadata.digitalTwinObjectControl -> 커넥터 DO 제어 필드 매핑
+ * - objectControlAccessURL      -> digital_object_control_url
+ * - controlSchemaInformation    -> digital_object_control_request_model
+ * - callbackURL                 -> 무시. 제어 결과 콜백은 CONTROL_RESULT_CALLBACK_URL 로 고정되어 있으므로
+ *                                  DO마다 저장하지 않는다.
+ * 구(舊) 스키마(metadata.digitalObjectControlUrl / digitalObjectControlRequestModel)도 fallback으로 지원한다.
+ */
+function extractObjectControl(metadata) {
+  const control = metadata?.digitalTwinObjectControl ?? {};
+
+  const controlUrl =
+    control.objectControlAccessURL ?? metadata?.digitalObjectControlUrl ?? null;
+  const requestModel =
+    control.controlSchemaInformation ??
+    metadata?.digitalObjectControlRequestModel ??
+    null;
+
+  return {
+    controlUrl: controlUrl || null,
+    requestModel: isNonEmptyObject(requestModel) ? requestModel : null,
+  };
+}
+
+/**
+ * 커넥터 DO 등록/수정 payload에 제어 필드를 채운다.
+ * - null/undefined 값은 joi가 거부하므로 값이 있을 때만 넣는다.
+ * @returns {Object} 적용된 control 정보
+ */
+function applyObjectControlFields(target, metadata) {
+  const control = extractObjectControl(metadata);
+
+  if (control.controlUrl) {
+    target["digital_object_control_url"] = control.controlUrl;
+    console.log(
+      `[control] ${control.controlUrl} 로 제어 전달, 결과 콜백은 ${CONTROL_RESULT_CALLBACK_URL}`,
+    );
+  }
+  if (control.requestModel) {
+    target["digital_object_control_request_model"] = control.requestModel;
+  }
+
+  return control;
 }
 
 async function processJsonObject(jsonData) {
@@ -224,10 +284,7 @@ async function processJsonObject(jsonData) {
             modifiedObject["digital_object_data_model"] =
               jsonData?.metadata?.digitalTwinObjectData?.schemaInformation;
             modifiedObject["digital_object_data_access_type"] = "http";
-            modifiedObject["digital_object_control_url"] =
-              jsonData?.metadata?.digitalObjectControlUrl;
-            modifiedObject["digital_object_control_request_model"] =
-              jsonData?.metadata?.digitalObjectControlRequestModel;
+            applyObjectControlFields(modifiedObject, jsonData?.metadata);
           } else if (action === "modify" || action === "delete") {
             url = `${HOST_CONNECTOR}/fedit/v1/digital-twins/${dtwId}/digital-objects/${key}`;
 
@@ -253,10 +310,7 @@ async function processJsonObject(jsonData) {
             modifiedObject["digital_object_data_model"] =
               jsonData?.metadata?.digitalTwinObjectData?.schemaInformation;
             modifiedObject["digital_object_data_access_type"] = "http";
-            modifiedObject["digital_object_control_url"] =
-              jsonData?.metadata?.digitalObjectControlUrl;
-            modifiedObject["digital_object_control_request_model"] =
-              jsonData?.metadata?.digitalObjectControlRequestModel;
+            applyObjectControlFields(modifiedObject, jsonData?.metadata);
           }
         }
         break;
@@ -527,6 +581,8 @@ async function createMirrorDigitalObject({
     ? `${derivedFromTag} ${fdoMetadata.description}`
     : derivedFromTag;
 
+  const control = extractObjectControl(fdoMetadata);
+
   const payload = {
     digital_object_identifier: fdoId,
     digital_object_name: fdoMetadata?.name ?? fdoId,
@@ -537,8 +593,7 @@ async function createMirrorDigitalObject({
     modification_time: fdoMetadata?.modificationTime ?? now,
     digital_object_data_access_type: "http",
     digital_object_data_model: doData.schemaInformation ?? {},
-    digital_object_control_request_model:
-      fdoMetadata?.digitalObjectControlRequestModel ?? {},
+    digital_object_control_request_model: control.requestModel ?? {},
     do_metadata: {
       sensors: [],
       controllers: [],
@@ -567,8 +622,8 @@ async function createMirrorDigitalObject({
   if (typeof doData.updateInterval === "number") {
     payload.digital_object_data_interval = doData.updateInterval;
   }
-  if (fdoMetadata?.digitalObjectControlUrl) {
-    payload.digital_object_control_url = fdoMetadata.digitalObjectControlUrl;
+  if (control.controlUrl) {
+    payload.digital_object_control_url = control.controlUrl;
   }
 
   const url = `${HOST_CONNECTOR}/fedit/light/digital-twins/${fdtId}/digital-objects`;

@@ -207,6 +207,7 @@ function generateInsertSQLs(config) {
   }
 
   // insert SQL 템플릿 함수
+  //UnalliedDigitalObjects.rowtime DESC
   function buildInsertSQL(condition = "") {
     return `INSERT INTO FederatedDigitalObjects 
 WITH base AS (
@@ -219,7 +220,7 @@ WITH base AS (
     UnalliedDigitalObjects.location,
     ROW_NUMBER() OVER (
       PARTITION BY FDOcomposition.federated_digital_object_id, UnalliedDigitalObjects.digital_object_id
-      ORDER BY UnalliedDigitalObjects.rowtime DESC
+      ORDER BY UnalliedDigitalObjects.proc_time DESC
     ) AS numrow
   FROM UnalliedDigitalObjects
   JOIN FDOcomposition FOR SYSTEM_TIME AS OF UnalliedDigitalObjects.proc_time

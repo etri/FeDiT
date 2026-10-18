@@ -91,19 +91,20 @@ class DigitalObjects {
 
     /* ================================
      * control URL reachable check
+     * - 제어는 POST로 나가므로 여기서 GET 2xx를 요구하면 POST 전용 엔드포인트가
+     *   405/500을 돌려주며 등록이 막힌다.
+     * - 목적은 "도달 가능한가" 이므로 HTTP 응답이 오기만 하면(4xx/5xx 포함) 통과시키고,
+     *   네트워크 오류/타임아웃(응답 자체가 없음)만 실패로 본다.
      * ================================ */
     if (params.digital_object_control_url) {
       try {
         const resp = await axios.get(params.digital_object_control_url, {
           timeout: 5000,
+          validateStatus: () => true,
         }); // 5초 제한
-        if (resp.status < 200 || resp.status >= 400) {
-          throw new Error();
-        } else {
-          console.log(
-            `digital_object_control_url "${params.digital_object_control_url}" is reachable.response.status: ${resp.status}`,
-          );
-        }
+        console.log(
+          `digital_object_control_url "${params.digital_object_control_url}" is reachable.response.status: ${resp.status}`,
+        );
       } catch (e) {
         throw new ErrorHandler(
           412,
