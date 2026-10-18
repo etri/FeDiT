@@ -10,7 +10,7 @@ mkdir -p "$HOME/pman-server-725eb2ed"
 exec 9>"$HOME/pman-server-725eb2ed/control.lock"
 flock -n 9 || { echo 'Another server installation or check is running.' >&2; exit 1; }
 original="$here/server-install-725eb2ed.sh"
-printf '%s  %s\n' 456d06fcfe773711afb6f6b3e0176979881a460515c7e0d37bd94451ebefdbda "$original" | sha256sum -c -
+printf '%s  %s\n' 3519003639a60941d08f9a7f5e6e5865015dfb13e40d0f577cc9165bbafbde77 "$original" | sha256sum -c -
 if [[ "$mode" == inspect ]]; then exec bash "$original" inspect; fi
 export FEDIT_SOURCE_REPO
 FEDIT_SOURCE_REPO=$(cd -- "$here/../../../.." && pwd)
