@@ -1,0 +1,104 @@
+{
+  "date": "2026-10-19",
+  "source_base_commit": "6f5d6050f0c479b24783d496f211f992549c828f",
+  "tested_script_sha256": {
+    "fedit-restart.sh": "e78ef0a2e840b683b3f83dc2944aa9208e5a9ef6e3adb456d74254a980bad32b",
+    "fedit-start.sh": "03d350befe834528f22d66679dab8850e7d013c4d1873eacdea10b8ccdef35df",
+    "fedit-stop.sh": "ffd20519b5fa8b33c3bf53b7303f29d1f0049380778835ce749f594643a5c9ba",
+    "fedit-uninstall.sh": "c0d0f08428385790758c64fff85f9addaf0018f01ac155dcfa0f3e0545cb949a"
+  },
+  "existing_installer_sha256_unchanged": "8c24984e888eec190d83bc9f1bc35ca37dfc3e2f5018ed3909b01dc46546bbee",
+  "environment": {
+    "os": "Ubuntu 22.04.5 LTS official amd64 WSL rootfs (new isolated WSL2 distro)",
+    "rootfs_sha256": "1483cc5c1dce13064f774834cbffdff226559fd522a67a381a8ea77d63fb4109",
+    "cpu_limit": 4,
+    "memory_limit_gib": 6,
+    "swap_gib": 4,
+    "data_disk": "16 GiB ext4 loop device with installer-style bind mounts",
+    "kubernetes": "v1.30.14",
+    "docker_server": "29.1.3",
+    "application_fixture": "real nginx Docker container, real systemd Python HTTP service, real Registry, real PVC-mounted BusyBox Pod",
+    "target_a40_test": false,
+    "full_fedit_reinstall_in_this_test": false
+  },
+  "actual_results": {
+    "uninstall_exit": 0,
+    "uninstall_stage": "complete",
+    "checks": [
+      "REAL_RESTART_NODE_HTTP_PVC_AND_BOOT_PRESERVATION_PASS",
+      "REAL_UNINSTALL_DRY_RUN_NO_SERVICE_OR_CLUSTER_CHANGE_PASS",
+      "REAL_INSTALL_OWNER_CAN_REOPEN_CONTROL_LOCK_AFTER_RESTART_AND_UNINSTALL_PASS",
+      "REAL_UNINSTALL_CLUSTER_UNITS_PVC_REGISTRY_MOUNTS_BOOT_AND_REPEAT_PASS",
+      "REAL_DOCKER_CRI_IMAGE_IDS_AND_UNRELATED_CONTAINER_RETAINED_PASS",
+      "REAL_COLD_ETCD_BACKUP_RESTORE_AND_ORIGINAL_KUBERNETES_KEY_PASS",
+      "REAL_UNINSTALL_FINAL_PORTS_CLOSED_PASS",
+      "REAL_RESTART_AND_UNINSTALL_INTEGRATION_PASS"
+    ]
+  },
+  "additional_backup_harness": {
+    "initial_exit": 143,
+    "cause": "The harness treated wait status 143 after deliberately terminating its temporary etcd as a failure. Core restart/uninstall had already passed.",
+    "corrected_additional_check_exit": 0,
+    "core_product_changed_for_harness_correction": false,
+    "query": "Restored cold etcd returned the original /registry/configmaps/default/lifecycle-proof value."
+  },
+  "regression": {
+    "existing_groups": [
+      "PASS pinned checksum, Bash syntax and actual runtime patches",
+      "PASS actual generated CRI fallback: canonical Docker aliases and explicit registries",
+      "PASS full manifest prefetch runs before apply, deduplicates and preserves cached images",
+      "PASS actual Docker retry classifier uses large-image limits even with platform flags",
+      "PASS actual rollout wait tolerates immediate controller errors until its real wait budget expires",
+      "PASS DCGM release images are prepared with the large-image limit before its startup wait",
+      "PASS actual config append overrides old 300/900-second settings, including paths with spaces",
+      "PASS real local Git source reuse without hardlinks/alternates, with remote fallback for missing commit",
+      "PASS Pod replacement reconnect and bounded cleanup of TERM-resistant child",
+      "PASS service ordering, unchanged boot settings and container-stop failure reporting",
+      "PASS installer-owned Docker gateway repair, alias preservation, idempotence and foreign-interface denial",
+      "PASS optional storage scan is bounded even when du ignores TERM; installation continues",
+      "PASS Label startup probe and dedicated resources survive generic post-tenant tuning without another rollout",
+      "PASS PostgreSQL readiness/resources preserve credentials and PVCs; exact three proxy templates avoid CPU surge",
+      "PASS real HTTP startup recovery and elapsed deadlines, including a blocked response",
+      "PASS fresh tenant Pods retained; only stale revisions/CPU settings refreshed with UID preconditions",
+      "PASS real HTTP token expiry/401 renewal, interrupted blob resume, corrupt cache repair and post-load cache cleanup",
+      "PASS real Git source check leaves the index unchanged when its stat cache needs refresh",
+      "PASS real HTTP reload race: old HTML/503 retries, exact JavaScript, namespace denial and security failures",
+      "PASS sudo ticket refresh, initial authentication failure and bounded worker/timer cleanup",
+      "PASS recovery only for the failed Keycloak stage with exact HTTPS rejection; unrelated failures and test mode preserved",
+      "PASS real curl recovery from empty reply and HTTP 503 without concatenating error responses"
+    ],
+    "new_mocked_service_groups_run_on_ubuntu22": [
+      "PASS restart order, custom Registry, stop/start exit codes, lock and dependency preflight",
+      "PASS uninstall dry-run: actual file preservation with mocked services",
+      "PASS uninstall ownership: actual file preservation with mocked services",
+      "PASS uninstall foreign-cluster: actual file preservation with mocked services",
+      "PASS uninstall locked: actual file preservation with mocked services",
+      "PASS uninstall foreign-kubeconfig: actual file preservation with mocked services",
+      "PASS uninstall success: actual file preservation with mocked services",
+      "PASS uninstall failure propagation: stop",
+      "PASS uninstall failure propagation: backup",
+      "PASS uninstall failure propagation: disable",
+      "PASS uninstall failure propagation: docker-list",
+      "PASS uninstall failure propagation: reset",
+      "PASS uninstall failure propagation: reset-warning",
+      "PASS uninstall failure propagation: cri-remains",
+      "PASS uninstall failure propagation: cleanup",
+      "PASS literal Registry config parser: defaults, quotes, last assignment and no shell execution"
+    ]
+  },
+  "public_execution_log": {
+    "file": "restart-uninstall-ubuntu22-20261019.log.txt",
+    "sha256": "1057f300798edb5824faefd9a9ab5e7ebce3244e4a1d57c1c18837409cc5294b"
+  },
+  "cleanup": {
+    "test_vm_and_all_test_images_removed": true,
+    "rootfs_download_removed": true,
+    "original_three_distros_preserved_stopped": true,
+    "host_wslconfig_restored_byte_for_byte": true
+  },
+  "private_backups_or_credentials_exported": false,
+  "scope_limits": [
+    "HTTP services are lifecycle fixtures; this is not a new end-to-end FeDiT/AutoML/GPU installation test.",
+    "Retained PVC bytes are not automatically attached to a newly installed cluster."
+  ]
+}

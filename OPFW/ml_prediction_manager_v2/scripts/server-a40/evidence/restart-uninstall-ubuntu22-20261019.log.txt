@@ -1,0 +1,157 @@
+ACTUAL_LIFECYCLE_TEST=2026-10-19T00:17:36+09:00
+PRETTY_NAME="Ubuntu 22.04.5 LTS"
+NAME="Ubuntu"
+VERSION_ID="22.04"
+VERSION="22.04.5 LTS (Jammy Jellyfish)"
+VERSION_CODENAME=jammy
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=jammy
+v1.30.14
+29.1.3
+node/pc condition met
+persistentvolume/lifecycle-proof unchanged
+persistentvolumeclaim/lifecycle-proof unchanged
+pod/lifecycle-proof configured
+pod/lifecycle-proof condition met
+===== Restart: stop =====
+===== Stopping access, installation resume, and Kubernetes reconciliation =====
+===== Stopping Kubernetes containers =====
+95c6e6da1291dbb719b11c44a3e4cd9c716a8743b7cb0c9dda94d9a6dc103315
+bad40dd6aa289ac9f46472d000e352f0e9c5fcf140f2ea95f1b39d1aa15fffaf
+ca65e01d91b7f991f1cece685504f514d0dc453e6c6215789f33c52ecc4f679f
+9ee0c0d38f5aa0f2b9a905b8e70660fe8e7d7f2193f8021bca6e8f81b6fd0906
+6ae7a4fddd0ea769e69b0a5b07aaec20cf1250ec3cc02aaf14b0d94a6f47b03d
+d548c4e455c5f7bf785f820000bc71e5cfb201ffdea541947d4175dcafe41a9b
+f336d1c8755dff893e1b0bbf5b37a0d6bc5fbf64799f101100581791c8f91a63
+c98bfedd360c716bdba83880aeaa5a42aa1dca47d71fc15e8b042f76ee1af050
+===== Stopping ALL Docker containers on this server =====
+744070357cbe
+f6f01974d9dd
+===== Service status =====
+prediction-manager-access.service: inactive
+kubelet.service: inactive
+docker.service: inactive
+docker.socket: inactive
+containerd.service: inactive
+[PASS] Platform stopped. Data and boot settings are preserved.
+===== Restart: start =====
+===== Starting container runtimes and Kubernetes =====
+[PASS] Docker bridge gateway matches its IPAM configuration
+pm-verification-registry
+fedit-fe
+===== Starting service access =====
+===== Waiting for Kubernetes API (up to 180 seconds) =====
+node/pc condition met
+===== Service status =====
+active
+active
+active
+active
+NAMESPACE     NAME                         READY   STATUS    RESTARTS      AGE
+default       lifecycle-proof              1/1     Running   6 (30s ago)   13m
+kube-system   coredns-55cb58b774-dgprd     1/1     Running   7 (50s ago)   15m
+kube-system   coredns-55cb58b774-n265r     0/1     Running   7 (55s ago)   15m
+kube-system   etcd-pc                      0/1     Running   7 (29s ago)   16m
+kube-system   kube-apiserver-pc            0/1     Running   7 (8s ago)    16m
+kube-system   kube-controller-manager-pc   0/1     Running   7 (16s ago)   16m
+kube-system   kube-proxy-2p8gc             1/1     Running   7 (29s ago)   15m
+kube-system   kube-scheduler-pc            0/1     Running   7 (29s ago)   16m
+[PASS] Services started and Kubernetes node is Ready.
+Application Pods may still be starting; check their READY columns above.
+FeDiT: http://220.124.222.82:18000/fedit/predictor-creator-tool
+Prediction Manager: http://220.124.222.82:18000/prediction-manager/docs
+[PASS] Platform restarted; Kubernetes node is Ready. Application Pods may still be starting.
+For the full application and CPU/GPU check: bash install.sh test
+pod/lifecycle-proof condition met
+REAL_RESTART_NODE_HTTP_PVC_AND_BOOT_PRESERVATION_PASS
+Installation owner: pmtest
+Remove cluster: /etc/kubernetes and /var/lib/etcd (cold backup first)
+Remove Docker containers: fedit-fe, pm-verification-registry
+Remove units: prediction-manager-access, prediction-manager-verification-resume, prediction-manager-root-propagation
+Disable autostart: kubelet, docker, docker.socket, containerd
+Preserve data: /data/fedit-pman-1000, /opt/local-path-provisioner, /home/pmtest/prediction-manager-work
+Preserve packages, images, NVIDIA driver, network settings and /data bind mounts.
+[PASS] Dry run only; no changes made.
+REAL_UNINSTALL_DRY_RUN_NO_SERVICE_OR_CLUSTER_CHANGE_PASS
+Installation owner: pmtest
+Remove cluster: /etc/kubernetes and /var/lib/etcd (cold backup first)
+Remove Docker containers: fedit-fe, pm-verification-registry
+Remove units: prediction-manager-access, prediction-manager-verification-resume, prediction-manager-root-propagation
+Disable autostart: kubelet, docker, docker.socket, containerd
+Preserve data: /data/fedit-pman-1000, /opt/local-path-provisioner, /home/pmtest/prediction-manager-work
+Preserve packages, images, NVIDIA driver, network settings and /data bind mounts.
+UNINSTALL_REPORT=/home/pmtest/pman-server-725eb2ed/uninstall.bOXCl90q
+===== Stopping access, installation resume, and Kubernetes reconciliation =====
+===== Stopping Kubernetes containers =====
+fcd09b4e9a9b1e4c097a774bb8dae8852f92b2e3853a4eeee7eb55de30fc610d
+26fe141c62e555773eb3b20c6d422a3851cc1bf6c456b989644ffef2916af792
+1120372af94dc71d2cebcb5e064308af2fd5e7e163ddd4d31f3832747c58c39c
+9b8c2b0e029b9be3f5ce1d57fd3de5472bcd2ee2e73dd847c3c9f5a3557c4896
+0e776d6b53878c38eeadd42148987507d6e6861912bf4e6ace4de028a7cce591
+6a3f43fbc653e471a90dbe6bbdbe84fdcb803553dd2bae7fdb10c95ac2faff72
+6b18f881f0363a7043070a2bb6b781b6836de8ee8dfe26bf662c332a018f8241
+202eb31654296eee411d47944b2ce1fadcabaa5756a28bdc76bfc5a3a68d2e27
+===== Stopping ALL Docker containers on this server =====
+744070357cbe
+f6f01974d9dd
+===== Service status =====
+prediction-manager-access.service: inactive
+kubelet.service: inactive
+docker.service: inactive
+docker.socket: inactive
+containerd.service: inactive
+[PASS] Platform stopped. Data and boot settings are preserved.
+Removed /etc/systemd/system/multi-user.target.wants/prediction-manager-access.service.
+Removed /etc/systemd/system/multi-user.target.wants/kubelet.service.
+Removed /etc/systemd/system/multi-user.target.wants/docker.service.
+Removed /etc/systemd/system/sockets.target.wants/docker.socket.
+Removed /etc/systemd/system/multi-user.target.wants/containerd.service.
+fedit-fe
+pm-verification-registry
+[preflight] Running pre-flight checks
+W1019 00:21:26.887175    6797 removeetcdmember.go:106] [reset] No kubeadm config, using etcd pod spec to get data directory
+[reset] Deleted contents of the etcd data directory: /var/lib/etcd
+[reset] Stopping the kubelet service
+[reset] Unmounting mounted directories in "/var/lib/kubelet"
+[reset] Deleting contents of directories: [/etc/kubernetes/manifests /var/lib/kubelet /etc/kubernetes/pki]
+[reset] Deleting files: [/etc/kubernetes/admin.conf /etc/kubernetes/super-admin.conf /etc/kubernetes/kubelet.conf /etc/kubernetes/bootstrap-kubelet.conf /etc/kubernetes/controller-manager.conf /etc/kubernetes/scheduler.conf]
+
+The reset process does not clean CNI configuration. To do so, you must remove /etc/cni/net.d
+
+The reset process does not reset or clean up iptables rules or IPVS tables.
+If you wish to reset iptables, you must do so manually by using the "iptables" command.
+
+If your cluster was setup to utilize IPVS, run ipvsadm --clear (or similar)
+to reset your system's IPVS tables.
+
+The reset process does not clean your kubeconfig files and you must remove them manually.
+Please, check the contents of the $HOME/.kube/config file.
+EXIT=0
+STAGE=complete
+[PASS] Platform uninstalled. PVC files, Registry data and images are retained.
+The old cluster cannot be started with fedit-start.sh; reinstall with bash install.sh.
+Retained PVC files need an explicit restore; a new cluster does not attach them automatically.
+UNINSTALL_REPORT=/home/pmtest/pman-server-725eb2ed/uninstall.bOXCl90q
+The private backup contains credentials. Do not send it in chat.
+REAL_INSTALL_OWNER_CAN_REOPEN_CONTROL_LOCK_AFTER_RESTART_AND_UNINSTALL_PASS
+/home/pmtest/pman-server-725eb2ed/uninstall.bOXCl90q/cluster-backup.private.tar: OK
+Installation owner: pmtest
+Remove cluster: /etc/kubernetes and /var/lib/etcd (cold backup first)
+Remove Docker containers: fedit-fe, pm-verification-registry
+Remove units: prediction-manager-access, prediction-manager-verification-resume, prediction-manager-root-propagation
+Disable autostart: kubelet, docker, docker.socket, containerd
+Preserve data: /data/fedit-pman-1000, /opt/local-path-provisioner, /home/pmtest/prediction-manager-work
+Preserve packages, images, NVIDIA driver, network settings and /data bind mounts.
+[PASS] This installation was already uninstalled. Retained data is unchanged.
+REAL_UNINSTALL_CLUSTER_UNITS_PVC_REGISTRY_MOUNTS_BOOT_AND_REPEAT_PASS
+REAL_DOCKER_CRI_IMAGE_IDS_AND_UNRELATED_CONTAINER_RETAINED_PASS
+ADDITIONAL_BACKUP_CHECK_REPEATED_AFTER_FIXING_EXPECTED_ETCD_SIGTERM_EXIT_HANDLING
+REAL_DOCKER_CRI_IMAGE_IDS_AND_UNRELATED_CONTAINER_RETAINED_PASS
+REAL_COLD_ETCD_BACKUP_RESTORE_AND_ORIGINAL_KUBERNETES_KEY_PASS
+REAL_UNINSTALL_FINAL_PORTS_CLOSED_PASS
+REAL_RESTART_AND_UNINSTALL_INTEGRATION_PASS

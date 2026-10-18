@@ -45,16 +45,37 @@ Kubernetes GPU 실행, CPU/GPU 학습 및 모델 저장·재로드 시험을 자
 ```bash
 bash fedit-start.sh   # 전체 시작
 bash fedit-stop.sh    # 전체 중지
+bash fedit-restart.sh # 전체 재시작
 ```
 
 중지는 서버의 모든 Docker 컨테이너를 포함한다. 데이터와 부팅 시 활성화
 설정은 변경하지 않는다. 시작은 Registry와 FeDiT 컨테이너도 직접 복구한다.
+재시작은 중지 성공 후 시작을 실행한다. API·노드 Ready 이후에도 앱 Pod는
+기동 중일 수 있으므로 전체 앱·CPU/GPU 시험은 `bash install.sh test`로 실행한다.
+
+플랫폼을 제거하려면 설치했던 계정으로 같은 폴더에서 실행한다.
+
+```bash
+bash fedit-uninstall.sh --dry-run # 선택 사항: 변경 없이 제거 범위 확인
+bash fedit-uninstall.sh           # 단일 노드 클러스터와 서비스 제거
+```
+
+제거는 클러스터 초기화 전에 etcd·설정·인증 정보의 비공개 백업을 남기고,
+플랫폼 컨테이너와 전용 systemd 서비스를 제거하며 실행 서비스의 자동 시작을 끈다.
+PVC 파일·Registry 데이터·이미지·패키지·NVIDIA 드라이버·`/data` 마운트는 보존한다.
+제거 뒤에는 시작/재시작으로 복구되지 않으며 `bash install.sh`로 재설치한다.
+보존된 PVC 파일이 새 클러스터에 자동 연결되지는 않는다. 마지막 `UNINSTALL_REPORT`에
+결과·로그·비공개 백업 위치가 표시된다. 비공개 백업에는 인증 정보가 포함되므로 공유하지 않는다.
 
 2026-10-18 공식 Ubuntu 22.04 rootfs로 새 WSL2 환경을 만들고 최신 스크립트의
 전체 설치, 실제 사용자 이미지·PVC 수명주기, 서비스 중지·시작과 재시작 후
 CPU/GPU 학습 시험을 통과했다. 시험 GPU는 RTX 3050 Laptop이며, 최신 코드를
 목표 A40에서 직접 실행한 결과는 아니다. Images·Volumes 화면도 실제 브라우저에서
 확인했다. 전체 AutoML→서빙, 호스트 재부팅과 부하 시험은 별도 항목이다.
+
+추가한 재시작·제거 스크립트는 2026-10-19 별도 Ubuntu 22.04의 실제 Docker·Kubernetes와
+시험용 HTTP 서비스에서 실행했다. PVC·이미지 보존과 냉간 etcd 백업 조회까지 확인했다.
+이번 제어 스크립트 시험의 환경·범위·로그는 아래 검증 기록에 구분해 두었다.
 
 - [전체 설치 가이드](OPFW/ml_prediction_manager_v2/guide.txt)
 - [설치·서비스 제어 상세 설명](OPFW/ml_prediction_manager_v2/scripts/server-a40/README.md)
