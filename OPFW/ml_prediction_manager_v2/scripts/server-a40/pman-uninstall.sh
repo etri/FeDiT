@@ -158,6 +158,30 @@ uninstall_platform() {
   for container in fedit-fe "$registry"; do
     if grep -Fqx -- "$container" "$report/docker-names.txt"; then docker rm -f -- "$container"; fi
   done
+  phase=offline-cni
+  # Calico DEL reads ClusterInformation from the API. pman-stop has stopped
+  # that API, and a previous reset may already have removed its credentials.
+  # This dedicated cluster is being destroyed, so retire its CNI configuration
+  # and load a DEL-only loopback network before asking CRI to delete sandboxes.
+  # Restart is required: containerd retains the last valid CNI configuration.
+  # Removing the configuration alone is not enough (CNI not initialized).
+  [[ -x /opt/cni/bin/loopback ]] || {
+    echo '[FAIL] Missing installed CNI loopback plugin; original CNI configuration retained.' >&2; exit 1;
+  }
+  systemctl stop docker.socket docker.service
+  if [[ -e /etc/cni/net.d ]]; then mv -- /etc/cni/net.d "$report/retired-cni-config"; fi
+  mkdir -p /etc/cni/net.d
+  cat > /etc/cni/net.d/00-pman-reset.conflist <<'CNI'
+{"cniVersion":"0.3.1","name":"pman-offline-reset","plugins":[{"type":"loopback"}]}
+CNI
+  systemctl restart containerd.service
+  endpoint=unix:///run/containerd/containerd.sock
+  crictl --runtime-endpoint "$endpoint" pods -q > "$report/pods-before-reset.txt"
+  while read -r pod; do
+    [[ -n "$pod" ]] || continue
+    crictl --runtime-endpoint "$endpoint" --timeout=90s stopp "$pod"
+    crictl --runtime-endpoint "$endpoint" --timeout=90s rmp "$pod"
+  done < "$report/pods-before-reset.txt"
   phase=cluster-reset
   timeout --signal=TERM --kill-after=15s 300s kubeadm reset -f \
     --cri-socket unix:///run/containerd/containerd.sock --kubeconfig /dev/null
@@ -172,6 +196,11 @@ uninstall_platform() {
   [[ ! -s "$report/remaining-pods.txt" ]] || {
     echo '[FAIL] CRI Pod sandboxes remain after reset.' >&2; exit 1;
   }
+  # Leave no reset-only CNI configuration or stale IPAM cache for installation.
+  # The old configuration is retained in the private uninstall report. The
+  # plugin binaries, runtime stores, PVC directories and mounts stay intact.
+  rm -f -- /etc/cni/net.d/00-pman-reset.conflist
+  if [[ -e /var/lib/cni ]]; then mv -- /var/lib/cni "$report/retired-cni-cache"; fi
   phase=remove-units
   for unit in prediction-manager-access.service prediction-manager-verification-resume.service \
     prediction-manager-root-propagation.service; do

@@ -159,6 +159,16 @@ STAGE=complete 및 PMAN_IMAGE_CLEANUP_AND_REINSTALL_PASS를 확인한다.
 PMAN_REINSTALL_REPORT_ARCHIVE에 표시된 압축파일 하나를 전달하면 된다.
 이미지 목록·삭제 결과·공개 로그·설치 시험 결과를 포함하며 비공개 인증 백업은 제외한다.
 
+Calico ClusterInformation connection refused / CRI Pod sandboxes remain after reset
+오류로 중단된 이전 실행은 기존 소스 checkout 최상위에서 아래 두 줄로 갱신·재개한다.
+기존 실패 기록과 백업은 유지하며, API가 제거된 상태에서도 남은 sandbox를 정리한다.
+
+  git pull --ff-only origin OPFW_development_ETRI_pman &&
+  bash OPFW/ml_prediction_manager_v2/scripts/server-a40/pman-reinstall.sh
+
+제거기는 백업 뒤 기존 CNI 설정을 보고서로 옮기고, 제거 중에만 API를 요구하지 않는
+임시 loopback CNI로 sandbox를 정리한다. 실제 잔여 sandbox가 있으면 성공으로 처리하지 않는다.
+
 6) 검증 범위
 
 2026-10-18 공식 Ubuntu 22.04 rootfs로 새 WSL2 환경을 만들고 최신 스크립트의

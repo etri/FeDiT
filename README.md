@@ -73,6 +73,11 @@ PVC 데이터 파일과 NVIDIA 드라이버는 보존한다. 실패 후 같은 �
 완료된 제거 단계를 반복하지 않고 재개한다. 최종 성공 표시는
 `PMAN_IMAGE_CLEANUP_AND_REINSTALL_PASS`이며, 결과 전달 파일은 `PMAN_REINSTALL_REPORT_ARCHIVE`다.
 
+Calico `ClusterInformation ... connection refused`와 남은 Pod sandbox 오류로 중단된
+이전 재설치는 기존 소스 checkout 최상위에서 `git pull --ff-only origin
+OPFW_development_ETRI_pman` 후 같은 재설치 명령으로 재개한다. 제거 중에는 백업된
+CNI 설정 대신 API가 필요 없는 임시 loopback CNI를 로드해 sandbox를 실제로 정리한다.
+
 2026-10-18 공식 Ubuntu 22.04 rootfs로 새 WSL2 환경을 만들고 최신 스크립트의
 전체 설치, 실제 사용자 이미지·PVC 수명주기, 서비스 중지·시작과 재시작 후
 CPU/GPU 학습 시험을 통과했다. 시험 GPU는 RTX 3050 Laptop이며, 최신 코드를

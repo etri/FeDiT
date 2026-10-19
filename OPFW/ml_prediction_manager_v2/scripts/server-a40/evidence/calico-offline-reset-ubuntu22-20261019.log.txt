@@ -1,0 +1,35 @@
+PRETTY_NAME="Ubuntu 22.04.5 LTS"
+NAME="Ubuntu"
+VERSION_ID="22.04"
+VERSION="22.04.5 LTS (Jammy Jellyfish)"
+VERSION_CODENAME=jammy
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=jammy
+containerd github.com/containerd/containerd v1.7.28 b98a3aace656320842a23f4a392a33f46af97866
+crictl version v1.30.1
+runc version 1.2.6
+commit: v1.2.6-0-ge89a2992
+spec: 1.2.0
+go: go1.23.7
+libseccomp: 2.5.5
+unpacking docker.io/rancher/mirrored-pause:3.6 (sha256:c2280d2f5f56cf9c9a01bb64b2db4651e35efd6d62a54dcfc12049fe6449c5e4)...done
+unpacking docker.io/calico/cni:v3.28.0 (sha256:7a3a5cf6c79243ba2de9eef8cb20fac7c46ef75b858956b9884b0ce87b9a354d)...done
+sha256:83daa54fa814ea6926f87014463b89b0d2421a56c808b616e0eda50c20538a1f
+/tmp/calico-image
+/tmp/calico-image
+REAL_SANDBOX=de364d91e4a41eab5da4e19c1025b840f6f4e940b5368407f2a3941b5e0840f9
+/var/run/netns/cni-54c4e67f-eb2c-ed84-915b-b3b366a88f48
+/sys/class/net/veth8d2eb418
+E1019 11:06:47.143078     252 remote_runtime.go:222] "StopPodSandbox from runtime service failed" err="rpc error: code = Unknown desc = failed to destroy network for sandbox \"de364d91e4a41eab5da4e19c1025b840f6f4e940b5368407f2a3941b5e0840f9\": plugin type=\"calico\" failed (delete): error getting ClusterInformation: Get \"https://127.0.0.1:65534/apis/crd.projectcalico.org/v1/clusterinformations/default\": dial tcp 127.0.0.1:65534: connect: connection refused" podSandboxID="de364d91e4a41eab5da4e19c1025b840f6f4e940b5368407f2a3941b5e0840f9"
+time="2026-10-19T11:06:47Z" level=fatal msg="stopping the pod sandbox \"de364d91e4a41eab5da4e19c1025b840f6f4e940b5368407f2a3941b5e0840f9\": rpc error: code = Unknown desc = failed to destroy network for sandbox \"de364d91e4a41eab5da4e19c1025b840f6f4e940b5368407f2a3941b5e0840f9\": plugin type=\"calico\" failed (delete): error getting ClusterInformation: Get \"https://127.0.0.1:65534/apis/crd.projectcalico.org/v1/clusterinformations/default\": dial tcp 127.0.0.1:65534: connect: connection refused"
+CALICO_API_DOWN_FAILURE_REPRODUCED
+Stopped sandbox de364d91e4a41eab5da4e19c1025b840f6f4e940b5368407f2a3941b5e0840f9
+Removed sandbox de364d91e4a41eab5da4e19c1025b840f6f4e940b5368407f2a3941b5e0840f9
+c94bbd091e7b466347c5f195ab164ad248c5803c6387293fc72dd16513020d57  /mnt/c/Users/user/Desktop/prediction_manager/FeDiT/OPFW/ml_prediction_manager_v2/scripts/server-a40/pman-uninstall.sh
+REAL_CONTAINERD_CALICO_OFFLINE_RECOVERY_PASS
+Verified: no CRI sandboxes, no original netns/veth, PVC bytes and foreign namespace image retained.

@@ -121,10 +121,16 @@ bash pman-uninstall.sh            # 실제 제거
 초기화 명령의 경고만으로 성공을 판단하지 않고 설정·etcd·Pod sandbox 제거를 확인한다.
 백업 실패 시 클러스터를 초기화하지 않는다. 서비스는 중지 상태로 남는다.
 
+Calico는 Pod 네트워크 삭제 때도 API를 조회한다. API 중지 후의 삭제 실패를
+피하도록 백업 뒤 기존 CNI 설정을 보고서의 `retired-cni-config`로 옮기고,
+제거 중에만 임시 loopback CNI를 로드한 containerd로 Pod sandbox를 삭제한다.
+sandbox가 남으면 실패로 처리한다. 완료 시 임시 설정을 지우고 이전 CNI 캐시도
+보고서로 옮긴다. CNI 바이너리와 PVC 데이터는 보존한다.
+
 접근·설치 재개·루트 mount propagation 전용 systemd 유닛을 제거하고
 kubelet/Docker/docker.socket/containerd의 부팅 시 자동 시작을 해제한다.
 PVC 파일, Registry 데이터, Docker/containerd 이미지, 설치 패키지와 NVIDIA 드라이버,
-`/data` 및 bind 마운트, 실행 서비스의 저장소 보호 drop-in과 네트워크 설정은 보존한다.
+`/data` 및 bind 마운트, 실행 서비스의 저장소 보호 drop-in과 Docker/호스트 네트워크 설정은 보존한다.
 디스크 전체 삭제, 이미지 prune, 공용 방화벽/iptables 초기화는 하지 않는다.
 이미 제거된 설치에 재실행하면 기존 데이터를 건드리지 않고 종료한다.
 
@@ -181,6 +187,18 @@ PVC 파일·NVIDIA 드라이버·패키지·데이터 mount는 보존하며 디�
 `pman-reinstall.sh`를 다시 실행해도 미완료 실행을 찾아 재개한다. 설치 단계가 실패한 경우
 이미 끝난 플랫폼 제거·이미지 삭제를 다시 수행하지 않는다. 기존 설정이 있는 설치 계정의
 `~/pman-server-725eb2ed/reinstall-active`가 이 실행 위치를 가리킨다.
+
+이전 버전에서 `calico ... ClusterInformation ... connection refused`와
+`CRI Pod sandboxes remain after reset`로 멈춘 경우도 같은 작업을 재개할 수 있다.
+기존 소스 checkout의 최상위에서 다음을 실행한다. 새 clone이나 수동 reset은 필요 없다.
+
+```bash
+git pull --ff-only origin OPFW_development_ETRI_pman &&
+bash OPFW/ml_prediction_manager_v2/scripts/server-a40/pman-reinstall.sh
+```
+
+기존 이미지 목록·실패 기록·비공개 백업은 유지한다. API 설정이 이미 삭제된 상태에서도
+남은 sandbox를 정리한 뒤 이미지 삭제·설치·구동 시험을 이어서 실행한다.
 
 최종 `PMAN REINSTALL FINAL RESULT`에서 `EXIT=0`, `STAGE=complete`,
 `PMAN_IMAGE_CLEANUP_AND_REINSTALL_PASS`를 확인한다. `PMAN_REINSTALL_REPORT_ARCHIVE`의

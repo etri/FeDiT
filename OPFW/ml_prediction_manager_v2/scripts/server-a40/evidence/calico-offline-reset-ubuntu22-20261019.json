@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-19",
+  "scope": "Real CRI/CNI failure and recovery fixture; not a full FeDiT reinstall or native A40 run",
+  "environment": "Official Ubuntu Base 22.04.5 amd64 on an isolated WSL2 distribution, standard kernel 6.18.33.2",
+  "versions": {
+    "containerd": "1.7.28",
+    "crictl": "1.30.1",
+    "runc": "1.2.6",
+    "CNI plugins": "1.5.1",
+    "Calico CNI": "3.28.0"
+  },
+  "fixture": "Create a real sandbox with bridge/host-local CNI; load actual Calico DEL pointed to an intentionally unavailable API at 127.0.0.1:65534. No Kubernetes API/control plane was installed.",
+  "execution": "Execute offline-cni section of pman-uninstall.sh verbatim; fixture systemctl function restarts the real containerd process. Remaining uninstall phases covered by mocked-service Bash regression tests.",
+  "result": {
+    "exit": 0,
+    "Calico_ClusterInformation_connection_refused_reproduced": true,
+    "CRI_sandboxes_empty": true,
+    "original_netns_removed": true,
+    "original_host_veth_removed": true,
+    "PVC_bytes_retained": true,
+    "foreign_containerd_namespace_image_retained": true
+  },
+  "source_sha256": "c94bbd091e7b466347c5f195ab164ad248c5803c6387293fc72dd16513020d57",
+  "artifacts_sha256": {
+    "ubuntu-base.tar.gz": "242cd8898b33ea806ef5f13b1076ed7c76f9f989d18384452f7166692438ff1a",
+    "containerd.tar.gz": "7a8c262deb63becc877e82d23749e4f99f4a17e8e660f9b8c257ca87a5c056b6",
+    "crictl.tar.gz": "71873cdeeeb6c9ee0f79c27b45db38066da81f0c30dcda909b4eedc3aff63f59",
+    "cni.tar.gz": "77baa2f669980a82255ffa2f2717de823992480271ee778aa51a9c60ae89ff9b",
+    "runc": "0774f49d1b1eebb5849e644db5e4dc6f2b06cee05f13b3d17d5d6ba62d6f2ebc",
+    "calico.oci.tar": "4db9efcfb35b6cd3374a862bc3a218930d17b1ec8823582717b7ed7470d84299",
+    "pause.oci.tar": "53aec51c329849ea9c6b1544b133de13c2d9ddfae49686c06bc85aab5cc69246",
+    "real-cni.log": "fc6d400a5a2b67a1b8e8393b751f960c2ae129c9a40ca06460f79fa788d0c69d"
+  },
+  "limitations": [
+    "No complete install.sh run in this fixture",
+    "No native A40 execution",
+    "Calico ADD was not tested; Calico DEL was tested against a real network namespace"
+  ]
+}

@@ -1,5 +1,42 @@
 # 검증 기록
 
+## Calico API 중단 후 제거 실패 복구 (2026-10-19)
+
+목표 서버의 `811d66a5` 실행에서 API가 중지된 뒤 Calico DEL이
+`ClusterInformation ... connection refused`로 실패했고, `kubeadm reset` 후에도
+CRI sandbox가 남았다. 이전 실제 수명주기 시험은 API에 의존하지 않는 bridge CNI를
+사용해 이 경우를 검증하지 못했다.
+
+`pman-uninstall.sh`는 냉간 백업 뒤 기존 CNI 설정을 별도 보관하고,
+제거 중에만 loopback CNI를 로드하도록 containerd를 재시작한다. sandbox를
+실제 stop/remove한 뒤 기존 reset 검증을 계속한다. 완료 시 임시 설정을 지우고
+오래된 CNI 캐시도 보관한다. API 설정이 이미 삭제된 실패 상태에서 재개할 수 있다.
+
+실제 runtime 재현 시험:
+
+- 공식 Ubuntu Base 22.04.5의 별도 WSL2 환경. containerd 1.7.28,
+  crictl 1.30.1, runc 1.2.6, CNI plugins 1.5.1, 실제 Calico CNI 3.28.0.
+- bridge/host-local로 실제 CRI sandbox와 netns/veth를 만들고, Calico DEL을
+  닫힌 API 주소 `127.0.0.1:65534`로 실행해 동일한 ClusterInformation 접속 거부를 재현.
+- 배포할 스크립트의 `offline-cni` 구문을 그대로 실행. 시험의 systemctl 함수는
+  실제 containerd 프로세스를 중지·재시작한다. sandbox, 원래 netns와 veth 제거 확인.
+- PVC 파일 내용과 다른 containerd namespace 이미지 보존. 최종 exit 0,
+  `REAL_CONTAINERD_CALICO_OFFLINE_RECOVERY_PASS`.
+- [실제 실행 로그](evidence/calico-offline-reset-ubuntu22-20261019.log.txt)와
+  [환경·해시·검증 범위](evidence/calico-offline-reset-ubuntu22-20261019.json).
+
+모의 서비스와 실제 Bash/임시 파일을 사용한 서비스 제어 회귀 검사 21개도 통과했다.
+API 설정 삭제 후 Calico만 남은 상태, CNI 전환 중 실패 후 재개, plugin 누락 시 원본
+설정 보존, runtime/CNI 실패 전파, 실제 잔여 sandbox의 실패 판정을 포함한다.
+Windows Git Bash는 외부 명령 시작 비용을 고려해 fixture당 150초를 허용하며,
+Linux의 기존 50초 한도와 제품의 실행 제한은 변경하지 않았다.
+기존 설치기 22개와 이미지 정리·재개 7개 검사도 통과해 모의 회귀 검사는 총 50개다.
+
+이 시험에는 Kubernetes API 서버나 전체 FeDiT 설치가 포함되지 않는다.
+Calico ADD 대신 DEL과 실제 CRI/netns 정리를 검증했다. 목표 A40에서의 전체 재설치
+완료 여부는 서버의 `PMAN_REINSTALL_REPORT_ARCHIVE`로 확인해야 한다.
+시험용 WSL 배포판과 이미지 저장소는 삭제했고 원래 호스트 설정은 해시로 복원 확인했다.
+
 ## 이미지 제거 후 자동 재설치 연결 검사 (2026-10-19)
 
 `pman-reinstall.sh`와 `pman-image-cleanup.py`를 추가했다. 기존 제거·설치기의

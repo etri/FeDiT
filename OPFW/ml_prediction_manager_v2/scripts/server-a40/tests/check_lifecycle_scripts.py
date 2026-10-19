@@ -16,7 +16,9 @@ ROOT = Path(__file__).resolve().parents[1]
 BASH = r'C:/Program Files/Git/bin/bash.exe' if os.name == 'nt' else shutil.which('bash')
 
 
-def shell(text, timeout=50):
+# Git Bash starts a native process for each mocked command. The additional CNI
+# stop/remove/restart checks exceed 50s there; Linux keeps the original budget.
+def shell(text, timeout=150 if os.name == 'nt' else 50):
     p = subprocess.run([BASH, '-s'], input=text, text=True, encoding='utf-8',
                        capture_output=True, timeout=timeout)
     assert p.returncode == 0, p.stdout + p.stderr
@@ -92,6 +94,11 @@ trap 'rm -rf -- "$test_root"' EXIT
 export TEST_ROOT="$test_root" USER=pmtest SUDO_USER=pmtest FEDIT_REGISTRY_CONTAINER=custom-registry
 mkdir -p "$test_root/"{scripts,bin,etc/kubernetes/manifests,etc/systemd/system,var/lib/etcd,opt/local-path-provisioner,data}
 mkdir -p "$test_root/home/pman-server-725eb2ed" "$test_root/home/.kube"
+mkdir -p "$test_root/etc/cni/net.d" "$test_root/opt/cni/bin" "$test_root/var/lib/cni"
+echo '{"type":"calico"}' > "$test_root/etc/cni/net.d/10-calico.conflist"
+echo retain-ipam-cache > "$test_root/var/lib/cni/cache"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$test_root/opt/cni/bin/loopback"
+chmod +x "$test_root/opt/cni/bin/loopback"
 state="$test_root/home/prediction-manager-work/.prediction-manager/gpu/state"
 mkdir -p "$state" "${state%/state}/registry"
 touch "$state/cluster-owned" "$state/00-preflight.done" "$test_root/home/pman-server-725eb2ed/installation-started"
@@ -125,6 +132,10 @@ case "$1" in
   is-active) echo inactive; exit 3 ;;
   disable) [[ "${FAIL_PHASE:-}" != disable ]] || exit 19 ;;
   stop) [[ "${FAIL_PHASE:-}" != cleanup || "$*" != 'stop docker.socket docker.service containerd.service' ]] || exit 29 ;;
+  restart)
+    [[ "${FAIL_PHASE:-}" != cni-restart ]] || exit 39
+    grep -Fq pman-offline-reset "$TEST_ROOT/etc/cni/net.d/00-pman-reset.conflist"
+    touch "$TEST_ROOT/offline-cni-loaded" ;;
 esac
 MOCK
 cat > "$test_root/bin/docker" <<'MOCK'
@@ -140,14 +151,24 @@ fi
 MOCK
 cat > "$test_root/bin/crictl" <<'MOCK'
 #!/usr/bin/env bash
-cat "$TEST_ROOT/cri-pods"
+echo "crictl $*" >> "$TEST_ROOT/events"
+case "$*" in
+  *' pods -q') cat "$TEST_ROOT/cri-pods" ;;
+  *' stopp '*)
+    if [[ ! -f "$TEST_ROOT/offline-cni-loaded" || "${FAIL_PHASE:-}" == cni-delete ]]; then
+      echo 'plugin type="calico" failed (delete): error getting ClusterInformation: connect: connection refused' >&2
+      exit 41
+    fi ;;
+  *' rmp '*) [[ "${FAIL_PHASE:-}" == cri-remains ]] || : > "$TEST_ROOT/cri-pods" ;;
+  *) exit 97 ;;
+esac
 MOCK
 cat > "$test_root/bin/kubeadm" <<'MOCK'
 #!/usr/bin/env bash
 echo "kubeadm $*" >> "$TEST_ROOT/events"
 [[ "${FAIL_PHASE:-}" != reset ]] || exit 27
 if [[ "${FAIL_PHASE:-}" != reset-warning ]]; then
-  rm "$TEST_ROOT/etc/kubernetes/admin.conf" "$TEST_ROOT/etc/kubernetes/manifests/kube-apiserver.yaml" "$TEST_ROOT/var/lib/etcd/retained.db"
+  rm -f "$TEST_ROOT/etc/kubernetes/admin.conf" "$TEST_ROOT/etc/kubernetes/manifests/kube-apiserver.yaml" "$TEST_ROOT/var/lib/etcd/retained.db"
 fi
 [[ "${FAIL_PHASE:-}" == cri-remains ]] || : > "$TEST_ROOT/cri-pods"
 MOCK
@@ -209,11 +230,42 @@ grep -Fxq 'STAGE=complete' "$test_root/log"
 report=$(sed -n 's/^UNINSTALL_REPORT=//p' "$test_root/log" | head -1)
 tar -tf "$report/cluster-backup.private.tar" | grep -Fq 'var/lib/etcd/retained.db'
 [[ -f "$report/previous-install-state/cluster-owned" ]]
+[[ -f "$report/retired-cni-config/10-calico.conflist" && -f "$report/retired-cni-cache/cache" ]]
+[[ ! -e "$test_root/etc/cni/net.d/00-pman-reset.conflist" && ! -e "$test_root/var/lib/cni" ]]
+[[ ! -s "$test_root/cri-pods" ]]
 sha256sum -c "$report/backup.sha256"
 before=$(wc -l < "$test_root/events")
 bash "$test_root/scripts/pman-uninstall.sh" > "$test_root/log" 2>&1
 grep -Fq 'already uninstalled' "$test_root/log"
 [[ "$(wc -l < "$test_root/events")" == "$before" ]]
+''',
+        'resume-after-calico-reset-failure': r'''
+# Exact user state: API credentials/manifest/etcd are gone; sandbox and Calico remain.
+rm "$test_root/etc/kubernetes/admin.conf" "$test_root/etc/kubernetes/manifests/kube-apiserver.yaml" "$test_root/var/lib/etcd/retained.db"
+rc=0
+crictl --runtime-endpoint unix:///run/containerd/containerd.sock --timeout=90s stopp cri-pod > "$test_root/original-failure.log" 2>&1 || rc=$?
+[[ "$rc" == 41 ]]
+grep -Fq ClusterInformation "$test_root/original-failure.log"
+bash "$test_root/scripts/pman-uninstall.sh" > "$test_root/log" 2>&1
+grep -Fxq 'STAGE=complete' "$test_root/log"
+[[ ! -s "$test_root/cri-pods" && ! -d "$state" ]]
+''',
+        'resume-after-offline-cni-interruption': r'''
+rc=0
+FAIL_PHASE=cni-delete bash "$test_root/scripts/pman-uninstall.sh" > "$test_root/first.log" 2>&1 || rc=$?
+[[ "$rc" == 41 && -f "$state/cluster-owned" ]]
+first_report=$(sed -n 's/^UNINSTALL_REPORT=//p' "$test_root/first.log" | head -1)
+[[ -f "$first_report/retired-cni-config/10-calico.conflist" ]]
+bash "$test_root/scripts/pman-uninstall.sh" > "$test_root/log" 2>&1
+grep -Fxq 'STAGE=complete' "$test_root/log"
+[[ ! -s "$test_root/cri-pods" && -f "$first_report/retired-cni-config/10-calico.conflist" ]]
+''',
+        'missing-loopback-preserves-original': r'''
+rm "$test_root/opt/cni/bin/loopback"
+rc=0
+bash "$test_root/scripts/pman-uninstall.sh" > "$test_root/log" 2>&1 || rc=$?
+[[ "$rc" == 1 && -f "$test_root/etc/cni/net.d/10-calico.conflist" ]]
+! grep -Fq 'kubeadm reset' "$test_root/events"
 ''',
     }
     for name, body in scenarios.items():
@@ -224,7 +276,8 @@ grep -Fq 'already uninstalled' "$test_root/log"
 ''')
         print('PASS uninstall ' + name + ': actual file preservation with mocked services')
     for phase, code in [('stop', 17), ('backup', 18), ('disable', 19), ('docker-list', 21),
-                        ('reset', 27), ('reset-warning', 1), ('cri-remains', 1), ('cleanup', 29)]:
+                        ('reset', 27), ('reset-warning', 1), ('cri-remains', 1),
+                        ('cni-restart', 39), ('cni-delete', 41), ('cleanup', 29)]:
         # A successful main phase followed by cleanup failure returns its own status 1.
         expected = 1 if phase == 'cleanup' else code
         stop_fail = 17 if phase == 'stop' else 0
