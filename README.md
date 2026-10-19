@@ -67,6 +67,12 @@ PVC 파일·Registry 데이터·이미지·패키지·NVIDIA 드라이버·`/dat
 보존된 PVC 파일이 새 클러스터에 자동 연결되지는 않는다. 마지막 `UNINSTALL_REPORT`에
 결과·로그·비공개 백업 위치가 표시된다. 비공개 백업에는 인증 정보가 포함되므로 공유하지 않는다.
 
+기존 설치 이미지까지 제거하고 재설치·자동 구동 시험을 이어서 실행하려면 같은 폴더에서
+`bash pman-reinstall.sh`를 실행한다. 설치했던 일반 계정을 사용하고 터미널 연결을 유지한다.
+PVC 데이터 파일과 NVIDIA 드라이버는 보존한다. 실패 후 같은 명령을 다시 실행하면
+완료된 제거 단계를 반복하지 않고 재개한다. 최종 성공 표시는
+`PMAN_IMAGE_CLEANUP_AND_REINSTALL_PASS`이며, 결과 전달 파일은 `PMAN_REINSTALL_REPORT_ARCHIVE`다.
+
 2026-10-18 공식 Ubuntu 22.04 rootfs로 새 WSL2 환경을 만들고 최신 스크립트의
 전체 설치, 실제 사용자 이미지·PVC 수명주기, 서비스 중지·시작과 재시작 후
 CPU/GPU 학습 시험을 통과했다. 시험 GPU는 RTX 3050 Laptop이며, 최신 코드를

@@ -143,6 +143,50 @@ Registry 이름은 `server-install.env`에서 실행 없이 읽으며, 필요하
 오류를 전달할 때는 `RESULT.txt`와 `uninstall.log`만 보낸다. 비공개 백업과 파일 목록은
 클러스터 인증 정보를 포함하므로 채팅에 보내지 않는다. 재설치 전까지 백업을 보관한다.
 
+## 기존 이미지 정리 후 자동 재설치
+
+기존 A40 설치를 제거하고 관련 로컬 이미지까지 정리한 뒤 재설치·구동 시험을
+자동으로 실행하려면 설치했던 일반 계정에서 다음을 실행한다. sudo 인증은 요청될 때
+입력하고 완료될 때까지 터미널 연결을 유지한다. 미리 uninstall을 따로 실행할 필요는 없다.
+
+```bash
+bash pman-reinstall.sh
+```
+
+서버에 최신 저장소가 없거나 기존 checkout의 위치·변경 여부를 확인하기 번거로우면
+새 작업 폴더에 최신 브랜치를 받아 바로 실행한다. GitHub 읽기 인증은 필요할 때 입력한다.
+
+```bash
+PMAN_SRC=$(mktemp -d "$HOME/pman-reinstall-source.XXXXXX")
+git clone --branch OPFW_development_ETRI_pman --single-branch https://github.com/etri/FeDiT.git "$PMAN_SRC" &&
+bash "$PMAN_SRC/OPFW/ml_prediction_manager_v2/scripts/server-a40/pman-reinstall.sh"
+```
+
+자동 실행 순서:
+
+1. 현재 설치의 Docker/CRI 이미지와 Registry 저장소 위치를 기록한다.
+2. `pman-uninstall.sh`로 냉간 백업을 남기고 플랫폼을 제거한다.
+3. 설치된 이미지 참조·현재/고정 소스의 기반 이미지·설치용 로컬 Registry 태그로
+   식별한 Docker 이미지를 제거한다. 설치 클러스터의 CRI 이미지와 containerd `k8s.io`
+   namespace의 남은 별칭, Registry의 `docker/registry/v2` 이미지 저장분도 제거한다.
+4. 기존 `install.sh`를 실행해 플랫폼·앱 갱신, CPU/GPU 모델 시험과 실제 PVC 시험을 수행한다.
+
+다른 Docker 컨테이너가 사용하는 이미지, 다른 작업의 태그와 식별되지 않은 Docker
+이미지는 보존한다. 다른 containerd namespace를 지우지 않는다. 공유된 Registry bind mount도
+보존 대상으로 기록한다. 실제 제거/보존 목록은 결과 JSON에서 확인할 수 있다.
+PVC 파일·NVIDIA 드라이버·패키지·데이터 mount는 보존하며 디스크 전체 삭제나 전역 prune을 하지 않는다.
+새 클러스터에 이전 PVC 데이터가 자동 연결되는 것은 아니다.
+
+실패하면 마지막에 표시되는 `Resume with:` 명령을 다시 실행한다. 같은 계정에서
+`pman-reinstall.sh`를 다시 실행해도 미완료 실행을 찾아 재개한다. 설치 단계가 실패한 경우
+이미 끝난 플랫폼 제거·이미지 삭제를 다시 수행하지 않는다. 기존 설정이 있는 설치 계정의
+`~/pman-server-725eb2ed/reinstall-active`가 이 실행 위치를 가리킨다.
+
+최종 `PMAN REINSTALL FINAL RESULT`에서 `EXIT=0`, `STAGE=complete`,
+`PMAN_IMAGE_CLEANUP_AND_REINSTALL_PASS`를 확인한다. `PMAN_REINSTALL_REPORT_ARCHIVE`의
+압축파일 하나를 보내면 된다. 이미지 목록·정리 결과, 토큰을 가린 전체 로그와 설치기의
+공개 시험 보고서를 포함한다. uninstall의 비공개 인증 백업은 포함하지 않는다.
+
 ## 결과 전달 및 검증 범위
 
 설치/시험의 맨 마지막 `FEDIT FINAL RESULT` 블록을 전달한다.
