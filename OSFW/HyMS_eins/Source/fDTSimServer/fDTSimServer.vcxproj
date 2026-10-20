@@ -169,6 +169,7 @@
     <ClInclude Include="embeded_func_plus.h" />
     <ClInclude Include="function_imp.h" />
     <ClInclude Include="masterAgent.h" />
+    <ClInclude Include="request_validation.h" />
     <ClInclude Include="model_t.h" />
     <ClInclude Include="sim_engine.h" />
     <ClInclude Include="sim_manager.h" />

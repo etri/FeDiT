@@ -125,6 +125,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <UACExecutionLevel>AsInvoker</UACExecutionLevel>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -152,11 +153,25 @@
     <ClInclude Include="atomic_manager.h" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\common\common.vcxproj">
+      <Project>{36e3664f-9179-4792-9251-b0feab8accd8}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\WebSocket\WebSocket.vcxproj">
+      <Project>{af791826-4879-411f-be98-d3eb909849c2}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\http_lib\http_lib.vcxproj">
       <Project>{b6bf0f17-9478-4888-af10-0b903b5e9597}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="CopyModelLaunchers" AfterTargets="Build">
+    <ItemGroup>
+      <ModelLauncher Include="$(MSBuildProjectDirectory)\dll_model.bat" />
+      <ModelLauncher Include="$(MSBuildProjectDirectory)\python_model.bat" />
+      <ModelLauncher Include="$(MSBuildProjectDirectory)\matlab_model.bat" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ModelLauncher)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>

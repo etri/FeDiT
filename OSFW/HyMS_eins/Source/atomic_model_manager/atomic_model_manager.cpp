@@ -43,7 +43,7 @@ void commandLineLoop() {
 	for (;;) {
 		std::string str;
 		std::cout << "# ";
-		std::getline(std::cin, str);
+		if (!std::getline(std::cin, str)) break;
 		if (str == "")
 			continue;
 		vector<string> cmd;
@@ -56,7 +56,8 @@ void commandLineLoop() {
 		}
 		else if (cmds.count(cmd[0]) > 0) {
 			const auto& iter = cmds.find(cmd[0]);
-			iter->second.second(cmd);
+			try { iter->second.second(cmd); }
+			catch (const std::exception& e) { spdlog::error("# console command failed: {}", e.what()); }
 		}
 		else {
 			print_command_list();

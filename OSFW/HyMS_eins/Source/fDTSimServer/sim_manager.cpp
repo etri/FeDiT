@@ -1,535 +1,571 @@
-#include <iostream>
-#include <fstream>
-#include "../common/common.h"
+癤�#include "sim_manager.h"
+#include "request_validation.h"
+#include "../common/task_group.h"
 #include "../common/string_util.h"
-#include "sim_manager.h"
-#include "sim_engine.h"
-#include <unordered_map>
+#include <deque>
+#include <fstream>
+#include <map>
+#include <sstream>
 
+namespace {
+bool same_connection(connectionInfo a, connectionInfo b) {
+    return !a.owner_before(b) && !b.owner_before(a);
+}
 
-unordered_map<string, pair<string,sim_engine*>> _sim_engines;
-//접속한 클라이언트들
-std::unordered_map<string, CLIENT_T> g_model_clients;
-std::unordered_map<string, CLIENT_T> g_gui_clients;
+struct managed_engine : std::enable_shared_from_this<managed_engine> {
+    std::mutex operation_mutex;
+    std::mutex queue_mutex;
+    std::deque<std::function<void(sim_engine&)>> queue;
+    bool processing = false;
+    std::atomic<bool> retired{false};
+    std::atomic<bool> auto_run{true};
+    sim_engine engine;
+    connectionInfo owner;
+    std::string project;
+    std::string load_error; // Guarded by operation_mutex.
+    bool owned = false;
+    std::map<std::string, connectionInfo> models;
 
-int sim_manager::init(int listen_port)
-{
-    spdlog::info("listen model : {}", listen_port);
-    // 클라이언트 통신 인터페이스 초기화
-    _model_socket.on_connect_callback = [this](connectionInfo conn) {
-        spdlog::info("Connection opened!!!");
-        std::string remote_ip_port = this->_model_socket.get_client_ip_port(conn);
-        std::string remote_ip = this->_model_socket.get_client_ip(conn);
+    explicit managed_engine(const std::string& id) : engine(id) {}
+    void cancel() {
+        retired = true;
+        engine.load_signal->cancel();
+    }
+    // Each instance preserves request order without blocking either socket's IO thread.
+    void post(task_group& tasks, std::function<void(sim_engine&)> work) {
+        std::lock_guard<std::mutex> lock(queue_mutex);
+        if (retired) return;
+        queue.push_back(std::move(work));
+        if (processing) return;
+        processing = true;
+        auto self = shared_from_this();
+        try {
+            tasks.submit([self]() {
+                for (;;) {
+                    std::function<void(sim_engine&)> work;
+                    {
+                        std::lock_guard<std::mutex> lock(self->queue_mutex);
+                        if (self->queue.empty()) { self->processing = false; return; }
+                        work = std::move(self->queue.front());
+                        self->queue.pop_front();
+                    }
+                    std::lock_guard<std::mutex> lock(self->operation_mutex);
+                    if (self->retired) continue;
+                    try { work(self->engine); }
+                    catch (const std::exception& e) { spdlog::error("# engine request failed: {}", e.what()); }
+                    catch (...) { spdlog::error("# engine request failed"); }
+                }
+            });
+        }
+        catch (...) { processing = false; queue.clear(); throw; }
+    }
+};
+using engine_ptr = std::shared_ptr<managed_engine>;
 
-        spdlog::info("Client IP : {}, {}", remote_ip_port.c_str(), remote_ip.c_str());
-        //if (ALLOW_IP.find(remote_ip) == std::string::npos) {
-        //    //if (remote_ip_port.find("127.0.0.1:") == std::string::npos) {//로컬만 접속가능하게
-        //    printf("인가되지 않은 IP로 접속 종료\n");
-        //    this->_model_socket.close_client(conn);
-        //}
-        //else {
-            CLIENT_T client;
-            client.conn = conn;
-            client.client_id = "";
-            g_model_clients[remote_ip_port] = client;
-        //}
+void apply_param_override(Json::Value& node, const Json::Value& overrides) {
+    if (node.isMember("model_name") && node.isMember("in_param")) {
+        for (auto& p : node["in_param"]) {
+            const auto key = node["model_name"].asString() + "::" + p["name"].asString();
+            if (overrides.isMember(key)) p["value"] = overrides[key];
+        }
+    }
+    if (node.isMember("models"))
+        for (auto& child : node["models"]) apply_param_override(child, overrides);
+}
+}
+
+struct sim_manager_state {
+    std::mutex mutex;
+    std::unordered_map<std::string, engine_ptr> engines;
+    // Connection control-block identity survives close, unlike remote_endpoint().
+    std::map<connectionInfo, std::string, std::owner_less<connectionInfo>> sessions;
+    bool closing = false;
+    unsigned long long next_instance = 0;
+    const std::string prefix = "__fdtsim_" + std::to_string(GetCurrentProcessId()) + "_" +
+        std::to_string(std::chrono::system_clock::now().time_since_epoch().count()) + "_";
+    task_group tasks;
+
+    engine_ptr find(const std::string& id) {
+        std::lock_guard<std::mutex> lock(mutex);
+        const auto it = engines.find(id);
+        return it == engines.end() ? nullptr : it->second;
+    }
+    std::vector<engine_ptr> owned(connectionInfo owner, const std::string& project) {
+        std::vector<engine_ptr> result;
+        std::lock_guard<std::mutex> lock(mutex);
+        if (closing || sessions.count(owner) == 0) return result;
+        for (const auto& item : engines) {
+            const auto& entry = item.second;
+            if (entry->owned && same_connection(entry->owner, owner) && entry->project == project)
+                result.push_back(entry);
+        }
+        // Preserve per-run addressing for clients using <project>_paramN.
+        if (result.empty()) for (const auto& item : engines) {
+            const auto& entry = item.second;
+            if (entry->owned && same_connection(entry->owner, owner) && entry->engine._run_id >= 0 &&
+                entry->project + "_param" + std::to_string(entry->engine._run_id + 1) == project)
+                result.push_back(entry);
+        }
+        std::sort(result.begin(), result.end(), [](const engine_ptr& a, const engine_ptr& b) {
+            return a->engine._run_id < b->engine._run_id;
+        });
+        return result;
+    }
+    template<class Predicate> std::vector<engine_ptr> unlink(Predicate match) {
+        std::vector<engine_ptr> result;
+        std::lock_guard<std::mutex> lock(mutex);
+        for (auto it = engines.begin(); it != engines.end();) {
+            if (match(it->second)) {
+                it->second->cancel();
+                result.push_back(it->second);
+                it = engines.erase(it);
+            }
+            else ++it;
+        }
+        return result;
+    }
+    void dispose(std::vector<engine_ptr> entries) {
+        if (entries.empty()) return;
+        tasks.submit([entries]() {
+            for (const auto& entry : entries) {
+                std::lock_guard<std::mutex> lock(entry->operation_mutex);
+                entry->engine.stop();
+                entry->engine.clear_model();
+            }
+        });
+    }
+};
+
+sim_manager::sim_manager() : _state(new sim_manager_state), _masterAgent(nullptr), targetEventId(SIM_ENGINE_EVENT::NONE) {}
+sim_manager::~sim_manager() { release(); }
+
+int sim_manager::init(int listen_port) {
+    if (model_server_address == "localhost:8864") model_server_address = "localhost:" + std::to_string(listen_port);
+    // Bind model responses to the connection that joined this instance and IID.
+    // Internal instance names are never reused, so delayed packets from a prior
+    // load cannot attach to a replacement or another client's project.
+    _model_socket.on_message_callback(PROTOCOL::JOIN::TYPE, [this](connectionInfo conn, const Json::Value& args) {
+        const auto project = request_validation::text(args, PROTOCOL::MODEL_INFO::PROJECT_NAME);
+        const auto iid = request_validation::text(args, PROTOCOL::JOIN::MODEL_INFO::IID);
+        auto entry = _state->find(project);
+        if (!entry) { _model_socket.close_client(conn); return; }
+        entry->post(_state->tasks, [entry, conn, args, iid](sim_engine& engine) {
+            const auto existing = entry->models.find(iid);
+            if (existing != entry->models.end() && !same_connection(existing->second, conn))
+                throw std::invalid_argument("Model IID already belongs to another connection");
+            if (existing == entry->models.end() && entry->owned && !engine.accepts_model(iid))
+                throw std::invalid_argument("Unexpected model JOIN");
+            engine.add_model(conn, args);
+            entry->models[iid] = conn;
+        });
+    });
+    auto response = [this](const std::string& type, std::function<void(sim_engine&, const Json::Value&)> action) {
+        _model_socket.on_message_callback(type, [this, action](connectionInfo conn, const Json::Value& args) {
+            auto entry = _state->find(request_validation::text(args, PROTOCOL::MODEL_INFO::PROJECT_NAME));
+            if (!entry) return;
+            const auto iid = request_validation::text(args, PROTOCOL::MODEL_INFO::IID);
+            entry->post(_state->tasks, [entry, conn, args, iid, action](sim_engine& engine) {
+                const auto model = entry->models.find(iid);
+                if (model == entry->models.end() || !same_connection(model->second, conn))
+                    throw std::invalid_argument("Model response does not belong to this connection");
+                action(engine, args);
+            });
+        });
     };
-
+    response(PROTOCOL::EXT_TRANS::TYPE, [](sim_engine& e, const Json::Value& a) { e.add_out_msg(a); });
+    response(PROTOCOL::TAR::TYPE, [](sim_engine& e, const Json::Value& a) { e.tar(a); });
+    response(PROTOCOL::ACK::TYPE, [](sim_engine& e, const Json::Value& a) { e.ack(a); });
+    response(PROTOCOL::SIM_CTL::TYPE, [](sim_engine& e, const Json::Value& a) {
+        e.ack(a);
+        if (a[PROTOCOL::SIM_CTL::MSG].asString() == PROTOCOL::SIM_CTL::SIM_STOP) e.stop();
+    });
     _model_socket.on_disconnect_callback = [this](connectionInfo conn) {
-        spdlog::info("Connection closed!!!");
-        std::string remote_ip_port = this->_model_socket.get_client_ip_port(conn);
-        spdlog::info("Client IP : {}", remote_ip_port.c_str());
-
-        g_model_clients.erase(remote_ip_port);
+        std::vector<engine_ptr> entries;
+        {
+            std::lock_guard<std::mutex> lock(_state->mutex);
+            if (_state->closing) return;
+            for (const auto& item : _state->engines) entries.push_back(item.second);
+        }
+        for (const auto& entry : entries) entry->post(_state->tasks, [entry, conn](sim_engine& engine) {
+            for (const auto& model : entry->models) {
+                if (same_connection(model.second, conn)) {
+                    engine.load_signal->cancel();
+                    engine.stop();
+                    break;
+                }
+            }
+        });
     };
-
-    
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////////
-    // 모델 관리 콜백
-    /////////////////////////////////////////////////////////////////////////////////////////////////////
-    
-    _model_socket.on_message_callback(PROTOCOL::JOIN::TYPE, [this](connectionInfo conn, const Json::Value& args) {//join 메세지 일경우
-        spdlog::debug("On Message join!!!");
-        //std::string remote_ip_port = this->_websocket_server.get_client_ip_port(conn);
-        //CLIENT_T& client_info = g_clients[remote_ip_port];
-
-        string project_id = args[PROTOCOL::JOIN::MODEL_INFO::PROJECT_NAME].asString();
-        spdlog::debug("project_name = {}", project_id);
-
-        auto iter = _sim_engines.find(project_id);
-        if (iter != _sim_engines.end()) {
-            iter->second.second->add_model(conn, args);
-        }
-        else {
-            spdlog::error("# sim_engine is not loaded[{}]::{}", project_id, __LINE__);
-        }
-        
-
-    });
-    /////////////////////////////////////////////////////////////////////////////////////////////////////
-    // 데이터 관리 콜백
-    /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    _model_socket.on_message_callback(PROTOCOL::EXT_TRANS::TYPE, [this](connectionInfo conn, const Json::Value& args) {//ext msg
-        //spdlog::debug("On Message publish!!!\n";
-        string project_id = args[PROTOCOL::MODEL_INFO::PROJECT_NAME].asString();
-        //spdlog::debug("project_id = " << project_id);
-
-        auto iter = _sim_engines.find(project_id);
-        if (iter != _sim_engines.end()) {
-            iter->second.second->add_out_msg(args);
-        }
-        else {
-            spdlog::error("# sim_engine is not loaded[{}]::{}", project_id, __LINE__);
-        }
-
-    });
-
-
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////////
-    // 시뮬레이션 관리 콜백
-    /////////////////////////////////////////////////////////////////////////////////////////////////////
-    _model_socket.on_message_callback(PROTOCOL::TAR::TYPE, [this](connectionInfo conn, const Json::Value& args) {//ta request
-        spdlog::debug("On Message tar!!!::{}", Json::stringifyJson(args));
-        string project_id = args[PROTOCOL::MODEL_INFO::PROJECT_NAME].asString();
-        //spdlog::debug("project_id = " << project_id);
-
-        auto iter = _sim_engines.find(project_id);
-        if (iter != _sim_engines.end()) {
-            iter->second.second->tar(args);
-        }
-        else {
-            spdlog::error("# sim_engine is not loaded[{}]::{}", project_id, __LINE__);
-        }
-
-        });
-
-    _model_socket.on_message_callback(PROTOCOL::ACK::TYPE, [this](connectionInfo conn, const Json::Value& args) {
-        //spdlog::debug("On Message ack!!!\n";
-        string project_id = args[PROTOCOL::MODEL_INFO::PROJECT_NAME].asString();
-        //spdlog::debug("project_id = " << project_id);
-
-        auto iter = _sim_engines.find(project_id);
-        if (iter != _sim_engines.end()) {
-            iter->second.second->ack(args);
-        }
-        else {
-            spdlog::error("# sim_engine is not loaded[{}]::{}", project_id, __LINE__);
-        }
-
-        });
-
-    _model_socket.on_message_callback(PROTOCOL::SIM_CTL::TYPE, [this](connectionInfo conn, const Json::Value& args) {
-        //spdlog::debug("On Message ack!!!\n";
-        string project_id = args[PROTOCOL::MODEL_INFO::PROJECT_NAME].asString();
-        //spdlog::debug("project_id = " << project_id);
-
-        auto iter = _sim_engines.find(project_id);
-        if (iter != _sim_engines.end()) {
-            iter->second.second->ack(args);
-        }
-        else {
-            spdlog::debug("# sim_engine is not loaded[{}]::{}", project_id, __LINE__);
-        }
-        string msg = args[PROTOCOL::SIM_CTL::MSG].asString();
-        if (msg == PROTOCOL::SIM_CTL::SIM_STOP) {
-            iter->second.second->stop();
-        }
-     });
-
-
-
-
-
-
-
-
-
     _model_socket.on_message_callback(PROTOCOL::POC::TYPE, [this](connectionInfo conn, const Json::Value& args) {
-
-        //spdlog::debug("{}", Json::stringifyJson(args));
-
-        string w1 = args[PROTOCOL::POC::DATA_INFO::W1].asString();
-        string w2 = args[PROTOCOL::POC::DATA_INFO::W2].asString();
-        string w3 = args[PROTOCOL::POC::DATA_INFO::W3].asString();
-        string w4 = args[PROTOCOL::POC::DATA_INFO::W4].asString();
-        
-
-        spdlog::debug("# -------------------------------{},{},{},{},{}",w1,w2,w3,w4, __LINE__);
-        //auto iter = _sim_engines.find(project_id);
-        //if (iter != _sim_engines.end()) {
-        //    iter->second.second->ack(args);
-        //}
-        //else {
-        //    spdlog::debug("# sim_engine is not loaded[{}]::{}", project_id, __LINE__);
-        //}
-        //string msg = args[PROTOCOL::SIM_CTL::MSG].asString();
-        //if (msg == PROTOCOL::SIM_CTL::SIM_STOP) {
-        //    iter->second.second->stop();
-        //}
-
-
-        Json::Value ret_json = args;
         _model_socket.send_json(conn, "pleasant", args, 1);
-
-
-        });
-
+    });
     _model_socket.listen(listen_port);
     return 1;
 }
 
-int sim_manager::init_gui(int listen_port)
-{
-    spdlog::info("listen gui : {}", listen_port);
+int sim_manager::init_gui(int listen_port) {
     _gui_socket.on_connect_callback = [this](connectionInfo conn) {
-        spdlog::info("GUI Connection opened!!!");
-        std::string remote_ip_port = this->_gui_socket.get_client_ip_port(conn);
-        std::string remote_ip = this->_gui_socket.get_client_ip(conn);
-
-        spdlog::info("GUI Client IP : {}, {}", remote_ip_port.c_str(), remote_ip.c_str());
-        /*if (ALLOW_IP.find(remote_ip) == std::string::npos) {
-            //if (remote_ip_port.find("127.0.0.1:") == std::string::npos) {//로컬만 접속가능하게
-            spdlog::info("인가되지 않은 IP로 접속 종료");
-            this->_gui_socket.close_client(conn);
-        }
-        else {*/
-            CLIENT_T client;
-            client.conn = conn;
-            client.client_id = "";
-            g_gui_clients[remote_ip_port] = client;
-
-            Json::Value res;
-            res[PROTOCOL::SIM_CTL::INFO] = remote_ip_port;
-            GUI_SOCKET.send_json(conn, PROTOCOL::GUI::RES_M::TYPE.c_str(), res, 1);
-    };
-
-    _gui_socket.on_disconnect_callback = [this](connectionInfo conn) {
-        spdlog::info("GUI Connection closed!!!");
-        std::string remote_ip_port = this->_gui_socket.get_client_ip_port(conn);
-        spdlog::info("GUI Client IP : {}", remote_ip_port.c_str());
-
-        for (auto& eng : _sim_engines)
+        const auto id = _gui_socket.get_client_ip_port(conn);
         {
-            eng.second.second->stop();
+            std::lock_guard<std::mutex> lock(_state->mutex);
+            if (_state->closing) return;
+            _state->sessions.emplace(conn, id);
         }
-        if (g_gui_clients[remote_ip_port].client_id != "") {
-            sim_del(g_gui_clients[remote_ip_port].client_id);
-        }
-        g_gui_clients.erase(remote_ip_port);
+        Json::Value res;
+        res[PROTOCOL::SIM_CTL::INFO] = id;
+        _gui_socket.send_json(conn, PROTOCOL::GUI::RES_M::TYPE.c_str(), res, 1);
     };
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////////
-    // 콜백등록
-    /////////////////////////////////////////////////////////////////////////////////////////////////////
+    _gui_socket.on_disconnect_callback = [this](connectionInfo conn) {
+        {
+            std::lock_guard<std::mutex> lock(_state->mutex);
+            _state->sessions.erase(conn);
+            if (_state->closing) return;
+        }
+        _state->dispose(_state->unlink([conn](const engine_ptr& e) {
+            return e->owned && same_connection(e->owner, conn);
+        }));
+    };
     _gui_socket.on_message_callback(PROTOCOL::GUI::REQ_M::TYPE, [this](connectionInfo conn, const Json::Value& args) {
-        spdlog::debug("On Message req_model_info!!!");
-        spdlog::debug("{}", Json::stringifyJson(args));
-        string project_name = args[PROTOCOL::MODEL_INFO::PROJECT_NAME].asString();
-        spdlog::debug("project_name = {}", project_name);
-        string file_name = args[PROTOCOL::MODEL_INFO::FILE_NAME].asString();
-        if (project_name != "" && file_name != "") {
-            Json::Value cpd;
-            ifstream ifs;
-
-            ifs.open("./projects/" + project_name + "/" + file_name);
-            Json::CharReaderBuilder builder;
-            builder["collectComments"] = true;
-            JSONCPP_STRING errs;
-            if (!parseFromStream(builder, ifs, &cpd, &errs)) {
-                spdlog::error("errs");
-                return 0;
-            }
-            Json::Value ret_json = args;
-            ret_json[PROTOCOL::GUI::REQ_M::CONTENT] = cpd;
-            spdlog::debug("{}::{}", Json::stringifyJson(ret_json),__LINE__);
-            _model_socket.send_json(conn, PROTOCOL::GUI::REQ_M::TYPE.c_str(), ret_json, 1);
-        }
-
-     });
-    
+        const auto project = request_validation::text(args, PROTOCOL::MODEL_INFO::PROJECT_NAME);
+        const auto file = request_validation::text(args, PROTOCOL::MODEL_INFO::FILE_NAME);
+        Json::Value document;
+        std::ifstream input("./projects/" + project + "/" + file);
+        Json::CharReaderBuilder builder;
+        JSONCPP_STRING errors;
+        if (!parseFromStream(builder, input, &document, &errors)) throw std::invalid_argument("Cannot read model document");
+        Json::Value res = args;
+        res[PROTOCOL::GUI::REQ_M::CONTENT] = document;
+        _gui_socket.send_json(conn, PROTOCOL::GUI::REQ_M::TYPE.c_str(), res, 1);
+    });
     _gui_socket.on_message_callback(PROTOCOL::GUI::SIM_CTL::TYPE, [this](connectionInfo conn, const Json::Value& args) {
-        spdlog::debug("On Message sim_ctl!!!");
-
-        targetEventId = SIM_ENGINE_EVENT::NONE;
-        if (!args.isMember(PROTOCOL::MODEL_INFO::PROJECT_NAME)) {
-            spdlog::error("# ERROR] GUI::SIM_CTL::prj_is_null::{}", __LINE__);
-            return;
-        }
-        string project_name = args[PROTOCOL::MODEL_INFO::PROJECT_NAME].asString();
-        spdlog::debug("project_name = {}::{}", project_name, __LINE__);
-
-        if (!args.isMember(PROTOCOL::GUI::SIM_CTL::MSG)) {
-            spdlog::error("# ERROR] GUI::SIM_CTL::msg is null::{}", __LINE__);
-            return;
-        }
-        string msg = args[PROTOCOL::GUI::SIM_CTL::MSG].asString();
-        if (msg == PROTOCOL::GUI::SIM_CTL::SIM_LOAD) {
-			std::unique_lock<std::mutex> lock(mtx);
-            std::string remote_ip_port = this->_gui_socket.get_client_ip_port(conn);
-            g_gui_clients[remote_ip_port].client_id = project_name;
-
-            Json::Value body = args[PROTOCOL::MODEL_INFO::JSON_DATA];
-            sim_del(project_name);
-            sim_add(project_name);
-            
-            set_sim_gui(project_name, conn);
-            load(project_name, body);
-			loadSet(project_name, &sEvent, &targetEventId);
-			bool result = sEvent.wait_for(lock, std::chrono::seconds(1000), [this]() { return targetEventId == SIM_ENGINE_EVENT::MODEL_LOAD_COMPLETE; });
-            //load(project_name, "", uid);
-        }
-        else if (msg == PROTOCOL::GUI::SIM_CTL::SIM_UNLOAD) {
-            std::string remote_ip_port = this->_gui_socket.get_client_ip_port(conn);
-            if (g_gui_clients[remote_ip_port].client_id != "") {
-                spdlog::info("# sim_del::{}::{}", remote_ip_port, g_gui_clients[remote_ip_port].client_id);
-                sim_del(g_gui_clients[remote_ip_port].client_id);
-            }
-            
-        }
-        else if (msg == PROTOCOL::GUI::SIM_CTL::SIM_RUN) {
-            if (args.isMember(PROTOCOL::GUI::SIM_CTL::START_TIME)) {
-                double start_t = args.get(PROTOCOL::GUI::SIM_CTL::START_TIME, 0.0).asDouble();
-                double end_t = args.get(PROTOCOL::GUI::SIM_CTL::END_TIME, 0.0).asDouble();
-                set_sim_time(project_name, start_t, end_t);
-            }
-            sim_run(project_name);
-        }
-        else if (msg == PROTOCOL::GUI::SIM_CTL::SIM_STOP) {
-            sim_stop(project_name);
-        }
-        else if (msg == PROTOCOL::GUI::SIM_CTL::SIM_PAUSE) {
-            sim_pause(project_name);
-        }
-        else if (msg == PROTOCOL::GUI::SIM_CTL::PARAM) {
-
-            Json::Value body = args[PROTOCOL::MODEL_INFO::JSON_DATA];
-            update_model(project_name, body);
+        try { handle_control(conn, args); }
+        catch (const std::exception& e) {
+            Json::Value res;
+            res["error"] = e.what();
+            res["request"] = args;
+            _gui_socket.send_json(conn, PROTOCOL::GUI::RES_M::TYPE.c_str(), res, 1);
         }
     });
-
     _gui_socket.listen(listen_port);
-
     return 1;
 }
 
-void sim_manager::release()
-{
-    sim_del_all();
+void sim_manager::handle_control(connectionInfo conn, const Json::Value& args) {
+    const auto project = request_validation::text(args, PROTOCOL::MODEL_INFO::PROJECT_NAME);
+    const auto msg = request_validation::text(args, PROTOCOL::GUI::SIM_CTL::MSG);
+    if (msg == PROTOCOL::GUI::SIM_CTL::SIM_LOAD) {
+        start_load(project, args[PROTOCOL::MODEL_INFO::JSON_DATA], Json::Value(), 0, 0, conn, false, false);
+        return;
+    }
+    if (msg == PROTOCOL::GUI::SIM_CTL::MULTI_LOAD || msg == PROTOCOL::GUI::SIM_CTL::MULTI_RUN) {
+        start_load(project, args[PROTOCOL::MODEL_INFO::JSON_DATA], args[PROTOCOL::SIM_CTL::PARAM_SETS],
+            request_validation::number(args, PROTOCOL::GUI::SIM_CTL::START_TIME, 0),
+            request_validation::number(args, PROTOCOL::GUI::SIM_CTL::END_TIME, 30), conn, true,
+            msg == PROTOCOL::GUI::SIM_CTL::MULTI_RUN);
+        return;
+    }
+    auto entries = _state->owned(conn, project);
+    if (entries.empty()) throw std::invalid_argument("Project is not loaded by this connection");
+    if (msg == PROTOCOL::GUI::SIM_CTL::SIM_UNLOAD) {
+        _state->dispose(_state->unlink([entries](const engine_ptr& e) {
+            return std::find(entries.begin(), entries.end(), e) != entries.end();
+        }));
+        return;
+    }
+    if (msg == PROTOCOL::GUI::SIM_CTL::MULTI_RUN_LOADED) {
+        multi_run_loaded(project, args.get(PROTOCOL::SIM_CTL::COUNT, 0).asInt(),
+            request_validation::number(args, PROTOCOL::GUI::SIM_CTL::START_TIME, 0),
+            request_validation::number(args, PROTOCOL::GUI::SIM_CTL::END_TIME, 30), conn);
+        return;
+    }
+    if (msg != PROTOCOL::GUI::SIM_CTL::SIM_RUN && msg != PROTOCOL::GUI::SIM_CTL::SIM_STOP &&
+        msg != PROTOCOL::GUI::SIM_CTL::SIM_PAUSE && msg != PROTOCOL::GUI::SIM_CTL::PARAM)
+        throw std::invalid_argument("Unknown simulation command");
+    const bool set_time = args.isMember(PROTOCOL::GUI::SIM_CTL::START_TIME);
+    const double start = request_validation::number(args, PROTOCOL::GUI::SIM_CTL::START_TIME, 0);
+    const double end = request_validation::number(args, PROTOCOL::GUI::SIM_CTL::END_TIME, 0);
+    if (set_time) request_validation::times(start, end);
+    if (msg == PROTOCOL::GUI::SIM_CTL::PARAM) request_validation::model(args[PROTOCOL::MODEL_INFO::JSON_DATA]);
+    for (const auto& entry : entries) {
+        if (msg != PROTOCOL::GUI::SIM_CTL::PARAM) entry->auto_run = false;
+        entry->post(_state->tasks, [this, conn, args, msg, set_time, start, end](sim_engine& e) {
+        try {
+            if (msg == PROTOCOL::GUI::SIM_CTL::SIM_RUN) {
+                if (!e.load_signal->wait(0)) throw std::invalid_argument("Model load has not completed");
+                if (set_time) e.set_sim_time(start, end);
+                if (!e.run()) throw std::invalid_argument("Simulation cannot start in its current state");
+            }
+            else if (msg == PROTOCOL::GUI::SIM_CTL::SIM_STOP) e.stop();
+            else if (msg == PROTOCOL::GUI::SIM_CTL::SIM_PAUSE) e.pause();
+            else e.update_modelparam(args[PROTOCOL::MODEL_INFO::JSON_DATA]);
+        }
+        catch (const std::exception& error) {
+            Json::Value res;
+            res["error"] = error.what();
+            res["request"] = args;
+            _gui_socket.send_json(conn, PROTOCOL::GUI::RES_M::TYPE.c_str(), res, 1);
+        }
+        });
+    }
+}
 
-    _model_socket.close();
+int sim_manager::start_load(const string& project, const Json::Value& document, const Json::Value& sets,
+    double start, double end, connectionInfo owner, bool parallel, bool run) {
+    request_validation::model(document);
+    request_validation::times(start, end);
+    if (parallel) request_validation::parameters(sets);
+    const int count = parallel ? static_cast<int>(sets.size()) : 1;
+    // Validate all overrides before replacing the previous generation.
+    std::vector<Json::Value> documents;
+    for (int i = 0; i < count; ++i) {
+        Json::Value model = document;
+        if (parallel && sets[i].isMember(PROTOCOL::SIM_CTL::OVERRIDES))
+            apply_param_override(model, sets[i][PROTOCOL::SIM_CTL::OVERRIDES]);
+        documents.push_back(std::move(model));
+    }
+    std::vector<engine_ptr> entries, previous;
+    {
+        std::lock_guard<std::mutex> lock(_state->mutex);
+        if (_state->closing || _state->sessions.count(owner) == 0)
+            throw std::invalid_argument("Client is no longer connected");
+        // Reserve all instances before starting background work. A disconnect can
+        // therefore cancel the entire request even before its first model loads.
+        for (int i = 0; i < count; ++i) {
+            auto entry = std::make_shared<managed_engine>(_state->prefix + std::to_string(++_state->next_instance));
+            entry->owner = owner;
+            entry->owned = true;
+            entry->project = project;
+            entry->engine.set_gui_handle(owner);
+            entry->engine.set_gui_project_name(project);
+            entry->engine._run_id = parallel ? sets[i].get(PROTOCOL::SIM_CTL::RUN_ID, i).asInt() : -1;
+            entries.push_back(entry);
+        }
+        for (auto it = _state->engines.begin(); it != _state->engines.end();) {
+            auto entry = it->second;
+            if (entry->owned && same_connection(entry->owner, owner) && entry->project == project) {
+                entry->cancel();
+                previous.push_back(entry);
+                it = _state->engines.erase(it);
+            }
+            else ++it;
+        }
+        for (const auto& entry : entries) _state->engines.emplace(entry->engine.get_project_name(), entry);
+    }
+    _state->dispose(std::move(previous));
+    for (size_t i = 0; i < entries.size(); ++i) {
+        auto entry = entries[i];
+        Json::Value model = std::move(documents[i]);
+        entry->post(_state->tasks, [this, entry, model, start, end, parallel](sim_engine& engine) {
+            try {
+                if (parallel) {
+                    Json::Value res;
+                    res["project_name"] = entry->project;
+                    res["run_id"] = engine._run_id;
+                    res["status"] = PROTOCOL::MULTI_RUN_STATUS::STATUS_LOADING;
+                    _gui_socket.send_json(entry->owner, PROTOCOL::MULTI_RUN_STATUS::TYPE.c_str(), res, 1);
+                }
+                engine.set_sim_time(start, end);
+                engine.add_model(model);
+                engine.complete_local_load();
+            }
+            catch (const std::exception& error) {
+                entry->load_error = error.what();
+                engine.load_signal->cancel();
+            }
+        });
+    }
+    _state->tasks.submit([this, entries, owner, parallel, run]() {
+        int loaded = 0;
+        for (const auto& entry : entries) {
+            const bool ok = entry->engine.load_signal->wait(60);
+            if (entry->retired) return;
+            if (!ok) {
+                std::string error;
+                { std::lock_guard<std::mutex> lock(entry->operation_mutex); error = entry->load_error; }
+                // Roll back this entire load request, never a newer replacement.
+                _state->dispose(_state->unlink([entries](const engine_ptr& e) {
+                    return std::find(entries.begin(), entries.end(), e) != entries.end();
+                }));
+                Json::Value res;
+                res["project_name"] = entry->project;
+                res["load"] = "error";
+                res["error"] = error.empty() ? "Model load failed or timed out" : error;
+                _gui_socket.send_json(owner, PROTOCOL::GUI::RES_M::TYPE.c_str(), res, 1);
+                return;
+            }
+            ++loaded;
+            if (parallel) {
+                Json::Value res;
+                res["project_name"] = entry->project;
+                res["run_id"] = entry->engine._run_id;
+                res["status"] = PROTOCOL::MULTI_RUN_STATUS::STATUS_LOADED;
+                _gui_socket.send_json(owner, PROTOCOL::MULTI_RUN_STATUS::TYPE.c_str(), res, 1);
+            }
+        }
+        if (run) {
+            for (const auto& entry : entries) entry->post(_state->tasks, [this, entry, owner](sim_engine& engine) {
+                if (entry->auto_run && engine.run()) {
+                    Json::Value res;
+                    res["project_name"] = entry->project;
+                    res["run_id"] = engine._run_id;
+                    res["status"] = PROTOCOL::MULTI_RUN_STATUS::STATUS_RUNNING;
+                    _gui_socket.send_json(owner, PROTOCOL::MULTI_RUN_STATUS::TYPE.c_str(), res, 1);
+                }
+            });
+        }
+        else if (parallel) {
+            Json::Value res;
+            res["project_name"] = entries.front()->project;
+            res[PROTOCOL::SIM_CTL::MULTI_LOAD_OK] = true;
+            res[PROTOCOL::SIM_CTL::COUNT] = loaded;
+            _gui_socket.send_json(owner, PROTOCOL::GUI::RES_M::TYPE.c_str(), res, 1);
+        }
+    });
+    return 1;
+}
+
+int sim_manager::multi_load(const string& project, const Json::Value& document, const Json::Value& sets,
+    double start, double end, connectionInfo owner) {
+    return start_load(project, document, sets, start, end, owner, true, false);
+}
+int sim_manager::multi_run(const string& project, const Json::Value& document, const Json::Value& sets,
+    double start, double end, connectionInfo owner) {
+    return start_load(project, document, sets, start, end, owner, true, true);
+}
+int sim_manager::multi_run_loaded(const string& project, int count, double start, double end, connectionInfo owner) {
+    request_validation::times(start, end);
+    auto entries = _state->owned(owner, project);
+    if (count <= 0 || count != static_cast<int>(entries.size()))
+        throw std::invalid_argument("count must match this connection's loaded runs");
+    for (const auto& entry : entries)
+        if (entry->engine._run_id < 0 || !entry->engine.load_signal->wait(0))
+            throw std::invalid_argument("Parallel load has not completed");
+    for (const auto& entry : entries) entry->post(_state->tasks, [this, owner, start, end, project](sim_engine& engine) {
+        engine.set_sim_time(start, end);
+        if (engine.run()) {
+            Json::Value res;
+            res["project_name"] = project;
+            res["run_id"] = engine._run_id;
+            res["status"] = PROTOCOL::MULTI_RUN_STATUS::STATUS_RUNNING;
+            _gui_socket.send_json(owner, PROTOCOL::MULTI_RUN_STATUS::TYPE.c_str(), res, 1);
+        }
+    });
+    return 1;
+}
+
+void sim_manager::release() {
+    {
+        std::lock_guard<std::mutex> lock(_state->mutex);
+        if (_state->closing) return;
+        _state->closing = true;
+        _state->sessions.clear();
+    }
     _gui_socket.close();
+    auto entries = _state->unlink([](const engine_ptr&) { return true; });
+    // Cancel waiters before joining work; sockets remain valid during model release.
+    _state->dispose(entries);
+    _model_socket.close();
+    _state->tasks.close();
 }
 
-int sim_manager::sim_add(const string& project_name)
-{
-    if (_sim_engines.count(project_name) > 0) {
-        spdlog::debug("# sim_manager::sim_add::project already exists::clear_models::{}::{}", project_name,__LINE__);
-        _sim_engines[project_name].second->clear_model();
-        return 0;
-    }
-    _sim_engines[project_name] = { project_name, new sim_engine(project_name) };
-    spdlog::debug("# sim_manager::sim_add::{}::{}", project_name, __LINE__);
-    //if (!instantiate_models(project_name))
-    //    return 0;
-    //if (!coupling(project_name))
-    //    return 0;
-
+// Console/local API. Network requests resolve only their own session above.
+int sim_manager::sim_add(const string& project) {
+    std::lock_guard<std::mutex> lock(_state->mutex);
+    if (_state->closing || _state->engines.count(project)) return 0;
+    _state->engines.emplace(project, std::make_shared<managed_engine>(project));
     return 1;
 }
-
-int sim_manager::sim_del_all()
-{
-    //unload_all();
-    for (auto& eng : _sim_engines) {
-        delete eng.second.second;
-        eng.second.second = 0;
-    }
-    _sim_engines.clear();
-    return 0;
+int sim_manager::sim_del_all() {
+    auto entries = _state->unlink([](const engine_ptr&) { return true; });
+    _state->dispose(entries);
+    return static_cast<int>(entries.size());
+}
+int sim_manager::sim_del(const string& project) {
+    auto entries = _state->unlink([project](const engine_ptr& e) { return e->engine.get_project_name() == project; });
+    _state->dispose(entries);
+    return static_cast<int>(entries.size());
+}
+int sim_manager::sim_del_by_gui(const std::shared_ptr<void>& owner) {
+    if (!owner) return 0;
+    auto entries = _state->unlink([owner](const engine_ptr& e) {
+        return same_connection(e->engine.get_gui_handle(), owner);
+    });
+    _state->dispose(entries);
+    return static_cast<int>(entries.size());
 }
 
-int sim_manager::sim_del(const string& project_name)
-{
-    auto eng = _sim_engines.find(project_name);
-    if (eng != _sim_engines.end()) {
-        delete eng->second.second;
-        eng->second.second = 0;
-        _sim_engines.erase(eng);
-    }
+template<class F> static int with_engine(sim_manager_state& state, const std::string& project, F work) {
+    auto entry = state.find(project);
+    if (!entry) return 0;
+    std::lock_guard<std::mutex> lock(entry->operation_mutex);
+    return entry->retired ? 0 : work(entry->engine);
+}
+int sim_manager::set_default_param(const string& project) { return set_sim_time(project, 0, 1); }
+int sim_manager::set_sim_time(const string& project, double start, double end) {
+    return with_engine(*_state, project, [=](sim_engine& e) { e.set_sim_time(start, end); return 1; });
+}
+int sim_manager::sim_run() {
+    string project;
+    { std::lock_guard<std::mutex> lock(_state->mutex); if (_state->engines.empty()) return 0; project = _state->engines.begin()->first; }
+    return sim_run(project);
+}
+int sim_manager::sim_run(const string& project) { return with_engine(*_state, project, [](sim_engine& e) { return e.run(); }); }
+int sim_manager::sim_stop(const string& project) { return with_engine(*_state, project, [](sim_engine& e) { return e.stop(); }); }
+int sim_manager::sim_pause(const string& project) { return with_engine(*_state, project, [](sim_engine& e) { return e.pause(); }); }
+int sim_manager::set_sim_gui(const string& project, connectionInfo owner) {
+    return with_engine(*_state, project, [owner](sim_engine& e) { e.set_gui_handle(owner); return 1; });
+}
+int sim_manager::load(const string& project, const string& file, const string& uid) {
+    return with_engine(*_state, project, [file, uid](sim_engine& e) {
+        string path, name;
+        if (file.rfind('.') == string::npos) { path = file; name = "index.json"; }
+        else { string_util::split_path_name(file, path, name); if (!path.empty()) path.pop_back(); }
+        return e.add_model(path, name, "", "", uid);
+    });
+}
+int sim_manager::load(const string& project, const Json::Value& document) {
+    return with_engine(*_state, project, [&document](sim_engine& e) { const int result = e.add_model(document); e.complete_local_load(); return result; });
+}
+std::shared_ptr<model_load_signal> sim_manager::loadSet(const string& project) {
+    auto entry = _state->find(project);
+    if (!entry) throw std::invalid_argument("Simulation not loaded");
+    return entry->engine.load_signal;
+}
+int sim_manager::unload_all() {
+    std::vector<string> projects;
+    { std::lock_guard<std::mutex> lock(_state->mutex); for (const auto& e : _state->engines) projects.push_back(e.first); }
+    for (const auto& project : projects) unload(project);
     return 1;
 }
-
-int sim_manager::set_default_param(const string& project_name)
-{
-    auto eng = _sim_engines.find(project_name);
-    if (eng == _sim_engines.end()) {
-        spdlog::debug("not found exception # sim : {}::{}", project_name,__LINE__);
-        return 0;
-    }
-    eng->second.second->set_sim_time(0.0, 1.0);
-    return 1;
+int sim_manager::unload(const string& project) {
+    return with_engine(*_state, project, [](sim_engine& e) { e.stop(); return e.clear_model(); });
 }
-
-int sim_manager::set_sim_time(const string& project_name, double start_time, double end_time)
-{
-    auto eng = _sim_engines.find(project_name);
-    if (eng == _sim_engines.end()) {
-        spdlog::debug("not found exception # sim : {}::{}", project_name,__LINE__);
-        return 0;
-    }
-    eng->second.second->set_sim_time(start_time, end_time);
-    return 0;
+int sim_manager::unload_model(const string& project, const string& model) {
+    return with_engine(*_state, project, [&model](sim_engine& e) { return e.remove_model_req(model); });
 }
-
-int sim_manager::sim_run()
-{
-    if(_sim_engines.size() == 0){
-        return 0;
-    }
-    _sim_engines.begin()->second.second->run();
-    return 1;
-}
-
-int sim_manager::sim_run(const string& project_name)
-{
-    auto eng = _sim_engines.find(project_name);
-    if (eng == _sim_engines.end()) {
-        spdlog::debug("not found exception # sim : {}::{}", project_name,__LINE__);
-        return 0;
-    }
-    eng->second.second->run();
-    return 1;
-}
-
-int sim_manager::sim_stop(const string& project_name)
-{
-    auto eng = _sim_engines.find(project_name);
-    if (eng == _sim_engines.end()) {
-        spdlog::debug("not found exception # sim : {}::{}", project_name,__LINE__);
-        return 0;
-    }
-    eng->second.second->stop();
-    return 1;
-}
-
-int sim_manager::sim_pause(const string& project_name)
-{
-    auto eng = _sim_engines.find(project_name);
-    if (eng == _sim_engines.end()) {
-        spdlog::debug("not found exception # sim : {}::{}", project_name,__LINE__);
-        return 0;
-    }
-    eng->second.second->pause();
-    return 1;
-}
-
-int sim_manager::set_sim_gui(const string& project_name, connectionInfo handle)
-{
-    auto eng = _sim_engines.find(project_name);
-    if (eng == _sim_engines.end()) {
-        spdlog::debug("not found exception # sim : {}::{}", project_name,__LINE__);
-        return 0;
-    }
-    eng->second.second->set_gui_handle(handle);
-}
-
-int sim_manager::load(const string& project_name, const string& json_file, const string& uid)
-{
-    auto eng = _sim_engines.find(project_name);
-    if (eng == _sim_engines.end()) {
-        spdlog::debug("# sim_manager::coupling::sim_engines not found exception::{}::{}", project_name,__LINE__);
-        return 0;
-    }
-    string file_path;
-    string file_name;
-    if (json_file.rfind(".") == string::npos) {//.이 없다면
-        file_path = json_file;
-        file_name = "index.json";
-    }
-    else {
-        string_util::split_path_name(json_file, file_path, file_name);
-        file_path = file_path.substr(0, file_path.length() - 1);
-    }
-    eng->second.second->add_model(file_path, file_name, "", "", "");
-}
-
-int sim_manager::load(const string& project_name, const Json::Value& json)
-{
-    auto eng = _sim_engines.find(project_name);
-    if (eng == _sim_engines.end()) {
-        spdlog::debug("# sim_manager::coupling::sim_engines not found exception::{}::{}", project_name, __LINE__);
-        return 0;
-    }
-    eng->second.second->add_model(json);
-    return 1;
-}
-
-int sim_manager::loadSet(const string& project_name, std::condition_variable* sEvent, SIM_ENGINE_EVENT* Id)
-{
-    auto eng = _sim_engines.find(project_name);
-    if (eng == _sim_engines.end()) {
-        spdlog::debug("# sim_manager::coupling::sim_engines not found exception::{}::{}", project_name, __LINE__);
-        return 0;
-    }
-    eng->second.second->sEvent = sEvent;
-    eng->second.second->targetEventId = Id;
-    return 1;
-}
-int sim_manager::unload_all()
-{
-    for (const auto& eng : _sim_engines) {
-        eng.second.second->clear_model();
-    }
-    return 1;
-}
-
-int sim_manager::unload(const string& project_name)
-{
-    auto eng = _sim_engines.find(project_name);
-    if (eng == _sim_engines.end()) {
-        spdlog::debug("# sim_manager::coupling::sim_engines not found exception::{}::{}", project_name,__LINE__);
-        return 0;
-    }
-    return eng->second.second->clear_model();
-}
-
-int sim_manager::unload_model(const string& project_name, const string& model_name)
-{
-    auto eng = _sim_engines.find(project_name);
-    if (eng == _sim_engines.end()) {
-        spdlog::debug("# sim_manager::coupling::sim_engines not found exception::{}::{}", project_name,__LINE__);
-        return 0;
-    }
-    return eng->second.second->remove_model(model_name);
-}
-
-void sim_manager::print_list_simulation()
-{
-    for (const auto& eng_iter : _sim_engines) {
-        std::cout << "###########################################################################" << endl;
-        std::cout << "# sim_manager::print_list_models::" <<
-            eng_iter.first << "(" << eng_iter.second.second->get_engine_state_str() << ")" << endl;
-        eng_iter.second.second->print_list_models();
+void sim_manager::print_list_simulation() {
+    std::vector<engine_ptr> entries;
+    { std::lock_guard<std::mutex> lock(_state->mutex); for (const auto& e : _state->engines) entries.push_back(e.second); }
+    for (const auto& entry : entries) {
+        std::lock_guard<std::mutex> lock(entry->operation_mutex);
+        if (entry->retired) continue;
+        std::cout << entry->engine.get_project_name() << " (" << entry->project << ") " << entry->engine.get_engine_state_str() << std::endl;
+        entry->engine.print_list_models();
     }
 }
-
-int sim_manager::update_model(const string& project_name, const Json::Value& json)
-{
-    auto eng = _sim_engines.find(project_name);
-    if (eng == _sim_engines.end()) {
-        spdlog::debug("# sim_manager::coupling::sim_engines not found exception::{}::{}", project_name, __LINE__);
-        return 0;
-    }
-    eng->second.second->update_modelparam(json);
-    return 1;
+int sim_manager::update_model(const string& project, const Json::Value& document) {
+    return with_engine(*_state, project, [&document](sim_engine& e) { return e.update_modelparam(document); });
 }
-void sim_manager::set_callback(std::string id, std::string projectname, double end_t)
-{
+bool sim_manager::set_callback(std::string id, std::string project, double end) {
+    connectionInfo owner;
+    {
+        std::lock_guard<std::mutex> lock(_state->mutex);
+        if (_state->closing) return false;
+        for (const auto& session : _state->sessions) if (session.second == id) { owner = session.first; break; }
+    }
+    if (owner.expired()) return false;
     Json::Value res;
-    res[PROTOCOL::SIM_CTL::PROJECTNAME] = projectname;
-    res[PROTOCOL::SIM_CTL::END_TIME] = end_t;
-    GUI_SOCKET.send_json(g_gui_clients[id].conn, PROTOCOL::GUI::REST_RUN::TYPE.c_str(), res, 1);
+    res[PROTOCOL::SIM_CTL::PROJECTNAME] = project;
+    res[PROTOCOL::SIM_CTL::END_TIME] = end;
+    return _gui_socket.send_json(owner, PROTOCOL::GUI::REST_RUN::TYPE.c_str(), res, 1) != 0;
 }

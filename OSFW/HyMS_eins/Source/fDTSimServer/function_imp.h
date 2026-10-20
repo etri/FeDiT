@@ -11,7 +11,7 @@ public:
 	~function_imp();
 	connectionInfo _conn_hdl;
 	websocket_client* _websocket_client;
-	bool _iscapsule_connected;
+	std::atomic<bool> _iscapsule_connected;
 	virtual bool load(const string& ip_and_port, Json::Value msg);
 	virtual bool is_loaded();
 	virtual int call_init(const string& project_name, Json::Value msg);
@@ -21,6 +21,7 @@ public:
 private:
 	int connect_model_capsule(const string& ip_and_port);
 	void push_send_buff(string type, Json::Value msg);
+	std::mutex _send_mutex;
 	vector<pair<string, Json::Value>> _send_buff;
 };
 

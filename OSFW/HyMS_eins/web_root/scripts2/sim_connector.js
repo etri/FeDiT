@@ -177,6 +177,7 @@ class sim_connector extends WSClient{
         super(url);
         this.on_data_callback = {};
     }
+    
     OnOpenCallback = function(event){//시뮬레이션 서버와 접속 하였을때
         console.log("서버 연결됨~~");
     }
@@ -186,7 +187,6 @@ class sim_connector extends WSClient{
     OnMessageCallback = function(event){//시뮬레이션 서버에서 데이터 수신 할때
         let json = null;
         if(event.data instanceof ArrayBuffer){
-            //let d = String.fromCharCode.apply(null, new Uint8Array(event.data));
             let d = utf8_uint8array_to_string(new Uint8Array(event.data));
             json = JSON.parse(d);
         }
@@ -194,7 +194,7 @@ class sim_connector extends WSClient{
             json = JSON.parse(event.data);
         }
         //console.log(typeof(this.on_data_callback[json.Type]));
-        if(typeof(this.on_data_callback[json.Type]) !== undefined){
+        if(typeof(this.on_data_callback[json.Type]) === 'function'){
             this.on_data_callback[json.Type](json);
         }
     }
@@ -235,6 +235,7 @@ class sim_connector extends WSClient{
         };
         super.send(JSON.stringify(sendData));
     }
+    
 }
 
 class model_connector extends WSClient{
@@ -259,11 +260,16 @@ class model_connector extends WSClient{
             json = JSON.parse(event.data);
         }
         //console.log(typeof(this.on_data_callback[json.Type]));
-        if(typeof(this.on_data_callback[json.Type]) !== undefined){
+        if(typeof(this.on_data_callback[json.Type]) === 'function'){
             this.on_data_callback[json.Type](json);
         }
     }
 }
 
-let ws = new sim_connector('220.124.222.89/sim');
-let ws2 = new model_connector('220.124.222.89/model');
+// 접속 주소를 현재 페이지 기준으로 계산한다.
+//  - 같은 호스트(Nginx) 로 접속하므로 서버 IP 를 하드코딩하지 않는다.
+//  - /simulation/ 처럼 경로 프리픽스가 있으면 그대로 유지한다.
+//    예) https://simulation.fedit.or.kr/simulation/  ->  wss://simulation.fedit.or.kr/simulation/sim
+const WS_BASE = location.host + location.pathname.replace(/\/[^\/]*$/, '');
+let ws = new sim_connector(WS_BASE + '/sim');
+let ws2 = new model_connector(WS_BASE + '/model');

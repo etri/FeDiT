@@ -1,287 +1,535 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 
 <head>
   <meta charset="UTF-8">
-  <title>Web Log Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>외부연동 상태창</title>
+  <!--
+    외부연동 상태창 (REST API / poc_manager)
+      PUSH : POST <base>/api/simulations/push  (본문: 조합기 Push JSON)  → request_id
+      RUN  : POST <base>/api/simulations/run   (본문: Run JSON + request_id)
+      조회 : GET  <base>/api/simulations/<request_id>  (status · outputs)
+    REST 호출과 결과 폴링은 조합기 창(scripts2/external_sim_api.js)이 하고, 이 창은 버튼·로그·결과만 표시한다.
+  -->
   <style>
-    /* 전체 다크모드 */
+    :root {
+      --bg: #1e1e1e;
+      --card: #2b2b2b;
+      --well: #121212;
+      --line: #444;
+      --text: #e0e0e0;
+      --muted: #9a9a9a;
+      --blue: #4fc3f7;
+      --green: #4caf50;
+      --yellow: #f0c040;
+      --red: #f44336;
+    }
+
+    * { box-sizing: border-box; }
+
     body {
-      background-color: #1e1e1e;
-      font-family: Arial, sans-serif;
+      background-color: var(--bg);
+      font-family: Arial, "Malgun Gothic", sans-serif;
       margin: 0;
-      padding: 20px;
-      color: #e0e0e0;
+      padding: 16px;
+      color: var(--text);
+      font-size: 13px;
     }
 
-    /* 카드 스타일 (웹ID / Notice / LogBox 모두 사용) */
     .card {
-      background-color: #2b2b2b;
+      background-color: var(--card);
       border-radius: 10px;
-      padding: 20px;
-      margin-bottom: 20px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+      min-width: 0;
     }
 
-    /* 타이틀 */
     .card-title {
-      font-size: 18px;
-      margin-bottom: 10px;
+      font-size: 15px;
       font-weight: bold;
-    }
-
-    /* Notice Box */
-    #noticeBox {
-      min-height: 60px;
-      background-color: #3a3a3a;
-      border-left: 5px solid #4fc3f7;
-      padding: 15px;
-      border-radius: 8px;
-    }
-
-    /* Log Box */
-    #logBox {
-      background-color: #121212;
-      border-radius: 8px;
-      padding: 15px;
-      height: 300px;
-      overflow-y: auto;
-      font-family: Consolas, monospace;
-      border: 1px solid #444;
-      color: #d5d5d5;
-    }
-
-    /* 스크롤바 스타일 */
-    #logBox::-webkit-scrollbar {
-      width: 10px;
-    }
-
-    #logBox::-webkit-scrollbar-thumb {
-      background: #555;
-      border-radius: 5px;
-    }
-
-    #logBox::-webkit-scrollbar-track {
-      background: #2b2b2b;
-    }
-
-    #topBar {
+      margin-bottom: 10px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      gap: 8px;
     }
 
-    /* 오른쪽 영역: 서버상태 + 모델상태 가로 정렬 */
-    .rightArea {
+    .card-title .spacer { flex: 1; }
+
+    .row {
       display: flex;
-      gap: 20px;
+      flex-wrap: wrap;
       align-items: center;
+      gap: 8px 16px;
     }
 
-    /* LED 표시 */
-    .led {
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      display: inline-block;
-      margin-right: 8px;
-    }
+    .muted { color: var(--muted); }
 
-    .led.green {
-      background-color: #4caf50;
-    }
+    .kv b { color: var(--blue); font-weight: normal; margin-right: 4px; }
 
-    /* 연결됨 */
-    .led.red {
-      background-color: #f44336;
-    }
+    /* 상태 LED */
+    .status { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .led { width: 12px; height: 12px; border-radius: 50%; display: inline-block; background: #666; }
+    .led.green { background-color: var(--green); }
+    .led.red { background-color: var(--red); }
+    .led.yellow { background-color: var(--yellow); }
+    .led.blue { background-color: var(--blue); }
 
-    /* 끊김 */
-  </style>
-</head>
-
-<body>
-
-
-  <!-- 웹 ID 카드 -->
-  <div class="card">
-    <div id="topBar">
-
-      <!-- 왼쪽: 웹 ID -->
-      <div class="leftArea">
-        <div class="card-title">
-          접속한 웹 ID: <span id="webId">-</span>
-        </div>
-      </div>
-      <div class="infoRow" style="margin-top: 6px;">
-        <div class="card-title">로드된 프로젝트 명:
-          <span id="projectName">-</span>
-
-        </div>
-      </div>
-      <!-- 오른쪽: 상태들 묶음 -->
-      <div class="rightArea">
-        <div id="serverStatus">
-          <span class="led red" id="ledStatus"></span>
-          <span id="serverStatusText">Disconnected</span>
-        </div>
-
-        <div id="modelLoadStatus">
-          <span class="led red" id="loadStatusLed"></span>
-          <span id="loadStatusText">Model Not Loaded</span>
-        </div>
-      </div>
-
-
-        <button id="refreshBtn" style="
+    button {
       padding: 6px 12px;
       background-color: #444;
       color: #fff;
       border: 1px solid #666;
       border-radius: 6px;
       cursor: pointer;
-      margin-left: 20px;
-  ">
-    새로고침
-</button>
+      font-size: 13px;
+    }
+
+    button:hover:not(:disabled) { background-color: #555; }
+    button:disabled { opacity: 0.4; cursor: default; }
+
+    button.primary { background-color: #1a3a5c; border-color: #2f6aa3; font-weight: bold; padding: 8px 18px; }
+    button.primary:hover:not(:disabled) { background-color: #234c78; }
+
+    input[type=text], input[type=number] {
+      background: var(--well);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 13px;
+    }
+
+    #requestId { width: 320px; max-width: 100%; font-family: Consolas, monospace; }
+    #timeoutSec { width: 90px; }
+    #endTime { width: 90px; padding: 3px 6px; }
+    input.invalid { border-color: var(--red); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .grid .card { margin-bottom: 0; display: flex; flex-direction: column; }
+
+    /* 로그 / 결과 박스 */
+    .well {
+      background-color: var(--well);
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      height: 380px;
+      overflow: auto;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+    }
+
+    #logBox { padding: 10px 12px; color: #d5d5d5; }
+    #logBox .entry { white-space: pre-wrap; word-break: break-all; padding: 1px 0; }
+    #logBox .time { color: #777; margin-right: 8px; }
+    #logBox .ok { color: #81c784; }
+    #logBox .warn { color: var(--yellow); }
+    #logBox .error { color: #ef5350; }
+
+    .well::-webkit-scrollbar { width: 10px; height: 10px; }
+    .well::-webkit-scrollbar-thumb { background: #555; border-radius: 5px; }
+    .well::-webkit-scrollbar-track { background: var(--card); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; min-height: 26px; }
+    .chip {
+      padding: 3px 9px;
+      border-radius: 4px;
+      border: 1px solid #555;
+      background: #1e1e1e;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .chip.ok { border-color: #2e6b31; color: #81c784; }
+    .chip.run { border-color: #2f6aa3; color: var(--blue); }
+    .chip.bad { border-color: #7a2a2a; color: #ef5350; }
+    .chip.warn { border-color: #7a6420; color: var(--yellow); }
+
+    table { border-collapse: collapse; width: 100%; }
+    th, td { padding: 3px 8px; text-align: left; border-bottom: 1px solid #262626; white-space: nowrap; }
+    th { position: sticky; top: 0; background: #1b1b1b; color: var(--muted); font-weight: normal; }
+    td.num { text-align: right; }
+    td.val { color: #a5d6a7; white-space: normal; word-break: break-all; }
+    #emptyRows { padding: 14px; color: #777; }
+
+    details summary { cursor: pointer; color: var(--muted); margin-top: 8px; }
+    pre {
+      background: var(--well);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      max-height: 260px;
+      overflow: auto;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      margin: 8px 0 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .api { font-family: Consolas, monospace; font-size: 12px; line-height: 1.8; }
+    .api .m { display: inline-block; width: 46px; color: var(--yellow); }
+    .api .u { color: var(--blue); word-break: break-all; }
+    .api .d { color: var(--muted); }
+  </style>
+</head>
+
+<body>
+
+  <!-- 상단: 연결 상태 / 조합기 모델 -->
+  <div class="card">
+    <div class="card-title">
+      외부연동 상태창 <span class="muted" style="font-weight:normal;font-size:12px;">REST API (poc_manager)</span>
+      <span class="spacer"></span>
+      <span class="status" title="GET /api/health">
+        <span class="led" id="healthLed"></span><span id="healthText">REST API 확인 중</span>
+      </span>
+      <span class="status">
+        <span class="led" id="phaseLed"></span><span id="phaseText">대기</span>
+      </span>
+      <button type="button" id="refreshBtn" title="조합기 상태와 REST API 연결을 다시 확인">새로고침</button>
+    </div>
+    <div class="row">
+      <span class="kv"><b>조합기 프로젝트</b><span id="dProject">-</span></span>
+      <span class="kv"><b>모델</b><span id="dModels">-</span></span>
+      <span class="kv"><b>병렬(파라미터 탭)</b><span id="dTabs">-</span></span>
+      <label class="kv" title="시뮬레이션 종료 시간 (시작 시간은 0). 바꾸면 조합기의 SIM_TIME 에도 반영되고 PUSH/RUN 에 쓰입니다.">
+        <b>SIM_TIME</b><span id="dStart">0</span> ~ <input type="number" id="endTime" min="0" step="any">
+      </label>
+    </div>
+    <div class="row" style="margin-top:6px;">
+      <span class="kv"><b>PUSH 된 모델</b><span id="pushed">-</span></span>
     </div>
   </div>
 
-  <!-- Notice 카드 -->
+  <!-- 실행 -->
   <div class="card">
-    <div class="card-title">RestAPI를 다음과 같이 호출하세요 </div>
-    <div id="noticeBox">
-      <!-- 여기에 당신이 Notice 내용을 추가하면 됩니다 -->
-      * id=접속한 웹 ID, projectname = 로드된 프로젝트 명, ID, end_t= 시뮬레이션 수행 시간"
-      <br><br>
-      RESTAPI 호출 : 시뮬레이션 서버주소 + /api/sim/run?id=접속한웹ID&projectname=프로젝트명&end_t=시뮬레이션수행시간
+    <div class="row">
+      <button type="button" class="primary" id="pushBtn"
+        title="조합기에 올려진 모델을 Push JSON 으로 POST /api/simulations/push">1. PUSH 전송</button>
+      <button type="button" class="primary" id="runBtn" disabled
+        title="PUSH 한 엔진을 Run JSON 으로 POST /api/simulations/run">2. RUN 실행</button>
+      <button type="button" id="queryBtn" disabled title="GET /api/simulations/{request_id}">결과 조회</button>
+      <label class="status muted" title="PUSH/RUN 각 단계 대기 제한 (1–3600초). 비우면 서버 기본값(120초)">
+        대기 제한(초) <input type="number" id="timeoutSec" min="1" max="3600" placeholder="기본 120">
+      </label>
+      <span class="spacer" style="flex:1"></span>
+      <label class="status"><span class="muted">request_id</span>
+        <input type="text" id="requestId" readonly placeholder="PUSH 후 표시">
+      </label>
+      <button type="button" id="copyBtn" disabled>복사</button>
     </div>
   </div>
 
-  <!-- Log 카드 -->
+  <div class="grid">
+    <!-- 로그 -->
+    <div class="card">
+      <div class="card-title">로그 <span class="spacer"></span>
+        <button type="button" id="clearLogBtn" title="이 창의 로그만 지웁니다">지우기</button>
+      </div>
+      <div class="well" id="logBox"></div>
+    </div>
+
+    <!-- 결과 -->
+    <div class="card">
+      <div class="card-title">시뮬레이션 결과 <span class="muted" id="rowCount" style="font-weight:normal;font-size:12px;"></span>
+        <span class="spacer"></span>
+        <button type="button" id="saveBtn" disabled title="마지막 응답 JSON 저장">JSON 저장</button>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="well" id="resultBox">
+        <table>
+          <thead>
+            <tr><th>#</th><th>run</th><th>sim_time</th><th>모델</th><th>포트</th><th>값</th></tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div id="emptyRows">RUN 하면 GET /api/simulations/{request_id} 로 받은 outputs 가 여기에 표시됩니다.
+          조합기에도 [REST paramN] PRINT/GRAPH 창으로 같은 결과가 그려집니다.</div>
+      </div>
+      <details>
+        <summary>마지막 응답 JSON</summary>
+        <pre id="rawJson">-</pre>
+      </details>
+    </div>
+  </div>
+
+  <!-- API 안내 -->
   <div class="card">
-    <div class="card-title">외부 인터페이스 호출 Log</div>
-    <div id="logBox"></div>
+    <details open>
+      <summary style="color:var(--text);font-weight:bold;font-size:15px;">REST API 호출 방법 (외부 시스템)</summary>
+      <div class="api" style="margin-top:10px;">
+        <div><span class="m">POST</span><span class="u" id="uPush">-</span></div>
+        <div class="d">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;본문: Push JSON (메뉴바 [Push JSON] 과 같은 multi_load 패킷) → 200 { request_id, status: "pushed" }</div>
+        <div><span class="m">POST</span><span class="u" id="uRun">-</span></div>
+        <div class="d">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;본문: Run JSON (multi_run_loaded) + "request_id" → 202 { status: "queued_run" }</div>
+        <div><span class="m">GET</span><span class="u" id="uStatus">-</span></div>
+        <div class="d">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status: pushed → queued_run → running → succeeded / failed, 결과는 outputs[]</div>
+        <div class="d" style="margin-top:6px;">* /simulation 프리픽스 없이 (예: <span id="uBare">-</span>) 호출해도 같습니다.
+          RUN 이 끝나면 엔진이 정리되므로 다시 실행하려면 PUSH 부터 다시 합니다.</div>
+      </div>
+    </details>
   </div>
 
   <script>
-    // 메인 창에서 수신하는 메시지 처리
-    window.addEventListener("message", function (event) {
-      const msg = event.data;
-      if (!msg || !msg.type) return;
+    'use strict';
+    const ORIGIN = (location.origin && location.origin !== 'null') ? location.origin : '*';
+    const ROW_MAX = 2000;
+    const $ = (id) => document.getElementById(id);
 
-      switch (msg.type) {
-        case "SET_WEB_ID":
-          document.getElementById("webId").innerText = msg.webId;
+    let state = null;
+    let lastResponse = null;   // 마지막 응답 (끝난 RUN 은 outputs 포함 원본, 진행 중이면 요약)
+    let rowCount = 0;
+
+    const PHASE = {
+      idle:      { led: '',       text: '대기' },
+      pushing:   { led: 'yellow', text: 'PUSH 중…' },
+      pushed:    { led: 'green',  text: 'PUSH 완료 — RUN 가능' },
+      running:   { led: 'blue',   text: 'RUN 실행 중…' },
+      succeeded: { led: 'green',  text: 'RUN 완료' },
+      failed:    { led: 'red',    text: '실패' }
+    };
+
+    function now() {
+      const d = new Date(), p = (n) => String(n).padStart(2, '0');
+      return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+    }
+
+    function send(msg) {
+      if (!window.opener || window.opener.closed) {
+        addLog({ level: 'error', time: now(), text: '조합기 창이 닫혀 있습니다. 조합기에서 [외부연동 상태창] 을 다시 여세요.' });
+        return false;
+      }
+      window.opener.postMessage(msg, ORIGIN);
+      return true;
+    }
+
+    // ── 로그 ──────────────────────────────────────────
+    function addLog(entry) {
+      const box = $('logBox');
+      const stick = box.scrollTop + box.clientHeight >= box.scrollHeight - 20;
+      const div = document.createElement('div');
+      div.className = 'entry ' + (entry.level || 'info');
+      const t = document.createElement('span');
+      t.className = 'time';
+      t.textContent = entry.time || now();
+      div.appendChild(t);
+      div.appendChild(document.createTextNode(entry.text));
+      box.appendChild(div);
+      while (box.childElementCount > 1000) box.removeChild(box.firstElementChild);
+      if (stick) box.scrollTop = box.scrollHeight;
+    }
+
+    // ── 상태 ──────────────────────────────────────────
+    function setState(s) {
+      state = s;
+      const h = s.health;
+      $('healthLed').className = 'led ' + (h ? (h.ok ? 'green' : 'red') : '');
+      $('healthText').textContent = h ? h.text : 'REST API 확인 중';
+
+      const ph = PHASE[s.phase] || { led: '', text: s.phase };
+      $('phaseLed').className = 'led ' + ph.led;
+      $('phaseText').textContent = ph.text;
+
+      const d = s.designer || {};
+      $('dProject').textContent = d.project_name || '(미입력)';
+      $('dModels').textContent = (d.models && d.models.length) ? d.models.join(', ') : '(없음 — 모델을 로드하세요)';
+      $('dTabs').textContent = d.tab_count != null ? d.tab_count + '개' : '-';
+      $('dStart').textContent = d.start_t || 0;
+      // 입력 중에는 조합기 값으로 덮어쓰지 않는다
+      if (document.activeElement !== $('endTime') && d.end_t !== undefined) {
+        $('endTime').value = d.end_t;
+        readEndTime();
+      }
+      $('pushed').textContent = s.push
+        ? s.push.project_name + ' · 엔진 ' + s.push.count + '개 · ' + s.push.start_t + ' ~ ' + s.push.end_t
+        : '-';
+
+      $('requestId').value = s.request_id || '';
+      const busy = s.phase === 'pushing' || s.phase === 'running';
+      $('pushBtn').disabled = busy;
+      $('runBtn').disabled = s.phase !== 'pushed';
+      $('queryBtn').disabled = !s.request_id;
+      $('copyBtn').disabled = !s.request_id;
+
+      if (s.urls) {
+        $('uPush').textContent = s.urls.push;
+        $('uRun').textContent = s.urls.run;
+        $('uStatus').textContent = s.urls.status + '{request_id}';
+        $('uBare').textContent = location.origin + '/api/simulations/push';
+      }
+    }
+
+    // ── 결과 ──────────────────────────────────────────
+    function resetResult() {
+      $('rows').innerHTML = '';
+      rowCount = 0;
+      lastResponse = null;
+      $('emptyRows').style.display = '';
+      $('rowCount').textContent = '';
+      $('chips').innerHTML = '';
+      $('rawJson').textContent = '-';
+      $('saveBtn').disabled = true;
+    }
+
+    function fmtNum(v, digits) {
+      const n = Number(v);
+      return Number.isFinite(n) ? String(Math.round(n * Math.pow(10, digits)) / Math.pow(10, digits)) : String(v);
+    }
+
+    function appendRows(rows) {
+      if (!rows || !rows.length) return;
+      const box = $('resultBox');
+      const stick = box.scrollTop + box.clientHeight >= box.scrollHeight - 20;
+      const body = $('rows');
+      const frag = document.createDocumentFragment();
+      rows.forEach((r) => {
+        const tr = document.createElement('tr');
+        const cells = [
+          [r.n, 'num'],
+          [r.run_id != null && r.run_id >= 0 ? 'param' + (r.run_id + 1) : '-', ''],
+          [fmtNum(r.sim_time, 3), 'num'],
+          [r.model, ''],
+          [r.port, ''],
+          [typeof r.value === 'object' ? JSON.stringify(r.value) : r.value, 'val']
+        ];
+        cells.forEach(([text, cls]) => {
+          const td = document.createElement('td');
+          if (cls) td.className = cls;
+          td.textContent = text == null ? '' : String(text);
+          tr.appendChild(td);
+        });
+        frag.appendChild(tr);
+      });
+      body.appendChild(frag);
+      rowCount += rows.length;
+      while (body.childElementCount > ROW_MAX) body.removeChild(body.firstElementChild);
+      $('emptyRows').style.display = 'none';
+      if (stick) box.scrollTop = box.scrollHeight;
+    }
+
+    function chip(text, cls) {
+      const c = document.createElement('span');
+      c.className = 'chip ' + (cls || '');
+      c.textContent = text;
+      return c;
+    }
+
+    function setSummary(sum, last) {
+      if (!sum) return;
+      const chips = $('chips');
+      chips.innerHTML = '';
+      const st = sum.status;
+      chips.appendChild(chip('status: ' + st, st === 'succeeded' || st === 'pushed' ? 'ok' : st === 'failed' ? 'bad' : 'run'));
+      if (sum.count != null) chips.appendChild(chip('엔진 ' + sum.count + '개'));
+      chips.appendChild(chip('outputs ' + sum.outputs_count + '건'));
+      if (sum.outputs_truncated) chips.appendChild(chip('outputs 보관 한도 초과', 'warn'));
+      const stops = Array.isArray(sum.run_response) ? sum.run_response : (sum.run_response ? [sum.run_response] : []);
+      stops.forEach((r) => chips.appendChild(chip((r.run_id != null ? 'param' + (r.run_id + 1) + ' ' : '') + 'stop ' + r.stop,
+        r.stop === 'ok' ? 'ok' : 'bad')));
+      if (sum.error) chips.appendChild(chip('HTTP ' + sum.error.status + ' ' + sum.error.message, 'bad'));
+      $('rowCount').textContent = rowCount ? '(' + rowCount + '행)' : '';
+
+      lastResponse = last || sum;
+      $('rawJson').textContent = JSON.stringify(lastResponse, null, 2);
+      $('saveBtn').disabled = false;
+    }
+
+    // ── 조합기 메시지 ─────────────────────────────────
+    window.addEventListener('message', (event) => {
+      if (ORIGIN !== '*' && event.origin !== ORIGIN) return;
+      const m = event.data;
+      if (!m || !m.type) return;
+      switch (m.type) {
+        case 'EXT_SYNC':
+          $('logBox').innerHTML = '';
+          (m.logs || []).forEach(addLog);
+          resetResult();
+          appendRows(m.rows);
+          setSummary(m.summary, m.last);
+          setState(m.state);
           break;
-        case "SET_PROJECT_NAME":
-          projectName_cache = msg.project;     // ⭐ 저장
-          document.getElementById("projectName").innerText = msg.project;
-          break;
-        case "ADD_LOG":
-          addLog(msg.message);
-          break;
-        case "SERVER_STATUS":
-          setServerStatus(msg.connected);
-          break;
-        case "MODEL_LOAD_STATUS":
-          setModelLoadStatus(msg.loaded);
-          break;
-        case "NOTICE":
-          // Notice 박스에 메시지 추가 (원할 때 사용)
-          document.getElementById("noticeBox").innerHTML += "<br>" + msg.notice;
+        case 'EXT_STATE': setState(m.state); break;
+        case 'EXT_LOG': addLog(m.entry); break;
+        case 'EXT_RESULT_RESET': resetResult(); break;
+        case 'EXT_RESULT':
+          appendRows(m.rows);
+          setSummary(m.summary, m.last);
           break;
       }
     });
 
-    let serverConnected = false;
-    let modelLoaded = false;
-    let projectName_cache = "-";
-    let forceRecheck = false;
+    // ── 버튼 ──────────────────────────────────────────
+    function timeoutValue() { return $('timeoutSec').value.trim(); }
 
-
-    // 로그 추가 함수
-    function addLog(message) {
-      const logBox = document.getElementById("logBox");
-      logBox.innerHTML += "<br>" + message;
-      logBox.scrollTop = logBox.scrollHeight;
+    // SIM_TIME 종료 시간 — 0(시작 시간) 이상의 숫자만 허용, 아니면 빨간 테두리 후 null
+    function readEndTime() {
+      const el = $('endTime');
+      const text = el.value.trim();
+      const start = Number((state && state.designer && state.designer.start_t) || 0);
+      const n = Number(text);
+      const ok = text !== '' && Number.isFinite(n) && n >= start;
+      el.classList.toggle('invalid', !ok);
+      return ok ? n : null;
     }
 
-    function setServerStatus(connected) {
-      const led = document.getElementById("ledStatus");
-      const text = document.getElementById("serverStatusText");
-
-      serverConnected = connected;   // 상태 저장
-
-      if (connected) {
-        led.className = "led green";
-        text.innerText = "Connected";
-
-        addLog("시뮬레이션 서버와 정상 연결되었습니다.");   // ⭐ 자동 로그
-      } else {
-        led.className = "led red";
-        text.innerText = "Disconnected";
-
-        addLog("시뮬레이션 서버 연결이 끊어졌습니다.");   // ⭐ 자동 로그
-      }
-
-          checkAllReady(true);  // ⭐ 강제 체크 플래그 전달
+    function endTimeOrLog() {
+      const t = readEndTime();
+      if (t === null) addLog({ level: 'error', time: now(), text: 'SIM_TIME(종료 시간)을 0 이상의 숫자로 입력하세요.' });
+      return t;
     }
 
-    function setModelLoadStatus(loaded) {
-      const led = document.getElementById("loadStatusLed");
-      const text = document.getElementById("loadStatusText");
-
-      modelLoaded = loaded;  // 상태 저장
-
-      if (loaded) {
-        led.className = "led green";
-        text.innerText = "Model Loaded";
-
-        addLog(projectName_cache + " 모델이 로드되었습니다.");   // ⭐ 자동 로그
-      } else {
-        led.className = "led red";
-        text.innerText = "Model Not Loaded";
-
-        addLog(projectName_cache + " 모델이 언로드되었습니다."); // optional
-      }
-
-      checkAllReady(true);  // ⭐ 강제 체크 플래그 전달
-    }
-
-    let allReadyLogged = false;
-
-
-function checkAllReady(force = false) {
-
-    if (serverConnected && modelLoaded) {
-
-        if (force || !allReadyLogged) {
-            addLog("시뮬레이션 준비가 완료되었습니다. 이제 REST API를 통해 시뮬레이션 수행이 가능합니다.");
-
-            allReadyLogged = true;
-            forceRecheck = false;  // 🔥 새로고침 상태 해제
-        }
-
-    } else {
-        allReadyLogged = false;
-    }
-}
-
-
-    document.getElementById("refreshBtn").addEventListener("click", function () {
-
-        addLog("🔄 새로고침 요청됨 → 메인 페이지에 최신 상태 요청합니다.");
-
-        // 새로고침 후 상태 다시 점검하도록 설정
-        forceRecheck = true;
-
-        if (window.opener && !window.opener.closed) {
-            window.opener.postMessage({ type: "REQUEST_REFRESH" }, "*");
-        }
+    $('endTime').addEventListener('input', readEndTime);
+    $('endTime').addEventListener('change', () => {
+      const t = endTimeOrLog();
+      if (t !== null) send({ type: 'EXT_SET_TIME', end_t: t });   // 조합기 SIM_TIME 에도 반영
     });
 
+    $('pushBtn').addEventListener('click', () => {
+      const end_t = endTimeOrLog();
+      if (end_t === null) return;
+      // 응답 상태가 오기 전 중복 클릭 방지
+      if (send({ type: 'EXT_PUSH', timeout_seconds: timeoutValue(), end_t: end_t })) { $('pushBtn').disabled = true; $('runBtn').disabled = true; }
+    });
+    $('runBtn').addEventListener('click', () => {
+      const end_t = endTimeOrLog();
+      if (end_t === null) return;
+      if (send({ type: 'EXT_RUN', timeout_seconds: timeoutValue(), end_t: end_t })) { $('pushBtn').disabled = true; $('runBtn').disabled = true; }
+    });
+    $('queryBtn').addEventListener('click', () => send({ type: 'EXT_QUERY' }));
+    $('refreshBtn').addEventListener('click', () => send({ type: 'REQUEST_REFRESH' }));
+    $('clearLogBtn').addEventListener('click', () => { $('logBox').innerHTML = ''; });
 
+    $('copyBtn').addEventListener('click', () => {
+      const id = $('requestId').value;
+      if (!id) return;
+      const done = () => addLog({ level: 'info', time: now(), text: 'request_id 를 복사했습니다: ' + id });
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(id).then(done, () => {});
+      else { $('requestId').select(); document.execCommand('copy'); done(); }
+    });
+
+    $('saveBtn').addEventListener('click', () => {
+      if (!lastResponse) return;
+      const blob = new Blob([JSON.stringify(lastResponse, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (lastResponse.request_id || 'simulation') + '_' + (lastResponse.status || 'result') + '.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    });
+
+    // 조합기에서 모델·시간을 바꿨을 수 있으므로 이 창으로 돌아오면 상태를 다시 받는다
+    window.addEventListener('focus', () => send({ type: 'EXT_STATE_REQ' }));
+
+    send({ type: 'EXT_HELLO' });
   </script>
 
 </body>

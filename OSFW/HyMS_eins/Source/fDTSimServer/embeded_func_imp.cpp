@@ -13,7 +13,7 @@ int embeded_func_imp::call_init(const string& project_name, Json::Value msg)
 	msg[PROTOCOL::ATOMIC::MODEL_INFO::PROJECT_NAME] = this->_eng_ptr->get_project_name();
 	msg[PROTOCOL::ATOMIC::MODEL_INFO::IID] = this->_iid;
 	GUI_SOCKET.send_json(project_name, this->_eng_ptr->get_gui_handle(), PROTOCOL::MODEL_INIT::TYPE.c_str(), msg, 1);
-	return 0;//¿£Áø¿¡¼­ ÀÀ´ä(ack)À» ±â´Ù¸®Áö ¾Êµµ·Ï 0(zero)À» ¸®ÅÏ
+	return 0;//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½(ack)ï¿½ï¿½ ï¿½ï¿½Ù¸ï¿½ï¿½ï¿½ ï¿½Êµï¿½ï¿½ï¿½ 0(zero)ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 }
 
 bool embeded_func_imp::load(const string& ip_and_port, Json::Value msg)
@@ -25,6 +25,8 @@ bool embeded_func_imp::load(const string& ip_and_port, Json::Value msg)
 int embeded_func_imp::call_ext_trans_fn(const string& project_name, Json::Value msg)
 {
 	spdlog::debug("# embeded_func_imp::call_ext_trans_fn::");
+	// ë³‘ë ¬ì‹¤í–‰ ì‹œ run_idë¥¼ ë©”ì‹œì§€ì— í¬í•¨í•´ í”„ë¡ íŠ¸ê°€ ê²°ê³¼ì°½ì„ êµ¬ë¶„í•  ìˆ˜ ìžˆê²Œ í•¨
+	msg[PROTOCOL::SIM_CTL::RUN_ID] = this->_eng_ptr->_run_id;
 	GUI_SOCKET.send_json(this->_eng_ptr->get_gui_handle(), PROTOCOL::GUI::RES_M::TYPE.c_str(), msg, 1);
-	return 0;//¿£Áø¿¡¼­ ÀÀ´ä(ack)À» ±â´Ù¸®Áö ¾Êµµ·Ï 0(zero)À» ¸®ÅÏ
+	return 0;//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½(ack)ï¿½ï¿½ ï¿½ï¿½Ù¸ï¿½ï¿½ï¿½ ï¿½Êµï¿½ï¿½ï¿½ 0(zero)ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 }

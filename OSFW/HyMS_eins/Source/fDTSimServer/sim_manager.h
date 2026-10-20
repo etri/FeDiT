@@ -17,7 +17,7 @@ using namespace web::http::experimental::listener;
 #define PORT_NUMBER 8864
 
 using namespace std;
-// Á¢¼ÓÇã¿ë IP
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ IP
 const std::string ALLOW_IP = "127.0.0.1,192.168.0.1,143.248.187.107,143.248.187.10,143.248.187.22,143.248.187.106,143.248.187.33";//
 
 typedef struct _CLIENTS_T {
@@ -27,88 +27,112 @@ typedef struct _CLIENTS_T {
 
 extern std::unordered_map<string, CLIENT_T> g_model_clients;
 
-/// @brief ½Ã¹Ä·¹ÀÌ¼Ç ¿£Áø °ü¸® ¹× Å¬¶óÀÌ¾ğÆ®(¸ğµ¨, GUI) Á¢¼Ó¿ë ¼ÒÄÏ °ü¸® Å¬·¡½º
+/// @brief ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ Å¬ï¿½ï¿½ï¿½Ì¾ï¿½Æ®(ï¿½ï¿½, GUI) ï¿½ï¿½ï¿½Ó¿ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Å¬ï¿½ï¿½ï¿½ï¿½
+struct sim_manager_state;
+
 class sim_manager
 {
 public:
-	/// @brief ¸ğµ¨ Á¢¼Ó¿ë ¼ÒÄÏ ÃÊ±âÈ­
-	/// @param listen_port Æ÷Æ®¹øÈ£
+	sim_manager();
+	~sim_manager();
+	/// @brief ï¿½ï¿½ ï¿½ï¿½ï¿½Ó¿ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ê±ï¿½È­
+	/// @param listen_port ï¿½ï¿½Æ®ï¿½ï¿½È£
 	/// @return 
 	int init(int listen_port = PORT_NUMBER);
-	/// @brief GUI Á¢¼Ó¿ë ¼ÒÄÏ ÃÊ±âÈ­
-	/// @param listen_port Æ÷Æ®¹øÈ£
+	/// @brief GUI ï¿½ï¿½ï¿½Ó¿ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ê±ï¿½È­
+	/// @param listen_port ï¿½ï¿½Æ®ï¿½ï¿½È£
 	/// @return 
 	int init_gui(int listen_port = (PORT_NUMBER+5));
 	void release();
-	/// @brief ½ÇÇàÇÒ ½Ã¹Ä·¹ÀÌ¼Ç ¿£ÁøÀ» Ãß°¡ÇÑ´Ù
-	/// @param project_name ½Ã¹Ä·¹ÀÌ¼Ç º°Äª
+	/// @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ß°ï¿½ï¿½Ñ´ï¿½
+	/// @param project_name ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½Äª
 	/// @return 
 	int sim_add(const string& project_name);
-	/// @brief ½ÇÇàÀ» À§ÇØ ¸Ş¸ğ¸®¿¡ ¿Ã¶ó¿Â ¸ğµç ½Ã¹Ä·¹ÀÌ¼Ç ¿£ÁøÀ» »èÁ¦ÇÑ´Ù
+	/// @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ş¸ğ¸®¿ï¿½ ï¿½Ã¶ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½
 	/// @return 
 	int sim_del_all();
-	/// @brief ½ÇÇàÀ» À§ÇØ ¸Ş¸ğ¸®¿¡ ¿Ã¶ó¿Â ½Ã¹Ä·¹ÀÌ¼Ç ¿£ÁøÀ» »èÁ¦ÇÑ´Ù.
-	/// @param project_name ½Ã¹Ä·¹ÀÌ¼Ç º°Äª
+	/// @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ş¸ğ¸®¿ï¿½ ï¿½Ã¶ï¿½ï¿½ ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½.
+	/// @param project_name ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½Äª
 	/// @return 
 	int sim_del(const string& project_name);
-	/// @brief ÇØ´ç ½Ã¹Ä·¹ÀÌ¼Ç ÀÔ·Â ÆÄ¶ó¹ÌÅÍ¸¦ ÃÊ±â ÆÄ¶ó¹ÌÅÍ·Î ¼³Á¤ ÇÑ´Ù.
-	/// @param project_name ½Ã¹Ä·¹ÀÌ¼Ç º°Äª
+	// Retire all engines for this connection, including pending loads.
+	int sim_del_by_gui(const std::shared_ptr<void>& gui_target);
+	/// @brief ï¿½Ø´ï¿½ ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½Ô·ï¿½ ï¿½Ä¶ï¿½ï¿½ï¿½Í¸ï¿½ ï¿½Ê±ï¿½ ï¿½Ä¶ï¿½ï¿½ï¿½Í·ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ñ´ï¿½.
+	/// @param project_name ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½Äª
 	/// @return 
 	int set_default_param(const string& project_name);
-	/// @brief ½Ã¹Ä·¹ÀÌ¼Ç ½ÇÇà½Ã°£ ¼³Á¤
-	/// @param project_name ½Ã¹Ä·¹ÀÌ¼Ç º°Äª
-	/// @param start_time ½ÃÀÛ½Ã°£
-	/// @param end_time Á¾·á½Ã°£
+	/// @brief ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½Ã°ï¿½ ï¿½ï¿½ï¿½ï¿½
+	/// @param project_name ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½Äª
+	/// @param start_time ï¿½ï¿½ï¿½Û½Ã°ï¿½
+	/// @param end_time ï¿½ï¿½ï¿½ï¿½Ã°ï¿½
 	/// @return 
 	int set_sim_time(const string& project_name, double start_time, double end_time);
-	/// @brief ½Ã¹Ä·¹ÀÌ¼Ç ´ë±âÁßÀÎ ¸ğµ¨Áß Ã¹¹øÂ° ¸ğµ¨À» ½ÇÇàÇÑ´Ù.
+	/// @brief ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Ã¹ï¿½ï¿½Â° ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½.
 	/// @return 
 	int sim_run();
-	/// @brief ½Ã¹Ä·¹ÀÌ¼Ç ½ÇÇà
-	/// @param project_name ½Ã¹Ä·¹ÀÌ¼Ç º°Äª
+	/// @brief ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½
+	/// @param project_name ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½Äª
 	/// @return 
 	int sim_run(const string& project_name);
-	/// @brief ½Ã¹Ä·¹ÀÌ¼Ç Á¾·á
-	/// @param project_name ½Ã¹Ä·¹ÀÌ¼Ç º°Äª
+	/// @brief ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½
+	/// @param project_name ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½Äª
 	/// @return 
 	int sim_stop(const string& project_name);
-	/// @brief ½Ã¹Ä·¹ÀÌ¼Ç ÀÏ½ÃÁ¤Áö
-	/// @param project_name ½Ã¹Ä·¹ÀÌ¼Ç º°Äª
+	/// @brief ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½Ï½ï¿½ï¿½ï¿½ï¿½ï¿½
+	/// @param project_name ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½Äª
 	/// @return 
 	int sim_pause(const string& project_name);
-	/// @brief ½Ã¹Ä·¹ÀÌ¼Ç GUI(À¥°¡½ÃÈ­) ¿¬°áÁ¤º¸ ¼³Á¤
-	/// @param project_name ½Ã¹Ä·¹ÀÌ¼Ç º°Äª
-	/// @param handle ¿¬°áÁ¤º¸
+	/// @brief ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ GUI(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È­) ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+	/// @param project_name ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½Äª
+	/// @param handle ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	/// @return 
 	int set_sim_gui(const string& project_name, connectionInfo handle);
-	/// @brief ½Ã¹Ä·¹ÀÌ¼Ç ·Îµå
-	/// @param project_name ½Ã¹Ä·¹ÀÌ¼Ç º°Äª
-	/// @param json_file ½Ã¹Ä·¹ÀÌ¼Ç json ÆÄÀÏ(root coupled)
+	/// @brief ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½Îµï¿½
+	/// @param project_name ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½Äª
+	/// @param json_file ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ json ï¿½ï¿½ï¿½ï¿½(root coupled)
 	/// @param uid unique id
 	/// @return 
-	int load(const string& project_name, const string& json_file, const string& uid);
-	/// @brief ½Ã¹Ä·¹ÀÌ¼Ç ·Îµå
-	/// @param project_name ½Ã¹Ä·¹ÀÌ¼Ç º°Äª
-	/// @param json root coupled Á¤º¸
+	int load(const string& project_name, const string& json_file, const string& uid = "");
+	/// @brief ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½Îµï¿½
+	/// @param project_name ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½Äª
+	/// @param json root coupled ï¿½ï¿½ï¿½ï¿½
 	/// @return 
 	int load(const string& project_name, const Json::Value& json);
-	/// @brief ½ÇÇà´ë±âÁßÀÎ ¸ğµç ½Ã¹Ä·¹ÀÌ¼Ç ¿£Áø¿¡ ·ÎµåµÈ ¸ğµç ¸ğµ¨À» ¾ğ·Îµå ÇÑ´Ù.
+	/// @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Îµï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Îµï¿½ ï¿½Ñ´ï¿½.
 	/// @return 
 	int unload_all();
-	/// @brief ½ÇÇà´ë±âÁßÀÎ ½Ã¹Ä·¹ÀÌ¼Ç ¿£Áø¿¡ ·ÎµåµÈ ¸ğµç ¸ğµ¨À» ¾ğ·Îµå ÇÑ´Ù.
-	/// @param project_name ½Ã¹Ä·¹ÀÌ¼Ç º°Äª
+	/// @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Îµï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Îµï¿½ ï¿½Ñ´ï¿½.
+	/// @param project_name ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½Äª
 	/// @return 
 	int unload(const string& project_name);
-	/// @brief ½Ã¹Ä·¹ÀÌ¼Ç ¿£Áø¿¡ ·ÎµåµÈ ¸ğµ¨À» ¾ğ·Îµå ÇÑ´Ù.
-	/// @param project_name ½Ã¹Ä·¹ÀÌ¼Ç º°Äª
-	/// @param model_name ¸ğµ¨¸í
+	/// @brief ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Îµï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Îµï¿½ ï¿½Ñ´ï¿½.
+	/// @param project_name ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½Äª
+	/// @param model_name ï¿½ğµ¨¸ï¿½
 	/// @return 
 	int unload_model(const string& project_name, const string& model_name);
-	/// @brief µî·ÏµÈ ¸ğµç ¸ğµ¨µé ¸®½ºÆ®
+	/// @brief ï¿½ï¿½Ïµï¿½ ï¿½ï¿½ï¿½ ï¿½ğµ¨µï¿½ ï¿½ï¿½ï¿½ï¿½Æ®
 	void print_list_simulation();
 
 	int update_model(const string & project_name, const Json::Value& json);
 
+	/// @brief Nê°œ íŒŒë¼ë¯¸í„° ì„¸íŠ¸ë¥¼ ë°›ì•„ ê°ê° ë…ë¦½ ì—”ì§„ìœ¼ë¡œ ë³‘ë ¬ ì‹¤í–‰
+	/// @param project_name ê¸°ì¤€ í”„ë¡œì íŠ¸ëª…
+	/// @param json_data ê¸°ë³¸ ì»¤í”Œë“œ ëª¨ë¸ JSON
+	/// @param param_sets íŒŒë¼ë¯¸í„° ì„¸íŠ¸ ë°°ì—´ [{run_id, overrides:{model::param:value}}]
+	/// @param start_t ì‹œë®¬ë ˆì´ì…˜ ì‹œì‘ ì‹œê°„
+	/// @param end_t ì‹œë®¬ë ˆì´ì…˜ ì¢…ë£Œ ì‹œê°„
+	/// @param gui_conn GUI WebSocket ì—°ê²° í•¸ë“¤
+	int multi_run(const string& project_name, const Json::Value& json_data,
+		const Json::Value& param_sets, double start_t, double end_t, connectionInfo gui_conn);
+	/// @brief ë³‘ë ¬ ë¡œë“œë§Œ ìˆ˜í–‰ (ì‹¤í–‰ ì—†ìŒ) â€” multi_run_loadedë¡œ ì‹¤í–‰
+	int multi_load(const string& project_name, const Json::Value& json_data,
+		const Json::Value& param_sets, double start_t, double end_t, connectionInfo gui_conn);
+	/// @brief ê¸°ë¡œë“œëœ ë³‘ë ¬ ì—”ì§„ë“¤ì„ ì¼ê´„ ì‹¤í–‰
+	int multi_run_loaded(const string& project_name, int count,
+		double start_t, double end_t, connectionInfo gui_conn);
+
+	// Override for remote atomic managers; individual models may supply server_ip.
+	std::string model_server_address = "localhost:8864";
 	websocket_server _model_socket;
 	websocket_server _gui_socket;
 
@@ -117,12 +141,16 @@ public:
 	std::condition_variable sEvent;
 	SIM_ENGINE_EVENT targetEventId;
 
-	int loadSet(const string& project_name, std::condition_variable* sEvent, SIM_ENGINE_EVENT* Id);
-	void set_callback(std::string id, std::string projectname, double end_t);
+	std::shared_ptr<model_load_signal> loadSet(const string& project_name);
+	bool set_callback(std::string id, std::string projectname, double end_t);
 
 
 private:
-	
+	std::unique_ptr<sim_manager_state> _state;
+	int start_load(const string& project, const Json::Value& document,
+		const Json::Value& sets, double start, double end, connectionInfo owner,
+		bool parallel, bool run);
+	void handle_control(connectionInfo owner, const Json::Value& args);
 };
 
 extern sim_manager _sim_manager;

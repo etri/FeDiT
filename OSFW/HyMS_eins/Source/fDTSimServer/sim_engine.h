@@ -1,6 +1,10 @@
 #pragma once
 #include <thread>
+#include <atomic>
+#include <condition_variable>
+#include <memory>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <tuple>
 #include <mutex>
@@ -24,72 +28,98 @@ enum class SIM_ENGINE_EVENT : int {
 	MODEL_DEL_COMPLETE,
 	MODEL_LOAD_COMPLETE,
 };
-/// @brief ½Ã¹Ä·¹ÀÌ¼Ç ¿£Áø Å¬·¡½º
+/// @brief ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½ Å¬ï¿½ï¿½ï¿½ï¿½
+struct model_load_signal {
+    std::mutex mutex;
+    std::condition_variable changed;
+    bool complete = false;
+    bool cancelled = false;
+    bool notify() {
+        { std::lock_guard<std::mutex> lock(mutex); if (complete || cancelled) return false; complete = true; }
+        changed.notify_all();
+        return true;
+    }
+    bool is_cancelled() {
+        std::lock_guard<std::mutex> lock(mutex);
+        return cancelled;
+    }
+    void cancel() {
+        { std::lock_guard<std::mutex> lock(mutex); cancelled = true; }
+        changed.notify_all();
+    }
+    bool wait(unsigned seconds) {
+        std::unique_lock<std::mutex> lock(mutex);
+        return changed.wait_for(lock, std::chrono::seconds(seconds), [this] { return complete || cancelled; })
+            && complete && !cancelled;
+    }
+};
 class sim_engine
 {
 public:
 	sim_engine(const string& project_name);
 	~sim_engine();
 
-	/// @brief ½Ã¹Ä·¹ÀÌ¼Ç ½ÇÇà(½º·¹µå)
+	/// @brief ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
 	int run();
 	
-	/// @brief ½Ã¹Ä·¹ÀÌ¼Ç ½ÇÇà ½Ã°£ ¼³Á¤
-	/// @param start_time ½ÃÀÛ½Ã°£
-	/// @param end_time Á¾·á½Ã°£
+	/// @brief ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ã°ï¿½ ï¿½ï¿½ï¿½ï¿½
+	/// @param start_time ï¿½ï¿½ï¿½Û½Ã°ï¿½
+	/// @param end_time ï¿½ï¿½ï¿½ï¿½Ã°ï¿½
 	void set_sim_time(double start_time = 0.0, double end_time = 0.0);
 
-	/// @brief ½Ã¹Ä·¹ÀÌ¼Ç Á¾·á
+	/// @brief ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½
 	int stop();
 
-	/// @brief ½Ã¹Ä·¹ÀÌ¼Ç ÀÏ½Ã Á¤Áö
+	/// @brief ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½Ï½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	int pause();
 
-	/// @brief ¿£Áø¿¡ ¸ğµ¨ Ãß°¡
+	/// @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ß°ï¿½
 	int add_model(model_t::MODEL_TYPE model_type, const string& iid, const string& uid, const string& model_name);
 
-	/// @brief ¿£Áø¿¡ ¸ğµ¨ Ãß°¡
-	/// @param conn_hdl À¥¼ÒÄÏ ÇÚµé
+	/// @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ß°ï¿½
+	/// @param conn_hdl ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Úµï¿½
 	int add_model(connectionInfo conn_hdl, const string& iid, const string& uid, const string& model_name);
 
-	/// @brief ¿£Áø¿¡ ¸ğµ¨ Ãß°¡
-	/// @param conn_hdl À¥¼ÒÄÏ ÇÚµé
-	/// @param args ¸ğµ¨ Á¤º¸(json)
+	/// @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ß°ï¿½
+	/// @param conn_hdl ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Úµï¿½
+	/// @param args ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½(json)
 	int add_model(connectionInfo conn_hdl, const Json::Value& args);
-	/// @brief ¿£Áø¿¡ ¸ğµ¨ Ãß°¡
-	/// @param coupled_model_info ¸ğµ¨ Á¤º¸
+	bool accepts_model(const std::string& iid) const;
+	void complete_local_load();
+	/// @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ß°ï¿½
+	/// @param coupled_model_info ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	int add_model(const Json::Value& coupled_model_info);
-	/// @brief ¿£Áø¿¡ ¸ğµ¨ Ãß°¡(¹Ì»ç¿ë)
+	/// @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ß°ï¿½(ï¿½Ì»ï¿½ï¿½)
 	int add_model(const string& file_path, const string& json_file, const string& model_name, const string& iid, const string& uid);
-	/// @brief ¸ğµç ¸ğµ¨ »èÁ¦
+	/// @brief ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	int clear_model();
-	/// @brief ¸ğµ¨ »èÁ¦ ¿äÃ»
+	/// @brief ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ã»
 	int remove_model_req(const string& model_id, bool immediate = false);
-	/// @brief ¸ğµ¨ »èÁ¦
-	int remove_model(const string& model_id);
-	/// @brief Ä¿ÇÃ¸ğµ¨ Æ÷Æ® ¸ÅÇÎ
+	/// @brief ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+	int remove_model(const string& model_id, unsigned depth = 0);
+	/// @brief Ä¿ï¿½Ã¸ï¿½ ï¿½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½
 	int add_couple(const Json::Value& model_info);
-	/// @brief Æ÷Æ® ¸ÅÇÎ
+	/// @brief ï¿½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½
 	int add_couple(const string& src_model_id, const string& src_port, const string& dest_model_id, const string& dest_port);
-	/// @brief Æ÷Æ® ¸ÅÇÎ Á¤º¸ »èÁ¦
+	/// @brief ï¿½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	void remove_couple(const string& src_model_id, const string& src_port, const string& dest_model_id, const string& dest_port);
-	/// @brief external event Ãß°¡
+	/// @brief external event ï¿½ß°ï¿½
 	void add_out_msg(const Json::Value& msg);
-	/// @brief µî·ÏµÈ ¸ğµ¨ ¸®½ºÆ® Ãâ·Â
+	/// @brief ï¿½ï¿½Ïµï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Æ® ï¿½ï¿½ï¿½
 	void print_list_models();
-	/// @brief ¸ğµ¨¿¡¼­ TA ¿äÃ»½Ã Ã³¸®
+	/// @brief ï¿½ğµ¨¿ï¿½ï¿½ï¿½ TA ï¿½ï¿½Ã»ï¿½ï¿½ Ã³ï¿½ï¿½
 	void tar(const Json::Value& msg);
-	/// @brief ¸ğµ¨¿¡¼­ OK ÀÀ´ä½Ã
+	/// @brief ï¿½ğµ¨¿ï¿½ï¿½ï¿½ OK ï¿½ï¿½ï¿½ï¿½ï¿½
 	void ack(const Json::Value& msg);
 
-	/// @brief ¸ğµ¨ param ¾÷µ¥ÀÌÆ®
+	/// @brief ï¿½ï¿½ param ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ®
 	int update_modelparam(const Json::Value& coupled_model_info);
 
 	//void update_modelparam(const string& iid, const Json::Value init_param);
 
 	inline int get_engine_state() { return _engine_state; }
 	inline const char * get_engine_state_str(){ 
-		switch (_engine_state) {
+		switch (_engine_state.load()) {
 		case ENGINE_STATE_RUN:
 			return "ENGINE_STATE_RUN";
 		case ENGINE_STATE_PAUSE:
@@ -98,88 +128,108 @@ public:
 			return "ENGINE_STATE_STOP_REQ";
 		case ENGINE_STATE_STOP:
 			return "ENGINE_STATE_STOP";
+		default: return "ENGINE_STATE_UNKNOWN";
 		}
 	}
-	/// @brief GUI ¿¬°á Á¤º¸ ¼³Á¤
+	/// @brief GUI ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	/// @param handle GUI Websocket connection handle
+	void set_gui_project_name(const std::string& project) { _gui_project_name = project; }
 	void set_gui_handle(connectionInfo handle);
 	connectionInfo get_gui_handle();
 	const string& get_project_name() {
 		return _project_name;
 	}
-private:
-	/// @brief ½Ã¹Ä·¹ÀÌ¼Ç ½ÃÀÛ½Ã ¿£Áø ¸ŞÀÎ loop
-	int engine_run();
 
-	/// @brief ¿£Áø->¸ğµ¨s ExtTransFn È£Ãâ, send_ext_trans_msg()ÇÔ¼ö È£Ãâ
+	/// @brief ë³‘ë ¬ì‹¤í–‰ ì‹œ ì‹ë³„ì (-1 = ë‹¨ì¼ì‹¤í–‰)
+	int _run_id = -1;
+
+private:
+	/// @brief ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½Û½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ loop
+	int engine_run();
+	void process_events(vector<event_item>& queue);
+	void signal_ack();
+	DWORD wait_for_ack();
+
+	/// @brief ï¿½ï¿½ï¿½ï¿½->ï¿½ï¿½s ExtTransFn È£ï¿½ï¿½, send_ext_trans_msg()ï¿½Ô¼ï¿½ È£ï¿½ï¿½
 	void call_ext_trans(const Json::Value& msg);
-	/// @brief ¿£Áø->¸ğµ¨ ExtTransFn È£Ãâ ½Ã WebSocketÃ³¸®
-	void send_ext_trans_msg(const string& src_model_id, const string& src_model_port, const string& dest_model, Json::Value& msg);
-	/// @brief ¸ğµ¨ ½ÇÇà
+	/// @brief ï¿½ï¿½ï¿½ï¿½->ï¿½ï¿½ ExtTransFn È£ï¿½ï¿½ ï¿½ï¿½ WebSocketÃ³ï¿½ï¿½
+	void send_ext_trans_msg(const string& src_model_id, const string& src_model_port, const string& dest_model, Json::Value& msg, unsigned depth = 0);
+	/// @brief ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	void model_exec(model_t::MODEL_TYPE model_type, const string& ip_and_port, const string& file_path, const string& file_name,
-		const string& model_name, const string& iid, const string& uid, const Json::Value init_param);
-	/// @brief ½Ã¹Ä·¹ÀÌ¼Ç ½Ã°£
+		const string& model_name, const string& iid, const string& uid, const Json::Value init_param, const string& server_address = "");
+	/// @brief ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½Ã°ï¿½
 	double _sim_time;
-	/// @brief ½Ã¹Ä·¹ÀÌ¼Ç Á¾·á½Ã°£
+	/// @brief ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½Ã°ï¿½
 	double _sim_end_time;
-	/// @brief ·ÎµùÇØ¾ßÇÒ ¸ğµ¨ ¼ö
+	/// @brief ï¿½Îµï¿½ï¿½Ø¾ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½
 	int _req_load_models;
-	/// @brief ·ÎµåµÈ ¸ğµ¨ ¼ö
+	/// @brief ï¿½Îµï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½
 	int _loaded_models;
-	/// @brief ¿£Áø ½ÇÇà ½º·¹µå ÇÚµé
+	/// @brief ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Úµï¿½
 	thread _thread_instance;
-	/// @brief ¿£Áø¿¡ ·ÎµåµÈ ¸ğµ¨ Á¤º¸(key=iid)
+	/// @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Îµï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½(key=iid)
 	unordered_map<string, model_t*> _models;
-	/// @brief TA Á¤º¸(key=iid)
+	/// @brief TA ï¿½ï¿½ï¿½ï¿½(key=iid)
 	unordered_map<string, double> _model_ta;
-	/// @brief TA Á¤º¸(key=iid)
+	/// @brief TA ï¿½ï¿½ï¿½ï¿½(key=iid)
 	unordered_map<string, double> _continuous_model_ta;
-	/// @brief OutputÀÇ Ãâ·Â(ExtTransFnÇÔ¼ö·Î µé¾î°¥ ³»¿ë)
+	/// @brief Outputï¿½ï¿½ ï¿½ï¿½ï¿½(ExtTransFnï¿½Ô¼ï¿½ï¿½ï¿½ ï¿½ï¿½î°¥ ï¿½ï¿½ï¿½ï¿½)
 	vector<Json::Value> _ext_trans_msg;
-	/// @brief ÀÌº¥Æ® sync¿ë ÇÚµé
+	/// @brief ï¿½Ìºï¿½Æ® syncï¿½ï¿½ ï¿½Úµï¿½
 	HANDLE _event_sync;
-	/// @brief ¿£Áø Á¤Áö È®ÀÎ¿ë ÇÚµé
+	/// @brief ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ È®ï¿½Î¿ï¿½ ï¿½Úµï¿½
 	HANDLE _event_engine_stop;
-	/// @brief µ¥ÀÌÅÍ µ¿±â¿ë
+	/// @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½
 	mutex _mutex;
-	/// @brief Å¬¶óÀÌ¾ğÆ®(¸ğµ¨µé)ÀÇ ÀÀ´ä Ã¼Å©¿ë
-	int _ack_count;
-	/// @brief ¿£Áø »óÅÂ
-	int _engine_state;
-	/// @brief ÇÁ·ÎÁ§Æ®¸í
+	/// @brief Å¬ï¿½ï¿½ï¿½Ì¾ï¿½Æ®(ï¿½ğµ¨µï¿½)ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Ã¼Å©ï¿½ï¿½
+	std::atomic<int> _ack_count{0};
+	/// @brief ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+	std::atomic<int> _engine_state;
+	/// @brief ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ®ï¿½ï¿½
 	string _project_name;
-	/// @brief GUI Websocket ¿¬°á ÇÚµé
+	string _gui_project_name;
+	std::unordered_set<std::string> _joined_model_ids;
+	/// @brief GUI Websocket ï¿½ï¿½ï¿½ï¿½ ï¿½Úµï¿½
 	connectionInfo _gui_handle;
-	
+
+	// Base URI of the model-designer REST API used to fetch nested coupled models
+	// (POST <db_uri>/get_model_info). This used to be hardcoded to a remote host
+	// (http://dev.kdtlab.kr:30001), so on any other deployment every nested coupled
+	// model silently failed to load and only the top-level models showed up.
+	// "http://localhost" goes through the local Nginx, which proxies /get_model_info
+	// to the node backend on both the local and the server profile.
+	// Matches atomic_manager::db_uri / model_cap's db_uri.
+	string db_uri = "http://localhost";
 
 	unordered_map<string, model_t*> _modelsName;
-public:
-	std::condition_variable* sEvent;
-	SIM_ENGINE_EVENT* targetEventId;
 
-	/// @brief ¸ğµ¨->¿£Áø ÆĞÅ¶ ÀúÀå¿ë
+
+public:
+	std::shared_ptr<model_load_signal> load_signal = std::make_shared<model_load_signal>();
+
+	/// @brief ï¿½ï¿½->ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Å¶ ï¿½ï¿½ï¿½ï¿½ï¿½
 	vector<event_item> _recv_packet_buff;
 	inline void add_recv_packet(event_proc evt, Json::Value json = Json::Value::nullSingleton(), bool is_insert_front = false) {
 		if (_engine_state == ENGINE_STATE_STOP) {
 			evt(json);
 		}
 		else {
-			_mutex.lock();
+			std::lock_guard<std::mutex> lock(_mutex);
 			if (is_insert_front)
 				_recv_packet_buff.insert(_recv_packet_buff.begin(), make_pair(evt, json));
 			else
 				_recv_packet_buff.push_back(make_pair(evt, json));
-			_mutex.unlock();
 
 		}
 	}
-	/// @brief ¿£Áø loop¿¡¼­ Ã³¸®ÇÒ ÀÌº¥Æ®
+	/// @brief ï¿½ï¿½ï¿½ï¿½ loopï¿½ï¿½ï¿½ï¿½ Ã³ï¿½ï¿½ï¿½ï¿½ ï¿½Ìºï¿½Æ®
 	vector<event_item> _event_table;
 	inline void add_event(event_proc evt, Json::Value json = Json::Value::nullSingleton(), bool is_insert_front = false) {
 		if (_engine_state == ENGINE_STATE_STOP) {
 			evt(json);
 		}
 		else {
+			std::lock_guard<std::mutex> lock(_mutex);
 			if (is_insert_front)
 				_event_table.insert(_event_table.begin(), make_pair(evt, json));
 			else

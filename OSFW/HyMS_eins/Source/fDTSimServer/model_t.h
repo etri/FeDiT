@@ -16,7 +16,7 @@ class COUPLE_INFO {
 public:
 	int add_couple(const string& dest_model, const string& dest_port) {
 		for (auto& dest : dest_model_ports) {
-			if (dest.first == dest_model && dest.second == dest_port)// ÀÌ¹Ì µé¾î°¡ ÀÖÀ½
+			if (dest.first == dest_model && dest.second == dest_port)// ï¿½Ì¹ï¿½ ï¿½ï¿½î°¡ ï¿½ï¿½ï¿½ï¿½
 				return 0;
 		}
 		dest_model_ports.push_back({ dest_model, dest_port });
@@ -45,7 +45,15 @@ class model_t
 {
 public:
 	model_t();
-	~model_t();
+	// Must be virtual: model_t* in sim_engine::_models actually points to derived
+	// instances (atomic_imp, function_imp, coupled_imp, ...) that own real resources
+	// (e.g. atomic_imp/function_imp each own a websocket_client and its background
+	// thread). Deleting a derived object through a model_t* with a non-virtual
+	// destructor is undefined behavior and, in practice, skips the derived class's
+	// own destructor entirely -- silently leaking whatever it owned. model_t already
+	// has a vtable (release() etc. are virtual), so this adds no new vtable and is
+	// layout-compatible with every existing derived class.
+	virtual ~model_t();
 	enum class MODEL_TYPE { 
 		UNKNOWN = 0,
 		DISCRETE_EVENT = 1,
