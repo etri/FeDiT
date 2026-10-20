@@ -8,6 +8,7 @@
 
 
 #include "../common/masterAgent_inf.h"
+#include <exception>
 
 using namespace std;
 sim_manager _sim_manager;
@@ -213,39 +214,60 @@ void commandLineLoop() {
 
     // GUI에서 이벤트 들어온다고 가정
 	for (;;) {
-		std::string str;
-		std::cout << "# ";
-		std::getline(std::cin, str);
-		if (str == "")
-			continue;
-		vector<string> cmd;
-		string_util::tokenize(str, ' ', cmd);
-		if (cmd[0] == "/?" || cmd[0] == "?" || cmd[0] == "help") {
-			print_command_list();
+		try {
+			std::string str;
+			std::cout << "# ";
+			if (!std::getline(std::cin, str)) {
+				std::cin.clear();
+				Sleep(1000);
+				continue;
+			}
+			if (str == "")
+				continue;
+			vector<string> cmd;
+			string_util::tokenize(str, ' ', cmd);
+			if (cmd.empty()) continue;
+			if (cmd[0] == "/?" || cmd[0] == "?" || cmd[0] == "help") {
+				print_command_list();
+			}
+			else if (cmd[0] == "exit") {
+				break;
+			}
+			else if (cmds.count(cmd[0]) > 0) {
+				const auto& iter = cmds.find(cmd[0]);
+				iter->second.second(cmd);
+			}
+			else {
+				print_command_list();
+			}
 		}
-		else if (cmd[0] == "exit") {
-			break;
-		}
-		else if (cmds.count(cmd[0]) > 0) {
-			const auto& iter = cmds.find(cmd[0]);
-			iter->second.second(cmd);
-		}
-		else {
-			print_command_list();
-		}
+		catch (const std::exception& e) { spdlog::error("# console command failed: {}", e.what()); }
+		catch (...) { spdlog::error("# console command failed: unknown exception"); }
 	}
 }
 
 
+template <typename Start>
+static void start_service_without_stopping(const char* service_name, Start start)
+{
+    try {
+        start();
+    }
+    catch (const std::exception& e) {
+        spdlog::error("# {} startup failed: {}", service_name, e.what());
+    }
+    catch (...) {
+        spdlog::error("# {} startup failed: unknown exception", service_name);
+    }
+}
+
 void main() {
-
-	DPRINT_INIT;
-	_sim_manager.init();
-	_sim_manager.init_gui();
-	_RestAPI.Connect_SimManager(&_sim_manager);
-	//_sim_manager.init_masterAgent(new externalTest2);
-	commandLineLoop();
-	_sim_manager.release();
-	
-
+    DPRINT_INIT;
+    start_service_without_stopping("model WebSocket", [] { _sim_manager.init(); });
+    start_service_without_stopping("GUI WebSocket", [] { _sim_manager.init_gui(); });
+    start_service_without_stopping("REST API", [] { _RestAPI.Connect_SimManager(&_sim_manager); });
+    //_sim_manager.init_masterAgent(new externalTest2);
+    commandLineLoop();
+    start_service_without_stopping("REST API shutdown", [] { _RestAPI.RestAPI_Stop(); });
+    start_service_without_stopping("simulation shutdown", [] { _sim_manager.release(); });
 }

@@ -49,6 +49,7 @@ class coupling_designer{
         this.activated_model = new base_model({parent:this,ctx:this.ctx,is_root_model:true});//최상위 모델 더미 생성
         _root_model = this.activated_model;
         _selected_line_obj = null;// 선택된 라인 객체
+        resetParamTabs();
         _enabled_line_obj = null;// 시작 포트클릭후 라인이 그려지고 있는 상태의 라인 객체, 목적포트가 미연결된 상태
         _last_selected_obj = null;// 마지막 선택되었던 객체
         _last_selected_port = null;// 마지막 선택되었던 포트
@@ -67,6 +68,7 @@ class coupling_designer{
         if(midx > -1){
             this.activated_model.models.splice(midx, 1);
         }
+        selectParamModel(null);
     }
     delete_port(p){
         console.log(p.port_type);
@@ -169,18 +171,24 @@ class coupling_designer{
             // 마지막으로 클릭된 모델
             if(_last_selected_obj != null){
                 if(_last_selected_obj.on_mousedown(x, y) == 1){
+                    if (currentSelectedModelRoot !== _last_selected_obj) {
+                        selectParamModel(_last_selected_obj);
+                    }
                     ret = true;
                     return true;
                 }
             }
 
-            for(var i=0;i<this.activated_model.models.length;i++){
-                if(this.activated_model.models[i].on_mousedown(x, y) == 1){
-                    ret = true;
-                    set_param_to_form(this.activated_model.models[i]);
-                    break;
-                }
+            for (var i = 0; i < this.activated_model.models.length; i++) {
+            if (this.activated_model.models[i].on_mousedown(x, y) == 1) {
+                ret = true;
+
+                selectParamModel(this.activated_model.models[i]);
+                break;
             }
+            }
+
+
             for(var i=0;i<this.activated_model.in_port.length;i++){
                 if(this.activated_model.in_port[i].on_mousedown(x, y) == 1){
                     ret = true;
@@ -196,7 +204,7 @@ class coupling_designer{
                 }
             }
             if(!ret){// 마우스 클릭시 아무것도 선택된 객체가 없다면
-                set_param_to_form(null);
+                selectParamModel(null);
                 _enabled_line_obj = null;
                 _selected_line_obj = null;
                 _last_selected_obj = null;
@@ -293,39 +301,36 @@ class coupling_designer{
         _last_selected_port = null;
     }
     
+    // auto_size: 모델 전체가 보이도록 배율·위치를 다시 맞춘다 (화면크기조절 버튼, 창 크기 변경 등)
+    // 작업영역(흰 배경)은 모델 영역보다 작아지지 않으면서, 현재 배율에서 캔버스를 여백(PANE_MARGIN)만 남기고 꽉 채운다.
     adjust_pane(auto_size=false){
-        let r = 1;
-        let b = 1;
+        const PANE_MARGIN = 10;
         if(this.activated_model === undefined){
             return;
         }
-        console.log(this.activated_model);
+        // 모델이 차지하는 영역 (오른쪽은 외부출력 포트, 아래는 여유 공간 포함)
+        let r = 1;
+        let b = 1;
         this.activated_model.models.forEach(v => {
-            if(v.position.x + v.width + 150 > r){
-                r = v.position.x + v.width + 150;
-            }
-            if(v.position.y + v.height + 50 > b){
-                b = v.position.y + v.height + 50;
-            }
+            r = Math.max(r, v.position.x + v.width + 150);
+            b = Math.max(b, v.position.y + v.height + 50);
         });
         screenRect = canvas.getBoundingClientRect();
         canvas.width = screenRect.width;
         canvas.height = screenRect.height;
-        if(this.activated_model.models !== undefined && this.activated_model.models.length == 0){
+        if(this.activated_model.models.length == 0){
             r = canvas.width;
             b = canvas.height;
         }
-        cpd_designer.cpd_pane_size.x = r;
-        cpd_designer.cpd_pane_size.y = b;
+        const avail_w = Math.max(1, canvas.width - PANE_MARGIN * 2);
+        const avail_h = Math.max(1, canvas.height - PANE_MARGIN * 2);
         if(auto_size){
-            cpd_designer.canvas_offset.x = 10;
-            cpd_designer.canvas_offset.y = 10;
-            let new_ratio = {x:(screenRect.width-20) / cpd_designer.cpd_pane_size.x, y:(screenRect.height-20) / cpd_designer.cpd_pane_size.y};
-            if(new_ratio.x < new_ratio.y)
-                new_ratio.y = new_ratio.x;
-            else
-                new_ratio.x = new_ratio.y;
-            cpd_designer.scale_ratio = new_ratio;
+            const ratio = Math.min(avail_w / r, avail_h / b);
+            this.scale_ratio = {x:ratio, y:ratio};
+            this.canvas_offset.x = PANE_MARGIN;
+            this.canvas_offset.y = PANE_MARGIN;
         }
+        this.cpd_pane_size.x = Math.max(r, avail_w / this.scale_ratio.x);
+        this.cpd_pane_size.y = Math.max(b, avail_h / this.scale_ratio.y);
     }
 }//end of class coupling_designer

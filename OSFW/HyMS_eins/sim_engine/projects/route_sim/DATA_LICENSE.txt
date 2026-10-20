@@ -1,0 +1,18 @@
+﻿guryongpo.net.xml - 데이터 라이선스 / Data License
+=====================================================
+
+Map data (c) OpenStreetMap contributors
+https://www.openstreetmap.org/copyright
+
+guryongpo.net.xml 은 OpenStreetMap 데이터(guryongpo_josm.osm)를 Eclipse SUMO netconvert 1.27.1 로
+변환한 파생 데이터베이스(Derivative Database)이며, Open Database License (ODbL) 1.0 으로 제공됩니다.
+  https://opendatacommons.org/licenses/odbl/1-0/
+
+- 이 파일을 공개·배포할 때는 위 출처 표시를 유지해야 합니다.
+- 이 파일을 수정해 공개·배포하는 경우에도 수정한 데이터베이스를 ODbL 1.0 으로 제공해야 합니다.
+- ODbL 은 이 데이터에만 적용되며, 이 파일을 읽는 소스코드(route_detour.py 등)에는 적용되지 않습니다.
+  소스코드의 라이선스는 저장소 최상위 LICENSE(Apache License 2.0)를 따릅니다.
+
+guryongpo.net.xml is a Derivative Database of OpenStreetMap data, made available under the
+Open Database License (ODbL) 1.0. Keep the attribution above when redistributing it. The ODbL
+applies only to this data file, not to the source code that reads it.

@@ -1,0 +1,24 @@
+﻿# =============================================================================
+#  sim_engine Python 모델 의존 패키지  (Python 3.10 x64 전용)
+#
+#  model_cap_python.exe 는 sim_engine\python310.dll 을 로드하고, 표준 라이브러리와
+#  site-packages 는 레지스트리에 등록된 Python 3.10 설치본에서 찾는다.
+#  따라서 반드시 Python 3.10 에 설치해야 한다 (python3 / python 이 다른 버전을
+#  가리킬 수 있으므로 py -3.10 사용).
+#
+#    py -3.10 -m pip install -r requirements.txt
+#
+#  버전은 개발 서버(Python 3.10)에서 모델 동작을 확인한 조합으로 고정했다.
+#  새 Python 모델이 다른 패키지를 쓰면 여기에 추가한 뒤 setup.bat 을 다시 실행한다.
+# =============================================================================
+
+# route_sim (route_detour.py) : SUMO 네트워크 로딩 / 좌표 변환(pyproj 필요)
+sumolib==1.27.1
+pyproj==3.7.1
+
+# netro_bridge (api_call_*.py) : 외부 REST 호출
+requests==2.34.2
+
+# 샘플 프로젝트 banksim / AddBank / watertank, lib\python\wrandom.py
+numpy==1.26.4
+scipy==1.13.0

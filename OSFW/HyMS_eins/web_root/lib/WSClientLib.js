@@ -6,8 +6,14 @@ class WSClient{
     timer_id = 0;
     constructor(server_url){
         console.log(server_url);
-        this.websocket = new WebSocket('ws://' + server_url);
-        //this.websocket = new WebSocket('wss://' + server_url);
+        // 페이지가 https 로 서비스되면 wss, http 면 ws 를 사용한다.
+        // (server_url 에 ws://, wss:// 가 이미 포함된 경우 그대로 사용)
+        let ws_url = server_url;
+        if(!/^wss?:\/\//i.test(ws_url)){
+            ws_url = ((location.protocol === 'https:') ? 'wss://' : 'ws://') + ws_url;
+        }
+        console.log('WSClient connect :', ws_url);
+        this.websocket = new WebSocket(ws_url);
         this.websocket.binaryType = 'arraybuffer';
         this.websocket.onopen = (event) => {
             if(this.OnOpenCallback != undefined)

@@ -141,7 +141,7 @@ class base_model{
         }
         
         if(o.in_param !== undefined){
-            this.in_param = o.in_param;//모델 파라미터
+            this.in_param = structuredClone(o.in_param);//인스턴스별 독립 파라미터
         }
         else{
             this.in_param = [];
@@ -433,8 +433,10 @@ class base_model{
             if(this.ext_window == null){
                 this.ext_window = document.getElementById(this.iid + '_div_content');
             }
-            this.ext_window.innerHTML = '';
-            this.ext_window.scrollTop = this.ext_window.scrollHeight;
+            if(this.ext_window){
+                this.ext_window.innerHTML = '';
+                this.ext_window.scrollTop = this.ext_window.scrollHeight;
+            }
         }
         else if(this.model_type == MODEL_TYPE.EMBEDED_FUNC_GRAPH_2D){
             graph_clear(this.iid);

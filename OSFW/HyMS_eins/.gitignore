@@ -1,0 +1,9 @@
+# 비밀번호 등 배포 환경 설정 (docker_setup/.env.example 참고)
+docker_setup/.env
+
+# HTTPS 인증서 / 개인키 (deploy/00_generate_cert.ps1 로 생성)
+web_conf/certs/server.key
+web_conf/certs/server.crt
+
+# 배포 패키지 빌드 결과물 (deploy/build_package.ps1 로 생성)
+/dist/

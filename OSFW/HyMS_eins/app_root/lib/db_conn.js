@@ -1,15 +1,12 @@
-//import React, { Component } from 'react';
-
 var mysql = require('mysql');
-//const logger = require('./logger')
 
 const db = mysql.createPool({
-    host : "172.28.0.4",
-    user : "model_designer", //mysqlÀÇ id
-    password : "mdesigner!@#", //mysqlÀÇ password
-    port : 3306,
-    database : "model_designer", //»ç¿ëÇÒ µ¥ÀÌÅÍº£ÀÌ½º
-    connectionLimit : 4,
+    host : process.env.DB_HOST || "172.28.0.4",
+    user : process.env.DB_USER || "model_designer",
+    password : process.env.DB_PASSWORD || "",
+    port : parseInt(process.env.DB_PORT) || 3306,
+    database : process.env.DB_NAME || "model_designer",
+    connectionLimit : parseInt(process.env.DB_CONNECTION_LIMIT) || 4,
     multipleStatements : true,
 });
 

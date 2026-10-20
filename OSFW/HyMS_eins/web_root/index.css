@@ -61,3 +61,292 @@
   .contextmenu li:hover a {
     color: #FFFFFF;
   }
+
+  /* 원자모델 관리 / 추가 창 (scripts2/atomic_manage.js) */
+  .au-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    background: rgba(0, 0, 0, .45);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .au-dialog {
+    width: 560px;
+    max-width: 100%;
+    max-height: calc(100vh - 32px);
+    display: flex;
+    flex-direction: column;
+    background: #dfe5ee;
+    color: #1c2430;
+    border: 1px solid #4a6a94;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    font-size: 13px;
+  }
+  .au-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #7da5d7;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, .35);
+    padding: 6px 8px 6px 12px;
+  }
+  .au-x {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 15px;
+    cursor: pointer;
+    padding: 2px 6px;
+  }
+  .au-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+  }
+  .au-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+  }
+  .au-field input {
+    flex: 1;
+    height: 26px;
+    padding: 0 6px;
+    font-size: 13px;
+    border: 1px solid #8a9bb3;
+  }
+  .au-hint {
+    color: #4b5a6e;
+    font-size: 12px;
+    font-weight: normal;
+  }
+  .au-hint code {
+    font-family: Consolas, monospace;
+  }
+  .au-drop {
+    border: 2px dashed #7da5d7;
+    background: #f4f7fb;
+    padding: 18px 12px;
+    text-align: center;
+    cursor: pointer;
+    line-height: 1.6;
+  }
+  .au-drop:hover,
+  .au-drop:focus,
+  .au-drop.au-drag {
+    background: #e3edf9;
+    border-color: #3d6fae;
+    outline: none;
+  }
+  .au-table-wrap {
+    background: #fff;
+    border: 1px solid #b4c0d0;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .au-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: inherit;   /* index.html 은 quirks 모드라 table 이 글꼴 크기를 상속하지 않는다 */
+  }
+  .au-table th {
+    position: sticky;
+    top: 0;
+    background: #eef2f7;
+    text-align: left;
+    font-weight: 600;
+    padding: 4px 6px;
+    border-bottom: 1px solid #b4c0d0;
+  }
+  .au-table td {
+    padding: 4px 6px;
+    border-bottom: 1px solid #edf0f4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .au-table td:nth-child(3) {
+    white-space: normal;
+  }
+  .au-remove {
+    background: transparent;
+    border: none;
+    color: #6b7686;
+    cursor: pointer;
+  }
+  .au-remove:hover {
+    color: #b3261e;
+  }
+  .au-empty {
+    padding: 10px;
+    text-align: center;
+    color: #6b7686;
+  }
+  .au-state-ready { color: #4b5a6e; }
+  .au-state-uploading,
+  .au-state-registering { color: #1f5fa8; }
+  .au-state-done { color: #1d7a3a; font-weight: 600; }
+  .au-state-warn { color: #9a6200; }
+  .au-state-invalid,
+  .au-state-failed { color: #b3261e; }
+  .au-check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .au-status {
+    min-height: 1.4em;
+    color: #1f5fa8;
+  }
+  .au-status.au-error {
+    color: #b3261e;
+  }
+  .au-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    padding: 8px 12px;
+    border-top: 1px solid #b4c0d0;
+  }
+  .au-footer .icon-btn {
+    height: 28px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
+  /* 관리 창은 추가 창 아래에 깔린다 */
+  .am-overlay {
+    z-index: 99990;
+  }
+  .am-dialog {
+    width: 880px;
+  }
+  .am-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-weight: 600;
+  }
+  .am-filters select,
+  .am-filters input {
+    height: 26px;
+    font-size: 13px;
+    font-weight: normal;
+    border: 1px solid #8a9bb3;
+    margin-left: 4px;
+  }
+  .am-filters select {
+    max-width: 160px;
+  }
+  .am-filters input {
+    flex: 1;
+    min-width: 140px;
+    padding: 0 6px;
+    margin-left: 0;
+  }
+  .am-filters .am-reload {
+    height: 26px;
+    padding: 0 6px;
+  }
+  .am-table-wrap {
+    height: 340px;
+    max-height: 50vh;
+  }
+  .am-table tbody tr {
+    cursor: pointer;
+  }
+  .am-table tbody tr:hover {
+    background: #eef4fc;
+  }
+  .am-table tbody tr.am-selected {
+    background: #cfe0f6;
+  }
+  .am-kind-a { color: #1f5fa8; font-weight: 600; }
+  .am-kind-c { color: #6a3d9a; font-weight: 600; }
+  .am-count {
+    margin-right: auto;
+    align-self: center;
+    color: #4b5a6e;
+  }
+  .au-footer .am-danger:not(:disabled) {
+    color: #b3261e;
+    border-color: #d9a5a1;
+  }
+
+  /* 모델관리 창: 모델 / 패키지 탭 */
+  .am-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 8px 12px 0;
+    border-bottom: 1px solid #b4c0d0;
+  }
+  .am-tab {
+    height: 28px;
+    padding: 0 16px;
+    margin-bottom: -1px;
+    font-size: 13px;
+    color: #1c2430;
+    background: #f4f7fb;
+    border: 1px solid #8a9bb3;
+    cursor: pointer;
+  }
+  .am-tab:hover {
+    background: #eef4fc;
+  }
+  .am-tab.active {
+    background: #dfe5ee;
+    border-color: #3d6fae;
+    border-bottom-color: #dfe5ee;
+    font-weight: 600;
+  }
+  .am-view {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .am-pkg-table td:nth-child(n+2) {
+    white-space: nowrap;
+  }
+  .am-pkg-table .am-pkg-warn {
+    color: #9a6200;
+    font-weight: 600;
+  }
+  .am-pkg-table .am-pkg-none {
+    color: #6b7686;
+  }
+  .am-rename {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+  }
+  .am-rename label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+  }
+  .am-rename input {
+    flex: 1;
+    height: 26px;
+    padding: 0 6px;
+    font-size: 13px;
+    font-weight: normal;
+    border: 1px solid #8a9bb3;
+  }
+  .am-rename .icon-btn {
+    height: 26px;
+    padding: 0 12px;
+    font-size: 13px;
+  }

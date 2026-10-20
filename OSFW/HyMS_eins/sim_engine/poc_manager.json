@@ -1,0 +1,14 @@
+{
+  "port": 8082,
+  "bind_host": "+",
+  "backend_uri": "ws://localhost:8869",
+  "public_url": "https://simulation.fedit.or.kr/simulation",
+  "model_directory": "models",
+  "legacy_model_id": "legacy-poc",
+  "workers": 4,
+  "max_pending": 100,
+  "max_history": 1000,
+  "connect_timeout_seconds": 10,
+  "timeout_seconds": 120,
+  "push_ttl_seconds": 1800
+}

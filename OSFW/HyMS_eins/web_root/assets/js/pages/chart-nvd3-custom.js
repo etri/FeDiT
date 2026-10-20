@@ -3,7 +3,8 @@ let line_graph = {};
 function init_graph(){
 	line_graph = {};
 }
-function create_graph(graph_id){
+// get_data(optional): 차트 생성 시점의 초기 데이터를 반환하는 함수. 없으면 데모 데이터 사용
+function create_graph(graph_id, get_data){
 	nv.addGraph(function() {
 		var chart = nv.models.lineChart()
 			.useInteractiveGuideline(false)  //We want nice looking tooltips and a guideline!
@@ -21,7 +22,7 @@ function create_graph(graph_id){
 			.tickFormat(d3.format('.04f'));
 			
 	    //var myData = [];//sinAndCos(); //You need data...
-		var myData = sinAndCos(); //You need data...
+		var myData = (typeof get_data === 'function') ? get_data() : sinAndCos(); //You need data...
 
 		d3.select('#'+graph_id+' svg') //Select the <svg> element you want to render the chart in.
 			.datum(myData) //Populate the <svg> element with chart data...
