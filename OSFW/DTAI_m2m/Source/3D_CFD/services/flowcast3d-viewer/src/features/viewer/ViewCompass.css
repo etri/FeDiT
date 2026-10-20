@@ -1,0 +1,68 @@
+.view-compass-overlay,
+.view-compass-overlay * {
+  pointer-events: none !important;
+}
+.view-compass {
+  position: absolute;
+  right: 10px;
+  bottom: 134px;
+  width: 104px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 7px 4px;
+  border: 1px solid #dce4ed;
+  border-radius: 8px;
+  background: #ffffffdf;
+  color: #526b87;
+  line-height: 1.4;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.view-compass strong {
+  font-size: 11px;
+  font-weight: 600;
+}
+.view-compass-dial {
+  width: 74px;
+  height: 74px;
+  overflow: visible;
+}
+.view-compass-ring {
+  stroke: #e0e7f0;
+  fill: none;
+}
+.view-compass [data-view-tick] {
+  stroke: #bac8da;
+  stroke-width: 1;
+}
+.view-compass text {
+  fill: #788ba2;
+  font-size: 9px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.view-compass [data-cardinal="N"] {
+  fill: #3e68b5;
+}
+.view-compass [data-view-arrow] {
+  stroke: #3978d6;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+.view-compass-heading {
+  color: #365d95;
+  white-space: nowrap;
+}
+@media (max-height: 600px) {
+  .view-compass {
+    padding: 4px;
+  }
+  .view-compass-dial {
+    width: 58px;
+    height: 58px;
+  }
+}

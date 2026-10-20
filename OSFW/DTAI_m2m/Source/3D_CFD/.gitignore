@@ -1,0 +1,49 @@
+# 상위 Python용 lib/ 제외 규칙에서 Viewer 소스 보존
+!/services/flowcast3d-viewer/src/lib/
+!/services/flowcast3d-viewer/src/lib/**
+
+# 환경 변수와 인증 정보
+.env
+.env.*
+!.env.template
+!.env.example
+.session-key
+
+# Python 환경과 캐시
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Node.js 의존성과 빌드 결과
+node_modules/
+dist/
+*.tsbuildinfo
+
+# 테스트 결과와 로그
+.coverage
+.coverage.*
+htmlcov/
+coverage/
+playwright-report/
+test-results/
+*.log
+
+# 서비스 데이터
+services/flowcast3d-db/data/*
+!services/flowcast3d-db/data/.gitkeep
+services/flowcast3d-api/data/*
+!services/flowcast3d-api/data/.gitkeep
+
+# 모델 가중치와 배포 설정
+services/flowcast3d-model/model_repository/*/*/*.pt
+services/flowcast3d-model/model_repository/*/*/*.json
+services/flowcast3d-model/model_repository/*/*/*.yaml
+
+# macOS 생성 파일
+.DS_Store
+.AppleDouble
+.LSOverride

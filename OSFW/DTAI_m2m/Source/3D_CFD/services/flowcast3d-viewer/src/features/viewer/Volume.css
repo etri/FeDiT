@@ -1,0 +1,21 @@
+.scalar-legend.concentration-legend i {
+  background: linear-gradient(
+    to right,
+    #3b82f6,
+    #22d3ee,
+    #4ade80,
+    #fde047,
+    #ef4444
+  );
+}
+
+.scalar-legend.concentration-legend.contour-legend i {
+  background: linear-gradient(
+    to right,
+    #c70ffa,
+    #ff1478,
+    #ff6b0f,
+    #ffd114,
+    #ff1f2e
+  );
+}

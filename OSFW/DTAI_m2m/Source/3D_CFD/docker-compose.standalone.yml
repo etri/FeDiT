@@ -1,0 +1,95 @@
+name: flowcast3d-standalone
+
+services:
+  flowcast3d-model:
+    build:
+      context: ./services/flowcast3d-model
+      args:
+        HOST_UID: ${HOST_UID:-1000}
+        HOST_GID: ${HOST_GID:-1000}
+    image: flowcast3d-model-standalone
+    init: true
+    shm_size: 2gb
+    command:
+      - tritonserver
+      - --model-repository=/opt/model/model_repository
+      - --strict-model-config=true
+      - --disable-auto-complete-config
+      - --model-control-mode=explicit
+      - --load-model=flowcast3d_pipeline
+      - --http-port=${FLOWCAST_MODEL_HTTP_PORT:-8000}
+      - --grpc-port=${FLOWCAST_MODEL_GRPC_PORT:-8001}
+      - --metrics-port=${FLOWCAST_MODEL_METRICS_PORT:-8002}
+    expose:
+      - "${FLOWCAST_MODEL_HTTP_PORT:-8000}"
+      - "${FLOWCAST_MODEL_GRPC_PORT:-8001}"
+      - "${FLOWCAST_MODEL_METRICS_PORT:-8002}"
+    environment:
+      FLOWCAST_MODEL_VERSION: /opt/model/model_repository/flowcast3d/1
+      FLOWCAST_MAX_INFERENCE_VOXELS: ${FLOWCAST_MAX_INFERENCE_VOXELS:-1048576}
+      FLOWCAST_DEVICE: cuda
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:${FLOWCAST_MODEL_HTTP_PORT:-8000}/v2/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  flowcast3d-api:
+    build:
+      context: .
+      dockerfile: services/flowcast3d-api/Dockerfile
+      args:
+        HOST_UID: ${HOST_UID:-1000}
+        HOST_GID: ${HOST_GID:-1000}
+    image: flowcast3d-api-standalone
+    init: true
+    command: ["python", "main.py", "public-server"]
+    stop_grace_period: 35s
+    depends_on:
+      flowcast3d-model:
+        condition: service_healthy
+    environment:
+      FLOWCAST_API_PORT: ${FLOWCAST_API_PORT:-8080}
+      FLOWCAST_MANAGEMENT_PORT: ${FLOWCAST_MANAGEMENT_PORT:-8082}
+      FLOWCAST_RENDERER_PORT: ${FLOWCAST_RENDERER_PORT:-8081}
+      FLOWCAST_MODEL_HTTP_PORT: ${FLOWCAST_MODEL_HTTP_PORT:-8000}
+      FLOWCAST_MODEL_URL: http://flowcast3d-model:${FLOWCAST_MODEL_HTTP_PORT:-8000}
+      FLOWCAST_RENDERER_URL: http://127.0.0.1:${FLOWCAST_RENDERER_PORT:-8081}
+      FLOWCAST_API_BIND_HOST: 0.0.0.0
+      FLOWCAST_API_KEY: ${FLOWCAST_API_KEY:?FLOWCAST_API_KEY 설정 필요}
+      FLOWCAST_API_REQUESTS_PER_MINUTE: ${FLOWCAST_API_REQUESTS_PER_MINUTE:-30}
+      FLOWCAST_API_MAX_CONCURRENT_REQUESTS: ${FLOWCAST_API_MAX_CONCURRENT_REQUESTS:-1}
+      FLOWCAST_REQUEST_TIMEOUT: ${FLOWCAST_REQUEST_TIMEOUT:-7200}
+      FLOWCAST_MAX_UPLOAD_BYTES: ${FLOWCAST_MAX_UPLOAD_BYTES:-8589934592}
+      FLOWCAST_MAX_JSON_BYTES: ${FLOWCAST_MAX_JSON_BYTES:-134217728}
+      FLOWCAST_MAX_PREDICTION_BYTES: ${FLOWCAST_MAX_PREDICTION_BYTES:-134217728}
+      FLOWCAST_MAX_EXPANDED_NPZ_BYTES: ${FLOWCAST_MAX_EXPANDED_NPZ_BYTES:-34359738368}
+      FLOWCAST_MAX_INFERENCE_VOXELS: ${FLOWCAST_MAX_INFERENCE_VOXELS:-1048576}
+      FLOWCAST_PUBLIC_TEMP_DIR: ${FLOWCAST_PUBLIC_TEMP_DIR:-/tmp/flowcast-public}
+      FLOWCAST_RENDER_HEAP_MB: ${FLOWCAST_RENDER_HEAP_MB:-8192}
+      FLOWCAST_PROCESS_TASK_TIMEOUT: ${FLOWCAST_PROCESS_TASK_TIMEOUT:-7200}
+      FLOWCAST_RENDER_TASK_TIMEOUT: ${FLOWCAST_RENDER_TASK_TIMEOUT:-300}
+      FLOWCAST_RENDER_STARTUP_TIMEOUT: ${FLOWCAST_RENDER_STARTUP_TIMEOUT:-60}
+      FLOWCAST_RENDER_MAX_RESPONSE_BYTES: ${FLOWCAST_RENDER_MAX_RESPONSE_BYTES:-33554432}
+    ports:
+      - target: ${FLOWCAST_API_PORT:-8080}
+        published: "${FLOWCAST_3D_API_PORT:-3001}"
+        host_ip: ${FLOWCAST_3D_API_HOST:-127.0.0.1}
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os,socket,urllib.request; socket.create_connection(('127.0.0.1',int(os.environ['FLOWCAST_API_PORT'])),timeout=3).close(); urllib.request.urlopen(os.environ['FLOWCAST_RENDERER_URL']+'/health',timeout=3); urllib.request.urlopen(os.environ['FLOWCAST_MODEL_URL']+'/v2/health/ready',timeout=3)"
+      interval: 10s
+      timeout: 12s
+      retries: 12
+      start_period: 30s

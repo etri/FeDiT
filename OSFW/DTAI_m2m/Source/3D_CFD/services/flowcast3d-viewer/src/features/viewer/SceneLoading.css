@@ -1,0 +1,32 @@
+.scene-progress progress:indeterminate {
+  background: linear-gradient(
+    90deg,
+    #e5ecf5 0%,
+    #e5ecf5 30%,
+    #628dea 50%,
+    #e5ecf5 70%,
+    #e5ecf5 100%
+  );
+  background-size: 200% 100%;
+  animation: scene-pending-flow 1.4s linear infinite;
+}
+.scene-progress progress:indeterminate::-webkit-progress-bar {
+  background: transparent;
+}
+.scene-progress progress:indeterminate::-moz-progress-bar {
+  background: transparent;
+}
+@keyframes scene-pending-flow {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scene-progress progress:indeterminate {
+    animation: none;
+    background-position: 50% 0;
+  }
+}

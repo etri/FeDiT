@@ -1,0 +1,3 @@
+model_repository/*/*/*.pt
+model_repository/*/*/*.json
+model_repository/*/*/config.yaml

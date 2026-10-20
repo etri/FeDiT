@@ -1,0 +1,51 @@
+services:
+  flowcast3d-db:
+    image: mongo:8.0
+    container_name: flowcast3d-db
+    init: true
+    command: ["mongod", "--port", "${FLOWCAST_DB_PORT:-27017}"]
+    expose: ["${FLOWCAST_DB_PORT:-27017}"]
+    restart: unless-stopped
+    stop_grace_period: 60s
+    environment:
+      FLOWCAST_DB_PORT: ${FLOWCAST_DB_PORT:-27017}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-flowcast3d}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?MONGO_PASSWORD 설정 필요}
+    volumes:
+      - type: volume
+        source: flowcast3d-mongo-data
+        target: /data/db
+      - type: bind
+        source: ./init
+        target: /docker-entrypoint-initdb.d
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./data
+        target: /initial-data
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test:
+        - CMD
+        - mongosh
+        - --nodb
+        - --quiet
+        - --file
+        - /docker-entrypoint-initdb.d/health.cjs
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20m
+    networks:
+      - flowcast3d
+
+networks:
+  flowcast3d:
+    name: flowcast3d
+
+volumes:
+  flowcast3d-mongo-data:
+    name: flowcast3d-mongo-data

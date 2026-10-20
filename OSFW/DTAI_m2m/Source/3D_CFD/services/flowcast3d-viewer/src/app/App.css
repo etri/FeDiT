@@ -1,0 +1,57 @@
+.app-header .primary-navigation {
+  align-items: stretch;
+  align-self: stretch;
+  height: 100%;
+  padding: 0;
+  gap: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.app-header .primary-navigation a {
+  position: relative;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #728096;
+  font-size: 15px;
+}
+.app-header .primary-navigation a + a::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 14px;
+  border-left: 1px solid #dce4ed;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.app-header .primary-navigation a.active {
+  border-bottom: 0;
+  color: #2e61cf;
+  background: transparent;
+  box-shadow: none;
+}
+
+.app-header .primary-navigation a:focus-visible {
+  outline-offset: -4px;
+}
+.app-header .primary-navigation svg {
+  display: none;
+}
+@media (max-width: 800px) {
+  .app-header .primary-navigation {
+    height: 42px;
+    margin: 0;
+  }
+  .app-header .primary-navigation a {
+    font-size: 14px;
+    flex: 1;
+    min-width: 0;
+  }
+}

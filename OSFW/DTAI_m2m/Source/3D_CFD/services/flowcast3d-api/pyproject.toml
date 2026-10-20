@@ -1,0 +1,53 @@
+[project]
+name = "flowcast3d-api"
+version = "0.2.0"
+description = "MongoDB 메타데이터를 사용하는 3D 풍장 예측과 시각화 API"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi==0.133.1",
+    "starlette==1.3.1",
+    "pydantic==2.11.3",
+    "python-multipart==0.0.32",
+    "uvicorn==0.34.2",
+    "httpx==0.28.1",
+    "pymongo==4.18.3",
+    "numpy==2.2.4",
+    "zarr==2.18.7",
+    "numcodecs==0.15.1",
+    "PyYAML==6.0.2",
+    "torch==2.6.0",
+    "pyvista==0.49.0",
+    "vtk==9.7.0",
+    "Pillow==12.3.0",
+    "matplotlib>=3.8,<4",
+    "imageio-ffmpeg==0.6.0",
+]
+
+[dependency-groups]
+dev = ["pytest==9.0.3", "ruff==0.9.10", "mongomock==4.3.0"]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 110
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.ruff.format]
+# 수치 함수 원문을 사용하는 농도와 궤적 캐시 버전 보존
+exclude = ["modules/domain/transport/plume.py"]

@@ -1,0 +1,46 @@
+# NOTICE
+
+Flowcast3D
+Copyright (c) 2026 SmartM2M Inc.
+
+Project-authored files are distributed under the GNU Lesser General Public
+License version 2.1 only (LGPL-2.1-only). See LICENSE for the full text.
+
+This project uses FastAPI and PyVista (MIT), PyTorch, VTK and NVIDIA Triton
+Inference Server (BSD-3-Clause), PyMongo (Apache-2.0),
+imageio-ffmpeg (BSD-2-Clause), MongoDB Community Server (SSPL-1.0), and
+OpenFOAM and the bundled FFmpeg executable (GPL-3.0-or-later).
+NVIDIA container images and CUDA components have separate NVIDIA terms.
+Other dependencies retain their respective licenses and required notices.
+
+The web viewer uses React, Three.js, React Three Fiber, TanStack Query,
+Uppy, Zustand and Tailwind CSS (MIT), and 3d-tiles-renderer (Apache-2.0).
+
+The Kalasatama example uses "Photorealistic 3D mesh model dataset (Helsinki)"
+by Arttu Julin and Toni Rantanen at Aalto University, with support from the
+City of Helsinki, under Creative Commons Attribution 4.0 International.
+Geometry is converted from centimetres to metres and from Y-up to Z-up.
+Source: https://doi.org/10.5281/zenodo.7599228
+License: https://creativecommons.org/licenses/by/4.0/
+
+Third-party licenses, notices and applicable source-provision requirements
+must be observed when redistributing those components.
+Model weights and datasets are subject to their applicable release terms.
+
+Microsoft Fluent UI MDL2 Upload icon
+Source: https://github.com/microsoft/fluentui/blob/master/packages/react-icons-mdl2/src/components/UploadIcon.tsx
+License source: https://github.com/microsoft/fluentui/blob/master/packages/react-icons-mdl2/LICENSE
+
+@fluentui/react-icons-mdl2
+
+Copyright (c) Microsoft Corporation
+
+All rights reserved.
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the ""Software""), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED _AS IS_, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

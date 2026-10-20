@@ -1,0 +1,14 @@
+name: "flowcast3d_preprocess"
+backend: "python"
+max_batch_size: 0
+input [
+  { name: "REQUEST" data_type: TYPE_STRING dims: [ 1 ] },
+  { name: "PAYLOAD" data_type: TYPE_STRING dims: [ 1 ] }
+]
+output [
+  { name: "SPATIAL" data_type: TYPE_FP32 dims: [ -1, 16, -1, -1, -1 ] },
+  { name: "CONDITIONS" data_type: TYPE_FP32 dims: [ -1, 11 ] },
+  { name: "MODEL_SPEC" data_type: TYPE_STRING dims: [ 1 ] },
+  { name: "CONTEXT" data_type: TYPE_STRING dims: [ 1 ] }
+]
+instance_group [{ kind: KIND_CPU count: 1 }]

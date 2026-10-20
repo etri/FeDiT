@@ -1,0 +1,217 @@
+.scene-workspace {
+  --setup-left: 16px;
+  --setup-width: 288px;
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.inner-setup {
+  --setup-inline-padding: 12px;
+  --setup-top-offset: 16px;
+  --setup-bottom-offset: 16px;
+  position: absolute;
+  top: var(--setup-top-offset);
+  left: var(--setup-left);
+  width: var(--setup-width);
+  max-height: calc(100% - var(--setup-top-offset) - var(--setup-bottom-offset));
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 4;
+  scrollbar-width: thin;
+}
+.scene-workspace:has(.scalar-legend) .inner-setup {
+  --setup-bottom-offset: 128px;
+}
+.inner-setup-card {
+  flex-shrink: 0;
+  min-width: 0;
+  width: 100%;
+  border: 1px solid #dce4ee;
+  border-radius: 9px;
+  background: rgb(255 255 255 / 94%);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 3px 12px #273e5610;
+  overflow: hidden;
+}
+.setup-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  padding: 8px var(--setup-inline-padding);
+  background: transparent;
+  text-align: left;
+  color: #263b58;
+}
+.setup-number {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: #eaf0ff;
+  color: #3469dc;
+  font-size: 11px;
+  font-weight: 700;
+}
+.setup-heading strong {
+  font-size: 12px;
+  white-space: nowrap;
+}
+.setup-heading > svg {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.setup-heading[aria-expanded="true"] > svg {
+  transform: rotate(180deg);
+}
+.setup-body {
+  position: relative;
+  padding: 0 var(--setup-inline-padding) 12px;
+  font-size: 12px;
+}
+.setup-body[hidden] {
+  display: none;
+}
+.setup-body label {
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+.setup-body input {
+  font-size: 12px;
+  min-height: 30px;
+  padding: 5px 8px;
+}
+.setup-row,
+.source-coordinate-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.source-coordinate-inputs {
+  grid-template-columns: 1fr 1fr 1fr;
+  margin-top: 8px;
+}
+.source-coordinates {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  margin: 9px 0;
+  font-size: 10px;
+  color: #718199;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.setup-body details {
+  margin: 7px 0 9px;
+  color: #72829a;
+}
+.setup-body summary {
+  cursor: pointer;
+  font-size: 11px;
+}
+.setup-body details > label {
+  margin-top: 8px;
+}
+.setup-run {
+  width: 100%;
+}
+.setup-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+.setup-status {
+  margin: 0;
+  font-size: 11px;
+  color: #70839e;
+}
+.prediction-timing {
+  display: grid;
+  gap: 2px;
+  flex-shrink: 0;
+  color: #70839e;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  text-align: right;
+  white-space: nowrap;
+}
+.setup-body progress {
+  width: 100%;
+  height: 5px;
+  margin-top: 8px;
+  accent-color: #3469dc;
+}
+.setup-wind-icon {
+  position: absolute;
+  right: 15px;
+  bottom: 18px;
+  color: #8b9bb1;
+}
+.source-placement-instruction {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border: 1px solid #a9c1ee;
+  border-radius: 7px;
+  background: #fff;
+  color: #3e62a2;
+  font-size: 11px;
+}
+.source-marker-label,
+.source-preview-label {
+  padding: 3px 7px;
+  background: #fff;
+  color: #c3454d;
+  border: 1px solid #e6b8bb;
+  border-radius: 4px;
+  white-space: nowrap;
+  font-size: 11px;
+  pointer-events: none;
+}
+@media (max-width: 800px) {
+  .scene-workspace {
+    --setup-left: 10px;
+    --setup-width: min(250px, calc(100% - 140px));
+  }
+  .inner-setup {
+    --setup-inline-padding: 10px;
+    --setup-top-offset: 10px;
+    --setup-bottom-offset: 10px;
+    gap: 6px;
+  }
+  .setup-heading {
+    min-height: 36px;
+    padding: 6px var(--setup-inline-padding);
+  }
+}
+@media (max-width: 360px) {
+  .scene-workspace {
+    --setup-width: min(250px, calc(100% - 121px));
+  }
+}
+@media (max-height: 650px) and (min-width: 801px) {
+  .inner-setup {
+    --setup-inline-padding: 10px;
+    --setup-top-offset: 10px;
+    --setup-bottom-offset: 10px;
+  }
+  .setup-heading {
+    min-height: 35px;
+    padding: 5px var(--setup-inline-padding);
+  }
+  .setup-body {
+    padding: 0 var(--setup-inline-padding) 8px;
+  }
+}

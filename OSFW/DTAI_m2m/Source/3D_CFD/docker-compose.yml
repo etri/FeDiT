@@ -1,0 +1,48 @@
+services:
+  flowcast3d-db:
+    extends:
+      file: services/flowcast3d-db/docker-compose.yml
+      service: flowcast3d-db
+
+  flowcast3d-model:
+    extends:
+      file: services/flowcast3d-model/docker-compose.yml
+      service: flowcast3d-model
+
+  flowcast3d-viewer:
+    extends:
+      file: services/flowcast3d-viewer/docker-compose.yml
+      service: flowcast3d-viewer
+    depends_on:
+      flowcast3d-api:
+        condition: service_healthy
+
+  flowcast3d-api:
+    extends:
+      file: services/flowcast3d-api/docker-compose.yml
+      service: flowcast3d-api
+    depends_on:
+      flowcast3d-db:
+        condition: service_healthy
+      flowcast3d-model:
+        condition: service_healthy
+
+  flowcast3d-trainer:
+    extends:
+      file: services/flowcast3d-trainer/docker-compose.yml
+      service: flowcast3d-trainer
+    profiles: [training]
+    command: [python, main.py, train, --config, configs/default.yaml]
+    networks: [flowcast3d]
+
+networks:
+  flowcast3d:
+    name: flowcast3d
+
+volumes:
+  flowcast3d-workspace:
+    name: flowcast3d-workspace
+  flowcast3d-viewer-assets:
+    name: flowcast3d-viewer-assets
+  flowcast3d-mongo-data:
+    name: flowcast3d-mongo-data

@@ -1,0 +1,25 @@
+# 학습 데이터와 원본 소스
+data/**
+!data/.gitkeep
+!data/preprocessed/
+!data/preprocessed/.gitkeep
+!data/raw/
+!data/raw/.gitkeep
+source/
+
+# 학습 결과
+results/**
+!results/.gitkeep
+
+# 모델 체크포인트와 가중치
+checkpoints/**
+weights/**
+!weights/.gitkeep
+
+# Python 환경과 캐시
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.pyc

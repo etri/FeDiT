@@ -1,0 +1,98 @@
+x-trainer-volumes: &trainer-volumes
+  - &trainer-code
+    type: bind
+    source: .
+    target: /opt/trainer
+    read_only: true
+  - &trainer-notebooks
+    type: bind
+    source: ./notebooks
+    target: /opt/trainer/notebooks
+  - &trainer-weights
+    type: bind
+    source: ./weights
+    target: /opt/trainer/weights
+  - &trainer-data
+    type: bind
+    source: ./data
+    target: /workspace/data
+  - &trainer-results
+    type: bind
+    source: ./results
+    target: /workspace/results
+
+services:
+  flowcast3d-trainer:
+    build:
+      context: .
+      args:
+        HOST_UID: ${HOST_UID:-1000}
+        HOST_GID: ${HOST_GID:-1000}
+    image: flowcast3d-trainer
+    container_name: flowcast3d-trainer
+    init: true
+    working_dir: /opt/trainer
+    command: ["sleep", "infinity"]
+    shm_size: 2gb
+    environment:
+      FLOWCAST_DATA: /workspace/data
+      FLOWCAST_RESULTS: /workspace/results
+      FLOWCAST_SOURCE: /workspace/source
+      FLOWCAST_GEOMETRY_CONFIRMED: ${FLOWCAST_GEOMETRY_CONFIRMED:-false}
+      FLOWCAST_GEOMETRY_UP_AXIS: ${FLOWCAST_GEOMETRY_UP_AXIS:-z}
+      FLOWCAST_GEOMETRY_UNIT_SCALE: ${FLOWCAST_GEOMETRY_UNIT_SCALE:-1.0}
+      FLOWCAST_COLLECTION_RUN_ID: ${FLOWCAST_COLLECTION_RUN_ID:-}
+      OMP_NUM_THREADS: "1"
+      PYVISTA_OFF_SCREEN: "true"
+      MPLBACKEND: Agg
+    volumes: *trainer-volumes
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  flowcast3d-trainer-generation:
+    profiles: [collection]
+    image: flowcast3d-trainer
+    container_name: flowcast3d-generator
+    init: true
+    working_dir: /opt/trainer
+    command:
+      - python
+      - main.py
+      - generate
+      - --config
+      - configs/collect.yaml
+    restart: "no"
+    stop_grace_period: 45s
+    cpus: 4
+    mem_limit: 24g
+    shm_size: 2gb
+    environment:
+      FLOWCAST_DATA: /workspace/data
+      FLOWCAST_RESULTS: /workspace/results
+      FLOWCAST_SOURCE: /workspace/source
+      FLOWCAST_GEOMETRY_CONFIRMED: ${FLOWCAST_GEOMETRY_CONFIRMED:-false}
+      FLOWCAST_GEOMETRY_UP_AXIS: ${FLOWCAST_GEOMETRY_UP_AXIS:-z}
+      FLOWCAST_GEOMETRY_UNIT_SCALE: ${FLOWCAST_GEOMETRY_UNIT_SCALE:-1.0}
+      FLOWCAST_COLLECTION_RUN_ID: ${FLOWCAST_COLLECTION_RUN_ID:-}
+      CUDA_VISIBLE_DEVICES: ""
+      NVIDIA_VISIBLE_DEVICES: void
+      OMP_NUM_THREADS: "1"
+      PYVISTA_OFF_SCREEN: "true"
+      MPLBACKEND: Agg
+    volumes:
+      - *trainer-code
+      - *trainer-notebooks
+      - *trainer-weights
+      - *trainer-data
+      - *trainer-results
+      - type: bind
+        source: ${FLOWCAST_SOURCE_DIR:-./source}
+        target: /workspace/source
+        read_only: true
+        bind:
+          create_host_path: false

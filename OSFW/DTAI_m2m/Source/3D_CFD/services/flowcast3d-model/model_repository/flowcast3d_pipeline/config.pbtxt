@@ -1,0 +1,43 @@
+name: "flowcast3d_pipeline"
+platform: "ensemble"
+max_batch_size: 0
+input [
+  { name: "REQUEST" data_type: TYPE_STRING dims: [ 1 ] },
+  { name: "PAYLOAD" data_type: TYPE_STRING dims: [ 1 ] }
+]
+output [
+  { name: "RESULT" data_type: TYPE_STRING dims: [ 1 ] },
+  { name: "METADATA" data_type: TYPE_STRING dims: [ 1 ] }
+]
+ensemble_scheduling {
+  step [
+    {
+      model_name: "flowcast3d_preprocess"
+      model_version: -1
+      input_map { key: "REQUEST" value: "REQUEST" }
+      input_map { key: "PAYLOAD" value: "PAYLOAD" }
+      output_map { key: "SPATIAL" value: "SPATIAL" }
+      output_map { key: "CONDITIONS" value: "CONDITIONS" }
+      output_map { key: "MODEL_SPEC" value: "MODEL_SPEC" }
+      output_map { key: "CONTEXT" value: "CONTEXT" }
+    },
+    {
+      model_name: "flowcast3d"
+      model_version: -1
+      input_map { key: "SPATIAL" value: "SPATIAL" }
+      input_map { key: "CONDITIONS" value: "CONDITIONS" }
+      input_map { key: "MODEL_SPEC" value: "MODEL_SPEC" }
+      output_map { key: "NORMALIZED" value: "NORMALIZED" }
+      output_map { key: "MODEL_DETAILS" value: "MODEL_DETAILS" }
+    },
+    {
+      model_name: "flowcast3d_postprocess"
+      model_version: -1
+      input_map { key: "NORMALIZED" value: "NORMALIZED" }
+      input_map { key: "MODEL_DETAILS" value: "MODEL_DETAILS" }
+      input_map { key: "CONTEXT" value: "CONTEXT" }
+      output_map { key: "RESULT" value: "RESULT" }
+      output_map { key: "METADATA" value: "METADATA" }
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+paths:
+  data: data
+  results: results
+  source: source
+
+physics:
+  rho: 1.225
+  mu: 0.0000181
+  zref: 10.0
+  z0: 0.1
+  displacement: 0.0
+  kappa: 0.4
+  Cmu: 0.09
+  sigma_epsilon: 1.11
+
+generation:
+  source_path: null
+  geometry_confirmed: false
+  unit_scale: 1.0
+  up_axis: z
+  wait_for_source: true
+  source_wait_timeout_s: 86400
+  poll_interval_s: 15
+  stable_checks: 3
+  wind_directions_deg: [0, 72, 144, 216, 288]
+  wind_speeds_m_s: [3, 8]
+  grid_shape_zyx: [64, 128, 128]
+  mpi_ranks: 4
+  max_iterations: 5000
+  simple_consistent: true
+  pressure_gradient_scheme: Gauss linear
+  velocity_gradient_scheme: Gauss linear
+  non_orthogonal_scheme: corrected
+  pressure_relaxation: 1
+  velocity_relaxation: 0.5
+  pressure_relative_tolerance: 0.01
+  residuals:
+    p: 0.0001
+    U: 0.00001
+    k: 0.00001
+    epsilon: 0.00001
+  flux_tolerance: 0.01
+  base_cells_xyz: [96, 96, 48]
+  surface_refinement: [2, 3]
+  snap_smoothing_iterations: 3
+  snap_internal_smoothing_iterations: 3
+  merge_patch_faces: false
+  buffer_height_multiplier: 15
+  top_height_multiplier: 5
+  max_global_cells: 8000000
+
+model:
+  input_channels: 16
+  condition_dim: 11
+  base_channels: 16
+  transformer_layers: 2
+  attention_heads: 4
+  dropout: 0.0
+
+training:
+  seed: 42
+  device: auto
+  batch_size: 1
+  max_epochs: 3000
+  min_epochs: 100
+  early_stopping_patience: 60
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  lr_patience: 20
+  lr_factor: 0.5
+  min_learning_rate: 0.00001
+  num_workers: 0
+  amp: true
+  pressure_mse_weight: 0.5
+  checkpoint_every: 1
+
+evaluation:
+  velocity_relative_rmse_limit: 0.10
+  pressure_relative_rmse_limit: 0.20
+
+budget:
+  target_hours: 24
+  policy: quality_first

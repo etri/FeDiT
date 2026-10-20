@@ -1,0 +1,9 @@
+data
+source
+results
+checkpoints
+notebooks
+.venv
+__pycache__
+.pytest_cache
+*.pyc

@@ -1,0 +1,9 @@
+"""업로드 처리 이력 저장 계약"""
+
+from typing import Protocol
+
+
+class IngestHistory(Protocol):
+    def initialize(self) -> None: ...
+    def save(self, ingest_id: str, document: dict) -> None: ...
+    def get(self, ingest_id: str) -> dict | None: ...

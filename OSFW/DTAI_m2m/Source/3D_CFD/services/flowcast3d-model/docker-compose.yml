@@ -1,0 +1,46 @@
+services:
+  flowcast3d-model:
+    build:
+      context: .
+      args:
+        HOST_UID: ${HOST_UID:-1000}
+        HOST_GID: ${HOST_GID:-1000}
+    image: flowcast3d-model
+    container_name: flowcast3d-model
+    init: true
+    networks: [flowcast3d]
+    shm_size: 2gb
+    command:
+      - tritonserver
+      - --model-repository=/opt/model/model_repository
+      - --strict-model-config=true
+      - --disable-auto-complete-config
+      - --model-control-mode=explicit
+      - --load-model=flowcast3d_pipeline
+      - --http-port=${FLOWCAST_MODEL_HTTP_PORT:-8000}
+      - --grpc-port=${FLOWCAST_MODEL_GRPC_PORT:-8001}
+      - --metrics-port=${FLOWCAST_MODEL_METRICS_PORT:-8002}
+    expose:
+      - "${FLOWCAST_MODEL_HTTP_PORT:-8000}"
+      - "${FLOWCAST_MODEL_GRPC_PORT:-8001}"
+      - "${FLOWCAST_MODEL_METRICS_PORT:-8002}"
+    environment:
+      FLOWCAST_MODEL_VERSION: /opt/model/model_repository/flowcast3d/1
+      FLOWCAST_MAX_INFERENCE_VOXELS: ${FLOWCAST_MAX_INFERENCE_VOXELS:-1048576}
+      FLOWCAST_DEVICE: cuda
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:${FLOWCAST_MODEL_HTTP_PORT:-8000}/v2/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+networks:
+  flowcast3d:
+    name: flowcast3d

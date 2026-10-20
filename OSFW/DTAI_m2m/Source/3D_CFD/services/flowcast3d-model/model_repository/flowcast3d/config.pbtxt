@@ -1,0 +1,13 @@
+name: "flowcast3d"
+backend: "python"
+max_batch_size: 0
+input [
+  { name: "SPATIAL" data_type: TYPE_FP32 dims: [ -1, 16, -1, -1, -1 ] },
+  { name: "CONDITIONS" data_type: TYPE_FP32 dims: [ -1, 11 ] },
+  { name: "MODEL_SPEC" data_type: TYPE_STRING dims: [ 1 ] }
+]
+output [
+  { name: "NORMALIZED" data_type: TYPE_FP32 dims: [ -1, 4, -1, -1, -1 ] },
+  { name: "MODEL_DETAILS" data_type: TYPE_STRING dims: [ 1 ] }
+]
+instance_group [{ kind: KIND_GPU count: 1 }]

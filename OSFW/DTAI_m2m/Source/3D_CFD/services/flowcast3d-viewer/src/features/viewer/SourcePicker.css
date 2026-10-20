@@ -1,0 +1,28 @@
+.source-position-callout {
+  --source-callout-height: 88px;
+  position: relative;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.source-position-callout > .source-marker-label,
+.source-position-callout > .source-preview-label {
+  position: absolute;
+  bottom: var(--source-callout-height);
+  left: 0;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.source-position-callout > .source-position-leader {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: var(--source-callout-height);
+  border-left: 1px dashed #d64b55;
+  pointer-events: none;
+}
+@media (max-height: 650px) {
+  .source-position-callout {
+    --source-callout-height: 72px;
+  }
+}

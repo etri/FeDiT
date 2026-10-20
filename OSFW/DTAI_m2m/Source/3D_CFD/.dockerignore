@@ -1,0 +1,20 @@
+.git
+.env
+_old
+_old copy
+_tmp
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/.venv
+**/*.egg-info
+**/node_modules
+**/dist
+**/playwright-report
+**/test-results
+**/*.tsbuildinfo
+services/flowcast3d-trainer/data
+services/flowcast3d-trainer/source
+services/flowcast3d-trainer/results
+services/flowcast3d-db/data
+services/flowcast3d-api/data
