@@ -47,7 +47,9 @@ def list_notebooks(namespace: str = None) -> list[dict]:
             container_port = int(raw_container_port)
         except (TypeError, ValueError):
             container_port = 8888
-        base_url = f"{settings.kubeflow_url}/notebook/{ns}/{meta['name']}"
+        public_origin = settings.notebook_public_url if notebook_type == "jupyter" else ""
+        notebook_origin = (public_origin or settings.kubeflow_url).rstrip("/")
+        base_url = f"{notebook_origin}/notebook/{ns}/{meta['name']}"
         if notebook_type == "vscode":
             open_url = f"{base_url}/?folder=/home/jovyan"
             open_label = "VSCode"
@@ -327,6 +329,10 @@ def create_notebook(
     # Env vars
     env_list = [{"name": e["name"], "value": e.get("value", "")}
                 for e in env_vars if e.get("name")]
+    if notebook_type == "jupyter":
+        # PM-built and Kubeflow images use this prefix for assets and kernels.
+        env_list = [e for e in env_list if e["name"] != "NB_PREFIX"]
+        env_list.append({"name": "NB_PREFIX", "value": f"/notebook/{ns}/{name}"})
 
     # Resource limits
     resource_limits = {"cpu": cpu_limit, "memory": memory_limit}
@@ -334,7 +340,7 @@ def create_notebook(
         resource_limits[gpu_vendor or "nvidia.com/gpu"] = str(gpu_count)
 
     # 노트북 라벨: PodDefault 매칭용
-    labels = {"app": name}
+    labels = {"app": name, "app.kubernetes.io/managed-by": "prediction-manager"}
     for pd in pod_defaults:
         if pd:
             labels[pd] = "true"
@@ -344,6 +350,17 @@ def create_notebook(
         "notebooks.kubeflow.org/server-type": notebook_type,
         "prediction-manager.io/container-port": str(container_port),
     }
+    if settings.notebook_proxy_cpu_request:
+        # The Notebook controller copies top-level annotations to the Pod.
+        # NotebookTemplateSpec contains only `spec`, unlike a Deployment.
+        annotations.update({
+            "sidecar.istio.io/proxyCPU": settings.notebook_proxy_cpu_request,
+            # An explicit CPU annotation replaces Istio's entire resources
+            # default; retain its memory reservation and CPU/memory limits.
+            "sidecar.istio.io/proxyMemory": "128Mi",
+            "sidecar.istio.io/proxyCPULimit": "2000m",
+            "sidecar.istio.io/proxyMemoryLimit": "1024Mi",
+        })
     # VSCode/RStudio 용 path rewrite
     if notebook_type in ("vscode", "rstudio"):
         annotations["notebooks.kubeflow.org/http-rewrite-uri"] = "/"
@@ -396,7 +413,6 @@ def create_notebook(
                     pod_spec["tolerations"] = o["tolerations"]
                     break
 
-    pod_spec_labels = labels.copy()
     notebook_body = {
         "apiVersion": "kubeflow.org/v1",
         "kind": "Notebook",
@@ -408,7 +424,6 @@ def create_notebook(
         },
         "spec": {
             "template": {
-                "metadata": {"labels": pod_spec_labels},
                 "spec": pod_spec,
             }
         },

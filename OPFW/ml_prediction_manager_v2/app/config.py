@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     registry_host: str = "registry.example.local:5000"
     default_namespace: str = "kubeflow-user-example-com"
     kubeflow_url: str = "https://kubeflow.example.local"
+    notebook_public_url: str = ""
+    notebook_proxy_cpu_request: str = ""
     docker_socket: str = "unix:///var/run/docker.sock"
     prometheus_url: str = "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090"
     app_title: str = "예측매니저"

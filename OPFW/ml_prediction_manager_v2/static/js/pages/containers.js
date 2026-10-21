@@ -28,7 +28,7 @@ async function renderContainers() {
 
     <table class="pm-table">
         <thead>
-            <tr><th>이름</th><th>상태</th><th>이미지</th><th>포트</th><th>CPU</th><th>메모리</th><th>GPU</th><th>생성일</th><th></th></tr>
+            <tr><th>이름</th><th>상태</th><th>이미지</th><th>내부 포트</th><th>CPU</th><th>메모리</th><th>GPU</th><th>생성일</th><th></th></tr>
         </thead>
         <tbody>
             ${containers.map(c => {
@@ -340,9 +340,9 @@ async function renderContainersNew() {
                 </select>
               </div>
               <div class="cc-field">
-                <label class="cc-label">컨테이너 서비스 포트</label>
+                <label class="cc-label">컨테이너 내부 포트</label>
                 <input class="cc-input cc-mono" id="cc-container-port" type="number" min="1" max="65535" value="8888" inputmode="numeric" />
-                <div class="cc-hint">Registry의 <code>:5000</code>과 무관합니다. 이미지 내부 서비스가 실제 대기하는 허용 포트를 입력하세요.</div>
+                <div class="cc-hint">이미지 안에서 서비스가 대기하는 포트입니다. JupyterLab 기본값은 <code>8888</code>이며, 외부 접속 포트는 컨테이너 목록의 ‘열기’ 주소에 자동 반영됩니다.</div>
               </div>
             </div>
           </div>

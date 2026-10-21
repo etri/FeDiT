@@ -1,5 +1,39 @@
 # Ubuntu 22.04 / A40 서버 설치 및 서비스 제어
 
+## 예측매니저 컨테이너의 JupyterLab을 8080으로 연결
+
+앱 설정 `NOTEBOOK_PUBLIC_URL=https://서버주소:8080`을 지정하면 컨테이너 목록의
+‘열기’ 주소가 `/notebook/사용자영역/컨테이너명/lab`으로 생성된다. 컨테이너 내부
+서비스 포트는 이미지가 실제 사용하는 값이며 JupyterLab 기본값은 `8888`이다.
+외부 포트 `8080`으로 내부 포트를 바꿀 필요는 없다.
+
+`notebook-gateway.py`는 예측매니저가 생성한 Jupyter Notebook과 실제 Ready Pod를
+확인하고, 루프백 포트 포워딩과 Nginx 경로를 자동 관리한다. 컨테이너가 여러 개면
+서로 다른 경로로 구분하고, 중지·삭제된 대상의 경로는 제거한다. Pod가 교체되면
+새 Pod로 다시 연결한다. Jupyter 서버 자체가 준비된 후 경로를 공개한다.
+
+이미 HTTPS 8080에서 호스트의 `127.0.0.1:8888`로 연결하던 서버를 전환할 때:
+
+```bash
+sudo python3 install-notebook-gateway.py
+kubectl -n kubeflow set env deployment/prediction-manager \
+  NOTEBOOK_PUBLIC_URL=https://서버주소:8080 \
+  NOTEBOOK_PROXY_CPU_REQUEST=10m
+```
+
+이 전환 도구는 기존 `/etc/nginx/conf.d/jupyterlab-8080.conf`와 인증서를 사용한다.
+Nginx 및 기존 호스트 서비스 상태를 백업하고, 호스트 JupyterLab 대신
+`prediction-manager-notebook-gateway.service`의 자동 시작을 등록한다. 이미 전환한
+서버에서는 다시 실행할 필요가 없다. 새 서버의 Nginx·HTTPS 설정이나 방화벽 개방을
+대신하는 도구는 아니다. 인증서 비공개 키, 토큰, Kubernetes 인증 파일은 저장소에
+포함하지 않는다. 노트북의 로그인 정책은 사용하는 이미지의 Jupyter 설정을 따른다.
+
+`NOTEBOOK_PROXY_CPU_REQUEST`는 노트북 프록시의 CPU 예약량만 조정하며 기본 메모리
+예약량과 CPU·메모리 제한은 유지한다. CPU가 적은 서버에서는 생성 화면의 CPU Min도
+남은 예약량에 맞춰 지정해야 한다. 현재 서버는 CPU Min `0.1`, Max `1`을 기본으로
+사용한다. 기존 사용자 파일은 각 컨테이너의 PVC에 보존되며 호스트의 별도 작업 폴더를
+자동으로 합치지 않는다.
+
 `install.sh`는 검증된 플랫폼 기본 소스 `725eb2ed` 설치와 Keycloak 자동 복구 후,
 현재 checkout 커밋의 이미지·볼륨 보호 기능을 자동 배포한다. 실제 사용자 PVC의
 생성·마운트·읽기·쓰기·삭제와 사용 중/중지된 작업의 삭제 차단을 시험한다.
