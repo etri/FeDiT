@@ -1,4 +1,3 @@
-import HomeAdminRolesIcon from 'assets/images/home/admin-roles.svg';
 import HomeDashboardIcon from 'assets/images/home/dashboard.svg';
 import HomeDataCollectionIcon from 'assets/images/home/data-collection.svg';
 import HomeKatibIcon from 'assets/images/home/katib.svg';
@@ -15,7 +14,13 @@ import HomeVolumeIcon from 'assets/images/home/volume.svg';
 import AlarmBar from 'components/alarmbar/AlarmBar';
 import Layout from 'components/layout/layout';
 import { useEffect, useRef, useState } from 'react';
-import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 
 import './predictor-creator-tool.scss';
 
@@ -178,14 +183,6 @@ const services: Service[] = [
     path: '/monitoring',
     url: '/prediction-manager/?standalone=1#/monitoring',
   },
-  {
-    name: '시스템 관리',
-    description: '사용자 계정, 권한, 리소스 할당량 관리 (관리자 전용)',
-    icon: HomeAdminRolesIcon,
-    path: '/system-admin',
-    url: '/prediction-manager/?standalone=1#/admin',
-    adminOnly: true,
-  },
 ];
 
 const PM_PAGE_SERVICE_PATHS: Record<string, string> = {
@@ -199,7 +196,6 @@ const PM_PAGE_SERVICE_PATHS: Record<string, string> = {
   monitoring: '/monitoring',
   automl: '/automl',
   models: '/models',
-  admin: '/system-admin',
 };
 
 interface UserInfo {
@@ -630,6 +626,10 @@ export default function PredictorCreatorTool() {
     <Layout>
       <Routes>
         <Route path="/" element={<ToolHome />} />
+        <Route
+          path="/system-admin/*"
+          element={<Navigate to="/predictor-creator-tool" replace />}
+        />
         {services
           .filter((svc) => !svc.externalUrl)
           .map((svc) => (

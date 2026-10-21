@@ -11,7 +11,6 @@ const pages = {
     monitoring: renderMonitoring,
     automl: renderAutoML,
     models: renderModels,
-    admin: renderAdmin,
 };
 
 function notifyParentRoute(page) {
@@ -24,6 +23,7 @@ function notifyParentRoute(page) {
 }
 
 async function navigate(page) {
+    if (!Object.prototype.hasOwnProperty.call(pages, page)) page = 'home';
     if (typeof cleanupDataCollectionPage === 'function') {
         cleanupDataCollectionPage();
     }
@@ -39,9 +39,6 @@ async function navigate(page) {
     try {
         const html = await pages[page]();
         app.innerHTML = html;
-        if (page === 'admin' && typeof setupAdminPage === 'function') {
-            setupAdminPage();
-        }
         if (page === 'automl' && typeof setupAutoMLPage === 'function') {
             setupAutoMLPage();
         }
@@ -82,21 +79,9 @@ async function navigate(page) {
     });
 }
 
-async function checkAdminMenu() {
-    try {
-        const info = await API.get('/api/user-info');
-        if (info.is_admin) {
-            const adminMenu = document.getElementById('adminMenu');
-            if (adminMenu) adminMenu.style.display = '';
-        }
-    } catch (e) {
-        console.error('user-info failed:', e);
-    }
-}
-
 window.addEventListener('hashchange', () => {
     const page = window.location.hash.replace('#/', '') || 'home';
-    if (pages[page]) navigate(page);
+    navigate(page);
 });
 
 // 탭 클릭 시 같은 페이지여도 항상 재렌더링
@@ -118,5 +103,4 @@ if (urlParams.get('standalone') === '1') {
     document.body.classList.add('standalone-mode');
 }
 
-checkAdminMenu();
 navigate(window.location.hash.replace('#/', '') || 'home');
