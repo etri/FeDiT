@@ -10,7 +10,27 @@ Python 3.11과 NVIDIA CUDA 환경을 사용합니다. Grounding DINO 가중치�
 
 신경망 추론은 FP32로 실행하며 CUDA 행렬 연산과 cuDNN의 TF32를 비활성화합니다. OSNet 특징 추출 배치 크기는 600입니다.
 
-저장소를 내려받은 후 패키지 폴더에서 다음 명령을 실행합니다.
+서버 JupyterLab의 Terminal에서 다음 명령으로 시험 브랜치를 새 폴더에 clone합니다. 비공개 저장소 접근 권한을 가진 GitHub 계정으로 Git 인증을 먼저 완료합니다.
+
+```bash
+cd /home/jovyan
+git clone --branch OPFW_development_ETRI_pman --single-branch https://github.com/etri/FeDiT.git snr-per-010-clone
+cd snr-per-010-clone/OPFW/ml_prediction_manager_v2/example/snr_per_010
+git rev-parse HEAD
+```
+
+아래 명령은 GitHub에서 받은 소스와 모델만으로 새로운 작업 폴더에서 전체 추론을 수행합니다. 데이터셋은 MOTChallenge 공식 배포처에서 다운로드합니다. 이전 실행 폴더나 검출·특징 캐시를 지정하지 않습니다.
+
+예측매니저의 `snr-per-010-mot20-inference:v2.0` 이미지에는 고정된 실행 환경과 `SNR-PER-010 (CUDA)` 커널이 포함돼 있습니다. 이 이미지에서는 다음 명령을 실행합니다.
+
+```bash
+/opt/snr010-env/bin/python prepare_weights.py
+/opt/snr010-env/bin/python download_dataset.py --workspace workspace
+/opt/snr010-env/bin/python verify_inputs.py --workspace workspace
+/opt/snr010-env/bin/python run_inference.py --workspace workspace --run-name clone-inference
+```
+
+다른 Python 3.11 CUDA 환경에서 새 가상환경을 구성할 때는 다음 명령을 사용합니다.
 
 ```bash
 python -m venv .venv
@@ -37,7 +57,7 @@ JupyterLab에서는 같은 환경에 커널을 등록한 후 노트북을 실행
 .venv/bin/python -m ipykernel install --user --name snr-per-010-image --display-name "SNR-PER-010 (CUDA)"
 ```
 
-노트북 파일은 `SNR-PER-010_추론_성능평가.ipynb`입니다. 컨테이너 환경 변수 `SNR010_BACKBONE_CACHE`에 기존 실행 경로를 지정하면 검증된 동결 백본 캐시를 사용합니다. `SNR010_RUN_NAME`으로 실행 이름을 지정할 수 있습니다. 데이터셋이 이미 준비돼 있으면 시퀀스별 프레임 존재 여부를 확인하고 저장된 자료를 사용합니다.
+노트북 파일은 `SNR-PER-010_추론_성능평가.ipynb`입니다. 노트북 기본 실행은 `clone-inference`이며 기존 실행 캐시를 사용하지 않습니다. 이전 실행의 출력이 없는 상태에서 시작합니다. 데이터셋이 이미 준비돼 있으면 시퀀스별 프레임 존재 여부를 확인하고 저장된 자료를 사용합니다.
 
 추론은 Grounding DINO 사람 후보 생성, OSNet 특징 추출, fold별 보정 모델, ByteTrack, 학습 기반 추적 필터와 연결, 보간 및 누락 구간 보정 순서로 수행됩니다. 각 시퀀스에는 해당 시퀀스를 제외한 학습 목록을 가진 제공 체크포인트를 적용합니다. MOT20-03에는 raw17 필터, HistGB 보정·보호 병합, 연결·보간을 적용하고 full 및 relational 신경망 후보로 끝점을 보완합니다. MOT20-05의 비교 분기에는 quality 단계의 추적 결과를 사용합니다.
 
