@@ -21,6 +21,16 @@ for v in HOST PUBLIC_URL IMAGE_REPO_URL REPO DOCKER_NETWORK; do
   if [[ -z "${!v:-}" ]]; then echo "[!] $v 값이 비어 있습니다." >&2; fail=1; fi
 done
 
+# .env.example 의 자리표시자를 그대로 둔 채 설치하는 것을 막는다.
+# 그냥 두면 CHANGE_ME 가 실제 비밀번호·서명키가 되어 그대로 운영에 올라간다.
+for v in POSTGRES_ADMIN_PASSWORD POSTGRES_PASSWORD MONGO_ROOT_PASSWORD MONGO_PASSWORD \
+         REDIS_PASSWORD ADMIN_SEED_PASSWORD JWT_SECRET; do
+  if [[ "${!v:-}" == *CHANGE_ME* ]]; then
+    echo "[!] $v 가 아직 CHANGE_ME 입니다. 실제 값으로 바꾸세요." >&2
+    fail=1
+  fi
+done
+
 # 비밀번호를 바꿔 쓰는 경우에만 걸리는 검사
 for v in POSTGRES_PASSWORD MONGO_PASSWORD REDIS_PASSWORD; do
   if [[ "${!v}" == *"'"* || "${!v}" == *"@"* || "${!v}" == *":"* || "${!v}" == *"/"* ]]; then

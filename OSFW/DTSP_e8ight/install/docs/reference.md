@@ -121,8 +121,22 @@ docker compose version    # v2.x  ('docker-compose' 하이픈 버전 아님)
 
 ### 2.3 이미지 준비
 
-설치 서버는 이미지 레지스트리에 접속하지 않는다. 도커 데몬 설정(`daemon.json`)을 건드릴 일이
-없다 — `insecure-registries` 도 `docker login` 도 필요 없다.
+설치 서버는 **사내** 이미지 레지스트리에 접속하지 않는다. 도커 데몬 설정(`daemon.json`)을
+건드릴 일이 없다 — `insecure-registries` 도 `docker login` 도 필요 없다.
+
+단 **Docker Hub 접속은 필요하다.** 묶음에는 사내 이미지 13개만 들어 있다. 나머지 8개는
+설치 서버가 스스로 준비한다.
+
+| 이미지 | 어디서 | 준비하는 스크립트 |
+|---|---|---|
+| 사내 13개 | `images/` 묶음 | `0-init.sh` |
+| `postgres:14.1` `mongo:8.2.12` `redis:6.2` | Docker Hub | `1-db.sh` |
+| `httpd:2.4-alpine` `provectuslabs/kafka-ui:v0.7.2` | Docker Hub | `2-kafka.sh` `3-ndxpro.sh` |
+| `nginx:1.31.4` | Docker Hub | `1-front.sh --nginx` |
+| `pipeline-kafka` `pipeline-zookeeper` | 현장 `docker build` | `2-kafka.sh` (베이스 이미지 다운로드 필요) |
+
+인터넷이 아예 없는 서버라면 7.1 의 `pack.sh`(`--private-only` 없이)로 21개 전체를 담은
+묶음을 만들어 반입한다.
 
 이미지 묶음은 **이미 `images/` 에 들어 있다.** 95 MB 조각 21개
 (`union-twin-service-images.tar.gz.part-aa` ~ `.part-au`)로 나뉘어 있고,

@@ -30,15 +30,20 @@ q연합트윈/
 프론트는 자체 BFF 서버를 갖고 있어 백엔드와 별도로 배포·재기동할 수 있다.
 단, BFF 가 백엔드의 PostgreSQL(`union_twin` DB)을 쓰므로 **백엔드를 먼저 올려야 한다.**
 
-**설치 서버는 이미지 레지스트리에 접속하지 않는다.** 이미지는 `install/images/` 의 tar.gz 에 이미 들어 있고, `0-init.sh` 가 그것을 적재한다.
+**설치 서버는 사내 이미지 레지스트리에 접속하지 않는다.** 사내 이미지 13개는 `install/images/` 에 이미 들어 있고, `0-init.sh` 가 적재한다.
+
+**다만 Docker Hub 접속은 필요하다.** 묶음에는 사내 이미지 13개만 들어 있어서, 공개 이미지 6개(`postgres`·`mongo`·`redis`·`httpd`·`nginx`·`kafka-ui`)는 `1-db.sh`·`3-ndxpro.sh` 가 받아오고, Kafka·Zookeeper 2개는 `2-kafka.sh` 가 직접 빌드한다(베이스 이미지 다운로드 필요). 인터넷이 아예 없는 폐쇄망이라면 → [완전 폐쇄망 설치](#완전-폐쇄망-인터넷-없는-서버)
 
 ---
 
 ## 설치
 
+전제: Docker / Docker Compose v2 설치, **Docker Hub 접속 가능**, x86_64 리눅스 또는 Windows(WSL2).
+
 ```bash
 cp .env.example .env
 vi .env                       # 주소와 비밀번호·토큰을 채운다 (아래 참고)
+                              # CHANGE_ME 가 남아 있으면 0-init.sh 가 중단시킨다
 
 cd fdt-service-backend
 ./install/0-init.sh           # 네트워크·디렉터리 생성 + 이미지 준비
@@ -54,6 +59,24 @@ cd ../fdt-service-backend
 ```
 
 접속: `.env` 의 `PUBLIC_URL` + `/signin` → `admin@e8ight.co.kr` / `.env` 의 `ADMIN_SEED_PASSWORD` 값
+
+### 완전 폐쇄망 (인터넷 없는 서버)
+
+위 절차는 공개 이미지 8개를 Docker Hub 에서 받거나 빌드한다. 인터넷이 없으면 `1-db.sh` 에서
+`Error response from daemon: Get "https://registry-1.docker.io/v2/"` 로 멈춘다.
+
+이 경우 **인터넷이 되는 PC 에서 21개 전체를 담은 묶음을 만들어** 반입한다.
+
+```bash
+cd install/image-bundle
+cp bundle.env.example bundle.env      # 레지스트리 계정 입력
+./fetch-from-registry.sh              # 사내 13개 + 공개 6개 받기
+( cd ../fdt-service-backend && ./install/2-kafka.sh )   # pipeline-kafka/zookeeper 빌드
+./pack.sh --split                     # --private-only 를 빼면 21개 전체가 담긴다
+```
+
+나온 조각을 설치 서버의 `install/images/` 에 두고 평소대로 `0-init.sh` 를 돌린다.
+묶음이 약 1.9 GB → 3 GB 대로 커진다.
 
 ---
 
