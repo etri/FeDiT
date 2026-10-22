@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # 폐쇄망 서버에서 반입한 이미지 묶음을 적재한다.
 #   ./scripts/images-load.sh [파일]     (기본 ../images/union-twin-service-images.tar.gz)
+#
+# 인자는 조각을 뺀 기준 경로를 준다. 통짜 tar.gz 이 없고 "<경로>.part-aa" 식 조각만
+# 있으면 자동으로 합쳐서 읽는다 (합친 파일을 디스크에 만들지 않는다).
 set -euo pipefail
 FILE="${1:-../images/union-twin-service-images.tar.gz}"
 

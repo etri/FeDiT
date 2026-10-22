@@ -124,30 +124,36 @@ docker compose version    # v2.x  ('docker-compose' 하이픈 버전 아님)
 설치 서버는 이미지 레지스트리에 접속하지 않는다. 도커 데몬 설정(`daemon.json`)을 건드릴 일이
 없다 — `insecure-registries` 도 `docker login` 도 필요 없다.
 
-이미지 묶음은 **이미 `images/union-twin-service-images.tar.gz` 에 들어 있다.**
-파일이 있는지만 확인하면 되고, `0-init.sh` 가 적재한다.
+이미지 묶음은 **이미 `images/` 에 들어 있다.** 95 MB 조각 21개
+(`union-twin-service-images.tar.gz.part-aa` ~ `.part-au`)로 나뉘어 있고,
+`0-init.sh` 가 조각을 자동으로 합쳐서 적재한다. 직접 합칠 필요는 없다.
 
 ```bash
-ls -lh images/union-twin-service-images.tar.gz   # 약 1.9 GB
+ls -1 images/union-twin-service-images.tar.gz.part-* | wc -l   # 21
+cat  images/union-twin-service-images.tar.gz.part-* | wc -c    # 2076529707
 ```
 
 묶음이 없거나 새로 만들어야 하는 경우에만 7장을 본다.
 
 ### 2.4 배포 파일 배치
 
+묶음이 일반 Git 파일(95 MB 조각)로 올라가 있으므로 `git lfs` 는 필요하지 않다.
+
 ```bash
-git lfs install                       # 이미지 묶음이 LFS 로 관리된다. 먼저 해야 한다
 sudo mkdir -p /opt/union-twin && sudo chown "$USER" /opt/union-twin
 git clone <배포 저장소> /opt/union-twin
 cd /opt/union-twin
 ```
 
-**클론 후 반드시 확인한다.** LFS 없이 클론하면 tar.gz 대신 몇 줄짜리 포인터 파일이 받아진다.
+**클론 후 반드시 확인한다.**
 
 ```bash
-ls -lh images/union-twin-service-images.tar.gz
-#  3.4G  → 정상
-#  132B  → LFS 미설치. git lfs install 후 git lfs pull
+ls -1 images/union-twin-service-images.tar.gz.part-* | wc -l
+#  21  → 정상
+#  그 외 → 클론이 덜 받아졌다. git fetch --all 후 git status 확인
+
+cat images/union-twin-service-images.tar.gz.part-* | gzip -t && echo OK
+#  OK  → 내용 정상 (합친 파일을 만들지 않으므로 추가 디스크가 들지 않는다)
 ```
 
 ### 2.5 NGSI-LD @context 파일 (선택)
@@ -203,7 +209,9 @@ cd fdt-service-backend
 이미지 준비 → 이미지 점검(존재·아키텍처)까지 한 번에 수행한다.
 
 **이 서버는 레지스트리에 접속하지 않는다.** 묶음은 `.env` 의 `IMAGE_BUNDLE`(기본
-`./images/union-twin-service-images.tar.gz`)이 가리킨다. 만드는 방법은 7장.
+`./images/union-twin-service-images.tar.gz`)이 가리킨다. 이 값은 **조각을 뺀 기준 경로**로,
+실제 파일이 조각(`.part-aa` …)뿐이어도 그대로 두면 된다 — `0-init.sh` 가
+`$IMAGE_BUNDLE` 와 `$IMAGE_BUNDLE.part-*` 둘 다 찾는다. 만드는 방법은 7장.
 
 ### 4.1 1단계 — 데이터 저장소
 
@@ -478,33 +486,35 @@ cd ../fdt-service-frontend && ./install/1-front.sh
 
 ### 7.4 저장소에 올리기
 
-묶음은 크기가 커서 그냥 커밋하면 서버가 거부하는 경우가 많다(GitHub 은 파일당 100MB 하드 제한).
-두 가지 방법이 있다.
+묶음은 크기가 커서 그냥 커밋하면 서버가 거부한다(GitHub 은 파일당 100MB 하드 제한).
 
-**Git LFS (기본)** — `.gitattributes` 에 이미 설정돼 있다.
-
-```bash
-git lfs install
-git add .gitattributes
-git add images/union-twin-service-images.tar.gz
-git commit -m "이미지 묶음 갱신"
-git push
-```
-
-받는 쪽도 `git lfs install` 이 돼 있어야 한다. 안 되어 있으면 포인터 파일만 받아진다.
-
-**분할 (LFS 를 못 쓰는 서버)** — 95MB 조각으로 나눈다.
+**분할 (현재 방식)** — 95MB 조각으로 나눠 일반 Git 파일로 올린다.
 
 ```bash
-./pack.sh --split                     # SPLIT_SIZE=50m 처럼 크기 조절 가능
+./pack.sh --private-only --split      # SPLIT_SIZE=50m 처럼 크기 조절 가능
+mv out/union-twin-service-images.tar.gz.part-* ../images/
 ```
 
-`images/union-twin-service-images.tar.gz.part-aa`, `-ab` … 로 나뉜다. 일반 git 으로 올릴 수 있고,
-`images-load.sh` 가 조각을 자동으로 합쳐서 적재한다. 이 방식을 쓸 때는
-`.gitattributes` 의 `*.tar.gz` LFS 줄을 지운다.
+`.gitattributes` 를 고칠 필요가 **없다.** `*.tar.gz` LFS 규칙 바로 아래에
+`*.tar.gz.part-* -text` 가 있어서 조각은 LFS 대상에서 빠진다. 확인하려면:
 
-> 어느 쪽이든 1.9 GB 가 git 히스토리에 남는다. 묶음을 자주 갱신하면 저장소가 계속 커지므로,
-> 전체 묶음보다 **바뀐 것만 담은 delta 묶음**(7.2)을 쓰는 편이 낫다.
+```bash
+git check-attr filter images/union-twin-service-images.tar.gz.part-aa
+#  filter: unspecified   → LFS 아님 (정상)
+git lfs push --dry-run origin main
+#  출력 없음             → LFS 업로드 0건 (정상)
+```
+
+푸시할 때는 **커밋을 조각 2~3개씩(약 200~290 MB) 나눈다.** 한 커밋에 1 GB 넘게 담으면
+HTTPS 전송이 `send-pack: unexpected disconnect` 로 끊긴다. LFS 와 무관한 전송 문제다.
+
+**Git LFS (옛 방식, 현재 쓰지 않음)** — `.gitattributes` 의 `*.tar.gz` 규칙이 그대로 남아 있어
+통짜 tar.gz 을 커밋하면 LFS 로 올라간다. 갱신이 쌓여 LFS 예산을 초과하면
+`batch response: This repository exceeded its LFS budget.` 로 푸시가 막히므로 쓰지 않는다.
+
+> 어느 쪽이든 1.9 GB 가 git 히스토리에 남고, 갱신할 때마다 다시 1.9 GB 가 쌓인다.
+> 자주 갱신한다면 묶음을 git 에 두지 않고 **컨테이너 레지스트리(GHCR 등)에 이미지별로 push**
+> 하는 편이 낫다. 레이어 단위로 증분 전송돼 바뀐 이미지만 올라간다.
 
 ### 7.5 아키텍처
 
@@ -649,7 +659,6 @@ sudo apt update && sudo apt install -y docker.io docker-compose-v2
 sudo usermod -aG docker $USER          # 로그아웃 후 재접속
 
 git config --global core.autocrlf input
-git lfs install
 git clone <저장소> ~/DTSP_연합
 cd ~/DTSP_연합/install
 ```

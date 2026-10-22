@@ -98,7 +98,8 @@ cd ../fdt-service-backend
 
 ### 그 밖에 준비할 것
 
-**이미지 묶음** — `install/images/union-twin-service-images.tar.gz` 가 있는지만 확인한다. 이미 들어 있다.
+**이미지 묶음** — `install/images/` 에 `union-twin-service-images.tar.gz.part-aa` 부터
+`.part-au` 까지 조각 21개가 있는지만 확인한다. 이미 들어 있다. 직접 합칠 필요는 없다.
 
 **NGSI-LD @context** — 플랫폼에서 새로 만들어 쓰는 경우 미리 준비할 것이 없다.
 기존 컨텍스트 파일을 그대로 쓴다면 `fdt-service-backend/ndxpro/ngsi-context/` 에 넣어 두면
@@ -132,10 +133,16 @@ cd ../fdt-service-backend
 
 ```
 install/images/
-├── union-twin-service-images.tar.gz             사내 이미지 13개 (약 1.9 GB, linux/amd64)
+├── union-twin-service-images.tar.gz.part-aa     사내 이미지 13개 (약 1.9 GB, linux/amd64)
+├── union-twin-service-images.tar.gz.part-ab        └ 95 MB 조각 21개로 나뉘어 있다
+│   …                                                 (part-aa ~ part-au)
+├── union-twin-service-images.tar.gz.part-au
 ├── union-twin-service-images.images.txt         이미지 목록
 └── union-twin-service-images.manifest.txt       생성 시각·플랫폼·각 이미지 ID
 ```
+
+조각은 `0-init.sh` / `images-load.sh` 가 `cat` 으로 자동 결합해 적재한다.
+합쳐진 tar.gz 파일을 따로 만들지 않으므로 디스크를 두 번 쓰지 않는다.
 
 묶음의 구성은 compose 파일이 참조하는 이미지 그대로다.
 
@@ -188,13 +195,18 @@ cd fdt-service-backend
 `images-load.sh` 는 적재 후 호스트 아키텍처와 각 이미지 아키텍처를 나란히 출력한다.
 분할 파일(`.tar.gz.part-aa`, `-ab` …)로 받았다면 조각을 자동으로 합쳐서 읽는다.
 
-**저장소를 클론할 때** 묶음이 Git LFS 로 관리되므로 `git lfs install` 이 먼저 돼 있어야 한다.
-LFS 없이 클론하면 tar.gz 대신 몇 줄짜리 포인터 파일이 받아져 `0-init.sh` 가 실패한다.
+**저장소를 클론할 때** 특별히 준비할 것이 없다. 묶음은 95 MB 조각으로 나뉘어
+일반 Git 파일로 올라가 있으므로 `git lfs` 가 필요하지 않다.
 
 ```bash
-git lfs install
 git clone <저장소>
-ls -lh images/union-twin-service-images.tar.gz   # 1.9G 면 정상, 100바이트대면 LFS 미설치
+ls -1 images/union-twin-service-images.tar.gz.part-* | wc -l   # 21 이면 정상
+
+# 합계가 2,076,529,707 바이트인지 확인하고 싶으면
+cat images/union-twin-service-images.tar.gz.part-* | wc -c
+
+# 내용이 깨지지 않았는지 확인하고 싶으면 (합친 파일을 만들지 않는다)
+cat images/union-twin-service-images.tar.gz.part-* | gzip -t && echo OK
 ```
 
 묶음을 새로 만들거나 갱신하는 일은 **사내에서** `image-bundle/` 로 한다. 설치 담당자가 할 일은 아니다.
@@ -297,7 +309,6 @@ sudo usermod -aG docker $USER      # 로그아웃 후 다시 접속
 
 # 3) 저장소는 WSL 파일시스템 안에 둔다
 git config --global core.autocrlf input   # 줄바꿈이 CRLF 로 바뀌는 것을 막는다
-git lfs install
 git clone <저장소> ~/DTSP_연합
 cd ~/DTSP_연합/install
 ```

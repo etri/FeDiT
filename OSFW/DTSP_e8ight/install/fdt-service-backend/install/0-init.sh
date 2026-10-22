@@ -37,13 +37,17 @@ case "$MODE" in
   bundle)
     echo
     echo "-- 이미지 묶음 적재 --"
-    if [[ ! -f "$BUNDLE" ]]; then
+    # 저장소에는 95MB 조각(.part-aa, .part-ab ...)으로 올라가 있다.
+    # 통짜 tar.gz 이든 조각이든 둘 중 하나만 있으면 된다. 합치는 일은 images-load.sh 가 한다.
+    if [[ ! -f "$BUNDLE" ]] && ! compgen -G "$BUNDLE.part-*" >/dev/null; then
       echo "[x] 이미지 묶음이 없습니다: $BUNDLE"
+      echo "    (조각 $(basename "$BUNDLE").part-aa ... 도 없습니다)"
       echo
       echo "    다음 중 하나로 준비하세요."
-      echo "    1) 사내에서 만든 tar.gz 을 $(dirname "$BUNDLE")/ 에 둔다"
+      echo "    1) 저장소를 git 으로 내려받으면 조각이 함께 들어온다"
+      echo "    2) 사내에서 만든 tar.gz 을 $(dirname "$BUNDLE")/ 에 둔다"
       echo "         (만드는 방법: ../image-bundle/README.md)"
-      echo "    2) 소스코드가 있다면 여기서 직접 빌드한다"
+      echo "    3) 소스코드가 있다면 여기서 직접 빌드한다"
       echo "         ./install/0-init.sh --build"
       exit 1
     fi
