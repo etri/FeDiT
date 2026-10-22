@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "python": "3.11.10 | packaged by conda-forge | (main, Oct 16 2024, 01:27:36) [GCC 13.3.0]",
+  "versions": {
+    "torch": "2.11.0+cu126",
+    "torchvision": "0.26.0+cu126",
+    "transformers": "5.3.0",
+    "numpy": "2.4.4",
+    "scipy": "1.17.1",
+    "pandas": "2.3.3",
+    "scikit-learn": "1.6.1",
+    "boxmot": "17.0.0",
+    "sahi": "0.11.36",
+    "shapely": "2.1.2",
+    "cython_bbox": "0.1.5",
+    "lap": "0.5.13"
+  },
+  "gpu": "NVIDIA A40",
+  "cuda_runtime": "12.6",
+  "tests": {
+    "matmul_finite": true,
+    "convolution_finite": true,
+    "grid_sample_finite": true
+  },
+  "created_at": "2026-10-22T03:29:25.234134+00:00"
+}

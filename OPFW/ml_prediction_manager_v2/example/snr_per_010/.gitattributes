@@ -10,3 +10,4 @@ outputs/models/** -text
 artifacts/reid/** -text
 weights/** -text
 weights/**/*.safetensors.part* -text
+results/** -text

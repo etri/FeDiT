@@ -2,6 +2,10 @@
 
 MOT20 네 시퀀스의 영상 프레임을 제공된 사전학습 모델로 추론하고 TrackEval로 MOTA와 IDF1을 계산합니다. 모델 가중치는 변경하지 않습니다.
 
+서버의 네 시퀀스 재현 결과는 **평균 MOTA 80.011059%**입니다(IoU 0.1). 실행 결과와 입력 검증 자료는 `results/verification/`에, 표와 그래프를 포함한 실행 출력은 노트북에 저장했습니다.
+
+![MOTA 평가 결과](results/verification/charts/mota_comparison.png)
+
 Python 3.11과 NVIDIA CUDA 환경을 사용합니다. Grounding DINO 가중치는 64 MiB 단위 파일로 저장됩니다. 추론 전에 자동으로 결합하고 원본 SHA-256을 검증합니다.
 
 신경망 추론은 FP32로 실행하며 CUDA 행렬 연산과 cuDNN의 TF32를 비활성화합니다. OSNet 특징 추출 배치 크기는 600입니다.

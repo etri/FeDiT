@@ -1,0 +1,71 @@
+{
+  "profile": {
+    "target_verified": true,
+    "verified_macro_mota_percent": 80.01105892734289,
+    "evaluation_protocol": {
+      "match_iou": 0.1,
+      "aggregation": "arithmetic_mean_over_four_sequences",
+      "target_mota_percent": 80.0
+    },
+    "fold01": {
+      "filter_threshold": 0.26,
+      "link_threshold": 0.65,
+      "n_min": 5,
+      "n_dti": 10,
+      "endpoint_stages": [],
+      "robust_tracker": {
+        "fuse_score": false,
+        "match_thresh": 0.8,
+        "new_track_thresh": 0.6,
+        "track_buffer": 120,
+        "track_high_thresh": 0.45,
+        "track_low_thresh": 0.1
+      }
+    },
+    "fold03": {
+      "final_filter": {
+        "model": "strictcv3315_rescue_v1_f03_histgb_p010_n000.pkl",
+        "threshold": 0.05,
+        "keep_long_min_len": 0
+      }
+    },
+    "fold05": {
+      "filter_threshold": 0.7,
+      "link_threshold": 0.2,
+      "neural_gap_threshold": 0.8
+    },
+    "final_postprocessing": {
+      "smoothing_window": 0,
+      "expand_x": 0,
+      "expand_y_top": 0,
+      "expand_y_bottom": 0
+    },
+    "selection": {
+      "mode": "CV-selected development operating points",
+      "validation_sequence_ground_truth_used_for_postprocessing_selection": true,
+      "ground_truth_used_as_model_input": false,
+      "model_training_executed": false
+    }
+  },
+  "profile_sha256": "f4a5878a44d1843faef8d69fe1e471e40a5e23203025eefeaafeae90d139f4d9",
+  "input_predictions": {
+    "MOT20-01": {
+      "tracker": "fold01_final",
+      "prediction_sha256": "0f2a2c913b6e4c2a76a5236b371ce22a0848fc38ef9bb5396053d18544e457ef"
+    },
+    "MOT20-02": {
+      "tracker": "fold02_final",
+      "prediction_sha256": "8badfc1cb61f4f6b718f528d7d1c6d01149ca2d03052fd787a4570561bf27526"
+    },
+    "MOT20-03": {
+      "tracker": "profile_fold03_filtered",
+      "prediction_sha256": "83c3be588ac5a8f8a6c3ff8d0cbad8b3a2a07d6086cbc1b3ece75e1b36d5bf4a"
+    },
+    "MOT20-05": {
+      "tracker": "fold05_final_reconstructed_support",
+      "prediction_sha256": "7c37677fb175cf868bf85ed559e0924acb601bf2ba4b0187bd99cb8882c05153"
+    }
+  },
+  "model_training_executed": false,
+  "ground_truth_used_as_model_input": false
+}
