@@ -21,7 +21,7 @@ git rev-parse HEAD
 
 아래 명령은 GitHub에서 받은 소스와 모델만으로 새로운 작업 폴더에서 전체 추론을 수행합니다. 데이터셋은 MOTChallenge 공식 배포처에서 다운로드합니다. 이전 실행 폴더나 검출·특징 캐시를 지정하지 않습니다.
 
-예측매니저의 `snr-per-010-mot20-inference:v2.0` 또는 `v3.0` 이미지에는 고정된 실행 환경과 `SNR-PER-010 (CUDA)` 커널이 포함돼 있습니다. 이 이미지에서는 다음 명령을 실행합니다.
+예측매니저의 `snr-per-010-mot20-inference:v2.0`, `v3.0`, `v4.0` 이미지에는 고정된 실행 환경과 `SNR-PER-010 (CUDA)` 커널이 포함돼 있습니다. 이 이미지에서는 다음 명령을 실행합니다.
 
 ```bash
 /opt/snr010-env/bin/python prepare_weights.py
@@ -57,7 +57,7 @@ JupyterLab에서는 같은 환경에 커널을 등록한 후 노트북을 실행
 .venv/bin/python -m ipykernel install --user --name snr-per-010-image --display-name "SNR-PER-010 (CUDA)"
 ```
 
-노트북 파일은 `SNR-PER-010_추론_성능평가.ipynb`입니다. 노트북 기본 실행은 `clone-inference`이며 기존 실행 캐시를 사용하지 않습니다. 이전 실행의 출력이 없는 상태에서 시작합니다. 데이터셋이 이미 준비돼 있으면 시퀀스별 프레임 존재 여부를 확인하고 저장된 자료를 사용합니다.
+노트북 파일은 `SNR-PER-010_추론_성능평가.ipynb`입니다. 노트북 기본 실행은 `retest-20261022`이며 기존 실행 캐시를 사용하지 않습니다. 이전 실행의 출력이 없는 상태에서 시작합니다. 데이터셋이 이미 준비돼 있으면 시퀀스별 프레임 존재 여부를 확인하고 저장된 자료를 사용합니다.
 
 추론은 Grounding DINO 사람 후보 생성, OSNet 특징 추출, fold별 보정 모델, ByteTrack, 학습 기반 추적 필터와 연결, 보간 및 누락 구간 보정 순서로 수행됩니다. 각 시퀀스에는 해당 시퀀스를 제외한 학습 목록을 가진 제공 체크포인트를 적용합니다. MOT20-03에는 raw17 필터, HistGB 보정·보호 병합, 연결·보간을 적용하고 full 및 relational 신경망 후보로 끝점을 보완합니다. MOT20-05의 비교 분기에는 quality 단계의 추적 결과를 사용합니다.
 
@@ -75,3 +75,13 @@ SNR-PER-010의 판정값은 제공 자료와 같은 IoU 0.1 조건에서 계산�
 - `inference-provenance.json`: 프레임 처리 범위와 결과 파일 해시
 
 모델 파일 해시는 `MODEL_MANIFEST.json`에 수록돼 있습니다. 외부 소스와 모델의 라이선스 및 저작권 고지는 `licenses/`와 `THIRD_PARTY_SOURCE_NOTICES.txt`를 확인하십시오.
+
+## 평가 이미지
+
+노트북 마지막 셀은 성능평가 후 `visualize_evaluation.py`를 실행합니다. IoU 0.1의 MOTA·오류 개수·IDF1·프레임 수 그래프 4개와, 시퀀스별 추적 화면 8개·궤적 화면 3개씩 총 48개 이미지를 생성합니다. 궤적 화면은 최근 30프레임의 최대 30개 객체 이동 경로를 표시합니다.
+
+```bash
+/opt/snr010-env/bin/python visualize_evaluation.py --workspace workspace --run-name retest-20261022
+```
+
+이미지와 원본 결과의 해시는 `workspace/results/retest-20261022/visual_evidence/manifest.json`에 저장합니다. `index.html`에서 전체 이미지를 확인할 수 있습니다.

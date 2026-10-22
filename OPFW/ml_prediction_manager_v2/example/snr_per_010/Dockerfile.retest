@@ -1,0 +1,4 @@
+FROM 127.0.0.1:5000/kubeflow-user-example-com/snr-per-010-mot20-inference:v3.0
+ENV SNR010_BACKBONE_CACHE="" SNR010_RUN_NAME="retest-20261022"
+WORKDIR /home/jovyan
+EXPOSE 8888
