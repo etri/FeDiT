@@ -1,0 +1,155 @@
+{
+  "appearance_backbone": "osnet_x0_25_msmt17",
+  "appearance_backbone_frozen": true,
+  "appearance_dim": 512,
+  "batch_size": 4096,
+  "between_vlm_detector_and_tracker": true,
+  "boxes_start_from_groundingdino": true,
+  "device": "mps",
+  "embedding_dir": "/Users/user/Desktop/ir_autolabeling/outputs/features/strictcv3315_vlmraw_prefilter_k600_osnet_msmt17_128x64",
+  "epochs": 12,
+  "geometry_feature_names": [
+    "raw_score",
+    "calibrated_score",
+    "score_log",
+    "score_sqrt",
+    "score_rank_norm",
+    "score_percentile",
+    "score_over_frame_max",
+    "score_over_frame_median",
+    "frame_detection_count_log",
+    "w_norm",
+    "h_norm",
+    "area_norm_log",
+    "aspect_h_over_w",
+    "border_min_norm",
+    "tile_id_norm"
+  ],
+  "geometry_profile": "full",
+  "hidden_dim": 384,
+  "high_quality_fraction": 0.45,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.8765541086317554,
+      "validation_loss": 0.8629090785980225
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.8337051031889734,
+      "validation_loss": 0.8490161895751953
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.823427129589503,
+      "validation_loss": 0.8419922590255737
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.8173135468004809,
+      "validation_loss": 0.8375433683395386
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.8129630222612743,
+      "validation_loss": 0.8346362113952637
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.8094661667502194,
+      "validation_loss": 0.8325910568237305
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.8064941620121432,
+      "validation_loss": 0.8300200700759888
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.8036936633031901,
+      "validation_loss": 0.8290953636169434
+    },
+    {
+      "epoch": 9,
+      "train_loss": 0.8015406573098244,
+      "validation_loss": 0.8286473751068115
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.7995747626296995,
+      "validation_loss": 0.8266721963882446
+    },
+    {
+      "epoch": 11,
+      "train_loss": 0.7976702592497471,
+      "validation_loss": 0.8248379826545715
+    },
+    {
+      "epoch": 12,
+      "train_loss": 0.7958507996533055,
+      "validation_loss": 0.8262802958488464
+    }
+  ],
+  "input_dim": 527,
+  "kind": "osnet_quality_conditioner",
+  "learning_rate": 0.0005,
+  "max_samples_per_sequence": 350000,
+  "negative_iou": 0.05,
+  "no_detector_finetuning": true,
+  "no_oracle_ids": true,
+  "no_yolo_inference": true,
+  "predicts_box_deltas": true,
+  "predicts_iou_quality": true,
+  "regression_iou": 0.2,
+  "regression_weight": 1.5,
+  "seed": 20260823,
+  "sequence_stats": {
+    "MOT20-01": {
+      "candidate_recall_at_iou_050": 0.9101660795168596,
+      "matched_gt_at_iou_050": 18085,
+      "negative_samples": 83129,
+      "quality_020_to_050": 58074,
+      "quality_ge_050": 30797,
+      "regression_samples": 88871,
+      "samples": 237057,
+      "source_detections": 242474,
+      "valid_gt": 19870
+    },
+    "MOT20-02": {
+      "candidate_recall_at_iou_050": 0.8836127231133112,
+      "matched_gt_at_iou_050": 136732,
+      "negative_samples": 87500,
+      "quality_020_to_050": 70000,
+      "quality_ge_050": 157500,
+      "regression_samples": 227500,
+      "samples": 350000,
+      "source_detections": 1666876,
+      "valid_gt": 154742
+    },
+    "MOT20-05": {
+      "candidate_recall_at_iou_050": 0.8732130258809551,
+      "matched_gt_at_iou_050": 564396,
+      "negative_samples": 87500,
+      "quality_020_to_050": 70000,
+      "quality_ge_050": 157500,
+      "regression_samples": 227500,
+      "samples": 350000,
+      "source_detections": 1955899,
+      "valid_gt": 646344
+    }
+  },
+  "source_detections": "/Users/user/Desktop/ir_autolabeling/outputs/detections/strictcv3315_vlmraw_prefilter_top1000_nms070_k600",
+  "tracker_unchanged": true,
+  "train_sequences": [
+    "MOT20-01",
+    "MOT20-02",
+    "MOT20-05"
+  ],
+  "training_samples": {
+    "count": 796498,
+    "validation": 140559
+  },
+  "uses_absolute_camera_position": false,
+  "validation_fraction": 0.15,
+  "weight_decay": 0.0001
+}

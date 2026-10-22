@@ -1,0 +1,81 @@
+{
+  "files": [
+    {
+      "path": "weights/hub/models--IDEA-Research--grounding-dino-base/snapshots/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/model.safetensors",
+      "bytes": 933400872,
+      "sha256": "5548f844c928c4b6f411fa8cbcc2bfa8dbbba437cb1d513975519f93c2a9ed21",
+      "parts": [
+        {
+          "path": "weights/hub/models--IDEA-Research--grounding-dino-base/snapshots/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/model.safetensors.part000",
+          "bytes": 67108864,
+          "sha256": "d2d3a762f8fddc54b083517e1800a351919cafc4ea20f78822488753dc9a00c0"
+        },
+        {
+          "path": "weights/hub/models--IDEA-Research--grounding-dino-base/snapshots/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/model.safetensors.part001",
+          "bytes": 67108864,
+          "sha256": "bdd374be31800003dd41160afc0c0fdfd6150c7f4c067cafb6316d1926f7bbb1"
+        },
+        {
+          "path": "weights/hub/models--IDEA-Research--grounding-dino-base/snapshots/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/model.safetensors.part002",
+          "bytes": 67108864,
+          "sha256": "8b848c07faf99916c7cfb5e69ea60b5b4880e6798b032e43aa57e49b6d242380"
+        },
+        {
+          "path": "weights/hub/models--IDEA-Research--grounding-dino-base/snapshots/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/model.safetensors.part003",
+          "bytes": 67108864,
+          "sha256": "797576dd3af287a6c75daa0600ea2facfa12f335f135203dd26ebbbf335e17f6"
+        },
+        {
+          "path": "weights/hub/models--IDEA-Research--grounding-dino-base/snapshots/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/model.safetensors.part004",
+          "bytes": 67108864,
+          "sha256": "23a9ec649dbfd357c14b30824cc5c8ecff825cc0f190834473426274c70a2339"
+        },
+        {
+          "path": "weights/hub/models--IDEA-Research--grounding-dino-base/snapshots/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/model.safetensors.part005",
+          "bytes": 67108864,
+          "sha256": "5d1fc79d51fd2b5404eea1ec4db3e8c584cf396acffd1d24434ae7e8b3822431"
+        },
+        {
+          "path": "weights/hub/models--IDEA-Research--grounding-dino-base/snapshots/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/model.safetensors.part006",
+          "bytes": 67108864,
+          "sha256": "4ad3954c9c1330da52e5b2756dd4c9fd8399d7760a52b42aee60603c400cc1fa"
+        },
+        {
+          "path": "weights/hub/models--IDEA-Research--grounding-dino-base/snapshots/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/model.safetensors.part007",
+          "bytes": 67108864,
+          "sha256": "cd9e98c4481e4a32b61a9e91af9b759e1eeaebec7371b4898c556f1783d945b3"
+        },
+        {
+          "path": "weights/hub/models--IDEA-Research--grounding-dino-base/snapshots/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/model.safetensors.part008",
+          "bytes": 67108864,
+          "sha256": "d3cc49c039b088035aac9ea8d7e61edf590ac1e4b2c177758d4a8bfba1f5b45d"
+        },
+        {
+          "path": "weights/hub/models--IDEA-Research--grounding-dino-base/snapshots/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/model.safetensors.part009",
+          "bytes": 67108864,
+          "sha256": "59a683b89c08e4d1b58912fa9a2723ce74e42bb64790970161121ddd55c607e2"
+        },
+        {
+          "path": "weights/hub/models--IDEA-Research--grounding-dino-base/snapshots/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/model.safetensors.part010",
+          "bytes": 67108864,
+          "sha256": "b4b5b0b8528791852f20064457e98788ddae1f0820741cfb11afe6d482f0aea7"
+        },
+        {
+          "path": "weights/hub/models--IDEA-Research--grounding-dino-base/snapshots/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/model.safetensors.part011",
+          "bytes": 67108864,
+          "sha256": "44deb252b60cf5e7d71ab6fe858c024cb506d9f442ce892bc499b28d993e4d75"
+        },
+        {
+          "path": "weights/hub/models--IDEA-Research--grounding-dino-base/snapshots/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/model.safetensors.part012",
+          "bytes": 67108864,
+          "sha256": "f347eaa37cc474e8e17c84ccea2025d48774a5697c55e9ff11ddaa082d1a347a"
+        },
+        {
+          "path": "weights/hub/models--IDEA-Research--grounding-dino-base/snapshots/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/model.safetensors.part013",
+          "bytes": 60985640,
+          "sha256": "d3ebbc2d6946064d9727b237af191bc8339061c4b06aeeffc52d5a622ee8cfae"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "feature_names": [
+    "length",
+    "log_length",
+    "span",
+    "density",
+    "mean_conf",
+    "median_conf",
+    "max_conf",
+    "min_conf",
+    "std_conf",
+    "mean_h",
+    "median_area_log",
+    "aspect_median",
+    "motion_per_h",
+    "jitter_per_h",
+    "start_frame_norm",
+    "end_frame_norm"
+  ],
+  "learned_postprocess_only": true,
+  "mot20_train_tuned": true,
+  "negative_max_tp_ratio": 0.12,
+  "no_detector_finetuning": true,
+  "no_external_dataset": true,
+  "no_oracle_ids": true,
+  "positive_min_tp_ratio": 0.68,
+  "sequence_stats": {
+    "MOT20-01": {
+      "negative": 35,
+      "positive": 94,
+      "skipped": 29,
+      "tracklets": 158
+    },
+    "MOT20-02": {
+      "negative": 216,
+      "positive": 427,
+      "skipped": 292,
+      "tracklets": 935
+    },
+    "MOT20-05": {
+      "negative": 405,
+      "positive": 1550,
+      "skipped": 583,
+      "tracklets": 2538
+    }
+  },
+  "source_tracker": "/Users/user/Desktop/ir_autolabeling/outputs/tracks/strictcv_raw17_bytetrack_full3315_tracklen50_conf55",
+  "threshold": 0.8619604706764221,
+  "threshold_stats": {
+    "fn": 0,
+    "fp": 0,
+    "kept": 2071,
+    "precision": 1.0,
+    "recall": 1.0,
+    "score": 1.0,
+    "tp": 2071
+  },
+  "train_sequences": [
+    "MOT20-01",
+    "MOT20-02",
+    "MOT20-05"
+  ],
+  "training_tracks": {
+    "count": 2727,
+    "negative": 656,
+    "positive": 2071
+  },
+  "uses_sequence_id_features": false
+}

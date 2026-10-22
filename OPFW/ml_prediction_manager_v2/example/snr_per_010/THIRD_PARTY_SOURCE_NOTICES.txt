@@ -1,0 +1,28 @@
+external/TrackEval/trackeval/baselines/non_overlap.py: 
+Non-Overlap: Code to take in a set of raw detections and produce a set of non-overlapping detections from it.
+
+Author: Jonathon Luiten
+
+external/TrackEval/trackeval/baselines/stp.py: 
+STP: Simplest Tracker Possible
+
+Author: Jonathon Luiten
+
+This simple tracker, simply assigns track IDs which maximise the 'bounding box IoU' between previous tracks and current
+detections. It is also able to match detections to tracks at more than one timestep previously.
+
+external/TrackEval/trackeval/baselines/thresholder.py: 
+Thresholder
+
+Author: Jonathon Luiten
+
+Simply reads in a set of detection, thresholds them at a certain score threshold, and writes them out again.
+
+external/TrackEval/trackeval/baselines/vizualize.py: 
+Vizualize: Code which converts .txt rle tracking results into a visual .png format.
+
+Author: Jonathon Luiten
+
+src/ir_autolabeling/reporting/experiment_logger.py: recorded a pre-evaluation payload. Treat those as non-authoritative so they do not
+src/ir_autolabeling/tuning/optuna_search.py: If we treat them as authoritative, we can end up skipping backfill for a signature that
+src/ir_autolabeling/tuning/optuna_search.py: Treat in-flight trials as non-authoritative; crashed runs can leave behind

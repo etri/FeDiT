@@ -1,0 +1,128 @@
+{
+  "detection_dir": "/Users/user/Desktop/ir_autolabeling/outputs/detections/strictcv3315_vlmraw_prefilter_top1000_nms070_k600",
+  "embedding_dir": "/Users/user/Desktop/ir_autolabeling/outputs/features/strictcv3315_vlmraw_prefilter_k600_osnet_msmt17_128x64",
+  "endpoint_samples": 3,
+  "feature_names": [
+    "gap",
+    "log_gap",
+    "center_dist_h",
+    "pred_center_dist_h",
+    "box_iou",
+    "size_log_abs",
+    "aspect_log_abs",
+    "hist_cosine",
+    "score_abs_diff",
+    "end_score",
+    "start_score",
+    "min_len_log",
+    "reid_all_cosine",
+    "reid_end_start_cosine",
+    "reid_start_start_cosine",
+    "reid_end_end_cosine",
+    "first_reid_stability",
+    "second_reid_stability",
+    "first_reid_match_fraction",
+    "second_reid_match_fraction",
+    "first_reid_mean_iou",
+    "second_reid_mean_iou"
+  ],
+  "max_center_dist_h": 6.0,
+  "max_gap": 90,
+  "max_pred_center_dist_h": null,
+  "max_samples": 12,
+  "min_match_iou": 0.2,
+  "no_heldout_gt": true,
+  "no_yolo_inference": true,
+  "oof_stats": {
+    "MOT20-01": {
+      "average_precision": 0.5116161616161616,
+      "pairs": 384,
+      "positive_pairs": 9,
+      "roc_auc": 0.9445925925925927,
+      "train_sequences": [
+        "MOT20-02",
+        "MOT20-03"
+      ]
+    },
+    "MOT20-02": {
+      "average_precision": 0.2612309992224739,
+      "pairs": 2373,
+      "positive_pairs": 113,
+      "roc_auc": 0.8336322343174877,
+      "train_sequences": [
+        "MOT20-01",
+        "MOT20-03"
+      ]
+    },
+    "MOT20-03": {
+      "average_precision": 0.45202237923965893,
+      "pairs": 2436,
+      "positive_pairs": 116,
+      "roc_auc": 0.9256205410225922,
+      "train_sequences": [
+        "MOT20-01",
+        "MOT20-02"
+      ]
+    }
+  },
+  "positive_pairs": 238,
+  "sequence_stats": {
+    "MOT20-01": {
+      "appearance": {
+        "match_fraction": 0.9981640146878825,
+        "matched_rows": 1631,
+        "mean_match_iou": 0.7173123177869564,
+        "sampled_rows": 1634,
+        "tracklets": 106
+      },
+      "negative_pairs": 375,
+      "positive_pairs": 9,
+      "tracklets": 106,
+      "valid_tracklets": 82
+    },
+    "MOT20-02": {
+      "appearance": {
+        "match_fraction": 0.9997189958786062,
+        "matched_rows": 10673,
+        "mean_match_iou": 0.6810433038460731,
+        "sampled_rows": 10676,
+        "tracklets": 737
+      },
+      "negative_pairs": 2260,
+      "positive_pairs": 113,
+      "tracklets": 737,
+      "valid_tracklets": 521
+    },
+    "MOT20-03": {
+      "appearance": {
+        "match_fraction": 0.9995245170876672,
+        "matched_rows": 16817,
+        "mean_match_iou": 0.6662795127772573,
+        "sampled_rows": 16825,
+        "tracklets": 1162
+      },
+      "negative_pairs": 2320,
+      "positive_pairs": 116,
+      "tracklets": 1162,
+      "valid_tracklets": 985
+    }
+  },
+  "source_tracker": "/Users/user/Desktop/ir_autolabeling/outputs/tracks/strictcv3315_relational_v6_f05_k48_h045_constable_t020_outer",
+  "threshold": 0.9925789833068848,
+  "threshold_source": "inner_sequence_loso_oof",
+  "threshold_stats": {
+    "fn": 234,
+    "fp": 1,
+    "precision": 0.8,
+    "recall": 0.01680672268907563,
+    "selected_pairs": 5,
+    "target_min_precision": 0.8,
+    "tp": 4
+  },
+  "train_sequences": [
+    "MOT20-01",
+    "MOT20-02",
+    "MOT20-03"
+  ],
+  "training_pairs": 5193
+}

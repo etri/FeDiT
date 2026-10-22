@@ -1,0 +1,91 @@
+{
+  "between_vlm_detector_and_tracker": true,
+  "boxes_unchanged": true,
+  "feature_names": [
+    "raw_score",
+    "calibrated_score",
+    "score_log",
+    "score_sqrt",
+    "score_rank_norm",
+    "score_percentile",
+    "score_over_frame_max",
+    "score_over_frame_median",
+    "frame_detection_count_log",
+    "frame_norm",
+    "cx_norm",
+    "cy_norm",
+    "bottom_norm",
+    "w_norm",
+    "h_norm",
+    "area_norm_log",
+    "aspect_h_over_w",
+    "border_min_norm",
+    "prompt_id_norm",
+    "tile_id_norm"
+  ],
+  "ignore_iou_threshold": 0.5,
+  "iou_threshold": 0.5,
+  "kind": "vlm_detection_conditioner",
+  "model_type": "histgb",
+  "no_detector_finetuning": true,
+  "no_external_dataset": true,
+  "no_oracle_ids": true,
+  "sequence_stats": {
+    "MOT20-01": {
+      "candidate_recall_at_iou": 0.9362858580775038,
+      "detections": 1281124,
+      "frame_negative_labels_before_cap": 186040,
+      "frame_positive_labels_before_cap": 18604,
+      "ignored_detections": 22834,
+      "matched_gt_by_candidates": 18604,
+      "sampled": 180000,
+      "sampled_negative": 161396,
+      "sampled_positive": 18604,
+      "valid_gt": 19870
+    },
+    "MOT20-02": {
+      "candidate_recall_at_iou": 0.9407465329386979,
+      "detections": 8121896,
+      "frame_negative_labels_before_cap": 1455730,
+      "frame_positive_labels_before_cap": 145573,
+      "ignored_detections": 91735,
+      "matched_gt_by_candidates": 145573,
+      "sampled": 180000,
+      "sampled_negative": 99000,
+      "sampled_positive": 81000,
+      "valid_gt": 154742
+    },
+    "MOT20-05": {
+      "candidate_recall_at_iou": 0.9622275444654859,
+      "detections": 9945000,
+      "frame_negative_labels_before_cap": 6219300,
+      "frame_positive_labels_before_cap": 621930,
+      "ignored_detections": 312700,
+      "matched_gt_by_candidates": 621930,
+      "sampled": 180000,
+      "sampled_negative": 99000,
+      "sampled_positive": 81000,
+      "valid_gt": 646344
+    }
+  },
+  "source_detections": "/Users/user/Desktop/ir_autolabeling/outputs/detections/imported_full3315_grounded_sam2_sahi_v2_grounding",
+  "threshold": 0.3136902153491974,
+  "threshold_stats": {
+    "selected_threshold": 0.3136902153491974,
+    "weighted_fn": 19497.0,
+    "weighted_fp": 44214.03515625,
+    "weighted_precision": 0.7846590091336576,
+    "weighted_recall": 0.8920455803858165,
+    "weighted_tp": 161107.0
+  },
+  "train_sequences": [
+    "MOT20-01",
+    "MOT20-02",
+    "MOT20-05"
+  ],
+  "training_samples": {
+    "count": 540000,
+    "negative": 359396,
+    "positive": 180604
+  }
+}

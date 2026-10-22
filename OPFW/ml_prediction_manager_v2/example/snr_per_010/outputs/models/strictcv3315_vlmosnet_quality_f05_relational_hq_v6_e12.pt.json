@@ -1,0 +1,165 @@
+{
+  "appearance_backbone": "osnet_x0_25_msmt17",
+  "appearance_backbone_frozen": true,
+  "appearance_dim": 512,
+  "batch_size": 4096,
+  "between_vlm_detector_and_tracker": true,
+  "boxes_start_from_groundingdino": true,
+  "device": "mps",
+  "embedding_dir": "/Users/user/Desktop/ir_autolabeling/outputs/features/strictcv3315_vlmraw_prefilter_k600_osnet_msmt17_128x64",
+  "epochs": 12,
+  "geometry_feature_names": [
+    "raw_score",
+    "calibrated_score",
+    "score_log",
+    "score_sqrt",
+    "score_rank_norm",
+    "score_percentile",
+    "score_over_frame_max",
+    "score_over_frame_median",
+    "aspect_h_over_w",
+    "height_rank_percentile",
+    "height_log_over_frame_median",
+    "width_rank_percentile",
+    "width_log_over_frame_median",
+    "area_rank_percentile",
+    "area_log_over_frame_median",
+    "aspect_log_over_frame_median",
+    "bottom_rank_percentile",
+    "center_y_rank_percentile"
+  ],
+  "geometry_profile": "relational",
+  "hidden_dim": 384,
+  "high_quality_fraction": 0.45,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.8701600724015666,
+      "validation_loss": 0.8548878207802773
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.8273496469805897,
+      "validation_loss": 0.8398823514580727
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.8170396286437487,
+      "validation_loss": 0.8333268016576767
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.8111592953252565,
+      "validation_loss": 0.8294347934424877
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.8070017228007116,
+      "validation_loss": 0.8263535536825657
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.8036838272764583,
+      "validation_loss": 0.8245462588965893
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.8006951055182104,
+      "validation_loss": 0.8230964094400406
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.798429529955111,
+      "validation_loss": 0.8212925903499126
+    },
+    {
+      "epoch": 9,
+      "train_loss": 0.79630329308991,
+      "validation_loss": 0.8198621422052383
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.7941045482102583,
+      "validation_loss": 0.8192012198269367
+    },
+    {
+      "epoch": 11,
+      "train_loss": 0.792462717441992,
+      "validation_loss": 0.8178848586976528
+    },
+    {
+      "epoch": 12,
+      "train_loss": 0.7908577655456621,
+      "validation_loss": 0.8177711442112923
+    }
+  ],
+  "input_dim": 530,
+  "kind": "osnet_quality_conditioner",
+  "learning_rate": 0.0005,
+  "max_samples_per_sequence": 350000,
+  "negative_iou": 0.05,
+  "no_detector_finetuning": true,
+  "no_oracle_ids": true,
+  "no_yolo_inference": true,
+  "predicts_box_deltas": true,
+  "predicts_iou_quality": true,
+  "pseudo_label_adaptation": false,
+  "regression_iou": 0.2,
+  "regression_weight": 1.5,
+  "seed": 20260731,
+  "sequence_stats": {
+    "MOT20-01": {
+      "candidate_recall_at_iou_050": 0.9101660795168596,
+      "matched_gt_at_iou_050": 18085,
+      "negative_samples": 83129,
+      "quality_020_to_050": 58074,
+      "quality_ge_050": 30797,
+      "regression_samples": 88871,
+      "samples": 237057,
+      "source_detections": 242474,
+      "target_kind": "ground_truth",
+      "valid_gt": 19870
+    },
+    "MOT20-02": {
+      "candidate_recall_at_iou_050": 0.8836127231133112,
+      "matched_gt_at_iou_050": 136732,
+      "negative_samples": 87500,
+      "quality_020_to_050": 70000,
+      "quality_ge_050": 157500,
+      "regression_samples": 227500,
+      "samples": 350000,
+      "source_detections": 1666876,
+      "target_kind": "ground_truth",
+      "valid_gt": 154742
+    },
+    "MOT20-03": {
+      "candidate_recall_at_iou_050": 0.9108041242372266,
+      "matched_gt_at_iou_050": 285681,
+      "negative_samples": 87500,
+      "quality_020_to_050": 70000,
+      "quality_ge_050": 157500,
+      "regression_samples": 227500,
+      "samples": 350000,
+      "source_detections": 1403239,
+      "target_kind": "ground_truth",
+      "valid_gt": 313658
+    }
+  },
+  "source_detections": "/Users/user/Desktop/ir_autolabeling/outputs/detections/strictcv3315_vlmraw_prefilter_top1000_nms070_k600",
+  "target_mode": "independent",
+  "target_source": "MOT20 training ground truth",
+  "tracker_unchanged": true,
+  "train_sequences": [
+    "MOT20-01",
+    "MOT20-02",
+    "MOT20-03"
+  ],
+  "training_samples": {
+    "count": 796498,
+    "validation": 140559
+  },
+  "uses_absolute_camera_position": false,
+  "uses_ground_truth_targets": true,
+  "validation_fraction": 0.15,
+  "weight_decay": 0.0001
+}

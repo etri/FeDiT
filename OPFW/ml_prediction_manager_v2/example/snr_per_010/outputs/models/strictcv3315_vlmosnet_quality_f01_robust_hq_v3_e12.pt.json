@@ -1,0 +1,149 @@
+{
+  "appearance_backbone": "osnet_x0_25_msmt17",
+  "appearance_backbone_frozen": true,
+  "appearance_dim": 512,
+  "batch_size": 4096,
+  "between_vlm_detector_and_tracker": true,
+  "boxes_start_from_groundingdino": true,
+  "device": "mps",
+  "embedding_dir": "/Users/user/Desktop/ir_autolabeling/outputs/features/strictcv3315_vlmraw_prefilter_k600_osnet_msmt17_128x64",
+  "epochs": 12,
+  "geometry_feature_names": [
+    "raw_score",
+    "calibrated_score",
+    "score_log",
+    "score_sqrt",
+    "score_rank_norm",
+    "score_percentile",
+    "score_over_frame_max",
+    "score_over_frame_median",
+    "aspect_h_over_w"
+  ],
+  "geometry_profile": "robust",
+  "hidden_dim": 384,
+  "high_quality_fraction": 0.45,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.991168781620047,
+      "validation_loss": 0.9903663396835327
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.9561529660574862,
+      "validation_loss": 0.9740751385688782
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.9447238214364573,
+      "validation_loss": 0.96729576587677
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.9377541750937283,
+      "validation_loss": 0.9629961252212524
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.932601430015938,
+      "validation_loss": 0.9603297114372253
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.9284949693252392,
+      "validation_loss": 0.9580667018890381
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.9249463401564697,
+      "validation_loss": 0.9552708864212036
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.9218847019825996,
+      "validation_loss": 0.9538952112197876
+    },
+    {
+      "epoch": 9,
+      "train_loss": 0.9192699187366903,
+      "validation_loss": 0.9533881545066833
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.9168995554031778,
+      "validation_loss": 0.9512843489646912
+    },
+    {
+      "epoch": 11,
+      "train_loss": 0.9147336101494583,
+      "validation_loss": 0.9505342245101929
+    },
+    {
+      "epoch": 12,
+      "train_loss": 0.9126238179677006,
+      "validation_loss": 0.9502930641174316
+    }
+  ],
+  "input_dim": 521,
+  "kind": "osnet_quality_conditioner",
+  "learning_rate": 0.0005,
+  "max_samples_per_sequence": 350000,
+  "negative_iou": 0.05,
+  "no_detector_finetuning": true,
+  "no_oracle_ids": true,
+  "no_yolo_inference": true,
+  "predicts_box_deltas": true,
+  "predicts_iou_quality": true,
+  "regression_iou": 0.2,
+  "regression_weight": 1.5,
+  "seed": 20260811,
+  "sequence_stats": {
+    "MOT20-02": {
+      "candidate_recall_at_iou_050": 0.8836127231133112,
+      "matched_gt_at_iou_050": 136732,
+      "negative_samples": 87500,
+      "quality_020_to_050": 70000,
+      "quality_ge_050": 157500,
+      "regression_samples": 227500,
+      "samples": 350000,
+      "source_detections": 1666876,
+      "valid_gt": 154742
+    },
+    "MOT20-03": {
+      "candidate_recall_at_iou_050": 0.9108041242372266,
+      "matched_gt_at_iou_050": 285681,
+      "negative_samples": 87500,
+      "quality_020_to_050": 70000,
+      "quality_ge_050": 157500,
+      "regression_samples": 227500,
+      "samples": 350000,
+      "source_detections": 1403239,
+      "valid_gt": 313658
+    },
+    "MOT20-05": {
+      "candidate_recall_at_iou_050": 0.8732130258809551,
+      "matched_gt_at_iou_050": 564396,
+      "negative_samples": 87500,
+      "quality_020_to_050": 70000,
+      "quality_ge_050": 157500,
+      "regression_samples": 227500,
+      "samples": 350000,
+      "source_detections": 1955899,
+      "valid_gt": 646344
+    }
+  },
+  "source_detections": "/Users/user/Desktop/ir_autolabeling/outputs/detections/strictcv3315_vlmraw_prefilter_top1000_nms070_k600",
+  "tracker_unchanged": true,
+  "train_sequences": [
+    "MOT20-02",
+    "MOT20-03",
+    "MOT20-05"
+  ],
+  "training_samples": {
+    "count": 892500,
+    "validation": 157500
+  },
+  "uses_absolute_camera_position": false,
+  "validation_fraction": 0.15,
+  "weight_decay": 0.0001
+}

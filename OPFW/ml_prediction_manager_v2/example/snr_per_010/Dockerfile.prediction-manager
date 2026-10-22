@@ -1,0 +1,11 @@
+FROM 127.0.0.1:5000/kubeflow-user-example-com/snr-per-010-mot20-pinned:v1.0
+USER root
+RUN python -m venv --system-site-packages /opt/snr010-env
+ENV PATH="/opt/snr010-env/bin:$PATH" OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 PYTHONUNBUFFERED=1
+RUN python -c "import base64; open('/tmp/snr010-requirements.txt','wb').write(base64.b64decode('LS1leHRyYS1pbmRleC11cmwgaHR0cHM6Ly9kb3dubG9hZC5weXRvcmNoLm9yZy93aGwvY3UxMjYKdG9yY2g9PTIuMTEuMCtjdTEyNgp0b3JjaHZpc2lvbj09MC4yNi4wK2N1MTI2CnRyYW5zZm9ybWVycz09NS4zLjAKaHVnZ2luZ2ZhY2UtaHViPT0xLjEwLjEKdG9rZW5pemVycz09MC4yMi4yCnNhZmV0ZW5zb3JzPT0wLjcuMApudW1weT09Mi40LjQKc2NpcHk9PTEuMTcuMQpwYW5kYXM9PTIuMy4zCnNjaWtpdC1sZWFybj09MS42LjEKQ3l0aG9uPT0zLjIuNApjeXRob25fYmJveD09MC4xLjUKbGFwPT0wLjUuMTMKYm94bW90PT0xNy4wLjAKc2FoaT09MC4xMS4zNgpzaGFwZWx5PT0yLjEuMgpQaWxsb3c9PTEyLjIuMApvcGVuY3YtcHl0aG9uPT00LjExLjAuODYKZmlsdGVycHk9PTEuNC41ClB5WUFNTD09Ni4wLjIKbWF0cGxvdGxpYj09My45LjQKdHFkbT09NC42Ni41CmlweWtlcm5lbD09Ny40LjAKanVweXRlcmxhYj09NC40LjkKbGFweD09MC4xMC4wCmZ0Znk9PTYuMy4xCmdkb3duPT01LjIuMgpsb2d1cnU9PTAuNy4zCnlhY3M9PTAuMS44CnJlZ2V4PT0yMDI0LjExLjYKam9ibGliPT0xLjYuMAp0aHJlYWRwb29sY3RsPT0zLjcuMApweWNvY290b29scz09Mi4wLjExCnRhYnVsYXRlPT0wLjEwLjANCg=='))"
+RUN python -m pip install --no-cache-dir numpy==2.4.4 Cython==3.2.4 setuptools wheel && python -m pip install --no-cache-dir -r /tmp/snr010-requirements.txt && python -m pip install --no-cache-dir --force-reinstall --no-deps --no-build-isolation --no-binary=cython_bbox cython_bbox==0.1.5 && python -m pip install --no-cache-dir --force-reinstall --no-deps lap==0.5.13
+RUN python -c "import torch,torchvision,transformers,numpy,scipy,sklearn,lap,cython_bbox; assert lap.__version__ == '0.5.13'; print(torch.__version__,transformers.__version__,numpy.__version__,sklearn.__version__)"
+RUN python -m ipykernel install --prefix=/usr/local --name snr-per-010-image --display-name "SNR-PER-010 (CUDA)"
+WORKDIR /home/jovyan
+USER 1000
+EXPOSE 8888

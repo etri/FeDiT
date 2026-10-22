@@ -1,0 +1,42 @@
+paths:
+  dataset_root: /Users/user/Desktop/ir_autolabeling/data/MOT20
+  artifact_root: /Users/user/Desktop/ir_autolabeling/artifacts/expanded_prompt
+  docs_experiments_dir: /Users/user/Desktop/ir_autolabeling/docs/experiments
+
+dataset:
+  split: train
+  sequences:
+    - MOT20-01
+    - MOT20-02
+    - MOT20-03
+    - MOT20-05
+  frame_stride: 1
+  max_frames_per_sequence: null
+
+detector:
+  cache_tag: full_groundingdino_expanded_person_native_v1
+  prompt: "person."
+  prompt_variants:
+    - "pedestrian."
+    - "human being."
+    - "man."
+    - "woman."
+    - "adult."
+    - "child."
+    - "boy."
+    - "girl."
+  canonical_label: person
+  prompt_strategy: combined
+  grounding_model_id: IDEA-Research/grounding-dino-base
+  sam2_model_id: facebook/sam2-hiera-large
+  grounding_device: mps
+  sam2_device: mps
+  grounding_box_threshold: 0.01
+  grounding_text_threshold: 0.01
+  use_slice_inference: false
+  frame_batch_size: 16
+  detector_max_detections: 3000
+  pre_nms_iou: 0.97
+  prompt_fusion_iou: 0.90
+  sam2_max_refinement_boxes: 0
+

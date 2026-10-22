@@ -1,0 +1,12 @@
+*.py text eol=lf
+*.md text eol=lf
+*.ipynb text eol=lf
+*.yaml text eol=lf
+INFERENCE_PROFILE.json text eol=lf
+MODEL_MANIFEST.json text eol=lf
+requirements.txt text eol=lf
+Dockerfile* text eol=lf
+outputs/models/** -text
+artifacts/reid/** -text
+weights/** -text
+weights/**/*.safetensors.part* -text
