@@ -58,7 +58,8 @@ for section,changes in payload.get('toc',{}).items():
 for name,path in payload.get('pictures',{}).items():
     if name not in contents:
         raise RuntimeError(f'Unknown original picture {name}')
-    contents[name]=Path(path).read_bytes()
+    picture=Path(path)
+    contents[name]=(picture if picture.is_absolute() else base/picture).read_bytes()
 
 for name in [key for key in contents if key.startswith('Contents/section') and key.endswith('.xml')]:
     document=etree.fromstring(contents[name])

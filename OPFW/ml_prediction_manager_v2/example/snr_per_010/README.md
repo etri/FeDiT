@@ -21,7 +21,7 @@ git rev-parse HEAD
 
 아래 명령은 GitHub에서 받은 소스와 모델만으로 새로운 작업 폴더에서 전체 추론을 수행합니다. 데이터셋은 MOTChallenge 공식 배포처에서 다운로드합니다. 이전 실행 폴더나 검출·특징 캐시를 지정하지 않습니다.
 
-예측매니저의 `snr-per-010-mot20-inference:v2.0` 이미지에는 고정된 실행 환경과 `SNR-PER-010 (CUDA)` 커널이 포함돼 있습니다. 이 이미지에서는 다음 명령을 실행합니다.
+예측매니저의 `snr-per-010-mot20-inference:v2.0` 또는 `v3.0` 이미지에는 고정된 실행 환경과 `SNR-PER-010 (CUDA)` 커널이 포함돼 있습니다. 이 이미지에서는 다음 명령을 실행합니다.
 
 ```bash
 /opt/snr010-env/bin/python prepare_weights.py

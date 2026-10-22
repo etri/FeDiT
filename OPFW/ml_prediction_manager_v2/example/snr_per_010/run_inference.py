@@ -24,6 +24,11 @@ if not profile.get('target_verified') or not isinstance(profile.get('verified_ma
 work=args.workspace.expanduser().resolve()
 root=work/'runs'/args.run_name
 root.mkdir(parents=True,exist_ok=True)
+source_version={}
+for key,arguments in [('commit',['rev-parse','HEAD']),('branch',['branch','--show-current']),('repository',['remote','get-url','origin'])]:
+    completed=subprocess.run(['git','-C',str(package),*arguments],capture_output=True,text=True)
+    source_version[key]=completed.stdout.strip() if completed.returncode==0 else None
+(root/'source-version.json').write_text(json.dumps(source_version,indent=2))
 (work/'logs').mkdir(exist_ok=True)
 models=json.loads((package/'MODEL_MANIFEST.json').read_text())
 for item in models:
@@ -69,6 +74,7 @@ for arguments in commands:
     print('STAGE',arguments[0],flush=True)
     subprocess.run([sys.executable,str(package/arguments[0]),*arguments[1:]],cwd=package,env=env,check=True)
 metrics=json.loads((work/'results'/args.run_name/'evaluation/metrics.json').read_text())
+shutil.copy2(root/'source-version.json',work/'results'/args.run_name/'source-version.json')
 primary=next(item for item in metrics['evaluations'] if item['match_iou']==0.1)
 if not metrics['complete_four_fold_scope'] or primary['macro_mota_percent']<80:
     raise RuntimeError('The four-sequence arithmetic mean has not reached MOTA 80')

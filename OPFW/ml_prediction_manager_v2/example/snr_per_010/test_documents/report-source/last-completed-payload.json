@@ -103,16 +103,16 @@
     }
   },
   "pictures": {
-    "BinData/image3.png": "C:\\Users\\user\\Desktop\\prediction_manager\\outputs\\snr-per-010\\report-source\\figures\\image3.png",
-    "BinData/image4.png": "C:\\Users\\user\\Desktop\\prediction_manager\\outputs\\snr-per-010\\report-source\\figures\\image4.png",
-    "BinData/image5.png": "C:\\Users\\user\\Desktop\\prediction_manager\\outputs\\snr-per-010\\report-source\\figures\\image5.png",
-    "BinData/image6.png": "C:\\Users\\user\\Desktop\\prediction_manager\\outputs\\snr-per-010\\report-source\\figures\\image6.png",
-    "BinData/image7.png": "C:\\Users\\user\\Desktop\\prediction_manager\\outputs\\snr-per-010\\report-source\\figures\\image7.png",
-    "BinData/image8.png": "C:\\Users\\user\\Desktop\\prediction_manager\\outputs\\snr-per-010\\report-source\\figures\\image8.png",
-    "BinData/image9.png": "C:\\Users\\user\\Desktop\\prediction_manager\\outputs\\snr-per-010\\report-source\\figures\\image9.png",
-    "BinData/image10.png": "C:\\Users\\user\\Desktop\\prediction_manager\\outputs\\snr-per-010\\report-source\\figures\\image10.png",
-    "BinData/image11.png": "C:\\Users\\user\\Desktop\\prediction_manager\\outputs\\snr-per-010\\report-source\\figures\\image11.png",
-    "BinData/image12.png": "C:\\Users\\user\\Desktop\\prediction_manager\\outputs\\snr-per-010\\report-source\\figures\\image12.png"
+    "BinData/image3.png": "figures/image3.png",
+    "BinData/image4.png": "figures/image4.png",
+    "BinData/image5.png": "figures/image5.png",
+    "BinData/image6.png": "figures/image6.png",
+    "BinData/image7.png": "figures/image7.png",
+    "BinData/image8.png": "figures/image8.png",
+    "BinData/image9.png": "figures/image9.png",
+    "BinData/image10.png": "figures/image10.png",
+    "BinData/image11.png": "figures/image11.png",
+    "BinData/image12.png": "figures/image12.png"
   },
   "status": "completed image inference and evaluation; arithmetic mean >= 80%"
 }
