@@ -1,4 +1,6 @@
 from kubernetes import client
+from kubernetes.utils.quantity import parse_quantity
+from decimal import InvalidOperation
 from fastapi import HTTPException
 from app.config import settings
 from app.services import kubernetes_client, volume_service
@@ -211,13 +213,41 @@ def list_pvcs(namespace: str) -> list[dict]:
     return volume_service.list_volumes(namespace)
 
 
+def _validate_compute_resources(cpu_request, cpu_limit, memory_request, memory_limit, gpu_count, gpu_vendor):
+    for resource, request, limit, maximum in (
+        ("CPU", cpu_request, cpu_limit, settings.notebook_max_cpu),
+        ("메모리", memory_request, memory_limit, settings.notebook_max_memory),
+    ):
+        try:
+            requested, limited, cap = map(parse_quantity, (request, limit, maximum))
+            valid = all(v.is_finite() for v in (requested, limited, cap)) and 0 < requested <= limited <= cap
+        except (ValueError, TypeError, InvalidOperation):
+            valid = False
+        if not valid:
+            raise HTTPException(422, f"{resource}: 0 < 요청량 ≤ 상한 ≤ {maximum} 이어야 합니다.")
+    if not isinstance(gpu_count, int) or not 0 <= gpu_count <= 1 or (gpu_count and gpu_vendor != "nvidia.com/gpu"):
+        raise HTTPException(422, "GPU는 NVIDIA GPU 0개 또는 1개만 요청할 수 있습니다.")
+
+
+def _check_compute_capacity(ns, gpu_count, ignore_name=None):
+    notebooks = custom_api.list_namespaced_custom_object(GROUP, VERSION, ns, PLURAL).get("items", [])
+    active = [nb for nb in notebooks if nb["metadata"]["name"] != ignore_name
+              and not nb["metadata"].get("deletionTimestamp")
+              and not nb["metadata"].get("annotations", {}).get("kubeflow-resource-stopped")]
+    if len(active) >= settings.notebook_max_running:
+        raise HTTPException(409, f"노트북은 동시에 {settings.notebook_max_running}개까지 실행할 수 있습니다. 사용하지 않는 컨테이너를 먼저 중지하세요.")
+    if gpu_count and any(int(c.get("resources", {}).get("limits", {}).get("nvidia.com/gpu", 0))
+                         for nb in active for c in nb["spec"]["template"]["spec"]["containers"]):
+        raise HTTPException(409, "GPU 작업은 동시에 1개만 실행할 수 있습니다. 실행 중인 GPU 컨테이너를 먼저 중지하세요.")
+
+
 def create_notebook(
     name: str,
     image: str,
-    cpu_request: str = "2",
-    cpu_limit: str = "4",
-    memory_request: str = "4Gi",
-    memory_limit: str = "8Gi",
+    cpu_request: str = "25m",
+    cpu_limit: str = "1",
+    memory_request: str = "1Gi",
+    memory_limit: str = "4Gi",
     gpu_count: int = 0,
     gpu_vendor: str = "nvidia.com/gpu",
     workspace_source: str = "new",
@@ -241,6 +271,8 @@ def create_notebook(
     ns = require_tenant_namespace(namespace or settings.default_namespace)
     if not 1 <= container_port <= 65535:
         raise ValueError("container_port는 1~65535 사이여야 합니다.")
+    _validate_compute_resources(cpu_request, cpu_limit, memory_request, memory_limit, gpu_count, gpu_vendor)
+    _check_compute_capacity(ns, gpu_count)
     data_volumes = data_volumes or []
     env_vars = env_vars or []
     pod_defaults = pod_defaults or []
@@ -329,6 +361,13 @@ def create_notebook(
     # Env vars
     env_list = [{"name": e["name"], "value": e.get("value", "")}
                 for e in env_vars if e.get("name")]
+    thread_vars = {"OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS"}
+    env_list = [e for e in env_list if e["name"] not in thread_vars]
+    env_list.extend({"name": key, "value": "1"} for key in sorted(thread_vars))
+    # CUDA images otherwise default to exposing all host GPUs without a request.
+    env_list = [e for e in env_list if e["name"] != "NVIDIA_VISIBLE_DEVICES"]
+    if gpu_count == 0:
+        env_list.append({"name": "NVIDIA_VISIBLE_DEVICES", "value": "void"})
     if notebook_type == "jupyter":
         # PM-built and Kubeflow images use this prefix for assets and kernels.
         env_list = [e for e in env_list if e["name"] != "NB_PREFIX"]
@@ -358,8 +397,8 @@ def create_notebook(
             # An explicit CPU annotation replaces Istio's entire resources
             # default; retain its memory reservation and CPU/memory limits.
             "sidecar.istio.io/proxyMemory": "128Mi",
-            "sidecar.istio.io/proxyCPULimit": "2000m",
-            "sidecar.istio.io/proxyMemoryLimit": "1024Mi",
+            "sidecar.istio.io/proxyCPULimit": "100m",
+            "sidecar.istio.io/proxyMemoryLimit": "256Mi",
         })
     # VSCode/RStudio 용 path rewrite
     if notebook_type in ("vscode", "rstudio"):
@@ -370,6 +409,7 @@ def create_notebook(
         )
 
     pod_spec = {
+        "priorityClassName": settings.notebook_priority_class,
         "serviceAccountName": "default-editor",
         "containers": [
             {
@@ -453,6 +493,16 @@ def stop_notebook(name: str, namespace: str = None):
 
 def start_notebook(name: str, namespace: str = None):
     ns = require_tenant_namespace(namespace or settings.default_namespace)
+    notebook = custom_api.get_namespaced_custom_object(GROUP, VERSION, ns, PLURAL, name)
+    if not notebook["metadata"].get("annotations", {}).get("kubeflow-resource-stopped"):
+        return
+    containers = notebook["spec"]["template"]["spec"]["containers"]
+    for container in containers:
+        resources = container.get("resources", {})
+        requests, limits = resources.get("requests", {}), resources.get("limits", {})
+        _validate_compute_resources(requests.get("cpu"), limits.get("cpu"), requests.get("memory"), limits.get("memory"),
+                                    int(limits.get("nvidia.com/gpu", 0)), "nvidia.com/gpu")
+    _check_compute_capacity(ns, sum(int(c.get("resources", {}).get("limits", {}).get("nvidia.com/gpu", 0)) for c in containers), ignore_name=name)
     patch = {
         "metadata": {
             "annotations": {"kubeflow-resource-stopped": None}

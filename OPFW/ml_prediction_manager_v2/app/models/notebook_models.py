@@ -32,13 +32,13 @@ class NotebookCreateRequest(BaseModel):
     container_port: int = Field(default=8888, ge=1, le=65535)
 
     # Resources
-    cpu_request: str = "2"
-    cpu_limit: str = "4"
-    memory_request: str = "4Gi"
-    memory_limit: str = "8Gi"
+    cpu_request: str = "25m"
+    cpu_limit: str = "1"
+    memory_request: str = "1Gi"
+    memory_limit: str = "4Gi"
 
     # GPU
-    gpu_count: int = 0
+    gpu_count: int = Field(default=0, ge=0, le=1)
     gpu_vendor: str = "nvidia.com/gpu"    # "nvidia.com/gpu" | "amd.com/gpu" | "habana.ai/gaudi"
 
     # Workspace volume

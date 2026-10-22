@@ -273,3 +273,43 @@ Ubuntu 22.04, CPU 4개, RAM 31GiB, NVIDIA A40 46068MiB, 드라이버 535.309.01 
 Images·Volumes 화면 확인 결과는 [VALIDATION.md](VALIDATION.md)에 기록한다.
 실제 사용자 데이터로 UI 작업 생성 → AutoML 분산 학습 → 서빙,
 외부 PC 접속, 재부팅 복구, 부하 시험까지 완료했다는 뜻은 아니다.
+
+
+### A40 서비스 자원 보호 (Kubernetes 1.30 이상)
+
+`resource-controls.json`은 `kubeflow-user-example-com` namespace의 운영 프로필입니다.
+GPU는 동시에 1개 작업에 할당하고, 노트북은 동시에 2개, 각 작업은 CPU 1코어와
+메모리 4Gi로 제한합니다. 노트북 전체 상한은 사이드카 포함 CPU 2200m/메모리
+9Gi입니다. GPU 메모리 비율을 분할하거나 GPU 연산 사용률 자체를 제한하지는 않습니다.
+
+```bash
+kubectl apply -f resource-controls.json
+kubectl patch deployment prediction-manager -n kubeflow --type=strategic --patch-file web-resource-patch.json
+```
+
+기존 Notebook은 먼저 백업하고 GPU 작업을 중지한 후 적용합니다.
+`spec.template.spec.priorityClassName`은 `prediction-manager-compute`, 작업 컨테이너
+CPU/메모리 requests는 `25m`/`1Gi`, limits는 `1`/`4Gi`로 맞춥니다.
+GPU 미신청 CUDA 이미지에는 `NVIDIA_VISIBLE_DEVICES=void`를 설정합니다.
+OMP/MKL/OpenBLAS/NumExpr 연산 스레드 기본값은 각각 1개입니다.
+Notebook 및 기존 StatefulSet 템플릿의 Istio proxy CPU/메모리 상한을
+`100m`/`256Mi`로 맞춥니다. 일부 Notebook controller는 annotation 변경을 기존
+StatefulSet에 전파하지 않으므로 두 객체를 확인해야 합니다. 이 변경은 노트북을
+재시작하지만 PVC와 저장 파일을 보존합니다.
+
+API는 생성과 재시작 전 상한 및 GPU 중복을 검사합니다. Kubernetes 할당량은
+동시 요청을 제한하며 admission 정책은 노트북 상한, 우선순위 및 GPU 미신청
+접근 차단을 검증합니다. 초과 작업은 거부되거나 스케줄링을 기다립니다.
+Spawner CPU 기본값은 `0.025`, limitFactor는 `40`으로 설정합니다.
+웹 백엔드는 CPU 100m/메모리 512Mi를 예약하고 상한은 500m/1Gi입니다.
+호스트 프런트엔드 제한 명령은 다음과 같습니다.
+
+```bash
+docker update --cpus 0.5 --memory 256m --memory-swap 256m --pids-limit 128 fedit-fe
+```
+
+Docker 제한은 해당 컨테이너 재시작에 유지됩니다. 컨테이너 재생성 시에도 같은
+옵션이 필요합니다. 웹 rollout에 쓸 CPU 예약 공간이 없는 기존 서버에서는 먼저
+자원 배정을 조정해야 합니다. 긴급 교체 때에만 일시적으로 maxSurge=0,
+maxUnavailable=1을 사용하고, 정상 기동 후 web-resource-patch.json의
+maxSurge=1, maxUnavailable=0으로 복원합니다.

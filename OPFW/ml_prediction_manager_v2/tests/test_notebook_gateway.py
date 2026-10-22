@@ -65,8 +65,8 @@ class NotebookGatewayTest(unittest.TestCase):
         self.assertNotIn('metadata', body['spec']['template'])
         self.assertEqual(body['metadata']['annotations']['sidecar.istio.io/proxyCPU'], '10m')
         self.assertEqual(body['metadata']['annotations']['sidecar.istio.io/proxyMemory'], '128Mi')
-        self.assertEqual(body['metadata']['annotations']['sidecar.istio.io/proxyCPULimit'], '2000m')
-        self.assertEqual(body['metadata']['annotations']['sidecar.istio.io/proxyMemoryLimit'], '1024Mi')
+        self.assertEqual(body['metadata']['annotations']['sidecar.istio.io/proxyCPULimit'], '100m')
+        self.assertEqual(body['metadata']['annotations']['sidecar.istio.io/proxyMemoryLimit'], '256Mi')
         env = body['spec']['template']['spec']['containers'][0]['env']
         self.assertEqual([x['value'] for x in env if x['name'] == 'NB_PREFIX'], [f'/notebook/{NS}/lab'])
         self.assertIn({'name': 'EXAMPLE', 'value': 'kept'}, env)

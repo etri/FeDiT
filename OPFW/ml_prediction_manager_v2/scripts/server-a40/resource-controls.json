@@ -1,0 +1,191 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "scheduling.k8s.io/v1",
+      "kind": "PriorityClass",
+      "metadata": {
+        "name": "prediction-manager-compute"
+      },
+      "value": -10,
+      "globalDefault": false,
+      "preemptionPolicy": "Never",
+      "description": "Prediction Manager bounded notebook workloads"
+    },
+    {
+      "apiVersion": "scheduling.k8s.io/v1",
+      "kind": "PriorityClass",
+      "metadata": {
+        "name": "prediction-manager-web"
+      },
+      "value": 10000,
+      "globalDefault": false,
+      "preemptionPolicy": "Never",
+      "description": "Prediction Manager interactive web service"
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ResourceQuota",
+      "metadata": {
+        "name": "prediction-manager-compute",
+        "namespace": "kubeflow-user-example-com"
+      },
+      "spec": {
+        "hard": {
+          "pods": "2",
+          "limits.cpu": "2200m",
+          "limits.memory": "9Gi"
+        },
+        "scopeSelector": {
+          "matchExpressions": [
+            {
+              "scopeName": "PriorityClass",
+              "operator": "In",
+              "values": [
+                "prediction-manager-compute"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ResourceQuota",
+      "metadata": {
+        "name": "prediction-manager-gpu",
+        "namespace": "kubeflow-user-example-com"
+      },
+      "spec": {
+        "hard": {
+          "requests.nvidia.com/gpu": "1"
+        }
+      }
+    },
+    {
+      "apiVersion": "admissionregistration.k8s.io/v1",
+      "kind": "ValidatingAdmissionPolicy",
+      "metadata": {
+        "name": "prediction-manager-notebook-budget"
+      },
+      "spec": {
+        "failurePolicy": "Fail",
+        "matchConstraints": {
+          "resourceRules": [
+            {
+              "apiGroups": [
+                ""
+              ],
+              "apiVersions": [
+                "v1"
+              ],
+              "operations": [
+                "CREATE",
+                "UPDATE"
+              ],
+              "resources": [
+                "pods"
+              ]
+            }
+          ]
+        },
+        "matchConditions": [
+          {
+            "name": "notebook-pods",
+            "expression": "has(object.metadata.labels) && 'notebook-name' in object.metadata.labels"
+          }
+        ],
+        "validations": [
+          {
+            "expression": "has(object.spec.priorityClassName) && object.spec.priorityClassName == 'prediction-manager-compute'",
+            "message": "Notebook Pods must use prediction-manager-compute for aggregate quota accounting."
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "admissionregistration.k8s.io/v1",
+      "kind": "ValidatingAdmissionPolicyBinding",
+      "metadata": {
+        "name": "prediction-manager-notebook-budget"
+      },
+      "spec": {
+        "policyName": "prediction-manager-notebook-budget",
+        "validationActions": [
+          "Deny"
+        ],
+        "matchResources": {
+          "namespaceSelector": {
+            "matchLabels": {
+              "kubernetes.io/metadata.name": "kubeflow-user-example-com"
+            }
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "admissionregistration.k8s.io/v1",
+      "kind": "ValidatingAdmissionPolicy",
+      "metadata": {
+        "name": "prediction-manager-notebook-spec-budget"
+      },
+      "spec": {
+        "failurePolicy": "Fail",
+        "matchConstraints": {
+          "resourceRules": [
+            {
+              "apiGroups": [
+                "kubeflow.org"
+              ],
+              "apiVersions": [
+                "v1"
+              ],
+              "operations": [
+                "CREATE",
+                "UPDATE"
+              ],
+              "resources": [
+                "notebooks"
+              ]
+            }
+          ]
+        },
+        "validations": [
+          {
+            "expression": "has(object.spec.template.spec.priorityClassName) && object.spec.template.spec.priorityClassName == 'prediction-manager-compute'",
+            "message": "Notebook Pods must use prediction-manager-compute for aggregate quota accounting."
+          },
+          {
+            "expression": "object.spec.template.spec.containers.all(c, has(c.resources) && has(c.resources.limits) && 'cpu' in c.resources.limits && 'memory' in c.resources.limits && quantity(c.resources.limits['cpu']).compareTo(quantity(c.name == 'istio-proxy' ? '100m' : '1')) <= 0 && quantity(c.resources.limits['memory']).compareTo(quantity(c.name == 'istio-proxy' ? '256Mi' : '4Gi')) <= 0)",
+            "message": "Notebook CPU/memory limits exceed the server budget: workload 1 CPU/4Gi, proxy 100m/256Mi."
+          },
+          {
+            "expression": "object.spec.template.spec.containers.all(c, c.name == 'istio-proxy' || (has(c.resources.limits) && 'nvidia.com/gpu' in c.resources.limits && quantity(c.resources.limits['nvidia.com/gpu']).compareTo(quantity('0')) > 0) || (has(c.env) && c.env.exists(e, e.name == 'NVIDIA_VISIBLE_DEVICES' && has(e.value) && e.value == 'void') && c.env.all(e, e.name != 'NVIDIA_VISIBLE_DEVICES' || (has(e.value) && e.value == 'void'))))",
+            "message": "CPU-only Notebook containers must set NVIDIA_VISIBLE_DEVICES=void."
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "admissionregistration.k8s.io/v1",
+      "kind": "ValidatingAdmissionPolicyBinding",
+      "metadata": {
+        "name": "prediction-manager-notebook-spec-budget"
+      },
+      "spec": {
+        "policyName": "prediction-manager-notebook-spec-budget",
+        "validationActions": [
+          "Deny"
+        ],
+        "matchResources": {
+          "namespaceSelector": {
+            "matchLabels": {
+              "kubernetes.io/metadata.name": "kubeflow-user-example-com"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

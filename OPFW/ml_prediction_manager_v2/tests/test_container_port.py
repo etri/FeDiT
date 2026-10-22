@@ -10,6 +10,9 @@ class _FakeCustomObjectsApi:
     def __init__(self):
         self.body = None
 
+    def list_namespaced_custom_object(self, *_):
+        return {"items": []}
+
     def create_namespaced_custom_object(self, _group, _version, _namespace, _plural, body):
         self.body = body
         return body
