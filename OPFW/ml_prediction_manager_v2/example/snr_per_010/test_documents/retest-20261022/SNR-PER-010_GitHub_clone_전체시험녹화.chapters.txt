@@ -1,0 +1,27 @@
+00:00:00  시험 시작
+00:00:14  예측매니저 Images  01-images-before-build.png
+00:01:55  시험 이미지 Dockerfile  02-dockerfile-v4.png
+00:02:21  v4.0 이미지 생성 완료  03-image-v4-built.png
+00:17:35  시험 컨테이너 실행  05-container-running.png
+00:18:38  GitHub clone 명령  06-github-clone-command.png
+00:23:08  GitHub clone 완료  07-github-clone-complete.png
+00:24:26  모델 복원과 CUDA 검증  08-model-runtime-verified.png
+00:26:31  새 clone의 평가 노트북  10-notebook-fresh-settings.png
+00:27:36  공식 MOT20 데이터셋 다운로드  11-official-dataset-download.png
+00:37:15  MOT20 전체 데이터 준비 완료  12-dataset-ready-8931.png
+00:46:39  모델 해시와 실행 설정 검증  09-model-resource-cache-validation.png
+00:55:24  MOT20-01 전체 이미지 추론  13-mot20-01-inference.png
+01:02:36  MOT20-01 처리 완료  13b-mot20-01-tracking.png
+01:06:03  MOT20-02 전체 이미지 추론  14-mot20-02-inference.png
+03:10:11  MOT20-02 전체 검출 완료  14b-mot20-02-detection-complete.png
+03:24:45  MOT20-02 추가 후보 추론  14c-mot20-02-expanded-inference.png
+03:49:52  MOT20-03 전체 이미지 추론  15-mot20-03-inference.png
+04:47:50  완료 시퀀스 검증  14d-mot20-02-completion-verified.png
+05:25:04  MOT20-03 전체 검출 완료  15b-mot20-03-detection-complete.png
+06:04:30  MOT20-05 전체 이미지 추론  16-mot20-05-inference.png
+06:04:38  세 시퀀스 완료 검증  15c-mot20-03-completion-verified.png
+09:07:04  MOT20-05 전체 검출 완료  16b-mot20-05-detection-complete.png
+10:10:15  MOTA 그래프와 판정  18-evaluation-chart.png
+10:10:16  시퀀스별 성능평가 결과  17-evaluation-table.png
+10:10:44  객체 추적 이미지 출력  19-tracking-gallery.png
+10:12:32  전체 성능평가 완료  20-final-pass.png

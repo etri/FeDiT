@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "model_files_verified": 60,
+  "model_hash_mismatches": 0,
+  "sequence_frames": {
+    "MOT20-01": 429,
+    "MOT20-02": 2782,
+    "MOT20-03": 2405,
+    "MOT20-05": 3315
+  },
+  "frames_total": 8931,
+  "ground_truth_sha256": {
+    "MOT20-01": "89fd0196d67a5eb6011a470dc2a49b02255403b49e8848031cdf99add8a36d9c",
+    "MOT20-02": "10abe457a67d9919a9cbfe821d3619c8e6174c2b0ed7ecf4cb68c1fd6cad58de",
+    "MOT20-03": "350fbc950c6dc00e3cc8a71358b3d0b8958906c8be57a7bf5fb9db34bff70f28",
+    "MOT20-05": "6da1ad9a528c39203c181aa93fc492d194358c50856695a7fe17656c928f5c17"
+  }
+}

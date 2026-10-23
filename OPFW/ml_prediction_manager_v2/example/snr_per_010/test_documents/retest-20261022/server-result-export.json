@@ -1,0 +1,13 @@
+{
+  "complete": true,
+  "macro_mota_percent": 80.01105892734289,
+  "frames": 8931,
+  "source": {
+    "commit": "4ce1a356eb335cda642a09eee2054db31d674c3d",
+    "branch": "OPFW_development_ETRI_pman",
+    "repository": "https://github.com/etri/FeDiT.git"
+  },
+  "archive": "/home/jovyan/snr010-retest-final.zip",
+  "archive_sha256": "3fed76b9cefbfc7fd300268e2731b922632439945a366a60804b04cea1bc40d9",
+  "finished_at": "2026-10-23T00:03:57.603167+00:00"
+}

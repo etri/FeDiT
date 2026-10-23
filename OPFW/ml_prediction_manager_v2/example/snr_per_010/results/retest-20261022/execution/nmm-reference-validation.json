@@ -1,0 +1,62 @@
+{
+  "passed": true,
+  "torch_version": "2.11.0+cu126",
+  "numpy_version": "2.4.4",
+  "module_sha256": "24cba1cf5534674e59f609fc47d5dbd842fc374037cb856b319636968f2d7461",
+  "comparisons": [
+    {
+      "input_boxes": 4346,
+      "match_metric": "IOU",
+      "threshold": 0.8,
+      "same_ordered_merge_map": true,
+      "original_seconds": 42.48000273946673,
+      "optimized_seconds": 0.5982077615335584
+    },
+    {
+      "input_boxes": 3939,
+      "match_metric": "IOU",
+      "threshold": 0.8,
+      "same_ordered_merge_map": true,
+      "original_seconds": 37.420453044585884,
+      "optimized_seconds": 0.5109442388638854
+    },
+    {
+      "input_boxes": 3745,
+      "match_metric": "IOU",
+      "threshold": 0.8,
+      "same_ordered_merge_map": true,
+      "original_seconds": 37.38345186691731,
+      "optimized_seconds": 0.5052974810823798
+    },
+    {
+      "input_boxes": 6483,
+      "match_metric": "IOU",
+      "threshold": 0.8,
+      "same_ordered_merge_map": true,
+      "original_seconds": 54.11681397538632,
+      "optimized_seconds": 0.877461894415319
+    }
+  ],
+  "frames": [
+    {
+      "sequence": "MOT20-01",
+      "frame": 1,
+      "raw_detections": 3000
+    },
+    {
+      "sequence": "MOT20-02",
+      "frame": 1,
+      "raw_detections": 2973
+    },
+    {
+      "sequence": "MOT20-03",
+      "frame": 1,
+      "raw_detections": 2159
+    },
+    {
+      "sequence": "MOT20-05",
+      "frame": 1,
+      "raw_detections": 3000
+    }
+  ]
+}

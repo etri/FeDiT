@@ -1,0 +1,44 @@
+{
+  "programs": [],
+  "stream_groups": [],
+  "streams": [
+    {
+      "codec_name": "h264",
+      "width": 1600,
+      "height": 1090,
+      "nb_read_frames": "5350"
+    },
+    {
+      "codec_name": "bin_data"
+    }
+  ],
+  "format": {
+    "duration": "36760.000000",
+    "size": "27654972"
+  },
+  "source": "outputs\\snr-per-010\\retest-20261022\\full-trial.mkv",
+  "source_frames": 5350,
+  "sha256": "c342a413de0ce54ba73ee10b506f7621f659e40186ecd60a3e081b94c5ec6246",
+  "full_decode_passed": true,
+  "decoder_errors": [],
+  "source_sha256": "14900526f4dadeba989b25a61143358803d5e9c42c65787fba84d4bd20a72cd5",
+  "source_probe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 1600,
+        "height": 1090,
+        "nb_read_frames": "5350"
+      }
+    ],
+    "format": {
+      "duration": "36760.000000",
+      "size": "23557941"
+    }
+  },
+  "recording_started_at": "2026-10-22T13:54:52.069066+00:00",
+  "recording_finished_at": "2026-10-23T00:07:33.322121+00:00",
+  "chapters_verified": 27
+}

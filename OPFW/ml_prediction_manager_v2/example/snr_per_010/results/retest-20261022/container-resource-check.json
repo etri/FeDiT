@@ -1,0 +1,4 @@
+{
+  "cpu_limit_cores": 1.0,
+  "memory_limit_gib": 4.0
+}

@@ -1,0 +1,623 @@
+{
+  "date": "2026.10.23.",
+  "repository": "https://github.com/etri/FeDiT.git",
+  "branch": "OPFW_development_ETRI_pman",
+  "commit": "4ce1a356eb335cda642a09eee2054db31d674c3d",
+  "assets": [
+    {
+      "path": "screenshots/01-images-before-build.png",
+      "title": "예측매니저 Images",
+      "caption": "사용자 이미지 목록을 확인합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "5bbf1e760f710318de74e765f8cf3b4846b2d9c2dbdd714185aaa8caa60e91e4",
+      "notes": "촬영 시각: 2026-10-22T22:55:06.362374+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/02-dockerfile-v4.png",
+      "title": "시험 이미지 Dockerfile",
+      "caption": "기구축 환경을 기반으로 v4.0 이미지를 생성합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "f08abffaa9b5d2cf653d8b33f0b7a5b656e56620637876f3110482a4a69b461c",
+      "notes": "촬영 시각: 2026-10-22T22:56:47.788791+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/03-image-v4-built.png",
+      "title": "v4.0 이미지 생성 완료",
+      "caption": "예측매니저에 등록된 시험 이미지를 확인합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "49c38f1d358804082195ddc595ad1ffcbb858f664e36e37dbbda20d7ec46cd10",
+      "notes": "촬영 시각: 2026-10-22T22:57:13.910068+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/05-container-running.png",
+      "title": "시험 컨테이너 실행",
+      "caption": "snr-per-010-retest 컨테이너의 실행 상태를 확인합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "8ac0d31dcf406219acebd4fd2c1f761f4355e12dff118a7a6a50da5138dacf1d",
+      "notes": "촬영 시각: 2026-10-22T23:12:27.358033+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/06-github-clone-command.png",
+      "title": "GitHub clone 명령",
+      "caption": "시험 브랜치를 새 작업 폴더에 clone합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "42e319846ec27267e9c5145a544f3097de8accba0ec1bbf02f09eabcefc8b2ef",
+      "notes": "촬영 시각: 2026-10-22T23:13:30.764531+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/07-github-clone-complete.png",
+      "title": "GitHub clone 완료",
+      "caption": "객체 수신과 파일 생성이 완료된 화면입니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "df6bb84957b3983db892ea751b0aa5c7186d46f2a1a9a9aee9abebcbd7e8668f",
+      "notes": "촬영 시각: 2026-10-22T23:18:00.914417+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/08-model-runtime-verified.png",
+      "title": "모델 복원과 CUDA 검증",
+      "caption": "제공된 모델을 복원하고 A40 CUDA 연산을 검증합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "a08394363f2635db6ee64c0b79af05664ccb5f9f1a5d633b58c948f04b8e1124",
+      "notes": "촬영 시각: 2026-10-22T23:19:18.333434+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/09-model-resource-cache-validation.png",
+      "title": "모델 해시와 실행 설정 검증",
+      "caption": "모델·설정 파일 60개의 해시와 실제 자원 상한을 확인합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "a1e0b375526f653528eaee145c7d7d124954047e7e8dd5916ab81cc6dd593f60",
+      "notes": "촬영 시각: 2026-10-22T23:41:31.615520+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/10-notebook-fresh-settings.png",
+      "title": "새 clone의 평가 노트북",
+      "caption": "GitHub에서 받은 노트북의 실행 설정을 확인합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "dabd37330482dc76c7c5442123a5d838dc592cd2a024934f30ee694d96db6075",
+      "notes": "촬영 시각: 2026-10-22T23:21:23.955371+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/11-official-dataset-download.png",
+      "title": "공식 MOT20 데이터셋 다운로드",
+      "caption": "공식 배포처의 ZIP 파일을 처음부터 다운로드합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "2ea3532ecf77ddd70d0b0d6a738dfebac2965d89c17ca3466c683022d0e31e9f",
+      "notes": "촬영 시각: 2026-10-22T23:22:28.514855+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/12-dataset-ready-8931.png",
+      "title": "MOT20 전체 데이터 준비 완료",
+      "caption": "4개 시퀀스의 8,931프레임을 준비하고 검증합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "c8432b6cd5178ca27f7bbb9f20cb282e41e0af556045f6582004ad25a9e6a3de",
+      "notes": "촬영 시각: 2026-10-22T23:32:07.548615+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/13-mot20-01-inference.png",
+      "title": "MOT20-01 전체 이미지 추론",
+      "caption": "새 clone 작업 폴더에서 검출·특징 추출과 객체 추적을 실행합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "4a7169db48a011f7a4b75227cc41794445ee9113fcd6f643e44862088be72b99",
+      "notes": "촬영 시각: 2026-10-22T23:50:16.540401+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/13b-mot20-01-tracking.png",
+      "title": "MOT20-01 처리 완료",
+      "caption": "429프레임의 추론·추적을 완료하고 다음 처리 단계로 이동합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "1bae4d83612961de31d58f89f2c6f15ffb977234dbab000d7795d09f85978d69",
+      "notes": "촬영 시각: 2026-10-22T23:57:28.780798+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/14-mot20-02-inference.png",
+      "title": "MOT20-02 전체 이미지 추론",
+      "caption": "전체 프레임 처리 진행률을 확인합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "ec25303c446e9366382dbabdbe112102112c1be340f324c0926fc26b0836af39",
+      "notes": "촬영 시각: 2026-10-23T00:00:55.406358+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/14b-mot20-02-detection-complete.png",
+      "title": "MOT20-02 전체 검출 완료",
+      "caption": "2,782프레임의 사람 후보 검출을 완료하고 후속 추론을 진행합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "d516219d1f39c8a665854f3872a8c5f99041c57c4e4647e88fd7c98b2752c1df",
+      "notes": "촬영 시각: 2026-10-23T02:05:04.000449+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/14c-mot20-02-expanded-inference.png",
+      "title": "MOT20-02 추가 후보 추론",
+      "caption": "추적의 누락 구간을 보완하기 위한 추가 후보를 전체 프레임에서 추론합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "3ac08bfc6ecdd46baf089681efadd84f34f7a191589febb97a0e2ff68a8736ce",
+      "notes": "촬영 시각: 2026-10-23T02:19:38.055370+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/14d-mot20-02-completion-verified.png",
+      "title": "완료 시퀀스 검증",
+      "caption": "MOT20-01·02의 완료 기록과 MOT20-02의 최종 추적 파일, 실패 목록을 확인합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "805b368801478c3cd539fd402637e33e82875249ea5df56650c942601ee722f4",
+      "notes": "촬영 시각: 2026-10-23T03:42:42.640891+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/15-mot20-03-inference.png",
+      "title": "MOT20-03 전체 이미지 추론",
+      "caption": "전체 프레임 처리 진행률을 확인합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "5865c160a0b5d6823959dca56ebf11e49e7adecc5767c3be12fcafb26d813fc7",
+      "notes": "촬영 시각: 2026-10-23T02:44:44.852620+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/15b-mot20-03-detection-complete.png",
+      "title": "MOT20-03 전체 검출 완료",
+      "caption": "2,405프레임의 사람 후보 검출을 완료하고 후속 추론을 진행합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "ad358dd886a49b472ea01eae967fbad74b99126c297443c8ed4d1e6683d0c6d0",
+      "notes": "촬영 시각: 2026-10-23T04:19:56.946777+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/15c-mot20-03-completion-verified.png",
+      "title": "세 시퀀스 완료 검증",
+      "caption": "MOT20-01·02·03의 완료 기록과 결과 파일, 실패 목록을 확인합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "79f5ffd8157b7f5220f6a75e7554e59df65f769fa02d04812377ba8e1dd65508",
+      "notes": "촬영 시각: 2026-10-23T04:59:30.962214+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/16-mot20-05-inference.png",
+      "title": "MOT20-05 전체 이미지 추론",
+      "caption": "전체 프레임 처리 진행률을 확인합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "83335c2fe1ba8dc98c53883ca00bee4b22a8afcdb79bc2f410406405f18a62fd",
+      "notes": "촬영 시각: 2026-10-23T04:59:22.124854+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/16b-mot20-05-detection-complete.png",
+      "title": "MOT20-05 전체 검출 완료",
+      "caption": "3,315프레임의 사람 후보 검출을 완료하고 후속 추론을 진행합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "a9ffd9580a37b24ae0e051b46be74b2979b0a8781cc64865622c8550c7c3813f",
+      "notes": "촬영 시각: 2026-10-23T08:01:56.511025+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/17-evaluation-table.png",
+      "title": "시퀀스별 성능평가 결과",
+      "caption": "TrackEval의 MOTA·FP·FN·IDSW·GT 값을 확인합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "86fbb109245ba6bd22b67b957a6fd18cdea1bbd852b012bf2f34ea1b742b99d0",
+      "notes": "촬영 시각: 2026-10-23T09:05:08.477502+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/18-evaluation-chart.png",
+      "title": "MOTA 그래프와 판정",
+      "caption": "4개 시퀀스의 MOTA 산술평균으로 목표 달성 여부를 확인합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "bde559686e6f140539d7769eb9ab1a79e9eedcf99dbb6c2a2085ba64a1e80c75",
+      "notes": "촬영 시각: 2026-10-23T09:05:07.317079+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/19-tracking-gallery.png",
+      "title": "객체 추적 이미지 출력",
+      "caption": "시퀀스별 객체 위치·추적 ID와 이동 궤적을 확인합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "842c1da128022e88ee058116827efe0116b4c519fa49a067090b12299344e16b",
+      "notes": "촬영 시각: 2026-10-23T09:05:36.469355+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "screenshots/20-final-pass.png",
+      "title": "전체 성능평가 완료",
+      "caption": "4개 시퀀스의 평균 MOTA와 목표 80% 달성 여부를 확인합니다.",
+      "source": "서버 Chrome 작업 화면",
+      "sha256": "6b38cccc5c58508f83ed557703e973758e3193ce6209fb1888d00ad2c1b253cc",
+      "notes": "촬영 시각: 2026-10-23T09:07:24.912332+09:00\n예측매니저 http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager\nJupyterLab https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab"
+    },
+    {
+      "path": "presentation-source-images/mota_comparison.png",
+      "title": "시퀀스와 평균 MOTA 비교",
+      "caption": "4개 시퀀스와 전체 산술평균을 목표 80%와 비교합니다.",
+      "source": "서버 TrackEval 성능평가 결과",
+      "sha256": "72df15d86f39b0167eb1a3e63b6e55d616f760908b360aaf9a1d499923384751"
+    },
+    {
+      "path": "presentation-source-images/error_breakdown.png",
+      "title": "정답 객체 수 대비 오류 비율",
+      "caption": "FP·FN·IDSW를 정답 객체 수에 대한 비율로 비교합니다.",
+      "source": "서버 TrackEval 성능평가 결과",
+      "sha256": "479be36aaf71c8b6ee43c7a906e1edb4c0cf9a15725f9c4234d1a9e932a88c4f"
+    },
+    {
+      "path": "presentation-source-images/metric-table.png",
+      "title": "성능평가 수치표",
+      "caption": "시퀀스별 FP·FN·IDSW·GT와 MOTA, 네 시퀀스의 평균을 확인합니다.",
+      "source": "서버 평가 JSON에서 작성한 결과서 표",
+      "sha256": "82f1cc025d2863285b6266e9d9af54bd90578455368fbeaf217786ff2103019e"
+    },
+    {
+      "path": "../../results/retest-20261022/visual_evidence/01-mota.png",
+      "title": "시퀀스별 MOTA",
+      "caption": "서버에서 계산한 실제 평가 결과입니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "5f333ff9389d521e595f77297b81ded15acaae4b7c102a70c3addf900ce603fe",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"01-mota.png\", \"title\": \"Sequence MOTA at IoU 0.1\", \"sha256\": \"5f333ff9389d521e595f77297b81ded15acaae4b7c102a70c3addf900ce603fe\", \"kind\": \"chart\", \"match_iou\": 0.1}"
+    },
+    {
+      "path": "../../results/retest-20261022/visual_evidence/02-error-counts.png",
+      "title": "FP·FN·IDSW 평가 결과",
+      "caption": "서버에서 계산한 실제 평가 결과입니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "e0b6d97066f140af4b5b56fa73dac1f3b561bbd9dcf18f042e15f5fff0685568",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"02-error-counts.png\", \"title\": \"Evaluation error counts at IoU 0.1\", \"sha256\": \"e0b6d97066f140af4b5b56fa73dac1f3b561bbd9dcf18f042e15f5fff0685568\", \"kind\": \"chart\", \"match_iou\": 0.1}"
+    },
+    {
+      "path": "../../results/retest-20261022/visual_evidence/03-idf1.png",
+      "title": "시퀀스별 IDF1",
+      "caption": "서버에서 계산한 실제 평가 결과입니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "aae97a11bf12ace362be413c80b8d6f10ad6cfe69806411a45c7792304afb094",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"03-idf1.png\", \"title\": \"Sequence IDF1 at IoU 0.1\", \"sha256\": \"aae97a11bf12ace362be413c80b8d6f10ad6cfe69806411a45c7792304afb094\", \"kind\": \"chart\", \"match_iou\": 0.1}"
+    },
+    {
+      "path": "../../results/retest-20261022/visual_evidence/04-frame-coverage.png",
+      "title": "전체 프레임 처리 범위",
+      "caption": "서버에서 계산한 실제 평가 결과입니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "5a36b97f5c7ce97750efea198a175f3de9044f1f7a6a5bcbf393c42d292e7852",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"04-frame-coverage.png\", \"title\": \"Processed frames by sequence\", \"sha256\": \"5a36b97f5c7ce97750efea198a175f3de9044f1f7a6a5bcbf393c42d292e7852\", \"kind\": \"chart\", \"match_iou\": 0.1}"
+    },
+    {
+      "path": "presentation-source-images/MOT20-01-tracking-000001.jpg",
+      "title": "MOT20-01 추적 결과 프레임 1",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "6ded7dc8789244d5b26a288df6b4a5f73828c500f5847ebc2efe2c6db48c2b8d",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-01-tracking-000001.png\", \"title\": \"MOT20-01 frame 000001 / tracking\", \"sha256\": \"302360e96966d575893954d66a5a657094932983945e067e10130066b20de583\", \"kind\": \"tracking\", \"sequence\": \"MOT20-01\", \"frame\": 1, \"prediction_sha256\": \"ac8f4092b9298ffc45f484cb42ea7f250cc0313a41a8fdc3db9ec646c35115e3\", \"displayed_objects\": 28}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-01-tracking-000062.jpg",
+      "title": "MOT20-01 추적 결과 프레임 62",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "3e949fd6035d7186a704113ca72a9b14f02f9070204ca187090e3424db389cda",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-01-tracking-000062.png\", \"title\": \"MOT20-01 frame 000062 / tracking\", \"sha256\": \"03f973e4885907363c732558d025fdf064020510fec6c9a1b2635477ea01229b\", \"kind\": \"tracking\", \"sequence\": \"MOT20-01\", \"frame\": 62, \"prediction_sha256\": \"ac8f4092b9298ffc45f484cb42ea7f250cc0313a41a8fdc3db9ec646c35115e3\", \"displayed_objects\": 42}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-01-tracking-000123.jpg",
+      "title": "MOT20-01 추적 결과 프레임 123",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "80cd8de714828e4b927b5d0f8d8a271a21a06ee97e83daad6808827befc1230e",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-01-tracking-000123.png\", \"title\": \"MOT20-01 frame 000123 / tracking\", \"sha256\": \"c2448497be121a7875c204baef9d64f6c344e0277ff447b176e429c897ddf379\", \"kind\": \"tracking\", \"sequence\": \"MOT20-01\", \"frame\": 123, \"prediction_sha256\": \"ac8f4092b9298ffc45f484cb42ea7f250cc0313a41a8fdc3db9ec646c35115e3\", \"displayed_objects\": 39}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-01-tracking-000184.jpg",
+      "title": "MOT20-01 추적 결과 프레임 184",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "ab2122325159125260b42d8c0aec867890943e886c75d08270a0b312e8dc8d54",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-01-tracking-000184.png\", \"title\": \"MOT20-01 frame 000184 / tracking\", \"sha256\": \"68f1e0d2dc9fd0ca36233c5f9ad8e32032c90731e3966a2bbce38e5c0ead5c6f\", \"kind\": \"tracking\", \"sequence\": \"MOT20-01\", \"frame\": 184, \"prediction_sha256\": \"ac8f4092b9298ffc45f484cb42ea7f250cc0313a41a8fdc3db9ec646c35115e3\", \"displayed_objects\": 49}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-01-tracking-000245.jpg",
+      "title": "MOT20-01 추적 결과 프레임 245",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "71b4851d1b4e8a3fc02ae4fe921c094555db74ea178251d636c519a34a2b3e5d",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-01-tracking-000245.png\", \"title\": \"MOT20-01 frame 000245 / tracking\", \"sha256\": \"5674bcfeab454d3fbcdebcf6d4a33530f94ed51b39738589c359d08c2d730fef\", \"kind\": \"tracking\", \"sequence\": \"MOT20-01\", \"frame\": 245, \"prediction_sha256\": \"ac8f4092b9298ffc45f484cb42ea7f250cc0313a41a8fdc3db9ec646c35115e3\", \"displayed_objects\": 57}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-01-tracking-000306.jpg",
+      "title": "MOT20-01 추적 결과 프레임 306",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "7981156706ef0397d849b383809687d2de20875d050fa79217b935bbfdfb2671",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-01-tracking-000306.png\", \"title\": \"MOT20-01 frame 000306 / tracking\", \"sha256\": \"ec4eddc75640bd5164fc1acb37b4b187f66a8bd1cdf6f9ad45fe6643819288f7\", \"kind\": \"tracking\", \"sequence\": \"MOT20-01\", \"frame\": 306, \"prediction_sha256\": \"ac8f4092b9298ffc45f484cb42ea7f250cc0313a41a8fdc3db9ec646c35115e3\", \"displayed_objects\": 44}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-01-tracking-000367.jpg",
+      "title": "MOT20-01 추적 결과 프레임 367",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "04ecf85db8f6e8421cb2b77da24c54b0b00ad477f52e965da60af21cc703115e",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-01-tracking-000367.png\", \"title\": \"MOT20-01 frame 000367 / tracking\", \"sha256\": \"a4c2361731f531ace2d06a9aefcdebe9411b7f433fae77c1b242b7ba0a038022\", \"kind\": \"tracking\", \"sequence\": \"MOT20-01\", \"frame\": 367, \"prediction_sha256\": \"ac8f4092b9298ffc45f484cb42ea7f250cc0313a41a8fdc3db9ec646c35115e3\", \"displayed_objects\": 47}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-01-tracking-000429.jpg",
+      "title": "MOT20-01 추적 결과 프레임 429",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "d26e096b60fff4596f3d8c3261400483fd5e93cd59ede7aead231cb15b3ea03d",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-01-tracking-000429.png\", \"title\": \"MOT20-01 frame 000429 / tracking\", \"sha256\": \"fc8cc3d4162215b3558f2c63057523ccfcb2f3132c9279ae4ae2503d236338aa\", \"kind\": \"tracking\", \"sequence\": \"MOT20-01\", \"frame\": 429, \"prediction_sha256\": \"ac8f4092b9298ffc45f484cb42ea7f250cc0313a41a8fdc3db9ec646c35115e3\", \"displayed_objects\": 46}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-01-trajectory-000143.jpg",
+      "title": "MOT20-01 이동 궤적 프레임 143",
+      "caption": "최근 30프레임에서 최대 30개 객체의 이동 경로를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "c716dcd5788110ca5f3e33049d74c6e0606e54d426b02ae0550e7bc80a4aff67",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-01-trajectory-000143.png\", \"title\": \"MOT20-01 frame 000143 / trajectory\", \"sha256\": \"d19187a39c376827369ec574c346f312837c9bc9899a6a19df63214f9fed49fd\", \"kind\": \"trajectory\", \"sequence\": \"MOT20-01\", \"frame\": 143, \"prediction_sha256\": \"ac8f4092b9298ffc45f484cb42ea7f250cc0313a41a8fdc3db9ec646c35115e3\", \"displayed_objects\": 45}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-01-trajectory-000286.jpg",
+      "title": "MOT20-01 이동 궤적 프레임 286",
+      "caption": "최근 30프레임에서 최대 30개 객체의 이동 경로를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "2e4b1f4c410177d5679f03997a750cc5279e0973798d9fba453c028bce521331",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-01-trajectory-000286.png\", \"title\": \"MOT20-01 frame 000286 / trajectory\", \"sha256\": \"6d2f07aa2b316274ada17427f5b3f8190453b5667bbcd121b4ba97f90337b01e\", \"kind\": \"trajectory\", \"sequence\": \"MOT20-01\", \"frame\": 286, \"prediction_sha256\": \"ac8f4092b9298ffc45f484cb42ea7f250cc0313a41a8fdc3db9ec646c35115e3\", \"displayed_objects\": 51}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-01-trajectory-000429.jpg",
+      "title": "MOT20-01 이동 궤적 프레임 429",
+      "caption": "최근 30프레임에서 최대 30개 객체의 이동 경로를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "b6c88dd14b076c9d21179f07ac2422601b3310f23795c9f5e91d110d1471248a",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-01-trajectory-000429.png\", \"title\": \"MOT20-01 frame 000429 / trajectory\", \"sha256\": \"7236a9b95ef543e7979b40aaedd8ae88e97414fa0b2eb384743fac141136f640\", \"kind\": \"trajectory\", \"sequence\": \"MOT20-01\", \"frame\": 429, \"prediction_sha256\": \"ac8f4092b9298ffc45f484cb42ea7f250cc0313a41a8fdc3db9ec646c35115e3\", \"displayed_objects\": 46}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-02-tracking-000001.jpg",
+      "title": "MOT20-02 추적 결과 프레임 1",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "8a0e446dda63dc51d79279935215da9a6fd7850f5d3a089d404df44328825399",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-02-tracking-000001.png\", \"title\": \"MOT20-02 frame 000001 / tracking\", \"sha256\": \"bb1b8ecf61e9f09f168572f918336b3d2382355d91135b20c584d4628e60ef18\", \"kind\": \"tracking\", \"sequence\": \"MOT20-02\", \"frame\": 1, \"prediction_sha256\": \"8badfc1cb61f4f6b718f528d7d1c6d01149ca2d03052fd787a4570561bf27526\", \"displayed_objects\": 24}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-02-tracking-000398.jpg",
+      "title": "MOT20-02 추적 결과 프레임 398",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "7521f0723618439969b0ed1dc2d8fa37fd24358d9d31b64ad0627351d3cf8172",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-02-tracking-000398.png\", \"title\": \"MOT20-02 frame 000398 / tracking\", \"sha256\": \"32bfb115cccea532cbdfdc4691e9fbef5b61a064ef4950f1c656ccb0b956c604\", \"kind\": \"tracking\", \"sequence\": \"MOT20-02\", \"frame\": 398, \"prediction_sha256\": \"8badfc1cb61f4f6b718f528d7d1c6d01149ca2d03052fd787a4570561bf27526\", \"displayed_objects\": 35}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-02-tracking-000795.jpg",
+      "title": "MOT20-02 추적 결과 프레임 795",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "b34abfd83973d8011d408ed8990dbcff913fa5873718cbf47e69e4de3a32acb0",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-02-tracking-000795.png\", \"title\": \"MOT20-02 frame 000795 / tracking\", \"sha256\": \"a86913a0d8eaa90b52759a28e2595497cba6d2b44cf73dff98df6052ca90436c\", \"kind\": \"tracking\", \"sequence\": \"MOT20-02\", \"frame\": 795, \"prediction_sha256\": \"8badfc1cb61f4f6b718f528d7d1c6d01149ca2d03052fd787a4570561bf27526\", \"displayed_objects\": 45}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-02-tracking-001192.jpg",
+      "title": "MOT20-02 추적 결과 프레임 1192",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "756fced313b16556f4189365dddbbee7aadaa14628edbe9bdb4e43071c41a6ff",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-02-tracking-001192.png\", \"title\": \"MOT20-02 frame 001192 / tracking\", \"sha256\": \"0ac3949adb5cce50ffc28df2aaabb5a75174cbee9370ca3a12aefc87e2b4568b\", \"kind\": \"tracking\", \"sequence\": \"MOT20-02\", \"frame\": 1192, \"prediction_sha256\": \"8badfc1cb61f4f6b718f528d7d1c6d01149ca2d03052fd787a4570561bf27526\", \"displayed_objects\": 44}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-02-tracking-001590.jpg",
+      "title": "MOT20-02 추적 결과 프레임 1590",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "7338995d5b2d51270d5b94e3f41514440d8010df3e55e2e8c8ac48eb4bcdd2ed",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-02-tracking-001590.png\", \"title\": \"MOT20-02 frame 001590 / tracking\", \"sha256\": \"f76bc20db1b76cb26cfe47eee741f5c33bf25320478c7aec0f0f0cb24a56dade\", \"kind\": \"tracking\", \"sequence\": \"MOT20-02\", \"frame\": 1590, \"prediction_sha256\": \"8badfc1cb61f4f6b718f528d7d1c6d01149ca2d03052fd787a4570561bf27526\", \"displayed_objects\": 70}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-02-tracking-001987.jpg",
+      "title": "MOT20-02 추적 결과 프레임 1987",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "a3800b7cdf36df06d00668608afcc2b1dcb0e487827c573bd61de67f9657d377",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-02-tracking-001987.png\", \"title\": \"MOT20-02 frame 001987 / tracking\", \"sha256\": \"80c6b4af2f960f49434836c180f375dcbdc8928ef937bbd45cad9914cb2fde6a\", \"kind\": \"tracking\", \"sequence\": \"MOT20-02\", \"frame\": 1987, \"prediction_sha256\": \"8badfc1cb61f4f6b718f528d7d1c6d01149ca2d03052fd787a4570561bf27526\", \"displayed_objects\": 97}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-02-tracking-002384.jpg",
+      "title": "MOT20-02 추적 결과 프레임 2384",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "8f587bbbfc260e3420458b9aca34894ea83ade03aea1d514ac5e9753f30c19cd",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-02-tracking-002384.png\", \"title\": \"MOT20-02 frame 002384 / tracking\", \"sha256\": \"f7ac505c408b7b80e0057e2a675e03bedd4b2e5f718d45b9c07a25eac2950e15\", \"kind\": \"tracking\", \"sequence\": \"MOT20-02\", \"frame\": 2384, \"prediction_sha256\": \"8badfc1cb61f4f6b718f528d7d1c6d01149ca2d03052fd787a4570561bf27526\", \"displayed_objects\": 65}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-02-tracking-002782.jpg",
+      "title": "MOT20-02 추적 결과 프레임 2782",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "79731486aeb3c0c6cce5e9619c655113f6ec0cea2642f9d29abed209a52dbf7d",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-02-tracking-002782.png\", \"title\": \"MOT20-02 frame 002782 / tracking\", \"sha256\": \"04bf9b4ab722af74d8996ff6b2e374ba934b975b0120a53e807b3631124f6bd7\", \"kind\": \"tracking\", \"sequence\": \"MOT20-02\", \"frame\": 2782, \"prediction_sha256\": \"8badfc1cb61f4f6b718f528d7d1c6d01149ca2d03052fd787a4570561bf27526\", \"displayed_objects\": 28}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-02-trajectory-000927.jpg",
+      "title": "MOT20-02 이동 궤적 프레임 927",
+      "caption": "최근 30프레임에서 최대 30개 객체의 이동 경로를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "babf9593675977d2b125ae01b03aabb262836e8fb0740a550b8b4f50676f217e",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-02-trajectory-000927.png\", \"title\": \"MOT20-02 frame 000927 / trajectory\", \"sha256\": \"78da9bae65adee8252aa5f2dcd2d33ca81f7a0d8bc427fdeb1224ab0f77b79bf\", \"kind\": \"trajectory\", \"sequence\": \"MOT20-02\", \"frame\": 927, \"prediction_sha256\": \"8badfc1cb61f4f6b718f528d7d1c6d01149ca2d03052fd787a4570561bf27526\", \"displayed_objects\": 55}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-02-trajectory-001854.jpg",
+      "title": "MOT20-02 이동 궤적 프레임 1854",
+      "caption": "최근 30프레임에서 최대 30개 객체의 이동 경로를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "e5e494fc819c139e6a005265b9311a03cf084590407cf8fb57f85c1277794314",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-02-trajectory-001854.png\", \"title\": \"MOT20-02 frame 001854 / trajectory\", \"sha256\": \"7d2b1fa5a698ca0adf9a66256fd67d9b4a28f36286b08316fee1591a8e4a9fe2\", \"kind\": \"trajectory\", \"sequence\": \"MOT20-02\", \"frame\": 1854, \"prediction_sha256\": \"8badfc1cb61f4f6b718f528d7d1c6d01149ca2d03052fd787a4570561bf27526\", \"displayed_objects\": 86}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-02-trajectory-002782.jpg",
+      "title": "MOT20-02 이동 궤적 프레임 2782",
+      "caption": "최근 30프레임에서 최대 30개 객체의 이동 경로를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "22a160db8f535dcf3bd9c3ad8f3eb334bf9faa896ec27078fca6f58451fb1b0d",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-02-trajectory-002782.png\", \"title\": \"MOT20-02 frame 002782 / trajectory\", \"sha256\": \"615f67e2d9c8fc36738376b17543834cc1f693b67ffeb662156b9c80cef3446d\", \"kind\": \"trajectory\", \"sequence\": \"MOT20-02\", \"frame\": 2782, \"prediction_sha256\": \"8badfc1cb61f4f6b718f528d7d1c6d01149ca2d03052fd787a4570561bf27526\", \"displayed_objects\": 28}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-03-tracking-000001.jpg",
+      "title": "MOT20-03 추적 결과 프레임 1",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "1d6e1d42f8f8fde3debe8161ff77f1e16646f5e3d7f2e1559bf3157a98d5ced7",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-03-tracking-000001.png\", \"title\": \"MOT20-03 frame 000001 / tracking\", \"sha256\": \"7b614a7d5101058c14d3670a7341c70ba0d929f2c15ed5e606948ca7d447db8d\", \"kind\": \"tracking\", \"sequence\": \"MOT20-03\", \"frame\": 1, \"prediction_sha256\": \"83c3be588ac5a8f8a6c3ff8d0cbad8b3a2a07d6086cbc1b3ece75e1b36d5bf4a\", \"displayed_objects\": 70}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-03-tracking-000344.jpg",
+      "title": "MOT20-03 추적 결과 프레임 344",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "0eef3bf5bc7a5f80f907ee9aaef0c28e29ad5d5c3327f77c54ecfe3376e53184",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-03-tracking-000344.png\", \"title\": \"MOT20-03 frame 000344 / tracking\", \"sha256\": \"0e600cb1a50b59f73935da46f32445cbd8605e307efdd4199a5a96def819e641\", \"kind\": \"tracking\", \"sequence\": \"MOT20-03\", \"frame\": 344, \"prediction_sha256\": \"83c3be588ac5a8f8a6c3ff8d0cbad8b3a2a07d6086cbc1b3ece75e1b36d5bf4a\", \"displayed_objects\": 102}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-03-tracking-000687.jpg",
+      "title": "MOT20-03 추적 결과 프레임 687",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "43317e89a39c4a163bcb2e45467f05a8e7da6421ab3c6519b90d6c9dbb8a340a",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-03-tracking-000687.png\", \"title\": \"MOT20-03 frame 000687 / tracking\", \"sha256\": \"1190071cb4f5c5c77a09d8ed4840e0d9497c01bc68e18f0a63c4221b7c0d4443\", \"kind\": \"tracking\", \"sequence\": \"MOT20-03\", \"frame\": 687, \"prediction_sha256\": \"83c3be588ac5a8f8a6c3ff8d0cbad8b3a2a07d6086cbc1b3ece75e1b36d5bf4a\", \"displayed_objects\": 114}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-03-tracking-001031.jpg",
+      "title": "MOT20-03 추적 결과 프레임 1031",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "b9429973790d347d805e7bcef5049cacf650d8d7b5d378ad2950a5db0e57a515",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-03-tracking-001031.png\", \"title\": \"MOT20-03 frame 001031 / tracking\", \"sha256\": \"57bede983a2d565430929454f64755851913e703aa11cd27d82210f36eb9249d\", \"kind\": \"tracking\", \"sequence\": \"MOT20-03\", \"frame\": 1031, \"prediction_sha256\": \"83c3be588ac5a8f8a6c3ff8d0cbad8b3a2a07d6086cbc1b3ece75e1b36d5bf4a\", \"displayed_objects\": 113}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-03-tracking-001374.jpg",
+      "title": "MOT20-03 추적 결과 프레임 1374",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "f6b3b025ffeb2ff91ce060bebe7e36203dbd28dc741d0bcea5741bc4cc781873",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-03-tracking-001374.png\", \"title\": \"MOT20-03 frame 001374 / tracking\", \"sha256\": \"10521dfa46fbc17b950198b56c80ce1504f947781a55066f3f1919939442ae08\", \"kind\": \"tracking\", \"sequence\": \"MOT20-03\", \"frame\": 1374, \"prediction_sha256\": \"83c3be588ac5a8f8a6c3ff8d0cbad8b3a2a07d6086cbc1b3ece75e1b36d5bf4a\", \"displayed_objects\": 136}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-03-tracking-001718.jpg",
+      "title": "MOT20-03 추적 결과 프레임 1718",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "ace365c17cd863501f01a011ae86a99e38a4dff3d8131db0cb5ad2e66f65c403",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-03-tracking-001718.png\", \"title\": \"MOT20-03 frame 001718 / tracking\", \"sha256\": \"29eefcab4277ea31958c261939aaf7e96bbb766825afbfa2c32fd6610505d4aa\", \"kind\": \"tracking\", \"sequence\": \"MOT20-03\", \"frame\": 1718, \"prediction_sha256\": \"83c3be588ac5a8f8a6c3ff8d0cbad8b3a2a07d6086cbc1b3ece75e1b36d5bf4a\", \"displayed_objects\": 161}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-03-tracking-002061.jpg",
+      "title": "MOT20-03 추적 결과 프레임 2061",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "f453031572cbfee51889c8d8c04b0beb05bc2edeac458a2e5ce8963060981e6b",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-03-tracking-002061.png\", \"title\": \"MOT20-03 frame 002061 / tracking\", \"sha256\": \"f53dfe87c383c48d973e28ab494909413f752230c41e8c58ea2b988779797e04\", \"kind\": \"tracking\", \"sequence\": \"MOT20-03\", \"frame\": 2061, \"prediction_sha256\": \"83c3be588ac5a8f8a6c3ff8d0cbad8b3a2a07d6086cbc1b3ece75e1b36d5bf4a\", \"displayed_objects\": 172}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-03-tracking-002405.jpg",
+      "title": "MOT20-03 추적 결과 프레임 2405",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "82fbfa5aee011c66738a24b1d6294f71665ae9fb2c2a81798f0bc7b698aa5d9a",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-03-tracking-002405.png\", \"title\": \"MOT20-03 frame 002405 / tracking\", \"sha256\": \"08354ebfdece48126c310f0bc146615b27d1344091fb3c0e3c3de50c0af4505b\", \"kind\": \"tracking\", \"sequence\": \"MOT20-03\", \"frame\": 2405, \"prediction_sha256\": \"83c3be588ac5a8f8a6c3ff8d0cbad8b3a2a07d6086cbc1b3ece75e1b36d5bf4a\", \"displayed_objects\": 160}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-03-trajectory-000801.jpg",
+      "title": "MOT20-03 이동 궤적 프레임 801",
+      "caption": "최근 30프레임에서 최대 30개 객체의 이동 경로를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "b40c94a07b625a349450900929ad253280303e459d8e6d08f323cea76be2c7c2",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-03-trajectory-000801.png\", \"title\": \"MOT20-03 frame 000801 / trajectory\", \"sha256\": \"624e33db0e690c6779d1299678773973c7e47ffa36091c2896bd5c08c7f271f3\", \"kind\": \"trajectory\", \"sequence\": \"MOT20-03\", \"frame\": 801, \"prediction_sha256\": \"83c3be588ac5a8f8a6c3ff8d0cbad8b3a2a07d6086cbc1b3ece75e1b36d5bf4a\", \"displayed_objects\": 110}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-03-trajectory-001603.jpg",
+      "title": "MOT20-03 이동 궤적 프레임 1603",
+      "caption": "최근 30프레임에서 최대 30개 객체의 이동 경로를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "249fe70a47e77461a5e8022c4c79722315f687f8bbb91000703215b31ef9bb1f",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-03-trajectory-001603.png\", \"title\": \"MOT20-03 frame 001603 / trajectory\", \"sha256\": \"079663aefd85c1dbd73bdbb0a6cd3db123080c3b6a22c7c78024f341b5787407\", \"kind\": \"trajectory\", \"sequence\": \"MOT20-03\", \"frame\": 1603, \"prediction_sha256\": \"83c3be588ac5a8f8a6c3ff8d0cbad8b3a2a07d6086cbc1b3ece75e1b36d5bf4a\", \"displayed_objects\": 154}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-03-trajectory-002405.jpg",
+      "title": "MOT20-03 이동 궤적 프레임 2405",
+      "caption": "최근 30프레임에서 최대 30개 객체의 이동 경로를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "1831711d0c4097ce3c2809cece5aebca801277153583f70b409b0df7d8c3faa1",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-03-trajectory-002405.png\", \"title\": \"MOT20-03 frame 002405 / trajectory\", \"sha256\": \"d8223caa5dec0af6e3391247d21bf0515752b04c521c457099ecc1fb72bac663\", \"kind\": \"trajectory\", \"sequence\": \"MOT20-03\", \"frame\": 2405, \"prediction_sha256\": \"83c3be588ac5a8f8a6c3ff8d0cbad8b3a2a07d6086cbc1b3ece75e1b36d5bf4a\", \"displayed_objects\": 160}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-05-tracking-000001.jpg",
+      "title": "MOT20-05 추적 결과 프레임 1",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "2b61dd4b38a78ccca6fbc661e8b95e28a6819a2626c205f1f47682d6b5d90872",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-05-tracking-000001.png\", \"title\": \"MOT20-05 frame 000001 / tracking\", \"sha256\": \"b74629f3cc250021ef90f93c24b2d2a83dea1866fc6346a47084292e6dc3bcd7\", \"kind\": \"tracking\", \"sequence\": \"MOT20-05\", \"frame\": 1, \"prediction_sha256\": \"7c37677fb175cf868bf85ed559e0924acb601bf2ba4b0187bd99cb8882c05153\", \"displayed_objects\": 186}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-05-tracking-000474.jpg",
+      "title": "MOT20-05 추적 결과 프레임 474",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "8d5eb991537101b98d5a67cdb5a4353697d52e2bdfd29b5ee35d766fc0af4eaf",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-05-tracking-000474.png\", \"title\": \"MOT20-05 frame 000474 / tracking\", \"sha256\": \"6dddb999400d9d30e83abd3c035a9760a24f56acce34491612b797bc94f4b474\", \"kind\": \"tracking\", \"sequence\": \"MOT20-05\", \"frame\": 474, \"prediction_sha256\": \"7c37677fb175cf868bf85ed559e0924acb601bf2ba4b0187bd99cb8882c05153\", \"displayed_objects\": 194}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-05-tracking-000947.jpg",
+      "title": "MOT20-05 추적 결과 프레임 947",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "698786ebfbbc42cafe35e9609a25f9bc37d3a293e14cc17af21e6678bd756078",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-05-tracking-000947.png\", \"title\": \"MOT20-05 frame 000947 / tracking\", \"sha256\": \"80973381890b09f52ad0d99b17414079bf5a16483e1aaa414c3c29184adef705\", \"kind\": \"tracking\", \"sequence\": \"MOT20-05\", \"frame\": 947, \"prediction_sha256\": \"7c37677fb175cf868bf85ed559e0924acb601bf2ba4b0187bd99cb8882c05153\", \"displayed_objects\": 215}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-05-tracking-001421.jpg",
+      "title": "MOT20-05 추적 결과 프레임 1421",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "1086bd59158448d57dd15005c2552d8e6f1a34f2286abb5abcf1d9c9bae21571",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-05-tracking-001421.png\", \"title\": \"MOT20-05 frame 001421 / tracking\", \"sha256\": \"260eca11e33d35ba100a6e8af2d41d908b2bf38b3cda762110ae73290e7c36ee\", \"kind\": \"tracking\", \"sequence\": \"MOT20-05\", \"frame\": 1421, \"prediction_sha256\": \"7c37677fb175cf868bf85ed559e0924acb601bf2ba4b0187bd99cb8882c05153\", \"displayed_objects\": 215}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-05-tracking-001894.jpg",
+      "title": "MOT20-05 추적 결과 프레임 1894",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "4bad1be09cc94c7bdad0f174411ca3007778a66ce8bb2286756e9061144b042d",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-05-tracking-001894.png\", \"title\": \"MOT20-05 frame 001894 / tracking\", \"sha256\": \"a804ec411600b252341c640d13f0c12c7d4264220083aff41633b1e937badbfe\", \"kind\": \"tracking\", \"sequence\": \"MOT20-05\", \"frame\": 1894, \"prediction_sha256\": \"7c37677fb175cf868bf85ed559e0924acb601bf2ba4b0187bd99cb8882c05153\", \"displayed_objects\": 228}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-05-tracking-002368.jpg",
+      "title": "MOT20-05 추적 결과 프레임 2368",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "1f2f137a3c82e603e78c9226dd24b84494904607b0f32b33d64d4b549d497bf8",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-05-tracking-002368.png\", \"title\": \"MOT20-05 frame 002368 / tracking\", \"sha256\": \"cb315823f0cd49e2231a25d12169c94d427a43543612b9cb4b601e5a843b262b\", \"kind\": \"tracking\", \"sequence\": \"MOT20-05\", \"frame\": 2368, \"prediction_sha256\": \"7c37677fb175cf868bf85ed559e0924acb601bf2ba4b0187bd99cb8882c05153\", \"displayed_objects\": 189}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-05-tracking-002841.jpg",
+      "title": "MOT20-05 추적 결과 프레임 2841",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "acda67db0df62c6a9dcc8b9faa72e19bd316263a3b63da942ef02e9848454e41",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-05-tracking-002841.png\", \"title\": \"MOT20-05 frame 002841 / tracking\", \"sha256\": \"544acb4e9c338c115e0eb81431ef2586823f63e477f63659d1943baf7f6a5cb4\", \"kind\": \"tracking\", \"sequence\": \"MOT20-05\", \"frame\": 2841, \"prediction_sha256\": \"7c37677fb175cf868bf85ed559e0924acb601bf2ba4b0187bd99cb8882c05153\", \"displayed_objects\": 224}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-05-tracking-003315.jpg",
+      "title": "MOT20-05 추적 결과 프레임 3315",
+      "caption": "상자와 번호는 예측된 객체의 위치와 추적 ID를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "1948bf54a38f76a39914447c7bfa4015ba022bd3698160ee3dc20470e6d44d0d",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-05-tracking-003315.png\", \"title\": \"MOT20-05 frame 003315 / tracking\", \"sha256\": \"b96cfb6c1d39b6e65ed815e3f94ab1971a07df317ff0da6fea18bdb86129e842\", \"kind\": \"tracking\", \"sequence\": \"MOT20-05\", \"frame\": 3315, \"prediction_sha256\": \"7c37677fb175cf868bf85ed559e0924acb601bf2ba4b0187bd99cb8882c05153\", \"displayed_objects\": 199}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-05-trajectory-001105.jpg",
+      "title": "MOT20-05 이동 궤적 프레임 1105",
+      "caption": "최근 30프레임에서 최대 30개 객체의 이동 경로를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "e68d7e03e49ab6c6d02847e2012d531fce3e984b0d0cbaa0bc6cd23b71e5a1d2",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-05-trajectory-001105.png\", \"title\": \"MOT20-05 frame 001105 / trajectory\", \"sha256\": \"205345ec26bea3736678ccdeb45d3d873a2900385a53dcc860750b44ed403cd1\", \"kind\": \"trajectory\", \"sequence\": \"MOT20-05\", \"frame\": 1105, \"prediction_sha256\": \"7c37677fb175cf868bf85ed559e0924acb601bf2ba4b0187bd99cb8882c05153\", \"displayed_objects\": 209}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-05-trajectory-002210.jpg",
+      "title": "MOT20-05 이동 궤적 프레임 2210",
+      "caption": "최근 30프레임에서 최대 30개 객체의 이동 경로를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "2a7bda2322f81af02ce81bb0a34d6aa425d7ede4ed2634c78d47e9f06c7184de",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-05-trajectory-002210.png\", \"title\": \"MOT20-05 frame 002210 / trajectory\", \"sha256\": \"41df1cb9e1e9a1883df01e2908f9a4c43632555406fadf842615acf282ea5d84\", \"kind\": \"trajectory\", \"sequence\": \"MOT20-05\", \"frame\": 2210, \"prediction_sha256\": \"7c37677fb175cf868bf85ed559e0924acb601bf2ba4b0187bd99cb8882c05153\", \"displayed_objects\": 198}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    },
+    {
+      "path": "presentation-source-images/MOT20-05-trajectory-003315.jpg",
+      "title": "MOT20-05 이동 궤적 프레임 3315",
+      "caption": "최근 30프레임에서 최대 30개 객체의 이동 경로를 표시합니다.",
+      "source": "MOT20 공식 데이터셋과 서버 추론 결과",
+      "sha256": "6847707f0ac93a0787d0cedf1cfb431cec1976f12c35b181a435e91b911bf532",
+      "notes": "데이터셋 https://motchallenge.net/data/MOT20.zip\n평가 IoU 0.1\n{\"file\": \"MOT20-05-trajectory-003315.png\", \"title\": \"MOT20-05 frame 003315 / trajectory\", \"sha256\": \"369c7e62046456fd33b669d1f93d1358f09272e22636c76804fb8160979326a5\", \"kind\": \"trajectory\", \"sequence\": \"MOT20-05\", \"frame\": 3315, \"prediction_sha256\": \"7c37677fb175cf868bf85ed559e0924acb601bf2ba4b0187bd99cb8882c05153\", \"displayed_objects\": 199}\n프레젠테이션용 JPEG 사본(품질 98, 4:4:4). 원본 PNG는 평가 결과에 보존합니다."
+    }
+  ],
+  "macro_mota_percent": 80.01105892734289,
+  "photo_encoding": "JPEG quality 98, 4:4:4; original PNG retained in evaluation results"
+}

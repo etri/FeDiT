@@ -1,0 +1,9 @@
+{
+  "format": 2,
+  "osnet_batch_size": 600,
+  "cuda_matmul_tf32": false,
+  "cudnn_tf32": false,
+  "float32_matmul_precision": "highest",
+  "backbone_cache_source": null,
+  "inference_profile_sha256": "300d0b786b1c5bf20dd87157618b9018cc7d25cd3636e2e63075528bd3516dd5"
+}

@@ -2,9 +2,11 @@
 
 MOT20 네 시퀀스의 영상 프레임을 제공된 사전학습 모델로 추론하고 TrackEval로 MOTA와 IDF1을 계산합니다. 모델 가중치는 변경하지 않습니다.
 
-서버의 네 시퀀스 재현 결과는 **평균 MOTA 80.011059%**입니다(IoU 0.1). 실행 결과와 입력 검증 자료는 `results/verification/`에, 표와 그래프를 포함한 실행 출력은 노트북에 저장했습니다.
+2026년 10월 22~23일 새 GitHub clone에서 MOT20 전체 **8,931프레임**을 다시 추론한 결과는 **평균 MOTA 80.011059%**입니다(IoU 0.1). 시험 소스 커밋은 `4ce1a356eb335cda642a09eee2054db31d674c3d`이며, 공식 데이터셋을 처음부터 다운로드하고 기존 추론 캐시 없이 실행했습니다.
 
-![MOTA 평가 결과](results/verification/charts/mota_comparison.png)
+이번 시험의 [평가 결과·예측 파일·입력 검증 자료](results/retest-20261022/), [실행 출력이 포함된 노트북](results/retest-20261022/execution/SNR-PER-010_추론_성능평가.ipynb), [원본 양식 결과서·78장 PPTX·전체 녹화](test_documents/retest-20261022/)를 함께 보관합니다. 기본 실행 노트북은 출력이 없는 상태로 유지합니다.
+
+![MOTA 평가 결과](results/retest-20261022/charts/mota_comparison.png)
 
 Python 3.11과 NVIDIA CUDA 환경을 사용합니다. Grounding DINO 가중치는 64 MiB 단위 파일로 저장됩니다. 추론 전에 자동으로 결합하고 원본 SHA-256을 검증합니다.
 
@@ -14,8 +16,8 @@ Python 3.11과 NVIDIA CUDA 환경을 사용합니다. Grounding DINO 가중치�
 
 ```bash
 cd /home/jovyan
-git clone --branch OPFW_development_ETRI_pman --single-branch https://github.com/etri/FeDiT.git snr-per-010-clone
-cd snr-per-010-clone/OPFW/ml_prediction_manager_v2/example/snr_per_010
+git clone --depth 1 --single-branch --branch OPFW_development_ETRI_pman https://github.com/etri/FeDiT.git /home/jovyan/snr-per-010-retest-20261022
+cd /home/jovyan/snr-per-010-retest-20261022/OPFW/ml_prediction_manager_v2/example/snr_per_010
 git rev-parse HEAD
 ```
 
@@ -27,7 +29,7 @@ git rev-parse HEAD
 /opt/snr010-env/bin/python prepare_weights.py
 /opt/snr010-env/bin/python download_dataset.py --workspace workspace
 /opt/snr010-env/bin/python verify_inputs.py --workspace workspace
-/opt/snr010-env/bin/python run_inference.py --workspace workspace --run-name clone-inference
+/opt/snr010-env/bin/python run_inference.py --workspace workspace --run-name retest-20261022
 ```
 
 다른 Python 3.11 CUDA 환경에서 새 가상환경을 구성할 때는 다음 명령을 사용합니다.
@@ -65,7 +67,7 @@ SNR-PER-010의 판정값은 제공 자료와 같은 IoU 0.1 조건에서 계산�
 
 이 결과는 CV 개발 성능입니다. 각 시퀀스를 제외하고 학습된 제공 모델을 고정한 상태에서 평가 시퀀스의 MOTA로 추적·후처리 운용점을 선택했습니다. 고정된 최종 설정은 `INFERENCE_PROFILE.json`에 수록돼 있으며 추론 실행 중에는 정답을 모델 입력으로 사용하거나 설정을 탐색하지 않습니다.
 
-결과는 `workspace/results/inference`에 저장됩니다.
+위 재시험 명령의 결과는 `workspace/results/retest-20261022`에 저장됩니다.
 
 - `predictions/`: 시퀀스별 MOT 형식 추론 결과
 - `evaluation/metrics.json`: 평가 조건, 입력 해시, 성능 수치
