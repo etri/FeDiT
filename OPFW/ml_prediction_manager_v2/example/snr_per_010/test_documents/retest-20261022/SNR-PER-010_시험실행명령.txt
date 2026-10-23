@@ -1,20 +1,230 @@
-SNR-PER-010 시험 실행 명령 (결과서 v2.1 10~15쪽)
+SNR-PER-010 접속·설정·시험 재현 안내 (결과서 v2.2)
 
-서버 컨테이너의 같은 Terminal에서 순서대로 실행한다.
-노트북 Run All Cells와 Terminal 추론 명령은 둘 중 한 가지만 실행한다.
-아래 GitHub clone은 존재하지 않는 새 TRIAL 폴더에서 수행한다.
-한글 폰트에서 원화 모양으로 보이는 줄 연결 문자는 ASCII 백슬래시(0x5C)이다.
-
-4.1 단계 2: 작업 변수
-
-이하 명령은 컨테이너의 같은 Terminal에서 순서대로 실행한다. TRIAL은 존재하지 않는 새 폴더로 지정한다.
-TRIAL=/home/jovyan/snr-per-010-retest-20261022
+시험 환경 구축
+사전 준비물
+  가. 인공지능 병렬연산 가속기
+    - NVIDIA A40 GPU (VRAM 46,068 MiB)
+  나. 운영체제 및 인공지능 구동 소프트웨어
+    - 원격 Linux 서버의 PyTorch CUDA 컨테이너
+    - 컨테이너 실측 제한: CPU 1코어 / 메모리 4 GiB
+  다. 인공지능 모델 및 웹 인터페이스 운용 소프트웨어
+    - Python 3.11.10 / PyTorch 2.11.0+cu126
+    - torchvision 0.26.0+cu126 / BoxMOT 17.0.0 / scikit-learn 1.6.1
+라. 접속 권한 및 저장 공간
+준비 항목
+준비 내용
+FeDiT 계정
+관리자가 발급한 FeDiT 로그인 계정
+kubeflow-user-example-com 네임스페이스 사용 권한
+GitHub 계정
+etri/FeDiT 비공개 저장소 읽기 권한
+OPFW_development_ETRI_pman 브랜치 접근 권한
+시험 서버
+220.124.222.82 / NVIDIA A40 1개
+컨테이너 CPU 최대 1코어 / 메모리 4Gi
+작업 저장소
+/home/jovyan 쓰기 권한 및 실제 여유 공간 100GiB 이상
+기존 PVC: pm-user-snr-per-010-lab-workspace
+네트워크
+시험 PC → 서버 TCP 18000(HTTP), 8080(HTTPS)
+컨테이너 → github.com, motchallenge.net HTTPS
+GitHub CLI를 새로 준비할 경우 github.com의 CLI 배포 파일 다운로드도 허용한다. 시험 서버에는 /home/jovyan/.local/bin/gh가 설치되어 있다.
+시험 환경 구성
+아래 순서에 따라 예측매니저에 접속하고 시험 이미지와 컨테이너를 준비한다. 이어서 4.1의 GitHub clone·모델 복원·데이터셋 검증과 4.2의 추론·성능평가를 실행한다.
+가. 예측매니저 접속
+1. 시험 PC의 Chrome 주소창에 다음 주소를 입력하고 관리자가 발급한 FeDiT 계정으로 로그인한다.
+http://220.124.222.82:18000/fedit/predictor-creator-tool
+2. 왼쪽 예측기 생성/연동 도구 > 예측매니저를 선택한다. 상단 네임스페이스를 kubeflow-user-example-com으로 선택한다.
+예측매니저 직접 접속 주소:
+http://220.124.222.82:18000/fedit/predictor-creator-tool/prediction-manager
+3. 상단의 HOME·IMAGES·CONTAINERS 메뉴가 표시되는지 확인한다. 아래의 이미지 생성부터 결과 확인까지 Chrome 창을 녹화한다.
+접속 구분
+주소 / 용도
+예측매니저
+http://220.124.222.82:18000
+이미지 생성·컨테이너 관리
+JupyterLab
+https://220.124.222.82:8080
+외부 브라우저에서 접속하는 작업 화면
+컨테이너 내부 포트
+8888
+컨테이너 안에서 JupyterLab 서비스가 대기하는 포트
+이미지 레지스트리
+127.0.0.1:5000
+서버 내부 이미지 보관 주소(Dockerfile FROM에서 사용)
+나. IMAGES에서 시험 이미지 생성
+1. IMAGES > + 새 이미지 빌드를 누르고 다음 값을 입력한다. v4.0이 이미 등록되어 있으면 해당 이미지를 다음 컨테이너 단계에서 선택한다.
+입력 항목
+입력값
+베이스 이미지
+Custom (직접 입력)
+버전 / 베이스 URL
+127.0.0.1:5000/kubeflow-user-example-com/
+snr-per-010-mot20-inference:v3.0
+(위 두 줄을 붙인 한 줄 주소로 입력)
+이미지 이름
+snr-per-010-mot20-inference
+태그
+v4.0
+추가 pip 패키지
+빈 값
+2. Dockerfile 편집을 펼치고 아래 내용을 전체 입력한다. FROM 주소는 한 줄로 입력한다. 이 내용은 저장소의 Dockerfile.retest와 같다.
+FROM 127.0.0.1:5000/kubeflow-user-example-com/snr-per-010-mot20-inference:v3.0
+ENV SNR010_BACKBONE_CACHE="" SNR010_RUN_NAME="retest-20261022"
+WORKDIR /home/jovyan
+EXPOSE 8888
+3. 이미지 빌드를 누른다. 빌드 완료 후 IMAGES 목록에 kubeflow-user-example-com/snr-per-010-mot20-inference와 태그 v4.0이 표시되는지 확인한다.
+베이스 v3.0에는 Python 3.11.10, /opt/snr010-env 가상환경과 SNR-PER-010 (CUDA) 커널이 포함되어 있다. 사전학습모델과 시험 소스는 컨테이너 실행 후 GitHub clone으로 받는다.
+그림 2-1 예측매니저의 시험 이미지 Dockerfile 입력 화면
+다. CONTAINERS에서 시험 컨테이너 생성
+1. CONTAINERS > + 새 컨테이너 생성을 누르고 다음 표와 같이 설정한다.
+설정 항목
+설정값
+네임스페이스
+kubeflow-user-example-com
+이름 / 유형
+snr-per-010-retest / Python Lab
+이미지
+kubeflow-user-example-com/
+snr-per-010-mot20-inference:v4.0
+(이미지 목록에서 해당 이름·태그 선택)
+이미지 다운로드 정책
+IfNotPresent
+컨테이너 내부 포트
+8888
+Workspace 타입
+기존 PVC
+기존 PVC
+pm-user-snr-per-010-lab-workspace
+마운트 경로
+/home/jovyan
+데이터 볼륨
+0개
+CPU Min / CPU Max
+0.025 / 1
+Memory Min / Max
+4Gi / 4Gi
+GPU / 공급자
+1 / NVIDIA
+고급 설정
+Shared Memory 활성화 체크
+추가 환경 변수: 없음
+기존 PVC의 화면상 등록 용량은 10Gi이다. 이 시험 서버에서는 실제 공유 파일시스템의 여유 공간을 사용한다. 새 PVC를 준비하는 경우 타입을 신규 생성, 크기를 100Gi 이상, 마운트 경로를 /home/jovyan, Access Mode를 ReadWriteOnce로 설정한다.
+2. 생성을 누르고 목록의 상태가 Running이 될 때까지 기다린다. 같은 이름의 컨테이너가 있으면 그 행의 시작을 누른다. 시험 컨테이너의 최종 자원은 CPU 최대 1코어, 메모리 4Gi, NVIDIA A40 1개이다.
+3. 해당 행의 열기를 누른다. 다음 JupyterLab 주소가 표시되는지 확인한다.
+https://220.124.222.82:8080/notebook/kubeflow-user-example-com/snr-per-010-retest/lab
+컨테이너 이름을 바꾸면 주소의 snr-per-010-retest 부분도 새 이름으로 바뀐다. 기존 작업 화면 snr-per-010-lab은 동일한 형식의 /snr-per-010-lab/lab 주소를 사용한다.
+라. JupyterLab Terminal 및 GitHub 인증
+1. JupyterLab에서 File > New > Terminal을 선택한다. 다음 명령으로 작업 위치·디스크·도구·GPU를 확인한다.
+pwd
+df -h /home/jovyan
+git --version
+/opt/snr010-env/bin/python --version
+nvidia-smi
+정상 확인: /home/jovyan, 충분한 저장 공간, Python 3.11.10, NVIDIA A40 1개가 표시된다.
+2. GitHub CLI를 확인하고 Git 인증 상태를 조회한다.
+export PATH="$HOME/.local/bin:$PATH"
+gh --version
+gh auth status --hostname github.com
+gh 명령이 없으면 다음 명령으로 공식 Linux amd64 배포본을 사용자 폴더에 설치한다.
+mkdir -p "$HOME/.local/bin" /tmp/snr010-gh
+GH_URL=https://github.com/cli/cli/releases/download
+curl -fL "$GH_URL/v2.82.0/gh_2.82.0_linux_amd64.tar.gz" \
+  -o /tmp/snr010-gh/gh.tar.gz
+tar -xzf /tmp/snr010-gh/gh.tar.gz -C /tmp/snr010-gh
+install -m 755 /tmp/snr010-gh/gh_2.82.0_linux_amd64/bin/gh \
+  "$HOME/.local/bin/gh"
+gh --version
+3. 인증이 필요한 경우 아래 login 명령을 실행한다. 터미널에 표시되는 일회성 코드를 시험 PC의 https://github.com/login/device 에 입력하고 저장소 읽기 권한이 있는 GitHub 계정으로 승인한다.
+gh auth login --hostname github.com --git-protocol https --web
+gh auth setup-git
+gh auth status --hostname github.com
+정상 확인: github.com의 로그인 계정이 표시되고 인증 상태가 성공이다. 이후 4.1의 clone 명령을 실행한다.
+인증 명령 참고: https://cli.github.com/manual/gh_auth_login
+CLI 배포본: https://github.com/cli/cli/releases/tag/v2.82.0
+마. 소스·데이터·추론 결과 경로
+자료
+위치 / 확인 내용
+GitHub 저장소
+https://github.com/etri/FeDiT.git
+브랜치: OPFW_development_ETRI_pman
+시험 소스 커밋
+4ce1a356eb335cda642a09eee2054db31d674c3d
+패키지 경로
+OPFW/ml_prediction_manager_v2/example/snr_per_010
+데이터 배포 주소
+https://motchallenge.net/data/MOT20.zip
+입력 데이터
+workspace/data/MOT20/train/
+MOT20-01(429), 02(2782), 03(2405), 05(3315)
+합계 8,931프레임
+고정 설정 / 모델
+INFERENCE_PROFILE.json / MODEL_MANIFEST.json
+WEIGHT_PARTS.json과 모델 가중치 파일
+실행 Python / 커널
+/opt/snr010-env/bin/python
+SNR-PER-010 (CUDA)
+결과 폴더
+workspace/results/retest-20261022/
+JSON·CSV·predictions·charts·visual_evidence
+4.1에서 지정하는 TRIAL 아래에 패키지와 workspace가 생성된다. 이번 완료 시험의 TRIAL은 /home/jovyan/snr-per-010-retest-20261022였다. 새 검증에서는 실행 시각이 포함된 TRIAL을 사용한다.
+바. 접속·실행 상태 확인
+표시 상태
+확인 및 조치
+HTTPS 인증서 오류
+서버 8080 HTTPS 인증서의 신뢰 등록 상태를 확인한다.
+기관 인증서 설정 후 JupyterLab 주소를 다시 연다.
+열기에서 404
+CONTAINERS의 Running 상태와 컨테이너 이름을 확인한다.
+열기 주소의 서버 IP·8080 포트·네임스페이스를 확인한다.
+컨테이너 Pending
+CPU Min 0.025·Max 1, Memory 4Gi, GPU 1을 확인한다.
+서버의 해당 자원이 할당되면 Running 상태를 확인한다.
+Git 인증 오류
+gh auth login 및 gh auth setup-git을 실행하고
+etri/FeDiT 저장소 읽기 권한을 확인한다.
+clone 폴더 존재
+4.1의 TRIAL 변수 명령을 다시 실행해 새 경로를 지정한다.
+CUDA unavailable
+컨테이너의 GPU 1 / NVIDIA 설정과 nvidia-smi를 확인한다.
+다운로드 중단
+같은 download_dataset.py 명령으로 다운로드를 이어간다.
+추론 중단
+같은 workspace와 RUN으로 run_inference.py를 실행하면
+저장된 완료 단계부터 이어진다.
+그림 1 서버 기반 다중 객체 추적 추론 및 성능평가 구성
+그림 2 예측매니저 컨테이너 실행 상태
+그림 3 외부 포트 8080 JupyterLab 서버 작업 화면
+시험 총괄표
+지능형 디지털 연합트윈 머신러닝 다중 객체 추적 정확도 평가 시험 항목
+Test ID
+시험항목
+MOTA-02-001
+서버 환경·데이터셋·사전학습모델 검증 시험
+MOTA-02-002
+4-fold LOSO 모델 추론 및 MOTA 성능평가 시험
+시험 절차 및 결과판단 조건
+MOTA-02-001
+Test ID
+MOTA-02-001
+날짜
+2026.10.23.
+시험명
+서버 환경·데이터셋·사전학습모델 검증 시험
+사전 조건
+1. 2.1의 접속 계정·서버 자원·저장 공간을 준비한다.
+2. 2.2의 예측매니저 접속 주소로 접속한다.
+3. 2.2의 이미지 및 컨테이너 설정을 완료한다.
+4. GitHub etri/FeDiT 읽기 권한과 Git 인증을 확인한다.
+ 시험 절차
+1. 2.2의 설정으로 snr-per-010-retest 컨테이너를 실행하고 Running 상태를 확인한다.
+2. 컨테이너의 열기를 눌러 외부 포트 8080 JupyterLab에 접속한다. File > New > Terminal을 선택한다.
+이하 명령은 같은 Terminal에서 순서대로 실행한다. TRIAL은 실행 시각이 포함된 새 폴더 경로이다.
+TRIAL=/home/jovyan/snr-per-010-$(date +%Y%m%d-%H%M%S)
 PKG=OPFW/ml_prediction_manager_v2/example/snr_per_010
 PY=/opt/snr010-env/bin/python
 RUN=retest-20261022
-
-4.1 단계 3: GitHub clone 및 시험 커밋 선택
-
+3. 다음 명령으로 GitHub 시험 브랜치를 clone하고 소스 커밋을 기록한다.
 cd /home/jovyan
 git clone --depth 1 --single-branch \
   --branch OPFW_development_ETRI_pman \
@@ -27,33 +237,46 @@ git fetch --depth 1 origin \
 git checkout --detach \
   4ce1a356eb335cda642a09eee2054db31d674c3d
 git rev-parse HEAD
-
-4.1 단계 4: 모델 복원·환경 확인·데이터셋 다운로드·입력 검증
-
+4. 시험 패키지 폴더로 이동하여 모델 복원, CUDA 환경 검증, 공식 데이터셋 다운로드 및 입력 검증을 차례로 실행한다.
 cd "$TRIAL/$PKG"
 "$PY" prepare_weights.py
 "$PY" check_reference_runtime.py
 "$PY" download_dataset.py --workspace workspace
 "$PY" verify_inputs.py --workspace workspace
 정상 확인: passed=true, model_files_verified=60, model_hash_mismatches=0, frames_total=8931 및 NVIDIA A40/CUDA를 확인한다.
-
-4.2 단계 3: 실행 위치
-
+판정 기준
+모델·설정 파일 60개 해시 불일치 0개, CUDA 연산 정상 및 MOT20 전체 8,931프레임을 확인한다.
+시험 결과
+clone 커밋 4ce1a356의 모델·설정 파일 60개 해시(불일치 0개), A40 CUDA 연산 정상 및 MOT20 전체 8,931프레임을 확인하였다.
+MOTA-02-002
+Test ID
+MOTA-02-002
+날짜
+2026.10.23.
+시험명
+4-fold LOSO 사전학습모델 추론 및 MOTA 성능평가 시험
+사전 조건
+1. MOTA-02-001의 GitHub clone·모델 복원·입력 검증을 완료한다.
+2. 예측매니저 생성 이미지로 컨테이너를 실행한다.
+3. 제공된 LOSO 체크포인트와 INFERENCE_PROFILE.json을 고정하고 FP32(TF32 비활성화)로 추론한다.
+4. fold01/02/03/05 모델을 MOT20-01/02/03/05 전체 8,931프레임에 각각 적용한다.
+5. 평가 단계에서 추적 결과와 데이터셋의 정답 파일을 대조한다.
+시험 절차
+1. 실행 컨테이너의 외부 포트 8080 JupyterLab에 접속한다.
+2. 4.1의 check_reference_runtime.py 결과 passed=true와 NVIDIA A40을 확인한다.
+3. MOTA-02-001에서 clone한 example/snr_per_010 폴더로 이동한다.
 cd "$TRIAL/$PKG"
 mkdir -p workspace/logs
-
-4.2 단계 4: 추론 및 성능평가 실행
-
-동일한 전체 추론·평가를 Terminal에서 실행할 때는 다음 명령을 사용한다. 로그를 저장하며 기존 백본 캐시는 지정하지 않는다.
+4. SNR-PER-010_추론_성능평가.ipynb를 SNR-PER-010 (CUDA) 커널의 Run All Cells로 실행한다.
+파일 브라우저에서 TRIAL 폴더 아래 패키지의 노트북을 더블클릭한다. Kernel > Change Kernel에서 SNR-PER-010 (CUDA)를 선택하고 Run > Run All Cells를 누른다. 셀 출력에서 입력 검증, 4개 시퀀스 추론, 평가표와 그림 생성을 확인한다.
+Terminal 실행을 선택하는 경우 다음 명령으로 전체 8,931프레임을 추론하고 실행 로그를 저장한다.
 nohup "$PY" -u run_inference.py \
   --workspace workspace --run-name "$RUN" \
   > "workspace/logs/$RUN.log" 2>&1 < /dev/null &
 PID=$!
 echo "$PID"
-run_inference.py는 4개 시퀀스의 검출·특징 추출·추적·후처리와 TrackEval 평가, CSV 및 성능 그래프 저장까지 실행한다. 노트북 실행과 Terminal 실행 중 한 가지 방식만 사용한다.
-
-4.2 단계 5: 로그·종료 상태 확인
-
+run_inference.py는 4개 시퀀스의 검출·특징 추출·추적·후처리, TrackEval 평가, CSV·성능 그래프 생성을 실행한다. 실행 방식은 노트북 또는 Terminal 중 하나를 선택한다.
+5. clone 명령·커밋·입력 검증 및 각 시퀀스 전체 프레임의 처리 과정을 녹화하고 완료 로그를 확인한다.
 Terminal로 실행한 경우 다음 명령으로 로그와 종료 상태를 확인한다. 노트북으로 실행한 경우 추론 셀의 오류 없이 Inference and evaluation complete.가 표시되는지 확인한다.
 tail -f "workspace/logs/$RUN.log"
 로그 표시를 마치려면 Ctrl+C를 누른다. 같은 Terminal에서 다음 명령으로 종료 상태와 최종 로그를 확인한다.
@@ -61,9 +284,7 @@ wait "$PID"
 echo "$?"
 tail -n 20 "workspace/logs/$RUN.log"
 정상 확인: 종료 코드 0, MOTA_TARGET_VERIFIED 80.011059%, INFERENCE_AND_EVALUATION_COMPLETE 및 4개 시퀀스 전체 처리 완료를 확인한다.
-
-4.2 단계 6: 그래프·테이블·목표 성능 확인
-
+6. 평가 완료 후 다음 명령으로 평가 이미지 48개를 생성하고 CSV·평가 JSON의 판정값을 확인한다.
 "$PY" visualize_evaluation.py \
   --workspace workspace --run-name "$RUN"
 "$PY" - <<'PY'
@@ -82,3 +303,11 @@ assert r['macro_mota_percent'] >= 80
 PY
 정상 확인: MOTA 산술평균 80.011059%, assertion 오류 없음, visual_evidence/manifest.json의 assets 48개를 확인한다. visual_evidence/index.html에서 그래프·추적·궤적 이미지를 확인한다.
 생성 파일: workspace/results/retest-20261022/의 evaluation/metrics.json, sequence_metrics.csv, aggregate_metrics.csv, predictions/, charts/, visual_evidence/. 시험 화면과 그림은 PPTX 및 본 결과서에 저장한다.
+결과 파일 저장: JupyterLab 파일 브라우저에서 workspace/results/retest-20261022/visual_evidence의 PNG를 더블클릭해 확인한다. JSON·CSV·그림·예측 파일은 아래 명령으로 ZIP에 저장한다.
+OUT="workspace/results/$RUN"
+"$PY" -m zipfile -c "$RUN-results.zip" "$OUT"
+파일 브라우저의 패키지 폴더에서 retest-20261022-results.zip을 마우스 오른쪽 버튼으로 눌러 Download를 선택한다. 그래프·테이블과 목표 성능 확인 화면까지 기록한 뒤 녹화를 종료한다.
+판정 기준
+IoU 0.1에서 MOT20-01/02/03/05의 MOTA를 계산하고, 산술평균이 80% 이상이면 합격으로 판정한다.
+시험 결과
+전체 8,931프레임의 MOTA 산술평균은 80.011059%(IoU 0.1)로, 목표 80% 이상을 충족하였다.

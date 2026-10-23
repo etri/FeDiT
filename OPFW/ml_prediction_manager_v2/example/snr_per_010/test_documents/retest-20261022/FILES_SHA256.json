@@ -401,8 +401,8 @@
   },
   {
     "path": "test_documents/retest-20261022/artifact-validation.json",
-    "bytes": 1393,
-    "sha256": "93ece31e221f1dce110788aeec9e4c89295850f0a2a4059fda6e9e0307315aec"
+    "bytes": 1614,
+    "sha256": "c834952bfac1a4acc7f626b456f57ade36b79fb7afb1c13d00205c53da54b9b0"
   },
   {
     "path": "test_documents/retest-20261022/presentation-images.json",
@@ -646,8 +646,8 @@
   },
   {
     "path": "test_documents/retest-20261022/README.md",
-    "bytes": 2808,
-    "sha256": "9c66402db956e1223012ed3309e4ddb4c6413fd23abeb069ea195ba1f8f64789"
+    "bytes": 2859,
+    "sha256": "0caeaddd50dc2f2674c80e5f21fed7ae214cdc2ca96b6028d463ffbcd64c3a03"
   },
   {
     "path": "test_documents/retest-20261022/recording-status.json",
@@ -806,18 +806,18 @@
   },
   {
     "path": "test_documents/retest-20261022/SNR-PER-010_시험절차및결과서_최종.hwp",
-    "bytes": 6568960,
-    "sha256": "c279ea57bafe244f8eda13a7b0a3062b9ab25d88990d415b0e9c789b66f31be3"
+    "bytes": 6646784,
+    "sha256": "6ff03020d52b1b035b48bc457a7709358150a56c82483f7c6be3f434225621da"
   },
   {
     "path": "test_documents/retest-20261022/SNR-PER-010_시험절차및결과서_최종.hwpx",
-    "bytes": 6618809,
-    "sha256": "99384c7264dfa57cf2d5d1e2c6413eaf64444bd7bd30060c8f48fbc62554d5a3"
+    "bytes": 6712394,
+    "sha256": "8c7cc92127343e0ba97bf6299a272e92cc6d49b7a83cf9f7face854bd29f4a05"
   },
   {
     "path": "test_documents/retest-20261022/SNR-PER-010_시험절차및결과서_최종.pdf",
-    "bytes": 1048584,
-    "sha256": "8490aa84e81471a069ec89539ef2170486bb7906b83e1b97324235f6ea59e3b1"
+    "bytes": 1133526,
+    "sha256": "2edeca1a8d44e738fe2a14a49028a150083084113ce3133c1e39468372cb663f"
   },
   {
     "path": "test_documents/retest-20261022/SNR-PER-010_시험화면및평가이미지.pptx",
@@ -831,7 +831,7 @@
   },
   {
     "path": "test_documents/retest-20261022/SNR-PER-010_시험실행명령.txt",
-    "bytes": 4086,
-    "sha256": "77e4348ba9f785c0fb164b5f097a90455f96fecee2dded021399d01cfd7c743a"
+    "bytes": 16725,
+    "sha256": "6f277e5b1d9e001dad12afcdd1458470e4fac748befd3e5372b585c6b4e4906e"
   }
 ]

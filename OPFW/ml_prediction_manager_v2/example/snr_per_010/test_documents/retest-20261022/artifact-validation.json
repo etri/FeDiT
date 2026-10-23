@@ -1,5 +1,5 @@
 {
-  "report_pages": 15,
+  "report_pages": 19,
   "report_visually_reviewed_pages": [
     1,
     2,
@@ -15,7 +15,11 @@
     12,
     13,
     14,
-    15
+    15,
+    16,
+    17,
+    18,
+    19
   ],
   "original_styles_and_logos_preserved": true,
   "presentation_slides": 78,
@@ -104,9 +108,13 @@
   "model_parts_verified": 14,
   "python_no_comment_checks": 156,
   "default_notebook_has_no_outputs": true,
-  "report_version": "2.1",
+  "report_version": "2.2",
   "report_embedded_images_preserved": true,
   "report_procedure_commands_verified": true,
   "report_cli_entry_points_verified": 6,
-  "report_mota_assertion_verified": true
+  "report_mota_assertion_verified": true,
+  "report_connection_and_container_settings_verified": true,
+  "report_embedded_image_resources": 13,
+  "report_dockerfile_matches_repository": true,
+  "report_toc_verified": true
 }
