@@ -1,5 +1,5 @@
 {
-  "report_pages": 14,
+  "report_pages": 15,
   "report_visually_reviewed_pages": [
     1,
     2,
@@ -14,7 +14,8 @@
     11,
     12,
     13,
-    14
+    14,
+    15
   ],
   "original_styles_and_logos_preserved": true,
   "presentation_slides": 78,
@@ -102,5 +103,10 @@
   "model_files_verified": 60,
   "model_parts_verified": 14,
   "python_no_comment_checks": 156,
-  "default_notebook_has_no_outputs": true
+  "default_notebook_has_no_outputs": true,
+  "report_version": "2.1",
+  "report_embedded_images_preserved": true,
+  "report_procedure_commands_verified": true,
+  "report_cli_entry_points_verified": 6,
+  "report_mota_assertion_verified": true
 }
