@@ -1,6 +1,44 @@
-# NOTICE
+DTVS (3차원 디지털 연합트윈 서비스 표출 기술)
+Third-Party Attribution Notices for Apache License 2.0 Components
 
-This project includes software developed by ExampleCorp and other contributors
-under the Apache License, Version 2.0.
+================================================================================
+본 NOTICE 파일은 DTVS 제품에 포함된 Apache License 2.0 라이선스 구성요소의
+저작권 귀속(attribution) 고지를 제공합니다.
 
-Modifications made by Jaehong Jang (2025)
+Apache License 2.0 전문: 동봉된 LICENSES/Apache-2.0.txt 참조
+  (원문: http://www.apache.org/licenses/LICENSE-2.0)
+
+의무사항 충족:
+  - §4(a) 라이선스 사본 제공  → LICENSES/Apache-2.0.txt 동봉
+  - §4(b) 저작권/귀속 고지 보존 → 본 파일 및 각 구성요소 소스 헤더
+  - §4(d) 원배포 NOTICE 재현   → 아래 구성요소들은 upstream에 NOTICE 파일이
+          존재하지 않으므로 재현 대상 없음(해당사항 없음). 본 파일은 §4(a)/(b)
+          이행을 위한 자발적 귀속 고지입니다.
+================================================================================
+
+--------------------------------------------------------------------------------
+1) Draco 3D Data Compression
+--------------------------------------------------------------------------------
+Copyright 2016 The Draco Authors.
+
+Licensed under the Apache License, Version 2.0.
+Homepage : https://github.com/google/draco
+포함 경로: src/VIZWeb3D/VIZWeb3D/ThirdParty/Three/js/libs/draco/
+           (draco_decoder.js, draco_decoder.wasm, draco_wasm_wrapper.js,
+            draco_encoder.js 및 gltf/ 하위 포함)
+비고     : upstream(google/draco)에는 별도 NOTICE 파일이 존재하지 않음.
+
+--------------------------------------------------------------------------------
+2) dat.GUI
+--------------------------------------------------------------------------------
+Copyright 2014, Google Inc.  (Google Data Arts Team)
+
+Licensed under the Apache License, Version 2.0.
+Homepage : https://github.com/dataarts/dat.gui
+포함 경로: src/VIZWeb3D/VIZWeb3D/ThirdParty/Three/js/libs/dat.gui.min.js
+비고     : upstream(dataarts/dat.gui)에는 별도 NOTICE 파일이 존재하지 않음.
+
+================================================================================
+본 제품의 전체 서드파티 라이선스 고지는 THIRD-PARTY-NOTICES.md 를 참조하십시오.
+검증 상세: OSS-LICENSE-REPORT.md
+================================================================================
