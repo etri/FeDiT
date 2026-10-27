@@ -1,4 +1,4 @@
-생성: 2026-10-26 14:03
+생성: 2026-10-27 13:39
 종류: 사내 이미지만
 플랫폼: linux/amd64
 
@@ -14,4 +14,4 @@
 172.16.28.217:12000/ndxpro-ngsi-translator:v1.1.1          linux/amd64 sha256:24b18ebc842f
 172.16.28.217:12000/ndxpro-translatorbuilder:v1.1.1        linux/amd64 sha256:a0db08915193
 172.16.28.217:12000/union-twin-be:latest                   linux/amd64 sha256:2a3b832a26da
-172.16.28.217:12000/union-twin-fe:latest                   linux/amd64 sha256:5e425b4d3f25
+172.16.28.217:12000/union-twin-fe:latest                   linux/amd64 sha256:d3071f768986
