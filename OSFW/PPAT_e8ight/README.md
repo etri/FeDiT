@@ -1,365 +1,104 @@
-# IITP PRE Web Preprocessor
+# 연합트윈 CFD 렌더러 — 시뮬레이션 가시화·저작도구 (웹)
 
-CFD(전산유체역학) 시뮬레이션을 위한 웹 기반 전처리기 애플리케이션입니다.
+디지털 연합트윈 3세부 '디지털 연합트윈 시뮬레이션 가시화/저작도구'의 이에이트(E8IGHT) 웹 구현이다.
+1세부 해석엔진(LBM·LBM_DEM, FeDiT `OPFW/modeling_simulation_engines`)의 입력을 만들고, 해석을 실행하고,
+결과(VTK)를 브라우저에서 후처리·가시화한다. 설치 없이 웹 페이지로 열리고, FeDiT 화면에는 iframe 탭 하나로 붙는다.
+기반기술을 검증하는 시제품 단계다.
 
-## 기술 스택
+- 기술: TypeScript, three.js 0.179, Vite (화면 프레임워크 없음)
+- 운영 주소: `https://cfd.fedit.or.kr/` (시작 화면)
 
-- **Frontend**: React 19, TypeScript 5.8, Vite 7
-- **UI Library**: PrimeReact 10, PrimeFlex, PrimeIcons
-- **3D Graphics**: Three.js 0.160, @react-three/fiber, @react-three/drei
-- **상태 관리**: Zustand 5
-- **Form 관리**: React Hook Form
+## 화면 구성
 
----
+```text
+시작(index.html) ─┬─ 전처리(pre.html) ──[해석 실행]──> 물리 시뮬레이션(sim.html) ──[가시화]──> 후처리(post.html?job=<작업 번호>)
+                  ├─ 물리 시뮬레이션(sim.html)   입력 JSON·STL 을 직접 올려 실행
+                  └─ 후처리(post.html)           결과 폴더·결과 ZIP 을 직접 열기
+```
 
-## Docker 빌드 및 실행 가이드
+| 페이지 | 하는 일 |
+| --- | --- |
+| 시작 `index.html` | 세 페이지로 가는 카드 |
+| 전처리 `pre.html` | 해석기 5종(다성분, 다상, 농도확산, 복합 열전달, 유체-입자(DEM)) 템플릿 고르기 → 형상(STL)·계산 영역 → 핵심 값 수정 → '해석 실행' 또는 입력 JSON(+STL ZIP) 내려받기 |
+| 물리 시뮬레이션 `sim.html` | 입력을 해석엔진에 보내 실행하고 진행·대기열을 보여 준다. 끝나면 마지막 저장 시점의 결과 ZIP 내려받기와 '가시화'(후처리로 넘김) |
+| 후처리 `post.html` | 결과를 열어 필터를 쌓고 저장 시점을 넘겨 보며 그림으로 내보낸다. 주소 `?job=`(서버 결과)·`?data=`(데이터 목록)·`?scene=`(장면)로 바로 연다 |
 
-### 사전 요구사항
+'처음 화면' 단추(전처리·후처리는 왼쪽 패널 머리, 물리 시뮬레이션은 페이지 머리 오른쪽)로 시작 화면에 돌아간다. 전처리에서 입력을 열어 둔 채, 또는 물리 시뮬레이션에서 입력을 보내는 중에 누르면 화면 안 확인 상자로 한 번 묻는다.
 
-1. **Docker Desktop 설치**
-   - [Docker Desktop](https://www.docker.com/products/docker-desktop/) 다운로드 및 설치
-   - 설치 후 Docker Desktop 실행
+## 후처리 기능
 
-2. **Docker 버전 확인**
+| 구분 | 내용 |
+| --- | --- |
+| 입력 | 해석엔진 결과 폴더·결과 ZIP(`<이름>_<n>.vtm` + `bin/LEVEL_xx/*.vtu`), 서버의 해석 결과(`?job=`), CSV 점 데이터, 형상 STL. VTI 축소본(`scripts/downsample_vtu.py`로 줄인 것)은 개발 서버 데이터 목록에서만 연다 |
+| 다중 레벨 | LBM 옥트리 결과를 레벨마다 격자로 되살리고, 보간은 세밀한 레벨부터 찾는다. 레벨 경계·고체 옆은 유효한 이웃만 평균한다 |
+| 시간축 | 저장 시점을 슬라이더·재생으로 넘긴다. 시각은 입력 JSON 의 저장 시작·간격으로 계산한다 |
+| 필터 | Clip, Threshold, Slice(면 색·Contour lines), Glyph(벡터 화살표), Streamline(RK4), Isosurface. 장면 트리에 노드로 쌓고, 자식은 조상의 Clip·Threshold 를 이어받는다 |
+| 표현 | Surface, Outline, Points, Volume(레벨별 3D 텍스처 + ray marching, Opacity 곡선 편집기) |
+| 색 | Field(스칼라·벡터 크기·성분)마다 Color Map 하나. Preset: Cool-Warm, Viridis, Jet. 범위는 데이터·지정·전 시점·보이는 값 |
+| 형상 편집 | 장면의 형상 객체 이동·연직축 회전·크기 조정, 상자·원기둥 추가, 복제·삭제·되돌리기 |
+| 내보내기 | 1920×1080 PNG 캡처, 장면 JSON 저장·열기, 표시 중인 형상의 STL 내보내기 |
+
+필터의 뜻·단위·기본값은 되도록 ParaView 를 따르고, 다른 점은 소스 주석에 적었다.
+
+알려진 한계:
+- VTU 압축(zlib)·base64 형식은 아직 읽지 않는다.
+- 유체-입자(DEM) 해석의 입자 결과(`.vtk`)는 파일이 몇 개 있는지만 알려 주고 그리지는 않는다.
+- 결과 ZIP 은 풀었을 때 256 MB까지만 메모리에서 연다. 그보다 크면 Chrome·Edge 에서 풀어 둘 폴더를 고른다. FeDiT 탭(다른 주소의 iframe) 안에서는 Chrome 이 폴더 선택 창을 막으므로, 큰 결과는 서버 결과(`?job=`)로 열거나 PC 에서 먼저 푼 폴더를 연다.
+
+## 개발 실행
 
 ```bash
-docker --version
-docker compose version
-```
-
-### 빠른 시작 (로컬 실행)
-
-#### 1단계: 환경변수 설정
-
-`docker/.env` 파일을 생성하거나 수정합니다.
-
-```env
-# 필수 환경변수
-VITE_API_URL=http://172.16.37.55:13000/api
-
-# 선택 환경변수 (기본값 있음)
-IMAGE_NAME=iitp-pre-web
-VERSION=latest
-NGINX_PORT=3000
-VITE_ENV_MODE=production
-```
-
-#### 2단계: Docker 이미지 빌드
-
-```bash
-# docker 폴더로 이동
-cd docker
-
-# 이미지 빌드
-docker compose build
-
-# 캐시 무시하고 새로 빌드 (코드 변경 시)
-docker compose build --no-cache
-```
-
-#### 3단계: 컨테이너 실행
-
-```bash
-# 백그라운드에서 컨테이너 실행
-docker compose up -d
-
-# 실행 상태 확인
-docker ps
-
-# 로그 확인
-docker logs iitp-pre-web -f
-```
-
-#### 4단계: 브라우저에서 접속
-
-```bash 
-#.env 파일에 작성한 포트 기준
-http://localhost:3000 
-```
-
-#### 5단계: 컨테이너 중지
-
-```bash
-docker compose down
-```
-
-### 자주 사용하는 명령어
-
-| 명령어 | 설명 |
-|--------|------|
-| `docker compose build` | 이미지 빌드 |
-| `docker compose up -d` | 백그라운드 실행 |
-| `docker compose down` | 컨테이너 중지 |
-| `docker compose restart` | 컨테이너 재시작 |
-| `docker logs iitp-pre-web -f` | 로그 실시간 확인 |
-| `docker exec -it iitp-pre-web sh` | 컨테이너 내부 접속 |
-
-### 트러블슈팅
-
-**포트 충돌 시:**
-
-```bash
-# 다른 포트로 변경 (.env 파일 수정)
-NGINX_PORT=8080
-```
-
-**API 연결 오류 시:**
-
-```bash
-# 환경변수 확인
-docker exec iitp-pre-web env | grep IITP_ENV
-
-# .env 파일의 VITE_API_URL 확인 후 재시작
-docker compose down && docker compose up -d
-```
-
-> 상세한 배포 가이드는 [docker/README.md](./docker/README.md)를 참고하세요.
-
----
-
-## 애플리케이션 사용 가이드
-
-### 화면 구성
-
-애플리케이션은 크게 4개의 주요 영역으로 구성되어 있습니다.
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        네비게이션 바                          │
-├────┬────────────────────────────────────────────┬───────────┤
-│    │                                            │           │
-│ 사 │                                            │   설정    │
-│ 이 │              3D 뷰어 영역                   │   패널    │
-│ 드 │                                            │           │
-│ 메 │                                            │           │
-│ 뉴 │                                            │           │
-├────┼────────────────────────────────────────────┤           │
-│    │            프로젝트 패널                     │           │
-└────┴────────────────────────────────────────────┴───────────┘
-```
-
-### 1. 3D 뷰어 영역 (중앙)
-
-Three.js 기반의 3D 뷰어로 모델과 시뮬레이션 도메인을 시각화합니다.
-
-| 기능 | 조작 방법 |
-|------|----------|
-| 회전 | 마우스 왼쪽 버튼 드래그 |
-| 이동 | 마우스 오른쪽 버튼 드래그 또는 Shift + 왼쪽 드래그 |
-| 확대/축소 | 마우스 휠 스크롤 |
-| 모델 업로드 | 파일을 뷰어로 드래그 앤 드롭 |
-
-**지원 파일 형식:** STL, OBJ, GLTF/GLB, PLY
-
-### 2. 사이드 메뉴 (좌측)
-
-프로젝트 패널의 각 섹션으로 빠르게 이동할 수 있는 아이콘 메뉴입니다.
-
-| 아이콘 | 섹션 | 설명 |
-|--------|------|------|
-| 📍 | Initial Conditions | 초기 조건 설정 (압력, 속도, 농도 위치) |
-| 📦 | Materials | 물질 속성 설정 (밀도, 점성, 확산계수) |
-| 📢 | Concentration Diffusion | 농도 확산 관련 설정 |
-| 🔨 | Outer Boundary Conditions | 외부 경계 조건 설정 |
-| 📊 | Lattice Generation | 계산 도메인 격자 설정 |
-| 🧮 | Calculation | 계산 조건 설정 (종료 시간, 시간 간격) |
-
-**사용 방법:**
-- 아이콘 클릭: 해당 섹션으로 이동
-- 동일 아이콘 재클릭: 프로젝트 패널 닫기/열기 토글
-
-### 3. 프로젝트 패널 (좌측 하단)
-
-시뮬레이션 파라미터를 입력하는 폼 영역입니다.
-
-#### Initial Conditions (초기 조건)
-
-| 필드 | 설명 | 단위 |
-|------|------|------|
-| Pressure | 초기 압력 | Pa |
-| Velocity X/Y/Z | 초기 속도 성분 | m/s |
-| Concentration Point X/Y/Z | 농도 초기 위치 | m |
-| Concentration Width | 농도 초기 분포 폭 | m |
-
-#### Materials (물질 속성)
-
-| 필드 | 설명 | 단위 |
-|------|------|------|
-| Density | 밀도 | kg/m³ |
-| Kinematic Viscosity | 동점성계수 | m²/s |
-| Diffusivity 1/2/3 | 확산계수 (물질별) | m²/s |
-
-#### Lattice Generation (격자 생성)
-
-| 필드 | 설명 | 단위 |
-|------|------|------|
-| Domain Min X/Y/Z | 도메인 최소 좌표 | m |
-| Domain Max X/Y/Z | 도메인 최대 좌표 | m |
-
-#### Calculation (계산 설정)
-
-| 필드 | 설명 | 단위 |
-|------|------|------|
-| End Time | 시뮬레이션 종료 시간 | s |
-| Time Step | 시간 간격 | s |
-| Save Interval | 결과 저장 간격 | s |
-
-### 4. 설정 패널 (우측)
-
-뷰어 디스플레이 설정을 조정하는 패널입니다.
-
-#### Display Settings (표시 설정)
-
-| 설정 | 설명 |
-|------|------|
-| Background Color | 배경색 선택 |
-| Grid | 그리드 표시 ON/OFF |
-| Axes Helper | 좌표축 표시 ON/OFF |
-| Model Hover | 모델 호버 하이라이트 ON/OFF |
-| Model Selection | 모델 선택 기능 ON/OFF |
-| Antialiasing | 안티앨리어싱 ON/OFF |
-| Render Mode | 렌더링 모드 (Solid, Wireframe, Points 등) |
-| Shadows | 그림자 효과 ON/OFF |
-
-#### Lighting Settings (조명 설정)
-
-| 설정 | 설명 |
-|------|------|
-| Ambient Light | 환경광 강도 |
-| Directional Light | 직사광 강도, 색상, 위치 |
-| Hemisphere Light | 반구광 강도, 하늘/지면 색상 |
-
-#### Camera Control (카메라 제어)
-
-| 버튼/기능 | 설명 |
-|-----------|------|
-| Fit to Box | 모든 객체가 보이도록 카메라 자동 조정 |
-| Camera Position | 카메라 위치 저장/이동 |
-| Camera Target | 카메라 타겟 저장/적용 |
-
-### 5. 상단 버튼
-
-| 버튼 | 위치 | 기능 |
-|------|------|------|
-| ⚙️ 설정 | 우측 상단 | 설정 패널 열기/닫기 |
-| ⬆️ 업로드 | 우측 (설정 아래) | 3D 모델 파일 업로드 |
-| ↔️ 변환 | 우측 (업로드 아래) | 모델 이동/회전/스케일 모드 토글 |
-
-### 워크플로우 예시
-
-**농도 확산 시뮬레이션 설정:**
-
-1. 브라우저에서 애플리케이션 접속
-2. 사이드 메뉴에서 **Initial Conditions** 클릭
-3. 압력, 속도, 농도 초기 위치 입력
-4. **Materials** 클릭하여 밀도, 점성, 확산계수 입력
-5. **Lattice Generation** 클릭하여 도메인 범위 설정
-6. **Calculation** 클릭하여 시뮬레이션 시간 설정
-7. 3D 뷰어에서 농도 마커 위치 확인
-8. 설정 완료 후 JSON 내보내기
-
----
-
-## 로컬 개발 환경
-
-### 설치 및 실행
-
-```bash
-# 의존성 설치
 npm install
-
-# 개발 서버 실행
-npm run dev
-
-# 빌드
-npm run build
-
-# 빌드 미리보기
-npm run preview
+npm run dev        # http://localhost:5177
+npm run build      # tsc 타입 검사 + 네 페이지 빌드(dist/)
+npm run sample     # 합성 예제 데이터 다시 만들기(python + numpy)
 ```
 
-### 환경변수 (.env.local)
+개발 서버에서 큰 외부 결과 폴더를 쓰려면 `data-roots.json`(예시: `data-roots.example.json`)에 이름과 경로를 적는다.
+개발 서버가 `/__data/<이름>/...` 로 내준다(바이트 범위 읽기 지원). 데이터 목록은 `public/datasets.json` 이고, 도시 예제 말고는 이렇게 연결한 외부 데이터가 있어야 열린다(빌드한 페이지에서는 목록에서 빠진다).
+개발 서버에서 PNG 캡처는 내려받기 대신 `captures/` 폴더에 저장된다. 개발 서버는 같은 망의 다른 PC 에서도 열리므로(`host: true`), `/__data` 로 연결한 폴더도 망 안에서 읽힌다.
 
-```env
-VITE_API_URL=http://localhost:13000/api
-VITE_ENV_MODE=development
+시험(Node 22):
+
+```bash
+ENGINE_EXAMPLES=<FeDiT 저장소>/OPFW/modeling_simulation_engines/examples node scripts/test_solver_input.mjs   # 전처리 입력 JSON 모듈
+node scripts/test_zip_extract.mjs <결과 폴더>   # 결과 ZIP 풀기(내부 시험 결과 폴더 필요: video.json, run.log, video/video_9.vtm, video/bin/LEVEL_00/video_9.vtu)
+node scripts/test_zip_input.mjs <결과 ZIP>                                # 결과 ZIP 열기
+node scripts/test_opacity_editor.mjs                                      # Opacity 곡선 편집기
 ```
 
----
+## 배포
 
-## 프로젝트 구조
+페이지(nginx 정적 서버)와 https 앞단(proxy)을 컨테이너 두 개로 띄우고, 같은 서버에서 도는 1세부 해석엔진에 붙인다.
+앞단이 한 주소 아래에서 페이지(`/`), 해석엔진 API(`/engine/`), 엔진 작업 폴더 읽기(`/results/`)를 나눠 준다.
+설정과 절차는 [`deploy/README.md`](deploy/README.md), 서버 설치 묶음은 `deploy/bundle/`.
 
-```
-src/
-├── components/
-│   ├── forms/              # 폼 컴포넌트
-│   │   └── simulation/     # 시뮬레이션 설정 폼
-│   ├── viewer3d/           # 3D 뷰어 컴포넌트
-│   │   ├── components/     # 뷰어 하위 컴포넌트
-│   │   └── hooks/          # 커스텀 훅
-│   ├── workbench/          # 작업공간 컴포넌트
-│   └── import/             # 파일 임포트 관련
-├── configs/                # 설정 파일
-├── pages/                  # 페이지 컴포넌트
-├── stores/                 # Zustand 상태 관리
-├── styles/                 # CSS 스타일
-├── types/                  # TypeScript 타입 정의
-└── utils/                  # 유틸리티 함수
-```
+## 폴더 구성
 
----
-
-## 사용된 라이브러리 및 라이선스
-
-이 프로젝트는 다음의 오픈소스 라이브러리를 사용합니다.
-
-### Core Libraries
-
-| 라이브러리 | 버전 | 라이선스 | 용도 |
-|------------|------|----------|------|
-| [React](https://react.dev/) | 19.x | MIT | UI 프레임워크 |
-| [TypeScript](https://www.typescriptlang.org/) | 5.8.x | Apache-2.0 | 타입 시스템 |
-| [Vite](https://vitejs.dev/) | 7.x | MIT | 빌드 도구 |
-
-### 3D Graphics
-
-| 라이브러리 | 버전 | 라이선스 | 용도 |
-|------------|------|----------|------|
-| [Three.js](https://threejs.org/) | 0.160.x | MIT | 3D 렌더링 엔진 |
-| [@react-three/fiber](https://docs.pmnd.rs/react-three-fiber) | 9.x | MIT | React용 Three.js 렌더러 |
-| [@react-three/drei](https://github.com/pmndrs/drei) | 10.x | MIT | Three.js 유틸리티 컴포넌트 |
-| [three-mesh-bvh](https://github.com/gkjohnson/three-mesh-bvh) | 0.8.x | MIT | 메시 충돌 검사 최적화 |
-
-### UI Components
-
-| 라이브러리 | 버전 | 라이선스 | 용도 |
-|------------|------|----------|------|
-| [PrimeReact](https://primereact.org/) | 10.x | MIT | UI 컴포넌트 라이브러리 |
-| [PrimeFlex](https://primeflex.org/) | 4.x | MIT | CSS 유틸리티 |
-| [PrimeIcons](https://primereact.org/icons/) | 7.x | MIT | 아이콘 라이브러리 |
-
-### State & Form Management
-
-| 라이브러리 | 버전 | 라이선스 | 용도 |
-|------------|------|----------|------|
-| [Zustand](https://zustand-demo.pmnd.rs/) | 5.x | MIT | 상태 관리 |
-| [React Hook Form](https://react-hook-form.com/) | 7.x | MIT | 폼 상태 관리 |
-| [React Router](https://reactrouter.com/) | 7.x | MIT | 라우팅 |
-
-### Utilities
-
-| 라이브러리 | 버전 | 라이선스 | 용도 |
-|------------|------|----------|------|
-| [Axios](https://axios-http.com/) | 1.x | MIT | HTTP 클라이언트 |
-| [JSZip](https://stuk.github.io/jszip/) | 3.x | MIT | ZIP 파일 처리 |
-| [EventEmitter3](https://github.com/primus/eventemitter3) | 5.x | MIT | 이벤트 시스템 |
-
----
+| 경로 | 내용 |
+| --- | --- |
+| `src/app/` | 전처리·후처리가 함께 쓰는 틀(3D 화면·패널·장면 트리·도구막대)과 시작 화면 스타일 |
+| `src/core/` | 뷰어 핵심(`AppCore.ts`)과 필터 노드 자료형(`layers.ts`) |
+| `src/data/` | 결과 폴더·ZIP·CSV·VTU 읽기, 시간축, 해석엔진 API |
+| `src/analysis/` | Surface 겉면·Slice·Isosurface·Streamline 계산 |
+| `src/render/` · `src/shaders/` | 표현별 그리기와 셰이더 |
+| `src/pre/` · `src/sim/` · `src/post/` | 전처리·물리 시뮬레이션·후처리 페이지 |
+| `src/edit/` | 형상 객체 편집 |
+| `src/ui/`, `src/styles.css` | 디자인 토큰·부품·아이콘·패널, 화면 배치 |
+| `src/utils/` | 색 지도(Preset) |
+| `src/types/` | 브라우저 API 타입 선언 |
+| `public/models/`, `public/templates/` | 1세부 해석기 예제 형상(STL 8개)과 입력 템플릿(JSON 5개), 도시 샘플 형상, 형상 목록(`library.json`) |
+| `public/sample/`, `public/scenes/` | 합성 도시 예제 데이터와 장면 |
+| `deploy/` | 컨테이너 배포 설정 |
+| `scripts/` | 예제 데이터 만들기, VTU 축소, 시험 |
 
 ## 라이선스
 
-이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 [LICENSE](./LICENSE) 파일을 참조하세요.
+LGPL-2.1-only. Copyright (c) 2026 E8IGHT Co., Ltd.
+전문은 [`LICENSE`](LICENSE)(FeDiT 저장소 맨 위 LICENSE 와 같은 원문)에 있고, 소스 파일마다 첫머리에 `SPDX-License-Identifier: LGPL-2.1-only` 와 저작권 표시가 있다.
+함께 들어 있는 제3자 구성요소(three, fflate, viridis 근사식)와 1세부 해석기 예제(STL·입력 JSON)의 고지와 라이선스 전문은 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)에 있다.
 
-### 서드파티 라이선스
-
-이 프로젝트에서 사용된 서드파티 라이브러리의 전체 라이선스 목록은 [THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md)를 참조하세요.
+---
+# Funding
+This work was supported by Institute of Information & communications Technology Planning & Evaluation (IITP) grant funded
+by the Korea government (MSIT) (No.2022-0-00431, Development of open service platform and creation technology of federated intelligent digital twin, 100%).

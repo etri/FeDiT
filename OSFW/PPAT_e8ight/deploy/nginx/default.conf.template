@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: LGPL-2.1-only
+# Copyright (c) 2026 E8IGHT Co., Ltd.
+# 연합트윈 CFD 렌더러 — 정적 파일 서버 설정.
+# 컨테이너가 시작할 때 nginx 이미지가 ${FRAME_ANCESTORS}를 환경 변수 값으로 바꿔 /etc/nginx/conf.d/default.conf를 만든다.
+server {
+    listen       8080;
+    server_name  _;
+    root         /usr/share/nginx/html;
+    index        index.html;
+    server_tokens off;
+    # 폴더 주소에 / 를 붙이는 되돌려 보내기를 상대 주소로 한다(기본값은 컨테이너 안 포트 8080 을 그대로 적어 밖에서 닿지 않는다)
+    absolute_redirect off;
+
+    # 빌드 단계에서 미리 압축한 .gz가 있으면 그것을, 없으면 그 자리에서 압축해 보낸다
+    gzip_static on;
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "same-origin" always;
+    # 호스트 앱이 이 페이지를 iframe으로 띄우므로 X-Frame-Options는 두지 않고, 띄울 수 있는 출처만 정한다
+    add_header Content-Security-Policy "frame-ancestors ${FRAME_ANCESTORS}" always;
+
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    # 이름에 내용 지문이 붙은 화면 파일: 내용이 바뀌면 이름도 바뀌므로 오래 캐시한다
+    # (Cache-Control을 add_header가 아니라 expires로 정한다 — location에 add_header를 쓰면 위의 보안 헤더가 빠진다)
+    location /assets/ {
+        expires 1y;
+        try_files $uri =404;
+    }
+
+    # 페이지·데이터 목록·템플릿·내장 STL: 배포마다 바뀔 수 있어 매번 서버에 확인한다(안 바뀌었으면 304)
+    location / {
+        expires epoch;
+        try_files $uri $uri/ =404;
+    }
+}

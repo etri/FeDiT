@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: LGPL-2.1-only
+# Copyright (c) 2026 E8IGHT Co., Ltd.
+# E8IGHT 서버(1세부 서버)용 덧붙임 설정. docker-compose.yml 위에 겹쳐 쓴다.
+#   docker compose -f docker-compose.yml -f docker-compose.server.yml up -d renderer proxy
+# 이 서버의 해석엔진은 1세부가 자기 compose(…/modeling_simulation_engines/integration/docker-compose.yml)로 띄운다.
+# 그 프로젝트(integration)의 기본 네트워크에 proxy 를 함께 붙여, 서비스 이름 engine 으로 엔진 API 를 찾는다.
+# 우리 engine 서비스(profile engine)는 이 서버에서 띄우지 않는다.
+services:
+  proxy:
+    networks:
+      - default
+      - engine_net
+    volumes:
+      # 1세부 엔진의 작업 폴더를 그대로 읽는다. 서버 .env 에 꼭 적는다(기본 ./jobs 는 빈 폴더라 결과가 안 보인다)
+      # 예: JOBS_HOST_DIR=<엔진 폴더>/integration/jobs   (서버에서 확인 — README 5절)
+      - ${JOBS_HOST_DIR:?서버 deploy/.env 에 JOBS_HOST_DIR(1세부 엔진 작업 폴더의 절대 경로)을 적으세요}:/srv/jobs:ro
+
+networks:
+  # 1세부 compose 가 만든 네트워크(이 compose 가 만들거나 지우지 않음). 이름 확인: docker network ls
+  engine_net:
+    name: ${ENGINE_NETWORK:-integration_default}
+    external: true

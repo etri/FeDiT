@@ -1,13 +1,39 @@
 <!doctype html>
-<html lang="en">
+<!-- SPDX-License-Identifier: LGPL-2.1-only -->
+<!-- Copyright (c) 2026 E8IGHT Co., Ltd. -->
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>IITP PRE Web</title>
+    <title>연합트윈 CFD 렌더러 (프로토타입)</title>
+    <script>
+      // 옛 주소(?data=… ?scene=…)는 후처리 페이지로 그대로 넘긴다
+      if (location.search) location.replace('post.html' + location.search + location.hash);
+    </script>
+    <link rel="stylesheet" href="/src/app/launcher.css" />
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <main class="launcher">
+      <h1>연합트윈 CFD 렌더러 <span class="badge">프로토타입</span></h1>
+      <p class="lead">도시 CFD 해석의 입력을 만들고(전처리), 해석엔진으로 실행하고(물리 시뮬레이션), 결과를 가시화(후처리)하는 세 페이지입니다.</p>
+      <nav class="cards">
+        <a class="card" href="pre.html">
+          <span class="step">1</span>
+          <h2>전처리</h2>
+          <p>해석기 고르기 → 형상(STL)과 계산 영역 → 핵심 값 수정 → 해석 실행 또는 입력 JSON(+STL) 내려받기</p>
+        </a>
+        <a class="card" href="sim.html">
+          <span class="step">2</span>
+          <h2>물리 시뮬레이션</h2>
+          <p>입력 JSON+STL 받기 → 해석기 고르기 → 해석엔진 실행 → 진행 상황 → 가시화</p>
+        </a>
+        <a class="card" href="post.html">
+          <span class="step">3</span>
+          <h2>후처리</h2>
+          <p>해석 결과 폴더·ZIP 열기 → Slice·Glyph·Streamline·Isosurface → 저장 시점 재생 → PNG 캡처</p>
+        </a>
+      </nav>
+      <p class="hint">2단계(물리 시뮬레이션)는 전처리의 '해석 실행'으로 넘어오거나, 입력 JSON과 STL을 직접 올려 시작합니다. 해석이 끝나면 '가시화'로 후처리가 열립니다.</p>
+    </main>
   </body>
 </html>

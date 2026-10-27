@@ -1,0 +1,160 @@
+{
+  "datasets": [
+    {
+      "id": "city-synthetic",
+      "label": "도시 예제 (CSV, 4 m 격자, 건물 12동)",
+      "kind": "csv",
+      "csv": "sample/sample_city_cfd.csv",
+      "stl": [
+        "sample/sample_city_buildings.stl"
+      ],
+      "objects": "sample/sample_city_buildings.json",
+      "meta": "sample/sample_city_meta.json",
+      "view": {
+        "sliceAxis": 2,
+        "slicePosition": "min",
+        "fit": "data",
+        "colorField": "vector:velocity",
+        "seedAxis": 0,
+        "seedPos": 8,
+        "seedVFrac": 0.5
+      }
+    },
+    {
+      "id": "ahmed",
+      "label": "Ahmed body (LBM 솔버 해석 결과, 다중 레벨 VTU)",
+      "kind": "vtm",
+      "vtm": "/__data/ahmed/251103_Ahmed_Body_wallmodel_interpolated_multi_level5/251103_Ahmed_Body_wallmodel_interpolated_multi_level5_10.vtm",
+      "extraBlocks": [
+        {
+          "name": "L4↓2 (0.0125 m)",
+          "url": "/__data/derived/ahmed-derived/L4_ds2.vti"
+        },
+        {
+          "name": "L5↓4 (0.0125 m)",
+          "url": "/__data/derived/ahmed-derived/L5_ds4.vti"
+        },
+        {
+          "name": "L5↓2 (0.00625 m)",
+          "url": "/__data/derived/ahmed-derived/L5_ds2.vti"
+        }
+      ],
+      "levelChoices": [
+        {
+          "label": "전체 영역 0.0125 m: L0~L3, L4↓2, L5↓4 (약 160만 셀, 권장)",
+          "levels": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "extra": [
+            0,
+            1
+          ]
+        },
+        {
+          "label": "몸체 주변 0.00625 m: L0~L4, L5↓2 (약 680만 셀, 느림)",
+          "levels": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "extra": [
+            2
+          ]
+        },
+        {
+          "label": "L0~L3만 (몸체 주변 비어 있음, 빠름)",
+          "levels": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "extra": []
+        }
+      ],
+      "defaultChoice": 0,
+      "arrays": [
+        "velocity",
+        "pressure",
+        "turbulent_viscosity",
+        "wall_shear_stress",
+        "y_plus"
+      ],
+      "solidArray": "solid",
+      "units": {
+        "velocity": "m/s",
+        "pressure": "Pa",
+        "turbulent_viscosity": "m²/s",
+        "wall_shear_stress": "Pa",
+        "y_plus": ""
+      },
+      "stl": [
+        "/__data/ahmed/Ahmed_Body.stl"
+      ],
+      "stlAxes": [
+        "x",
+        "z",
+        "y"
+      ],
+      "note": "실제 해석 결과 (2025-11-03, 정상 상태 스냅샷 10, 반쪽 모델, 유입 속도 40 m/s). 레벨 4와 5(5.7 GB)는 서버에서 평균으로 축소한 데이터를 사용합니다. ↓2, ↓4는 축소 배율입니다.",
+      "badge": "실제 해석 결과",
+      "view": {
+        "sliceAxis": 1,
+        "slicePosition": 0.02,
+        "fit": "shapes",
+        "colorField": "vector:velocity",
+        "seedAxis": 0,
+        "seedPos": -1.3,
+        "seedVFrac": 0.9,
+        "seedBounds": "finest"
+      }
+    },
+    {
+      "id": "e2e-03",
+      "label": "농도확산 E2E (1세부 해석엔진 결과, 2D, 저장 10회)",
+      "kind": "result",
+      "units": {
+        "velocity": "",
+        "pressure": "",
+        "density": "",
+        "concentration1": ""
+      },
+      "note": "해석엔진 E2E 실행 결과(2026-10-01). 격자 8×33×1(z 한 층, 2D), 저장 10회 중 마지막. 단위는 입력에 없어 표기하지 않습니다. z 한 층이라 단면은 z = 0.5 에서만 값이 있습니다.",
+      "badge": "실제 해석 결과",
+      "view": {
+        "sliceAxis": 2,
+        "slicePosition": "min",
+        "fit": "data",
+        "colorField": "scalar:concentration1"
+      },
+      "folder": "/__data/e2e/03_concentration_diffusion",
+      "list": "/__list/e2e/03_concentration_diffusion"
+    },
+    {
+      "id": "e2e-05",
+      "label": "유체-DEM E2E (1세부 해석엔진 결과, 유체 격자만, 저장 10회)",
+      "kind": "result",
+      "units": {
+        "velocity": "m/s",
+        "pressure": "Pa",
+        "density": "kg/m³",
+        "fraction": ""
+      },
+      "note": "해석엔진 E2E 실행 결과(2026-10-01). 유체 격자 50×38×26, 입자 결과(.vtk)는 아직 읽지 않습니다. 물이 있는 셀은 fraction > 0 입니다.",
+      "badge": "실제 해석 결과",
+      "view": {
+        "sliceAxis": 1,
+        "slicePosition": "center",
+        "fit": "data",
+        "colorField": "scalar:fraction"
+      },
+      "folder": "/__data/e2e/05_fluid_dem",
+      "list": "/__list/e2e/05_fluid_dem"
+    }
+  ]
+}

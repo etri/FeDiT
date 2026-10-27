@@ -1,0 +1,4 @@
+{
+  "_comment": "개발 서버가 /__data/<이름>/... 으로 서빙할 외부 데이터 폴더. 복사해서 data-roots.json으로 저장.",
+  "ahmed": "C:/data/Ahmed_body"
+}

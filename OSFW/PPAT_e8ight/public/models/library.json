@@ -1,0 +1,72 @@
+[
+  {
+    "file": "solid.stl",
+    "label": "원기둥 고체 (다상 템플릿)",
+    "note": "다상 템플릿의 고정 고체(fixed) 원기둥입니다. 계산 영역 280×280×1 안에 놓입니다.",
+    "kinds": [
+      "multiphase"
+    ]
+  },
+  {
+    "file": "corrected_left.stl",
+    "label": "왼쪽 유체 상자 (다상 템플릿)",
+    "note": "다상 템플릿의 초기 액체 영역(region_ref) 상자입니다.",
+    "kinds": [
+      "multiphase"
+    ]
+  },
+  {
+    "file": "CHT_natural_convection_in_a_finned.stl",
+    "label": "핀 달린 고체 (복합 열전달 템플릿)",
+    "note": "복합 열전달 템플릿의 열전달 고체(cht)입니다. 계산 영역 1×1×1 m.",
+    "kinds": [
+      "thermal"
+    ]
+  },
+  {
+    "file": "natural_convection_MB.stl",
+    "label": "격자 세분화 상자 (복합 열전달 템플릿)",
+    "note": "복합 열전달 템플릿의 격자 세분화(subdivision_ref) 상자입니다.",
+    "kinds": [
+      "thermal"
+    ]
+  },
+  {
+    "file": "water.stl",
+    "label": "물 상자 (유체-입자 템플릿)",
+    "note": "유체-입자 템플릿의 자유표면 초기 물(free_surface) 상자입니다.",
+    "kinds": [
+      "fluid_dem"
+    ]
+  },
+  {
+    "file": "wall.stl",
+    "label": "용기 벽 (유체-입자 템플릿)",
+    "note": "유체-입자 템플릿의 용기 벽(fixed)입니다. 계산 영역을 감쌉니다.",
+    "kinds": [
+      "fluid_dem"
+    ]
+  },
+  {
+    "file": "granular.stl",
+    "label": "입자 상자 (유체-입자 템플릿)",
+    "note": "유체-입자 템플릿의 입자를 채울 영역(region_ref) 상자입니다.",
+    "kinds": [
+      "fluid_dem"
+    ]
+  },
+  {
+    "file": "sample_city_buildings.stl",
+    "label": "도시 건물 묶음 (렌더러 샘플)",
+    "note": "후처리 샘플의 건물 12동입니다. 수백 m 크기라 계산 영역을 그에 맞게 키워야 합니다.",
+    "kinds": []
+  },
+  {
+    "file": "RTI_region.stl",
+    "label": "무거운 유체 초기 영역 (다성분 템플릿)",
+    "note": "다성분 템플릿에서 처음에 무거운 유체(high_density_fluid)가 차지하는 영역(region_ref)입니다. 21 MB라 불러오는 데 몇 초 걸립니다.",
+    "kinds": [
+      "multi_component"
+    ]
+  }
+]

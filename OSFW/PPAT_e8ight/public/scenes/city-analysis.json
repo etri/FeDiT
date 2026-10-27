@@ -1,0 +1,130 @@
+{
+  "version": 2,
+  "layers": [
+    {
+      "type": "slice",
+      "name": "지면 단면 (Z = 2 m)",
+      "visible": true,
+      "params": {
+        "axis": 2,
+        "position": 2,
+        "style": "surface-lines",
+        "levels": 8,
+        "resolution": 2,
+        "opacity": 1,
+        "banded": true,
+        "lineColor": "black",
+        "lineWidth": 1,
+        "lineOpacity": 0.55,
+        "color": {
+          "mode": "global",
+          "fieldKey": "vector:velocity",
+          "mapping": "magnitude",
+          "colormap": "coolwarm",
+          "rangeMin": 0.595,
+          "rangeMax": 2.974
+        }
+      }
+    },
+    {
+      "type": "slice",
+      "name": "세로 단면 (Y = 80 m)",
+      "visible": true,
+      "params": {
+        "axis": 1,
+        "position": 80,
+        "style": "surface-lines",
+        "levels": 10,
+        "resolution": 2,
+        "opacity": 0.85,
+        "banded": false,
+        "lineColor": "black",
+        "lineWidth": 1,
+        "lineOpacity": 0.55,
+        "color": {
+          "mode": "own",
+          "fieldKey": "vector:velocity",
+          "mapping": "magnitude",
+          "colormap": "coolwarm",
+          "rangeMin": 2.64,
+          "rangeMax": 8.3
+        }
+      }
+    },
+    {
+      "type": "stream",
+      "name": "유선 (서쪽 유입)",
+      "visible": true,
+      "params": {
+        "fieldName": "velocity",
+        "seedAxis": 0,
+        "seedPos": 8,
+        "seedBounds": "data",
+        "nU": 14,
+        "nV": 6,
+        "vFrac": 0.5,
+        "direction": "forward",
+        "maxLength": 447,
+        "width": 2,
+        "widthUnits": "px",
+        "opacity": 1,
+        "dash": "solid",
+        "color": "field",
+        "solidColor": "#f2f2f2",
+        "fieldColor": {
+          "mode": "global",
+          "fieldKey": "vector:velocity",
+          "mapping": "magnitude",
+          "colormap": "coolwarm",
+          "rangeMin": 0.595,
+          "rangeMax": 2.974
+        }
+      }
+    },
+    {
+      "type": "iso",
+      "name": "농도 120 등값면",
+      "visible": true,
+      "params": {
+        "fieldKey": "scalar:c",
+        "value": 120,
+        "colorMode": "solid",
+        "solidColor": "#2dd4bf",
+        "opacity": 0.85,
+        "fieldColor": {
+          "mode": "global",
+          "fieldKey": "vector:velocity",
+          "mapping": "magnitude",
+          "colormap": "coolwarm",
+          "rangeMin": 0.595,
+          "rangeMax": 2.974
+        }
+      }
+    }
+  ],
+  "color": {
+    "fieldKey": "vector:velocity",
+    "mapping": "magnitude",
+    "colormap": "coolwarm",
+    "rangeMin": 0.595,
+    "rangeMax": 2.974
+  },
+  "display": {
+    "pointsVisible": false,
+    "legendSize": "sm",
+    "projection": "orthographic"
+  },
+  "camera": {
+    "position": [
+      -30.5,
+      -70.5,
+      190.5
+    ],
+    "target": [
+      120,
+      80,
+      40
+    ],
+    "orthoHeight": 300
+  }
+}

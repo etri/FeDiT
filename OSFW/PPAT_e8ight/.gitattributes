@@ -1,0 +1,10 @@
+# 컨테이너·셸에서 쓰는 파일은 어느 PC에서 받아도 줄 끝을 LF로 둔다(이 저장소는 core.autocrlf=true 인 Windows에서 받으면 CRLF가 되어 bash 스크립트가 멈춘다)
+*.sh text eol=lf
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+deploy/** text eol=lf
+
+# FeDiT 저장소에 올릴 묶음(git archive)에서 뺀다: 발표 자료, 개발 기록·설계 메모(docs/), 파이썬 실행 캐시
+/report export-ignore
+/docs export-ignore
+__pycache__ export-ignore
