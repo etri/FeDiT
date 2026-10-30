@@ -68,10 +68,11 @@ profile(묶음 이름): compose 서비스에 이름을 붙여 두면 `--profile 
 | `proxy/default.conf.template` | 앞단 설정 틀. 시작할 때 환경 변수를 넣어 만든다: 80 → https, 443 https, 8080 안쪽 확인용, 접근 키 판정 |
 | `proxy/locations.conf` | 길 나누기(고정 파일). 443 과 8080 이 함께 쓴다 |
 | `proxy/check-env.sh` | 시작 전 확인: 주소 이름, 접근 키 형식, 인증서 |
-| `proxy/Dockerfile` | 앞단 이미지(공식 nginx 1.28) |
+| `proxy/Dockerfile` | 앞단 이미지(공식 nginx 1.30) |
 | `nginx/default.conf.template` | renderer 설정: 캐시 규칙, 보안 헤더, iframe 허용 출처(`FRAME_ANCESTORS`), 상태 확인 `/healthz` |
 | `.env.example` | 서버마다 다른 값. `.env`로 복사해 쓴다 |
 | `smoke_test.sh` | 띄운 뒤 확인: 엔진 → 페이지 → 해석 1건 → 결과 폴더 읽기 → 결과 ZIP |
+| `test_images.sh` | 빌드한 이미지를 서버에 올리기 전에 이 PC 에서 시험(설정·네 페이지·결과 폴더·https·세션 티켓 꺼짐·실행 사용자·뒤처진 부품). `bundle/make_bundle.sh` 가 빌드 직후 부르고, 실패하면 묶음을 만들지 않는다 |
 | `certs/` | 인증서 폴더(기본 위치). 저장소에 넣지 않는다(`.gitignore`) |
 
 ## 2. 이 PC 리허설 (엔진까지 함께)
@@ -208,13 +209,13 @@ docker inspect integration-engine-1 --format '{{range .Mounts}}{{.Source}} -> {{
 
 ### 5.3 파일 옮기기
 
-**보통은 묶음으로 한다**: 이 PC 에서 `bash deploy/bundle/make_bundle.sh <인증서 폴더>` → 만든 폴더 안의 파일을 파일질라(SFTP, 배포 계정)로 서버 `~/cfd-deploy`(배포 계정의 홈 아래) 에 모두 올림 → 서버에서 `cd ~/cfd-deploy && bash run.sh`. 자세한 것(최종본으로 바꾸기·되돌리기·인증서 교체)은 `deploy/bundle/README.txt`. run.sh 가 5.2절의 두 값을 찾아 `.env` 에 채우고 5.4-5.5절 일을 대신한다. 아래는 묶음을 쓰지 않을 때.
+**보통은 묶음으로 한다**: 이 PC 에서 `bash deploy/bundle/make_bundle.sh <인증서 폴더>`(서버에 인증서가 이미 있어 새 판으로 바꿀 때는 `--no-certs`) → 빌드 직후 `deploy/test_images.sh` 시험이 돌고, 실패하면 묶음을 만들지 않는다. 화면이 실제로 그려지는지는 시험이 보지 못하므로 올리기 전에 `KEEP=1 bash deploy/test_images.sh` 로 남겨 두고 브라우저로 네 화면을 한 번 열어 본 뒤 `bash deploy/test_images.sh --clean` → 만든 폴더 안의 파일을 파일질라(SFTP, 배포 계정)로 서버 `~/cfd-deploy`(배포 계정의 홈 아래) 에 모두 올림 → 서버에서 `cd ~/cfd-deploy && bash run.sh`. 자세한 것(최종본으로 바꾸기·되돌리기·인증서 교체)은 `deploy/bundle/README.txt`. run.sh 가 5.2절의 두 값을 찾아 `.env` 에 채우고 5.4-5.5절 일을 대신한다. 아래는 묶음을 쓰지 않을 때.
 
 서버에는 git 이 없다. 두 길 중 하나:
 
 1. 여기서 만든 이미지를 옮긴다(서버에서 빌드하지 않음).
    ```bash
-   docker compose build renderer proxy
+   docker compose build --pull --no-cache renderer proxy   # 매번 바탕 이미지·Alpine 부품 최신판을 받음
    docker save union-twin-cfd-renderer:local union-twin-cfd-proxy:local | gzip > union-twin-cfd-images.tar.gz
    # 서버에서
    gunzip -c union-twin-cfd-images.tar.gz | docker load

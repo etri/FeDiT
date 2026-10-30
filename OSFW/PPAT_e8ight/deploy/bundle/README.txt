@@ -6,6 +6,7 @@
   docker-compose.server.yml   이 서버용 덧붙임(1세부 해석엔진의 Docker 네트워크에 붙기)
   env.server                  서버 설정의 처음 값. run.sh 가 서버에 .env 가 없을 때 한 번만 .env 로 복사한다
   certs/                      *.fedit.or.kr 인증서(fullchain.pem)와 비밀 키(privkey.pem) — 밖으로 돌리지 말 것
+                              (새 판으로 바꾸는 묶음에는 없을 수 있다. BUILD.txt 의 '인증서' 줄 참고)
   proxy/                      앞단 설정 원본(참고용, 이미지에 이미 들어 있음)
   run.sh                      설치·확인 스크립트(다시 실행해도 된다)
   smoke_test.sh               해석 1건으로 처음부터 끝까지 확인(선택)
@@ -25,6 +26,7 @@
 [최종본으로 바꾸기]
   새 묶음 폴더 안의 파일을 같은 서버 폴더(~/cfd-deploy)에 모두 덮어 올리고 bash run.sh.
   서버에서 고친 .env 는 묶음에 없으므로 덮이지 않는다. run.sh 가 바로 앞 판 이미지를 :prev 로 남긴다.
+  묶음에 certs/ 가 없으면(인증서 없이 만든 묶음) 서버의 certs/ 가 그대로 남아 그것을 쓴다.
 
 [되돌리기 — 바로 앞 판으로] (run.sh 는 쓰지 않는다. images.tar.gz 의 새 판을 다시 불러오기 때문)
   docker tag union-twin-cfd-renderer:prev union-twin-cfd-renderer:local

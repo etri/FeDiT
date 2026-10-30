@@ -16,8 +16,14 @@ COPY public ./public
 RUN npm run build \
  && find dist -type f \( -name '*.js' -o -name '*.css' -o -name '*.html' -o -name '*.json' -o -name '*.csv' -o -name '*.stl' -o -name '*.svg' \) -size +1k -exec gzip -k -9 {} +
 
-# nginx를 root가 아닌 사용자(uid 101)로, 8080 포트에서 돌리는 공식 이미지
-FROM nginxinc/nginx-unprivileged:1.28-alpine
+# nginx를 root가 아닌 사용자(uid 101)로, 8080 포트에서 돌리는 공식 이미지.
+# 지원이 이어지는 안정판 계열(1.30)을 쓴다 — 1.28 계열은 지원이 끝나 다시 빌드해도 보안 수정이 들어오지 않는다(2026-10-29)
+FROM nginxinc/nginx-unprivileged:1.30-alpine
+# 바탕 이미지가 만들어진 뒤에 나온 Alpine 부품 수정판을 빌드할 때 받는다(nginx 꾸러미는 판이 고정돼 있어 바뀌지 않는다).
+# 바탕 이미지는 uid 101 로 끝나므로 잠시 root 로 바꿨다가 되돌린다. 옛 결과를 재사용하지 않게 --no-cache 로 빌드한다(make_bundle.sh)
+USER root
+RUN apk upgrade --no-cache
+USER 101
 # 시작할 때 환경 변수(FRAME_ANCESTORS)를 넣어 /etc/nginx/conf.d/default.conf를 만든다
 COPY deploy/nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html

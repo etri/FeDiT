@@ -53,6 +53,8 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_session_cache shared:SSL:10m;
     ssl_session_timeout 1d;
+    # 다시 접속할 때는 위 서버 쪽 캐시만 쓰고 세션 티켓은 끈다(티켓 키 교체 결함 CVE-2026-97629 를 피함, 2026-10-29)
+    ssl_session_tickets off;
 
     # 안쪽 주소(컨테이너 이름:포트). 변수로 두어야 위 resolver 로 요청 때마다 찾는다
     set $renderer_upstream http://${RENDERER_UPSTREAM};
