@@ -1,0 +1,17 @@
+*.py text eol=lf
+*.md text eol=lf
+*.ipynb text eol=lf
+*.yaml text eol=lf
+INFERENCE_PROFILE.json text eol=lf
+MODEL_MANIFEST.json text eol=lf
+WEIGHT_PARTS.json text eol=lf
+DATASET_MANIFEST.json text eol=lf
+MANIFEST.json text eol=lf
+requirements.txt text eol=lf
+Dockerfile* text eol=lf
+models/checkpoints/** -text
+models/reid/** -text
+models/weights/** -text
+models/weights/**/*.safetensors.part* -text
+tracking_results/*.txt -text
+results/** -text

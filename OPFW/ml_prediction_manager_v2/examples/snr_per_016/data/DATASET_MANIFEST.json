@@ -1,0 +1,19 @@
+{
+  "requirement": "SNR-PER-016",
+  "dataset": "Parking Birmingham",
+  "author": "Daniel Stolfi",
+  "doi": "10.24432/C51K5Z",
+  "license": "CC BY 4.0",
+  "page_url": "https://archive.ics.uci.edu/dataset/482/parking+birmingham",
+  "source_url": "https://archive.ics.uci.edu/static/public/482/parking%2Bbirmingham.zip",
+  "archive_file": "data/parking_birmingham.zip",
+  "archive_sha256": "af7d1b1b5bb85aa6cbf0e5212d06e76470a7fbe6c42c86ea01bf4c36d3a56ad8",
+  "archive_bytes": 240539,
+  "csv_file": "data/dataset.csv",
+  "csv_sha256": "f1e28b9c697769a1a05cd20148241b60b1a73fee4907611163efc6fd9d12770a",
+  "csv_bytes": 1479909,
+  "original_rows": 35717,
+  "clean_rows": 35116,
+  "period": ["2016-10-04 07:46:28", "2016-12-19 16:30:35"],
+  "note": "The archive and csv are downloaded by the notebook into data/ and are not committed to git. Values above were recorded on 2026-10-28."
+}

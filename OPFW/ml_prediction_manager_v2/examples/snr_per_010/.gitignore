@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+workspace/
+
+# assembled from the committed 64 MiB parts by code/pipeline/prepare_weights.py
+models/weights/**/*.safetensors
+
+# MOT20 images are downloaded by code/pipeline/download_dataset.py
+data/MOT20/
+data/downloads/

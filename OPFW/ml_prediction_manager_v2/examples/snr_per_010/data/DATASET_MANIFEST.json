@@ -1,0 +1,34 @@
+{
+  "dataset": "MOT20 (MOTChallenge)",
+  "split": "train",
+  "source_url": "https://motchallenge.net/data/MOT20.zip",
+  "citation": "Dendorfer et al., MOT20: A benchmark for multi object tracking in crowded scenes, arXiv:2003.09003",
+  "license_note": "MOTChallenge distributes MOT20 for non-commercial research under CC BY-NC-SA 3.0; check https://motchallenge.net/data/MOT20/ before redistribution. The images are NOT stored in this repository.",
+  "layout": "data/MOT20/train/<sequence>/{gt/gt.txt, seqinfo.ini, img1/000001.jpg ...}",
+  "sequences": {
+    "MOT20-01": {
+      "frames": 429,
+      "gt_sha256": "89fd0196d67a5eb6011a470dc2a49b02255403b49e8848031cdf99add8a36d9c"
+    },
+    "MOT20-02": {
+      "frames": 2782,
+      "gt_sha256": "10abe457a67d9919a9cbfe821d3619c8e6174c2b0ed7ecf4cb68c1fd6cad58de"
+    },
+    "MOT20-03": {
+      "frames": 2405,
+      "gt_sha256": "350fbc950c6dc00e3cc8a71358b3d0b8958906c8be57a7bf5fb9db34bff70f28"
+    },
+    "MOT20-05": {
+      "frames": 3315,
+      "gt_sha256": "6da1ad9a528c39203c181aa93fc492d194358c50856695a7fe17656c928f5c17"
+    }
+  },
+  "frames_total": 8931,
+  "gt_sha256_origin": "same values are hard-coded in code/pipeline/verify_inputs.py",
+  "used_for": "inference input (images) and TrackEval scoring (gt.txt only; never a model input)",
+  "download": {
+    "url": "https://motchallenge.net/data/MOT20.zip",
+    "full": "code/pipeline/download_dataset.py",
+    "ground_truth_only": "code/pipeline/download_dataset.py --gt-only (HTTP range requests, 8 files)"
+  }
+}

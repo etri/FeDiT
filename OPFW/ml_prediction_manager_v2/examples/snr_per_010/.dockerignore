@@ -1,0 +1,6 @@
+workspace/
+.venv/
+.git/
+**/__pycache__/
+**/*.pyc
+data/MOT20/

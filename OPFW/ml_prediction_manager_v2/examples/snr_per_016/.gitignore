@@ -1,0 +1,4 @@
+__pycache__/
+.ipynb_checkpoints/
+data/parking_birmingham.zip
+data/dataset.csv
