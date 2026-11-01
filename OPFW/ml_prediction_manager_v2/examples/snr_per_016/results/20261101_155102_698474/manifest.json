@@ -1,0 +1,81 @@
+{
+  "requirement": "SNR-PER-016",
+  "anchor": "2016-12-19T17:00:00+00:00",
+  "models": [
+    {
+      "id": "BHMBCCMKT01",
+      "path": "models/parking_model_BHMBCCMKT01.pkl",
+      "bytes": 74681121,
+      "sha256": "5efa03c9708342deb41faf58296abc3da57cc8d80c82915001c146f9ffad44a1"
+    },
+    {
+      "id": "BHMEURBRD01",
+      "path": "models/parking_model_BHMEURBRD01.pkl",
+      "bytes": 74725041,
+      "sha256": "6bfe3aad8a2373944d543c17dca0f22360824e6a61f1d19554bb5638383b0c65"
+    },
+    {
+      "id": "BHMMBMMBX01",
+      "path": "models/parking_model_BHMMBMMBX01.pkl",
+      "bytes": 75131553,
+      "sha256": "3dcb7d3d78494a59c7fed1fd420a76642273f2d0f2915cb72681c01d9f0357cd"
+    },
+    {
+      "id": "Others-CCCPS105a",
+      "path": "models/parking_model_Others-CCCPS105a.pkl",
+      "bytes": 75297441,
+      "sha256": "78e22ceac34da3ba68f3f9a38ff881d3d0b56791a62b1f285ba9c3b1cd2ef760"
+    },
+    {
+      "id": "Others-CCCPS119a",
+      "path": "models/parking_model_Others-CCCPS119a.pkl",
+      "bytes": 75229473,
+      "sha256": "a8b38b7eee9ac777b2c2af81e212bb199ba53b304eae5eb21404183843d818e2"
+    },
+    {
+      "id": "Others-CCCPS135a",
+      "path": "models/parking_model_Others-CCCPS135a.pkl",
+      "bytes": 75395217,
+      "sha256": "93ee8fdea6e43ee26eb1ac719d904127d154161701167db3c39f1be3bab7af2e"
+    },
+    {
+      "id": "Others-CCCPS202",
+      "path": "models/parking_model_Others-CCCPS202.pkl",
+      "bytes": 75374769,
+      "sha256": "76dc18219e0168e2447800791127911d86aea0e781fd94d2052afa70784aceb6"
+    },
+    {
+      "id": "Others-CCCPS8",
+      "path": "models/parking_model_Others-CCCPS8.pkl",
+      "bytes": 75198369,
+      "sha256": "f3e7e9429d2618bd3a9d77e8f75acd5257491e6f5f42c2eb95e257a4b297609d"
+    },
+    {
+      "id": "Others-CCCPS98",
+      "path": "models/parking_model_Others-CCCPS98.pkl",
+      "bytes": 75424161,
+      "sha256": "9efc822752b23c0e2deeff5c0f8eb9234cbbe460ea615cd39fb2e08ac00870b4"
+    },
+    {
+      "id": "Shopping",
+      "path": "models/parking_model_Shopping.pkl",
+      "bytes": 75362097,
+      "sha256": "999cbddbc5e6fc5de249578f09ec242f2d4addaace4f1f13c1d0133ea22f95e3"
+    }
+  ],
+  "python": "3.11.10 | packaged by conda-forge | (main, Oct 16 2024, 01:27:36) [GCC 13.3.0]",
+  "platform": "Linux-5.15.0-187-generic-x86_64-with-glibc2.35",
+  "packages": {
+    "numpy": "2.4.6",
+    "pandas": "2.3.3",
+    "scikit-learn": "1.7.2",
+    "joblib": "1.5.2",
+    "holidays": "0.83",
+    "flask": "3.1.2",
+    "requests": "2.32.5",
+    "matplotlib": "3.10.7",
+    "ipython": "9.18.0"
+  },
+  "cpu.max": "100000 100000",
+  "memory.max": "4294967296"
+}
