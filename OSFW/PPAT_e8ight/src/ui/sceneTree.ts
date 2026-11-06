@@ -98,7 +98,8 @@ export function mountSceneTree(app: AppCore, host: HTMLElement, panel: PanelApi,
     // 파일 종류: 결과 폴더·ZIP(목록 항목이든 사용자가 연 것이든) = VTU, 목록의 그 밖의 항목은 그 종류, 사용자가 연 그 밖의 데이터 = CSV
     const kind = app.scan || entry?.kind === 'result' ? 'VTU' : entry ? entry.kind.toUpperCase() : ds ? 'CSV' : '';
     if (groups.has('dataset')) list.push({
-      id: 'dataset', label: entry ? entry.label : ds ? ds.name : '데이터 없음', icon: 'database', depth: 0, group: true, tab: 'data',
+      // 이름: 앱이 정한 열린 데이터 이름(후처리 도구막대와 같은 글 — 예제 이름 · 서버 결과 줄 이름 · 파일·폴더 이름). 없으면(전처리 등) 데이터셋 이름
+      id: 'dataset', label: app.currentLabel ?? (ds ? ds.name : '데이터 없음'), icon: 'database', depth: 0, group: true, tab: 'data',
       meta: ds ? `${kind} · ${REPRESENTATION_LABEL[app.root.view.representation]}` : '',
       ...(ds ? { on: app.root.visible, toggle: (v: boolean) => app.setRootVisible(v) } : {}),
     });

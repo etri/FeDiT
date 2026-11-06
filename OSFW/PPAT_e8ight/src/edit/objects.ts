@@ -169,6 +169,28 @@ export function objectsFromGeometries(geometries: THREE.BufferGeometry[], footpr
   return objs;
 }
 
+/**
+ * 후처리에서 더한 STL 조각들의 이름(AppCore.loadStlBuffer). 파일 이름 줄기(끝의 .stl 을 뺀 이름 — 전처리 영역 이름 pre/state.ts stemOf 와 같은 규칙)를 쓰고,
+ * 이미 있는 이름(taken)과 겹치지 않게 번호를 붙인다(상자·원기둥 '상자 2' 와 같은 꼴 — 띄어 쓰고 번호).
+ * 조각이 하나면 '줄기', 겹치면 '줄기 2' · '줄기 3' …. 조각이 여럿이면(서로 붙지 않은 덩어리 — splitComponents) '줄기 1' · '줄기 2' …(겹치는 번호는 건너뜀).
+ * 파일 이름이 없으면 줄기는 '형상'이고 늘 번호를 붙인다. 전에는 파일 이름을 보지 않고 늘 '형상 1'부터 지어 같은 이름이 여럿 생겼다(2026-11-05).
+ */
+export function stlPieceNames(fileName: string, count: number, taken: Iterable<string>): string[] {
+  const stem = fileName.replace(/\.stl$/i, '').trim();
+  const base = stem || '형상';
+  const numbered = count > 1 || !stem;
+  const used = new Set(taken);
+  const out: string[] = [];
+  let n = numbered ? 1 : 2;
+  for (let i = 0; i < count; i++) {
+    let name = !numbered && !used.has(base) ? base : '';
+    while (!name || used.has(name)) name = `${base} ${n++}`;
+    used.add(name);
+    out.push(name);
+  }
+  return out;
+}
+
 export class ObjectStore {
   list: SceneObject[] = [];
   selection = new Set<string>();

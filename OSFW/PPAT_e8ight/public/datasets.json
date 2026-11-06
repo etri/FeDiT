@@ -2,7 +2,8 @@
   "datasets": [
     {
       "id": "city-synthetic",
-      "label": "도시 예제 (CSV, 4 m 격자, 건물 12동)",
+      "label": "도시 예제",
+      "desc": "CSV · 4 m 격자 · 건물 12동",
       "kind": "csv",
       "csv": "sample/sample_city_cfd.csv",
       "stl": [
@@ -22,7 +23,7 @@
     },
     {
       "id": "ahmed",
-      "label": "Ahmed body (LBM 솔버 해석 결과, 다중 레벨 VTU)",
+      "label": "Ahmed body",
       "kind": "vtm",
       "vtm": "/__data/ahmed/251103_Ahmed_Body_wallmodel_interpolated_multi_level5/251103_Ahmed_Body_wallmodel_interpolated_multi_level5_10.vtm",
       "extraBlocks": [
@@ -116,7 +117,8 @@
     },
     {
       "id": "e2e-03",
-      "label": "농도확산 E2E (1세부 해석엔진 결과, 2D, 저장 10회)",
+      "label": "농도확산 E2E",
+      "desc": "1세부 해석엔진 결과 · 2D · 저장 10회",
       "kind": "result",
       "units": {
         "velocity": "",
@@ -137,7 +139,8 @@
     },
     {
       "id": "e2e-05",
-      "label": "유체-DEM E2E (1세부 해석엔진 결과, 유체 격자만, 저장 10회)",
+      "label": "유체-DEM E2E",
+      "desc": "1세부 해석엔진 결과 · 유체 격자만 · 저장 10회",
       "kind": "result",
       "units": {
         "velocity": "m/s",
@@ -148,7 +151,7 @@
       "note": "해석엔진 E2E 실행 결과(2026-10-01). 유체 격자 50×38×26, 입자 결과(.vtk)는 아직 읽지 않습니다. 물이 있는 셀은 fraction > 0 입니다.",
       "badge": "실제 해석 결과",
       "view": {
-        "sliceAxis": 1,
+        "sliceAxis": 2,
         "slicePosition": "center",
         "fit": "data",
         "colorField": "scalar:fraction"

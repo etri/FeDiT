@@ -23,6 +23,8 @@
 
 물리 시뮬레이션 페이지를 바로 열어 입력 JSON 하나와 STL을 올려 실행하는 길도 있다. 전처리는 해석기를 부르지 않고, 후처리는 결과를 열기만 한다. 세 페이지가 같은 주소라서 한 iframe 안에서 페이지만 바뀐다.
 
+서버에 쌓인 해석 고르기(2026-11-04): 물리 시뮬레이션과 후처리 두 페이지가 `GET results/`(해석 목록: 작업 폴더 이름과 마지막 활동 시각)와 작업마다 `GET results/<작업 번호>/engine_job.json`(엔진이 쓰는 상태 파일: 입력 이름·상태·시각)을 읽어 줄로 보이고, 고른 해석을 연다. 엔진은 고치지 않았다. 후처리는 이때도 `engine/`을 부르지 않는다.
+
 ### 1.2 컨테이너
 
 | 컨테이너 | 이미지 | 어디서 | 하는 일 |
@@ -40,7 +42,7 @@ profile(묶음 이름): compose 서비스에 이름을 붙여 두면 `--profile 
 | `/` | `renderer:8080` | 모두 | 캐시·보안·iframe 허용 헤더는 renderer 가 붙인 것을 그대로 넘긴다 |
 | `/engine/` | `engine:8000` | GET · POST | `engine/jobs` → 엔진의 `/jobs`. 여는 길은 `health` · `jobs` · `jobs/<작업 번호>` · `jobs/<작업 번호>/download` 넷이고, 나머지(엔진 설명 페이지 `docs` · `openapi.json` 등)는 404. DELETE 등은 403. 업로드 1 GB까지, 받는 대로 흘려보냄(앞단에 쌓지 않음), 대기 1시간. 해석 실행(POST)은 접속 주소(IP)별 분당 10건(한꺼번에 5건까지)·동시 2건, 넘으면 429. 조회(GET)는 세지 않는다 |
 | `/results/<작업 번호>/...` | 작업 폴더(읽기 전용) | GET | 폴더 주소(`/`로 끝남)는 JSON 목록 `[{"name","type","mtime","size"}]`. 파일은 Range(파일의 일부 바이트만 받기) 지원 |
-| `/results/` | — | — | 404. 작업 전체 목록은 내주지 않는다. 다만 결과는 공개다(아래 1.4절 '결과 공개') |
+| `/results/` | 작업 폴더 맨 윗단(읽기 전용) | GET | 해석 목록. JSON `[{"name","type","mtime"}]`(파일이면 `size`도)이고 누구나 읽는다(아래 1.4절 '결과 공개'). 점(.)으로 시작하는 이름은 nginx 가 목록에 넣지 않는다. 낱개 파일도 나올 수 있으나 페이지는 작업 번호 형식의 폴더만 쓴다. 이 길만 따로 적은 정확 일치 location 이라 아래 보안 머리말(nosniff · sandbox)을 다시 붙인다. 2026-11-04 전에는 404 |
 | `.../continue/`, 점(.)으로 시작하는 이름 | — | — | 404. `continue/`는 재시작 파일 폴더(대소문자를 가리지 않고 막음). 다만 부모 폴더 목록에는 `continue` 이름이 보인다(nginx 목록은 거르지 못함) |
 
 `results/`의 파일은 json·log 만 글자로, 나머지는 내려받기 형식(application/octet-stream)으로 보낸다. 누군가 올린 파일이 이 주소의 웹페이지로 열리지 않게 하려는 것이다. 페이지의 `fetch`로 읽는 데는 차이가 없다.
@@ -50,14 +52,16 @@ profile(묶음 이름): compose 서비스에 이름을 붙여 두면 `--profile 
 | `ACCESS_KEY` | 동작 |
 | --- | --- |
 | 비움(기본) | 해석 실행이 로그인·키 없이 열려 있다 |
-| 16자 이상 값 | `POST engine/jobs`만 쿠키 `cfd_key`가 그 값과 같아야 한다. 아니면 401. 조회·결과 읽기·페이지는 그대로 열려 있다 |
+| 16자 이상 값 | `POST engine/jobs`만 쿠키 `cfd_key`가 그 값과 같아야 한다. 아니면 401. 조회·해석 목록·결과 읽기·페이지는 그대로 열려 있다 |
 
 - 페이지는 키를 쿠키 `cfd_key`로 보낸다(`src/data/engineApi.ts` `setAccessKey`).
 - 키는 영문·숫자·`_`·`-` 만 쓴다. 대소문자를 가린다. 만들기: `openssl rand -hex 16`.
 - 값이 틀리면(짧거나 다른 글자) 앞단이 시작하지 않는다(`proxy/check-env.sh`).
 - `service.fedit.or.kr`와 `cfd.fedit.or.kr`는 같은 사이트(fedit.or.kr)라서 iframe 안에서도 쿠키가 막히지 않을 것이다(추정. 브라우저의 3자 쿠키 차단은 다른 사이트에만 걸린다. 실제 iframe 에서는 아직 확인 전).
 
-**결과 공개 (2026-10-21 결정)**: 해석 입력·결과는 누구나 볼 수 있게 둔다. `engine/health` 응답의 `running_job`에 지금 도는 작업 번호가 들어 있고, 그 번호로 `results/<작업 번호>/`와 `engine/jobs/<작업 번호>/download`(입력 JSON·STL·결과 ZIP)를 누구나 읽는다. 접근 키를 넣어도 이 조회는 열려 있다. 숨기려면: 443 server 에서 `location = /engine/health { return 404; }`(8080 은 그대로 — run.sh·smoke 가 씀)와 작업 번호를 길게(`src/data/engineApi.ts` `newJobId`의 난수 2바이트 → 8바이트). 대가로 물리 시뮬레이션 페이지의 '실행 중 1건 · 대기 n건' 줄이 빈다. 실제 기관 데이터를 올리게 되면 다시 정한다.
+**결과 공개 (2026-10-21 결정, 2026-11-04 넓힘)**: 주소를 아는 누구나 서버에 쌓인 모든 해석의 목록(`results/`)과 그 입력·결과(`results/<작업 번호>/`, `engine/jobs/<작업 번호>/download` — 입력 JSON·STL·결과 ZIP)를 읽는다. 2026-11-04 에 누구나 볼 수 있게 넓혔다(접근 키는 지금 쓰지 않음). 그 전에는 목록이 없어 작업 번호를 아는 사람만 읽었다(지금 도는 번호는 `engine/health`의 `running_job`으로 보였다). 접근 키를 넣어도 해석 실행(`POST engine/jobs`)만 막고, 목록·결과·조회는 열려 있다. 1세부가 엔진에 직접 넣은 작업도 같은 작업 폴더라 목록에 함께 보인다.
+
+다시 숨기려면 목록만 닫아서는 모자란다: 작업 번호가 `engine/health`로 보이고, 시각 + 난수 2바이트(`src/data/engineApi.ts` `newJobId`)라 짐작도 된다. 목록·`results/<작업 번호>/`·`download`·`health`의 번호를 함께 막아야 하고(키로 묶거나 443 에서 닫음. 8080 은 run.sh·smoke 가 쓰므로 그대로), 그러면 두 페이지의 해석 목록과 물리 시뮬레이션의 '실행 중 1건 · 대기 n건' 줄이 빈다. 실제 기관 데이터를 올리게 되면 다시 정한다.
 
 ### 1.5 파일
 
@@ -71,8 +75,8 @@ profile(묶음 이름): compose 서비스에 이름을 붙여 두면 `--profile 
 | `proxy/Dockerfile` | 앞단 이미지(공식 nginx 1.30) |
 | `nginx/default.conf.template` | renderer 설정: 캐시 규칙, 보안 헤더, iframe 허용 출처(`FRAME_ANCESTORS`), 상태 확인 `/healthz` |
 | `.env.example` | 서버마다 다른 값. `.env`로 복사해 쓴다 |
-| `smoke_test.sh` | 띄운 뒤 확인: 엔진 → 페이지 → 해석 1건 → 결과 폴더 읽기 → 결과 ZIP |
-| `test_images.sh` | 빌드한 이미지를 서버에 올리기 전에 이 PC 에서 시험(설정·네 페이지·결과 폴더·https·세션 티켓 꺼짐·실행 사용자·뒤처진 부품). `bundle/make_bundle.sh` 가 빌드 직후 부르고, 실패하면 묶음을 만들지 않는다 |
+| `smoke_test.sh` | 띄운 뒤 확인: 엔진 → 페이지 → 해석 1건 → 해석 목록·결과 폴더 읽기 → 결과 ZIP |
+| `test_images.sh` | 빌드한 이미지를 서버에 올리기 전에 이 PC 에서 시험(설정·네 페이지·결과 폴더(해석 목록·점 이름 숨김 포함)·https·세션 티켓 꺼짐·실행 사용자·뒤처진 부품). `bundle/make_bundle.sh` 가 빌드 직후 부르고, 실패하면 묶음을 만들지 않는다 |
 | `certs/` | 인증서 폴더(기본 위치). 저장소에 넣지 않는다(`.gitignore`) |
 
 ## 2. 이 PC 리허설 (엔진까지 함께)
@@ -122,7 +126,7 @@ docker compose --profile engine ps        # 셋 다 (healthy)(상태 확인 통�
 
 ## 3. 띄운 뒤 확인
 
-`smoke_test.sh`는 물리 시뮬레이션 페이지가 할 일(해석 보내기, 상태 조회)과 후처리가 할 일(결과 폴더 읽기)을 curl로 대신한다. 실제로 해석 1건을 돌린다.
+`smoke_test.sh`는 물리 시뮬레이션 페이지가 할 일(해석 보내기, 상태 조회)과 두 페이지가 할 일(해석 목록, 결과 폴더 읽기)을 curl로 대신한다. 실제로 해석 1건을 돌린다.
 
 ```bash
 # 앞단을 거쳐 (권장): 페이지·engine/·results/ 를 모두 http://127.0.0.1:8090 으로
@@ -135,7 +139,7 @@ PROXY=http://127.0.0.1:8090 ACCESS_KEY=<키> bash smoke_test.sh <입력 JSON>
 bash smoke_test.sh <입력 JSON>
 ```
 
-순서: 엔진 상태 → 페이지 8개 응답 → 해석 실행(202) → 5초마다 상태 조회(완료까지) → 결과 폴더 목록·`.vtm` 바이트 범위 읽기(206)·`continue/` 404 → 결과 ZIP(`range=all`) 받기. 끝나면 후처리 주소 `post.html?job=<작업 번호>`를 알려 준다. 입력 파일은 스크립트를 돌리는 컴퓨터에 있어야 한다. 그 밖의 환경 변수(`ENGINE_KIND`, `JOB_ID`, `RANGE`, `OUT`, `TIMEOUT_S`, `ENGINE`, `RENDERER`, `RESULTS`)는 스크립트 첫머리에 있다.
+순서: 엔진 상태 → 페이지 8개 응답 → 해석 실행(202) → 5초마다 상태 조회(완료까지) → 해석 목록(`results/`)에 방금 작업이 보임 · 결과 폴더 목록·`.vtm` 바이트 범위 읽기(206)·`continue/` 404 → 결과 ZIP(`range=all`) 받기. 해석 목록이 404 면 맨 윗단 목록이 없는 옛 앞단 이미지라 실패로 끝난다. 끝나면 후처리 주소 `post.html?job=<작업 번호>`를 알려 준다. 입력 파일은 스크립트를 돌리는 컴퓨터에 있어야 한다. 그 밖의 환경 변수(`ENGINE_KIND`, `JOB_ID`, `RANGE`, `OUT`, `TIMEOUT_S`, `ENGINE`, `RENDERER`, `RESULTS`)는 스크립트 첫머리에 있다.
 
 시험 작업 지우기: 앞단은 DELETE 를 막는다. 서버 안에서 엔진 포트로 직접 지운다: `curl -X DELETE http://127.0.0.1:18080/jobs/<작업 번호>`.
 
@@ -146,6 +150,8 @@ P=http://127.0.0.1:8090
 curl -s $P/engine/health                                         # 200, GPU 이름
 curl -s -o /dev/null -w '%{http_code}\n' -X DELETE $P/engine/jobs/x # 403
 curl -s -o /dev/null -w '%{http_code}\n' -X POST -F job_id= $P/engine/jobs   # 키 없음 401 / 열림 400(엔진이 job_id 형식 오류로 거절, 작업은 안 생김)
+curl -s $P/results/                                              # JSON 해석 목록(작업 폴더들)
+curl -s -o /dev/null -w '%{http_code}\n' -X POST $P/results/     # 403
 curl -s $P/results/<끝난 작업 번호>/                              # JSON 폴더 목록
 curl -s -o /dev/null -w '%{http_code}\n' -H 'Range: bytes=0-15' $P/results/<작업 번호>/<입력 이름>/<이름>_0.vtm   # 206
 ```
@@ -174,8 +180,16 @@ curl -s -o /dev/null -w '%{http_code}\n' -H 'Range: bytes=0-15' $P/results/<작�
 | 페이지 | `/` · `pre.html` · `/healthz` 200. renderer 헤더(frame-ancestors 등)와 미리 압축한 gzip 이 그대로 지나감 |
 | engine/ | `health` · `jobs/<번호>` 200, `download?range=last` 200(ZIP 315 KB, 쿼리가 그대로 감). DELETE·PUT 403. 검토 뒤 고침: 엔진 설명 페이지 `docs` · `redoc` · `openapi.json`이 200 으로 열리던 것 → `health` · `jobs` · `jobs/<번호>` · `jobs/<번호>/download` 밖은 404 |
 | 접근 키 | 키 넣음: 쿠키 없음 401, 대소문자만 다른 쿠키 401, 맞는 쿠키는 엔진까지 감(빈 job_id → 엔진 400 메시지가 그대로 옴). 키 비움: 쿠키 없이 엔진까지 감. 20 MB 업로드도 엔진까지 감(1 MB 제한 없음) |
-| results/ | 작업 폴더 JSON 목록 200, `/results/` 404, `continue/`·그 안 파일·점 파일 404, `/` 없는 폴더 주소는 `/` 붙은 경로로 301(주소 이름·포트 없이), Range 206, POST 403, `..`·`%2e%2e` 로 폴더 밖 → 모두 막힘(404·400), `.html` 파일은 내려받기 형식 + `sandbox` 헤더. 검토 뒤 고침: Windows 폴더를 붙인 이 PC 에서 `CONTINUE/`처럼 대소문자만 바꾼 주소로 재시작 파일 폴더가 200 으로 열리던 것 → 404 |
+| results/ | 작업 폴더 JSON 목록 200, `/results/` 404(2026-11-04 에 해석 목록 200 으로 바꿈, 아래), `continue/`·그 안 파일·점 파일 404, `/` 없는 폴더 주소는 `/` 붙은 경로로 301(주소 이름·포트 없이), Range 206, POST 403, `..`·`%2e%2e` 로 폴더 밖 → 모두 막힘(404·400), `.html` 파일은 내려받기 형식 + `sandbox` 헤더. 검토 뒤 고침: Windows 폴더를 붙인 이 PC 에서 `CONTINUE/`처럼 대소문자만 바꾼 주소로 재시작 파일 폴더가 200 으로 열리던 것 → 404 |
 | https | TLS 1.2·1.3 200, TLS 1.1 거절, HTTP/2 협상(ALPN h2). 80 → `https://<PUBLIC_HOST>/...` 301(요청의 Host 를 따르지 않음). 상태 확인 healthy |
+
+**2026-11-04 — 해석 목록(`/results/`)**. 앞단 이미지(`union-twin-cfd-proxy:local`, nginx 1.30.6)에 새 `proxy/locations.conf`만 덮어 붙인 일회용 컨테이너, 가짜 작업 폴더(작업 2개 · 점 폴더 · 점 파일 · 이름이 형식 밖인 폴더 · 낱개 파일)로 확인했다.
+
+| 확인 | 결과 |
+| --- | --- |
+| 목록 | `nginx -t` 통과. `GET /results/` 200(http 8080 · https 443), JSON 에 작업 폴더가 보이고 점 이름 폴더·파일은 안 보임, 낱개 파일은 보임(페이지가 거름). `Content-Type: application/json` · `nosniff` · `sandbox` · `Cache-Control: no-cache` 머리말. HEAD 200, `?x=1` 200, POST·PUT·DELETE 403 |
+| 그대로인 규칙 | 작업 폴더 목록 200, 상태 파일 200(JSON · nosniff), Range 206, `continue/`·그 안 파일·`CONTINUE/` 404, 점 이름 직접 주소 404, `/` 없는 폴더 주소 301(상대 주소), `..%2f`·`%2e%2e` 400, `/results/../x` 는 페이지 길(`/`)로 가서 작업 폴더 밖 파일이 나오지 않음, `.html` 은 내려받기 형식 |
+| `test_images.sh` | 같은 이미지 위에 새 설정만 덮은 시험용 이미지로 돌려 3절(결과 폴더) 8항목 통과. 실패 2건은 6절 '뒤처진 Alpine 부품'(10-30 빌드 뒤 나온 libexpat 수정판)으로 이번 변경과 무관 — 새로 빌드하면 사라진다 |
 
 확인하지 않은 것:
 
@@ -271,6 +285,7 @@ PROXY=http://127.0.0.1:8090 bash smoke_test.sh <입력 JSON>                  # 
 ## 6. 주의
 
 - **앞단은 DELETE 를 막는다**: 시험 작업 지우기는 서버 안에서 엔진 포트(`127.0.0.1:18080`)로 직접 한다. E8IGHT 의 엔진은 1세부 것이므로 지우기 전에 1세부와 맞춘다.
+- **결과가 쌓이기만 한다**: 지우기·보관 규칙이 없다. 결과 한 건이 수 GB~수십 GB라(2026-11-04 서버에서 잰 두 건 5.42 GiB · 22.65 GiB) 디스크가 차고 해석 목록이 길어진다. 언제 지울지는 1세부와 정할 일이다(연동 안내에서는 FeDiT 몫). 지울 때는 위 'DELETE' 줄처럼 엔진 포트로 직접 한다.
 - **결과 크기**: `range=all`로 원래 길이 01·04를 받으면 수 GB다. 후처리 `post.html?job=`은 서버의 결과를 바이트 범위로 바로 읽으므로 ZIP 을 받지 않아도 된다. ZIP 을 직접 열 때 메모리에서 바로 여는 상한은 풀었을 때 256 MB다(맨 위 README '후처리 기능'의 알려진 한계).
 - **이 PC의 Docker Desktop 시작 실패(2026-10-19)**: Docker Desktop이 "The file cannot be accessed by the system"으로 멈췄다. 원인은 `%LOCALAPPDATA%\Docker\run\`과 `%LOCALAPPDATA%\docker-secrets-engine\`에 7월에 남은 0바이트 소켓 파일(프로그램끼리 연결하는 데 쓰는 표시 파일)이다. 이 파일은 PowerShell `Remove-Item`·`del`·`fsutil`로는 지워지지 않았고, WSL에서 `rm /mnt/c/Users/<사용자>/AppData/Local/Docker/run/<파일>`로 지워졌다. 창의 'Reset to factory defaults'는 이미지·설정을 모두 지우니 누르지 않는다.
 - **Windows에서 작업 폴더**: `./jobs`는 NTFS(Windows 디스크 형식) 폴더를 WSL2 너머로 붙인 것이라, 큰 결과(수십 GB)는 쓰기가 느릴 수 있다. 이 PC에서는 작은 결과만 확인했다.

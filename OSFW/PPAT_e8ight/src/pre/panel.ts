@@ -59,7 +59,7 @@ const BOUNDARY_TYPES = [
   { value: 'wall', label: '벽 (wall)' }, { value: 'periodic', label: '주기 (periodic)' }, { value: 'inlet', label: '유입 (inlet)' },
   { value: 'outflow_neumann', label: '유출 (outflow_neumann)' }, { value: 'none', label: '없음 (none)' }, { value: 'particle', label: '입자용 (particle)' },
 ];
-const FACE_LABELS: Record<string, string> = { xmin: 'X 작은 쪽', xmax: 'X 큰 쪽', ymin: 'Y 작은 쪽', ymax: 'Y 큰 쪽', zmin: 'Z 아래 (작은 쪽)', zmax: 'Z 위 (큰 쪽)' };
+const FACE_LABELS: Record<string, string> = { xmin: 'X 작은 쪽', xmax: 'X 큰 쪽', ymin: 'Y 작은 쪽', ymax: 'Y 큰 쪽', zmin: 'Z 작은 쪽', zmax: 'Z 큰 쪽' };
 const REGION_TYPES_LATTICE = [
   { value: 'fixed', label: '고정 고체·벽 (fixed)' }, { value: 'region_ref', label: '초기 유체 (region_ref)' },
   { value: 'cht', label: '열전달 고체 (cht)' }, { value: 'subdivision_ref', label: '격자 세분화 (subdivision_ref)' },

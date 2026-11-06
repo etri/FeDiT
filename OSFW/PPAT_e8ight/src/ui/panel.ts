@@ -13,19 +13,19 @@ Glyph·Streamline·Isosurface 는 Field(방향·적분·등값을 정하는 배�
 Color Map = 값을 색으로 바꾸는 규칙(배열마다 하나를 공유), Preset = 미리 만들어 둔 색 배합(Cool-Warm 등). ('Field'·'색' 칸은 ParaView Display 의 Coloring 에 해당)
 설명 글(그 기능이 무엇이고 어떻게 쓰는지)은 화면에 줄 글로 두지 않고 물음표에 넣는다: 화면 설명은 제목 옆(section.setHelp), 칸 설명은 그 칸 이름 옆(withHelp).
 화면에 남기는 한 줄(.hint)은 지금 상태·결과·오류뿐이다. 화면 글에 'ParaView 는 …' 같은 근거·비교는 적지 않는다(그것은 주석·README 의 몫).
-데이터·Clip·Threshold(볼륨 노드)의 '표시'는 표현 방식(Surface | Outline | Points | Volume | 없음)이다(viewBlock → setNodeView). 구획 스위치 = 그 노드의 보이기.
+데이터·Clip·Threshold(볼륨 노드)의 '표시'는 표현 방식(Surface | Outline | Feature Edges | Points | Volume | 없음)이다(viewBlock → setNodeView). 구획 스위치 = 그 노드의 보이기.
 Clip·Threshold 는 어느 노드 아래에도 붙고(트리의 중첩이 곧 파이프라인; UI 에서는 "상위"), Slice·Isosurface·Streamline·Glyph 노드는 볼륨 노드 아래에만 붙는다.
 용어는 영문 원어(Clip, Slice, Isosurface, Threshold, Glyph, Streamline, Surface, Outline, Points, Volume, Color Map, Preset, Opacity, Field, Range, Scale Factor, Scalar Opacity Unit Distance), 일반 낱말은 한글.
 */
 /******************************************************************************/
-import { AppCore, ColorTarget, DatasetEntry, ROOT_ID } from '../core/AppCore';
-import { DirectoryHandleFolder, FileListFolder } from '../data/source';
-import { openZipFile } from './openZip';
-import { folderPickerBlocked } from '../data/zipInput';
+import { AppCore, ColorTarget, FieldOption, ROOT_ID } from '../core/AppCore';
 import {
-  Axis, CLIP_TYPE_LABEL, ChainItem, ClipParams, ClipType, ColorMap, DataView, FilterLayer, GlyphMode, LAYER_LABEL, LAYER_TYPES, Layer, LayerPatch, RANGE_MODE_LABEL, REPRESENTATION_LABEL,
-  Representation, StreamShape, THRESHOLD_METHOD_LABEL, ThresholdMethod, ThresholdParams,
+  Axis, CLIP_TYPE_LABEL, ChainItem, ClipParams, ClipType, ColorMap, DataView, FilterLayer, GlyphMode, LAYER_LABEL, LAYER_TYPES, Layer, LayerPatch, REPRESENTATION_LABEL,
+  REPRESENTATIONS, Representation, StreamShape, THRESHOLD_METHOD_LABEL, ThresholdMethod, ThresholdParams, needsGrid,
 } from '../core/layers';
+import { componentFlatFloor, flatNearZero, flatShownValue, fmtFlatValue, isFlatRange } from '../core/colorRange';
+import { SliderBounds, sliderBounds } from '../core/sliderRange';
+import { arrayNameOf } from '../core/usedArrays';
 import { VectorMapping } from '../data/pointDataset';
 import { COLORMAPS, ColormapId, DEFAULT_OPACITY_CURVE, colormapCss, copyOpacityCurve, isDefaultOpacityCurve } from '../utils/colormap';
 import { button, callout, checkbox, el, fmtInt, fmtNum, fmtRangeValue, numberInput, row, Section, section, segmented, select, setOptions, slider, withHelp } from './dom';
@@ -49,20 +49,51 @@ function download(blob: Blob, name: string): void {
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
 
-/** Threshold 의 Field 이름 (벡터면 성분까지). Field 가 데이터에 없으면 '-' */
-function thresholdFieldName(app: AppCore, fieldKey: string | null, mapping: VectorMapping): string {
-  const f = app.fieldByKey(fieldKey);
-  if (!f) return '-';
-  return f.kind === 'vector' ? `${f.name} ${MAPPING_OPTS.find((o) => o.value === mapping)?.label ?? ''}` : f.name;
+/**
+ * Clip·Threshold 의 Field 칸 · 요약이 보일 Field: 목록에 있고(결과 폴더는 아직 읽는 중인 배열도 있다 — 그동안 '(없음)' 으로 깜빡이지 않게) 이 저장 시점 파일에
+ * 없는 배열이 아닌 것(AppCore.fieldMissingNow — 읽기는 끝났지만 값이 없다). null 이면 '(없음)' · 'Field 없음' (예전과 같은 표시)
+ */
+function shownField(app: AppCore, fieldKey: string | null): FieldOption | null {
+  return app.fieldMissingNow(fieldKey) ? null : app.fieldOption(fieldKey);
 }
+
+/** Threshold 의 Field 이름 (벡터면 성분까지). Field 가 목록에 없으면 '-' (결과 폴더는 아직 읽지 않은 배열도 목록에 있다 — AppCore.fieldOption) */
+function thresholdFieldName(app: AppCore, fieldKey: string | null, mapping: VectorMapping): string {
+  const f = app.fieldOption(fieldKey);
+  if (!f) return '-';
+  const name = arrayNameOf(f.key);
+  return f.kind === 'vector' ? `${name} ${MAPPING_OPTS.find((o) => o.value === mapping)?.label ?? ''}` : name;
+}
+
+/**
+ * 값 밀대(Threshold Lower·Upper · Clip Scalar 기준값 · Isosurface 값)의 양 끝·눈금: 그 노드에 정해 둔 끝 ∪ 노드의 지금 값(AppCore.valueSliderBounds —
+ * 만들 때 · Field·Component 를 바꿀 때 · 같은 배열·성분의 전 시점 범위를 읽었을 때만 정하고 재생으로는 바뀌지 않는다, core/sliderRange.ts).
+ * 요약 글(트리 meta · '적용 중인 Clip·Threshold' · 구획 요약)과 '남기는 셀' · '남기는 쪽' 줄의 자릿수 기준 폭도 이것이다. 노드를 모르면 값만으로
+ */
+function valueSliderBounds(app: AppCore, id: string | undefined, values: number[]): SliderBounds {
+  return (id ? app.valueSliderBounds(id) : null) ?? sliderBounds(null, values);
+}
+/** 값 밀대 칸 이름 옆 물음표 (밀대 양 끝이 무엇인지 · 숫자 칸). 첫 문장은 Threshold 방식 칸에서 'Lower·Upper ' 뒤에 붙는다 */
+const VALUE_SLIDER_HELP = [
+  '밀대의 양 끝은 이 노드를 만들 때(또는 Field·Component 를 바꿀 때) 그때까지 읽어 둔 저장 시점 값의 최소~최대로 정하고, 재생하거나 저장 시점을 옮겨도 바뀌지 않습니다. 그때 보이는 장면의 값이 모두 같으면(예: 모두 0) 값이 처음 달라지는 저장 시점에서 한 번 정합니다.',
+  '끝 밖의 값은 오른쪽 숫자 칸에 넣습니다. 넣으면 끝이 그 값까지 넓어집니다.',
+  '같은 Field·Component 로 Color Map 의 Rescale [전 시점 범위]를 읽으면 양 끝이 모든 저장 시점의 최소~최대가 됩니다.',
+];
+/** Isosurface 값 밀대의 물음표 (Component 칸이 없고 벡터는 크기) */
+const ISO_SLIDER_HELP = [
+  '밀대의 양 끝은 이 노드를 만들 때(또는 Field 를 바꿀 때) 그때까지 읽어 둔 저장 시점 값(벡터는 크기)의 최소~최대로 정하고, 재생하거나 저장 시점을 옮겨도 바뀌지 않습니다. 그때 보이는 장면의 값이 모두 같으면(예: 모두 0) 값이 처음 달라지는 저장 시점에서 한 번 정합니다.',
+  '끝 밖의 값은 오른쪽 숫자 칸에 넣습니다. 넣으면 끝이 그 값까지 넓어집니다.',
+  '같은 Field(벡터면 크기)로 칠하는 Color Map 의 Rescale [전 시점 범위]를 읽으면 양 끝이 모든 저장 시점의 최소~최대가 됩니다.',
+];
 
 /**
  * Clip·Threshold 노드 한 줄 요약 — 트리 meta·'적용 중인 Clip·Threshold'·구획 요약이 함께 쓴다. 남는 쪽을 적는다:
  * Clip Plane `Plane X ≤ 0.1 m` · Box `Box 안 X 0.05~0.12 m`(데이터 범위보다 좁힌 축만) · Scalar `fraction ≤ 0.5` ·
- * Threshold `fraction 0~0.6` / `fraction ≤ 0.2` / `fraction ≥ 0.6` (+ ` (Invert)`). 자릿수는 그 축의 데이터 범위 폭·그 Field 값 범위 폭에 맞춤
+ * Threshold `fraction 0~0.6` / `fraction ≤ 0.2` / `fraction ≥ 0.6` (+ ` (Invert)`). 자릿수는 그 축의 데이터 범위 폭·그 노드 값 밀대의 폭(valueSliderBounds —
+ * 노드별 끝이라 재생 중에 장면마다 자릿수가 흔들리지 않는다)에 맞춤
  */
 export function filterSummary(app: AppCore, f: ChainItem | FilterLayer): string {
-  const item: ChainItem = 'kind' in f ? f : f.type === 'clip' ? { kind: 'clip', params: f.params } : { kind: 'threshold', params: f.params };
+  const item: ChainItem = 'kind' in f ? f : f.type === 'clip' ? { kind: 'clip', params: f.params, id: f.id } : { kind: 'threshold', params: f.params, id: f.id };
   const b = app.dataset?.bounds;
   const span = (a: number) => (b ? b.max[a] - b.min[a] : 1);
   if (item.kind === 'clip') {
@@ -73,14 +104,14 @@ export function filterSummary(app: AppCore, f: ChainItem | FilterLayer): string 
       const parts = tight.map((a) => `${'XYZ'[a]} ${fmtRangeValue(c.boxMin[a], span(a))}~${fmtRangeValue(c.boxMax[a], span(a))}`);
       return `Box ${c.invert ? '안' : '밖'}${parts.length ? ` ${parts.join(' · ')} m` : ''}`;
     }
-    if (!app.fieldByKey(c.fieldKey)) return 'Field 없음';
-    const st = app.statsFor(c.fieldKey, c.mapping);
-    return `${thresholdFieldName(app, c.fieldKey, c.mapping)} ${c.invert ? '≤' : '≥'} ${fmtRangeValue(c.value, st.max - st.min)}`;
+    if (!shownField(app, c.fieldKey)) return 'Field 없음';
+    const vb = valueSliderBounds(app, item.id, [c.value]);
+    return `${thresholdFieldName(app, c.fieldKey, c.mapping)} ${c.invert ? '≤' : '≥'} ${fmtRangeValue(c.value, vb.max - vb.min)}`;
   }
   const t = item.params;
-  if (!app.fieldByKey(t.fieldKey)) return 'Field 없음'; // 트리 meta·상위 선택지·구획 요약이 같은 글을 쓴다
-  const st = app.statsFor(t.fieldKey, t.mapping);
-  const vs = Number.isFinite(st.max - st.min) && st.max > st.min ? st.max - st.min : t.upper - t.lower;
+  if (!shownField(app, t.fieldKey)) return 'Field 없음'; // 트리 meta·상위 선택지·구획 요약이 같은 글을 쓴다 (읽는 중인 배열은 목록에 있다 · 이 저장 시점 파일에 없으면 '없음')
+  const vb = valueSliderBounds(app, item.id, [t.lower, t.upper]);
+  const vs = vb.max > vb.min ? vb.max - vb.min : t.upper - t.lower;
   const lo = fmtRangeValue(t.lower, vs), hi = fmtRangeValue(t.upper, vs);
   const rule = t.method === 'between' ? `${lo}~${hi}` : t.method === 'below' ? `≤ ${lo}` : `≥ ${hi}`;
   return `${thresholdFieldName(app, t.fieldKey, t.mapping)} ${rule}${t.invert ? ' (Invert)' : ''}`;
@@ -88,6 +119,7 @@ export function filterSummary(app: AppCore, f: ChainItem | FilterLayer): string 
 
 /** 장면 트리 등 바깥에서 탭을 열고 현재 탭을 묻는 데 쓴다 */
 export interface PanelApi {
+  /** 그 화면을 연다. 처음 열 때 정해 둔 '데이터가 들어오면 열 레이어 화면'(주소의 ?tab= · 지난번 화면)은 버린다 */
   showTab(id: string): void;
   activeTab(): string;
   onTabChange(cb: (id: string) => void): void;
@@ -98,6 +130,10 @@ export interface PanelOptions {
   only?: string[];
   /** 페이지가 덧붙이는 구획 (같은 탭 전환을 쓴다). 데이터 구획 자리(맨 앞)에 놓으려면 front: true */
   extra?: { id: string; sec: Section; front?: boolean }[];
+  /** 데이터 구획 본문 맨 앞(연 데이터 정보 위)에 넣을 요소. 예: 후처리 페이지의 [데이터 열기] 단추 (여는 일은 페이지의 '데이터 열기' 창 — post/openDataDialog.ts) */
+  dataTop?: HTMLElement[];
+  /** 형상 편집 화면의 형상 추가 줄([상자 추가][원기둥 추가] 옆)에 [STL 추가]를 둔다. 후처리만 켠다 — 전처리는 입력 JSON 이 STL 을 들고 다녀 섞이면 안 된다 */
+  addStl?: boolean;
   /** 처음 열 화면 (주소의 ?tab=, 지난번 화면보다 뒤) */
   initial?: string;
   /** 지난번 화면을 기억할 localStorage 키 (페이지마다 다르게) */
@@ -116,7 +152,9 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
   /**
    * 색 지도 하나를 고친다. 대상은 노드가 쓰는 지도({nodeId} — 공유 또는 Separate) 또는 배열의 공유 지도({fieldKey}). 노드 화면의 Color Map 묶음(scope 'node')과
    * Color Map 화면(scope 'page')이 함께 쓴다.
-   * Component(벡터일 때) · Preset(색 배합) · Opacity 곡선 편집기 · Range 숫자 칸 · Rescale 네 단추(데이터 범위 / 사용자 지정 / 전 시점 범위 / 보이는 범위) · 자동 넓히기.
+   * Component(벡터일 때) · Preset(색 배합) · Opacity 곡선 편집기 · Range 숫자 칸 · Rescale 네 단추(데이터 범위 / 사용자 지정 / 전 시점 범위 / 보이는 범위) ·
+   * 전 시점 범위 진행 줄(그 지도를 읽는 동안 — 글 한 줄 + [취소], 단추는 막힘) · 자동 넓히기 · 상태 줄(범위가 왜 그 값인지 — AppCore.colorRangeState) · 안내 줄.
+   * 범위 미정이면 Range 칸·범례·Opacity 곡선 축에 칠하기용 임시 값 대신 지금 그린 값('모두 0')을 보이거나 비운다.
    * Opacity 곡선이 보이는 규칙(누른 자리가 결과 자리): 노드 화면은 그 노드 자신이 실제로 Volume 으로 그릴 때만(같은 지도를 쓰는 다른 노드가 Volume 이어도
    * Slice 화면 등에는 없다 — 거기서 고치면 그 화면의 노드는 그대로이고 다른 노드의 안개만 바뀌므로), Color Map 화면은 그 지도로 칠하는 노드 가운데 실제로
    * Volume 으로 그리는 것이 있을 때(그 노드들을 'Opacity 곡선을 쓰는 노드' 한 줄로 적는다).
@@ -130,11 +168,12 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
     const cm = select<ColormapId>(COLORMAP_OPTS, 'coolwarm', (v) => put({ colormap: v }));
     const min = numberInput(0, (v) => put({ rangeMin: v }), { exact: true });
     const max = numberInput(1, (v) => put({ rangeMax: v }), { exact: true });
+    min.placeholder = max.placeholder = '-'; // 범위 미정이고 그린 값도 없을 때 칸을 비운다
     const pair = el('div', 'pair'); pair.append(min, el('span', 'pair-sep', '~'), max);
+    // 안내 줄 = 그 지도의 마지막 Rescale 결과(AppCore.colorMapNote — 편집기가 아니라 지도에 묶여, 읽는 사이 다른 노드를 골라도 엉뚱한 편집기에 붙지 않는다)
     const note = el('div', 'hint');
-    const rescale = (mode: 'data' | 'visible' | 'alltime') => async () => {
-      const t = target(); if (!t) return;
-      note.textContent = await app.rescaleColorMap(t, mode);
+    const rescale = (mode: 'data' | 'visible' | 'alltime') => () => {
+      const t = target(); if (t) void app.rescaleColorMap(t, mode);
     };
     const btns = el('div', 'btn-row');
     const allBtn = button('전 시점 범위', rescale('alltime'));
@@ -144,19 +183,32 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
       allBtn,
       button('보이는 범위', rescale('visible')),
     );
+    // 전 시점 범위 진행 줄 (그 지도를 읽는 중일 때만): '전 시점 범위 읽는 중 12 / 51' + [취소]. 진행은 글 한 줄 — 자주 바뀌므로 aria-live 를 달지 않는다
+    const scanText = el('span', 'scan-text');
+    const scanCancel = button('취소', () => { const t = target(); if (t) app.stopRangeScan(t); }, 'normal', 'x');
+    scanCancel.classList.add('btn-mini');
+    const scanRow = el('div', 'scan-row');
+    scanRow.append(scanText, scanCancel);
     const grow = checkbox('자동으로 넓히기', true, (v) => put({ autoGrow: v }));
-    withHelp(grow.root, ['노드를 만들거나 바꿀 때 그 노드가 그린 값이 범위 밖이면 범위를 넓힙니다. 줄이지는 않습니다.', '저장 시점을 넘길 때는 범위를 그대로 둡니다. Range 에 숫자를 직접 넣으면 꺼집니다.']);
+    withHelp(grow.root, [
+      '노드를 만들거나 바꿀 때 그 노드가 그린 값이 범위 밖이면 범위를 넓힙니다. 줄이지는 않습니다.',
+      '저장 시점을 넘기거나 재생할 때는 범위를 바꾸지 않습니다. 그래서 같은 색은 어느 시점에서나 같은 값입니다. 모든 시점에 맞추려면 Rescale 의 전 시점 범위를 누릅니다.',
+      '그린 값이 모두 같은 장면은 범위를 넓히는 데 쓰지 않습니다.',
+      'Range 에 숫자를 직접 넣으면 꺼집니다.',
+    ]);
     const state = el('div', 'hint');
     const rescaleTitle = withHelp(el('div', 'sub', 'Rescale'), [
       '범위를 한 번 다시 잡습니다.',
       '데이터 범위: 노드 화면과 Color Map 화면의 Separate 줄에서는 그 노드가 그린 값의 최소~최대, Color Map 화면의 그 밖의 줄에서는 지금 시점 데이터 전체의 최소~최대.',
       '사용자 지정: Range 칸에 숫자를 직접 넣습니다.',
-      '전 시점 범위: 지금까지 읽어 둔 저장 시점들의 최소~최대. 아직 넘겨 보지 않은 시점은 빠집니다. 저장 시점이 둘 이상일 때만 단추가 보입니다.',
+      '전 시점 범위: 저장 시점을 모두 읽어 이 배열(성분)의 최소~최대로 잡습니다. 노드가 그린 값이 아니라 데이터 전체의 값입니다. 칠하는 배열 하나만 읽지만 결과가 크면 시간이 걸립니다. 읽는 동안 진행이 보이고 [취소]로 멈출 수 있으며, 재생은 그대로 됩니다. 못 읽은 시점은 빼고 계산해 알립니다. 저장 시점이 둘 이상일 때만 단추가 보입니다.',
       '보이는 범위: 이 색 지도로 칠하는 보이는 노드들이 그린 값의 최소~최대.',
+      '읽은 값이 모두 같으면(예: 모든 셀의 속도가 0) 범위를 바꾸지 않고 그 사실을 알립니다.',
     ]);
     const rangeRow = withHelp(row('Range', pair), [
-      "'범위: 아직 정하지 않음'일 때 칸의 숫자는 임시 값입니다. 이 색 지도로 칠하는 노드가 처음 그려질 때 그 노드의 값 범위로 정해집니다.",
-      "숨긴 노드는 다시 보이게 할 때 그려집니다. Rescale 의 '데이터 범위'를 누르면 바로 정해집니다.",
+      "'범위: 아직 정하지 않음'이면 이 색 지도로 칠하는 노드가 값이 서로 다른 장면을 처음 그릴 때 그 값 범위로 정해집니다.",
+      '그린 값이 모두 같은 장면(예: 처음 저장 시점에 속도가 모두 0)에서는 정하지 않고 두 칸에 그 값을 보입니다. 값 차이가 값 크기의 1만분의 1보다 작으면 같은 값으로 봅니다. 벡터의 X·Y·Z 성분은 그 벡터 크기 최대(지금 장면, 전 시점 범위는 읽은 모든 저장 시점)의 약 840만분의 1보다 작은 차이도 같은 값으로 보고, 값이 모두 0 에서 그만큼 안쪽이면 약 0 으로 보입니다(예: 2D 결과 속도의 Z 성분). 저장 시점을 넘기거나 숨긴 노드를 다시 보이게 해서 값이 서로 다른 장면이 그려지면 정해집니다.',
+      "칸에 숫자를 넣으면 그 범위로 바로 정해지고 '자동으로 넓히기'가 꺼집니다. 한 칸만 넣으면 다른 칸은 지금 보이는 값을 씁니다(다른 칸이 비어 있으면 넣은 값).",
     ]);
     // Opacity 곡선 (Volume 만 쓴다, ParaView 불투명도 전달함수 편집기): 이름 줄(상태 '직선 증가 (기본)' / '점 n개' + 기본이 아니면 '기본값' — Unit Distance 와 같은 자리)
     // 아래에 편집기(opacityEditor.ts — 히스토그램 위 제어점 꺾은선, 고른 점 숫자 칸, 시작 곡선). 보이는 규칙은 위 머리말(scope). '실제로 Volume 으로 그린다' =
@@ -202,8 +254,7 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
       }
       return { what, sets, empty: '히스토그램: 칠할 배열이 지금 시점 데이터에 없습니다.' };
     };
-    root.append(mappingRow, row('Preset', cm), curveRow, rangeRow, rescaleTitle, btns, grow.root, state, note);
-    let lastTarget = '';
+    root.append(mappingRow, row('Preset', cm), curveRow, rangeRow, rescaleTitle, btns, scanRow, grow.root, state, note);
     return {
       root,
       sync() {
@@ -212,9 +263,9 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
         root.hidden = !m;
         if (!t || !m) return;
         const key = JSON.stringify(t);
-        if (key !== lastTarget) { lastTarget = key; note.textContent = ''; } // 대상이 바뀌면 지난 안내는 지운다
         const fk = 'nodeId' in t ? app.coloringOf(t.nodeId)?.fieldKey ?? null : t.fieldKey;
-        const f = app.fieldByKey(fk);
+        const flat = m.fresh ? app.colorMapFlat(t) : null; // 범위 미정이고 지금 그린 값이 모두 같으면 그 값
+        const f = app.fieldOption(fk);
         mappingRow.hidden = !f || f.kind !== 'vector';
         mapping.value = m.mapping;
         cm.value = m.colormap;
@@ -235,6 +286,7 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
           curveEditor.sync({
             key: 'nodeId' in t ? `${key}|${app.colorMapKeyOf(t.nodeId) ?? ''}` : key,
             curve: m.opacity, colormap: m.colormap, rangeMin: m.rangeMin, rangeMax: m.rangeMax, rangeReady: !m.fresh,
+            flatText: flat ? `모두 ${fmtFlatValue(flat[0], flat[1])}` : null,
             unit: app.unitFor(fk),
             cells: () => {
               const shown = volumeUsers.filter((id) => app.nodeVisible(id));
@@ -243,13 +295,19 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
             },
           });
         }
+        // Range 칸: 정해졌으면 범위, 미정이면 칠하기용 임시 값 대신 지금 그린 값(모두 같음 — 두 칸 같은 숫자) 또는 빈 칸
         const span = m.rangeMax - m.rangeMin;
-        if (!isFocused(min)) min.value = fmtRangeValue(m.rangeMin, span);
-        if (!isFocused(max)) max.value = fmtRangeValue(m.rangeMax, span);
+        const flatValue = flat ? String(flatShownValue(flat[0], flat[1])) : '';
+        if (!isFocused(min)) min.value = m.fresh ? flatValue : fmtRangeValue(m.rangeMin, span);
+        if (!isFocused(max)) max.value = m.fresh ? flatValue : fmtRangeValue(m.rangeMax, span);
         grow.input.checked = m.autoGrow;
         allBtn.hidden = app.stepCount() < 2;
-        const unit = app.unitFor(fk);
-        state.textContent = m.fresh ? '범위: 아직 정하지 않음' : `범위 기준: ${RANGE_MODE_LABEL[m.rangeMode]}${unit ? ` · 단위 ${unit}` : ''}`;
+        const scan = app.rangeScanFor(t);
+        scanRow.hidden = !scan;
+        if (scan && scanText.textContent !== scan.text) scanText.textContent = scan.text;
+        allBtn.disabled = !!scan; // 멈추려면 [취소]
+        state.textContent = app.colorRangeState(t);
+        note.textContent = app.colorMapNote(t);
       },
     };
   };
@@ -322,9 +380,12 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
           const solidOpt = field.querySelector<HTMLOptionElement>('option[value="solid:"]');
           if (solidOpt) solidOpt.hidden = solidOpt.disabled = view?.representation === 'volume';
         }
-        const drawn = !view || view.representation === 'surface' || view.representation === 'points' || view.representation === 'volume';
+        // 격자가 없어 Feature Edges(·Surface·Volume) 대신 점으로 그리면(viewBlock 의 fallback) 점을 배열 색으로 칠한다 — 단색 선 안내를 띄우지 않고
+        // Color Map 을 보인다(2026-11-05 전에는 '단색 선으로 그립니다'가 '점으로 그립니다'와 함께 떠 어긋났다)
+        const fallback = !!view && needsGrid(view.representation) && !app.canDrawSurface();
+        const drawn = !view || fallback || view.representation === 'surface' || view.representation === 'points' || view.representation === 'volume';
         note.textContent = solid === null && !drawn
-          ? `${view?.representation === 'outline' ? 'Outline 은 단색 선으로 그립니다' : "표현 방식이 '없음'이라 그리지 않습니다"}. 고른 배열은 Surface·Points·Volume 일 때 칠해집니다.`
+          ? `${view?.representation === 'outline' ? 'Outline 은 단색 선으로 그립니다' : view?.representation === 'featureEdges' ? 'Feature Edges 는 단색 선으로 그립니다' : "표현 방식이 '없음'이라 그리지 않습니다"}. 고른 배열은 Surface·Points·Volume 일 때 칠해집니다.`
           : '';
         const active = solid === null && !!c.fieldKey && drawn; // 지금 값으로 칠하는가
         map.hidden = !active;
@@ -350,12 +411,12 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
   const viewBlock = (target: () => string | null) => {
     const root = el('div', 'blk');
     const set = (patch: Partial<DataView>) => { const id = target(); if (id) app.setNodeView(id, patch); };
-    const REPS: Representation[] = ['surface', 'outline', 'points', 'volume', 'none'];
-    const rep = select<Representation>(REPS.map((r) => ({ value: r, label: REPRESENTATION_LABEL[r] })), 'outline', (v) => set({ representation: v }));
+    const rep = select<Representation>(REPRESENTATIONS.map((r) => ({ value: r, label: REPRESENTATION_LABEL[r] })), 'outline', (v) => set({ representation: v }));
     const volumeOpt = rep.querySelector<HTMLOptionElement>('option[value="volume"]');
     const repRow = withHelp(row('표현 방식', rep), [
       'Surface: 남은 셀 집합의 바깥 면을 셀 값 색으로 그립니다.',
       'Outline: 경계 상자를 단색 선으로 그립니다.',
+      'Feature Edges: 남은 셀 집합의 모양을 따라, 면이 꺾이는 모서리만 단색 선으로 그립니다.',
       'Points: 셀 중심마다 점을 그립니다.',
       'Volume: 남은 셀의 값을 시선을 따라 반투명하게 쌓아 안쪽까지 비쳐 보이게 그립니다. 처음에는 Color Map 범위의 최소에서 투명하고 최대로 갈수록 진하며, 전체 진하기는 Scalar Opacity Unit Distance 로 조절합니다.',
       "Volume 은 늘 배열로 칠하므로 '색'에 단색이 없습니다. 단색인 채로 Volume 을 고르면 기본 배열로 칠하고, 칠할 배열이 없는 데이터에서는 Volume 을 고를 수 없습니다.",
@@ -405,7 +466,7 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
         if (!isFocused(rep)) rep.value = v.representation;
         if (volumeOpt) volumeOpt.disabled = !v.color.fieldKey && !app.defaultFieldKey && v.representation !== 'volume'; // setNodeView 가 Volume 을 받지 않는 조건과 같다
         // 격자가 없는 레벨이 있으면 Surface·Volume 대신 Points 로 그린다
-        const fallback = (v.representation === 'surface' || v.representation === 'volume') && !app.canDrawSurface();
+        const fallback = needsGrid(v.representation) && !app.canDrawSurface();
         opRow.hidden = v.representation !== 'surface' || fallback;
         unitRow.hidden = v.representation !== 'volume' || fallback;
         sizeRow.hidden = sphere.root.hidden = v.representation !== 'points' && !fallback;
@@ -414,7 +475,7 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
         if (!isFocused(size.input)) size.set(v.pointSize);
         sphere.input.checked = v.sphereShading;
         colorBlk.sync();
-        const fallbackText = fallback ? `격자를 복원하지 못해 ${v.representation === 'volume' ? 'Volume' : '면'} 대신 점으로 그립니다.` : '';
+        const fallbackText = fallback ? `격자를 복원하지 못해 ${v.representation === 'volume' ? 'Volume' : v.representation === 'featureEdges' ? 'Feature Edges' : '면'} 대신 점으로 그립니다.` : '';
         hint.textContent = [fallbackText, statText].filter(Boolean).join(' ');
       },
     };
@@ -422,96 +483,16 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
 
   // ---------- 데이터 ----------
   const data = section('database', '데이터', (v) => app.setRootVisible(v));
-  const rootView = viewBlock(() => ROOT_ID);
-  const dsSel = select<string>([], null, () => refreshLevelChoices());
-  const lvSel = select<string>([], null, () => {});
-  const lvRow = row('해상도', lvSel);
-  const loadBtn = button('불러오기', async () => {
-    const entry = currentEntry();
-    if (!entry) return;
-    try { await app.loadEntry(entry, entry.levelChoices ? Number(lvSel.value) : undefined); setStatus(''); }
-    catch (e) { setStatus((e as Error).message, true); }
-  }, 'primary', 'download');
-  loadBtn.classList.add('btn-block');
-  const csvInput = el('input'); csvInput.type = 'file'; csvInput.accept = '.csv,.txt,.tsv'; csvInput.hidden = true;
-  const stlInput = el('input'); stlInput.type = 'file'; stlInput.accept = '.stl'; stlInput.hidden = true;
-  csvInput.addEventListener('change', async () => {
-    const f = csvInput.files?.[0]; if (!f) return;
-    setStatus(`${f.name} 불러오는 중…`);
-    try { app.loadCsvText(await f.text(), f.name); setStatus(''); }
-    catch (e) { setStatus((e as Error).message, true); }
-    csvInput.value = '';
-  });
-  stlInput.addEventListener('change', async () => {
-    const f = stlInput.files?.[0]; if (!f) return;
-    try { app.loadStlBuffer(await f.arrayBuffer()); setStatus(''); }
-    catch (e) { setStatus((e as Error).message, true); }
-    stlInput.value = '';
-  });
-  const fileBtns = el('div', 'btn-row');
-  fileBtns.append(button('CSV 열기', () => csvInput.click(), 'normal', 'file'), button('STL 열기', () => stlInput.click(), 'normal', 'cube'));
-  // 해석엔진 결과 폴더: 폴더 선택 창(Chrome·Edge), 없으면 폴더째 올리기
-  const dirInput = el('input'); dirInput.type = 'file'; dirInput.hidden = true; dirInput.setAttribute('webkitdirectory', ''); dirInput.setAttribute('multiple', '');
-  dirInput.addEventListener('change', async () => {
-    const files = Array.from(dirInput.files ?? []); if (!files.length) return;
-    try { await app.loadResultFolder(new FileListFolder(files)); setStatus(''); }
-    catch (e) { setStatus((e as Error).message, true); }
-    dirInput.value = '';
-  });
-  // 폴더 선택 창이 없거나 막힌 화면(다른 주소에서 띄운 iframe)이면 폴더째 올리기 — 파일 입력은 iframe 안에서도 열린다.
-  // 막힘을 미리 알 수 있으면 클릭 안에서 바로 연다(기다린 뒤에 열면 브라우저가 사용자 동작으로 보지 않을 수 있다)
-  const openResultFolder = async () => {
-    if (!window.showDirectoryPicker || folderPickerBlocked()) { dirInput.click(); return; }
-    let handle: FileSystemDirectoryHandle;
-    try { handle = await window.showDirectoryPicker({ id: 'cfd-result', mode: 'read' }); }
-    catch (e) {
-      if ((e as { name?: unknown } | null)?.name === 'AbortError') return; // 사용자가 창을 닫음
-      // 그 밖의 거절(SecurityError 등): 클릭 허가가 남아 있으면 폴더째 올리기 창으로 대신 열고, 없으면 그 사실만 알린다
-      const canOpen = (navigator as { userActivation?: { isActive: boolean } }).userActivation?.isActive ?? true;
-      if (canOpen) { dirInput.click(); return; }
-      setStatus("폴더 선택 창을 열지 못했습니다. '결과 폴더 열기'를 다시 누르거나 폴더를 3D 화면에 끌어다 놓아 주세요.", true);
-      return;
-    }
-    try { await app.loadResultFolder(new DirectoryHandleFolder(handle)); setStatus(''); }
-    catch (e) { setStatus((e as Error).message, true); }
-  };
-  // 결과 ZIP: 작으면 메모리에, 크면 사용자가 고른 폴더에 풀어서 연다 (openZip.ts)
-  const zipInput = el('input'); zipInput.type = 'file'; zipInput.accept = '.zip'; zipInput.hidden = true;
-  zipInput.addEventListener('change', async () => {
-    const f = zipInput.files?.[0]; if (!f) return;
-    try { await openZipFile(app, f); setStatus(''); }
-    catch (e) { setStatus((e as Error).message, true); }
-    zipInput.value = '';
-  });
-  const resultBtns = el('div', 'btn-row');
-  resultBtns.append(button('결과 폴더 열기', () => void openResultFolder(), 'primary', 'folder'), button('결과 ZIP 열기', () => zipInput.click(), 'normal', 'archive'));
+  // 위→아래: [페이지 요소 dataTop(후처리: [데이터 열기] 단추)] → 연 데이터 정보(없으면 '데이터가 없습니다.') → '표시' → 안내 글(app.info.note).
+  // 여는 일(서버 결과 · 파일 · 예제 · 끌어다 놓기)은 이 화면에 두지 않는다 — 후처리 '데이터 열기' 창(post/openDataDialog.ts, 2026-11-05).
+  // 지금 무엇이 열렸는지는 도구막대·장면 트리 맨 윗줄과 창 안 목록 줄의 '열림'이 보여 준다(고르기 칸으로 보이지 않는다 — 2026-11-04)
   // 시간축(저장 시점 슬라이더·재생)은 3D 화면 아래 재생 막대(ui/timeBar.ts)에 있다
-  const status = el('div', 'status');
-  const setStatus = (msg: string, isError = false) => { status.textContent = msg; status.classList.toggle('error', isError); status.hidden = !msg; };
-  setStatus('');
+  const rootView = viewBlock(() => ROOT_ID);
   const dsInfo = el('div', 'kv');
   const note = callout('warn');
-  data.body.append(row('데이터셋', dsSel), lvRow, loadBtn, fileBtns, resultBtns, csvInput, stlInput, dirInput, zipInput, status, dsInfo, rootView.root, note.root);
-  data.setHelp([
-    '3D 화면에 CSV·STL 파일, 결과 폴더, 결과 ZIP을 끌어다 놓아도 열립니다.',
-    folderPickerBlocked() // 다른 주소에서 띄운 iframe 안이면 폴더를 고를 수 없다 (페이지가 떠 있는 동안 바뀌지 않음)
-      ? '결과 ZIP은 해석엔진이 내려준 파일 그대로 열리며(안에 작업 폴더가 있어도 찾습니다), 풀면 256 MB를 넘는 ZIP은 PC에서 먼저 푼 뒤 "결과 폴더 열기"로 그 폴더를 고릅니다.'
-      : '결과 ZIP은 해석엔진이 내려준 파일 그대로 열리며(안에 작업 폴더가 있어도 찾습니다), 풀면 256 MB를 넘는 ZIP은 풀어 둘 폴더를 고릅니다(Chrome·Edge).',
-    '저장 시점이 여러 개인 결과는 3D 화면 아래 재생 막대로 넘깁니다(Space: 재생/정지).',
-  ]);
-
-  const currentEntry = (): DatasetEntry | null => app.catalog.find((c) => c.id === dsSel.value) ?? null;
-  const refreshLevelChoices = () => {
-    const entry = currentEntry();
-    const choices = entry?.levelChoices ?? [];
-    lvRow.hidden = choices.length === 0;
-    setOptions(lvSel, choices.map((c, i) => ({ value: String(i), label: c.label })), null);
-    if (choices.length) {
-      let i = entry?.defaultChoice ?? -1;
-      if (i < 0 && entry?.defaultLevels) i = choices.findIndex((c) => c.levels.join(',') === entry.defaultLevels!.join(',') && !(c.extra?.length));
-      lvSel.value = String(i >= 0 ? i : 0);
-    }
-  };
+  note.root.hidden = true; // 안내가 생길 때만 보인다(주소 없이 열어 데이터가 없을 때 빈 칸이 남지 않게)
+  data.body.append(...(opts.dataTop ?? []), dsInfo, rootView.root, note.root);
+  data.setHelp('저장 시점이 여러 개인 결과는 3D 화면 아래 재생 막대로 넘깁니다(Space: 재생/정지).');
 
   // ---------- 형상 편집 ----------
   const edit = section('edit', '형상 편집');
@@ -524,6 +505,23 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
   addRow.append(
     button('상자 추가', () => app.objects.addPrimitive('box', app.placementPoint()), 'normal', 'cube'),
     button('원기둥 추가', () => app.objects.addPrimitive('cylinder', app.placementPoint()), 'normal', 'cylinder'),
+  );
+  // [STL 추가] (opts.addStl — 후처리만): STL 파일 하나를 형상으로 더한다(데이터는 바꾸지 않음 — 3D 화면에 STL 을 놓는 것과 같다).
+  // 데이터를 여는 동안(app.opening)은 막는다 — 새 데이터가 들어올 때 형상이 입력 JSON 의 것으로 바뀌어 더한 STL 이 사라지므로(저장 시점을 읽는 재생 중은 막지 않음).
+  // 결과(오류)는 이 줄 바로 아래 빨간 한 줄 — [STL 추가]를 다시 누르면 지운다
+  const stlInput = el('input'); stlInput.type = 'file'; stlInput.accept = '.stl'; stlInput.hidden = true;
+  const stlHint = el('div', 'hint error');
+  stlHint.setAttribute('aria-live', 'polite');
+  const stlBtn = opts.addStl ? button('STL 추가', () => { stlHint.textContent = ''; stlInput.click(); }, 'normal', 'cube') : null;
+  stlInput.addEventListener('change', async () => {
+    const f = stlInput.files?.[0]; stlInput.value = '';
+    if (!f) return;
+    if (app.opening) { stlHint.textContent = '다른 데이터를 불러오는 중입니다.'; return; }
+    try { app.loadStlBuffer(await f.arrayBuffer(), f.name); stlHint.textContent = ''; }
+    catch (e) { stlHint.textContent = (e as Error).message; }
+  });
+  if (stlBtn) addRow.append(stlBtn);
+  addRow.append(
     button('복제', () => app.objects.duplicateSelected(), 'normal', 'copy'),
     button('삭제', () => app.objects.removeSelected(), 'danger', 'trash'),
   );
@@ -565,11 +563,12 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
     button('장면 저장', () => download(new Blob([app.sceneToJSON()], { type: 'application/json' }), 'scene.json'), 'normal', 'file'),
     button('장면 열기', () => jsonInput.click(), 'normal', 'upload'),
   );
-  edit.body.append(toolSeg.root, snapCheck.root, el('div', 'sub', '형상'), addRow, histRow, props,
+  edit.body.append(toolSeg.root, snapCheck.root, el('div', 'sub', '형상'), addRow, ...(stlBtn ? [stlInput, stlHint] : []), histRow, props,
     withHelp(el('div', 'sub', '파일'), ['STL 내보내기: 표시 중인 형상을 월드 좌표로 합쳐 저장합니다(솔버 입력용).', '장면 저장: 형상, 데이터 표현 방식, 레이어 트리, 색 지도(Color Map), 보기 설정을 JSON으로 저장합니다.']),
     ioRow, jsonInput, editHint);
   edit.setHelp([
     '3D 화면에서 형상을 클릭하여 선택하고, Ctrl+클릭으로 여러 개를 선택합니다. 장면 트리에서도 선택하거나 숨길 수 있습니다.',
+    ...(stlBtn ? ['STL 추가: STL 파일 하나를 형상으로 더합니다. 3D 화면에 STL 파일을 끌어다 놓아도 더해집니다.'] : []),
     '단축키: V 선택, T 이동, R 회전, S 크기, Delete 삭제, Ctrl+D 복제, Ctrl+Z 실행 취소',
   ]);
 
@@ -619,12 +618,16 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
     if (!list.some((e) => e.key === mapKey)) mapKey = list[0]?.key ?? '';
     const rows = list.map((e) => {
       const m = app.colorMapFor(e.target);
-      const f = app.fieldByKey(e.fieldKey);
+      const f = app.fieldOption(e.fieldKey);
       const comp = f?.kind === 'vector' && m ? ` ${MAPPING_OPTS.find((o) => o.value === m.mapping)?.label ?? ''}` : '';
       const span = m ? m.rangeMax - m.rangeMin : 1;
+      const scan = app.rangeScanFor(e.target);
+      const flat = m?.fresh ? app.colorMapFlat(e.target) : null;
       return {
-        e, colormap: m?.colormap ?? 'coolwarm', title: `${f?.name ?? e.fieldKey}${comp}`,
-        range: !m || m.fresh ? '범위 미정' : `${fmtRangeValue(m.rangeMin, span)} ~ ${fmtRangeValue(m.rangeMax, span)}`,
+        e, colormap: m?.colormap ?? 'coolwarm', title: `${f ? arrayNameOf(f.key) : e.fieldKey}${comp}`,
+        range: scan ? `읽는 중 ${scan.done} / ${scan.total}`
+          : !m || m.fresh ? (flat ? `범위 미정 · 모두 ${fmtFlatValue(flat[0], flat[1])}` : '범위 미정')
+          : `${fmtRangeValue(m.rangeMin, span)} ~ ${fmtRangeValue(m.rangeMax, span)}`,
         users: e.users.map(nodeName).join(', '),
       };
     });
@@ -662,8 +665,17 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
       // 배열 설명: 벡터는 고른 성분의 설명만 쓴다 (크기일 때 첫 성분의 설명을 붙이면 틀린 글이 된다)
       const ci = f.kind === 'vector' ? ({ x: 0, y: 1, z: 2 } as Record<string, number>)[m?.mapping ?? ''] : undefined;
       const desc = app.info.descriptions[f.name] ?? (f.kind === 'vector' && ci !== undefined ? app.info.descriptions[f.componentNames[ci]] : '') ?? '';
-      fieldDesc.textContent = `${desc ? desc + '. ' : ''}지금 시점 데이터 전체 범위 ${fmtNum(st.min)} ~ ${fmtNum(st.max)}${unit ? ' ' + unit : ''}`;
-    } else fieldDesc.textContent = '';
+      // 값이 모두 같으면 상태 줄·범례와 같은 규칙('모두 0', '모두 101325', 성분의 0 근처 잡음은 '모두 약 0'), 아니면 범위 폭에 맞는 자릿수 — 뜻 없는 지수 범위(-2.13e-15 ~ 5.54e-16)를 보이지 않게
+      const floor = f.kind === 'vector' ? componentFlatFloor(m?.mapping ?? 'magnitude', f.stats.magnitude.max) : 0;
+      const span = st.max - st.min;
+      const rangeText = isFlatRange(st.min, st.max, floor)
+        ? `값은 모두 ${fmtFlatValue(...flatNearZero([st.min, st.max], floor))}`
+        : `전체 범위 ${fmtRangeValue(st.min, span)} ~ ${fmtRangeValue(st.max, span)}`;
+      fieldDesc.textContent = `${desc ? desc + '. ' : ''}지금 시점 데이터 ${rangeText}${unit ? ' ' + unit : ''}`;
+    } else fieldDesc.textContent = !cur ? ''
+      : app.fieldFailed(cur.e.fieldKey) ? `${arrayNameOf(cur.e.fieldKey)} 읽지 못함` // 읽기가 실패했다 (노드 요약 줄과 같은 한 줄)
+      : app.fieldPending(cur.e.fieldKey) ? `${arrayNameOf(cur.e.fieldKey)} 읽는 중` // 결과 폴더에서 그 배열을 아직 읽는 중
+      : app.fieldMissingNow(cur.e.fieldKey) ? `${arrayNameOf(cur.e.fieldKey)} 없음 (이 저장 시점)` : ''; // 읽기는 끝났지만 이 저장 시점 파일에 없음
   };
 
   // ---------- 보기 설정 ----------
@@ -678,7 +690,7 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
     try { localStorage.setItem('utcfd.legend', v); } catch { /* 저장 못 해도 됨 */ }
   });
   try { const saved = localStorage.getItem('utcfd.legend') as LegendSize | null; if (saved && ['off', 'sm', 'md', 'lg'].includes(saved)) app.setDisplay({ legendSize: saved }); } catch { /* 비공개 창 등 */ }
-  withHelp(frameCheck.root, '화면에서만 보이고 PNG 캡처에는 들어가지 않습니다.');
+  withHelp(frameCheck.root, '화면에서만 보이고 캡처에는 들어가지 않습니다.');
   disp.body.append(bld.root, row('형상 Opacity', bldOp.input, bldOp.value), grid.root, frameCheck.root, row('범례', legendSeg.root));
 
   // ---------- 레이어 공통 머리: 이름 · 복제 · 순서 · 삭제 ----------
@@ -782,16 +794,17 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
   // Scalar: Field · Component · 기준값 (Field 를 바꾸면 기준값을 그 Field 값 범위 가운데로 — ParaView 기본)
   let clipValSpan = 1;
   // '(없음)' 은 Field 가 없거나 데이터에서 사라진 상태를 드러내기 위한 것이라 고를 수는 없다 (Threshold 와 같음)
+  // 기준값은 그 Field 값 범위의 가운데로 — 배열을 아직 읽는 중이면(결과 폴더) 배열이 온 뒤에 정한다(그 사이 기준값을 바꾸면 그대로 — AppCore.setValueField)
   const clipField = select<string>([], null, (v) => {
     const l = selClip(); if (!l) return;
     if (!v) { clipField.value = l.params.fieldKey ?? ''; return; }
-    const st = app.statsFor(v, l.params.mapping); upd({ fieldKey: v, value: (st.min + st.max) / 2 }); syncClipRanges(true);
+    app.setValueField(l.id, { fieldKey: v }); syncClipRanges(true);
   });
-  const clipMapping = select<VectorMapping>(MAPPING_OPTS, 'magnitude', (v) => { const l = selClip(); if (!l) return; const st = app.statsFor(l.params.fieldKey, v); upd({ mapping: v, value: (st.min + st.max) / 2 }); syncClipRanges(true); });
+  const clipMapping = select<VectorMapping>(MAPPING_OPTS, 'magnitude', (v) => { const l = selClip(); if (!l) return; app.setValueField(l.id, { mapping: v }); syncClipRanges(true); });
   const clipMappingRow = row('Component', clipMapping);
-  const clipVal = slider({ min: 0, max: 1, step: 0.001, value: 0.5, format: (v) => fmtRangeValue(v, clipValSpan) }, (v) => upd({ value: v }));
+  const clipVal = slider({ min: 0, max: 1, step: 0.001, value: 0.5, format: (v) => fmtRangeValue(v, clipValSpan), edit: true }, (v) => upd({ value: v }));
   const scalarRows = el('div', 'blk');
-  scalarRows.append(row('Field', clipField), clipMappingRow, row('기준값', clipVal.input, clipVal.value));
+  scalarRows.append(row('Field', clipField), clipMappingRow, withHelp(row('기준값', clipVal.input, clipVal.value), VALUE_SLIDER_HELP));
   const clipInvert = checkbox('Invert', true, (v) => upd({ invert: v }));
   withHelp(clipInvert.root, [
     '어느 쪽을 남길지 뒤집습니다.',
@@ -810,24 +823,25 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
   const clipInvertText = (c: ClipParams): string => {
     if (c.clipType === 'plane') return `남기는 쪽: ${'XYZ'[c.axis]} ${c.invert ? '≤' : '≥'} ${fmtRangeValue(c.position, spanOf(c.axis))} m`;
     if (c.clipType === 'box') return `남기는 쪽: 상자 ${c.invert ? '안' : '밖'}`;
-    if (!app.fieldByKey(c.fieldKey)) return 'Field 가 데이터에 없습니다. Field 를 고르세요.';
+    if (!shownField(app, c.fieldKey)) return 'Field 가 데이터에 없습니다. Field 를 고르세요.';
     return `남기는 쪽: ${thresholdFieldName(app, c.fieldKey, c.mapping)} ${c.invert ? '≤' : '≥'} ${fmtRangeValue(c.value, clipValSpan)}`;
   };
-  let clipRangeKey = ''; // 슬라이더 범위를 잡은 기준 (데이터 범위·축·Field — 바뀔 때만 set(v, min, max, step))
-  /** 슬라이더 범위를 데이터 범위·Field 값 범위에 맞춘다. force 면 서명이 같아도 다시 */
+  let clipRangeKey = ''; // 슬라이더 범위를 잡은 기준 (데이터 범위·축·노드·Field·기준값 밀대 끝 — 바뀔 때만 set(v, min, max, step))
+  /** 슬라이더 범위를 데이터 범위·기준값 밀대 끝(노드별 끝 — 재생으로는 바뀌지 않음)에 맞춘다. force 면 서명이 같아도 다시 */
   function syncClipRanges(force = false) {
     const l = selClip(); const b = app.dataset?.bounds;
     if (!l || !b) return;
-    const c = l.params, st = app.statsFor(c.fieldKey, c.mapping);
-    const key = `${b.min.join(',')}|${b.max.join(',')}|${c.axis}|${c.fieldKey}|${c.mapping}|${st.min}|${st.max}`;
+    const c = l.params;
+    const vb = valueSliderBounds(app, l.id, [c.value]);
+    const key = `${b.min.join(',')}|${b.max.join(',')}|${c.axis}|${l.id}|${c.fieldKey}|${c.mapping}|${vb.min}|${vb.max}`;
     if (key === clipRangeKey && !force) return;
     clipRangeKey = key;
     const step = (a: number) => Math.max((b.max[a] - b.min[a]) / 400, 1e-9);
     clipPos.set(c.position, b.min[c.axis], b.max[c.axis], step(c.axis));
     const cb = app.cellBounds(); // Box 는 셀 가장자리까지 (새 Box 의 기본 상자와 같은 범위)
     boxSliders.forEach((s, a) => { s.lo.set(c.boxMin[a], cb.min[a], cb.max[a], step(a)); s.hi.set(c.boxMax[a], cb.min[a], cb.max[a], step(a)); });
-    clipValSpan = st.max - st.min;
-    clipVal.set(c.value, st.min, st.max, Math.max((st.max - st.min) / 500, 1e-9));
+    clipValSpan = vb.max - vb.min;
+    clipVal.set(c.value, vb.min, vb.max, vb.step);
   }
 
   // ---------- Threshold 노드 (스위치 = 보이기) ----------
@@ -838,18 +852,19 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
   const thrParent = parentBlock();
   let thrSpan = 1;
   const fmtT = (v: number) => fmtRangeValue(v, thrSpan);
-  // Field·Component 를 바꾸면 Lower·Upper 를 그 Field 값 범위 전체로 되돌린다 (옛 구간은 새 Field 의 단위와 무관하므로)
+  // Field·Component 를 바꾸면 Lower·Upper 를 그 Field 값 범위 전체로 되돌린다 (옛 구간은 새 Field 의 단위와 무관하므로). 배열을 아직 읽는 중이면(결과 폴더)
+  // 배열이 온 뒤에 되돌린다(그 사이 Lower·Upper 를 바꾸면 그대로 — AppCore.setValueField)
   // '(없음)' 선택지는 Field 가 없거나 데이터에서 사라진 상태를 드러내기 위한 것이라 고를 수는 없다 (고르면 되돌린다)
   const thrField = select<string>([], null, (v) => {
     const l = app.selectedLayer(); if (l?.type !== 'threshold') return;
     if (!v) { thrField.value = l.params.fieldKey ?? ''; return; }
-    const st = app.statsFor(v, l.params.mapping); upd({ fieldKey: v, lower: st.min, upper: st.max });
+    app.setValueField(l.id, { fieldKey: v });
   });
-  const thrMapping = select<VectorMapping>(MAPPING_OPTS, 'magnitude', (v) => { const l = app.selectedLayer(); if (l?.type !== 'threshold') return; const st = app.statsFor(l.params.fieldKey, v); upd({ mapping: v, lower: st.min, upper: st.max }); });
+  const thrMapping = select<VectorMapping>(MAPPING_OPTS, 'magnitude', (v) => { const l = app.selectedLayer(); if (l?.type !== 'threshold') return; app.setValueField(l.id, { mapping: v }); });
   const thrMappingRow = row('Component', thrMapping);
   const thrMethod = segmented<ThresholdMethod>((['between', 'below', 'above'] as ThresholdMethod[]).map((m) => ({ value: m, label: THRESHOLD_METHOD_LABEL[m] })), 'between', (v) => upd({ method: v }));
-  const thrMin = slider({ min: 0, max: 1, step: 0.001, value: 0, format: fmtT }, (v) => upd({ lower: v }));
-  const thrMax = slider({ min: 0, max: 1, step: 0.001, value: 1, format: fmtT }, (v) => upd({ upper: v }));
+  const thrMin = slider({ min: 0, max: 1, step: 0.001, value: 0, format: fmtT, edit: true }, (v) => upd({ lower: v }));
+  const thrMax = slider({ min: 0, max: 1, step: 0.001, value: 1, format: fmtT, edit: true }, (v) => upd({ upper: v }));
   const thrMinRow = row('Lower', thrMin.input, thrMin.value), thrMaxRow = row('Upper', thrMax.input, thrMax.value);
   const thrAll = checkbox('All Scalars', true, (v) => upd({ allScalars: v }));
   withHelp(thrAll.root, ['면·선(Slice·Isosurface·Streamline) 아래에 걸 때만 뜻이 있습니다.', '켜면 삼각형(유선은 한 줄)의 모든 꼭짓점이 조건을 만족해야 남기고, 끄면 하나라도 만족하면 남깁니다.']);
@@ -857,8 +872,12 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
   const thrRuleHint = el('div', 'hint');
   const thrFieldHint = el('div', 'hint');
   const thrChildren = el('div', 'hint');
+  // 물음표: 방식의 뜻 + Lower·Upper 밀대 양 끝이 무엇인지 (Lower·Upper 는 방식에 따라 하나가 숨으므로 늘 보이는 방식 칸에 둔다)
+  const thrMethodRow = withHelp(row('방식', thrMethod.root), [
+    'Between 은 Lower 이상 Upper 이하, Below 는 Lower 이하, Above 는 Upper 이상인 셀을 남깁니다.', `Lower·Upper ${VALUE_SLIDER_HELP[0]}`, ...VALUE_SLIDER_HELP.slice(1),
+  ]);
   thr.body.append(thrHead.root, thrParent.root,
-    row('Field', thrField), thrMappingRow, row('방식', thrMethod.root), thrMinRow, thrMaxRow, thrRuleHint, thrAll.root, thrInvert.root, thrFieldHint, thrChildren, thrView.root);
+    row('Field', thrField), thrMappingRow, thrMethodRow, thrMinRow, thrMaxRow, thrRuleHint, thrAll.root, thrInvert.root, thrFieldHint, thrChildren, thrView.root);
   thr.setHelp('Field 값이 조건을 만족하는 셀만 통째로 남깁니다. 이 아래에 매단 레이어 전부에 적용됩니다.');
   /** 지금 조건을 한 줄로 (경계 포함, Invert 반영) */
   const thrRuleText = (t: ThresholdParams): string => {
@@ -867,15 +886,19 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
     return t.invert ? `남기는 셀: ${rule} 이 아닌 셀 (Invert)` : `남기는 셀: ${rule}`;
   };
   let thrRangeKey = '';
-  function syncThrSliders() {
+  /**
+   * Lower·Upper 밀대 끝을 그 노드의 끝으로 (valueSliderBounds — 만들 때 · Field·Component 를 바꿀 때 · 전 시점 범위 뒤에만 정하고, 숫자 칸에 끝 밖의 값을
+   * 넣으면 그 값까지 넓어진다. 재생 · 끌기로는 줄거나 바뀌지 않는다). 끝이 바뀔 때만 다시 잡는다. force(노드를 새로 고름)면 서명이 같아도 다시
+   */
+  function syncThrSliders(force = false) {
     const l = app.selectedLayer();
     if (l?.type !== 'threshold') return;
-    const t = l.params, st = app.statsFor(t.fieldKey, t.mapping);
-    const key = `${t.fieldKey}|${t.mapping}|${st.min}|${st.max}`;
-    if (key === thrRangeKey) return;
-    thrRangeKey = key; thrSpan = st.max - st.min;
-    const step = Math.max((st.max - st.min) / 500, 1e-9);
-    thrMin.set(t.lower, st.min, st.max, step); thrMax.set(t.upper, st.min, st.max, step);
+    const t = l.params;
+    const vb = valueSliderBounds(app, l.id, [t.lower, t.upper]);
+    const key = `${l.id}|${t.fieldKey}|${t.mapping}|${vb.min}|${vb.max}`;
+    if (key === thrRangeKey && !force) return;
+    thrRangeKey = key; thrSpan = vb.max - vb.min;
+    thrMin.set(t.lower, vb.min, vb.max, vb.step); thrMax.set(t.upper, vb.min, vb.max, vb.step);
   }
 
   // ---------- Slice 레이어 ----------
@@ -1026,15 +1049,16 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
   // ---------- Isosurface 레이어 ----------
   const iso = section('cube', LAYER_LABEL.iso, (v) => { const l = app.selectedLayer(); if (l) app.setLayerVisible(l.id, v); });
   const isoHead = layerHead();
-  const isoField = select<string>([], null, (v) => { const st = app.statsFor(v); upd({ fieldKey: v, value: (st.p2 + st.p98) / 2 }); syncIsoSlider(); });
-  const isoVal = slider({ min: 0, max: 1, step: 0.001, value: 0.5, commit: true }, (v) => upd({ value: v }));
-  const isoNum = numberInput(0.5, (v) => { upd({ value: v }); isoVal.set(v); });
+  // 값은 그 Field(벡터는 크기)의 2~98% 가운데로 — 배열을 아직 읽는 중이면(결과 폴더) 배열이 온 뒤에(AppCore.setValueField)
+  const isoField = select<string>([], null, (v) => { const l = app.selectedLayer(); if (l?.type !== 'iso') return; app.setValueField(l.id, { fieldKey: v }); syncIsoSlider(); });
+  // 값: 밀대(놓을 때 넣음 — 계산이 무겁다) + 오른쪽 숫자 칸(끝 밖의 값도 — Threshold Lower·Upper · Clip 기준값과 같은 꼴. 옛 '직접 입력' 줄을 대신한다)
+  const isoVal = slider({ min: 0, max: 1, step: 0.001, value: 0.5, commit: true, edit: true }, (v) => upd({ value: v }));
   const isoParent = parentBlock();
   const isoOp = slider({ min: 0.1, max: 1, step: 0.05, value: 0.85, format: pct }, (v) => upd({ opacity: v }));
   const isoInfo = el('div', 'hint');
   iso.setHelp('한 필드가 지정한 값인 면을 만듭니다.');
   iso.body.append(isoHead.root, isoParent.root,
-    row('Field', isoField), row('값', isoVal.input, isoVal.value), row('직접 입력', isoNum),
+    row('Field', isoField), withHelp(row('값', isoVal.input, isoVal.value), ISO_SLIDER_HELP),
     el('div', 'sub', '표시'), isoColorBlk.top, row('Opacity', isoOp.input, isoOp.value), isoColorBlk.map, isoInfo);
 
   // ---------- 화면(탭) 전환 — 장면 트리가 연다 ----------
@@ -1073,8 +1097,8 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
   let pendingInitialLayer = initial && isLayerTab(initial) ? initial : null; // 데이터가 들어오면 첫 레이어를 연다
 
   // ---------- 상태 동기화 ----------
-  let lastDataset: unknown = null;
-  let lastCatalog: unknown = null;
+  let lastDataset: unknown = undefined; // app.dataset 처음 값(null)과 달라야 빈 첫 화면에도 '데이터가 없습니다.'가 나온다
+  let lastFieldSig: string | undefined; // Field 목록 서명 (key·이름) — 바뀌면 선택 상자와 데이터 정보의 벡터·스칼라 줄을 다시 짠다
   let lastSelId: string | null | undefined;
 
   function syncSlicePos() {
@@ -1112,29 +1136,32 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
     stPos.set(l.params.seedPos, box.min[a], box.max[a], (box.max[a] - box.min[a]) / 400);
     stAxis.value = String(a) as AxisKey;
   }
-  function syncIsoSlider() {
+  let isoRangeKey = '';
+  /**
+   * 값 밀대 끝을 그 노드의 끝으로 (valueSliderBounds, 벡터는 크기 — 만들 때 · Field 를 바꿀 때 · 전 시점 범위 뒤에만 정하고, 숫자 칸에 끝 밖의 값을 넣으면
+   * 그 값까지 넓어진다). 끝이 바뀔 때만 다시 잡는다. force 면 서명이 같아도 다시. 밀대는 놓을 때 값을 넣으므로(commit) 끄는 중이면 끄는 자리를 지킨다
+   */
+  function syncIsoSlider(force = false) {
     const l = app.selectedLayer();
     if (l?.type !== 'iso') return;
-    const st = app.statsFor(l.params.fieldKey);
-    isoVal.set(l.params.value, st.min, st.max, Math.max((st.max - st.min) / 500, 1e-9));
-    if (!isFocused(isoNum)) isoNum.value = fmtNum(l.params.value);
+    const vb = valueSliderBounds(app, l.id, [l.params.value]);
+    const key = `${l.id}|${l.params.fieldKey}|${vb.min}|${vb.max}`;
+    if (key === isoRangeKey && !force) return;
+    isoRangeKey = key;
+    isoVal.set(isFocused(isoVal.input) ? Number(isoVal.input.value) : l.params.value, vb.min, vb.max, vb.step);
   }
 
   function sync() {
-    if (app.catalog !== lastCatalog) {
-      lastCatalog = app.catalog;
-      setOptions(dsSel, app.catalog.map((c) => ({ value: c.id, label: c.label })), app.currentId ?? app.catalog[0]?.id ?? null);
-      refreshLevelChoices();
-    }
-    loadBtn.disabled = !!app.loading;
-    loadBtn.querySelector('span')!.textContent = app.loading ? '불러오는 중…' : '불러오기';
-    if (app.info.note !== note.text.textContent) { note.text.textContent = app.info.note ?? ''; note.root.hidden = !app.info.note; }
-    if (app.loading) setStatus(app.loading);
-    else if (!status.classList.contains('error')) setStatus('');
+    if ((app.info.note ?? '') !== note.text.textContent) { note.text.textContent = app.info.note ?? ''; note.root.hidden = !app.info.note; }
+    if (stlBtn) stlBtn.disabled = app.opening;
 
     const ds = app.dataset;
-    if (ds !== lastDataset) {
-      lastDataset = ds;
+    // Field 목록: 결과 폴더는 첫 저장 헤더로 만든 목록(쓰는 배열만 읽어 데이터셋에는 일부만 든다), 그 밖은 데이터셋의 배열 (AppCore.fieldOptions)
+    const fieldList = ds ? app.fieldOptions() : [];
+    const fieldSig = fieldList.map((o) => `${o.key}|${o.label}`).join('\n');
+    if (ds !== lastDataset || fieldSig !== lastFieldSig) {
+      const newData = ds !== lastDataset;
+      lastDataset = ds; lastFieldSig = fieldSig;
       if (ds) {
         dsInfo.innerHTML = '';
         const lines: string[] = [];
@@ -1144,7 +1171,8 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
           const l = app.levels[0];
           lines.push(`파일: ${ds.name}`, `셀: ${fmtInt(ds.count)}개`, `격자: ${l?.grid ? `${l.grid.dims.join('×')}, 간격 ${fmtNum(l.grid.spacing[0])} m, 채움률 ${Math.round(l.grid.coverage * 100)}%` : '복원 실패 (Slice·Streamline·Isosurface 사용 불가)'}`);
         }
-        lines.push(`벡터: ${ds.vectors.map((v) => v.name).join(', ') || '없음'}`, `스칼라: ${ds.scalars.map((s) => s.name).join(', ') || '없음'}`);
+        const namesOf = (kind: 'vector' | 'scalar') => fieldList.filter((o) => o.kind === kind).map((o) => arrayNameOf(o.key)).join(', ') || '없음';
+        lines.push(`벡터: ${namesOf('vector')}`, `스칼라: ${namesOf('scalar')}`);
         if (app.timings.load) lines.push(`소요 시간: 불러오기 ${fmtNum(app.timings.load / 1000)}초, 격자 복원 ${fmtNum((app.timings.grid ?? 0) / 1000)}초`);
         if (app.lastLoad.skippedRows) lines.push(`건너뛴 행: ${app.lastLoad.skippedRows}`);
         if (app.lastLoad.droppedColumns.length) lines.push(`제외한 열 (숫자 아님): ${app.lastLoad.droppedColumns.join(', ')}`);
@@ -1165,25 +1193,26 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
         }
         note.text.textContent = app.info.note ?? '';
         note.root.hidden = !app.info.note;
-        const vecOpts = ds.vectors.map((v) => ({ value: v.name, label: v.name }));
+        const vecOpts = fieldList.filter((o) => o.kind === 'vector').map((o) => ({ value: arrayNameOf(o.key), label: arrayNameOf(o.key) }));
         setOptions(glyphField, vecOpts, null);
         setOptions(stField, vecOpts, null);
-        setOptions(isoField, app.fieldOptions().map((o) => ({ value: o.key, label: o.kind === 'vector' ? `${o.label.replace(/ \(벡터\)$/, '')} 크기` : o.label })), null);
-        const fieldOpts = app.fieldOptions().map((o) => ({ value: o.key, label: o.label }));
+        setOptions(isoField, fieldList.map((o) => ({ value: o.key, label: o.kind === 'vector' ? `${o.label.replace(/ \(벡터\)$/, '')} 크기` : o.label })), null);
+        const fieldOpts = fieldList.map((o) => ({ value: o.key, label: o.label }));
         setOptions(thrField, [{ value: '', label: '(없음)' }, ...fieldOpts], null);
         setOptions(clipField, [{ value: '', label: '(없음)' }, ...fieldOpts], null);
         for (const blk of [sliceColor, glyphColorBlk, streamColorBlk, isoColorBlk, rootView, clipView, thrView]) blk.setFieldOptions(fieldOpts);
-        const sp = app.finestSpacing();
-        stMeshW.set(sp * 0.5, sp * 0.05, sp * 4, sp * 0.05);
-        const diag = Math.hypot(ds.bounds.max[0] - ds.bounds.min[0], ds.bounds.max[1] - ds.bounds.min[1], ds.bounds.max[2] - ds.bounds.min[2]);
-        stLen.set(diag, diag * 0.01, diag * 3, diag * 0.01); // 기본 = 경계 대각선 (ParaView Maximum Streamline Length)
-        stBoundsRow.hidden = app.levels.length <= 1;
-        if (dsSel.value !== (app.currentId ?? '') && app.currentId) dsSel.value = app.currentId;
-        lastSelId = undefined;
-        if (pendingInitialLayer) {
-          const first = app.layers.find((l) => l.type === pendingInitialLayer);
-          if (first) { app.selectLayer(first.id); showTab(first.type); }
-          pendingInitialLayer = null;
+        lastSelId = undefined; // 선택 상자를 다시 짰으니 고른 노드의 칸을 다시 맞춘다
+        if (newData) {
+          const sp = app.finestSpacing();
+          stMeshW.set(sp * 0.5, sp * 0.05, sp * 4, sp * 0.05);
+          const diag = Math.hypot(ds.bounds.max[0] - ds.bounds.min[0], ds.bounds.max[1] - ds.bounds.min[1], ds.bounds.max[2] - ds.bounds.min[2]);
+          stLen.set(diag, diag * 0.01, diag * 3, diag * 0.01); // 기본 = 경계 대각선 (ParaView Maximum Streamline Length)
+          stBoundsRow.hidden = app.levels.length <= 1;
+          if (pendingInitialLayer) {
+            const first = app.layers.find((l) => l.type === pendingInitialLayer);
+            if (first) { app.selectLayer(first.id); showTab(first.type); }
+            pendingInitialLayer = null;
+          }
         }
       } else {
         dsInfo.innerHTML = '';
@@ -1205,12 +1234,12 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
     if ((sel?.id ?? null) !== lastSelId) {
       lastSelId = sel?.id ?? null;
       slShowHint.textContent = '';
-      syncClipRanges(true); syncThrSliders(); syncSlicePos(); syncGlyphPos(); syncGlyphScale(true); syncSeedSlider(); syncIsoSlider();
+      syncClipRanges(true); syncThrSliders(true); syncSlicePos(); syncGlyphPos(); syncGlyphScale(true); syncSeedSlider(); syncIsoSlider(true);
     }
     if (sel) {
       const stats = app.layerStats(sel.id);
       const gridNote = !app.hasGrid ? '격자를 복원하지 못해 이 레이어를 계산할 수 없습니다.' : '';
-      const statText = stats ? `${stats.detail} · ${fmtNum(stats.ms)} ms` : '';
+      const statText = stats ? (stats.pending ? stats.detail : `${stats.detail} · ${fmtNum(stats.ms)} ms`) : ''; // 배열을 기다리는 중이면 '<배열> 읽는 중'만
       // 공통 두 줄('상위' · '적용 중인 Clip·Threshold')은 종류마다 하나씩 있으니 고른 노드의 것만 맞춘다
       const parents = { clip: clipParent, threshold: thrParent, slice: sliceParent, glyph: glyphParent, stream: streamParent, iso: isoParent };
       parents[sel.type].sync(sel);
@@ -1219,13 +1248,13 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
         const p = sel.params;
         clip.setOn(sel.visible);
         if (!isFocused(clipHead.name)) clipHead.name.value = sel.name;
-        syncClipRanges(); // 데이터 범위·축·Field 가 바뀌었을 때만 슬라이더 범위를 다시 잡는다 (안에서 서명 비교)
+        syncClipRanges(); // 데이터 범위·축·Field·기준값 밀대 끝(노드별 끝)이 바뀌었을 때만 슬라이더 범위를 다시 잡는다 (안에서 서명 비교)
         clipType.value = p.clipType;
         planeRows.hidden = p.clipType !== 'plane'; boxRows.hidden = p.clipType !== 'box'; scalarRows.hidden = p.clipType !== 'scalar';
         if (clipAxis.value !== String(p.axis)) clipAxis.value = String(p.axis) as AxisKey;
         if (!isFocused(clipPos.input)) clipPos.set(p.position);
         boxSliders.forEach((bs, a) => { if (!isFocused(bs.lo.input)) bs.lo.set(p.boxMin[a]); if (!isFocused(bs.hi.input)) bs.hi.set(p.boxMax[a]); });
-        const cf = app.fieldByKey(p.fieldKey);
+        const cf = shownField(app, p.fieldKey); // 목록에 있는가 (결과 폴더는 아직 읽는 중인 배열도 있다 — 그동안 '(없음)' 으로 깜빡이지 않게. 이 저장 시점 파일에 없으면 없음)
         const wantField = cf ? p.fieldKey! : ''; // Field 가 없으면 '(없음)' 을 보여 화면과 모델을 맞춘다
         if (clipField.value !== wantField) clipField.value = wantField;
         clipMappingRow.hidden = !cf || cf.kind !== 'vector';
@@ -1240,8 +1269,8 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
         const p = sel.params;
         thr.setOn(sel.visible);
         if (!isFocused(thrHead.name)) thrHead.name.value = sel.name;
-        syncThrSliders(); // Field·Component·데이터가 바뀌었을 때만 범위를 다시 잡는다 (안에서 서명 비교)
-        const f = app.fieldByKey(p.fieldKey);
+        syncThrSliders(); // Field·Component 가 바뀌거나 밀대 끝(노드별 끝)이 바뀌었을 때만 범위를 다시 잡는다 (안에서 서명 비교)
+        const f = shownField(app, p.fieldKey); // 목록에 있는가 (읽는 중인 배열도 있다 · 이 저장 시점 파일에 없으면 없음)
         const want = f ? p.fieldKey! : ''; // Field 가 없거나 사라졌으면 '(없음)' 을 보여 화면과 모델을 맞춘다
         if (thrField.value !== want) thrField.value = want;
         thrMappingRow.hidden = !f || f.kind !== 'vector';
@@ -1332,9 +1361,9 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
         const p = sel.params;
         iso.setOn(sel.visible);
         if (!isFocused(isoHead.name)) isoHead.name.value = sel.name;
-        if (p.fieldKey && isoField.value !== p.fieldKey) { isoField.value = p.fieldKey; syncIsoSlider(); }
-        if (!isFocused(isoVal.input)) isoVal.set(p.value);
-        if (!isFocused(isoNum)) isoNum.value = fmtNum(p.value);
+        if (p.fieldKey && isoField.value !== p.fieldKey) isoField.value = p.fieldKey;
+        syncIsoSlider(); // Field 가 바뀌거나 밀대 끝(노드별 끝)이 바뀌었을 때만 범위를 다시 잡는다 (안에서 서명 비교)
+        if (!isFocused(isoVal.input)) isoVal.set(p.value); // 숫자 칸은 입력 중이면 slider 가 건드리지 않는다
         if (!isFocused(isoOp.input)) isoOp.set(p.opacity);
         isoColorBlk.sync();
         isoInfo.textContent = gridNote || statText;
@@ -1367,7 +1396,7 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
     if (ds) {
       data.setOn(app.root.visible);
       const rs = app.layerStats(ROOT_ID);
-      rootView.sync(rs ? `${rs.detail} · ${fmtNum(rs.ms)} ms` : '');
+      rootView.sync(rs ? (rs.pending ? rs.detail : `${rs.detail} · ${fmtNum(rs.ms)} ms`) : '');
     }
 
     // 구획 제목 옆 상태 요약
@@ -1378,7 +1407,9 @@ export function mountPanel(app: AppCore, host: HTMLElement, opts: PanelOptions =
   app.subscribe(sync);
   app.editor.subscribe(sync);
   sync();
-  return { showTab, activeTab: () => activeTab, onTabChange: (cb) => { tabListeners.push(cb); } };
+  // 바깥(장면 트리·페이지)이 화면을 열면 '데이터가 들어오면 지난번 레이어 화면을 연다'는 대기값을 버린다 — 후처리는 데이터 없이 시작해
+  // 데이터 화면을 연 뒤 사용자가 [열기]를 누르므로, 버리지 않으면 누른 줄의 '열림'이 보이는 데이터 화면이 지난번 레이어 화면으로 넘어간다
+  return { showTab: (id) => { pendingInitialLayer = null; showTab(id); }, activeTab: () => activeTab, onTabChange: (cb) => { tabListeners.push(cb); } };
 }
 
 /** 왼쪽 패널 맨 아래 상태 줄의 칩: 데이터(셀 수) · 보이는 노드마다 하나(Clip 1 셀 17,784 · Slice Y = 0.076 m …) · 격자 · fps */

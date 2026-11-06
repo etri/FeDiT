@@ -15,6 +15,7 @@
 */
 /******************************************************************************/
 import { AppCore, coversBounds } from '../core/AppCore';
+import { upFromInput, zCellLayers } from '../core/upAxis';
 import { SceneObject, stlBufferOf } from '../edit/objects';
 import {
   CoreParams, CoreRegion, JsonObject, RegionOrigin, SOLVER_INFO, SolverInputDoc, SolverKind, applyCore, cloneDoc, engineFor, isJsonObject,
@@ -100,6 +101,9 @@ export class PreState {
       }
       this.regions.push(entry);
     }
+    // 위쪽: 후처리와 같은 규칙(upFromInput) — 중력 반대 방향, 중력이 0 이면 Z 가 한 층(계산 영역 셀 수)인 2D 는 +Y, 나머지 +Z.
+    // 새 입력을 받을 때만 정한다. 중력 칸을 고쳐도(update) 카메라는 그대로 — 바꾸려면 도구막대 'View Up'을 고른다
+    this.app.setDisplay({ upAxis: upFromInput(this.core.gravity, this.zLayers() === 1) });
     this.applyDomain();
     this.app.fitView('iso', 'all');
     for (const cb of this.adoptListeners) cb();
@@ -136,6 +140,13 @@ export class PreState {
     const { baseDx, min, max } = this.core.domain;
     if (!(baseDx > 0)) return 0;
     return [0, 1, 2].reduce((n, i) => n * Math.max(1, Math.round((max[i] - min[i]) / baseDx)), 1);
+  }
+
+  /** 계산 영역의 Z 방향 셀 수 (base_dx 기준, cellEstimate 와 같은 셈 — core/upAxis.ts zCellLayers, 시험도 같은 함수를 쓴다) */
+  private zLayers(): number {
+    if (!this.core) return 0;
+    const { baseDx, min, max } = this.core.domain;
+    return zCellLayers(min[2], max[2], baseDx);
   }
 
   // ---- 영역 ----

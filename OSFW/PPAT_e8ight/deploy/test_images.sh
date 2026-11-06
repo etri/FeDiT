@@ -3,7 +3,7 @@
 # Copyright (c) 2026 E8IGHT Co., Ltd.
 # 새로 빌드한 페이지·앞단 이미지를 서버에 올리기 전에 이 PC 에서 시험한다(bundle/make_bundle.sh 가 빌드 직후 부른다).
 #   시험용 컨테이너 둘(cfd-imgtest-*)을 따로 이름·포트로 띄워 확인하고 지운다. 연습용 컨테이너(union-twin-cfd-*-1)는 건드리지 않는다.
-#   확인하는 것: 설정 검사(nginx -t) · 네 페이지 응답(페이지 직접·앞단 http·앞단 https) · 결과 폴더(전체 목록 숨김·파일·부분 받기)
+#   확인하는 것: 설정 검사(nginx -t) · 네 페이지 응답(페이지 직접·앞단 http·앞단 https) · 결과 폴더(맨 윗단 해석 목록·점 이름 숨김·파일·부분 받기)
 #     · https 머리말(nginx 판 숨김, iframe 허용 출처) · 세션 티켓을 내지 않음(TLS 1.2 티켓 없음, TLS 1.3 은 캐시 번호만 담은 짧은 표)
 #     · 서버 쪽 캐시로 다시 접속 · 페이지 이미지가 root 가 아닌 사용자(101)로 돎 · 저장소 최신판보다 뒤처진 Alpine 부품이 없음
 #     · 해석엔진(engine) 조회 — 이 PC 에 compose 로 띄운 engine 이 있을 때만
@@ -30,6 +30,8 @@ C_R=cfd-imgtest-renderer
 C_P=cfd-imgtest-proxy
 NET=cfd-imgtest-net
 JOB=imgtest-job
+# 점(.)으로 시작하는 폴더: 맨 윗단 목록에 나오면 안 된다
+DOTJOB=.hidden-imgtest
 
 remove_all() {
   local tmp
@@ -68,7 +70,7 @@ cleanup() { remove_all; case "$TMP" in *cfd-imgtest.*) rm -rf "$TMP" ;; esac; }
 if [ "${KEEP:-}" != 1 ]; then trap cleanup EXIT; fi
 
 echo "== 준비: 시험용 인증서·결과 폴더 (임시 폴더 $TMP)"
-mkdir -p "$TMP/certs" "$TMP/jobs/$JOB"
+mkdir -p "$TMP/certs" "$TMP/jobs/$JOB" "$TMP/jobs/$DOTJOB"
 if command -v openssl >/dev/null 2>&1; then
   openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=$H" -addext "subjectAltName=DNS:$H" \
     -keyout "$TMP/certs/privkey.pem" -out "$TMP/certs/fullchain.pem" >/dev/null 2>&1 || { echo "시험용 인증서를 만들지 못했습니다"; exit 1; }
@@ -77,7 +79,7 @@ else
 fi
 head -c 4096 /dev/zero | tr '\0' 'a' > "$TMP/jobs/$JOB/result.txt"
 # 서버(Linux)에서 돌려도 nginx 작업 프로세스(uid 101)가 읽게 한다
-chmod 755 "$TMP" "$TMP/jobs" "$TMP/jobs/$JOB" "$TMP/certs"
+chmod 755 "$TMP" "$TMP/jobs" "$TMP/jobs/$JOB" "$TMP/jobs/$DOTJOB" "$TMP/certs"
 chmod 644 "$TMP/jobs/$JOB/result.txt" "$TMP/certs/fullchain.pem" "$TMP/certs/privkey.pem"
 
 # 엔진: 직접 주지 않으면 이 PC 리허설(compose 프로젝트 union-twin-cfd)의 engine 이 정상(healthy)으로 떠 있을 때만 그 네트워크를 쓴다.
@@ -135,7 +137,21 @@ for p in index.html pre.html sim.html post.html healthz; do
 done
 
 echo "== 3. 결과 폴더 (results/)"
-expect "전체 목록은 숨김" 404 "$(code "http://127.0.0.1:$PH/results/")"
+# 맨 윗단은 해석 목록(JSON)을 내준다 — 물리 시뮬레이션·후처리 페이지가 서버 해석을 고르는 데 쓴다(2026-11-04)
+expect "맨 윗단 해석 목록" 200 "$(code "http://127.0.0.1:$PH/results/")"
+list=$(curl -s --max-time 10 "http://127.0.0.1:$PH/results/")
+case "$list" in *"\"name\":\"$JOB\", \"type\":\"directory\""*) ok "목록에 작업 폴더가 보임: $JOB" ;; *) ng "목록에 작업 폴더가 없음($JOB): ${list:0:200}" ;; esac
+case "$list" in *'"name":".'*) ng "목록에 점(.) 이름이 보임: ${list:0:200}" ;; *) ok "점(.) 이름 폴더는 목록에 안 보임: $DOTJOB" ;; esac
+# 정확 일치 location 은 다른 location 의 머리말을 물려받지 않으므로 따로 본다
+lh=$(curl -s -D - -o "$NULL" --max-time 10 "http://127.0.0.1:$PH/results/" | tr -d '\r' | tr 'A-Z' 'a-z')
+if printf '%s\n' "$lh" | grep -q '^content-type: application/json' && printf '%s\n' "$lh" | grep -q '^x-content-type-options: nosniff' \
+  && printf '%s\n' "$lh" | grep -q "^content-security-policy: default-src 'none'; sandbox"; then
+  ok "목록 머리말(JSON · nosniff · sandbox)"
+else
+  ng "목록 머리말(JSON · nosniff · sandbox)이 없거나 다름"
+fi
+expect "목록에 POST 는 막힘" 403 "$(code -X POST -d x "http://127.0.0.1:$PH/results/")"
+expect "점(.) 이름 폴더 직접 주소" 404 "$(code "http://127.0.0.1:$PH/results/$DOTJOB/")"
 expect "작업 결과 파일 읽기" 200 "$(code "http://127.0.0.1:$PH/results/$JOB/result.txt")"
 expect "부분 받기(Range)" 206 "$(code -H 'Range: bytes=0-9' "http://127.0.0.1:$PH/results/$JOB/result.txt")"
 

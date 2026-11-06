@@ -9,6 +9,7 @@
 면·선 위에 붙은 Clip·Threshold 는 입력 노드(Slice 등)의 색으로 그리므로 그 노드의 색칠을 따른다(AppCore.nodeSpec).
 Field·성분·Colormap·Range·구간 수가 완전히 같은 항목은 하나로 합쳐 노드 이름만 나란히 적는다.
 항목마다: 노드 이름(항목이 둘 이상일 때) / Field 이름 + 성분 [단위] / 가로 색 막대 / 최소·중간·최대.
+색 지도가 아직 범위를 정하지 않았으면(예: 처음 저장 시점에 속도가 모두 0) 숫자 셋 대신 '모두 0'(막대는 그 값의 한 색) 또는 '범위 미정' — 칠하기용 임시 범위를 숫자로 보이지 않는다.
 Slice 가 면을 그리면서 "Contour lines 사이를 단색으로 채움"(구간형)이면 막대도 같은 구간 수로 끊어 그리고 경계선을 넣는다 —
 화면의 색 띠와 범례의 칸이 일대일로 대응해 값을 읽기 쉽다.
 그 항목의 보이는 노드 가운데 실제로 Volume 으로 그리는 것(AppCore.drawsVolume — 격자가 없어 점으로 대신 그리는 것은 빼고)이 있으면 막대를 조금 높이고 그 지도의 Opacity 곡선을 막대 위에 옅은 선으로 겹친다
@@ -18,6 +19,7 @@ Slice 가 면을 그리면서 "Contour lines 사이를 단색으로 채움"(구�
 import { AppCore, ColorState, ROOT_ID } from '../core/AppCore';
 import { Layer } from '../core/layers';
 import { OpacityCurve, colormapCss } from '../utils/colormap';
+import { flatBarT, fmtFlatValue } from '../core/colorRange';
 import { el, fmtRangeValue } from './dom';
 
 /** curve: 그 지도로 Volume 을 그리는 보이는 노드가 있으면 그 지도의 Opacity 곡선 (막대 위에 겹친다), 없으면 null */
@@ -40,8 +42,9 @@ export function mountLegend(app: AppCore, host: HTMLElement): void {
     const unit = app.unitFor(spec.fieldKey);
     return [mapName, unit ? `[${unit}]` : ''].filter(Boolean).join(' ');
   };
+  // 범위 미정(unset)과 그린 값(flat)도 넣는다 — 미정인 항목과 정해진 항목이 같은 임시 숫자로 합쳐지지 않게
   const keyOf = (s: ColorState, bands: number, curve: OpacityCurve | null) =>
-    `${s.fieldKey}|${s.mapping}|${s.colormap}|${s.rangeMin}|${s.rangeMax}|${bands}|${curve ? curve.map((p) => p.join(':')).join(' ') : ''}`;
+    `${s.fieldKey}|${s.mapping}|${s.colormap}|${s.rangeMin}|${s.rangeMax}|${bands}|${curve ? curve.map((p) => p.join(':')).join(' ') : ''}|${s.unset ? `u${s.flat ? s.flat.join(':') : ''}` : ''}`;
 
   const nodeName = (id: string) => (id === ROOT_ID ? '데이터' : app.layerById(id)?.name ?? id);
 
@@ -91,9 +94,13 @@ export function mountLegend(app: AppCore, host: HTMLElement): void {
       const bar = el('canvas', 'legend-bar');
       bar.width = 512; bar.height = 1;
       const ctx = bar.getContext('2d')!;
+      const span = e.spec.rangeMax - e.spec.rangeMin;
+      // 범위 미정 + 그린 값이 모두 같음: 막대를 그 값이 칠해진 한 색으로(화면과 같은 식 — 칠하기용 임시 범위에서 그 값 가운데의 자리, 구간 칠하기면 그 구간 — colorRange.ts flatBarT)
+      const flat = e.spec.unset ? e.spec.flat ?? null : null;
+      const flatT = flat ? flatBarT(flat, e.spec.rangeMin, e.spec.rangeMax, e.bands) : -1;
       for (let x = 0; x < bar.width; x++) {
-        let t = x / (bar.width - 1);
-        if (e.bands > 0) t = (Math.min(e.bands - 1, Math.floor(t * e.bands)) + 0.5) / e.bands; // 화면의 색 띠와 같은 식
+        let t = flatT >= 0 ? flatT : x / (bar.width - 1);
+        if (flatT < 0 && e.bands > 0) t = (Math.min(e.bands - 1, Math.floor(t * e.bands)) + 0.5) / e.bands; // 화면의 색 띠와 같은 식
         ctx.fillStyle = colormapCss(e.spec.colormap, t);
         ctx.fillRect(x, 0, 1, 1);
       }
@@ -120,8 +127,11 @@ export function mountLegend(app: AppCore, host: HTMLElement): void {
         wrap.append(svg);
       }
       const ticks = el('div', 'legend-ticks');
-      const span = e.spec.rangeMax - e.spec.rangeMin;
-      ticks.append(el('span', undefined, fmtRangeValue(e.spec.rangeMin, span)), el('span', undefined, fmtRangeValue((e.spec.rangeMin + e.spec.rangeMax) / 2, span)), el('span', undefined, fmtRangeValue(e.spec.rangeMax, span)));
+      // 범위 미정이면 숫자 셋(칠하기용 임시 값 — 뜻 없음) 대신 가운데 한 칸: 그린 값이 모두 같으면 '모두 0', 그린 값이 없으면 '범위 미정'
+      if (e.spec.unset) {
+        ticks.classList.add('flat');
+        ticks.append(el('span', undefined, flat ? `모두 ${fmtFlatValue(flat[0], flat[1])}` : '범위 미정'));
+      } else ticks.append(el('span', undefined, fmtRangeValue(e.spec.rangeMin, span)), el('span', undefined, fmtRangeValue((e.spec.rangeMin + e.spec.rangeMax) / 2, span)), el('span', undefined, fmtRangeValue(e.spec.rangeMax, span)));
       item.append(head, wrap, ticks);
       root.append(item);
     }

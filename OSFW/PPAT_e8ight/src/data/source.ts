@@ -13,12 +13,21 @@
 로더(vtu_loader 등)는 이 층만 보고, 파일이 서버에 있는지 PC에 있는지 모른다.
 */
 /******************************************************************************/
+import { fetchRange, fetchWhole, toArrayBuffer } from './resilientFetch';
+import type { ReadPriority } from './rangeGovernor';
+
+export type { ReadPriority };
 
 export interface ByteSource {
   readonly name: string;   // 파일 이름 (표시·오류 메시지용)
-  size(): Promise<number>;
-  /** [start, end] 바이트 구간(끝 포함)을 읽는다. 파일 끝을 넘으면 있는 데까지만 돌려준다. */
-  read(start: number, end: number): Promise<ArrayBuffer>;
+  /** 파일 길이. signal(선택) — read 와 같음(HTTP 는 HEAD 를 끊는다) */
+  size(signal?: AbortSignal): Promise<number>;
+  /**
+   * [start, end] 바이트 구간(끝 포함)을 읽는다. 파일 끝을 넘으면 있는 데까지만 돌려준다.
+   * signal(선택): 멈추면 읽기를 버린다 — HTTP 는 내려받기 자체를 끊는다('전 시점 범위' [취소] — data/timeSeries.ts scanRange). 안 받는 구현은 무시해도 된다.
+   * priority(선택): 줄 차례 — HTTP 는 받기 단계 조절기(rangeGovernor)의 줄에서 지금 보는 장면(기본) · 미리 읽기 · 전 시점 범위 차례로 선다. 안 받는 구현은 무시한다
+   */
+  read(start: number, end: number, signal?: AbortSignal, priority?: ReadPriority): Promise<ArrayBuffer>;
 }
 
 export interface FolderEntry { name: string; kind: 'file' | 'dir' }
@@ -27,8 +36,11 @@ export interface FolderSource {
   readonly name: string;
   /** 하위 경로의 항목 목록. 경로는 '/' 구분, ''는 폴더 자신. 목록을 못 주는 저장소(HTTP)는 null */
   list(path?: string): Promise<FolderEntry[] | null>;
-  /** 하위 경로의 파일. 없으면 null */
-  file(path: string): Promise<ByteSource | null>;
+  /**
+   * 하위 경로의 파일. 없으면 null. signal(선택): 멈추면 열기를 버린다 — HTTP 는 HEAD 를 끊고 다시 보내지 않는다('전 시점 범위' [취소] · 닫은 시간축 —
+   * data/timeSeries.ts). 안 받는 구현은 시작할 때만 본다
+   */
+  file(path: string, signal?: AbortSignal): Promise<ByteSource | null>;
   /** 하위 폴더를 같은 형식으로 */
   sub(path: string): FolderSource;
 }
@@ -37,10 +49,10 @@ export const joinPath = (a: string, b: string): string => (a ? `${a.replace(/\/+
 export const parentPath = (p: string): string => (p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '');
 export const baseName = (p: string): string => p.slice(p.lastIndexOf('/') + 1);
 
-/** 파일 전체를 글자로 (헤더·JSON·로그처럼 작은 파일용) */
-export async function readText(src: ByteSource, maxBytes = 64 * 1024 * 1024): Promise<string> {
-  const n = Math.min(await src.size(), maxBytes);
-  return new TextDecoder('utf-8').decode(await src.read(0, Math.max(0, n - 1)));
+/** 파일 전체를 글자로 (헤더·JSON·로그처럼 작은 파일용). signal(선택) — 길이 알기 · 읽기에 함께 넘긴다. priority(선택) — 읽기의 줄 차례 */
+export async function readText(src: ByteSource, maxBytes = 64 * 1024 * 1024, signal?: AbortSignal, priority?: ReadPriority): Promise<string> {
+  const n = Math.min(await src.size(signal), maxBytes);
+  return new TextDecoder('utf-8').decode(await src.read(0, Math.max(0, n - 1), signal, priority));
 }
 
 // ---------------------------------------------------------------------------
@@ -51,30 +63,37 @@ export class HttpSource implements ByteSource {
   private sizeCache: number | null = null;
   private whole: ArrayBuffer | null = null; // 서버가 Range를 무시했을 때 받은 전체 본문
   constructor(readonly url: string) { this.name = decodeURIComponent(url.slice(url.lastIndexOf('/') + 1)); }
+  /** 서버가 바이트 범위 요청을 받지 않아 파일 전체를 받아 두었다 ('전 시점 범위'는 그때 한 번에 한 시점만 읽는다 — 메모리에 파일 전체가 여럿 올라가지 않게) */
+  get wholeFile(): boolean { return this.whole !== null; }
 
-  async size(): Promise<number> {
+  // 요청은 모두 resilientFetch 로 보낸다: 망에서 멈추거나 끊긴 요청을 끊고 다시 보내며, 바이트 구간은 받은 데까지 두고 이어 받는다(2026-11-06 운영 서버)
+  async size(signal?: AbortSignal): Promise<number> {
     if (this.sizeCache !== null) return this.sizeCache;
     if (this.whole) return (this.sizeCache = this.whole.byteLength);
-    const res = await fetch(this.url, { method: 'HEAD' });
+    const res = await fetchWhole(this.url, { method: 'HEAD' }, signal);
     const len = Number(res.headers.get('content-length'));
     if (res.ok && len >= 0 && Number.isFinite(len)) return (this.sizeCache = len);
     // HEAD를 안 받는 서버: 첫 바이트를 Range로 받아 Content-Range에서 전체 길이를 본다
-    const r = await fetch(this.url, { headers: { Range: 'bytes=0-0' } });
+    const r = await fetchRange(this.url, 0, 0, signal);
     const cr = r.headers.get('content-range');
     const m = cr && /\/(\d+)$/.exec(cr);
-    if (r.status === 206 && m) { await r.arrayBuffer(); return (this.sizeCache = Number(m[1])); }
-    if (r.ok) { this.whole = await r.arrayBuffer(); return (this.sizeCache = this.whole.byteLength); }
+    if (r.status === 206 && m) return (this.sizeCache = Number(m[1]));
+    if (r.ok && r.body) { this.whole = toArrayBuffer(r.body); return (this.sizeCache = this.whole.byteLength); }
     throw new Error(`파일을 가져오지 못했습니다 (HTTP ${r.status}): ${this.url}`);
   }
 
-  async read(start: number, end: number): Promise<ArrayBuffer> {
+  async read(start: number, end: number, signal?: AbortSignal, priority?: ReadPriority): Promise<ArrayBuffer> {
+    signal?.throwIfAborted();
+    // NaN 등은 end < start 가 거짓이라 그대로 지나간다 — 요청 전에 거부 (예: offset 속성이 숫자가 아닌 VTU)
+    if (!Number.isFinite(start) || !Number.isFinite(end)) throw new Error(`바이트 구간이 잘못되었습니다 (${start}~${end}): ${this.name}`);
     if (end < start) return new ArrayBuffer(0);
     if (this.whole) return this.whole.slice(start, end + 1);
-    const res = await fetch(this.url, { headers: { Range: `bytes=${start}-${end}` } });
-    if (res.status === 206) return res.arrayBuffer();
-    if (res.ok) {
+    // 그 서버 주소의 받기 단계 조절기(resilientFetch → rangeGovernor)에서 줄 차례대로 — 처음은 한 번에, 끊기거나 느려진 뒤로는 조각(2 MB, 단계마다 절반)을 하나씩 · 속도를 묶어
+    const res = await fetchRange(this.url, start, end, signal, { priority });
+    if (res.status === 206 && res.body) return toArrayBuffer(res.body);
+    if (res.ok && res.body) {
       // Range를 무시한 서버: 전체를 한 번만 받아 두고 잘라 쓴다 (배열마다 전체를 다시 받지 않게)
-      this.whole = await res.arrayBuffer();
+      this.whole = toArrayBuffer(res.body);
       this.sizeCache = this.whole.byteLength;
       return this.whole.slice(start, end + 1);
     }
@@ -118,13 +137,13 @@ export class HttpFolder implements FolderSource {
     } else {
       url = path ? `${this.listBase}/${path.split('/').map(encodeURIComponent).join('/')}` : this.listBase;
     }
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    try { return parseListing(await res.json()); } catch { return null; } // 목록이 아닌 응답(HTML 등)
+    const res = await fetchWhole(url);
+    if (!res.ok || !res.body) return null;
+    try { return parseListing(JSON.parse(new TextDecoder('utf-8').decode(res.body))); } catch { return null; } // 목록이 아닌 응답(HTML 등)
   }
-  async file(path: string): Promise<ByteSource | null> {
+  async file(path: string, signal?: AbortSignal): Promise<ByteSource | null> {
     const url = `${this.baseUrl}/${path.split('/').map(encodeURIComponent).join('/')}`;
-    const res = await fetch(url, { method: 'HEAD' });
+    const res = await fetchWhole(url, { method: 'HEAD' }, signal); // signal 로 끊기면 다시 보내지 않고 그 이유로 끝난다
     if (!res.ok && res.status !== 405) return null;
     return new HttpSource(url);
   }
@@ -141,7 +160,8 @@ export class FileSource implements ByteSource {
   readonly name: string;
   constructor(readonly file: File) { this.name = file.name; }
   async size(): Promise<number> { return this.file.size; }
-  async read(start: number, end: number): Promise<ArrayBuffer> {
+  async read(start: number, end: number, signal?: AbortSignal): Promise<ArrayBuffer> {
+    signal?.throwIfAborted();
     if (end < start) return new ArrayBuffer(0);
     return this.file.slice(start, Math.min(end + 1, this.file.size)).arrayBuffer();
   }
@@ -166,7 +186,8 @@ export class DirectoryHandleFolder implements FolderSource {
     for await (const [name, h] of dir.entries()) out.push({ name, kind: h.kind === 'directory' ? 'dir' : 'file' });
     return out;
   }
-  async file(path: string): Promise<ByteSource | null> {
+  async file(path: string, signal?: AbortSignal): Promise<ByteSource | null> {
+    signal?.throwIfAborted();
     const dir = await this.dirAt(parentPath(path));
     if (!dir) return null;
     try { return new FileSource(await (await dir.getFileHandle(baseName(path))).getFile()); } catch { return null; }
@@ -205,7 +226,8 @@ export class FileListFolder implements FolderSource {
     }
     return Array.from(seen, ([name, kind]) => ({ name, kind }));
   }
-  async file(path: string): Promise<ByteSource | null> {
+  async file(path: string, signal?: AbortSignal): Promise<ByteSource | null> {
+    signal?.throwIfAborted();
     const f = this.files.get(path.replace(/^\/+/, ''));
     return f ? new FileSource(f) : null;
   }
@@ -218,7 +240,8 @@ export class FileListFolder implements FolderSource {
 export class MemorySource implements ByteSource {
   constructor(readonly name: string, private readonly bytes: Uint8Array) {}
   async size(): Promise<number> { return this.bytes.byteLength; }
-  async read(start: number, end: number): Promise<ArrayBuffer> {
+  async read(start: number, end: number, signal?: AbortSignal): Promise<ArrayBuffer> {
+    signal?.throwIfAborted();
     if (end < start) return new ArrayBuffer(0);
     return this.bytes.slice(start, Math.min(end + 1, this.bytes.byteLength)).buffer as ArrayBuffer;
   }
@@ -242,7 +265,8 @@ export class MemoryFolder implements FolderSource {
     }
     return Array.from(seen, ([name, kind]) => ({ name, kind }));
   }
-  async file(path: string): Promise<ByteSource | null> {
+  async file(path: string, signal?: AbortSignal): Promise<ByteSource | null> {
+    signal?.throwIfAborted();
     const b = this.files.get(path.replace(/^\/+/, ''));
     return b ? new MemorySource(baseName(path), b) : null;
   }
@@ -254,7 +278,7 @@ export class SubFolder implements FolderSource {
   readonly name: string;
   constructor(private readonly parent: FolderSource, private readonly path: string) { this.name = baseName(path) || parent.name; }
   list(path = ''): Promise<FolderEntry[] | null> { return this.parent.list(path ? joinPath(this.path, path) : this.path); }
-  file(path: string): Promise<ByteSource | null> { return this.parent.file(joinPath(this.path, path)); }
+  file(path: string, signal?: AbortSignal): Promise<ByteSource | null> { return this.parent.file(joinPath(this.path, path), signal); }
   sub(path: string): FolderSource { return new SubFolder(this.parent, joinPath(this.path, path)); }
 }
 

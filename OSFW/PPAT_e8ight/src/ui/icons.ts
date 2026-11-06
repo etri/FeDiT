@@ -69,6 +69,10 @@ const PATHS = {
   play: '<path d="M7 4.5v15l12-7.5-12-7.5z"/>',
   help: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.7 2.2c-.8.5-1.3 1-1.3 2"/><path d="M12 16.8v.2"/>',
   pause: '<path d="M7 4.5h3.5v15H7z"/><path d="M13.5 4.5H17v15h-3.5z"/>',
+  // 반복 재생 (재생 막대 오른쪽 끝)
+  repeat: '<path d="M4 11V9a3 3 0 0 1 3-3h13"/><path d="M16.5 2.5L20 6l-3.5 3.5"/><path d="M20 13v2a3 3 0 0 1-3 3H4"/><path d="M7.5 21.5L4 18l3.5-3.5"/>',
+  // 창 닫기 (ui/modal.ts 를 쓰는 창의 머리)
+  x: '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
   // 페이지 사이
   home: '<path d="M3.5 11L12 4l8.5 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5.5h4V20"/>',
 } as const;

@@ -5,6 +5,8 @@
 \file   stl_loader.ts
 
 건물 등 형상 파일(STL) 로더. three.js STLLoader를 감싼다.
+못 읽으면 한국어 한 줄(STL_PARSE_ERROR)을 던진다 — three 의 예외는 브라우저의 영어 글('Offset is outside the bounds of the DataView' 등)이라
+화면([STL 추가] 빨간 줄 · 데이터 화면 안내 글 · 데이터 열기 창 결과 줄)에 그대로 보이지 않게. 부르는 쪽은 지금처럼 예외를 받는다.
 */
 /******************************************************************************/
 import * as THREE from 'three';
@@ -12,11 +14,29 @@ import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 
 const loader = new STLLoader();
 
+/** STL 을 못 읽었을 때의 글 (84바이트보다 짧은 파일 · 내용이 잘린 바이너리 STL 등, 형상으로 더할 때는 삼각형이 없는 STL 도 — requireTriangles) */
+export const STL_PARSE_ERROR = 'STL 파일을 읽지 못했습니다. 파일이 잘렸거나 STL 형식이 아닙니다.';
+
 export function parseStl(buffer: ArrayBuffer): THREE.BufferGeometry {
-  const geometry = loader.parse(buffer);
+  let geometry: THREE.BufferGeometry;
+  try { geometry = loader.parse(buffer); }
+  catch { throw new Error(STL_PARSE_ERROR); }
   geometry.computeVertexNormals();
   geometry.computeBoundingBox();
   return geometry;
+}
+
+/**
+ * 형상으로 더할 수 있는가 — 삼각형이 1개 이상이고 좌표가 모두 유한한 수. 아니면 STL_PARSE_ERROR 를 던진다.
+ * three STLLoader 는 숫자가 아닌 꼭짓점('vertex a b c')을 예외 없이 건너뛰어(콘솔 오류만) 삼각형 0개인 빈 형상을 돌려주고,
+ * 그 형상은 경계 상자가 비어 위치가 NaN·무한이 된다(2026-11-05 브라우저 확인). 후처리에서 더하는 길(AppCore.loadStlBuffer)만 부른다 —
+ * 전처리 입력·예제·결과 폴더 형상은 지금 동작 그대로(parseStl 안에서 막으면 그 길들까지 바뀐다).
+ */
+export function requireTriangles(geometry: THREE.BufferGeometry): void {
+  const a = geometry.getAttribute('position')?.array as ArrayLike<number> | undefined;
+  let ok = !!a && a.length >= 9;
+  for (let i = 0; ok && i < a!.length; i++) ok = Number.isFinite(a![i]);
+  if (!ok) throw new Error(STL_PARSE_ERROR);
 }
 
 export async function fetchStl(url: string, axes?: string[], offset?: number[]): Promise<THREE.BufferGeometry> {

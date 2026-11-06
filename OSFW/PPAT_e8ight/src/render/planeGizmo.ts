@@ -12,9 +12,11 @@
 - 시작면(seed) 모드(Streamline): 시작점들과 그 범위 사각형, 추적 방향(평균 흐름) 화살표. 색을 다르게(녹색) 쓴다.
 - Box 모드(Box Clip): 데이터 영역 상자 + Clip 상자(clipBox)의 테두리.
 위치·축을 바꾸면 잠깐 진해졌다가(flash) 가라앉는다. PNG 캡처에는 넣지 않는다 (AppCore.captureBlob).
+'수직 평면'·'위쪽'은 화면의 위쪽 축(setUp, core/upAxis.ts)을 따른다.
 */
 /******************************************************************************/
 import * as THREE from 'three';
+import { DEFAULT_UP, UpAxis, upIndex, upSign } from '../core/upAxis';
 
 export interface PlaneGizmoInput {
   bounds: { min: number[]; max: number[] };
@@ -54,6 +56,10 @@ export class PlaneGizmo {
   private readonly seedRectMat = new THREE.LineBasicMaterial({ color: SEED, transparent: true, opacity: 0.9, depthTest: false });
   private readonly seedPtsMat = new THREE.PointsMaterial({ color: SEED, size: 6, sizeAttenuation: false, transparent: true, opacity: 0.95, depthTest: false });
   private flashUntil = 0;
+  private up: UpAxis = DEFAULT_UP;
+
+  /** 화면의 위쪽 축 (다음 update 부터 Clip 화살표 자리에 쓴다) */
+  setUp(up: UpAxis): void { this.up = up; }
 
   constructor() {
     this.group.name = 'plane-gizmo';
@@ -140,8 +146,10 @@ export class PlaneGizmo {
       dir.setComponent(axis, keepPositive ? 1 : -1);
       const center = new THREE.Vector3((min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2);
       center.setComponent(axis, position);
-      // 점 구름에 가려지지 않게 상자 밖에 둔다: 수직 평면이면 위쪽, 수평 평면이면 옆쪽
-      if (axis !== 2) center.z = max[2] + pad * 1.5; else center.x = min[0] - pad * 2;
+      // 점 구름에 가려지지 않게 상자 밖에 둔다: 수직 평면이면 위쪽, 수평 평면(법선 = 위쪽 축)이면 옆쪽
+      const k = upIndex(this.up);
+      if (axis !== k) center.setComponent(k, upSign(this.up) > 0 ? max[k] + pad * 1.5 : min[k] - pad * 1.5);
+      else { const side = k === 0 ? 1 : 0; center.setComponent(side, min[side] - pad * 2); }
       const len = Math.max(size[0], size[1], size[2]) * 0.12;
       this.arrow.position.copy(center);
       this.arrow.set(dir, len);

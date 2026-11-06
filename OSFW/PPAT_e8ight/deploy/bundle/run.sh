@@ -109,7 +109,7 @@ health=$(curl -s http://127.0.0.1:8090/engine/health || true)
 echo "  해석엔진(앞단 경유): ${health:0:160}"
 case "$health" in *'"status":"ok"'*) ;; *) fail "앞단에서 해석엔진에 닿지 않습니다. 네트워크($net)를 확인하세요" ;; esac
 code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8090/results/")
-echo "  작업 폴더 전체 목록(results/): $code (404 가 정상 — 전체 목록은 일부러 숨김)"
+echo "  해석 목록(results/): $code (200 이 정상 — 물리 시뮬레이션·후처리 페이지가 서버 해석을 고르는 목록. 404 면 옛 앞단 이미지)"
 tls=$(curl -s -o /dev/null -w '%{http_code}' --resolve cfd.fedit.or.kr:443:127.0.0.1 https://cfd.fedit.or.kr/pre.html || true)
 echo "  https(인증서 확인 포함, 서버 안에서): $tls"
 [ "$tls" = 200 ] || fail "https 확인 실패. 인증서 파일을 확인하세요: ${COMPOSE[*]} logs proxy"

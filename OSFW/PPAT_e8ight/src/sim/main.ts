@@ -4,20 +4,22 @@
 /*!
 \file   main.ts (물리 시뮬레이션 페이지 진입점, sim.html)
 
-해석기 입력(JSON + STL)을 해석엔진에 넣고, 끝날 때까지 상태를 보여 준 뒤 후처리로 넘긴다. 3D 화면이 없는 카드 하나짜리 2D 페이지다.
+해석기 입력(JSON + STL)을 해석엔진에 넣고, 끝날 때까지 상태를 보여 준 뒤 후처리로 넘긴다. 3D 화면이 없는 카드 2D 페이지다.
 들어오는 길 셋:
 - sim.html?from=pre : 전처리의 '해석 실행'. 넘겨받은 묶음(data/handoff.ts)을 꺼내 바로 실행한다. 묶음이 없으면(새로 고침 등) 입력 고르기로.
-- sim.html          : 입력 고르기. JSON 하나 + STL 여러 개를 고르거나 끌어다 놓고, 해석기를 골라 실행한다.
+- sim.html          : 입력 고르기. JSON 하나 + STL 여러 개를 고르거나 끌어다 놓고, 해석기를 골라 실행한다. 아래에 '서버 결과' 카드.
 - sim.html?job=<id> : 그 작업의 상태 화면. 새로 고침해도 이어진다.
 실행·상태 조회는 이 페이지만 한다(data/engineApi.ts). 전처리는 묶음만 넘기고, 후처리는 post.html?job=<id> 로 결과만 연다.
-작업은 한 번에 하나만 다룬다(목록·삭제 없음). 주소는 모두 페이지 기준 상대 주소다.
+실행·상태 화면은 한 번에 한 건만 다룬다. '서버 결과' 카드(입력 고르기 화면에서만)는 서버 결과 폴더 목록(data/serverJobs.ts)을 읽어 보여 주고,
+대기·실행 중인 줄만 엔진에 지금 상태를 한 번 묻는다. 삭제는 없다. 주소는 모두 페이지 기준 상대 주소다.
 */
 /******************************************************************************/
 import './sim.css';
-import { button, callout, el, fmtInt, homeLink, row, select } from '../ui/dom';
+import { button, callout, el, fmtInt, help, homeLink, row, select } from '../ui/dom';
 import { icon } from '../ui/icons';
 import { takeHandoff, type EngineKind, type HandoffRecord, type InputPackage } from '../data/handoff';
 import { EngineError, getHealth, getJob, hasAccessKey, newJobId, setAccessKey, submitJob, type JobState, type JobStatus } from '../data/engineApi';
+import { JOB_ID_RE, JOB_PAGE, STATE_LABEL, STATE_TAG, canOpenResult, isActive, jobWhenText, listJobFolders, readJobs, type JobFolder, type ServerJob } from '../data/serverJobs';
 import { engineFor, isJsonObject, type JsonObject, type SolverInputDoc } from '../pre/solverInput';
 
 const ENGINE_OPTIONS: { value: EngineKind; label: string }[] = [
@@ -25,13 +27,11 @@ const ENGINE_OPTIONS: { value: EngineKind; label: string }[] = [
   { value: 'lbm_dem', label: 'LBM-DEM (유체-입자)' },
 ];
 const engineLabel = (e: string | undefined): string => ENGINE_OPTIONS.find((o) => o.value === e)?.label ?? (e || '-');
-const STATE_LABEL: Record<JobState, string> = { queued: '대기 중', running: '실행 중', completed: '완료', failed: '실패' };
-const STATE_TAG: Record<JobState, string> = { queued: '', running: 'run', completed: 'ok', failed: 'err' };
+const ENGINE_STATES: readonly JobState[] = ['queued', 'running', 'completed', 'failed'];
 
 const LAST_JOB_KEY = 'utcfd.sim.lastJob';
 const POLL_MS = 3000;
-const JOB_ID_RE = /^[A-Za-z0-9_-]{1,64}$/; // 엔진의 작업 번호 규칙
-const PATH_CHARS = /[\\/]|\.\./;           // 엔진은 경로가 섞인 파일 이름·meta.title 을 거절한다
+const PATH_CHARS = /[\\/]|\.\./; // 엔진은 경로가 섞인 파일 이름·meta.title 을 거절한다
 
 // ---------------------------------------------------------------------------
 // 작은 도우미
@@ -111,7 +111,10 @@ const headTop = el('div', 'sim-top');
 headTop.append(el('h1', undefined, '연합트윈 CFD 물리 시뮬레이션'), homeLink(() => (uploading ? '보내는 중인 입력이 끊깁니다.' : null)));
 head.append(headTop, steps);
 const card = el('section', 'sim-card');
-root.append(head, card);
+// 둘째 카드 '서버 결과': 입력 고르기 화면에서만 보인다. switchView 는 첫 카드만 비우므로 이 카드는 openPastJobs 가 그리고 치운다
+const pastCard = el('section', 'sim-card past');
+pastCard.hidden = true;
+root.append(head, card, pastCard);
 
 // 카드 밖에 파일을 놓아도 브라우저가 그 파일로 페이지를 바꾸지 않게 (입력 고르기 화면은 카드가 먼저 받는다)
 window.addEventListener('dragover', (e) => { if (!e.defaultPrevented) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'none'; } });
@@ -308,10 +311,12 @@ function showForm(note = ''): void {
     card.addEventListener('dragleave', onLeave);
     card.addEventListener('drop', onDrop);
     refresh();
+    const closePast = openPastJobs();
     return () => {
       card.removeEventListener('dragover', onOver);
       card.removeEventListener('dragleave', onLeave);
       card.removeEventListener('drop', onDrop);
+      closePast();
     };
   });
 }
@@ -321,6 +326,146 @@ function backToForm(): void {
   setQuery('');
   form = lastPkg ? formFromPackage(lastPkg) : emptyForm();
   showForm();
+}
+
+// ---------------------------------------------------------------------------
+// 서버 결과: 서버 결과 폴더 목록 (입력 고르기 화면 아래 둘째 카드)
+// ---------------------------------------------------------------------------
+/** 엔진이 알려 준 지금 상태를 목록 한 줄에 덧씌운다 */
+function withEngineStatus(j: ServerJob, st: JobStatus): ServerJob {
+  const t = (s: string | null | undefined, old: number): number => { const v = parseTime(s); return Number.isFinite(v) ? v : old; };
+  return { ...j, status: st.status, message: st.message || j.message, startedAt: t(st.started_at, j.startedAt), finishedAt: t(st.finished_at, j.finishedAt) };
+}
+
+/** 실행 중이면 꼬리표에 진행률('실행 중 42.1%'). 엔진이 percent 를 주지 않으면 '실행 중' 그대로 */
+function paintProgress(tag: HTMLElement, st: JobStatus): void {
+  const p = st.progress?.percent;
+  if (st.status === 'running' && typeof p === 'number' && Number.isFinite(p)) tag.textContent = `${STATE_LABEL.running} ${p.toFixed(1)}%`;
+}
+
+/** '서버 결과' 카드를 그리고 목록을 한 번 읽는다(자동 반복 없음). 돌려준 함수가 읽기를 끊고 카드를 치운다(화면 전환 때) */
+function openPastJobs(): () => void {
+  let ctrl: AbortController | null = null;
+  let folders: JobFolder[] = [];
+  let shown = 0;
+
+  // 새로고침: 후처리 '서버 결과'의 새로고침과 같은 꼴·이름 (components.css .icon-btn)
+  const reload = el('button', 'icon-btn');
+  reload.type = 'button';
+  reload.title = '새로고침';
+  reload.setAttribute('aria-label', '서버 결과 새로고침');
+  reload.append(icon('rotate'));
+  reload.addEventListener('click', () => void load());
+  const headRow = el('div', 'card-head');
+  headRow.append(el('h2', undefined, '서버 결과'), help([
+    '이 서버에서 돌린 해석이 모두 보입니다(다른 사람이 돌린 것 포함). 최근에 움직인 것부터 보입니다.',
+    '가시화: 결과를 후처리에서 엽니다. 실패한 해석도 멈춘 시점까지 저장된 결과가 있으면 열립니다.',
+    '진행 보기: 대기 중이거나 실행 중인 해석의 진행 화면으로 갑니다.',
+    '이름을 누르면 그 해석의 상태 화면(입력 파일, 걸린 시간, 완료된 해석은 결과 ZIP 내려받기)으로 갑니다.',
+    '목록은 이 화면을 열 때 한 번 읽습니다. 다시 읽으려면 오른쪽 위 새로고침 단추를 누르세요.',
+  ]), reload);
+  const status = el('p', 'line dim');
+  status.setAttribute('aria-live', 'polite');
+  const list = el('div', 'files jobs');
+  list.hidden = true;
+  const more = button('더 보기', () => void loadMore(), 'normal', 'chevron');
+  const moreLabel = more.lastElementChild as HTMLElement;
+  const moreRow = el('div', 'btn-row');
+  moreRow.hidden = true;
+  moreRow.append(more);
+  pastCard.replaceChildren(headRow, status, list, moreRow);
+  pastCard.hidden = false;
+
+  const setStatus = (text: string, err = false): void => { status.className = err ? 'line err' : 'line dim'; status.textContent = text; };
+  const paintMore = (): void => {
+    const left = folders.length - shown;
+    moreRow.hidden = left <= 0;
+    more.disabled = false;
+    moreLabel.textContent = `더 보기 (${left}건 남음)`;
+  };
+
+  /** 한 줄: 아이콘 · 이름(누르면 상태 화면)과 시각 · 상태 꼬리표 · 단추. known 이 없고 대기·실행 중이면 엔진에 한 번 묻는다 */
+  const jobRow = (j: ServerJob, signal: AbortSignal, known?: JobStatus): HTMLElement => {
+    const r = el('div', 'file-row job-row');
+    const name = el('a', 'name', j.name);
+    name.href = `?job=${encodeURIComponent(j.id)}`;
+    name.title = j.id;
+    const main = el('span', 'job-main');
+    main.append(name, el('span', 'when', jobWhenText(j)));
+    const tag = el('span', STATE_TAG[j.status] ? `tag ${STATE_TAG[j.status]}` : 'tag', STATE_LABEL[j.status]);
+    if (j.message) tag.title = j.message;
+    r.append(icon('folder'), main, tag);
+    // 단추는 둘 다 링크: 이름 링크·'최근 해석 이어 보기'처럼 방문 기록이 쌓여 '뒤로'가 이 목록으로 돌아온다
+    const go = el('a', 'btn');
+    const goLabel = canOpenResult(j) ? '가시화' : '진행 보기';
+    go.href = canOpenResult(j) ? `post.html?job=${encodeURIComponent(j.id)}` : `?job=${encodeURIComponent(j.id)}`;
+    go.setAttribute('aria-label', `${j.name} ${goLabel}`); // 화면 읽기 프로그램: 어느 줄의 단추인지
+    go.append(icon(canOpenResult(j) ? 'eye' : 'play'), el('span', undefined, goLabel));
+    r.append(go);
+    if (known) paintProgress(tag, known);
+    else if (isActive(j)) void askEngine(j, r, tag, signal);
+    return r;
+  };
+
+  /** 대기·실행 중인 줄: 엔진의 지금 상태. 그새 상태가 바뀌었으면 그 줄을 새로 그린다. 못 읽으면 조용히 그대로 */
+  const askEngine = async (j: ServerJob, r: HTMLElement, tag: HTMLElement, signal: AbortSignal): Promise<void> => {
+    let st: JobStatus;
+    try { st = await getJob(j.id, signal); } catch { return; }
+    if (signal.aborted || !r.isConnected || !ENGINE_STATES.includes(st.status)) return;
+    if (st.status !== j.status) r.replaceWith(jobRow(withEngineStatus(j, st), signal, st));
+    else paintProgress(tag, st);
+  };
+
+  /** 다음 JOB_PAGE 개의 상태 파일을 읽어 줄을 붙인다 */
+  const showPage = async (signal: AbortSignal): Promise<void> => {
+    const page = folders.slice(shown, shown + JOB_PAGE);
+    const jobs = await readJobs(page, signal);
+    if (signal.aborted) return;
+    shown += page.length;
+    list.append(...jobs.map((j) => jobRow(j, signal)));
+    list.hidden = list.childElementCount === 0;
+    paintMore();
+  };
+
+  const load = async (): Promise<void> => {
+    ctrl?.abort();
+    const c = new AbortController();
+    ctrl = c;
+    folders = [];
+    shown = 0;
+    list.replaceChildren();
+    list.hidden = moreRow.hidden = true;
+    reload.disabled = true;
+    setStatus('서버 결과를 읽는 중…');
+    try {
+      folders = await listJobFolders(c.signal);
+      if (c.signal.aborted) return;
+      await showPage(c.signal);
+      if (c.signal.aborted) return;
+      setStatus(folders.length ? '' : '서버에 남은 해석이 없습니다.');
+    } catch (e) {
+      if (!c.signal.aborted) setStatus(errText(e), true);
+    } finally {
+      if (ctrl === c) reload.disabled = false;
+    }
+  };
+
+  const loadMore = async (): Promise<void> => {
+    const c = ctrl;
+    if (!c || more.disabled) return;
+    more.disabled = true;
+    moreLabel.textContent = '읽는 중…';
+    try { await showPage(c.signal); }
+    catch (e) { if (!c.signal.aborted) { setStatus(errText(e), true); paintMore(); } }
+  };
+
+  void load();
+  return () => {
+    ctrl?.abort();
+    ctrl = null;
+    pastCard.hidden = true;
+    pastCard.replaceChildren();
+  };
 }
 
 // ---------------------------------------------------------------------------

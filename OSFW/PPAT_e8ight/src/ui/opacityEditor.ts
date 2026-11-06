@@ -172,7 +172,8 @@ export interface OpacityEditorInput {
   colormap: ColormapId;
   rangeMin: number;
   rangeMax: number;
-  rangeReady: boolean;         // 범위가 정해졌는지 (아직이면 히스토그램을 그리지 않는다 — 임시 범위 0~1 로 센 막대는 틀린 그림)
+  rangeReady: boolean;         // 범위가 정해졌는지 (아직이면 히스토그램을 그리지 않고, 축·고른 점 값 칸에 임시 범위 숫자를 보이지 않는다 — 칠하기용 임시 값이라 뜻이 없다)
+  flatText?: string | null;    // 범위가 아직이고 지금 그린 값이 모두 같을 때 축에 보일 글('모두 0'). 없으면 축은 '-'
   unit: string;
   cells: () => HistogramCells; // 히스토그램을 셀 셀: 노드 화면은 그 노드가 Volume 으로 그리는 셀, Color Map 화면은 그 지도로 Volume 을 그리는 보이는 노드들의 셀. 보이고 셀 때만 부른다
 }
@@ -354,7 +355,7 @@ export function opacityEditor(onChange: (curve: OpacityCurve) => void): OpacityE
   const geom = () => ({ x0: PAD_X, x1: Math.max(PAD_X + 1, width - PAD_X), y0: PAD_T, y1: PAD_T + PLOT_H });
   const valueText = (x: number): string => {
     const m = input;
-    if (!m) return '';
+    if (!m || !m.rangeReady) return ''; // 범위 미정: 임시 범위로 환산한 값은 뜻이 없다
     const span = m.rangeMax - m.rangeMin;
     return fmtRangeValue(m.rangeMin + x * span, span);
   };
@@ -368,7 +369,7 @@ export function opacityEditor(onChange: (curve: OpacityCurve) => void): OpacityE
     const end = sel === 0 || sel === c.length - 1;
     ptIndex.textContent = `${sel + 1} / ${c.length}`;
     delBtn.disabled = end;
-    valIn.disabled = end;
+    valIn.disabled = end || !input!.rangeReady;
     if (force || document.activeElement !== valIn) valIn.value = valueText(x);
     if (force || document.activeElement !== opIn) opIn.value = fmtOpacity(y);
   }
@@ -406,7 +407,7 @@ export function opacityEditor(onChange: (curve: OpacityCurve) => void): OpacityE
       p.classList.toggle('sel', i === sel);
       p.setAttribute('aria-label', `Opacity 점 ${i + 1} / ${c.length}`);
       p.setAttribute('aria-valuenow', String(y));
-      p.setAttribute('aria-valuetext', `값 ${valueText(x)}, Opacity ${fmtOpacity(y)}`);
+      p.setAttribute('aria-valuetext', `값 ${valueText(x) || '범위 미정'}, Opacity ${fmtOpacity(y)}`); // 범위 미정이면 값 칸이 비므로 낱말로
     });
   }
 
@@ -525,7 +526,7 @@ export function opacityEditor(onChange: (curve: OpacityCurve) => void): OpacityE
     // 셀 셀은 히스토그램을 셀 때만 묻는다. 묶음 객체가 모두 같고 서명이 같으면 아무것도 하지 않는다(AppCore 는 fps 로 매초 emit)
     const cells = prefs.show && m.rangeReady && span > 0 ? m.cells() : null;
     const sets = cells?.sets ?? [];
-    const sig = [m.key, m.curve.map((p) => p.join(':')).join(' '), m.colormap, m.rangeMin, m.rangeMax, m.rangeReady, m.unit, prefs.show, prefs.log, prefs.bins, cells?.what, cells?.empty].join('|');
+    const sig = [m.key, m.curve.map((p) => p.join(':')).join(' '), m.colormap, m.rangeMin, m.rangeMax, m.rangeReady, m.flatText ?? '', m.unit, prefs.show, prefs.log, prefs.bins, cells?.what, cells?.empty].join('|');
     const sameSets = sets.length === lastSets.length && sets.every((s, i) => s === lastSets[i]);
     if (!stale && sig === lastSig && sameSets) return;
     stale = false;
@@ -542,8 +543,9 @@ export function opacityEditor(onChange: (curve: OpacityCurve) => void): OpacityE
       }));
     }
     const u = m.unit ? ` ${m.unit}` : '';
-    axMin.textContent = `${fmtRangeValue(m.rangeMin, span)}${u}`;
-    axMax.textContent = `${fmtRangeValue(m.rangeMax, span)}${u}`;
+    // 범위 미정: 임시 범위 숫자(예: -5e-13 ~ 5e-13) 대신 '모두 0'(그린 값이 모두 같을 때) 또는 '-'
+    axMin.textContent = m.rangeReady ? `${fmtRangeValue(m.rangeMin, span)}${u}` : m.flatText ? `${m.flatText}${u}` : '-';
+    axMax.textContent = m.rangeReady ? `${fmtRangeValue(m.rangeMax, span)}${u}` : '';
     valLabel.textContent = m.unit ? `값 (${m.unit})` : '값';
     valIn.step = span > 0 ? String(Number((span / 100).toPrecision(3))) : 'any'; // 돌림 단추 한 걸음 = 범위의 1%
     const start = START_CURVES.find((s) => sameCurve(m.curve, s.curve))?.id ?? '';

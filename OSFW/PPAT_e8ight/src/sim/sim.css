@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: LGPL-2.1-only */
 /* Copyright (c) 2026 E8IGHT Co., Ltd. */
-/* 물리 시뮬레이션 페이지(sim.html): 시작 페이지와 같은 청회색 바탕 위의 흰 카드 하나. 3D 화면은 없다.
+/* 물리 시뮬레이션 페이지(sim.html): 시작 페이지와 같은 청회색 바탕 위의 흰 카드(입력 고르기 화면은 아래에 '서버 결과' 카드 하나 더). 3D 화면은 없다.
    값은 tokens.css, 버튼·select·키-값 표·안내 상자는 components.css 부품을 그대로 쓰고, 이 페이지만의 배치만 여기에 둔다 */
 @import "../ui/tokens.css";
 @import "../ui/components.css";
@@ -103,6 +103,21 @@ a.btn { text-decoration: none; }
 @keyframes bar-indet { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
 .progress-meta { display: flex; justify-content: space-between; gap: 12px; font-size: var(--text-sm); color: var(--text-2); font-variant-numeric: tabular-nums; }
 
+/* ---- 서버 결과: 서버 결과 폴더 목록 (입력 고르기 화면의 둘째 카드). 줄은 파일 목록(.files/.file-row) 꼴, 새로고침은 components.css .icon-btn ---- */
+.sim-card + .sim-card { margin-top: 16px; }
+.card-head .help { margin-left: -4px; }
+.card-head .icon-btn { margin-left: auto; }
+.job-row { min-height: 46px; padding: 5px 8px 5px 10px; }
+.job-main { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.job-row .job-main .name { flex: none; color: var(--text-1); font-weight: 500; text-decoration: none; }
+.job-row .job-main .name:hover { color: var(--accent-600); text-decoration: underline; }
+.job-row .when {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--text-xs); color: var(--text-3); font-variant-numeric: tabular-nums;
+}
+.job-row .btn { flex: none; height: var(--control-h-sm); padding: 0 10px; font-size: var(--text-xs); }
+.job-row .btn .icon { width: 14px; height: 14px; }
+
 /* ---- 접근 키 ---- */
 .key-row { display: flex; align-items: center; gap: var(--space-2); }
 .key-row label { font-size: var(--text-sm); color: var(--text-2); white-space: nowrap; }
@@ -111,4 +126,5 @@ a.btn { text-decoration: none; }
 @media (max-width: 520px) {
   .sim { padding: 28px 16px 40px; }
   .sim-card { padding: 16px; }
+  .job-row > .icon { display: none; } /* 좁은 화면에서는 이름 자리를 넓힌다 */
 }

@@ -44,6 +44,7 @@
   --text-2: var(--gray-600);
   --text-3: var(--gray-500);
   --text-on-accent: #ffffff;
+  --track-buffered: var(--gray-400); /* 재생 막대 트랙의 읽어 둔 장면 띠 (빈 트랙 --gray-200 위) */
 
   /* 글자 */
   --font-sans: "Pretendard GOV", Pretendard, "Noto Sans KR", "Malgun Gothic", "Segoe UI", sans-serif;
@@ -81,4 +82,5 @@
   --z-overlay: 2;
   --z-panel: 3;
   --z-sticky: 4;
+  --z-modal: 40;                  /* 모달 창(ui/modal.ts). 물음표 설명 창(50)·메뉴·확인 상자(60)가 그 위에 뜬다 */
 }

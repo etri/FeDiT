@@ -3,7 +3,7 @@
   "layers": [
     {
       "type": "slice",
-      "name": "지면 단면 (Z = 2 m)",
+      "name": "Slice Z = 2 m (지면)",
       "visible": true,
       "params": {
         "axis": 2,
@@ -28,7 +28,7 @@
     },
     {
       "type": "slice",
-      "name": "세로 단면 (Y = 80 m)",
+      "name": "Slice Y = 80 m (세로)",
       "visible": true,
       "params": {
         "axis": 1,
@@ -53,7 +53,7 @@
     },
     {
       "type": "stream",
-      "name": "유선 (서쪽 유입)",
+      "name": "Streamline (서쪽 유입)",
       "visible": true,
       "params": {
         "fieldName": "velocity",
@@ -83,7 +83,7 @@
     },
     {
       "type": "iso",
-      "name": "농도 120 등값면",
+      "name": "Isosurface 농도 120",
       "visible": true,
       "params": {
         "fieldKey": "scalar:c",

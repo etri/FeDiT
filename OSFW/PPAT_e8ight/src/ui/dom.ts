@@ -72,7 +72,8 @@ let helpFor: HTMLElement | null = null; // 지금 설명을 띄운 물음표
 let helpPinned = false;                 // 눌러서 고정했는지 (올려서 뜬 것은 마우스를 떼면 닫힌다)
 let helpWatch = 0;                      // 떠 있는 동안 물음표가 아직 보이는지 살피는 타이머
 
-function closeHelp(): void {
+/** 떠 있는 설명 창을 닫는다 (모달 창 ui/modal.ts 가 열릴 때도 부른다 — 뒤 화면 물음표에 고정해 둔 설명이 창 위에 남지 않게) */
+export function closeHelp(): void {
   if (!helpPop || !helpFor) return;
   helpPop.hidden = true;
   helpFor.setAttribute('aria-expanded', 'false');
@@ -84,13 +85,13 @@ function closeHelp(): void {
 /**
  * 물음표 바로 아래에 놓는다. 아래 자리가 모자라면 위로, 둘 다 모자라면 넓은 쪽에 높이를 줄여(안에서 스크롤) — 물음표를 덮지 않는다
  * (덮으면 마우스가 창 위에 놓여 닫힘·열림이 되풀이된다). 물음표가 더는 보이지 않으면 닫는다: 화면 전환·다시 그리기로 사라졌거나,
- * 패널의 스크롤 영역 밖으로 밀렸거나, 붙박이 제목 줄(.sec-head) 밑으로 들어간 경우.
+ * 패널(또는 모달 창)의 스크롤 영역 밖으로 밀렸거나, 붙박이 제목 줄(.sec-head) 밑으로 들어간 경우.
  */
 function placeHelp(): void {
   if (!helpPop || !helpFor) return;
   const r = helpFor.getBoundingClientRect();
   let visTop = 0, visBottom = window.innerHeight;
-  const clip = helpFor.closest('.panel-body')?.getBoundingClientRect();
+  const clip = helpFor.closest('.panel-body, .modal-body')?.getBoundingClientRect(); // 패널 또는 모달 창(ui/modal.ts)의 스크롤 영역
   if (clip) { visTop = Math.max(visTop, clip.top); visBottom = Math.min(visBottom, clip.bottom); }
   if (helpFor.closest('.sec-body')) { // 제목 줄 안의 물음표(Section.setHelp)는 제목 줄에 가려지지 않는다
     const head = helpFor.closest('.sec')?.querySelector('.sec-head');
@@ -179,6 +180,7 @@ export function row(label: string, control: HTMLElement, value?: HTMLElement): H
     const r = el('div', 'field');
     const head = el('div', 'field-head');
     head.append(el('label', 'field-label', label));
+    if (value instanceof HTMLInputElement && !value.hasAttribute('aria-label')) value.setAttribute('aria-label', label); // 값 밀대의 숫자 칸 (slider edit)
     if (value) head.append(value);
     r.append(head, control);
     return r;
@@ -193,32 +195,106 @@ export interface SliderOpts {
   min: number; max: number; step: number; value: number;
   format?: (v: number) => string;
   commit?: boolean; // true면 손을 뗄 때(change) 적용 — 계산이 무거운 항목용
+  /**
+   * true면 오른쪽 값 글자 자리를 숫자 칸으로 둔다(값 밀대 — Threshold Lower·Upper · Clip 기준값 · Isosurface 값). 밀대 끝 밖의 값도 넣을 수 있고,
+   * 넣은 값은 onInput 으로 넘긴다(끝을 넓히는 일은 부르는 쪽). 칸에 들어가면 반올림 없는 값(fmtExact)을 보이고, 나오면 format 글로 돌아간다.
+   * 숫자가 아닌 글자 · 빈칸은 받지 않고 되돌린다(numberInput 규칙). Enter = 넣기, Esc = 넣지 않고 되돌리기.
+   * 손으로 끄는 동안(누른 채)에는 set 으로 받은 끝·눈금을 미뤄 두었다가 놓은 뒤에 바꾼다(끄는 손잡이가 저절로 옮겨 가지 않게)
+   */
+  edit?: boolean;
 }
 
-export function slider(opts: SliderOpts, onInput: (v: number) => void): { input: HTMLInputElement; value: HTMLSpanElement; set(v: number, min?: number, max?: number, step?: number): void } {
+/** 숫자 칸 글자 → 수. 십진수(부호 · 소수점 · 지수 표기)만 받고 그 밖(빈칸 · 글자 · 0x10 · Infinity)은 NaN */
+export function parseNumberText(s: string): number {
+  const t = s.trim();
+  return /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(t) ? Number(t) : NaN;
+}
+
+export function slider(opts: SliderOpts, onInput: (v: number) => void): { input: HTMLInputElement; value: HTMLElement; set(v: number, min?: number, max?: number, step?: number): void } {
   const input = el('input');
   input.type = 'range';
   input.min = String(opts.min); input.max = String(opts.max); input.step = String(opts.step); input.value = String(opts.value);
-  const value = el('span', 'row-value');
   const fmt = opts.format ?? ((v: number) => fmtNum(v));
-  // 채워진 구간(--p)을 값에 맞춘다
-  const paint = () => {
+  // 값 글자: 보통은 글자(span), edit 면 숫자 칸(input — 이름은 row 가 칸 이름으로 붙인다)
+  let edit: HTMLInputElement | null = null;
+  let value: HTMLElement;
+  if (opts.edit) {
+    edit = el('input', 'num slider-num');
+    edit.type = 'text'; edit.inputMode = 'decimal'; edit.autocomplete = 'off'; edit.spellcheck = false;
+    value = edit;
+  } else value = el('span', 'row-value');
+  let real = opts.value; // 마지막으로 받은(set) · 넣은 실제 값 — 숫자 칸이 되돌아갈 값
+  const show = (v: number) => {
+    if (!edit) { value.textContent = fmt(v); return; }
+    if (document.activeElement !== edit) edit.value = fmt(v); // 입력 중인 글자는 건드리지 않는다
+  };
+  // 채워진 구간(--p)을 값에 맞춘다. 숫자 칸은 set() 으로 받은 실제 값을 보인다 — input.value 는 밀대가 눈금(step)에 맞춰 바꾼 값이라
+  // 눈금보다 작은 값(폭 1.41 · 눈금 0.00282 에서 Threshold 기준 1e-6)이 '0' 으로 보였다(2026-11-05). 손으로 끄는 동안(input)만 눈금 값.
+  const paint = (r?: number) => {
     const lo = Number(input.min), hi = Number(input.max), v = Number(input.value);
     const p = hi > lo ? Math.min(100, Math.max(0, ((v - lo) / (hi - lo)) * 100)) : 0;
     input.style.setProperty('--p', `${p.toFixed(2)}%`);
-    value.textContent = fmt(v);
+    real = r !== undefined && Number.isFinite(r) ? r : v;
+    show(real);
   };
-  paint();
+  paint(opts.value);
   input.addEventListener('input', () => { paint(); if (!opts.commit) onInput(Number(input.value)); });
   if (opts.commit) input.addEventListener('change', () => onInput(Number(input.value)));
+  if (edit) {
+    const e = edit;
+    e.addEventListener('focus', () => { e.value = fmtExact(real); e.select(); });
+    e.addEventListener('change', () => {
+      const v = parseNumberText(e.value);
+      if (!Number.isFinite(v)) { e.value = fmtExact(real); return; } // 받지 않고 되돌림 (칸에 남아 있으면 반올림 없는 값)
+      if (v === real) return; // 같은 값(칸에 들어갔다가 그대로 나옴 등)은 넘기지 않는다 — 다시 계산하지 않게
+      input.value = String(v);
+      paint(v);
+      onInput(v);
+    });
+    e.addEventListener('blur', () => { e.value = fmt(real); });
+    e.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') e.blur();
+      else if (ev.key === 'Escape') { e.value = fmtExact(real); e.blur(); }
+    });
+  }
+  const setBounds = (min?: number, max?: number, step?: number) => {
+    if (min !== undefined) input.min = String(min);
+    if (max !== undefined) input.max = String(max);
+    if (step !== undefined) input.step = String(step);
+  };
+  // 값 밀대(edit): 끄는 동안 받은 끝·눈금은 미뤄 두고 값도 넣지 않는다(손잡이 자리는 누른 손이 정한다). 끄는 중에 전 시점 범위 읽기가 끝나거나
+  // 미정이던 끝이 정해져 끝이 바뀌면 손잡이가 저절로 옮겨 갔다(값 밀대 끝 검토 2026-11-05). 놓으면 미룬 끝을 놓은 값과 함께 넣는다
+  let dragging = false;
+  let pending: { min?: number; max?: number; step?: number } | null = null;
+  const release = () => {
+    dragging = false;
+    window.removeEventListener('pointerup', release, true);
+    window.removeEventListener('pointercancel', release, true);
+    setTimeout(() => { // 놓을 때의 change(commit 밀대가 값을 넣는 때)가 먼저 지나가게
+      if (!pending || dragging) return;
+      const p = pending; pending = null;
+      setBounds(p.min, p.max, p.step);
+      input.value = String(real);
+      paint(real);
+    }, 0);
+  };
+  if (opts.edit) input.addEventListener('pointerdown', () => {
+    dragging = true;
+    window.addEventListener('pointerup', release, true);
+    window.addEventListener('pointercancel', release, true);
+  });
   return {
     input, value,
     set(v, min, max, step) {
-      if (min !== undefined) input.min = String(min);
-      if (max !== undefined) input.max = String(max);
-      if (step !== undefined) input.step = String(step);
+      const bounds = min !== undefined || max !== undefined || step !== undefined;
+      if (dragging) {
+        if (bounds) pending = { min: min ?? pending?.min, max: max ?? pending?.max, step: step ?? pending?.step };
+        return;
+      }
+      if (bounds) pending = null; // 놓은 뒤 새로 받은 끝이 미룬 끝보다 나중 것
+      setBounds(min, max, step);
       input.value = String(v);
-      paint();
+      paint(v);
     },
   };
 }
@@ -358,14 +434,23 @@ export function numberInput(value: number, onCommit: (v: number) => void, opts: 
   return i;
 }
 
-/** 범위 끝값 표시: 범위 폭에 맞는 자릿수로 (폭이 좁으면 자릿수를 늘려 두 끝이 구별되게 — 1~1로 보이던 밀도 범위가 0.99995~1.00005로 보인다) */
+/**
+ * 범위 끝값·기준값 표시: 범위 폭에 맞는 자릿수로 (폭이 좁으면 자릿수를 늘려 두 끝이 구별되게 — 1~1로 보이던 밀도 범위가 0.99995~1.00005로 보인다).
+ * 0 이 아닌 값이 폭에 견줘 작으면(폭 기준 자릿수 한 칸의 10배 미만) 유효숫자 3자리까지 늘린다 — 0 이 아닌 값을 '0' 으로 보이지 않게
+ * (폭 0~1.41 에서 Threshold 기준 0.00282 가 '0' 으로 보여 '≥ 0' 인데 일부만 남은 것처럼 보였다, 2026-11-05).
+ * 아주 크거나 작은 값(1e6 이상, 1e-6 미만)은 지수 표기, 가수 끝의 0 은 뺀다(-5e-13, 2.5e-13).
+ */
 export function fmtRangeValue(v: number, span: number): string {
   if (!Number.isFinite(v)) return '-';
   if (!(span > 0)) return fmtNum(v);
-  const decimals = Math.min(10, Math.max(0, Math.ceil(-Math.log10(span)) + 2));
   const a = Math.abs(v);
-  if (a >= 1e6 || (a > 0 && a < 1e-6)) return v.toExponential(Math.min(6, decimals));
-  return Number(v.toFixed(decimals)).toString();
+  if (a === 0) return '0';
+  const spanDec = Math.ceil(-Math.log10(span)) + 2; // 폭의 1% 자리
+  const mag = Math.floor(Math.log10(a));
+  if (a >= 1e6 || a < 1e-6) return v.toExponential(Math.min(6, Math.max(2, mag + spanDec))).replace(/\.?0+e/, 'e');
+  let decimals = Math.max(0, spanDec);
+  if (a < 10 ** (1 - decimals)) decimals = 2 - mag; // 폭에 견줘 작은 값: 유효숫자 3자리
+  return Number(v.toFixed(Math.min(10, decimals))).toString();
 }
 
 /** 편집용 숫자 글자: 반올림하지 않되 부동소수 찌꺼기(0.30000000000000004)는 걷어 낸다 */

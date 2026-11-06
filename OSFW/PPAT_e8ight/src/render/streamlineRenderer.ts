@@ -8,7 +8,7 @@ Streamline 을 그린다. 조상 Clip 은 선·면 재질의 clippingPlanes 로 
 - 선(line):   화면 굵기(px) 또는 미터 굵기의 굵은 선(LineSegments2).
 - 튜브(tube): 원형 단면(12각)을 선을 따라 쓸어 만든 면. 지름은 미터.
 - 각기둥(prism): 3~8각형 단면, 면마다 평평하게 음영.
-- 리본(ribbon): 납작한 띠. 수평(흐름에 직각, 지면과 나란히) 또는 수직(위아래로 세움).
+- 리본(ribbon): 납작한 띠. 수평(흐름에 직각, 지면과 나란히) 또는 수직(위아래로 세움). 위아래는 화면의 위쪽 축(StreamStyle.up)이다.
 
 반투명일 때의 이음새 처리: 굵은 선은 선분마다 따로 그려져 이음새(둥근 끝)가 겹치고, 그 자리가 두 번
 칠해져 동그란 무늬가 생긴다. 이를 없애려고 스텐실 버퍼를 쓴다 — 이 레이어에 배정된 스텐실 비트가
@@ -40,6 +40,7 @@ export interface StreamStyle {
   dash: 'solid' | 'dashed' | 'dotted';  // 선 모양에만 적용
   dashUnit: number;                     // 파선 길이의 기준 (보통 격자 간격, m)
   stencilBit: number;                   // 0~7: 반투명 한 번 섞기용 스텐실 비트. 음수면 스텐실 없이 그냥 섞음
+  up?: [number, number, number];        // 화면의 위쪽 단위 벡터(단면 틀·리본 '수평'의 기준). 없으면 +Z
 }
 
 type ColorAt = (line: Streamline, i: number) => RGB;
@@ -98,7 +99,7 @@ export class StreamlineRenderer {
       applyStencil(m, translucent ? s.stencilBit : -1);
     }
 
-    const key = `${s.shape}|${s.meshWidth}|${s.sides}|${s.ribbonDir}`;
+    const key = `${s.shape}|${s.meshWidth}|${s.sides}|${s.ribbonDir}|${(s.up ?? [0, 0, 1]).join(',')}`;
     if (key !== this.geomKey) { this.geomKey = key; this.build(); }
   }
 
@@ -185,7 +186,10 @@ export class StreamlineRenderer {
     const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), col = new Float32Array(nv * 3);
     const idx = nv > 65535 ? new Uint32Array(ntri * 3) : new Uint16Array(ntri * 3);
     const t = new THREE.Vector3(), n = new THREE.Vector3(), b = new THREE.Vector3(), r = new THREE.Vector3(), p = new THREE.Vector3();
-    const up = new THREE.Vector3(0, 0, 1);
+    const up = new THREE.Vector3().fromArray(s.up ?? [0, 0, 1]);
+    // 위쪽과 나란한(수직) 흐름에서 대신 쓰는 축: 위쪽 축 번호 k 의 (k+2)%3 축 (+Z 면 Y — 예전과 같다, Y 면 X, X 면 Z)
+    const upK = Math.abs(up.x) > 0.5 ? 0 : Math.abs(up.y) > 0.5 ? 1 : 2;
+    const alt = new THREE.Vector3().setComponent((upK + 2) % 3, 1);
     const angleOffset = s.shape === 'prism' ? Math.PI / ring : 0; // 각기둥은 윗면이 평평하게
     let vo = 0, io = 0;
     for (const l of this.lines) {
@@ -196,13 +200,13 @@ export class StreamlineRenderer {
         t.set(P[i1 * 3] - P[i0 * 3], P[i1 * 3 + 1] - P[i0 * 3 + 1], P[i1 * 3 + 2] - P[i0 * 3 + 2]);
         if (t.lengthSq() < 1e-18) t.set(1, 0, 0); else t.normalize();
         if (i === 0) {
-          // 첫 프레임: 위쪽(Z)에 가장 가까운 수직 방향. 수직 흐름이면 Y로 대신
+          // 첫 프레임: 위쪽에 가장 가까운 수직 방향. 위쪽과 나란한 흐름이면 대신 쓰는 축(alt)으로
           n.copy(up).addScaledVector(t, -t.dot(up));
-          if (n.lengthSq() < 1e-6) n.set(0, 1, 0).addScaledVector(t, -t.y);
+          if (n.lengthSq() < 1e-6) n.copy(alt).addScaledVector(t, -t.dot(alt));
           n.normalize();
         } else {
           n.addScaledVector(t, -n.dot(t));
-          if (n.lengthSq() < 1e-8) { n.copy(up).addScaledVector(t, -t.dot(up)); if (n.lengthSq() < 1e-6) n.set(0, 1, 0).addScaledVector(t, -t.y); }
+          if (n.lengthSq() < 1e-8) { n.copy(up).addScaledVector(t, -t.dot(up)); if (n.lengthSq() < 1e-6) n.copy(alt).addScaledVector(t, -t.dot(alt)); }
           n.normalize();
         }
         b.crossVectors(t, n);

@@ -77,15 +77,29 @@ export function computeStats(values: Float32Array): FieldStats {
     if (v > max) max = v;
   }
   if (!isFinite(min)) return { min: 0, max: 1, p2: 0, p98: 1 };
-  // 백분위: 최대 6만 개를 고르게 뽑아 정렬
+  // 백분위: 최대 6만 개를 고르게 뽑아 정렬 (Float64Array 기본 정렬 — 비교 함수 정렬보다 몇 배 빠르고 같은 값 차례)
   const stride = Math.max(1, Math.floor(values.length / 60000));
-  const sample: number[] = [];
+  const picked = new Float64Array(Math.ceil(values.length / stride));
+  let k = 0;
   for (let i = 0; i < values.length; i += stride) {
     const v = values[i];
-    if (v === v) sample.push(v);
+    if (v === v) picked[k++] = v;
   }
-  sample.sort((a, b) => a - b);
-  const q = (p: number) => sample[Math.min(sample.length - 1, Math.max(0, Math.floor(p * (sample.length - 1))))];
+  const raw = picked.subarray(0, k);
+  const sample = raw.slice().sort();
+  const q = (p: number) => {
+    const i = Math.min(k - 1, Math.max(0, Math.floor(p * (k - 1))));
+    const v = sample[i];
+    return v === 0 ? zeroAt(i) : v;
+  };
+  // 0 의 부호: 기본 정렬은 -0 을 +0 앞에 모으고, 예전 비교 함수(a - b) 정렬은 둘을 같게 보아 뽑은 차례를 지켰다 — 그 자리의 0 을 뽑은 차례에서 찾는다
+  const zeroAt = (i: number): number => {
+    let first = i;
+    while (first > 0 && sample[first - 1] === 0) first--;
+    let r = i - first;
+    for (let j = 0; j < k; j++) if (raw[j] === 0 && r-- === 0) return raw[j];
+    return sample[i];
+  };
   let p2 = q(0.02), p98 = q(0.98);
   if (p98 <= p2) { p2 = min; p98 = max; }
   [p2, p98] = widenRange(p2, p98);

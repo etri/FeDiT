@@ -177,6 +177,32 @@ export function displayableArrays(blocks: ResultBlock[]): string[] {
   return Array.from(out);
 }
 
+/** 헤더로 만든 Field 하나 (AppCore FieldOption 과 같은 꼴 — key 'vector:<이름>' · 'scalar:<이름>') */
+export interface HeaderField { key: string; label: string; kind: 'scalar' | 'vector' }
+
+/**
+ * 결과 폴더의 Field 목록을 첫 저장 헤더(scan.blocks 의 arrays — 이름·형식·성분 수)로 만든다. 값을 읽지 않으므로 쓰는 배열만 읽어도 목록이 모자라지 않다.
+ * 셀이 있는 블록 모두에 같은 성분 수로 있는 배열만 남긴다(교집합 — 다중 레벨 합치기 multiLevel combine 이 모든 레벨에 있는 배열만 합치는 것과 같게).
+ * Float 형, 성분 1(스칼라) · 3(벡터), position(셀 중심) 제외. 벡터 먼저, 각각 셀이 있는 첫 블록의 헤더 차례.
+ * key · label 은 AppCore.fieldOptions(데이터셋으로 만들 때)와 같다: 벡터 'vector:<이름>' · '<이름> (벡터)', 스칼라 'scalar:<이름>' · '<이름>'
+ */
+export function fieldCatalogOf(blocks: ResultBlock[]): HeaderField[] {
+  const live = blocks.filter((b) => b.numCells > 0);
+  if (!live.length) return [];
+  const shown = (a: VtuArrayInfo) => /^Float/.test(a.type) && a.name !== 'position' && (a.components === 1 || a.components === 3);
+  const shared = live[0].arrays.filter((a) => shown(a) && live.every((b) => b.arrays.some((x) => x.name === a.name && x.components === a.components && shown(x))));
+  return [
+    ...shared.filter((a) => a.components === 3).map((a): HeaderField => ({ key: `vector:${a.name}`, label: `${a.name} (벡터)`, kind: 'vector' })),
+    ...shared.filter((a) => a.components === 1).map((a): HeaderField => ({ key: `scalar:${a.name}`, label: a.name, kind: 'scalar' })),
+  ];
+}
+
+/** 처음 칠할 Field: 목록에 있으면 wanted(datasets.json 의 view.colorField), 없으면 첫 벡터, 없으면 첫 스칼라 (AppCore.installLevels 와 같은 규칙). 목록이 비면 null */
+export function defaultFieldOf(catalog: readonly HeaderField[], wanted?: string | null): string | null {
+  if (wanted && catalog.some((o) => o.key === wanted)) return wanted;
+  return (catalog.find((o) => o.kind === 'vector') ?? catalog[0])?.key ?? null;
+}
+
 /** 플래그(UInt8) 배열 중 고체 표시로 쓸 만한 것 */
 export function solidArrayOf(blocks: ResultBlock[]): string | undefined {
   return blocks.some((b) => b.arrays.some((a) => a.name === 'solid')) ? 'solid' : undefined;

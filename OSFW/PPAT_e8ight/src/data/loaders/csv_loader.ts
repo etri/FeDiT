@@ -84,6 +84,8 @@ export function parseCsv(text: string, name: string): CsvParseResult {
     r++;
   }
   const count = r;
+  // 칸이 모자란 행만 있으면 좌표 열 판정(숫자 열)까지 가면 '좌표 열을 찾지 못했습니다'로 잘못 알린다
+  if (count === 0) throw new Error(`읽을 수 있는 셀이 없습니다. 모든 행의 칸이 머리 줄(${ncol}칸)보다 적습니다.`);
   const cols = raw.map((a) => a.subarray(0, count));
 
   // 숫자 열 판정: 앞부분 200행이 전부 NaN이면 문자열 열로 보고 버린다.

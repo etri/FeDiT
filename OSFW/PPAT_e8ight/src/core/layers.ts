@@ -11,7 +11,7 @@
 - `slice`·`iso` → 면, `stream` → 선, `glyph` → Glyph (코드 VIEW_TYPES — 이름은 옛 '표현 노드' 모델의 흔적): 볼륨 노드(데이터·볼륨 위의 Clip/Threshold) 아래에만 붙는다.
 - 노드 출력 종류(OutputKind): 데이터와 볼륨 위의 Clip·Threshold = volume, Slice·Isosurface = surface, Streamline = lines,
   Glyph = glyphs, 그 위의 Clip·Threshold = 입력과 같은 종류.
-- 볼륨 노드(데이터·볼륨 Clip·Threshold)는 표현 방식(DataView: Surface | Outline | Points | Volume | 없음)을 가진다. 데이터의 표현은 AppCore.root.
+- 볼륨 노드(데이터·볼륨 Clip·Threshold)는 표현 방식(DataView: Surface | Outline | Feature Edges | Points | Volume | 없음)을 가진다. 데이터의 표현은 AppCore.root.
 - `visible` = 그 노드 자기 표현의 보이기(눈 단추). 자식에는 영향이 없다(ParaView 와 같음).
 노드 하나 = 한 가지 일. `parentId` 는 상위 노드의 id 또는 null(데이터 바로 아래).
 용어는 영문 원어(Clip, Threshold, Points, Slice, Glyph, Streamline, Isosurface, Surface, Outline, Volume, Coloring, Color Map, Preset, Opacity, Field, Range)를 그대로 쓴다.
@@ -19,6 +19,7 @@
 /******************************************************************************/
 import { VectorMapping } from '../data/pointDataset';
 import { ColormapId, DEFAULT_OPACITY_CURVE, OpacityCurve, copyOpacityCurve } from '../utils/colormap';
+import type { RangeBasis } from './colorRange';
 
 export type LayerType = 'clip' | 'threshold' | 'slice' | 'glyph' | 'stream' | 'iso';
 export type Axis = 0 | 1 | 2;
@@ -39,15 +40,21 @@ export const OUTPUT_LABEL: Record<OutputKind, string> = { volume: '셀', surface
 
 /**
  * 볼륨 노드의 표현 방식 (ParaView Representation). Surface = 남은 셀 집합의 바깥 면을 셀 값 색으로 · Outline = 경계 상자 ·
+ * Feature Edges = 남은 셀 집합의 모양이 꺾이는 모서리만 단색 선으로(analysis/featureEdges.ts) ·
  * Points = 셀 중심 점 · Volume = 남은 셀의 값을 시선을 따라 반투명하게 쌓아 그림(늘 배열로 칠함, render/volumeRenderer.ts) ·
  * none = 그리지 않음(자식만 보임)
  */
-export type Representation = 'surface' | 'outline' | 'points' | 'volume' | 'none';
-export const REPRESENTATION_LABEL: Record<Representation, string> = { surface: 'Surface', outline: 'Outline', points: 'Points', volume: 'Volume', none: '없음' };
+export type Representation = 'surface' | 'outline' | 'featureEdges' | 'points' | 'volume' | 'none';
+export const REPRESENTATION_LABEL: Record<Representation, string> = { surface: 'Surface', outline: 'Outline', featureEdges: 'Feature Edges', points: 'Points', volume: 'Volume', none: '없음' };
+/** 메뉴·장면 JSON 이 받는 표현 방식 (메뉴 순서) */
+export const REPRESENTATIONS: Representation[] = ['surface', 'outline', 'featureEdges', 'points', 'volume', 'none'];
+/** 격자(셀 면)가 있어야 그리는 표현 — 격자가 없으면 Points 로 대신 그린다(AppCore.rebuildData 의 surfaceFallback) */
+export const needsGrid = (rep: Representation): boolean => rep === 'surface' || rep === 'featureEdges' || rep === 'volume';
 
 /**
- * 색 지도 범위를 마지막으로 잡은 방법 (화면 표시용). grow = 노드를 만들거나 바꿀 때 넓히기만 함(ParaView 기본 'Grow and update on Apply') ·
- * data = 데이터 범위 · custom = 사용자 지정 · alltime = 전 시점 범위 · visible = 보이는 범위 (ParaView Rescale 단추 넷)
+ * 색 지도 범위를 마지막으로 잡은 방법 (화면 표시용). grow = 자동 — 처음 값이 서로 다른 장면에서 정하고, 노드를 만들거나 바꿀 때 넓히기만 함(ParaView 기본
+ * 'Grow and update on Apply'. 저장 시점을 넘길 때는 그대로) · data = 데이터 범위 · custom = 사용자 지정 · alltime = 전 시점 범위(모든 저장 시점을 읽음) ·
+ * visible = 보이는 범위 (ParaView Rescale 단추 넷). 무엇으로 잡았는지(어느 저장 시점 값인지 등)는 ColorMap.rangeBasis(core/colorRange.ts)
  */
 export type RangeMode = 'grow' | 'data' | 'custom' | 'alltime' | 'visible';
 export const RANGE_MODE_LABEL: Record<RangeMode, string> = { grow: '자동(넓히기)', data: '데이터 범위', custom: '사용자 지정', alltime: '전 시점 범위', visible: '보이는 범위' };
@@ -63,8 +70,11 @@ export interface ColorMap {
   rangeMin: number;
   rangeMax: number;
   rangeMode: RangeMode;
-  autoGrow: boolean;   // 노드를 만들거나 바꿔 다시 계산할 때 범위를 넓히기만 (저장 시점을 바꿀 때는 그대로). 사용자 지정 범위를 넣으면 꺼진다
-  fresh?: boolean;     // 아직 아무 노드도 범위를 넣지 않음 — 처음 칠하는 노드의 데이터 범위로 시작한다
+  /** 범위 근거 (상태 줄 '… t = 0.004 값으로 정함' · '저장 시점 51개 모두'). 자동·Rescale 로 잡을 때 넣고, 사용자 지정·미정이면 없다. 장면 JSON 에 함께 저장 */
+  rangeBasis?: RangeBasis;
+  autoGrow: boolean;   // 노드를 만들거나 바꿔 다시 계산할 때 범위를 넓히기만 (저장 시점을 바꿀 때는 그대로, 값이 모두 같은 장면은 쓰지 않음). 사용자 지정 범위를 넣으면 꺼진다
+  /** 아직 범위를 정하지 않음 — 이 지도로 칠하는 노드가 값이 서로 다른 장면을 처음 그릴 때 정한다. 그동안 rangeMin·rangeMax 는 칠하기용 임시 값(화면 숫자로는 안 보임) */
+  fresh?: boolean;
   opacity: OpacityCurve; // [x, Opacity] 꺾은선, x 는 이 지도 범위 기준 0~1 (기본 [[0,0],[1,1]]). 늘 새 배열로 바꿔 넣고 제자리에서 고치지 않는다
 }
 
@@ -91,7 +101,7 @@ export function defaultLayerColor(fieldKey: string | null): LayerColor {
 
 /**
  * 볼륨 노드의 표시 설정. opacity 는 Surface, pointSize·sphereShading 은 Points, volumeUnitDistance 는 Volume 에 쓴다.
- * color 는 Surface·Points·Volume 의 색칠(Outline 은 늘 단색 — ParaView. Volume 은 단색이 없다)
+ * color 는 Surface·Points·Volume 의 색칠(Outline 은 늘 단색 — ParaView. Feature Edges 도 단색 — PV와 다름(ParaView 는 칠할 수 있음). Volume 은 단색이 없다)
  */
 export interface DataView {
   representation: Representation;
@@ -311,8 +321,11 @@ export type Layer = FilterLayer | ViewLayer;
 export type LayerParams = ClipParams | ThresholdParams | SliceParams | GlyphParams | StreamParams | IsoParams;
 export type LayerPatch = Partial<ClipParams> | Partial<ThresholdParams> | Partial<SliceParams> | Partial<GlyphParams> | Partial<StreamParams> | Partial<IsoParams>;
 
-/** 조상 Clip·Threshold 하나 (뿌리→잎 순서로 모아 사슬을 만든다) */
-export type ChainItem = { kind: 'clip'; params: ClipParams } | { kind: 'threshold'; params: ThresholdParams };
+/**
+ * 조상 Clip·Threshold 하나 (뿌리→잎 순서로 모아 사슬을 만든다). id = 그 노드 — 요약 글의 자릿수 기준(노드별 값 밀대 끝, AppCore.valueSliderBounds).
+ * 노드 없이 만든 항목이면 없다(요약 글이 노드 값만으로 자릿수를 잰다)
+ */
+export type ChainItem = { kind: 'clip'; params: ClipParams; id?: string } | { kind: 'threshold'; params: ThresholdParams; id?: string };
 
 /** Clip·Threshold 노드 종류인지 (어느 노드 아래에도 붙는지) */
 export function isFilterType(t: LayerType): boolean { return FILTER_TYPES.includes(t); }

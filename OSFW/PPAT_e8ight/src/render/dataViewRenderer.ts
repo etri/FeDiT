@@ -4,15 +4,16 @@
 /*!
 \file   dataViewRenderer.ts
 
-볼륨 노드(데이터·볼륨 위의 Clip·Threshold) 하나의 그리기 객체. 표현 방식(Surface | Outline | Points | Volume | 없음)마다 렌더러를 하나씩 들고
+볼륨 노드(데이터·볼륨 위의 Clip·Threshold) 하나의 그리기 객체. 표현 방식(Surface | Outline | Feature Edges | Points | Volume | 없음)마다 렌더러를 하나씩 들고
 지금 표현의 것만 보인다. 계산(남은 셀·면·점 마스크·Volume 값 버퍼)은 AppCore 가 지금 표현에 필요한 것만 해서 넣는다.
 Points 는 데이터셋 공유 속성(PointAttrs)을 붙인 PointRenderer 라서, 지울 때 다른 볼륨 노드가 공유 속성을 쓰는지에 따라 dispose('keep'|'free').
 Volume 의 3D 텍스처는 크기가 커서 Volume 이 아닌 표현으로 바꾸는 순간 놓는다(setRepresentation).
 */
 /******************************************************************************/
 import * as THREE from 'three';
-import { Representation } from '../core/layers';
+import { Representation, needsGrid } from '../core/layers';
 import { CellColorSpec, CellSurfaceRenderer } from './cellSurfaceRenderer';
+import { FeatureEdgesRenderer } from './featureEdgesRenderer';
 import { OutlineRenderer } from './outlineRenderer';
 import { PointAttrs, PointRenderer } from './pointRenderer';
 import { VolumeRenderer } from './volumeRenderer';
@@ -22,22 +23,23 @@ export class DataViewRenderer {
   readonly group = new THREE.Group();
   readonly surface = new CellSurfaceRenderer();
   readonly outline = new OutlineRenderer();
+  readonly edges = new FeatureEdgesRenderer();
   readonly volume = new VolumeRenderer();
   readonly points: PointRenderer;
   representation: Representation = 'outline';
   /** 남은 셀 수 (마지막 계산) */
   keptCells = 0;
-  /** Surface·Volume 을 고른 노드가 격자가 없어 점으로 대신 그렸는지 */
+  /** Surface·Feature Edges·Volume 을 고른 노드가 격자가 없어 점으로 대신 그렸는지 */
   surfaceFallback = false;
 
   constructor(attrs: PointAttrs) {
     this.points = new PointRenderer(attrs);
     this.group.name = 'data-view';
-    this.group.add(this.surface.group, this.outline.group, this.points.group, this.volume.group);
+    this.group.add(this.surface.group, this.outline.group, this.edges.group, this.points.group, this.volume.group);
     this.setRepresentation('outline');
   }
 
-  /** 보일 렌더러를 고른다. Surface·Volume 인데 격자가 없으면(surfaceFallback) Points 를 보인다. Volume 이 아니면 3D 텍스처를 놓는다 */
+  /** 보일 렌더러를 고른다. Surface·Feature Edges·Volume 인데 격자가 없으면(surfaceFallback) Points 를 보인다. Volume 이 아니면 3D 텍스처를 놓는다 */
   setRepresentation(rep: Representation): void {
     this.representation = rep;
     if (rep !== 'volume') this.volume.clear();
@@ -48,13 +50,14 @@ export class DataViewRenderer {
     const rep = this.shownRepresentation();
     this.surface.group.visible = rep === 'surface';
     this.outline.group.visible = rep === 'outline';
+    this.edges.group.visible = rep === 'featureEdges';
     this.points.group.visible = rep === 'points';
     this.volume.group.visible = rep === 'volume';
   }
 
-  /** 실제로 그려지는 표현 (Surface·Volume 대신 Points 로 그리는 경우 'points') */
+  /** 실제로 그려지는 표현 (Surface·Feature Edges·Volume 대신 Points 로 그리는 경우 'points') */
   shownRepresentation(): Representation {
-    return (this.representation === 'surface' || this.representation === 'volume') && this.surfaceFallback ? 'points' : this.representation;
+    return needsGrid(this.representation) && this.surfaceFallback ? 'points' : this.representation;
   }
 
   private pointsColormap: string | null = null;
@@ -71,6 +74,7 @@ export class DataViewRenderer {
   clear(): void {
     this.surface.clear();
     this.outline.clear();
+    this.edges.clear();
     this.points.clear();
     this.volume.clear();
     this.keptCells = 0;
@@ -79,6 +83,7 @@ export class DataViewRenderer {
   dispose(shared: 'keep' | 'free'): void {
     this.surface.dispose();
     this.outline.dispose();
+    this.edges.dispose();
     this.points.dispose(shared);
     this.volume.dispose();
   }

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: LGPL-2.1-only
 # Copyright (c) 2026 E8IGHT Co., Ltd.
-# 띄운 뒤 확인: 엔진 상태 → 페이지 → 해석 1건 실행 → (앞단을 거치면) 결과 폴더 읽기 → 결과 ZIP 받기.
-# 물리 시뮬레이션 페이지가 할 일(POST engine/jobs, 상태 조회)과 후처리가 할 일(results/ 읽기)을 curl 로 대신한다.
+# 띄운 뒤 확인: 엔진 상태 → 페이지 → 해석 1건 실행 → (앞단을 거치면) 해석 목록·결과 폴더 읽기 → 결과 ZIP 받기.
+# 물리 시뮬레이션 페이지가 할 일(POST engine/jobs, 상태 조회)과 두 페이지가 할 일(results/ 해석 목록, 결과 폴더 읽기)을 curl 로 대신한다.
 #
 # 사용: bash smoke_test.sh <입력 JSON> [STL ...]
 #   예: bash smoke_test.sh <해석엔진 패키지 폴더>/examples/03_concentration_diffusion/03_concentration_diffusion.json
@@ -84,7 +84,11 @@ done
 echo "$st"
 
 if [ -n "$RESULTS" ]; then
-  step "5. 결과 폴더 읽기 ($RESULTS/$JOB_ID/)"
+  step "5. 해석 목록·결과 폴더 읽기 ($RESULTS/, $RESULTS/$JOB_ID/)"
+  # 맨 윗단 해석 목록에 방금 작업이 보여야 한다(물리 시뮬레이션·후처리 페이지가 이 목록에서 서버 해석을 고른다)
+  top=$(curl -fsS "$RESULTS/") || fail "해석 목록을 읽지 못함: $RESULTS/ (404 면 맨 윗단 목록이 없는 옛 앞단 이미지)"
+  printf '%s' "$top" | grep -q "\"name\":\"$JOB_ID\", *\"type\":\"directory\"" || fail "해석 목록에 이 작업($JOB_ID)이 없습니다: $RESULTS/"
+  echo "  해석 목록: 폴더 $(printf '%s\n' "$top" | grep -c '"type":"directory"' || true)개, 이 작업 보임"
   list=$(curl -fsS "$RESULTS/$JOB_ID/") || fail "작업 폴더 목록을 읽지 못함: $RESULTS/$JOB_ID/"
   { printf '%s\n' "$list" | grep -o '"name":"[^"]*"' || true; } | sed 's/^/  /'
   rpath=$(field "$st" result_path)
